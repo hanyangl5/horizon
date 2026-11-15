@@ -127,7 +127,7 @@ bool PostEffects::PrepareBloomChain()
     }
     if (!Valid)
     {
-        LOGF(eWARNING, "Bloom targets unavailable; skipping bloom for this frame");
+        LOGF(Warning, "Bloom targets unavailable; skipping bloom for this frame");
         ReleaseBloomChain();
     }
     return Valid;

@@ -29,7 +29,7 @@ void Rig::Initialize(const ResourceDirectory resourceDir, const char* fileName)
     // Reading skeleton.
     if (!LoadSkeleton(resourceDir, fileName))
     {
-        LOGF(eERROR, "Couldn't load skeleton %s", fileName);
+        LOGF(Error, "Couldn't load skeleton %s", fileName);
         return; // need error catching
     }
 
@@ -38,7 +38,7 @@ void Rig::Initialize(const ResourceDirectory resourceDir, const char* fileName)
 
     if (numJoints == 0)
     {
-        LOGF(eERROR, "Couldn't load skeleton %s", fileName);
+        LOGF(Error, "Couldn't load skeleton %s", fileName);
         return;
     }
 
@@ -60,7 +60,7 @@ bool Rig::LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName
     FileStream file = {};
     if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ, &file))
     {
-        LOGF(eERROR, "Cannot open skeleton file");
+        LOGF(Error, "Cannot open skeleton file");
         return false;
     }
 
@@ -78,7 +78,7 @@ bool Rig::LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName
     ozz::io::IArchive archive(&memStream);
     if (!archive.TestTag<ozz::animation::Skeleton>())
     {
-        LOGF(eERROR, "Skeleton Archive doesn't contain the expected object type");
+        LOGF(Error, "Skeleton Archive doesn't contain the expected object type");
         fsCloseStream(&memStream);
         return false;
     }

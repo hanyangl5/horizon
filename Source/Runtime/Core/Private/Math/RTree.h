@@ -349,7 +349,7 @@ extern "C"
         uint8_t        stack_ptr = 0;
 
         tree_stack[stack_ptr++] = 0; // Set root node as start point
-        RAW_LOGF(LogLevel::eINFO, "Print RTree \n");
+        RAW_LOGF(LogLevel::Info, "Print RTree \n");
         do
         {
             uint8_t node_ptr = stack_ptr;
@@ -381,7 +381,7 @@ extern "C"
 
             } while (node_ptr > 0);
             sprintf(buffer + offset, "\n");
-            RAW_LOGF(LogLevel::eINFO, buffer);
+            RAW_LOGF(LogLevel::Info, buffer);
             ++depth;
         } while (stack_ptr > 0);
     }

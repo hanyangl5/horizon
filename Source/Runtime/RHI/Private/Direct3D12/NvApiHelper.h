@@ -44,8 +44,8 @@ static void nvapiPrintDriverInfo()
     NvAPI_Status status = NvAPI_SYS_GetDriverAndBranchVersion(&gNvGpuInfo.driverVersion, gNvGpuInfo.buildBranch);
     if (NvAPI_Status::NVAPI_OK == status)
     {
-        LOGF(eINFO, "NVIDIA Display Driver Version %u", gNvGpuInfo.driverVersion);
-        LOGF(eINFO, "NVIDIA Build Branch %s", gNvGpuInfo.buildBranch);
+        LOGF(Info, "NVIDIA Display Driver Version %u", gNvGpuInfo.driverVersion);
+        LOGF(Info, "NVIDIA Build Branch %s", gNvGpuInfo.buildBranch);
     }
 #endif
 }

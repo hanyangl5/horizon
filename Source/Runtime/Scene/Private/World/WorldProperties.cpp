@@ -12,17 +12,17 @@ static bool validatePropertyValue(const PropertyDesc& property, const PropertyVa
     if (!value.pData || value.kind != property.kind || value.kind == PropertyKind::Array ||
         (value.kind == PropertyKind::String ? !value.size || value.size > property.size : value.size != property.size))
     {
-        LOGF(eERROR, "Property '%s': value kind or size does not match", property.pName);
+        LOGF(Error, "Property '%s': value kind or size does not match", property.pName);
         return false;
     }
     if (value.kind == PropertyKind::String && !memchr(value.pData, 0, value.size))
     {
-        LOGF(eERROR, "Property '%s': string is not null terminated", property.pName);
+        LOGF(Error, "Property '%s': string is not null terminated", property.pName);
         return false;
     }
     if (value.kind == PropertyKind::Boolean && *(const uint8_t*)value.pData > 1)
     {
-        LOGF(eERROR, "Property '%s': invalid boolean", property.pName);
+        LOGF(Error, "Property '%s': invalid boolean", property.pName);
         return false;
     }
     if (value.kind == PropertyKind::Enum)
@@ -32,7 +32,7 @@ static bool validatePropertyValue(const PropertyDesc& property, const PropertyVa
         for (const EnumValue& entry : property.enumValues)
             if (entry.value == enumValue)
                 return true;
-        LOGF(eERROR, "Property '%s': unknown enum value", property.pName);
+        LOGF(Error, "Property '%s': unknown enum value", property.pName);
         return false;
     }
     return true;
@@ -52,19 +52,19 @@ void* WorldImpl::findEditableProperty(ecs_entity_t entity, TypeID type, Property
     const WorldType* pType = findType(type);
     if (!entity || !ecs_is_alive(pWorld, entity) || !pType)
     {
-        LOGF(eERROR, "Property edit requires a live entity and registered component type");
+        LOGF(Error, "Property edit requires a live entity and registered component type");
         return nullptr;
     }
     pProperty = pType->pType->getProperty(property);
     if (!pProperty || (pProperty->flags & PROPERTY_READ_ONLY) || type == SceneTypes::entityIdentity)
     {
-        LOGF(eERROR, "Property edit references an unknown or read-only property");
+        LOGF(Error, "Property edit references an unknown or read-only property");
         return nullptr;
     }
     void* pComponent = const_cast<void*>(ecs_get_id(pWorld, entity, pType->component));
     if (!pComponent)
     {
-        LOGF(eERROR, "Property edit requires an existing '%s' component", pType->pType->pName);
+        LOGF(Error, "Property edit requires an existing '%s' component", pType->pType->pName);
         return nullptr;
     }
     return (uint8_t*)pComponent + pProperty->offset;
@@ -91,7 +91,7 @@ static bool validateArray(const PropertyDesc& property)
 {
     if (property.kind == PropertyKind::Array)
         return true;
-    LOGF(eERROR, "Property '%s' is not an array", property.pName);
+    LOGF(Error, "Property '%s' is not an array", property.pName);
     return false;
 }
 
@@ -123,7 +123,7 @@ bool World::insertArrayElement(Entity entity, TypeID type, PropertyID property, 
         return false;
     if (index > pProperty->pArrayOperations->pCount(pArray))
     {
-        LOGF(eERROR, "Property '%s': insertion index is out of range", pProperty->pName);
+        LOGF(Error, "Property '%s': insertion index is out of range", pProperty->pName);
         return false;
     }
     for (const PropertyDesc& field : pProperty->pElementType->properties)
@@ -147,7 +147,7 @@ bool World::removeArrayElement(Entity entity, TypeID type, PropertyID property, 
         return false;
     if (index >= pProperty->pArrayOperations->pCount(pArray))
     {
-        LOGF(eERROR, "Property '%s': removal index is out of range", pProperty->pName);
+        LOGF(Error, "Property '%s': removal index is out of range", pProperty->pName);
         return false;
     }
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
@@ -169,13 +169,13 @@ bool World::setArrayElementProperty(Entity entity, TypeID type, PropertyID prope
         return false;
     if (index >= pProperty->pArrayOperations->pCount(pArray))
     {
-        LOGF(eERROR, "Property '%s': element index is out of range", pProperty->pName);
+        LOGF(Error, "Property '%s': element index is out of range", pProperty->pName);
         return false;
     }
     const PropertyDesc* pField = pProperty->pElementType->getProperty(elementProperty);
     if (!pField || (pField->flags & PROPERTY_READ_ONLY))
     {
-        LOGF(eERROR, "Array edit references an unknown or read-only element property");
+        LOGF(Error, "Array edit references an unknown or read-only element property");
         return false;
     }
     if (!validatePropertyValue(*pField, value))

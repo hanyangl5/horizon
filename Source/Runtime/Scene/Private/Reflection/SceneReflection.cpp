@@ -197,7 +197,7 @@ bool TypeRegistry::registerTypes(Span<TypeDesc> types)
         const TypeDesc& type = types.pData[i];
         if (!validProperties(type, false))
         {
-            LOGF(eERROR, "Invalid reflection metadata for type '%s'", type.pName ? type.pName : "<unnamed>");
+            LOGF(Error, "Invalid reflection metadata for type '%s'", type.pName ? type.pName : "<unnamed>");
             return false;
         }
         bool duplicate = getType(type.id) || getType(type.pName);
@@ -205,7 +205,7 @@ bool TypeRegistry::registerTypes(Span<TypeDesc> types)
             duplicate |= type.id == types.pData[j].id || !strcmp(type.pName, types.pData[j].pName);
         if (duplicate)
         {
-            LOGF(eERROR, "Duplicate reflection type '%s'", type.pName);
+            LOGF(Error, "Duplicate reflection type '%s'", type.pName);
             return false;
         }
     }

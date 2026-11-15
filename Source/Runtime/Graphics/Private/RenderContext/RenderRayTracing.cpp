@@ -130,7 +130,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
 {
     if (!pRaytracing && !initRaytracing(pRenderer, &pRaytracing))
     {
-        LOGF(eERROR, "Ray tracing is not supported by the selected device");
+        LOGF(Error, "Ray tracing is not supported by the selected device");
         return {};
     }
     ASSERT(!(input.flags & ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE));
@@ -309,7 +309,7 @@ static bool raySlangResult(SlangResult result, const Slang::ComPtr<ISlangBlob>& 
 {
     if (diagnostics && diagnostics->getBufferSize())
     {
-        LOGF(SLANG_FAILED(result) ? eERROR : eWARNING, "Slang ray tracing: %s", (const char*)diagnostics->getBufferPointer());
+        LOGF(SLANG_FAILED(result) ? Error : Warning, "Slang ray tracing: %s", (const char*)diagnostics->getBufferPointer());
     }
     return SLANG_SUCCEEDED(result);
 }
@@ -330,7 +330,7 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
     FileStream stream = {};
     if (!fsOpenStreamFromPath(input.sourceDirectory, input.pFileName, FM_READ, &stream))
     {
-        LOGF(eERROR, "Cannot open ray tracing shader '%s'", input.pFileName);
+        LOGF(Error, "Cannot open ray tracing shader '%s'", input.pFileName);
         return {};
     }
     const ssize_t size = fsGetStreamFileSize(&stream);

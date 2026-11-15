@@ -201,13 +201,13 @@ bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
     if (!entry.id.isValid() || entry.type > AssetType::Texture || entry.location.root > AssetPathRoot::Cooked ||
         !validPath(entry.pSourcePath) || !validPath(entry.location.pPath) || (entry.dependencies.count && !entry.dependencies.pData))
     {
-        LOGF(eERROR, "Invalid AssetCatalog entry");
+        LOGF(Error, "Invalid AssetCatalog entry");
         return false;
     }
     for (AssetID id : entry.dependencies)
         if (!id.isValid())
         {
-            LOGF(eERROR, "Invalid AssetCatalog dependency");
+            LOGF(Error, "Invalid AssetCatalog dependency");
             return false;
         }
     const CatalogBatch       batch(entry);
@@ -219,7 +219,7 @@ bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
             return true;
         if (!replaceExisting || pExisting->type != entry.type)
         {
-            LOGF(eERROR, "Conflicting AssetCatalog entry from '%s'", entry.pSourcePath);
+            LOGF(Error, "Conflicting AssetCatalog entry from '%s'", entry.pSourcePath);
             return false;
         }
         pData->retiredEntries.pushBack((AssetCatalogEntry*)pExisting);
@@ -234,7 +234,7 @@ bool AssetCatalog::addScene(const SceneAsset& scene, const char* pCookedScenePat
 {
     if (!scene.isValid() || !validPath(pCookedScenePath))
     {
-        LOGF(eERROR, "AssetCatalog requires a decoded SceneAsset and a relative cooked path");
+        LOGF(Error, "AssetCatalog requires a decoded SceneAsset and a relative cooked path");
         return false;
     }
     const CatalogBatch batch(scene, pCookedScenePath);
@@ -245,7 +245,7 @@ bool AssetCatalog::addScene(const SceneAsset& scene, const char* pCookedScenePat
         {
             char id[kIDStringCapacity];
             entry.id.toString(id);
-            LOGF(eERROR, "Conflicting AssetCatalog entry '%s' from '%s'", id, pCookedScenePath);
+            LOGF(Error, "Conflicting AssetCatalog entry '%s' from '%s'", id, pCookedScenePath);
             return false;
         }
     }
@@ -307,7 +307,7 @@ bool AssetCatalog::merge(const AssetCatalog& other)
         const AssetCatalogEntry* pExisting = find(entry.id);
         if (pExisting && !sameEntry(*pExisting, entry))
         {
-            LOGF(eERROR, "Conflicting AssetCatalog entry from '%s'", entry.pSourcePath);
+            LOGF(Error, "Conflicting AssetCatalog entry from '%s'", entry.pSourcePath);
             return false;
         }
     }
@@ -414,7 +414,7 @@ bool AssetCatalog::parse(Span<char> json)
     AssetCatalog candidate;
     if (!readCatalog(json, candidate))
     {
-        LOGF(eERROR, "Invalid AssetCatalog JSON");
+        LOGF(Error, "Invalid AssetCatalog JSON");
         return false;
     }
     if (candidate.pData)
@@ -424,7 +424,7 @@ bool AssetCatalog::parse(Span<char> json)
             const AssetCatalogEntry* pExisting = find(entry.id);
             if (pExisting && pExisting->type != entry.type)
             {
-                LOGF(eERROR, "AssetCatalog replacement cannot change an AssetID's type");
+                LOGF(Error, "AssetCatalog replacement cannot change an AssetID's type");
                 return false;
             }
         }
@@ -447,7 +447,7 @@ bool AssetCatalog::load(ResourceDirectory directory, const char* pFileName)
 {
     if (!validPath(pFileName))
     {
-        LOGF(eERROR, "AssetCatalog requires a relative index path");
+        LOGF(Error, "AssetCatalog requires a relative index path");
         return false;
     }
     FileStream stream = {};
@@ -457,7 +457,7 @@ bool AssetCatalog::load(ResourceDirectory directory, const char* pFileName)
     if (size <= 0 || size > 64 * 1024 * 1024)
     {
         fsCloseStream(&stream);
-        LOGF(eERROR, "Invalid AssetCatalog file size: '%s'", pFileName);
+        LOGF(Error, "Invalid AssetCatalog file size: '%s'", pFileName);
         return false;
     }
     Array<char>  json((uint32_t)size);
@@ -465,7 +465,7 @@ bool AssetCatalog::load(ResourceDirectory directory, const char* pFileName)
     fsCloseStream(&stream);
     if (bytesRead != (size_t)size)
     {
-        LOGF(eERROR, "Cannot read AssetCatalog '%s'", pFileName);
+        LOGF(Error, "Cannot read AssetCatalog '%s'", pFileName);
         return false;
     }
     return parse({ json.data(), json.size() });

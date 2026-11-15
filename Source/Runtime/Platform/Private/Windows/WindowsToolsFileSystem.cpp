@@ -145,7 +145,7 @@ void fswThreadFunc(void* data)
                 strcat(fullPathToFile, "\\");
                 strcat(fullPathToFile, utf8Name);
 
-                LOGF(LogLevel::eINFO, "Monitoring activity of file: %s -- Action: %u", fs->path, fni->Action);
+                LOGF(LogLevel::Info, "Monitoring activity of file: %s -- Action: %u", fs->path, fni->Action);
                 fs->callback(fullPathToFile, action, fs->callbackUserData);
             }
 
@@ -346,7 +346,7 @@ bool create_directories(const char* path, bool recursive)
 
         if (winError == ERROR_PATH_NOT_FOUND)
         {
-            LOGF(LogLevel::eERROR, "Unable to create directory {%s}!", directoryPath);
+            LOGF(LogLevel::Error, "Unable to create directory {%s}!", directoryPath);
             return false;
         }
     }
@@ -385,7 +385,7 @@ bool fsCheckPath(ResourceDirectory rd, const char* path, bool* exist, bool* isDi
         }
 
         // TODO write FormatMessage monstrosity to print strerror()
-        LOGF(eERROR, "Failed to retreive path '%s' info: %u", fullPath, (unsigned)GetLastError());
+        LOGF(Error, "Failed to retreive path '%s' info: %u", fullPath, (unsigned)GetLastError());
         return false;
     }
 

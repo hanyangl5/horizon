@@ -945,7 +945,7 @@ static void initRendererAPI(const char* appName, const RendererDesc* pSettings, 
         initD3D12Renderer(appName, pSettings, ppRenderer);
         break;
     default:
-        LOGF(LogLevel::eERROR, "No Renderer API defined!");
+        LOGF(LogLevel::Error, "No Renderer API defined!");
         break;
     }
 }
@@ -958,7 +958,7 @@ static void exitRendererAPI(Renderer* pRenderer, const RendererApi api)
         exitD3D12Renderer(pRenderer);
         break;
     default:
-        LOGF(LogLevel::eERROR, "No Renderer API defined!");
+        LOGF(LogLevel::Error, "No Renderer API defined!");
         break;
     }
 }
@@ -972,7 +972,7 @@ static void initRendererContextAPI(const char* appName, const RendererContextDes
         initD3D12RendererContext(appName, pSettings, ppContext);
         break;
     default:
-        LOGF(LogLevel::eERROR, "No Renderer API defined!");
+        LOGF(LogLevel::Error, "No Renderer API defined!");
         break;
     }
 }
@@ -985,7 +985,7 @@ static void exitRendererContextAPI(RendererContext* pContext, const RendererApi 
         exitD3D12RendererContext(pContext);
         break;
     default:
-        LOGF(LogLevel::eERROR, "No Renderer API defined!");
+        LOGF(LogLevel::Error, "No Renderer API defined!");
         break;
     }
 }
@@ -1009,8 +1009,8 @@ void initRendererContext(const char* appName, const RendererContextDesc* pSettin
     }
     else
     {
-        LOGF(LogLevel::eWARNING, "Requested Graphics API has been marked as disabled and/or not supported in the Renderer's descriptor!");
-        LOGF(LogLevel::eWARNING, "Falling back to the first available API...");
+        LOGF(LogLevel::Warning, "Requested Graphics API has been marked as disabled and/or not supported in the Renderer's descriptor!");
+        LOGF(LogLevel::Warning, "Falling back to the first available API...");
     }
 
     removeGPUConfigurationRules();
@@ -1064,8 +1064,8 @@ void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer**
     }
     else
     {
-        LOGF(LogLevel::eWARNING, "Requested Graphics API has been marked as disabled and/or not supported in the Renderer's descriptor!");
-        LOGF(LogLevel::eWARNING, "Falling back to the first available API...");
+        LOGF(LogLevel::Warning, "Requested Graphics API has been marked as disabled and/or not supported in the Renderer's descriptor!");
+        LOGF(LogLevel::Warning, "Falling back to the first available API...");
     }
 
     // set available gpus and renderer api

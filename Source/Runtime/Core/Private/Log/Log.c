@@ -128,7 +128,7 @@ static void defaultFlush(void* user_data)
     fsFlushStream(fh);
 }
 
-void initLog(const char* appName, LogLevel level /* = eALL */)
+void InitLog(const char* appName, LogLevel level /* = All */)
 {
     if (!gIsLoggerInitialized)
     {
@@ -148,9 +148,9 @@ void initLog(const char* appName, LogLevel level /* = eALL */)
     }
 }
 
-void exitLog(void)
+void ExitLog(void)
 {
-    LOGF(eINFO, "Shutting down log system.");
+    LOGF(Info, "Shutting down log system.");
 
     for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
     {
@@ -163,7 +163,7 @@ void exitLog(void)
     gIsLoggerInitialized = false;
 }
 
-void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
+void AddLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
 {
     if (filename == NULL)
         return;
@@ -177,7 +177,7 @@ void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
         // AddCallback will try to acquire mutex
         char path[FS_MAX_PATH] = { 0 };
         fsMergeDirAndFileName(fsGetResourceDirectory(RD_LOG), filename, '/', sizeof path, path);
-        addLogCallback(path, log_level, user, defaultCallback, defaultClose, defaultFlush);
+        AddLogCallback(path, log_level, user, defaultCallback, defaultClose, defaultFlush);
 
         LockMutex(&gLogger.logMutex);
         {
@@ -192,15 +192,15 @@ void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
         }
         UnlockMutex(&gLogger.logMutex);
 
-        writeLog(eINFO, __FILE__, __LINE__, "Opened log file %s", filename);
+        WriteLog(Info, __FILE__, __LINE__, "Opened log file %s", filename);
     }
     else
     {
-        writeLog(eERROR, __FILE__, __LINE__, "Failed to create log file %s", filename); // will try to acquire mutex
+        WriteLog(Error, __FILE__, __LINE__, "Failed to create log file %s", filename); // will try to acquire mutex
     }
 }
 
-void addLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close, LogFlushFn flush)
+void AddLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close, LogFlushFn flush)
 {
     LockMutex(&gLogger.logMutex);
     {
@@ -223,7 +223,7 @@ void addLogCallback(const char* id, uint32_t log_level, void* user_data, LogCall
 
 typedef char LogStr[LOG_LEVEL_SIZE + 1];
 
-void writeLogVaList(uint32_t level, const char* filename, int line_number, const char* message, va_list args)
+void WriteLogVaList(uint32_t level, const char* filename, int line_number, const char* message, va_list args)
 {
     typedef struct Prefix
     {
@@ -231,7 +231,7 @@ void writeLogVaList(uint32_t level, const char* filename, int line_number, const
         const char* second;
     } Prefix;
 
-    static Prefix logLevelPrefixes[] = { { eWARNING, "WARN| " }, { eINFO, "INFO| " }, { eDEBUG, " DBG| " }, { eERROR, " ERR| " } };
+    static Prefix logLevelPrefixes[] = { { Warning, "WARN| " }, { Info, "INFO| " }, { Debug, " DBG| " }, { Error, " ERR| " } };
 
     uint32_t log_levels[LEVELS_LOG];
     uint32_t log_level_count = 0;
@@ -267,7 +267,7 @@ void writeLogVaList(uint32_t level, const char* filename, int line_number, const
 
         if (gConsoleLogging)
         {
-            _PrintUnicode(gLogBuffer, level & eERROR);
+            _PrintUnicode(gLogBuffer, level & Error);
         }
 
         LockMutex(&gLogger.logMutex);
@@ -282,15 +282,15 @@ void writeLogVaList(uint32_t level, const char* filename, int line_number, const
     }
 }
 
-void writeLog(uint32_t level, const char* filename, int line_number, const char* message, ...)
+void WriteLog(uint32_t level, const char* filename, int line_number, const char* message, ...)
 {
     va_list args;
     va_start(args, message);
-    writeLogVaList(level, filename, line_number, message, args);
+    WriteLogVaList(level, filename, line_number, message, args);
     va_end(args);
 }
 
-void writeRawLog(uint32_t level, bool error, const char* message, ...)
+void WriteRawLog(uint32_t level, bool error, const char* message, ...)
 {
     va_list args;
     va_start(args, message);
@@ -313,7 +313,7 @@ void writeRawLog(uint32_t level, bool error, const char* message, ...)
     UnlockMutex(&gLogger.logMutex);
 }
 
-void _FailedAssert(const char* file, int line, const char* statement, const char* msgFmt, ...)
+void FailedAssert(const char* file, int line, const char* statement, const char* msgFmt, ...)
 {
     char usrMsgBuf[LOG_MAX_BUFFER];
     if (msgFmt && msgFmt[0])
@@ -338,9 +338,9 @@ void _FailedAssert(const char* file, int line, const char* statement, const char
     else
     {
         if (usrMsgBuf[0])
-            writeLog(eERROR, file, line, "Assert failed: %s\nAssert message: %s", statement, usrMsgBuf);
+            WriteLog(Error, file, line, "Assert failed: %s\nAssert message: %s", statement, usrMsgBuf);
         else
-            writeLog(eERROR, file, line, "Assert failed: %s", statement);
+            WriteLog(Error, file, line, "Assert failed: %s", statement);
     }
 
     _FailedAssertImpl(file, line, statement, usrMsgBuf[0] ? usrMsgBuf : NULL);
@@ -363,7 +363,7 @@ static void addInitialLogFile(const char* appName)
     }
     strncat(exeFileName, extension, extensionLength + 1);
 
-    addLogFile(exeFileName, FM_WRITE_ALLOW_READ, eALL);
+    AddLogFile(exeFileName, FM_WRITE_ALLOW_READ, All);
 }
 
 static uint32_t writeLogPreamble(char* buffer, uint32_t buffer_size, const char* file, int line)
@@ -420,17 +420,17 @@ static bool isLogCallback(const char* id)
 }
 
 #else
-void initLog(const char* appName, LogLevel level) {}
-void exitLog(void) {}
+void InitLog(const char* appName, LogLevel level) {}
+void ExitLog(void) {}
 
-void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level) {}
-void addLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close, LogFlushFn flush) {}
+void AddLogFile(const char* filename, FileMode file_mode, LogLevel log_level) {}
+void AddLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close, LogFlushFn flush) {}
 
-void writeLog(uint32_t level, const char* filename, int line_number, const char* message, va_list args) {}
-void writeLog(uint32_t level, const char* filename, int line_number, const char* message, ...) {}
-void writeRawLog(uint32_t level, bool error, const char* message, ...) {}
+void WriteLog(uint32_t level, const char* filename, int line_number, const char* message, va_list args) {}
+void WriteLog(uint32_t level, const char* filename, int line_number, const char* message, ...) {}
+void WriteRawLog(uint32_t level, bool error, const char* message, ...) {}
 
-void _FailedAssert(const char* file, int line, const char* statement, const char* msgFmt, ...) {}
+void FailedAssert(const char* file, int line, const char* statement, const char* msgFmt, ...) {}
 #endif
 
 // minimum length is 7 + precision
@@ -464,7 +464,7 @@ static size_t doubleToShortStr(double d, int precision, char* str)
     return end > 0 ? (size_t)end : 0;
 }
 
-struct HumanReadableValue humanReadableSSize(ssize_t size)
+struct HumanReadableValue HumanReadableSSize(ssize_t size)
 {
     const char* strs[] = {
         "B\0", "KB", "MB", "GB", "TB",
@@ -485,7 +485,7 @@ struct HumanReadableValue humanReadableSSize(ssize_t size)
     return hrs;
 }
 
-struct HumanReadableValue humanReadableTimeD(double value)
+struct HumanReadableValue HumanReadableTimeD(double value)
 {
     const char* strs[] = {
         "ns", "ms", "s\0", "m\0", "h\0", "d\0",

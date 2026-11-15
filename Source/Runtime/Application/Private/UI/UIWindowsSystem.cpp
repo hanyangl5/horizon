@@ -156,9 +156,9 @@ void wndMoveWindow(void* pUserData)
         clientHeightStart = getRectHeight(&pWindow->windowedRect) - getRectHeight(&pWindow->clientRect) - clientWidthStart;
     RectDesc rectDesc{ pWindowRef->wndX, pWindowRef->wndY, pWindowRef->wndX + pWindowRef->wndW, pWindowRef->wndY + pWindowRef->wndH };
     setWindowRect(pWindow, &rectDesc);
-    LOGF(LogLevel::eINFO, "MoveWindow() Position check: %s",
+    LOGF(LogLevel::Info, "MoveWindow() Position check: %s",
          wndValidateWindowPos(pWindowRef->wndX + clientWidthStart, pWindowRef->wndY + clientHeightStart) ? "SUCCESS" : "FAIL");
-    LOGF(LogLevel::eINFO, "MoveWindow() Size check: %s", wndValidateWindowSize(pWindowRef->wndW, pWindowRef->wndH) ? "SUCCESS" : "FAIL");
+    LOGF(LogLevel::Info, "MoveWindow() Size check: %s", wndValidateWindowSize(pWindowRef->wndW, pWindowRef->wndH) ? "SUCCESS" : "FAIL");
 }
 
 void wndSetRecommendedWindowSize(void* pUserData)

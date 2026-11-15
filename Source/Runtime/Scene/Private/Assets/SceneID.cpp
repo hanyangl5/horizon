@@ -24,7 +24,7 @@ static bool generateID(const IDGenerator& generator, uint64_t& high, uint64_t& l
         generator.pGenerate ? generator.pGenerate(generator.pUserData, bytes) : GetSystemRandomBytes(bytes, sizeof(bytes));
     if (!generated)
     {
-        LOGF(eERROR, "Failed to generate a persistent scene ID");
+        LOGF(Error, "Failed to generate a persistent scene ID");
         return false;
     }
 

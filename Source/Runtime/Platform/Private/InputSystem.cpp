@@ -164,7 +164,7 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
 
     if (!gVirtualJoystick->pTexture)
     {
-        LOGF(LogLevel::eWARNING, "Could not load virtual joystick texture file: %s", pDesc->pJoystickTexture);
+        LOGF(LogLevel::Warning, "Could not load virtual joystick texture file: %s", pDesc->pJoystickTexture);
         tf_delete(gVirtualJoystick);
         gVirtualJoystick = NULL;
         return;

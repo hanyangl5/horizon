@@ -61,14 +61,14 @@ TEST(CoreLogTest, CallbackReceivesFormattedAndRawMessages)
 {
     LogCapture capture = {};
 
-    initLog(nullptr, eALL);
+    InitLog(nullptr, All);
     //SetCurrentThreadName("CoreLogUT");
-    addLogCallback("CoreLogTest.CallbackReceivesFormattedAndRawMessages", eALL, &capture, captureLog, closeLogCapture, nullptr);
+    AddLogCallback("CoreLogTest.CallbackReceivesFormattedAndRawMessages", All, &capture, captureLog, closeLogCapture, nullptr);
 
-    writeLog(eINFO, __FILE__, __LINE__, "hello %d", 42);
-    writeRawLog(eWARNING, false, "raw warning");
+    WriteLog(Info, __FILE__, __LINE__, "hello %d", 42);
+    WriteRawLog(Warning, false, "raw warning");
 
-    exitLog();
+    ExitLog();
 
     EXPECT_GE(capture.messageCount, 2u);
     EXPECT_TRUE(containsMessage(capture, "INFO|"));
@@ -80,8 +80,8 @@ TEST(CoreLogTest, CallbackReceivesFormattedAndRawMessages)
 // Verifies that human-readable log helpers format representative size and time values.
 TEST(CoreLogTest, HumanReadableHelpersFormatExpectedUnits)
 {
-    EXPECT_STREQ(humanReadableSize(999).str, "999B");
-    EXPECT_STREQ(humanReadableSize(1024).str, "1KB");
-    EXPECT_STREQ(humanReadableSize(1536).str, "1.5KB");
-    EXPECT_STRNE(humanReadableTime(500).str, "");
+    EXPECT_STREQ(HumanReadableSize(999).str, "999B");
+    EXPECT_STREQ(HumanReadableSize(1024).str, "1KB");
+    EXPECT_STREQ(HumanReadableSize(1536).str, "1.5KB");
+    EXPECT_STRNE(HumanReadableTime(500).str, "");
 }

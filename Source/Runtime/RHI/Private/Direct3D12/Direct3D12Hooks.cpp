@@ -182,7 +182,7 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
     const HMONITOR monitor = MonitorFromWindow((HWND)pWindow->window, MONITOR_DEFAULTTONEAREST);
     if (!monitor)
     {
-        LOGF(LogLevel::eERROR, "Failed to find a monitor for the swapchain window");
+        LOGF(LogLevel::Error, "Failed to find a monitor for the swapchain window");
         return false;
     }
 
@@ -194,7 +194,7 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
             break;
         if (FAILED(adapterResult))
         {
-            LOGF(LogLevel::eERROR, "Failed to enumerate DXGI adapters (HRESULT: 0x%08x)", (uint32_t)adapterResult);
+            LOGF(LogLevel::Error, "Failed to enumerate DXGI adapters (HRESULT: 0x%08x)", (uint32_t)adapterResult);
             return false;
         }
 
@@ -207,7 +207,7 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
             if (FAILED(outputResult))
             {
                 SAFE_RELEASE(pAdapter);
-                LOGF(LogLevel::eERROR, "Failed to enumerate DXGI outputs (HRESULT: 0x%08x)", (uint32_t)outputResult);
+                LOGF(LogLevel::Error, "Failed to enumerate DXGI outputs (HRESULT: 0x%08x)", (uint32_t)outputResult);
                 return false;
             }
 
@@ -225,7 +225,7 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
             SAFE_RELEASE(pAdapter);
             if (FAILED(queryResult))
             {
-                LOGF(LogLevel::eERROR, "IDXGIOutput6 is not available (HRESULT: 0x%08x)", (uint32_t)queryResult);
+                LOGF(LogLevel::Error, "IDXGIOutput6 is not available (HRESULT: 0x%08x)", (uint32_t)queryResult);
                 return false;
             }
 
@@ -233,7 +233,7 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
             SAFE_RELEASE(pOutput6);
             if (FAILED(outputDescResult))
             {
-                LOGF(LogLevel::eERROR, "Failed to query DXGI output capabilities (HRESULT: 0x%08x)", (uint32_t)outputDescResult);
+                LOGF(LogLevel::Error, "Failed to query DXGI output capabilities (HRESULT: 0x%08x)", (uint32_t)outputDescResult);
                 return false;
             }
             return true;
@@ -242,7 +242,7 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
         SAFE_RELEASE(pAdapter);
     }
 
-    LOGF(LogLevel::eERROR, "No DXGI output found for the swapchain window");
+    LOGF(LogLevel::Error, "No DXGI output found for the swapchain window");
     return false;
 }
 

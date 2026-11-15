@@ -146,7 +146,7 @@ private:
     {
         char text[kIDStringCapacity];
         meshID.toString(text);
-        LOGF(eERROR, "World mesh '%s': %s", text, pMessage);
+        LOGF(Error, "World mesh '%s': %s", text, pMessage);
         releaseMaterials();
         view.state = AssetBindingState::Failed;
     }

@@ -176,7 +176,7 @@ public:
                 entity.error != AssetError::LoadFailed)
             {
                 entity.error = AssetError::LoadFailed;
-                LOGF(eERROR, "Light emission map has the wrong asset type");
+                LOGF(Error, "Light emission map has the wrong asset type");
             }
             RenderLight next = {
                 .id = entity.id,

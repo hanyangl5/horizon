@@ -163,10 +163,10 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
         // information about termination reason check the man page for wait:
         // https://man7.org/linux/man-pages/man2/waitpid.2.html
 
-        LOGF(eINFO, "Child Procress failed");
+        LOGF(Info, "Child Procress failed");
         if (WIFSIGNALED(waitStatus))
         {
-            LOGF(eWARNING, "Child process terminated by signal: %d", WTERMSIG(waitStatus));
+            LOGF(Warning, "Child process terminated by signal: %d", WTERMSIG(waitStatus));
         }
 
         return -1; // Failed to execute

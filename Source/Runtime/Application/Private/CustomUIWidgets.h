@@ -100,8 +100,8 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
                     rb = -rb;
 
                 long long size = rb - lb;
-                SetTooltip("[%lli;%lli) %lli; [%s;%s) %s; free chunk count: %lli", lb, rb, size, humanReadableSize(lb).str,
-                           humanReadableSize(rb).str, humanReadableSize(size).str, intensity);
+                SetTooltip("[%lli;%lli) %lli; [%s;%s) %s; free chunk count: %lli", lb, rb, size, HumanReadableSize(lb).str,
+                           HumanReadableSize(rb).str, HumanReadableSize(size).str, intensity);
             }
             idx_hovered = v_idx;
         }
@@ -207,7 +207,7 @@ static void internalProcessBufferAllocatorPlotWidget(void* pUserData)
 
     if (tlen < 900)
     {
-        snprintf(title + tlen, TF_ARRAY_COUNT(title) - tlen, " %s; fragments: %lli", humanReadableSize((size_t)values[0]).str,
+        snprintf(title + tlen, TF_ARRAY_COUNT(title) - tlen, " %s; fragments: %lli", HumanReadableSize((size_t)values[0]).str,
                  (long long)values[1]);
         title[tlen++] = ' ';
     }

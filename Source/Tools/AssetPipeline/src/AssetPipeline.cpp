@@ -113,11 +113,11 @@ public:
         if (!fsRenameFile(directory, temporary, pPath))
         {
             if (exists && !fsRenameFile(directory, backup, pPath))
-                LOGF(eERROR, "Restore '%s' from '%s' before retrying", pPath, backup);
+                LOGF(Error, "Restore '%s' from '%s' before retrying", pPath, backup);
             return false;
         }
         if (exists && !fsRemoveFile(directory, backup))
-            LOGF(eWARNING, "Cannot remove completed geometry backup '%s'", backup);
+            LOGF(Warning, "Cannot remove completed geometry backup '%s'", backup);
         return true;
     }
 
@@ -164,9 +164,9 @@ struct OnDiscoverAnimationsParam
     SkeletonAndAnimations* pSkeletonAndAnimations = nullptr;
 };
 
-static void BeginAssetPipelineSection(const char* section) { LOGF(eINFO, "========== %s ==========", section); }
+static void BeginAssetPipelineSection(const char* section) { LOGF(Info, "========== %s ==========", section); }
 
-static void EndAssetPipelineSection(const char* section) { LOGF(eINFO, "========== !%s ==========", section); }
+static void EndAssetPipelineSection(const char* section) { LOGF(Info, "========== !%s ==========", section); }
 
 static bool validateSceneAssetCookInput(const cgltf_data* pData)
 {
@@ -174,7 +174,7 @@ static bool validateSceneAssetCookInput(const cgltf_data* pData)
         for (cgltf_size j = 0; j < pData->meshes[i].primitives_count; ++j)
             if (pData->meshes[i].primitives[j].type != cgltf_primitive_type_triangles)
             {
-                LOGF(eERROR, "Scene mesh %u primitive %u requires triangle-list topology", (uint32_t)i, (uint32_t)j);
+                LOGF(Error, "Scene mesh %u primitive %u requires triangle-list topology", (uint32_t)i, (uint32_t)j);
                 return false;
             }
     for (cgltf_size i = 0; i < pData->textures_count; ++i)
@@ -182,7 +182,7 @@ static bool validateSceneAssetCookInput(const cgltf_data* pData)
         const cgltf_image* pImage = pData->textures[i].image;
         if (!pImage || (!pImage->uri && !pImage->buffer_view) || (pImage->uri && pImage->buffer_view))
         {
-            LOGF(eERROR, "Scene texture %u must reference an image URI or buffer view", (uint32_t)i);
+            LOGF(Error, "Scene texture %u must reference an image URI or buffer view", (uint32_t)i);
             return false;
         }
     }
@@ -310,7 +310,7 @@ void CreateDirectoryForFile(ResourceDirectory resourceDir, const char* filename)
 void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const char* ext, OnFind onFindCallback, void* pUserData,
                      bool recursive)
 {
-    // LOGF(eDEBUG, "Exploring subdir: %s", subDir ? subDir : "Root");
+    // LOGF(Debug, "Exploring subdir: %s", subDir ? subDir : "Root");
 
     // Get all requested extension files
     char** filesInDirectory = NULL;
@@ -321,7 +321,7 @@ void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const ch
         if (filesInDirectory[j])
         {
             const char* file = filesInDirectory[j]; //-V595
-            // LOGF(eDEBUG, "Found file: %s", file);
+            // LOGF(Debug, "Found file: %s", file);
 
             onFindCallback(resourceDir, file, pUserData);
         }
@@ -383,7 +383,7 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
     FileStream file = {};
     if (!fsOpenStreamFromPath(resourceDir, skeletonAsset, FM_READ, &file))
     {
-        LOGF(eERROR, "Failed to open gltf file %s", skeletonAsset);
+        LOGF(Error, "Failed to open gltf file %s", skeletonAsset);
         ASSERT(false);
         return cgltf_result_file_not_found;
     }
@@ -418,7 +418,7 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
     result = cgltf_validate(data);
     if (cgltf_result_success != result)
     {
-        LOGF(eWARNING, "GLTF validation finished with error %u for file %s", (uint32_t)result, skeletonAsset);
+        LOGF(Warning, "GLTF validation finished with error %u for file %s", (uint32_t)result, skeletonAsset);
     }
 
     // Load buffers located in separate files (.bin) using our file system
@@ -481,7 +481,7 @@ cgltf_result cgltf_write(ResourceDirectory resourceDir, const char* skeletonAsse
     cgltf_size actual = cgltf_write(&options, writeBuffer, expected, data);
     if (expected != actual)
     {
-        LOGF(eERROR, "Error: expected %zu bytes but wrote %zu bytes.\n", expected, actual);
+        LOGF(Error, "Error: expected %zu bytes but wrote %zu bytes.\n", expected, actual);
         return cgltf_result_invalid_gltf;
     }
 
@@ -535,7 +535,7 @@ static void DiscoverExtraAnimationsForMesh(ResourceDirectory resourceDirInput, c
                         anim.mOutputAnimPath = animOutputFileString;
                         arrpush(pSkeletonAndAnimations->mAnimations, anim);
 
-                        LOGF(eINFO, "Found extra animation file '%s'", (const char*)anim.mInputAnim.data);
+                        LOGF(Info, "Found extra animation file '%s'", (const char*)anim.mInputAnim.data);
                     }
                     tf_free(animationFiles);
                 }
@@ -549,23 +549,23 @@ static void DiscoverExtraAnimationsForMesh(ResourceDirectory resourceDirInput, c
 
 bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams* pProcessAnimationsParams)
 {
-    LOGF(eINFO, "Processing animations and writing to directory: %s", fsGetResourceDirectory(assetParams->mRDOutput));
+    LOGF(Info, "Processing animations and writing to directory: %s", fsGetResourceDirectory(assetParams->mRDOutput));
 
     const SkeletonAndAnimations* pSkeletonAndAnims = pProcessAnimationsParams->pSkeletonAndAnims;
     for (uint32_t i = 0; i < (uint32_t)arrlen(pSkeletonAndAnims); ++i)
     {
         if (arrlen(pSkeletonAndAnims[i].mAnimations) == 0)
-            LOGF(LogLevel::eWARNING, "Skeleton '%s' has no associated animations.", (char*)pSkeletonAndAnims[i].mSkeletonInFile.data);
+            LOGF(LogLevel::Warning, "Skeleton '%s' has no associated animations.", (char*)pSkeletonAndAnims[i].mSkeletonInFile.data);
     }
 
     // No assets found. Return.
     if (arrlen(pSkeletonAndAnims) == 0)
     {
-        LOGF(eINFO, "No animation files found to process");
+        LOGF(Info, "No animation files found to process");
         return true;
     }
 
-    LOGF(eINFO, "Processing %u skeleton assets and their animations...", (uint32_t)arrlen(pSkeletonAndAnims));
+    LOGF(Info, "Processing %u skeleton assets and their animations...", (uint32_t)arrlen(pSkeletonAndAnims));
 
     // Process the found assets
     uint32_t assetsProcessed = 0;
@@ -597,14 +597,14 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
         ozz::animation::Skeleton skeleton;
         if (processSkeleton)
         {
-            LOGF(eINFO, "Regenerating Skeleton: %s -> %s", skeletonInputFile, skeletonOutput);
+            LOGF(Info, "Regenerating Skeleton: %s -> %s", skeletonInputFile, skeletonOutput);
 
             // Process the skeleton
             if (CreateRuntimeSkeleton(assetParams->mRDInput, skeletonInputFile, assetParams->mRDOutput,
                                       pProcessAnimationsParams->mAnimationSettings.mSkeletonAndAnimOutRd, skeletonOutput, &skeleton,
                                       &assetParams->mSettings))
             {
-                LOGF(eERROR, "Couldn't create Skeleton for mesh '%s' in %s. Skipping asset and all it's animations", skeletonInputFile,
+                LOGF(Error, "Couldn't create Skeleton for mesh '%s' in %s. Skipping asset and all it's animations", skeletonInputFile,
                      skeletonOutput);
                 success = false;
                 continue;
@@ -614,13 +614,13 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
         }
         else
         {
-            LOGF(eINFO, "Skeleton for mesh '%s' up to date, loading from disk: %s", skeletonInputFile, skeletonOutput);
+            LOGF(Info, "Skeleton for mesh '%s' up to date, loading from disk: %s", skeletonInputFile, skeletonOutput);
 
             // Load skeleton from disk
             FileStream file = {};
             if (!fsOpenStreamFromPath(assetParams->mRDOutput, skeletonOutput, FM_READ, &file))
             {
-                LOGF(eERROR, "Couldn't load Skeleton for mesh '%s' in %s. Skipping asset and all it's animations", skeletonInputFile,
+                LOGF(Error, "Couldn't load Skeleton for mesh '%s' in %s. Skipping asset and all it's animations", skeletonInputFile,
                      skeletonOutput);
                 success = false;
                 continue; // TODO: We could add a parameter so that the user can select whether to stop processing more assets or not when
@@ -655,13 +655,13 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
 
             if (processAnimation)
             {
-                LOGF(eINFO, "Processing animations for mesh '%s': %s -> %s", skeletonInputFile, animInputFile, animOutputPath);
+                LOGF(Info, "Processing animations for mesh '%s': %s -> %s", skeletonInputFile, animInputFile, animOutputPath);
 
                 // Process the animation
                 if (CreateRuntimeAnimations(assetParams->mRDInput, animInputFile, animOutputPath, &skeleton,
                                             &pProcessAnimationsParams->mAnimationSettings, &assetParams->mSettings))
                 {
-                    LOGF(eERROR, "Failed to process animation for mesh '%s': %s -> %s", skeletonInputFile, animInputFile, animOutputPath);
+                    LOGF(Error, "Failed to process animation for mesh '%s': %s -> %s", skeletonInputFile, animInputFile, animOutputPath);
                     success = false;
                     continue;
                 }
@@ -673,7 +673,7 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
         skeleton.Deallocate();
     }
 
-    LOGF(LogLevel::eINFO, "ProcessAnimations: checked %u assets, regenerated %u assets.", assetsChecked, assetsProcessed);
+    LOGF(LogLevel::Info, "ProcessAnimations: checked %u assets, regenerated %u assets.", assetsChecked, assetsProcessed);
     return !success;
 }
 #endif
@@ -700,7 +700,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
 #define RETURN_IF_TFX_ERROR(expression)     \
     if (!(expression))                      \
     {                                       \
-        LOGF(eERROR, "Failed to load tfx"); \
+        LOGF(Error, "Failed to load tfx"); \
         return false;                       \
     }
 
@@ -878,7 +878,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
 #else
 bool ProcessTFX(AssetPipelineParams*, ProcessTressFXParams*)
 {
-    LOGF(eERROR, "TressFX cooking is unavailable because TressFX is not vendored in this repository.");
+    LOGF(Error, "TressFX cooking is unavailable because TressFX is not vendored in this repository.");
     return true;
 }
 #endif
@@ -920,7 +920,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
     cgltf_result result = cgltf_parse_and_load(resourceDirInput, skeletonInputfile, &data, &srcFileData);
     if (cgltf_result_success != result)
     {
-        LOGF(LogLevel::eERROR, "gltf parsing failed: %s", skeletonInputfile);
+        LOGF(LogLevel::Error, "gltf parsing failed: %s", skeletonInputfile);
         return true;
     }
 
@@ -928,7 +928,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
     {
         data->file_data = srcFileData;
         cgltf_free(data);
-        LOGF(LogLevel::eERROR, "Rigged mesh %s has no bones. Skeleton can not be created.", skeletonInputfile);
+        LOGF(LogLevel::Error, "Rigged mesh %s has no bones. Skeleton can not be created.", skeletonInputfile);
         return true;
     }
 
@@ -969,7 +969,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
             ASSERT(queueIdx != nodeQueueStart && "Seems like we didn't allocate enough space for the queue");
             if (queueIdx == nodeQueueStart)
             {
-                LOGF(LogLevel::eERROR, "Too many nodes in scene. Skeleton '%s' can not be created.", skeletonInputfile);
+                LOGF(LogLevel::Error, "Too many nodes in scene. Skeleton '%s' can not be created.", skeletonInputfile);
                 return true;
             }
 
@@ -1125,14 +1125,14 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
     // Validate raw skeleton
     if (!rawSkeleton.Validate())
     {
-        LOGF(LogLevel::eERROR, "Skeleton created for %s is invalid. Skeleton can not be created.", skeletonInputfile);
+        LOGF(LogLevel::Error, "Skeleton created for %s is invalid. Skeleton can not be created.", skeletonInputfile);
         return true;
     }
 
     // Build runtime skeleton from raw skeleton
     if (!ozz::animation::offline::SkeletonBuilder::Build(rawSkeleton, pOutSkeleton))
     {
-        LOGF(LogLevel::eERROR, "Failed to build Skeleton: %s", skeletonInputfile);
+        LOGF(LogLevel::Error, "Failed to build Skeleton: %s", skeletonInputfile);
         return true;
     }
 
@@ -1208,7 +1208,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
                 char bufferOut[FS_MAX_PATH] = {};
                 fsAppendPathComponent(parentPath, data->buffers[i].uri, bufferOut);
 
-                LOGF(eINFO, "Writing binary gltf data: %s -> %s", skeletonInputfile, bufferOut);
+                LOGF(Info, "Writing binary gltf data: %s -> %s", skeletonInputfile, bufferOut);
 
                 FileStream fs = {};
                 fsOpenStreamFromPath(resourceDirGltfOutput, bufferOut, FM_WRITE, &fs);
@@ -1217,12 +1217,12 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
             }
         }
 
-        LOGF(eINFO, "Writing text gltf data: %s -> %s", skeletonInputfile, skeletonInputfile);
+        LOGF(Info, "Writing text gltf data: %s -> %s", skeletonInputfile, skeletonInputfile);
 
         data->file_data = buffer;
         if (cgltf_result_success != cgltf_write(resourceDirGltfOutput, skeletonInputfile, data))
         {
-            LOGF(eERROR, "Couldn't write the gltf file with the remapped joint data for it's skeleton.");
+            LOGF(Error, "Couldn't write the gltf file with the remapped joint data for it's skeleton.");
             arrfree(buffer);
             return true;
         }
@@ -1322,7 +1322,7 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
     // Validate raw animation
     if (!rawAnimation.Validate())
     {
-        LOGF(LogLevel::eERROR, "Animation %s:%s is invalid. Animation can not be created.", animationSourceFile, animationData->name);
+        LOGF(LogLevel::Error, "Animation %s:%s is invalid. Animation can not be created.", animationSourceFile, animationData->name);
         return true;
     }
 
@@ -1331,13 +1331,13 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
     ozz::animation::offline::RawAnimation optimizedRawAnimation = {};
     if (animationSettings->mOptimizeTracks)
     {
-        LOGF(eINFO, "Optimizing tracks...");
+        LOGF(Info, "Optimizing tracks...");
         ozz::animation::offline::AnimationOptimizer optimizer = {};
         optimizer.setting.tolerance = animationSettings->mOptimizationTolerance;
         optimizer.setting.distance = animationSettings->mOptimizationDistance;
         if (!optimizer(rawAnimation, *skeleton, &optimizedRawAnimation))
         {
-            LOGF(LogLevel::eERROR, "Animation %s:%s could not be optimized for skeleton.", animationSourceFile, animationData->name);
+            LOGF(LogLevel::Error, "Animation %s:%s could not be optimized for skeleton.", animationSourceFile, animationData->name);
             return true;
         }
 
@@ -1348,7 +1348,7 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
     ozz::animation::Animation animation = {};
     if (!ozz::animation::offline::AnimationBuilder::Build(*rawAnimToBuild, &animation))
     {
-        LOGF(LogLevel::eERROR, "Animation %s:%s can not be created.", animationSourceFile, animationData->name);
+        LOGF(LogLevel::Error, "Animation %s:%s can not be created.", animationSourceFile, animationData->name);
         return true;
     }
 
@@ -1363,7 +1363,7 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
     FileStream file = {};
     if (!fsOpenStreamFromPath(animationSettings->mSkeletonAndAnimOutRd, animOutFile, FM_WRITE, &file))
     {
-        LOGF(LogLevel::eERROR, "Animation %s:%s can not be saved to %s/%s", animationSourceFile, animationData->name,
+        LOGF(LogLevel::Error, "Animation %s:%s can not be saved to %s/%s", animationSourceFile, animationData->name,
              fsGetResourceDirectory(animationSettings->mSkeletonAndAnimOutRd), animOutFile);
         animation.Deallocate();
         return true;
@@ -1395,21 +1395,21 @@ bool CreateRuntimeAnimations(ResourceDirectory resourceDirInput, const char* ani
     // Check if the asset contains any animations
     if (data->animations_count == 0)
     {
-        LOGF(LogLevel::eWARNING, "Animation asset %s contains no animations.", animationInputFile);
+        LOGF(LogLevel::Warning, "Animation asset %s contains no animations.", animationInputFile);
 
         tf_free(srcFileData);
         cgltf_free(data);
         return true;
     }
 
-    LOGF(eINFO, "Processing %u animations from file '%s'", (uint32_t)data->animations_count, animationInputFile);
+    LOGF(Info, "Processing %u animations from file '%s'", (uint32_t)data->animations_count, animationInputFile);
 
     bool error = false;
     for (cgltf_size animationIndex = 0; animationIndex < data->animations_count; animationIndex += 1)
     {
         cgltf_animation* animationData = &data->animations[animationIndex];
 
-        LOGF(eINFO, "Processing animation %u: %s", (uint32_t)animationIndex, animationData->name);
+        LOGF(Info, "Processing animation %u: %s", (uint32_t)animationIndex, animationData->name);
 
         char buffer[FS_MAX_PATH] = {};
         if (data->animations_count == 1)
@@ -1577,7 +1577,7 @@ void CheckIfGltfHasAnimations(ResourceDirectory resourceDirInput, const char* gl
     FileStream file = {};
     if (!fsOpenStreamFromPath(resourceDirInput, gltfFileName, FM_READ, &file))
     {
-        LOGF(eERROR, "Failed to open gltf file %s", gltfFileName);
+        LOGF(Error, "Failed to open gltf file %s", gltfFileName);
         return;
     }
 
@@ -1604,7 +1604,7 @@ void CheckIfGltfHasAnimations(ResourceDirectory resourceDirInput, const char* gl
 
     if (cgltf_result_success != result)
     {
-        LOGF(eERROR, "Failed to parse gltf file %s with error %u", gltfFileName, (uint32_t)result);
+        LOGF(Error, "Failed to parse gltf file %s with error %u", gltfFileName, (uint32_t)result);
         tf_free(fileData);
         return;
     }
@@ -1667,7 +1667,7 @@ void buildMeshlets(const uint* indices, size_t indexCount, const float3* vertexP
     }
     else
     {
-        LOGF(eERROR, "Failed to build meshlets");
+        LOGF(Error, "Failed to build meshlets");
     }
 }
 
@@ -1851,12 +1851,12 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             fsReplacePathExtension(fileName, "bin", newFileName);
         }
 
-        LOGF(eINFO, "Converting %s to TF custom binary file", fileName);
+        LOGF(Info, "Converting %s to TF custom binary file", fileName);
 
         FileStream file = {};
         if (!fsOpenStreamFromPath(assetParams->mRDInput, fileName, FM_READ, &file))
         {
-            LOGF(eERROR, "Failed to open gltf file %s", fileName);
+            LOGF(Error, "Failed to open gltf file %s", fileName);
             error = true;
             continue;
         }
@@ -1884,7 +1884,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         if (cgltf_result_success != result)
         {
-            LOGF(eERROR, "Failed to parse gltf file %s with error %u", fileName, (uint32_t)result);
+            LOGF(Error, "Failed to parse gltf file %s with error %u", fileName, (uint32_t)result);
             tf_free(fileData);
             error = true;
             continue;
@@ -1893,7 +1893,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         result = cgltf_validate(data);
         if (cgltf_result_success != result)
         {
-            LOGF(eERROR, "Invalid glTF file %s (error %u)", fileName, (uint32_t)result);
+            LOGF(Error, "Invalid glTF file %s (error %u)", fileName, (uint32_t)result);
             data->file_data = fileData;
             cgltf_free(data);
             error = true;
@@ -1946,7 +1946,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             result = cgltf_validate(data);
         if (cgltf_result_success != result)
         {
-            LOGF(eERROR, "Failed to load buffers from gltf file %s with error %u", fileName, (uint32_t)result);
+            LOGF(Error, "Failed to load buffers from gltf file %s with error %u", fileName, (uint32_t)result);
             data->file_data = fileData;
             cgltf_free(data);
             error = true;
@@ -1957,7 +1957,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         if (!pFingerprint || !buildSceneAssetCookFingerprint(assetParams->mRDInput, fileName, fileData, (size_t)fileSize, data, glTFParams,
                                                              assetParams->mAdditionalModifiedTime, pFingerprint))
         {
-            LOGF(eERROR, "Failed to fingerprint glTF dependencies for %s", fileName);
+            LOGF(Error, "Failed to fingerprint glTF dependencies for %s", fileName);
             tf_free(pFingerprint);
             data->file_data = fileData;
             cgltf_free(data);
@@ -1970,7 +1970,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         SceneAssetCooker sceneCooker(assetParams->mRDInput, fileName, assetParams->mRDOutput, newFileName);
         if (!assetParams->mSettings.force && fsFileExist(assetParams->mRDOutput, newFileName) && sceneCooker.isCurrent(contentHash))
         {
-            LOGF(eINFO, "Skipping %s (content hash unchanged)", fileName);
+            LOGF(Info, "Skipping %s (content hash unchanged)", fileName);
             tf_free(pFingerprint);
             data->file_data = fileData;
             cgltf_free(data);
@@ -2087,7 +2087,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                     continue; // This attribute is not in the GLTF file, just ignore it
                 else
                 {
-                    LOGF(eERROR, "Missing attribute at index %u of pVertexLayout", attrIdx);
+                    LOGF(Error, "Missing attribute at index %u of pVertexLayout", attrIdx);
                     error = true;
                     continue;
                 }
@@ -2134,7 +2134,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                         vertexPacking[attr->semantic] = util_unpack_uint8_to_uint16_joints;
                     else
                     {
-                        LOGF(eERROR, "Joint size doesn't match");
+                        LOGF(Error, "Joint size doesn't match");
                         ASSERT(false);
                     }
                     break;
@@ -2332,14 +2332,14 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 {
                     if (indexStride != 4)
                     {
-                        LOGF(eERROR, "Cannot create meshlet when index type isn't 32-bit.");
+                        LOGF(Error, "Cannot create meshlet when index type isn't 32-bit.");
                         error = true;
                         break;
                     }
 
                     if (!pos_attr || pos_attr->data->stride != 12)
                     {
-                        LOGF(eERROR, "Cannot create meshlet when positions attribute is missing or layout is not float3.");
+                        LOGF(Error, "Cannot create meshlet when positions attribute is missing or layout is not float3.");
                         error = true;
                         break;
                     }
@@ -2478,13 +2478,13 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         const bool geometryWritten = geometryFile.publish();
         if (!geometryWritten)
         {
-            LOGF(eERROR, "Failed to publish geometry '%s'", newFileName);
+            LOGF(Error, "Failed to publish geometry '%s'", newFileName);
             error = true;
         }
 
         if (geometryWritten && !sceneCooker.write())
         {
-            LOGF(eERROR, "Failed to write scene asset files for '%s'.", fileName);
+            LOGF(Error, "Failed to write scene asset files for '%s'.", fileName);
             error = true;
         }
 
@@ -2631,13 +2631,13 @@ bool ZipAllAssets(AssetPipelineParams* assetParams, WriteZipParams* zipParams)
 #else
 bool WriteZip(AssetPipelineParams*, WriteZipParams*)
 {
-    LOGF(eERROR, "Archive cooking is unavailable in this AssetPipeline build.");
+    LOGF(Error, "Archive cooking is unavailable in this AssetPipeline build.");
     return true;
 }
 
 bool ZipAllAssets(AssetPipelineParams*, WriteZipParams*)
 {
-    LOGF(eERROR, "Archive cooking is unavailable in this AssetPipeline build.");
+    LOGF(Error, "Archive cooking is unavailable in this AssetPipeline build.");
     return true;
 }
 #endif
@@ -2662,7 +2662,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
             const size_t subdirWithAnimationsNameLength = strlen(subdirWithAnimationsName);
             if (foundStrPntr[subdirWithAnimationsNameLength] == '\0')
             {
-                LOGF(eINFO, "Ignoring subdirectory %s.", parentPath);
+                LOGF(Info, "Ignoring subdirectory %s.", parentPath);
                 return;
             }
         }
@@ -2673,7 +2673,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
     FileStream file = {};
     if (!fsOpenStreamFromPath(resourceDir, filename, FM_READ, &file))
     {
-        LOGF(eERROR, "Failed to open gltf file %s", filename);
+        LOGF(Error, "Failed to open gltf file %s", filename);
         return;
     }
 
@@ -2700,7 +2700,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
 
     if (cgltf_result_success != result)
     {
-        LOGF(eERROR, "Failed to parse gltf file %s with error %u", filename, (uint32_t)result);
+        LOGF(Error, "Failed to parse gltf file %s with error %u", filename, (uint32_t)result);
         tf_free(fileData);
         return;
     }
@@ -2714,7 +2714,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
 
     if (data->animations_count > 0)
     {
-        LOGF(eINFO, "Found Animation Mesh: %s", filename);
+        LOGF(Info, "Found Animation Mesh: %s", filename);
 
         SkeletonAndAnimations::AnimationFile anim = {};
         anim.mInputAnim = bdynfromcstr(filename);
@@ -2737,7 +2737,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
 #else
 void OnDiscoverAnimation(ResourceDirectory, const char*, void*)
 {
-    LOGF(eERROR, "Animation cooking is unavailable because the legacy cooker has not been migrated to the current Ozz API.");
+    LOGF(Error, "Animation cooking is unavailable because the legacy cooker has not been migrated to the current Ozz API.");
 }
 #endif
 
@@ -2749,11 +2749,11 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
 
         if (assetParams->mPathMode == PROCESS_MODE_FILE)
         {
-            LOGF(eINFO, "ProcessAnimations with input filepath '%s'", assetParams->mInFilePath);
+            LOGF(Info, "ProcessAnimations with input filepath '%s'", assetParams->mInFilePath);
 
             if (!fsFileExist(assetParams->mRDInput, assetParams->mInFilePath))
             {
-                LOGF(eERROR, "%s doesn't exist.", assetParams->mInFilePath);
+                LOGF(Error, "%s doesn't exist.", assetParams->mInFilePath);
                 return 1;
             }
 
@@ -2828,7 +2828,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
 
                 if (numMeshletVertices <= 0 || numMeshletVertices > 255)
                 {
-                    LOGF(eERROR, "Maximum number of vertices in a meshlet should be larger than 0 and smaller than 256.");
+                    LOGF(Error, "Maximum number of vertices in a meshlet should be larger than 0 and smaller than 256.");
                     error = true;
                 }
             }
@@ -2840,7 +2840,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
 
                 if (numMeshletTriangles <= 0 || numMeshletTriangles > 512)
                 {
-                    LOGF(eERROR, "Maximum number of triangles in a meshlet should be larger than 0 and smaller than 513.");
+                    LOGF(Error, "Maximum number of triangles in a meshlet should be larger than 0 and smaller than 513.");
                     error = true;
                 }
             }
@@ -2938,7 +2938,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             {
                 if (texturesParams.mInExt && texturesParams.mInExt[0] != '\0')
                 {
-                    LOGF(eERROR, "Already set input format to %s.", texturesParams.mInExt);
+                    LOGF(Error, "Already set input format to %s.", texturesParams.mInExt);
                     error = true;
                 }
 
@@ -2948,7 +2948,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             {
                 if (texturesParams.mInExt && texturesParams.mInExt[0] != '\0')
                 {
-                    LOGF(eERROR, "Already set input format to %s.", texturesParams.mInExt);
+                    LOGF(Error, "Already set input format to %s.", texturesParams.mInExt);
                     error = true;
                 }
 
@@ -2958,7 +2958,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             {
                 if (texturesParams.mInExt && texturesParams.mInExt[0] != '\0')
                 {
-                    LOGF(eERROR, "Already set input format to %s.", texturesParams.mInExt);
+                    LOGF(Error, "Already set input format to %s.", texturesParams.mInExt);
                     error = true;
                 }
 
@@ -2968,7 +2968,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             {
                 if (texturesParams.mInExt && texturesParams.mInExt[0] != '\0')
                 {
-                    LOGF(eERROR, "Already set input format to %s.", texturesParams.mInExt);
+                    LOGF(Error, "Already set input format to %s.", texturesParams.mInExt);
                     error = true;
                 }
 
@@ -2978,7 +2978,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             {
                 if (texturesParams.mInExt && texturesParams.mInExt[0] != '\0')
                 {
-                    LOGF(eERROR, "Already set input format to %s.", texturesParams.mInExt);
+                    LOGF(Error, "Already set input format to %s.", texturesParams.mInExt);
                     error = true;
                 }
 
@@ -2997,7 +2997,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
 #ifdef PROSPERO_GNF
                 texturesParams.mContainer = CONTAINER_GNF_ORBIS;
 #else
-                LOGF(eERROR, "AssetPipeline wasn't compiled with Pospero GNF texture conversion support.");
+                LOGF(Error, "AssetPipeline wasn't compiled with Pospero GNF texture conversion support.");
 #endif
             }
             else if (STRCMP(flag, "--out-gnf-prospero"))
@@ -3005,7 +3005,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
 #ifdef PROSPERO_GNF
                 texturesParams.mContainer = CONTAINER_GNF_PROSPERO;
 #else
-                LOGF(eERROR, "AssetPipeline wasn't compiled with Prospero GNF texture conversion support.");
+                LOGF(Error, "AssetPipeline wasn't compiled with Prospero GNF texture conversion support.");
 #endif
             }
             else if (STRCMP(flag, "--out-xdds"))
@@ -3013,7 +3013,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
 #ifdef XBOX_SCARLETT_DDS
                 texturesParams.mContainer = CONTAINER_SCARLETT_DDS;
 #else
-                LOGF(eERROR, "AssetPipeline wasn't compiled with Xbox DDS texture conversion support.");
+                LOGF(Error, "AssetPipeline wasn't compiled with Xbox DDS texture conversion support.");
 #endif
             }
             else if (STRCMP(flag, "--astc"))
@@ -3083,7 +3083,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             }
             else
             {
-                LOGF(eERROR, "Unrecognized flag %s.", flag);
+                LOGF(Error, "Unrecognized flag %s.", flag);
 
                 error = true;
             }
@@ -3091,7 +3091,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
 
         if (!texturesParams.mInExt)
         {
-            LOGF(eERROR, "Texture input format isn't set.");
+            LOGF(Error, "Texture input format isn't set.");
             error = true;
         }
 
@@ -3137,7 +3137,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             }
             else
             {
-                LOGF(eERROR, "Unrecognized flag %s.", flag);
+                LOGF(Error, "Unrecognized flag %s.", flag);
             }
         }
 
@@ -3165,7 +3165,7 @@ bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourc
     if (!pSourceFile || !pSourceFile[0] || sourceDirectory == outputDirectory ||
         strcmp(fsGetResourceDirectory(sourceDirectory), fsGetResourceDirectory(outputDirectory)) == 0)
     {
-        LOGF(eERROR, "glTF cooking requires separate source and output directories");
+        LOGF(Error, "glTF cooking requires separate source and output directories");
         return false;
     }
     AssetPipelineParams params = {};
@@ -3177,7 +3177,7 @@ bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourc
     params.mRDOutput = outputDirectory;
     if (!fsCreateDirectory(outputDirectory, "", true) || AssetPipelineRun(&params) != 0)
     {
-        LOGF(eERROR, "Failed to cook %s", pSourceFile);
+        LOGF(Error, "Failed to cook %s", pSourceFile);
         return false;
     }
     return true;

@@ -119,8 +119,8 @@ void errorMessagePopup(const char* title, const char* msg, WindowHandle* handle,
 {
     UNREF_PARAM(handle);
 #if defined(AUTOMATED_TESTING)
-    LOGF(eERROR, title);
-    LOGF(eERROR, msg);
+    LOGF(Error, title);
+    LOGF(Error, msg);
 #else
     MessageBoxA((HWND)handle->window, msg, title, MB_OK);
 #endif
@@ -401,7 +401,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
     rmemInit(0);
 #endif
 
-    initLog(app->GetName(), DEFAULT_LOG_LEVEL);
+    InitLog(app->GetName(), DEFAULT_LOG_LEVEL);
 
     ULONG majorVersion = 0;
     ULONG minorVersion = 0;
@@ -410,7 +410,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
     snprintf(gOsInfo.osName, 256, "Windows PC");
     snprintf(gOsInfo.osVersion, 256, "%lu.%lu (Build: %lu)", majorVersion, minorVersion, buildNumber);
     snprintf(gOsInfo.osDeviceName, 256, "Unknown");
-    LOGF(LogLevel::eINFO, "Operating System: %s. Version: %s. Device Name: %s.", gOsInfo.osName, gOsInfo.osVersion, gOsInfo.osDeviceName);
+    LOGF(LogLevel::Info, "Operating System: %s. Version: %s. Device Name: %s.", gOsInfo.osName, gOsInfo.osVersion, gOsInfo.osDeviceName);
 
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
     if (!WindowsStackTrace::Init())
@@ -509,7 +509,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
         {
             if (paramRenderingAPIFound)
             {
-                LOGF(eERROR, "Two command line parameters are requesting the rendering API, only one is allowed.");
+                LOGF(Error, "Two command line parameters are requesting the rendering API, only one is allowed.");
                 ASSERT(false);
                 return -1;
             }
@@ -537,7 +537,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
             {
                 errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
                                   &pApp->pWindow->handle, NULL);
-                exitLog();
+                ExitLog();
                 return 0;
             }
 
@@ -550,7 +550,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
         if (!pApp->Load(&gReloadDescriptor))
             return EXIT_FAILURE;
 
-        LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", (double)GetTimerMSec(&t, false));
+        LOGF(LogLevel::Info, "Application Init+Load+Reload %fms", (double)GetTimerMSec(&t, false));
     }
 
     // #ifdef AUTOMATED_TESTING
@@ -634,7 +634,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
                     {
                         errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
                                           &pApp->pWindow->handle, NULL);
-                        exitLog();
+                        ExitLog();
                         return 0;
                     }
                     return EXIT_FAILURE;
@@ -646,7 +646,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
                 if (!pApp->Load(&gReloadDescriptor))
                     return EXIT_FAILURE;
 
-                LOGF(LogLevel::eINFO, "Application Reset %fms", GetTimerMSec(&t, false) / 1000.0f);
+                LOGF(LogLevel::Info, "Application Reset %fms", GetTimerMSec(&t, false) / 1000.0f);
             }
 
             gResetDescriptor.type = RESET_TYPE_NONE;
@@ -662,7 +662,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
             if (!pApp->Load(&gReloadDescriptor))
                 return EXIT_FAILURE;
 
-            LOGF(LogLevel::eINFO, "Application Reload %fms", GetTimerMSec(&t, false) / 1000.0f);
+            LOGF(LogLevel::Info, "Application Reload %fms", GetTimerMSec(&t, false) / 1000.0f);
             gReloadDescriptor.type = RELOAD_TYPE_ALL;
             continue;
         }
@@ -721,7 +721,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
     WindowsStackTrace::Exit();
 #endif
 
-    exitLog();
+    ExitLog();
 
     exitBaseSubsystems();
 

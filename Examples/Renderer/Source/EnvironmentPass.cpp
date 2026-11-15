@@ -29,7 +29,7 @@ bool EnvironmentPass::Load(const EnvironmentFiles& Files)
     {
         if (!Path || !Path[0] || !fsFileExist(Files.Directory, Path))
         {
-            LOGF(eERROR, "Environment requires prefiltered and irradiance cubemaps plus a BRDF LUT; missing '%s' in '%s'",
+            LOGF(Error, "Environment requires prefiltered and irradiance cubemaps plus a BRDF LUT; missing '%s' in '%s'",
                  Path ? Path : "<unset>", fsGetResourceDirectory(Files.Directory));
             return false;
         }
@@ -49,7 +49,7 @@ bool EnvironmentPass::Load(const EnvironmentFiles& Files)
             (Index == 0 && Texture.getMipLevels() < 2) || !TinyImageFormat_IsFloat(Format) || TinyImageFormat_HasDepthOrStencil(Format) ||
             TinyImageFormat_IsSRGB(Format))
         {
-            LOGF(eERROR, "Invalid environment texture '%s': expected linear floating-point %s%s", Paths[Index],
+            LOGF(Error, "Invalid environment texture '%s': expected linear floating-point %s%s", Paths[Index],
                  Cube ? "cubemap" : "2D BRDF LUT", Index == 0 ? " with prefiltered mip levels" : "");
             return false;
         }

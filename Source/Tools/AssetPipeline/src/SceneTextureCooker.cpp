@@ -112,7 +112,7 @@ TextureEncoder::TextureEncoder(): comResult(CoInitializeEx(nullptr, COINIT_MULTI
     if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, &featureLevel, 1, D3D11_SDK_VERSION, &pDevice, nullptr,
                                  nullptr)))
     {
-        LOGF(eWARNING, "No D3D11 hardware device; BC7 textures use the slow CPU encoder");
+        LOGF(Warning, "No D3D11 hardware device; BC7 textures use the slow CPU encoder");
     }
 }
 
@@ -158,7 +158,7 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, const
         options.flags = DirectX::TEX_COMPRESS_PARALLEL;
 #endif
         const int64_t start = GetUSec(true);
-        LOGF(eINFO, "Compress '%s': %zux%zu, BC7, %zu mip levels (%s)", pName, pInput->GetMetadata().width, pInput->GetMetadata().height,
+        LOGF(Info, "Compress '%s': %zux%zu, BC7, %zu mip levels (%s)", pName, pInput->GetMetadata().width, pInput->GetMetadata().height,
              pInput->GetImageCount(),
              pDevice                                          ? "GPU"
              : options.flags & DirectX::TEX_COMPRESS_PARALLEL ? "parallel"
@@ -174,7 +174,7 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, const
             current = TF_MIN(current, total);
             if (current != lastProgress)
             {
-                LOGF(eINFO, "Compress '%s': %zu/%zu mip levels", pName, current, total);
+                LOGF(Info, "Compress '%s': %zu/%zu mip levels", pName, current, total);
             }
             lastProgress = current;
             return true;
@@ -186,14 +186,14 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, const
                                                compressed, progress);
         if (SUCCEEDED(result))
         {
-            LOGF(eINFO, "Compressed '%s' in %.2f seconds", pName, (GetUSec(true) - start) / 1000000.0);
+            LOGF(Info, "Compressed '%s' in %.2f seconds", pName, (GetUSec(true) - start) / 1000000.0);
         }
     }
     if (SUCCEEDED(result))
         result = DirectX::SaveToDDSMemory(compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(),
                                           DirectX::DDS_FLAGS_FORCE_DX10_EXT, dds);
     if (FAILED(result))
-        LOGF(eERROR, "DirectXTex texture cook failed for '%s' (HRESULT 0x%08x)", pName, (unsigned)result);
+        LOGF(Error, "DirectXTex texture cook failed for '%s' (HRESULT 0x%08x)", pName, (unsigned)result);
     return SUCCEEDED(result);
 }
 #endif
@@ -273,7 +273,7 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
     }
     const bool written = writeDDS(output.path, dds.GetBufferPointer(), dds.GetBufferSize());
 #else
-    LOGF(eERROR, "PNG/JPEG scene texture cooking requires DirectXTex on Windows");
+    LOGF(Error, "PNG/JPEG scene texture cooking requires DirectXTex on Windows");
     const bool written = false;
 #endif
     return written;

@@ -189,7 +189,7 @@ bool World::addComponent(Entity entity, TypeID type)
 {
     if (type == SceneTypes::entityIdentity)
     {
-        LOGF(eERROR, "EntityIdentity is managed by World::createPersistentEntity");
+        LOGF(Error, "EntityIdentity is managed by World::createPersistentEntity");
         return false;
     }
     if (!isAlive(entity))
@@ -207,7 +207,7 @@ bool World::removeComponent(Entity entity, TypeID type)
 {
     if (type == SceneTypes::entityIdentity)
     {
-        LOGF(eERROR, "EntityIdentity cannot be removed from a live entity");
+        LOGF(Error, "EntityIdentity cannot be removed from a live entity");
         return false;
     }
     if (!isAlive(entity))
@@ -225,7 +225,7 @@ bool World::setComponent(Entity entity, TypeID type, const void* pValue)
     ASSERT(pValue);
     if (type == SceneTypes::entityIdentity)
     {
-        LOGF(eERROR, "EntityIdentity cannot be changed after entity creation");
+        LOGF(Error, "EntityIdentity cannot be changed after entity creation");
         return false;
     }
     if (!isAlive(entity))
@@ -294,7 +294,7 @@ WorldQueryImpl::WorldQueryImpl(World& world, Span<TypeID> types): pOwner(&world)
         const WorldType* pType = world.pImpl->findType(types.pData[i]);
         if (!pType)
         {
-            LOGF(eERROR, "World query references an unregistered component type");
+            LOGF(Error, "World query references an unregistered component type");
             return;
         }
         terms[i + 1].id = pType->component;

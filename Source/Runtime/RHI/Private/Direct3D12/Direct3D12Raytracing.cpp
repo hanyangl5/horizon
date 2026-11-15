@@ -562,7 +562,7 @@ static bool fillRayRecord(ID3D12StateObjectProperties* properties, const wchar_t
     const void* identifier = properties->GetShaderIdentifier(name);
     if (!identifier)
     {
-        LOGF(eERROR, "DXR shader export '%ls' is missing", name);
+        LOGF(Error, "DXR shader export '%ls' is missing", name);
         return false;
     }
     memcpy(destination, identifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
@@ -656,7 +656,7 @@ void d3d12_addRaytracingPipeline(Raytracing* raytracing, const RaytracingPipelin
                                                                  desc->hitGroupCount);
     if (FAILED(result))
     {
-        LOGF(eERROR, "Creating DXR pipeline failed (0x%08x)", (uint32_t)result);
+        LOGF(Error, "Creating DXR pipeline failed (0x%08x)", (uint32_t)result);
     }
     for (ptrdiff_t i = 0; i < arrlen(names); ++i)
     {

@@ -41,14 +41,14 @@ public:
         FileStream stream = {};
         if (!fsOpenStreamFromPath(directory, entry.location.pPath, FM_READ, &stream))
         {
-            LOGF(eERROR, "Cannot open SceneAsset '%s'", entry.location.pPath);
+            LOGF(Error, "Cannot open SceneAsset '%s'", entry.location.pPath);
             return false;
         }
         const ssize_t size = fsGetStreamFileSize(&stream);
         if (size <= 0 || size > 64 * 1024 * 1024)
         {
             fsCloseStream(&stream);
-            LOGF(eERROR, "Invalid SceneAsset file size for '%s'", entry.location.pPath);
+            LOGF(Error, "Invalid SceneAsset file size for '%s'", entry.location.pPath);
             return false;
         }
         Array<char>  json((uint32_t)size);
@@ -56,18 +56,18 @@ public:
         fsCloseStream(&stream);
         if (bytesRead != (size_t)size)
         {
-            LOGF(eERROR, "Cannot read SceneAsset '%s'", entry.location.pPath);
+            LOGF(Error, "Cannot read SceneAsset '%s'", entry.location.pPath);
             return false;
         }
         pScene = tf_new(SceneAsset);
         if (!pScene->parse({ json.data(), json.size() }) || pScene->getID() != entry.id)
         {
-            LOGF(eERROR, "Invalid SceneAsset payload or mismatched identity in '%s'", entry.location.pPath);
+            LOGF(Error, "Invalid SceneAsset payload or mismatched identity in '%s'", entry.location.pPath);
             return false;
         }
         if (!matchesDependencies())
         {
-            LOGF(eERROR, "SceneAsset dependencies differ from Catalog in '%s'", entry.location.pPath);
+            LOGF(Error, "SceneAsset dependencies differ from Catalog in '%s'", entry.location.pPath);
             return false;
         }
         return true;
@@ -101,7 +101,7 @@ public:
     {
         const ThreadSystemInitDesc desc = { .threadCount = 1, .threadName = "SceneAsset" };
         if (!threadSystemInit(&threads, &desc))
-            LOGF(eERROR, "Cannot start SceneAsset loader worker");
+            LOGF(Error, "Cannot start SceneAsset loader worker");
     }
     ~SceneAssetLoaderData()
     {
@@ -115,7 +115,7 @@ public:
         if (!pLoader->threads || entry.type != AssetType::Scene || entry.location.root != AssetPathRoot::Cooked ||
             entry.location.elementIndex != UINT32_MAX)
         {
-            LOGF(eERROR, "Cannot schedule SceneAsset '%s'", entry.location.pPath);
+            LOGF(Error, "Cannot schedule SceneAsset '%s'", entry.location.pPath);
             return nullptr;
         }
         SceneLoadRequest* pRequest = tf_new(SceneLoadRequest, entry, pLoader->directory);

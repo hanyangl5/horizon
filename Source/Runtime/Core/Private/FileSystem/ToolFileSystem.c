@@ -240,7 +240,7 @@ bool fsCheckPath(ResourceDirectory rd, const char* path, bool* exist, bool* isDi
     if (errno == ENOENT)
         return true;
 
-    LOGF(eERROR, "Failed to retreive path '%s' info: '%'", fullPath, strerror(errno));
+    LOGF(Error, "Failed to retreive path '%s' info: '%'", fullPath, strerror(errno));
     return false;
 }
 
@@ -257,7 +257,7 @@ bool fsDirectoryIteratorOpen(ResourceDirectory rd, const char* dir, FsDirectoryI
     {
         if (errno == ENOENT)
             return false;
-        LOGF(eERROR, "Failed to open directory '%s': '%'", fullPath, strerror(errno));
+        LOGF(Error, "Failed to open directory '%s': '%'", fullPath, strerror(errno));
         return false;
     }
 
@@ -272,7 +272,7 @@ void fsDirectoryIteratorClose(FsDirectoryIterator iterator)
     if (closedir(directory))
     {
         // We expect only EBADF here - Invalid directory stream descriptor.
-        LOGF(eERROR, "Failed to close directory: '%'", strerror(errno));
+        LOGF(Error, "Failed to close directory: '%'", strerror(errno));
     }
 }
 
@@ -288,7 +288,7 @@ bool fsDirectoryIteratorNext(FsDirectoryIterator iterator, struct FsDirectoryIte
         struct dirent* entry = readdir(directory);
         if (errno)
         {
-            LOGF(eERROR, "Failed to iterate directory: '%'", strerror(errno));
+            LOGF(Error, "Failed to iterate directory: '%'", strerror(errno));
             return false;
         }
 
@@ -316,7 +316,7 @@ bool fsDirectoryIteratorNext(FsDirectoryIterator iterator, struct FsDirectoryIte
             struct stat st = { 0 };
             if (stat(entry->d_name, &st))
             {
-                LOGF(eERROR, "Failed to retreive path '%s' info: '%'", entry->d_name, strerror(errno));
+                LOGF(Error, "Failed to retreive path '%s' info: '%'", entry->d_name, strerror(errno));
                 continue;
             }
 

@@ -302,7 +302,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #endif
 
 #define ENABLE_LOGGING
-#define DEFAULT_LOG_LEVEL eALL
+#define DEFAULT_LOG_LEVEL All
 #if !defined(NDEBUG)
 //#define ENABLE_MEMORY_TRACKING
 #endif
@@ -324,7 +324,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //// Config validation
 //////////////////////////////////////////////
 #if !defined(ENABLE_LOGGING) && !defined(DEFAULT_LOG_LEVEL)
-#define DEFAULT_LOG_LEVEL eNONE
+#define DEFAULT_LOG_LEVEL None
 #endif
 
 #if defined(_DEBUG) && defined(NDEBUG)

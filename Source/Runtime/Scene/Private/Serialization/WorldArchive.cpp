@@ -77,7 +77,7 @@ bool WorldArchive::parse(Span<char> json)
     if (!uniqueWorldFields(pRoot) || !pFormat || strcmp(pFormat, "Horizon.World") || !worldVersion(field(pRoot, "version"), version) ||
         version != 1 || !readID(field(pRoot, "id"), candidate->id) || !cJSON_IsArray(field(pRoot, "entities")))
     {
-        LOGF(eERROR, "Invalid World archive schema");
+        LOGF(Error, "Invalid World archive schema");
         return false;
     }
     uint32_t count = json.count;
@@ -105,7 +105,7 @@ bool WorldArchive::capture(World& world, Guid id)
 {
     if (world.isDeferred())
     {
-        LOGF(eERROR, "Cannot capture a deferred World");
+        LOGF(Error, "Cannot capture a deferred World");
         return false;
     }
     if (!id.isValid())
@@ -149,7 +149,7 @@ bool WorldArchive::capture(World& world, Guid id)
         const Guid   parentID = world.getEntityGuid(parent);
         if (parent.isValid() && !parentID.isValid())
         {
-            LOGF(eERROR, "A persistent entity's parent must have a Guid");
+            LOGF(Error, "A persistent entity's parent must have a Guid");
             return false;
         }
         cJSON* pEntityJson = cJSON_CreateObject();
@@ -172,7 +172,7 @@ bool WorldArchive::capture(World& world, Guid id)
             }
             if (!normalizeWorldComponent(pType->id, (void*)pValue, false) || !validateWorldReferences(*pType, pValue, world))
             {
-                LOGF(eERROR, "Cannot save invalid '%s' component", pType->pName);
+                LOGF(Error, "Cannot save invalid '%s' component", pType->pName);
                 return false;
             }
             cJSON* pProperties = writeWorldProperties(*pType, pValue);
@@ -384,7 +384,7 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
     WorldLoadPlan     plan;
     if (!plan.prepare(field(pData->pRoot, "entities"), *staging))
     {
-        LOGF(eERROR, "Invalid World entities, parent references or hierarchy cycle");
+        LOGF(Error, "Invalid World entities, parent references or hierarchy cycle");
         return false;
     }
     Array<TypeID> present;
@@ -412,7 +412,7 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
             if (!pType || id == SceneTypes::entityIdentity || id == SceneTypes::name ||
                 !loadComponent(pComponent, *pType, version, migrations, *staging, node.entity))
             {
-                LOGF(eERROR, "Cannot instantiate World component '%s' version %u", stringField(pComponent, "name"), version);
+                LOGF(Error, "Cannot instantiate World component '%s' version %u", stringField(pComponent, "name"), version);
                 return false;
             }
         }
@@ -435,14 +435,14 @@ bool WorldArchive::load(ResourceDirectory directory, const char* pFileName)
     FileStream stream = {};
     if (!fsOpenStreamFromPath(directory, pFileName, FM_READ, &stream))
     {
-        LOGF(eERROR, "Cannot open World archive '%s'", pFileName);
+        LOGF(Error, "Cannot open World archive '%s'", pFileName);
         return false;
     }
     const ssize_t size = fsGetStreamFileSize(&stream);
     if (size <= 0 || size > 64 * 1024 * 1024)
     {
         fsCloseStream(&stream);
-        LOGF(eERROR, "Invalid World archive size: '%s'", pFileName);
+        LOGF(Error, "Invalid World archive size: '%s'", pFileName);
         return false;
     }
     Array<char>  bytes((uint32_t)size);
@@ -450,7 +450,7 @@ bool WorldArchive::load(ResourceDirectory directory, const char* pFileName)
     fsCloseStream(&stream);
     if (read != (size_t)size)
     {
-        LOGF(eERROR, "Cannot read World archive '%s'", pFileName);
+        LOGF(Error, "Cannot read World archive '%s'", pFileName);
         return false;
     }
     return parse({ bytes.data(), bytes.size() });
@@ -488,13 +488,13 @@ static bool writeWorldFile(ResourceDirectory directory, const char* pFileName, S
     {
         if (exists && !fsRenameFile(directory, backup, pFileName))
         {
-            LOGF(eERROR, "Restore World '%s' from '%s'", pFileName, backup);
+            LOGF(Error, "Restore World '%s' from '%s'", pFileName, backup);
         }
         return false;
     }
     if (exists && !fsRemoveFile(directory, backup))
     {
-        LOGF(eWARNING, "Cannot remove World backup '%s'", backup);
+        LOGF(Warning, "Cannot remove World backup '%s'", backup);
     }
     return true;
 }
@@ -504,7 +504,7 @@ bool WorldArchive::save(ResourceDirectory directory, const char* pFileName) cons
     {
         return true;
     }
-    LOGF(eERROR, "Cannot save World archive '%s'", pFileName);
+    LOGF(Error, "Cannot save World archive '%s'", pFileName);
     return false;
 }
 } // namespace hz

@@ -73,7 +73,7 @@ static inline bool util_get_surface_info(uint32_t width, uint32_t height, hz::Fo
     }
     else if (packed) //-V547
     {
-        LOGF(eERROR, "Not implemented");
+        LOGF(Error, "Not implemented");
         return false;
         // rowBytes = ((uint64_t(width) + 1u) >> 1) * bpe;
         // numRows = uint64_t(height);
@@ -198,7 +198,7 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     TinyDDS_Callbacks callbacks{ [](void* user, char const* msg)
                                  {
                                      UNREF_PARAM(user);
-                                     LOGF(eERROR, "%s", msg);
+                                     LOGF(Error, "%s", msg);
                                  },
                                  [](void* user, size_t size)
                                  {
@@ -263,7 +263,7 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     TinyKtx_Callbacks callbacks{ [](void* user, char const* msg)
                                  {
                                      UNREF_PARAM(user);
-                                     LOGF(eERROR, "%s", msg);
+                                     LOGF(Error, "%s", msg);
                                  },
                                  [](void* user, size_t size)
                                  {

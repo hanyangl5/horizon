@@ -407,7 +407,7 @@ GPUTexture RenderContext::loadTexture(ResourceDirectory directory, const char* p
     const char* extension = strrchr(pFileName, '.');
     if (!extension || (strcmp(extension, ".dds") && strcmp(extension, ".ktx")))
     {
-        LOGF(eERROR, "Texture '%s' requires a DDS or KTX container", pFileName);
+        LOGF(Error, "Texture '%s' requires a DDS or KTX container", pFileName);
         return {};
     }
     Texture*        texture = nullptr;
@@ -427,7 +427,7 @@ GPUTexture RenderContext::loadTexture(ResourceDirectory directory, const char* p
         {
             removeResource(texture);
         }
-        LOGF(eERROR, "Failed to load texture '%s'", pFileName);
+        LOGF(Error, "Failed to load texture '%s'", pFileName);
         return {};
     }
     return GPUTexture(this, texture, nullptr, RESOURCE_STATE_SHADER_RESOURCE);
@@ -467,7 +467,7 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
     if (input.pFileName && (!fsOpenStreamFromPath(input.sourceDirectory, input.pFileName, FM_READ, &sourceFile) ||
                             !fsStreamMemoryMap(&sourceFile, &fileSize, &pFileSource) || !fileSize || fileSize > UINT32_MAX))
     {
-        LOGF(eERROR, "Could not map shader source '%s'", input.pFileName);
+        LOGF(Error, "Could not map shader source '%s'", input.pFileName);
         if (sourceFile.pIO)
             fsCloseStream(&sourceFile);
         return {};

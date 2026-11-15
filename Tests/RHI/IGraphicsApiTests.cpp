@@ -615,7 +615,7 @@ protected:
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
         fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
 
-        initLog(nullptr, eERROR);
+        InitLog(nullptr, Error);
 
         sSharedRenderer = new LiveRendererHarness();
         if (!sSharedRenderer->initRendererOnly("RHIIGraphicsApiTests"))
@@ -630,7 +630,7 @@ protected:
         delete sSharedRenderer;
         sSharedRenderer = nullptr;
 
-        exitLog();
+        ExitLog();
         exitFileSystem();
         _EnableInteractiveMode(true);
         exitMemAlloc();

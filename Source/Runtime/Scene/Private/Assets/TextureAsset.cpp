@@ -45,7 +45,7 @@ public:
     {
         if (entry.type != AssetType::Texture || entry.location.elementIndex != UINT32_MAX)
         {
-            LOGF(eERROR, "Invalid TextureAsset location '%s'", entry.location.pPath);
+            LOGF(Error, "Invalid TextureAsset location '%s'", entry.location.pPath);
             return nullptr;
         }
         TextureRequest* pRequest = tf_new(TextureRequest);
@@ -71,7 +71,7 @@ public:
         const char*             pExtension = strrchr(data.entry.location.pPath, '.');
         if (!pExtension || (stricmp(pExtension, ".dds") && stricmp(pExtension, ".ktx")))
         {
-            LOGF(eERROR, "TextureAsset requires DDS or KTX: '%s'", data.entry.location.pPath);
+            LOGF(Error, "TextureAsset requires DDS or KTX: '%s'", data.entry.location.pPath);
             return;
         }
         TextureLoadDesc desc = {
@@ -92,7 +92,7 @@ public:
             return AssetLoadStatus::Pending;
         if (!data.uploadSucceeded || !data.pUpload)
         {
-            LOGF(eERROR, "TextureAsset upload failed: '%s'", data.entry.location.pPath);
+            LOGF(Error, "TextureAsset upload failed: '%s'", data.entry.location.pPath);
             return AssetLoadStatus::Failed;
         }
         data.texture = SceneResourceAccess::take(&((TextureAssetLoaderData*)pUser)->context, data.pUpload);

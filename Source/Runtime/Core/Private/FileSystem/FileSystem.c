@@ -324,10 +324,10 @@ FORGE_API bool fsMergeDirAndFileName(const char* prePath, const char* postPath, 
     bool success = outputLength < outputSize;
     if (!success)
     {
-        LOGF(eERROR, "Failed to append path: path exceeds path limit of %llu.", (unsigned long long)outputSize);
-        LOGF(eERROR, "Base path is '%s'", prePath);
-        LOGF(eERROR, "Appending path is '%s'", postPath);
-        LOGF(eERROR, "Only this part that fits: '%s'", output);
+        LOGF(Error, "Failed to append path: path exceeds path limit of %llu.", (unsigned long long)outputSize);
+        LOGF(Error, "Base path is '%s'", prePath);
+        LOGF(Error, "Appending path is '%s'", postPath);
+        LOGF(Error, "Only this part that fits: '%s'", output);
     }
 
     // Delete any trailing directory separator.
@@ -361,10 +361,10 @@ FORGE_API void fsAppendPathExtension(const char* basePath, const char* extension
     // Extension validation
     for (size_t i = 0; i < extensionLength; i += 1)
     {
-        LOGF_IF(eERROR, isDirectorySeparator(extension[i]), "Extension '%s' contains directory specifiers", extension);
+        LOGF_IF(Error, isDirectorySeparator(extension[i]), "Extension '%s' contains directory specifiers", extension);
         ASSERT(!isDirectorySeparator(extension[i]));
     }
-    LOGF_IF(eERROR, extension[extensionLength - 1] == '.', "Extension '%s' ends with a '.' character", extension);
+    LOGF_IF(Error, extension[extensionLength - 1] == '.', "Extension '%s' ends with a '.' character", extension);
 
     if (extension[0] == '.')
     {
@@ -428,10 +428,10 @@ FORGE_API void fsReplacePathExtension(const char* path, const char* newExtension
     // Extension validation
     for (size_t i = 0; i < newExtensionLength; i += 1)
     {
-        LOGF_IF(eERROR, isDirectorySeparator(newExtension[i]), "Extension '%s' contains directory specifiers", newExtension);
+        LOGF_IF(Error, isDirectorySeparator(newExtension[i]), "Extension '%s' contains directory specifiers", newExtension);
         ASSERT(!isDirectorySeparator(newExtension[i]));
     }
-    LOGF_IF(eERROR, newExtension[newExtensionLength - 1] == '.', "Extension '%s' ends with a '.' character", newExtension);
+    LOGF_IF(Error, newExtension[newExtensionLength - 1] == '.', "Extension '%s' ends with a '.' character", newExtension);
 
     if (newExtension[0] == '.')
     {
@@ -580,7 +580,7 @@ static size_t ioMemoryStreamRead(FileStream* fs, void* dst, size_t size)
 {
     if (!(fs->mode & FM_READ))
     {
-        LOGF(eWARNING, "Attempting to read from stream that doesn't have FM_READ flag.");
+        LOGF(Warning, "Attempting to read from stream that doesn't have FM_READ flag.");
         return 0;
     }
 
@@ -601,7 +601,7 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
 {
     if (!(fs->mode & FM_WRITE))
     {
-        LOGF(eWARNING, "Attempting to write to stream that doesn't have FM_WRITE flag.");
+        LOGF(Warning, "Attempting to write to stream that doesn't have FM_WRITE flag.");
         return 0;
     }
 
@@ -609,7 +609,7 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
 
     if (stream->cursor > (size_t)stream->size)
     {
-        LOGF(eWARNING, "Creating discontinuity in initialized memory in memory stream.");
+        LOGF(Warning, "Creating discontinuity in initialized memory in memory stream.");
     }
 
     size_t availableCapacity = 0;
@@ -626,7 +626,7 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
         void* newBuffer = tf_realloc(stream->pBuffer, newCapacity);
         if (!newBuffer)
         {
-            LOGF(eERROR,
+            LOGF(Error,
                  "Failed to reallocate memory stream buffer with new capacity "
                  "%llu.",
                  (unsigned long long)newCapacity);
@@ -787,7 +787,7 @@ bool fsOpenStreamFromPath(ResourceDirectory resourceDir, const char* fileName, F
     IFileSystem* io = gResourceDirectories[resourceDir].pIO;
     if (!io)
     {
-        LOGF(eERROR,
+        LOGF(Error,
              "Trying to get an unset resource directory '%d' to open stream for '%s', make sure the resourceDirectory is set on start of "
              "the application",
              resourceDir, fileName ? fileName : "<NULL>");
@@ -964,7 +964,7 @@ FORGE_API bool fsStreamWrapMemoryMap(FileStream* fs)
     if (!fsOpenStreamFromMemory(mem, size, FM_READ, false, &wrapFs))
     {
         // NOTE: fsOpenStreamFromMemory never returns false
-        LOGF(eERROR, "Failed to open stream from memory");
+        LOGF(Error, "Failed to open stream from memory");
         return false;
     }
 
@@ -995,7 +995,7 @@ const char* fsGetResourceDirectory(ResourceDirectory resourceDir)
 
     if (!dir->pIO)
     {
-        LOGF_IF(eERROR, !dir->path[0],
+        LOGF_IF(Error, !dir->path[0],
                 "Trying to get an unset resource directory '%d', make sure the resourceDirectory is set on start of the application",
                 resourceDir);
         ASSERT(dir->path[0] != 0);
@@ -1014,7 +1014,7 @@ void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDire
     // Ignore RM_DEBUG on shipping builds, it's only supposed to be used in testing
     if (mount == RM_DEBUG)
     {
-        LOGF(eWARNING, "RM_DEBUG is not available on shipping builds");
+        LOGF(Warning, "RM_DEBUG is not available on shipping builds");
         return;
     }
 #endif
@@ -1032,7 +1032,7 @@ void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDire
     {
         if (!fsCreateResourceDirectory(resourceDir))
         {
-            LOGF(eERROR, "Could not create direcotry '%s' in filesystem", resourcePath);
+            LOGF(Error, "Could not create direcotry '%s' in filesystem", resourcePath);
         }
     }
 }
@@ -1461,7 +1461,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     {
         if (desc->tryMode)
             return false;
-        LOGF(eERROR, "Failed to open archive: failed to read header");
+        LOGF(Error, "Failed to open archive: failed to read header");
         return false;
     }
 
@@ -1469,14 +1469,14 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     {
         if (desc->tryMode)
             return false;
-        LOGF(eERROR, "Failed to open archive: wrong magic value %llu, expected %llu", (unsigned long long)header.magic,
+        LOGF(Error, "Failed to open archive: wrong magic value %llu, expected %llu", (unsigned long long)header.magic,
              (unsigned long long)(*((const uint64_t*)&BUNYAR_MAGIC)));
         return false;
     }
 
     if (header.version.compatible != 0)
     {
-        LOGF(eERROR, "Failed to open archive: version %llu not supported, expected 0", (unsigned long long)header.version.actual);
+        LOGF(Error, "Failed to open archive: version %llu not supported, expected 0", (unsigned long long)header.version.actual);
         return false;
     }
 
@@ -1510,7 +1510,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
     if (!bunyArReadLocation(archive, header.nodesPointer, archive->nodes))
     {
-        LOGF(eERROR, "Failed to open archive: nodes reading failure");
+        LOGF(Error, "Failed to open archive: nodes reading failure");
         goto CANCEL;
     }
 
@@ -1520,7 +1520,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
         if (node->namePointer.offset + node->namePointer.size > header.namesPointer.size)
         {
-            LOGF(eERROR, "Failed to open archive: invalid namePointer for node %llu", (unsigned long long)fi);
+            LOGF(Error, "Failed to open archive: invalid namePointer for node %llu", (unsigned long long)fi);
             goto CANCEL;
         }
     }
@@ -1532,19 +1532,19 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     {
         if (!bunyArReadLocation(archive, header.namesPointer, archive->nodeNames))
         {
-            LOGF(eERROR, "Failed to open archive: unexpected end of stream");
+            LOGF(Error, "Failed to open archive: unexpected end of stream");
             goto CANCEL;
         }
 
         if (archive->nodeNames[header.namesPointer.size - 1] != 0)
         {
-            LOGF(eERROR, "Failed to open archive: missing 0 in the string end");
+            LOGF(Error, "Failed to open archive: missing 0 in the string end");
             goto CANCEL;
         }
     }
     else if (archive->nodeCount)
     {
-        LOGF(eERROR, "Failed to open archive: missing node names");
+        LOGF(Error, "Failed to open archive: missing node names");
     CANCEL:
         tf_free(archive);
         return false;
@@ -1560,7 +1560,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
         if (!bunyArReadLocation(archive, header.hashTablePointer, archive->hashTable))
         {
             // not fatal, we can recreate it
-            LOGF(eERROR, "Failed to read archive hash table");
+            LOGF(Error, "Failed to read archive hash table");
             tf_free(archive->hashTable);
             archive->hashTable = NULL;
         }
@@ -1601,7 +1601,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
             size_t strLen = strlen(name);
             if (node->namePointer.size > BUNYAR_FILE_NAME_LENGTH_MAX || node->namePointer.size != strLen)
             {
-                LOGF(eERROR,
+                LOGF(Error,
                      "Archive contains file with wrong name length %llu when "
                      "limit is %i and node name size is %llu: '%s'",
                      (unsigned long long)strLen, BUNYAR_FILE_NAME_LENGTH_MAX, (unsigned long long)node->namePointer.size, name);
@@ -1613,7 +1613,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
             if (!(fsIsNormalizedPath(name, '/')))
             {
-                LOGF(eERROR, "Archive contains file with unnormalized name: '%s'", name);
+                LOGF(Error, "Archive contains file with unnormalized name: '%s'", name);
 
                 node->namePointer.size = (uint32_t)fsNormalizePathContinue(name, '/', name, name, (char*)UINTPTR_MAX);
 
@@ -1623,7 +1623,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
         if (namesChanged)
         {
-            LOGF(eERROR, "Baked archive hash table is abandoned because node names was "
+            LOGF(Error, "Baked archive hash table is abandoned because node names was "
                          "modified");
             tf_free(archive->hashTable);
             archive->hashTable = NULL;
@@ -1640,14 +1640,14 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
             if (value >= archive->nodeCount)
             {
-                LOGF(eERROR, "Archive hash table lookup test failed: key wasn't found.");
+                LOGF(Error, "Archive hash table lookup test failed: key wasn't found.");
                 success = false;
                 break;
             }
 
             if (value != i)
             {
-                LOGF(eERROR, "Archive hash table lookup test failed: got the wrong key.");
+                LOGF(Error, "Archive hash table lookup test failed: got the wrong key.");
                 success = false;
                 break;
             }
@@ -1655,7 +1655,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
         if (!success)
         {
-            LOGF(eERROR, "Baked archive hash table is abandoned because it was faulty");
+            LOGF(Error, "Baked archive hash table is abandoned because it was faulty");
             tf_free(archive->hashTable);
             archive->hashTable = NULL;
         }
@@ -1676,7 +1676,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
         if (msec)
         {
-            LOGF(eINFO, "Archive hash table %s in %fs", archive->hashTable ? "constructed" : "construction is failed",
+            LOGF(Info, "Archive hash table %s in %fs", archive->hashTable ? "constructed" : "construction is failed",
                  (double)(msec) / 1000);
         }
     }
@@ -1710,7 +1710,7 @@ bool fsArchiveOpen(ResourceDirectory rd, const char* path, const struct ArchiveO
     {
         if (!desc->tryMode)
         {
-            LOGF(eERROR, "Failed to open archive: \'%s\'", path);
+            LOGF(Error, "Failed to open archive: \'%s\'", path);
         }
         fsCloseStream(&stream);
         return false;
@@ -1750,7 +1750,7 @@ FORGE_API bool fsArchiveClose(IFileSystem* fs)
 
     if (archive->virtualStreamCount > 0)
     {
-        LOGF(eERROR, "Archive closed while some files are still opened");
+        LOGF(Error, "Archive closed while some files are still opened");
     }
 
     if (archive->ownedStream.pIO)
@@ -1807,7 +1807,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
 
     if (index > archive->nodeCount)
     {
-        LOGF(eERROR, "Cannot open archive file by UID %llu: bad UID", (unsigned long long)index);
+        LOGF(Error, "Cannot open archive file by UID %llu: bad UID", (unsigned long long)index);
         return false;
     }
 
@@ -1815,7 +1815,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
 
     if (mode != FM_READ)
     {
-        LOGF(eERROR, "Cannot open archive file '%s': only FM_READ is supported", archive->nodeNames + node->namePointer.offset);
+        LOGF(Error, "Cannot open archive file '%s': only FM_READ is supported", archive->nodeNames + node->namePointer.offset);
         return false;
     }
 
@@ -1831,7 +1831,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
         if (node->originalFileSize == node->filePointer.size)
             break;
 
-        LOGF(eERROR, "Archive contains raw file '%s' with corrupted size (%llu vs %llu)", archive->nodeNames + node->namePointer.offset,
+        LOGF(Error, "Archive contains raw file '%s' with corrupted size (%llu vs %llu)", archive->nodeNames + node->namePointer.offset,
              (unsigned long long)node->originalFileSize, (unsigned long long)node->filePointer.size);
         return false;
     }
@@ -1840,7 +1840,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     {
         if (node->filePointer.size < sizeof(blocksHeader))
         {
-            LOGF(eERROR, "Currupted archive file '%s'", archive->nodeNames + node->namePointer.offset);
+            LOGF(Error, "Currupted archive file '%s'", archive->nodeNames + node->namePointer.offset);
             return false;
         }
 
@@ -1849,7 +1849,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
 
         if (blocksHeader.blockSize == 0)
         {
-            LOGF(eERROR, "Archive file '%s' is stored with 0 block size", archive->nodeNames + node->namePointer.offset);
+            LOGF(Error, "Archive file '%s' is stored with 0 block size", archive->nodeNames + node->namePointer.offset);
             return false;
         }
 
@@ -1859,7 +1859,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     break;
     default:
     {
-        LOGF(eERROR, "Archive contains file '%s' written with unsupported format %llu", archive->nodeNames + node->namePointer.offset,
+        LOGF(Error, "Archive contains file '%s' written with unsupported format %llu", archive->nodeNames + node->namePointer.offset,
              (unsigned long long)node->format);
         return false;
     }
@@ -1895,7 +1895,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
         fs->zstd_ctx = ZSTD_createDCtx_advanced(ZSTD_MEMORY_ALLOCATOR);
         if (!fs->zstd_ctx)
         {
-            LOGF(eERROR, "Failed to create ZSTD decompression context");
+            LOGF(Error, "Failed to create ZSTD decompression context");
             goto CANCEL;
         }
     }
@@ -2013,7 +2013,7 @@ static bool bunyArReadBlockToBuffer(struct BunyArMetadata* archive, struct BunyA
     if (!error)
         return true;
 
-    LOGF(eERROR, "Failed to decompress block #%llu: %s", (unsigned long long)(blockToRead - fs->blocks), error);
+    LOGF(Error, "Failed to decompress block #%llu: %s", (unsigned long long)(blockToRead - fs->blocks), error);
     return false;
 }
 
@@ -2085,7 +2085,7 @@ static size_t ioArchiveFsRead(FileStream* pFile, void* outputBuffer, size_t outp
 
                 if (blockSize != blockInfo.size)
                 {
-                    LOGF(eERROR, "Raw black size is wrong (%llu vs %llu)", (unsigned long long)blockSize,
+                    LOGF(Error, "Raw black size is wrong (%llu vs %llu)", (unsigned long long)blockSize,
                          (unsigned long long)blockInfo.size);
                     break;
                 }

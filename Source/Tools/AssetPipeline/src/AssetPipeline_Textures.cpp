@@ -72,7 +72,7 @@ const char* gExtensions[] = { "dds", "ktx"
 TinyDDS_WriteCallbacks ddsWriteCallbacks{ [](void* user, char const* msg)
                                           {
                                               UNREF_PARAM(user);
-                                              LOGF(eERROR, "%s", msg);
+                                              LOGF(Error, "%s", msg);
                                           },
                                           [](void* user, size_t size)
                                           {
@@ -90,7 +90,7 @@ TinyDDS_WriteCallbacks ddsWriteCallbacks{ [](void* user, char const* msg)
 TinyDDS_Callbacks ddsReadCallbacks{ [](void* user, char const* msg)
                                     {
                                         UNREF_PARAM(user);
-                                        LOGF(eERROR, "%s", msg);
+                                        LOGF(Error, "%s", msg);
                                     },
                                     [](void* user, size_t size)
                                     {
@@ -111,7 +111,7 @@ TinyDDS_Callbacks ddsReadCallbacks{ [](void* user, char const* msg)
 TinyKtx_WriteCallbacks ktxWriteCallbacks{ [](void* user, char const* msg)
                                           {
                                               UNREF_PARAM(user);
-                                              LOGF(eERROR, "%s", msg);
+                                              LOGF(Error, "%s", msg);
                                           },
                                           [](void* user, size_t size)
                                           {
@@ -129,7 +129,7 @@ TinyKtx_WriteCallbacks ktxWriteCallbacks{ [](void* user, char const* msg)
 TinyKtx_Callbacks ktxReadCallbacks{ [](void* user, char const* msg)
                                     {
                                         UNREF_PARAM(user);
-                                        LOGF(eERROR, "%s", msg);
+                                        LOGF(Error, "%s", msg);
                                     },
                                     [](void* user, size_t size)
                                     {
@@ -170,7 +170,7 @@ uint8_t* ResizeImage(uint8_t* ppData, const uint32_t width, const uint32_t heigh
     // components);
     stbir_resize_uint8_srgb_edgemode(ppData, width, height, width * components, pResizedImageData, newWidth, newHeight,
                                      newWidth * components, components, 1, 0, stbir_edge::STBIR_EDGE_CLAMP);
-    LOGF(eINFO, "Resized image %ux%u -> %ux%u (%ux%u)", width, height, newWidth, newHeight, newWidth << mip, newHeight << mip);
+    LOGF(Info, "Resized image %ux%u -> %ux%u (%ux%u)", width, height, newWidth, newHeight, newWidth << mip, newHeight << mip);
     return pResizedImageData;
 }
 
@@ -188,7 +188,7 @@ hz::Format GetASTCFormat(ASTC astc, bool isSrgb)
         outFormat = isSrgb ? hz::Format::ASTC_8x8_SRGB : hz::Format::ASTC_8x8_UNORM;
         break;
     default:
-        LOGF(eERROR, "Unknown ASTC compression!");
+        LOGF(Error, "Unknown ASTC compression!");
     }
     return outFormat;
 }
@@ -218,7 +218,7 @@ hz::Format GetBCFormat(DXT dxt, uint32_t channels, bool isSrgb, bool isSigned)
         outFormat = isSrgb ? hz::Format::DXBC7_SRGB : hz::Format::DXBC7_UNORM;
         break;
     default:
-        LOGF(eERROR, "Unknown DXT compression!");
+        LOGF(Error, "Unknown DXT compression!");
     }
 
     return outFormat;
@@ -293,7 +293,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
     FileStream file = {};
     if (!fsOpenStreamFromPath(resourceDir, pFilepath, FileMode(FM_READ | FM_ALLOW_READ), &file))
     {
-        LOGF(eERROR, "Could not open file '%s'.", pFilepath);
+        LOGF(Error, "Could not open file '%s'.", pFilepath);
         success = false;
         return success;
     }
@@ -301,7 +301,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
     ssize_t fileSize = fsGetStreamFileSize(&file);
     if (fileSize > INT32_MAX)
     {
-        LOGF(eWARNING, "File '%s' exceeds max handled filesize, size: %zi max: %i", pFilepath, fileSize, INT32_MAX);
+        LOGF(Warning, "File '%s' exceeds max handled filesize, size: %zi max: %i", pFilepath, fileSize, INT32_MAX);
         success = false;
     }
 
@@ -355,7 +355,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         if (!headerOkay)
         {
             TinyDDS_DestroyContext(tinyDDSCtx);
-            LOGF(eERROR, "Could not load dds texture information '%s'.", pFilepath);
+            LOGF(Error, "Could not load dds texture information '%s'.", pFilepath);
             success = false;
         }
 
@@ -398,7 +398,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
 
         if (fileSize != fileReadBytes)
         {
-            LOGF(eERROR, "Could not read all bytes from file '%s' %zi/%zi", pFilepath, fileReadBytes, fileSize);
+            LOGF(Error, "Could not read all bytes from file '%s' %zi/%zi", pFilepath, fileReadBytes, fileSize);
             success = false;
         }
 
@@ -463,7 +463,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
 
         if (textureFormat == hz::Format::UNDEFINED)
         {
-            LOGF(LogLevel::eERROR, "Cannot process texture with texure format UNDEFINED");
+            LOGF(LogLevel::Error, "Cannot process texture with texure format UNDEFINED");
             success = false;
         }
 
@@ -472,7 +472,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
             bool isHDR = stbi_is_hdr_from_memory(pFileData, (int32_t)fileSize);
             if (isHDR)
             {
-                LOGF(LogLevel::eINFO, "HDR file being loaded is being mapped to LDR with gamma : %f and scale factor: %f", stbi__l2h_gamma,
+                LOGF(LogLevel::Info, "HDR file being loaded is being mapped to LDR with gamma : %f and scale factor: %f", stbi__l2h_gamma,
                      stbi__l2h_scale);
             }
         }
@@ -519,7 +519,7 @@ bool ASTCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MA
 
     if (TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pTexDesc->format) != 32)
     {
-        LOGF(LogLevel::eERROR, "Fast ISPC Texture Compressor only supports 32bits per pixel for ASTC");
+        LOGF(LogLevel::Error, "Fast ISPC Texture Compressor only supports 32bits per pixel for ASTC");
         return false;
     }
 
@@ -707,7 +707,7 @@ bool BCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MAX_
         requiredInputChannels = 4;
         if (bitsPerPixel != 64 && !TinyImageFormat_IsFloat((TinyImageFormat)pTexDesc->format))
         {
-            LOGF(LogLevel::eERROR, "%s is an unsupported format for BC6 compression",
+            LOGF(LogLevel::Error, "%s is an unsupported format for BC6 compression",
                  TinyImageFormat_Name((TinyImageFormat)pTexDesc->format));
             return false;
         }
@@ -841,7 +841,7 @@ bool CompressImageData(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[
     case COMPRESSION_BC:
         return BCCompression(ppData, ppOutCompressed, pCompressedSize, pDesc, pTextDesc);
     default:
-        LOGF(eERROR, "Unknown compression!");
+        LOGF(Error, "Unknown compression!");
         return false;
     }
 }
@@ -959,14 +959,14 @@ bool GenerateVMFLayer(InputTextureData* pNormalTextureData, InputTextureData* pR
     /////////////////////////////////
     if (pNormalTextureData->isCompressed || pRoughnessTextureData->isCompressed)
     {
-        LOGF(LogLevel::eERROR, "%s: Compressed input data given, requires uncompressed texture data!", __FUNCTION__);
+        LOGF(LogLevel::Error, "%s: Compressed input data given, requires uncompressed texture data!", __FUNCTION__);
         success = false;
     }
 
     if (pNormalTextureData->mDesc.width != pRoughnessTextureData->mDesc.width ||
         pNormalTextureData->mDesc.height != pRoughnessTextureData->mDesc.height)
     {
-        LOGF(LogLevel::eERROR, "%s: width/height of normal {%u/%u} and roughness {%u/%u} texture do not match!", __FUNCTION__,
+        LOGF(LogLevel::Error, "%s: width/height of normal {%u/%u} and roughness {%u/%u} texture do not match!", __FUNCTION__,
              pNormalTextureData->mDesc.width, pNormalTextureData->mDesc.height, pRoughnessTextureData->mDesc.width,
              pRoughnessTextureData->mDesc.height);
 
@@ -977,7 +977,7 @@ bool GenerateVMFLayer(InputTextureData* pNormalTextureData, InputTextureData* pR
     const uint32_t roughnessTextureChannels = TinyImageFormat_ChannelCount((TinyImageFormat)pRoughnessTextureData->mDesc.format);
     if (normalTextureChannels < 3)
     {
-        LOGF(LogLevel::eERROR, "%s: Normal input texture has to few channels %u!", __FUNCTION__, normalTextureChannels);
+        LOGF(LogLevel::Error, "%s: Normal input texture has to few channels %u!", __FUNCTION__, normalTextureChannels);
         success = false;
     }
 
@@ -1086,12 +1086,12 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
 
             if (lastModified < lastProcessed)
             {
-                LOGF(eINFO, "Skipping %s", inFileName);
+                LOGF(Info, "Skipping %s", inFileName);
                 continue;
             }
         }
 
-        LOGF(eINFO, "Converting texture %s from .%s to .%s with output container : %s", inFileName, copyTextureParams.mInExt, "tex",
+        LOGF(Info, "Converting texture %s from .%s to .%s with output container : %s", inFileName, copyTextureParams.mInExt, "tex",
              gExtensions[copyTextureParams.mContainer]);
 
         /////////////////////////////////
@@ -1140,7 +1140,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
 
             if (copyTextureParams.mCompression == COMPRESSION_BC && copyTextureParams.mOverrideBC == DXT_NONE)
             {
-                LOGF(eINFO, "Using DXT_BC5 compression for vMF output");
+                LOGF(Info, "Using DXT_BC5 compression for vMF output");
                 copyTextureParams.mOverrideBC = DXT_BC5;
             }
         }
@@ -1180,7 +1180,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         if (inputTextureData.isCompressed)
         {
             outFormat = inputTextureData.mDesc.format;
-            LOGF(eWARNING, "Input texture '%s' is already compressed {%s}, copy texture to destination", inFileName,
+            LOGF(Warning, "Input texture '%s' is already compressed {%s}, copy texture to destination", inFileName,
                  TinyImageFormat_Name((TinyImageFormat)outFormat));
         }
         else
@@ -1193,7 +1193,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
 
         if (outFormat == hz::Format::UNDEFINED)
         {
-            LOGF(eERROR, "Undefined Image format");
+            LOGF(Error, "Undefined Image format");
             error = true;
             continue;
         }
@@ -1203,7 +1203,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
             // Process raw image data
             if (!CompressImageData(inputTextureData.pData, pCompressedData, compressedDataSize, &compressDesc, &inputTextureData.mDesc))
             {
-                LOGF(eERROR, "Failed to compress texture %s", inFileName);
+                LOGF(Error, "Failed to compress texture %s", inFileName);
                 error = true;
             }
 
@@ -1248,7 +1248,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         FileStream outFile = {};
         if (!fsOpenStreamFromPath(assetParams->mRDOutput, outFileName, FM_WRITE, &outFile))
         {
-            LOGF(eERROR, "Could not open file '%s' for write.", outFileName);
+            LOGF(Error, "Could not open file '%s' for write.", outFileName);
             error = true;
         }
 
@@ -1263,7 +1263,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
                                     inputTextureData.mDesc.depth, arraySize, inputTextureData.mDesc.mipLevels, outKtxFormat, isCubemap,
                                     compressedDataSize, (const void**)pCompressedData))
             {
-                LOGF(eERROR, "Couldn't create ktx file '%s' with format '%s'", outFileName,
+                LOGF(Error, "Couldn't create ktx file '%s' with format '%s'", outFileName,
                      TinyImageFormat_Name((TinyImageFormat)outFormat));
                 error = true;
             }
@@ -1276,7 +1276,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
                                     inputTextureData.mDesc.depth, arraySize, inputTextureData.mDesc.mipLevels, outDDSFormat, isCubemap,
                                     false, compressedDataSize, (const void**)pCompressedData))
             {
-                LOGF(eERROR, "Couldn't create dds file '%s' with format '%s'", outFileName,
+                LOGF(Error, "Couldn't create dds file '%s' with format '%s'", outFileName,
                      TinyImageFormat_Name((TinyImageFormat)outFormat));
                 error = true;
             }
@@ -1293,7 +1293,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
                                     inputTextureData.mDesc.depth, inputTextureData.mDesc.arraySize, inputTextureData.mDesc.mipLevels,
                                     outDDSFormat, isCubemap, compressedDataSize, (const void**)pCompressedData))
             {
-                LOGF(eERROR, "Couldn't create Scarlett dds file '%s' with format '%s'", outFileName,
+                LOGF(Error, "Couldn't create Scarlett dds file '%s' with format '%s'", outFileName,
                      TinyImageFormat_Name((TinyImageFormat)outFormat));
                 error = true;
             }
@@ -1310,7 +1310,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
                                  inputTextureData.mDesc.arraySize, inputTextureData.mDesc.mipLevels, outFormat, isCubemap,
                                  copyTextureParams.mContainer, 1, compressedDataSize, (const void**)pCompressedData))
             {
-                LOGF(eERROR, "Couldn't create gnf file '%s' with format '%s'", outFileName,
+                LOGF(Error, "Couldn't create gnf file '%s' with format '%s'", outFileName,
                      TinyImageFormat_Name((TinyImageFormat)outFormat));
                 error = true;
             }

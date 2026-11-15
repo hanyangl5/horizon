@@ -71,7 +71,7 @@ private:
 
 static bool invalidField(const char* pField)
 {
-    LOGF(eERROR, "Invalid cooked SceneAsset field '%s'", pField);
+    LOGF(Error, "Invalid cooked SceneAsset field '%s'", pField);
     return false;
 }
 

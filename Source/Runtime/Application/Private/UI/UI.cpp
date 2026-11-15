@@ -2279,7 +2279,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
             }
             else
             {
-                LOGF(eWARNING, "uiCreateComponent() has reached fonts capacity.  Consider increasing 'maxUIFonts' when initializing the "
+                LOGF(Warning, "uiCreateComponent() has reached fonts capacity.  Consider increasing 'maxUIFonts' when initializing the "
                                "user interface.");
                 useDefaultFallbackFont = true;
             }
@@ -2287,7 +2287,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
     }
     else
     {
-        LOGF(eWARNING, "uiCreateComponent() uses an unknown font id (%u).  Will fallback to default UI font.", pDesc->fontID);
+        LOGF(Warning, "uiCreateComponent() uses an unknown font id (%u).  Will fallback to default UI font.", pDesc->fontID);
         useDefaultFallbackFont = true;
     }
 #else
@@ -3267,8 +3267,8 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
 
     if (pUIDrawData->vertexCount > FORGE_UI_MAX_VERTEXES || pUIDrawData->indexCount > FORGE_UI_MAX_INDEXES)
     {
-        LOGF(eWARNING, "UI exceeds amount of verts/inds.  Consider updating FORGE_UI_MAX_VERTEXES/FORGE_UI_MAX_INDEXES defines.");
-        LOGF(eWARNING, "Num verts: %u (max %d) | Num inds: %u (max %d)", pUIDrawData->vertexCount, FORGE_UI_MAX_VERTEXES,
+        LOGF(Warning, "UI exceeds amount of verts/inds.  Consider updating FORGE_UI_MAX_VERTEXES/FORGE_UI_MAX_INDEXES defines.");
+        LOGF(Warning, "Num verts: %u (max %d) | Num inds: %u (max %d)", pUIDrawData->vertexCount, FORGE_UI_MAX_VERTEXES,
              pUIDrawData->indexCount, FORGE_UI_MAX_INDEXES);
         pUIDrawData->vertexCount = pUIDrawData->vertexCount > FORGE_UI_MAX_VERTEXES ? FORGE_UI_MAX_VERTEXES : pUIDrawData->vertexCount;
         pUIDrawData->indexCount = pUIDrawData->indexCount > FORGE_UI_MAX_INDEXES ? FORGE_UI_MAX_INDEXES : pUIDrawData->indexCount;

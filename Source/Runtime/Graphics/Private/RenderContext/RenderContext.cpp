@@ -306,7 +306,7 @@ bool RenderContext::createSwapChain()
         }
         if (swapDesc.colorFormat == hz::Format::UNDEFINED)
         {
-            LOGF(LogLevel::eWARNING, "HDR presentation is unavailable; falling back to SDR sRGB");
+            LOGF(LogLevel::Warning, "HDR presentation is unavailable; falling back to SDR sRGB");
             swapDesc.colorSpace = COLOR_SPACE_SDR_SRGB;
             swapDesc.hdrMetadata = {};
         }
@@ -320,7 +320,7 @@ bool RenderContext::createSwapChain()
         swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
     if (swapDesc.colorFormat == hz::Format::UNDEFINED)
     {
-        LOGF(LogLevel::eERROR, "No supported swapchain format is available");
+        LOGF(LogLevel::Error, "No supported swapchain format is available");
         return false;
     }
 

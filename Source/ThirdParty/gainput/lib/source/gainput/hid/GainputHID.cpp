@@ -437,7 +437,7 @@ static void HIDAddDevice(hid_device_info *dev, uint8_t controllertype)
     if (!pFreeList)
     {
         // If this is hit the MAX_DEVICES_TRACKED cap needs to be increased
-        LOGF(LogLevel::eWARNING, "Failed to add controller due to lack of room: \"%ls - %ls\" at path: %s",
+        LOGF(LogLevel::Warning, "Failed to add controller due to lack of room: \"%ls - %ls\" at path: %s",
             dev->manufacturer_string,
             dev->product_string,
             dev->path);
@@ -445,7 +445,7 @@ static void HIDAddDevice(hid_device_info *dev, uint8_t controllertype)
     }
     ASSERT(strlen(dev->path) < MAX_PATH_LENGTH);
 
-    LOGF(LogLevel::eDEBUG, "Adding controller \"%ls - %ls\" at path: %s",
+    LOGF(LogLevel::Debug, "Adding controller \"%ls - %ls\" at path: %s",
         dev->manufacturer_string,
         dev->product_string,
         dev->path);
@@ -557,7 +557,7 @@ static void HIDLoadDevices()
             if (!HIDIsController(dev))
             {
 #if defined(HID_VERBOSE_LOGGING)
-                LOGF(LogLevel::eDEBUG, "Ignoring non-controller \"%ls - %ls\" at path: %s",
+                LOGF(LogLevel::Debug, "Ignoring non-controller \"%ls - %ls\" at path: %s",
                     dev->manufacturer_string,
                     dev->product_string,
                     dev->path);
@@ -569,7 +569,7 @@ static void HIDLoadDevices()
             if (!HIDIsSupported(dev, &type))
             {
 #if defined(HID_VERBOSE_LOGGING)
-                LOGF(LogLevel::eDEBUG, "Ignoring unsupported controller \"%ls - %ls\" at path: %s",
+                LOGF(LogLevel::Debug, "Ignoring unsupported controller \"%ls - %ls\" at path: %s",
                     dev->manufacturer_string,
                     dev->product_string,
                     dev->path);
@@ -661,7 +661,7 @@ static void HIDInitControllerTracking()
 
 static inline void UnsupportedControllerDebug(HIDDeviceInfo* dev, char const* brand)
 {
-    LOGF(LogLevel::eDEBUG, "Unsupported %s controller:   0x%.4X - 0x%.4X   Path: %s",
+    LOGF(LogLevel::Debug, "Unsupported %s controller:   0x%.4X - 0x%.4X   Path: %s",
         brand,
         dev->vendorID,
         dev->productID,
@@ -670,7 +670,7 @@ static inline void UnsupportedControllerDebug(HIDDeviceInfo* dev, char const* br
 
 static inline void FailedToOpenDebug(HIDDeviceInfo* dev, char const* brand)
 {
-    LOGF(LogLevel::eDEBUG, "Failed to open %s controller:   0x%.4X - 0x%.4X   Path: %s",
+    LOGF(LogLevel::Debug, "Failed to open %s controller:   0x%.4X - 0x%.4X   Path: %s",
         brand,
         dev->vendorID,
         dev->productID,
@@ -679,7 +679,7 @@ static inline void FailedToOpenDebug(HIDDeviceInfo* dev, char const* brand)
 
 static inline void SuccessfulOpenDebug(HIDDeviceInfo* dev, char const* brand)
 {
-    LOGF(LogLevel::eDEBUG, "Successfully opened %s controller:   0x%.4X - 0x%.4X   Path: %s",
+    LOGF(LogLevel::Debug, "Successfully opened %s controller:   0x%.4X - 0x%.4X   Path: %s",
         brand,
         dev->vendorID,
         dev->productID,
@@ -693,7 +693,7 @@ void HIDLoadController(uint8_t devID, uint8_t playerNum)
 
     if (!gDeviceBuffer[index].active)
     {
-        LOGF(LogLevel::eWARNING, "Tried to load non-existant device at index %i", index);
+        LOGF(LogLevel::Warning, "Tried to load non-existant device at index %i", index);
         return;
     }
 
@@ -761,7 +761,7 @@ void HIDUnloadController(uint8_t devID)
     HIDController* con = gControllerBuffer + index;
     if (!con->hidDev)
     {
-        LOGF(LogLevel::eWARNING, "Tried to unload non-existant controller at index %i", index);
+        LOGF(LogLevel::Warning, "Tried to unload non-existant controller at index %i", index);
         return;
     }
 
@@ -814,7 +814,7 @@ static bool GetController(uint8_t devID, HIDController** outCon)
     HIDController* con = gControllerBuffer + index;
     if (!con->hidDev)
     {
-        LOGF(LogLevel::eWARNING, "Tried to retrieve non-existant controller at index %i", index);
+        LOGF(LogLevel::Warning, "Tried to retrieve non-existant controller at index %i", index);
         return false;
     }
 

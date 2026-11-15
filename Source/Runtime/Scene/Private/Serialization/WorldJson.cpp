@@ -24,7 +24,7 @@ bool validWorldJsonStrings(Span<char> json)
         {
             if (!value || (value == '\\' && json.count - i >= 6 && !memcmp(json.pData + i + 1, "u0000", 5)))
             {
-                LOGF(eERROR, "World JSON strings cannot contain embedded nulls");
+                LOGF(Error, "World JSON strings cannot contain embedded nulls");
                 return false;
             }
             if (value == '\\')
@@ -223,7 +223,7 @@ cJSON* writeWorldProperties(const TypeDesc& type, const void* pValue)
         cJSON* pField = writeProperty(*pProperty, (const uint8_t*)pValue + pProperty->offset);
         if (!pField)
         {
-            LOGF(eERROR, "Cannot serialize property '%s.%s'", type.pName, pProperty->pName);
+            LOGF(Error, "Cannot serialize property '%s.%s'", type.pName, pProperty->pName);
             return nullptr;
         }
         cJSON_AddItemToObject(object.pValue, pProperty->pName, pField);
@@ -359,7 +359,7 @@ bool readWorldProperties(const TypeDesc& type, const cJSON* pObject, void* pValu
         const PropertyDesc* pProperty = type.getProperty(pField->string);
         if (!pProperty || !serialized(*pProperty) || !readProperty(*pProperty, pField, (uint8_t*)pValue + pProperty->offset))
         {
-            LOGF(eERROR, "Invalid serialized property '%s.%s'", type.pName, pField->string);
+            LOGF(Error, "Invalid serialized property '%s.%s'", type.pName, pField->string);
             return false;
         }
     }

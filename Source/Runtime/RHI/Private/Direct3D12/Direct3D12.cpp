@@ -711,7 +711,7 @@ static DxDescriptorID consume_descriptor_handles(DescriptorHeap* pHeap, uint32_t
     }
 
     return_descriptor_handles_unlocked(pHeap, firstResult, foundCount);
-    LOGF(eERROR, "Descriptor heap exhausted while allocating %u descriptors", descriptorCount);
+    LOGF(Error, "Descriptor heap exhausted while allocating %u descriptors", descriptorCount);
     ASSERT(false && "Out of descriptors");
     return D3D12_DESCRIPTOR_ID_NONE;
 }
@@ -975,7 +975,7 @@ static void AddTypedBufferUav(Renderer* pRenderer, DescriptorHeap* pOptionalHeap
         !(FormatSupport.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE))
     {
         // Format does not support UAV Typed Load
-        LOGF(LogLevel::eWARNING, "Cannot use Typed UAV for buffer format %u", (uint32_t)format);
+        LOGF(LogLevel::Warning, "Cannot use Typed UAV for buffer format %u", (uint32_t)format);
         uavDesc.Format = DXGI_FORMAT_UNKNOWN;
     }
 
@@ -1267,7 +1267,7 @@ void d3d12dll_exit()
 #if defined(FORGE_D3D12_DYNAMIC_LOADING)
     if (gD3D12dll)
     {
-        LOGF(LogLevel::eINFO, "Unloading d3d12.dll");
+        LOGF(LogLevel::Info, "Unloading d3d12.dll");
         gPfnCreateDevice = NULL;
         gPfnGetDebugInterface = NULL;
         gPfnEnableExperimentalFeatures = NULL;
@@ -1278,7 +1278,7 @@ void d3d12dll_exit()
 
     if (gDXGIdll)
     {
-        LOGF(LogLevel::eINFO, "Unloading dxgi.dll");
+        LOGF(LogLevel::Info, "Unloading dxgi.dll");
         gPfnCreateDXGIFactory2 = NULL;
         gPfnDXGIGetDebugInterface1 = NULL;
         FreeLibrary(gDXGIdll);
@@ -1296,7 +1296,7 @@ bool d3d12dll_init()
     if (gD3D12dllInited)
         return true;
 
-    LOGF(LogLevel::eINFO, "Loading d3d12.dll");
+    LOGF(LogLevel::Info, "Loading d3d12.dll");
     gD3D12dll = LoadLibraryExA("d3d12.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (gD3D12dll)
     {
@@ -1308,7 +1308,7 @@ bool d3d12dll_init()
             (PFN_D3D12_SerializeVersionedRootSignature)(GetProcAddress(gD3D12dll, "D3D12SerializeVersionedRootSignature"));
     }
 
-    LOGF(LogLevel::eINFO, "Loading dxgi.dll");
+    LOGF(LogLevel::Info, "Loading dxgi.dll");
     gDXGIdll = LoadLibraryExA("dxgi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (gDXGIdll)
     {
@@ -1544,7 +1544,7 @@ DXGI_FORMAT util_to_dx12_uav_format(DXGI_FORMAT defaultFormat)
     case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
     case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
     case DXGI_FORMAT_D16_UNORM:
-        LOGF(LogLevel::eERROR, "Requested a UAV format for a depth stencil format");
+        LOGF(LogLevel::Error, "Requested a UAV format for a depth stencil format");
 #endif
 
     default:
@@ -1675,7 +1675,7 @@ DXGI_FORMAT util_to_dx12_swapchain_format(hz::Format const format)
 
     if (result == DXGI_FORMAT_UNKNOWN)
     {
-        LOGF(LogLevel::eERROR, "Image Format (%u) not supported for creating swapchain buffer", (uint32_t)format);
+        LOGF(LogLevel::Error, "Image Format (%u) not supported for creating swapchain buffer", (uint32_t)format);
     }
 
     return result;
@@ -1696,7 +1696,7 @@ DXGI_COLOR_SPACE_TYPE util_to_dx12_colorspace(ColorSpace colorspace)
         break;
     }
 
-    LOGF(LogLevel::eERROR, "Color Space (%u) not supported for creating swapchain buffer", (uint32_t)colorspace);
+    LOGF(LogLevel::Error, "Color Space (%u) not supported for creating swapchain buffer", (uint32_t)colorspace);
 
     return DXGI_COLOR_SPACE_CUSTOM;
 }
@@ -2167,7 +2167,7 @@ static void InitializeTextureDesc(Renderer* pRenderer, const TextureDesc* pDesc,
     pRenderer->dx.pDevice->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &data, sizeof(data));
     while (data.NumQualityLevels == 0 && data.SampleCount > 0)
     {
-        LOGF(LogLevel::eWARNING, "Sample Count (%u) not supported. Trying a lower sample count (%u)", data.SampleCount,
+        LOGF(LogLevel::Warning, "Sample Count (%u) not supported. Trying a lower sample count (%u)", data.SampleCount,
              data.SampleCount / 2);
         data.SampleCount = desc->SampleDesc.Count / 2;
         pRenderer->dx.pDevice->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &data, sizeof(data));
@@ -2250,19 +2250,19 @@ void DebugMessageCallback(D3D12_MESSAGE_CATEGORY category, D3D12_MESSAGE_SEVERIT
 
     if (severity == D3D12_MESSAGE_SEVERITY_CORRUPTION)
     {
-        LOGF(LogLevel::eERROR, "[Corruption] [%d] : %s (%d)", category, pDescription, id);
+        LOGF(LogLevel::Error, "[Corruption] [%d] : %s (%d)", category, pDescription, id);
     }
     else if (severity == D3D12_MESSAGE_SEVERITY_ERROR)
     {
-        LOGF(LogLevel::eERROR, "[Error] [%d] : %s (%d)", category, pDescription, id);
+        LOGF(LogLevel::Error, "[Error] [%d] : %s (%d)", category, pDescription, id);
     }
     else if (severity == D3D12_MESSAGE_SEVERITY_WARNING)
     {
-        LOGF(LogLevel::eWARNING, "[%d] : %s (%d)", category, pDescription, id);
+        LOGF(LogLevel::Warning, "[%d] : %s (%d)", category, pDescription, id);
     }
     else if (severity == D3D12_MESSAGE_SEVERITY_INFO)
     {
-        LOGF(LogLevel::eINFO, "[%d] : %s (%d)", category, pDescription, id);
+        LOGF(LogLevel::Info, "[%d] : %s (%d)", category, pDescription, id);
     }
 }
 #endif
@@ -2289,13 +2289,13 @@ static HRESULT EnableExperimentalShaderModels()
 #if defined(XBOX)
 UINT HANGBEGINCALLBACK(UINT64 Flags)
 {
-    LOGF(LogLevel::eINFO, "( %d )", Flags);
+    LOGF(LogLevel::Info, "( %d )", Flags);
     return (UINT)Flags;
 }
 
 void HANGPRINTCALLBACK(const CHAR* strLine)
 {
-    LOGF(LogLevel::eINFO, "( %s )", strLine);
+    LOGF(LogLevel::Info, "( %s )", strLine);
     return;
 }
 
@@ -2331,12 +2331,12 @@ static bool SelectBestGpu(Renderer* pRenderer, const RendererDesc* pDesc, D3D_FE
     }
 
     // Print selected GPU information
-    LOGF(LogLevel::eINFO, "GPU[%u] is selected as default GPU", gpuIndex);
-    LOGF(LogLevel::eINFO, "Name of selected gpu: %s", pRenderer->pGpu->settings.gpuVendorPreset.gpuName);
-    LOGF(LogLevel::eINFO, "Vendor id of selected gpu: %#x", pRenderer->pGpu->settings.gpuVendorPreset.vendorId);
-    LOGF(LogLevel::eINFO, "Model id of selected gpu: %#x", pRenderer->pGpu->settings.gpuVendorPreset.modelId);
-    LOGF(LogLevel::eINFO, "Revision id of selected gpu: %#x", pRenderer->pGpu->settings.gpuVendorPreset.revisionId);
-    LOGF(LogLevel::eINFO, "Preset of selected gpu: %s", presetLevelToString(pRenderer->pGpu->settings.gpuVendorPreset.presetLevel));
+    LOGF(LogLevel::Info, "GPU[%u] is selected as default GPU", gpuIndex);
+    LOGF(LogLevel::Info, "Name of selected gpu: %s", pRenderer->pGpu->settings.gpuVendorPreset.gpuName);
+    LOGF(LogLevel::Info, "Vendor id of selected gpu: %#x", pRenderer->pGpu->settings.gpuVendorPreset.vendorId);
+    LOGF(LogLevel::Info, "Model id of selected gpu: %#x", pRenderer->pGpu->settings.gpuVendorPreset.modelId);
+    LOGF(LogLevel::Info, "Revision id of selected gpu: %#x", pRenderer->pGpu->settings.gpuVendorPreset.revisionId);
+    LOGF(LogLevel::Info, "Preset of selected gpu: %s", presetLevelToString(pRenderer->pGpu->settings.gpuVendorPreset.presetLevel));
 
     if (pFeatureLevel)
     {
@@ -2452,7 +2452,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
                                                                                   pRenderer, &pRenderer->dx.callbackCookie);
             if (!SUCCEEDED(res))
             {
-                internal_log(eERROR, "RegisterMessageCallback failed - disabling DirectX12 ID3D12InfoQueue1 debug callbacks", "AddDevice");
+                internal_log(Error, "RegisterMessageCallback failed - disabling DirectX12 ID3D12InfoQueue1 debug callbacks", "AddDevice");
             }
         }
     }
@@ -2525,7 +2525,7 @@ void InitCommon(const RendererContextDesc* pDesc, RendererContext* pContext)
                 settings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
                 settings->SetBreadcrumbContextEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
                 settings->Release();
-                LOGF(LogLevel::eINFO, "DRED breadcrumbs, page fault reporting and breadcrumb contexts enabled");
+                LOGF(LogLevel::Info, "DRED breadcrumbs, page fault reporting and breadcrumb contexts enabled");
             }
         }
 #endif
@@ -2565,7 +2565,7 @@ void ExitCommon(RendererContext* pContext)
     IDXGIDebug1* dxgiDebug = NULL;
     if (SUCCEEDED(d3d12dll_DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug))))
     {
-        LOGF(eWARNING, "Printing live D3D12 objects to the debugger output window...");
+        LOGF(Warning, "Printing live D3D12 objects to the debugger output window...");
 
         dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL,
                                      DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
@@ -2573,7 +2573,7 @@ void ExitCommon(RendererContext* pContext)
     }
     else
     {
-        LOGF(eWARNING, "Unable to retrieve the D3D12 DXGI debug interface, cannot print live D3D12 objects.");
+        LOGF(Warning, "Unable to retrieve the D3D12 DXGI debug interface, cannot print live D3D12 objects.");
     }
 #endif
 
@@ -2641,7 +2641,7 @@ void d3d12_initRendererContext(const char* appName, const RendererContextDesc* p
     // If the only adapter we found is a software adapter, log error message for QA
     if (!pContext->gpuCount && foundSoftwareAdapter)
     {
-        LOGF(eERROR, "The only available GPU has DXGI_ADAPTER_FLAG_SOFTWARE. Early exiting");
+        LOGF(Error, "The only available GPU has DXGI_ADAPTER_FLAG_SOFTWARE. Early exiting");
         ASSERT(false);
         return;
     }
@@ -2669,7 +2669,7 @@ void d3d12_initRendererContext(const char* appName, const RendererContextDesc* p
             gpuDesc[i].featureDataOptions.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER::D3D12_RESOURCE_BINDING_TIER_3;
         applyGPUConfigurationRules(&pContext->gpus[i].settings, &pContext->gpus[i].capBits);
 
-        LOGF(LogLevel::eINFO, "GPU[%u] detected. Vendor ID: %#x, Model ID: %#x, Revision ID: %#x, Preset: %s, GPU Name: %s", i,
+        LOGF(LogLevel::Info, "GPU[%u] detected. Vendor ID: %#x, Model ID: %#x, Revision ID: %#x, Preset: %s, GPU Name: %s", i,
              pContext->gpus[i].settings.gpuVendorPreset.vendorId, pContext->gpus[i].settings.gpuVendorPreset.modelId,
              pContext->gpus[i].settings.gpuVendorPreset.revisionId,
              presetLevelToString(pContext->gpus[i].settings.gpuVendorPreset.presetLevel),
@@ -2749,7 +2749,7 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
             const char* reason =
                 selectedPreset == GPU_PRESET_OFFICE ? "Selected GPU has an Office preset." : "Selected GPU has no usable preset.";
             setRendererInitializationError(reason);
-            LOGF(LogLevel::eERROR, "%s", reason);
+            LOGF(LogLevel::Error, "%s", reason);
 
             ASSERT(selectedPreset != GPU_PRESET_NONE && selectedPreset != GPU_PRESET_OFFICE); //-V547
 
@@ -2770,7 +2770,7 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
         {
             const char* reason = "Selected GPU does not support the requested Shader Model or resource binding mode.";
             setRendererInitializationError(reason);
-            LOGF(eERROR, "%s GPU: %s, Shader Model query: %#x, returned model: %#x", reason,
+            LOGF(Error, "%s GPU: %s, Shader Model query: %#x, returned model: %#x", reason,
                  pRenderer->pGpu->settings.gpuVendorPreset.gpuName, (uint32_t)shaderModelResult, (uint32_t)shaderModel.HighestShaderModel);
             RemoveDevice(pRenderer);
             if (pRenderer->ownsContext)
@@ -3537,7 +3537,7 @@ void d3d12_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCha
     ASSERT(ppSwapChain);
     ASSERT(pDesc->imageCount <= MAX_SWAPCHAIN_IMAGES);
 
-    LOGF(LogLevel::eINFO, "Adding D3D12 swapchain @ %ux%u", pDesc->width, pDesc->height);
+    LOGF(LogLevel::Info, "Adding D3D12 swapchain @ %ux%u", pDesc->width, pDesc->height);
 
     SwapChain* pSwapChain = (SwapChain*)tf_calloc(1, sizeof(SwapChain) + pDesc->imageCount * sizeof(RenderTarget*));
     ASSERT(pSwapChain);
@@ -3640,7 +3640,7 @@ void d3d12_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCha
     }
     else
     {
-        LOGF(LogLevel::eERROR, "Requested swapchain color space does not support presentation");
+        LOGF(LogLevel::Error, "Requested swapchain color space does not support presentation");
     }
 #endif
 
@@ -3876,7 +3876,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     // Create resource
     if (SUCCEEDED(hook_add_special_resource(pRenderer, &desc, NULL, res_states, pDesc->flags, pBuffer)))
     {
-        LOGF(LogLevel::eINFO, "Allocated memory in device-specific RAM");
+        LOGF(LogLevel::Info, "Allocated memory in device-specific RAM");
 #if defined(ENABLE_TRACY_MEMORY)
         if (pBuffer->dx.pResource)
         {
@@ -3892,7 +3892,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
              (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS))
     {
         ASSERT(!pDesc->pPlacement);
-        LOGF(eWARNING, "Creating RWBuffer in Upload heap. GPU access might be slower than default");
+        LOGF(Warning, "Creating RWBuffer in Upload heap. GPU access might be slower than default");
         D3D12_HEAP_PROPERTIES heapProps = {};
         heapProps.Type = D3D12_HEAP_TYPE_CUSTOM;
         heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
@@ -4075,7 +4075,7 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
     ASSERT(pDesc && pDesc->width && pDesc->height && (pDesc->depth || pDesc->arraySize));
     if (pDesc->sampleCount > SAMPLE_COUNT_1 && pDesc->mipLevels > 1)
     {
-        LOGF(LogLevel::eERROR, "Multi-Sampled textures cannot have mip maps");
+        LOGF(LogLevel::Error, "Multi-Sampled textures cannot have mip maps");
         ASSERT(false);
         return;
     }
@@ -4150,7 +4150,7 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
         // Create resource
         if (SUCCEEDED(hook_add_special_resource(pRenderer, &desc, pClearValue, res_states, pDesc->flags, pTexture)))
         {
-            LOGF(LogLevel::eINFO, "Allocated memory in special platform-specific RAM");
+            LOGF(LogLevel::Info, "Allocated memory in special platform-specific RAM");
 #if defined(ENABLE_TRACY_MEMORY)
             if (pTexture->dx.pResource)
             {
@@ -4624,7 +4624,7 @@ void d3d12_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, S
                 pStage = &pDesc->comp;
                 break;
             default:
-                LOGF(LogLevel::eERROR, "Unknown shader stage %i", stage_mask);
+                LOGF(LogLevel::Error, "Unknown shader stage %i", stage_mask);
                 break;
             }
 
@@ -4675,7 +4675,7 @@ void d3d12_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, S
                 break;
 
             default:
-                LOGF(LogLevel::eERROR, "Unknown shader stage %i", stage_mask);
+                LOGF(LogLevel::Error, "Unknown shader stage %i", stage_mask);
                 break;
             }
 
@@ -4751,7 +4751,7 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
                 pStage = &pDesc->comp;
                 break;
             default:
-                LOGF(LogLevel::eERROR, "Unknown shader stage %i", stage_mask);
+                LOGF(LogLevel::Error, "Unknown shader stage %i", stage_mask);
                 break;
             }
 
@@ -4802,7 +4802,7 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
                 break;
 
             default:
-                LOGF(LogLevel::eERROR, "Unknown shader stage %i", stage_mask);
+                LOGF(LogLevel::Error, "Unknown shader stage %i", stage_mask);
                 break;
             }
 
@@ -4854,7 +4854,7 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
 
             if (FAILED(hr) || !pResult)
             {
-                LOGF(LogLevel::eERROR, "Failed to compile HLSL shader for stage %i", stage_mask);
+                LOGF(LogLevel::Error, "Failed to compile HLSL shader for stage %i", stage_mask);
                 continue;
             }
 
@@ -4865,7 +4865,7 @@ void d3d12_addShaderSource(Renderer* pRenderer, const ShaderSrcDesc* pDesc, Shad
                 IDxcBlobEncoding* pError = NULL;
                 if (SUCCEEDED(pResult->GetErrorBuffer(&pError)) && pError)
                 {
-                    LOGF(LogLevel::eERROR, "HLSL compilation error: %s", (const char*)pError->GetBufferPointer());
+                    LOGF(LogLevel::Error, "HLSL compilation error: %s", (const char*)pError->GetBufferPointer());
                     pError->Release();
                 }
                 pResult->Release();
@@ -4957,7 +4957,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
             const ShaderResource& resource = pReflection->pShaderResources[i];
             if (resource.type != DESCRIPTOR_TYPE_UNIFORM_BUFFER || resource.size != 1 || !isDescriptorRootConstant(resource.name))
             {
-                LOGF(eERROR, "Shader resource '%s' must use descriptor heap indexing; only root constants may declare registers.",
+                LOGF(Error, "Shader resource '%s' must use descriptor heap indexing; only root constants may declare registers.",
                      resource.name);
                 valid = false;
                 break;
@@ -4974,7 +4974,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
                 if (parameter.Constants.ShaderRegister != resource.reg || parameter.Constants.RegisterSpace != resource.set ||
                     parameter.Constants.Num32BitValues != size)
                 {
-                    LOGF(eERROR, "Root constant '%s' has incompatible layouts across shaders.", resource.name);
+                    LOGF(Error, "Root constant '%s' has incompatible layouts across shaders.", resource.name);
                     valid = false;
                     break;
                 }
@@ -4982,7 +4982,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
             }
             if (!size || rootSize + size > D3D12_MAX_ROOT_COST)
             {
-                LOGF(eERROR, "Root constants exceed the D3D12 limit of %u DWORDs.", D3D12_MAX_ROOT_COST);
+                LOGF(Error, "Root constants exceed the D3D12 limit of %u DWORDs.", D3D12_MAX_ROOT_COST);
                 valid = false;
                 break;
             }
@@ -5036,7 +5036,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
         result = pRenderer->dx.pDevice->CreateRootSignature(0, serialized->GetBufferPointer(), serialized->GetBufferSize(),
                                                             IID_ARGS(&pRootSignature->dx.pRootSignature));
     if (FAILED(result))
-        LOGF(eERROR, "Failed to create bindless root signature (%#x): %s", (uint32_t)result,
+        LOGF(Error, "Failed to create bindless root signature (%#x): %s", (uint32_t)result,
              error ? (const char*)error->GetBufferPointer() : "D3D12 device error");
     SAFE_RELEASE(error);
     SAFE_RELEASE(serialized);
@@ -5076,7 +5076,7 @@ void d3d12_addRaytracingRootSignature(Renderer* renderer, uint32_t size, RootSig
     }
     if (FAILED(result))
     {
-        LOGF(eERROR, "DXR root signature creation failed (0x%08x): %s", (uint32_t)result,
+        LOGF(Error, "DXR root signature creation failed (0x%08x): %s", (uint32_t)result,
              error ? (const char*)error->GetBufferPointer() : "D3D12 device error");
     }
     SAFE_RELEASE(error);
@@ -5637,7 +5637,7 @@ void d3d12_addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc,
 
     if (!SUCCEEDED(result))
     {
-        LOGF(eWARNING, "Pipeline Cache Library feature is not present. Pipeline Cache will be disabled");
+        LOGF(Warning, "Pipeline Cache Library feature is not present. Pipeline Cache will be disabled");
     }
 
     *ppPipelineCache = pPipelineCache;
@@ -6382,7 +6382,7 @@ void d3d12_acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphor
     HRESULT hr = hook_acquire_next_image(pRenderer->dx.pDevice, pSwapChain);
     if (FAILED(hr))
     {
-        LOGF(LogLevel::eERROR, "Failed to acquire next image");
+        LOGF(LogLevel::Error, "Failed to acquire next image");
         *pSwapChainImageIndex = UINT32_MAX;
         return;
     }
@@ -6478,12 +6478,12 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 
     if (FAILED(hr))
     {
-        LOGF(LogLevel::eERROR, "Failed to present swapchain render target (0x%08x)", (uint32_t)hr);
+        LOGF(LogLevel::Error, "Failed to present swapchain render target (0x%08x)", (uint32_t)hr);
 #if defined(_WINDOWS)
         ID3D12Device* device = NULL;
         pSwapChain->dx.pSwapChain->GetDevice(IID_ARGS(&device));
         const HRESULT removeHr = device->GetDeviceRemovedReason();
-        LOGF(LogLevel::eERROR, "D3D12 device removed reason: 0x%08x", (uint32_t)removeHr);
+        LOGF(LogLevel::Error, "D3D12 device removed reason: 0x%08x", (uint32_t)removeHr);
 
 #if defined(ENABLE_GRAPHICS_DEBUG)
         ID3D12InfoQueue* info = NULL;
@@ -6500,7 +6500,7 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
                 D3D12_MESSAGE* message = (D3D12_MESSAGE*)tf_malloc(size);
                 if (SUCCEEDED(info->GetMessage(i, message, &size)) && message->Severity <= D3D12_MESSAGE_SEVERITY_ERROR)
                 {
-                    LOGF(LogLevel::eERROR, "D3D12 message %u: %s", (uint32_t)message->ID, message->pDescription);
+                    LOGF(LogLevel::Error, "D3D12 message %u: %s", (uint32_t)message->ID, message->pDescription);
                 }
                 tf_free(message);
             }
@@ -6524,27 +6524,27 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
                 for (const D3D12_AUTO_BREADCRUMB_NODE* node = breadcrumbs.pHeadAutoBreadcrumbNode; node; node = node->pNext)
                 {
                     const UINT completed = node->pLastBreadcrumbValue ? *node->pLastBreadcrumbValue : 0;
-                    LOGF(LogLevel::eERROR, "DRED command list '%s': completed %u/%u operations",
+                    LOGF(LogLevel::Error, "DRED command list '%s': completed %u/%u operations",
                          node->pCommandListDebugNameA ? node->pCommandListDebugNameA : "<unnamed>", completed, node->BreadcrumbCount);
                     const UINT first = completed > 4 ? completed - 4 : 0;
                     for (UINT i = first; node->pCommandHistory && i < node->BreadcrumbCount && i < completed + 4; ++i)
                     {
-                        LOGF(LogLevel::eERROR, "DRED operation[%u]: %u", i, (uint32_t)node->pCommandHistory[i]);
+                        LOGF(LogLevel::Error, "DRED operation[%u]: %u", i, (uint32_t)node->pCommandHistory[i]);
                     }
                 }
             }
             D3D12_DRED_PAGE_FAULT_OUTPUT pageFault = {};
             if (SUCCEEDED(dred->GetPageFaultAllocationOutput(&pageFault)))
             {
-                LOGF(LogLevel::eERROR, "DRED page fault GPU address: 0x%016llx", (unsigned long long)pageFault.PageFaultVA);
+                LOGF(LogLevel::Error, "DRED page fault GPU address: 0x%016llx", (unsigned long long)pageFault.PageFaultVA);
                 for (const D3D12_DRED_ALLOCATION_NODE* node = pageFault.pHeadExistingAllocationNode; node; node = node->pNext)
                 {
-                    LOGF(LogLevel::eERROR, "DRED existing allocation '%s': type %u", node->ObjectNameA ? node->ObjectNameA : "<unnamed>",
+                    LOGF(LogLevel::Error, "DRED existing allocation '%s': type %u", node->ObjectNameA ? node->ObjectNameA : "<unnamed>",
                          (uint32_t)node->AllocationType);
                 }
                 for (const D3D12_DRED_ALLOCATION_NODE* node = pageFault.pHeadRecentFreedAllocationNode; node; node = node->pNext)
                 {
-                    LOGF(LogLevel::eERROR, "DRED freed allocation '%s': type %u", node->ObjectNameA ? node->ObjectNameA : "<unnamed>",
+                    LOGF(LogLevel::Error, "DRED freed allocation '%s': type %u", node->ObjectNameA ? node->ObjectNameA : "<unnamed>",
                          (uint32_t)node->AllocationType);
                 }
             }

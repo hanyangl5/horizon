@@ -54,7 +54,7 @@ public:
         BeginSceneCook();
         int64_t Start = GetUSec(true);
         InitRenderContext();
-        LOGF(eINFO, "Startup: RenderContext %.1f ms", (GetUSec(true) - Start) / 1000.0);
+        LOGF(Info, "Startup: RenderContext %.1f ms", (GetUSec(true) - Start) / 1000.0);
         if (!FinishSceneCook())
         {
             Exit();
@@ -66,11 +66,11 @@ public:
             Exit();
             return false;
         }
-        LOGF(eINFO, "Startup: scene load/instantiate %.1f ms", (GetUSec(true) - Start) / 1000.0);
+        LOGF(Info, "Startup: scene load/instantiate %.1f ms", (GetUSec(true) - Start) / 1000.0);
         InitCamera();
         Start = GetUSec(true);
         const bool Ready = InitRenderPasses();
-        LOGF(eINFO, "Startup: render pass shaders and pipelines %.1f ms", (GetUSec(true) - Start) / 1000.0);
+        LOGF(Info, "Startup: render pass shaders and pipelines %.1f ms", (GetUSec(true) - Start) / 1000.0);
         if (Ready)
         {
             // Persist the driver PSOs built here so the next start only validates them.
@@ -118,7 +118,7 @@ private:
         const hz::AssetCatalogEntry* Entry = Catalog.findScene(SceneFile);
         if (!Entry)
         {
-            LOGF(eERROR, "Catalog contains no SceneAsset '%s'", SceneFile);
+            LOGF(Error, "Catalog contains no SceneAsset '%s'", SceneFile);
             return false;
         }
         Loaders = hz::MakeUnique<hz::AssetLoaders>(
@@ -138,7 +138,7 @@ private:
         const hz::SceneAsset* Asset = AssetManager->getScene(Handle);
         if (!Asset)
         {
-            LOGF(eERROR, "SceneAsset '%s' failed to load (error %u)", SceneFile, (uint32_t)AssetManager->getError(Handle));
+            LOGF(Error, "SceneAsset '%s' failed to load (error %u)", SceneFile, (uint32_t)AssetManager->getError(Handle));
             return false;
         }
         Types = hz::MakeUnique<hz::TypeRegistry>();
@@ -147,13 +147,13 @@ private:
         World = hz::MakeUnique<hz::World>(*Types);
         if (!Asset->instantiate(*World).isValid())
         {
-            LOGF(eERROR, "Cannot instantiate SceneAsset '%s'", SceneFile);
+            LOGF(Error, "Cannot instantiate SceneAsset '%s'", SceneFile);
             return false;
         }
         Scene = hz::MakeUnique<hz::RenderScene>(*World, *AssetManager);
         Scene->reserve(Asset->getNodes().count, Asset->getNodes().count, 1, 1);
         Scene->update();
-        LOGF(eINFO, "World ready: %u render primitives, %u instances, %u mesh batches, %u materials, %u textures",
+        LOGF(Info, "World ready: %u render primitives, %u instances, %u mesh batches, %u materials, %u textures",
              Scene->getActivePrimitives().count, Scene->getActiveInstances().count, Scene->getActiveMeshBatches().count,
              Asset->getMaterials().count, Asset->getTextures().count);
         AssetManager->release(Handle);
@@ -205,12 +205,12 @@ public:
         const uint32_t Width = (uint32_t)settings.width, Height = (uint32_t)settings.height;
         if (!Context->resize(Width, Height))
         {
-            LOGF(eERROR, "Failed to resize RenderContext to %ux%u", Width, Height);
+            LOGF(Error, "Failed to resize RenderContext to %ux%u", Width, Height);
             return false;
         }
         const int64_t Start = GetUSec(true);
         const bool    Ready = Passes->Resize(Width, Height);
-        LOGF(eINFO, "Startup/resize: targets and environment %.1f ms", (GetUSec(true) - Start) / 1000.0);
+        LOGF(Info, "Startup/resize: targets and environment %.1f ms", (GetUSec(true) - Start) / 1000.0);
         return Ready;
     }
     void Unload(ReloadDesc*) override { Context->waitIdle(); }
@@ -249,7 +249,7 @@ private:
             SceneCookTask(this);
         }
         if (!CookSucceeded)
-            LOGF(eERROR, "Failed to cook scene '%s'", SceneSource);
+            LOGF(Error, "Failed to cook scene '%s'", SceneSource);
         return CookSucceeded;
     }
 
@@ -315,7 +315,7 @@ private:
                              World->setComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
         ASSERT(Created);
         Scene->update();
-        LOGF(eINFO, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R reset, Esc release mouse");
+        LOGF(Info, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R reset, Esc release mouse");
     }
 
     hz::UniquePtr<FreeCameraController> Camera;

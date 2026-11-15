@@ -954,8 +954,8 @@ int HIDOpenPS5Controller(HIDDeviceInfo* devInfo, HIDController* controller, uint
     hid_device * hidDev = hid_open_path(devInfo->logicalSystemPath);
     if (!hidDev)
     {
-        LOGF(LogLevel::eWARNING, "HID Open failed on device %s", devInfo->logicalSystemPath);
-        LOGF(LogLevel::eWARNING, "   hid err str: %ls", hid_error(hidDev));
+        LOGF(LogLevel::Warning, "HID Open failed on device %s", devInfo->logicalSystemPath);
+        LOGF(LogLevel::Warning, "   hid err str: %ls", hid_error(hidDev));
         return -1;
     }
 
@@ -1002,7 +1002,7 @@ int HIDOpenPS5Controller(HIDDeviceInfo* devInfo, HIDController* controller, uint
         devID[4] = pairingInfo[2];
         devID[5] = pairingInfo[1];
 
-        LOGF(LogLevel::eINFO, "Device ID is: %.2X-%.2X-%.2X-%.2X-%.2X-%.2X",
+        LOGF(LogLevel::Info, "Device ID is: %.2X-%.2X-%.2X-%.2X-%.2X-%.2X",
             devID[0], devID[1], devID[2], devID[3], devID[4], devID[5]);
     }
 

@@ -208,7 +208,7 @@
 //         }
 //         else
 //         {
-//             LOGF(eWARNING, "Socket connection was disconnected");
+//             LOGF(Warning, "Socket connection was disconnected");
 //             socketDestroy(socket);
 //             return 0;
 //         }
@@ -233,7 +233,7 @@
 //         }
 //         else
 //         {
-//             LOGF(eWARNING, "Socket connection was disconnected");
+//             LOGF(Warning, "Socket connection was disconnected");
 //             socketDestroy(socket);
 //             return 0;
 //         }
@@ -398,7 +398,7 @@
 //         socketDestroy(&pRemoteAppServer->mServerConnectionSocket);
 //     }
 
-//     LOGF(LogLevel::eINFO, "Client disconnected.");
+//     LOGF(LogLevel::Info, "Client disconnected.");
 
 //     if (!uiIsRenderingEnabled())
 //     {
@@ -857,7 +857,7 @@
 //         ThreadSleep(10);
 //     }
 
-//     LOGF(LogLevel::eINFO, "Disconnected from server.");
+//     LOGF(LogLevel::Info, "Disconnected from server.");
 //     if (pRemoteControlClient->mClientConnectionSocket != SOCKET_INVALID)
 //     {
 //         socketDestroy(&pRemoteControlClient->mClientConnectionSocket);

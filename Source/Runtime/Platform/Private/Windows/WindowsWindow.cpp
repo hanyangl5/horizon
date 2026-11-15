@@ -374,7 +374,7 @@ void collectMonitorInfo()
     }
     else
     {
-        LOGF(LogLevel::eDEBUG, "FallBack Option");
+        LOGF(LogLevel::Debug, "FallBack Option");
         // Fallback options incase enumeration fails
         // then default to the primary device
         monitorCount = 0;
@@ -637,11 +637,11 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
         winDesc->wndW = getRectWidth(&winDesc->windowedRect);
         winDesc->wndH = getRectHeight(&winDesc->windowedRect);
 
-        LOGF(LogLevel::eINFO, "Created window app %s", app_name);
+        LOGF(LogLevel::Info, "Created window app %s", app_name);
     }
     else
     {
-        LOGF(LogLevel::eERROR, "Failed to create window app %s", app_name);
+        LOGF(LogLevel::Error, "Failed to create window app %s", app_name);
     }
 
     setMousePositionRelative(winDesc, getRectWidth(&winDesc->windowedRect) >> 1, getRectHeight(&winDesc->windowedRect) >> 1);
@@ -1070,7 +1070,7 @@ void getMonitorDpiScale(uint32_t monitorIndex, float dpiScale[2])
         getDpiScale(dpiScale);
     }
 
-    LOGF(LogLevel::eDEBUG, "Monitor index [%u] DPI scale = (%.2f, %.2f)", monitorIndex, dpiScale[0], dpiScale[1]);
+    LOGF(LogLevel::Debug, "Monitor index [%u] DPI scale = (%.2f, %.2f)", monitorIndex, dpiScale[0], dpiScale[1]);
 }
 
 bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
@@ -1326,7 +1326,7 @@ void initWindowClass()
                 FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
                                errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
 
-                LOGF(eERROR, "%s", messageBuffer);
+                LOGF(Error, "%s", messageBuffer);
                 LocalFree(messageBuffer);
                 return;
             }

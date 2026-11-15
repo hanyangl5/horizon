@@ -292,13 +292,13 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     FileStream fs = {};
     if (fsOpenStreamFromPath(RD_SCREENSHOTS, screenshotFileName, FM_WRITE, &fs))
     {
-        LOGF(eINFO, "Writing screenshot to %s", screenshotFileName);
+        LOGF(Info, "Writing screenshot to %s", screenshotFileName);
         VERIFY(fsWriteToStream(&fs, pEncoded, (size_t)encodedSize) == (size_t)encodedSize);
         VERIFY(fsCloseStream(&fs));
     }
     else
     {
-        LOGF(eERROR, "Failed to open file for a screenshot: %s", gScreenshotName);
+        LOGF(Error, "Failed to open file for a screenshot: %s", gScreenshotName);
     }
 
     tf_free(alloc);

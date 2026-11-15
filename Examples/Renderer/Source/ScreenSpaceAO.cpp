@@ -41,7 +41,7 @@ bool ScreenSpaceAO::Resize(uint32_t NewWidth, uint32_t NewHeight)
         Rotations = Context.loadTexture(RD_SHADER_SOURCES, "../Assets/rotations.dds");
         if (!Rotations.isValid())
         {
-            LOGF(eERROR, "SSAO requires Examples/Renderer/Assets/rotations.dds (Cookbook rotation texture)");
+            LOGF(Error, "SSAO requires Examples/Renderer/Assets/rotations.dds (Cookbook rotation texture)");
             return false;
         }
     }

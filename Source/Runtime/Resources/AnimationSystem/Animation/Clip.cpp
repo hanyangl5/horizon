@@ -53,7 +53,7 @@ bool Clip::LoadClip(const ResourceDirectory resourceDir, const char* fileName)
     FileStream file = {};
     if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ, &file))
     {
-        LOGF(eERROR, "Cannot open clip file '%s'", fileName);
+        LOGF(Error, "Cannot open clip file '%s'", fileName);
         return false;
     }
 
@@ -71,7 +71,7 @@ bool Clip::LoadClip(const ResourceDirectory resourceDir, const char* fileName)
     ozz::io::IArchive archive(&memStream);
     if (!archive.TestTag<ozz::animation::Animation>())
     {
-        LOGF(eERROR, "Archive doesn't contain the expected object type. '%s'", fileName);
+        LOGF(Error, "Archive doesn't contain the expected object type. '%s'", fileName);
         return false;
     }
 

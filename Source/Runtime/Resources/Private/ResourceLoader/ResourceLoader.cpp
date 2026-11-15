@@ -3531,7 +3531,7 @@
 // If facing strange gfx issues, corruption, GPU hangs, enable this for verbose logging of resource loading
 #define RESOURCE_LOADER_VERBOSE 0
 #if RESOURCE_LOADER_VERBOSE
-#define LOADER_LOGF(...) LOGF(eINFO, __VA_ARGS__)
+#define LOADER_LOGF(...) LOGF(Info, __VA_ARGS__)
 #else
 #define LOADER_LOGF(...)
 #endif
@@ -4122,7 +4122,7 @@ static void* allocShaderByteCode(ShaderByteCodeBuffer* pShaderByteCodeBuffer, ui
     }
     else
     {
-        LOGF(eINFO, "Loading shader bytecode in heap memory (%s - %u bytes) (Stack total size: %u, Free size: %u)", filename,
+        LOGF(Info, "Loading shader bytecode in heap memory (%s - %u bytes) (Stack total size: %u, Free size: %u)", filename,
              (uint32_t)(size + alignment), pShaderByteCodeBuffer->kStackSize,
              pShaderByteCodeBuffer->kStackSize - pShaderByteCodeBuffer->stackUsed);
         pOutMemory = tf_memalign(alignment, size);
@@ -4160,7 +4160,7 @@ static void freeShaderByteCode(ShaderByteCodeBuffer* pShaderByteCodeBuffer, Bina
 static MappedMemoryRange allocateUploadMemory(Renderer* pRenderer, uint64_t memoryRequirement, uint32_t alignment)
 {
     Buffer* buffer;
-    // LOGF(LogLevel::eINFO, "Allocating temporary staging buffer. Required allocation size of %llu is larger than the staging buffer
+    // LOGF(LogLevel::Info, "Allocating temporary staging buffer. Required allocation size of %llu is larger than the staging buffer
     // capacity of %llu", memoryRequirement, size);
     buffer = {};
     BufferDesc bufferDesc = {};
@@ -4378,7 +4378,7 @@ static MappedMemoryRange allocateStagingMemory(CopyEngine* pCopyEngine, uint64_t
     {
         MappedMemoryRange range = allocateUploadMemory(pResourceLoader->pRenderer, memoryRequirement, alignment);
         LOADER_LOGF(
-            LogLevel::eINFO,
+            LogLevel::Info,
             "Allocating temporary staging buffer. Required allocation size of %llu is larger than the staging buffer capacity of %llu",
             memoryRequirement, size);
         arrpush(pResourceSet->tempBuffers, range.pBuffer);
@@ -4776,7 +4776,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                     textureDesc.format = srgbFormat;
                 else
                 {
-                    LOGF(eWARNING,
+                    LOGF(Warning,
                          "Trying to load '%s' image using SRGB profile. "
                          "But image has '%s' format, which doesn't have SRGB counterpart.",
                          pTextureDesc->pFileName, TinyImageFormat_Name((TinyImageFormat)textureDesc.format));
@@ -4818,7 +4818,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             fsCloseStream(&stream);
     }
 
-    LOGF(eERROR, "Failed to open texture file %s", pTextureDesc->pFileName ? pTextureDesc->pFileName : "<NULL>");
+    LOGF(Error, "Failed to open texture file %s", pTextureDesc->pFileName ? pTextureDesc->pFileName : "<NULL>");
     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
 }
 
@@ -4978,7 +4978,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     GeometryFileRead reader;
     if (!fsOpenStreamFromPath(pDesc->resourceDirectory, pDesc->pFileName, FM_READ, &reader.file))
     {
-        LOGF(eERROR, "Failed to open bin file %s", pDesc->pFileName);
+        LOGF(Error, "Failed to open bin file %s", pDesc->pFileName);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
     }
 
@@ -4986,7 +4986,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     static_assert(sizeof(magic) == sizeof(GEOMETRY_FILE_MAGIC_STR));
     if (!reader.read(magic, sizeof(magic)) || memcmp(magic, GEOMETRY_FILE_MAGIC_STR, sizeof(magic)))
     {
-        LOGF(eERROR, "File '%s' is not a Geometry file.", pDesc->pFileName);
+        LOGF(Error, "File '%s' is not a Geometry file.", pDesc->pFileName);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
     }
 
@@ -4995,7 +4995,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         !reader.readBlock((void**)&reader.pData, sizeof(GeometryData), &geomDataSize) ||
         !reader.readBlock((void**)&reader.pShadow, sizeof(GeometryData::ShadowData), &shadowSize))
     {
-        LOGF(eERROR, "Truncated Geometry file '%s'", pDesc->pFileName);
+        LOGF(Error, "Truncated Geometry file '%s'", pDesc->pFileName);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
     }
     Geometry*     geom = reader.pGeometry;
@@ -5008,7 +5008,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         requiredShadowSize += (uint64_t)reader.pShadow->vertexStrides[i] * reader.pShadow->attributeCount[i];
         if (reader.pShadow->attributeCount[i] > geom->vertexCount)
         {
-            LOGF(eERROR, "Invalid Geometry attribute count in '%s'", pDesc->pFileName);
+            LOGF(Error, "Invalid Geometry attribute count in '%s'", pDesc->pFileName);
             return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
         }
     }
@@ -5018,7 +5018,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         sizeof(Geometry) + (uint64_t)geom->drawArgCount * sizeof(IndirectDrawIndexArguments) > geomSize ||
         sizeof(GeometryData) + jointBytes + geomData->userDataSize > geomDataSize)
     {
-        LOGF(eERROR, "Invalid Geometry header or data sizes in '%s'", pDesc->pFileName);
+        LOGF(Error, "Invalid Geometry header or data sizes in '%s'", pDesc->pFileName);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
     }
     // Serialized addresses are replaced by allocations owned by this load.
@@ -5119,7 +5119,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         // src and dst formats must match because the AssetPipeline converts to the destination formats already
         if (srcFormatSize && dstFormatSize && dstFormatSize != srcFormatSize)
         {
-            LOGF(eERROR, "Geometry vertex format differs from the requested layout: '%s'", pDesc->pFileName);
+            LOGF(Error, "Geometry vertex format differs from the requested layout: '%s'", pDesc->pFileName);
             return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
         }
     }
@@ -5130,7 +5130,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     {
         if ((uint64_t)stride * geom->vertexCount > UINT32_MAX)
         {
-            LOGF(eERROR, "Geometry vertex buffer is too large: '%s'", pDesc->pFileName);
+            LOGF(Error, "Geometry vertex buffer is too large: '%s'", pDesc->pFileName);
             return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
         }
     }
@@ -5150,7 +5150,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         }
         else
         {
-            LOGF(eERROR, "Trying to copy uint32 indexes into uint16 buffers, data will be lost: '%s'", pDesc->pFileName);
+            LOGF(Error, "Trying to copy uint32 indexes into uint16 buffers, data will be lost: '%s'", pDesc->pFileName);
             ASSERT(false);
         }
     }
@@ -5794,13 +5794,13 @@ void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
     if (!platformInitReloadClient())
     {
-        LOGF(eERROR, "Failed to initialize ReloadServer");
+        LOGF(Error, "Failed to initialize ReloadServer");
 #ifdef AUTOMATED_TESTING
         ASSERT(false);
 #endif
     }
 #else
-    LOGF(eWARNING, "ReloadServer is DISABLED. Shaders will not be updated dynamically on the device "
+    LOGF(Warning, "ReloadServer is DISABLED. Shaders will not be updated dynamically on the device "
                    "when they are recompiled while App is running. If this behaviour is desired then you can ignore this warning. "
                    "If you want to re-enable ReloadServer you need to #define ENABLE_FORGE_RELOAD_SHADER in Application/Config.h"
                    "This message is here to remind everyone to re-enable ReloadServer if it has been disabled for whatever reason.");
@@ -6418,7 +6418,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
 
     if (pBufferDesc->pData && !token)
     {
-        LOADER_LOGF(eWARNING,
+        LOADER_LOGF(Warning,
                     "addResource : BufferLoadDesc(%s)::pData is non NULL but token is NULL. It is undefined behavior if pData is freed "
                     "before the buffer load has completed on the ResourceLoader thread. Use waitForAllResourceLoads before freeing pData "
                     "when explicit token was not passed",
@@ -6429,7 +6429,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
     if (RESOURCE_MEMORY_USAGE_GPU_ONLY == pBufferDesc->desc.memoryUsage && !pBufferDesc->desc.startState)
     {
         startState = ResourceStartState(&pBufferDesc->desc);
-        LOADER_LOGF(eWARNING, "Buffer start state not provided. Determined the start state as (%u) based on the provided BufferDesc",
+        LOADER_LOGF(Warning, "Buffer start state not provided. Determined the start state as (%u) based on the provided BufferDesc",
                     (uint32_t)pBufferDesc->desc.startState);
     }
 
@@ -7151,7 +7151,7 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
 
         if (length >= FS_MAX_PATH)
         {
-            LOGF(eERROR, "Shader name is too long: '%s'", name);
+            LOGF(Error, "Shader name is too long: '%s'", name);
             return false;
         }
     }
@@ -7198,7 +7198,7 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
             {
                 if (!fsSeekStream(&binaryFileStream, SBO_START_OF_FILE, pDerivatives[i].offset))
                 {
-                    LOGF(eERROR, "Failed to read file '%s'", binaryShaderPath);
+                    LOGF(Error, "Failed to read file '%s'", binaryShaderPath);
                     break;
                 }
 
@@ -7207,7 +7207,7 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
                 pOut->byteCodeSize = (uint32_t)pDerivatives[i].size;
                 if (fsReadFromStream(&binaryFileStream, (void*)pOut->pByteCode, size) != (size_t)size)
                 {
-                    LOGF(eERROR, "Failed to read file '%s'", binaryShaderPath);
+                    LOGF(Error, "Failed to read file '%s'", binaryShaderPath);
                 }
                 break;
             }

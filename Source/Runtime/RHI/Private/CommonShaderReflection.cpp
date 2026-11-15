@@ -87,17 +87,17 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
     // Parameter checks
     if (pReflection == NULL)
     {
-        LOGF(LogLevel::eERROR, "Parameter 'pReflection' is NULL.");
+        LOGF(LogLevel::Error, "Parameter 'pReflection' is NULL.");
         return;
     }
     if (stageCount == 0)
     {
-        LOGF(LogLevel::eERROR, "Parameter 'stageCount' is 0.");
+        LOGF(LogLevel::Error, "Parameter 'stageCount' is 0.");
         return;
     }
     if (pOutReflection == NULL)
     {
-        LOGF(LogLevel::eERROR, "Parameter 'pOutShaderReflection' is NULL.");
+        LOGF(LogLevel::Error, "Parameter 'pOutShaderReflection' is NULL.");
         return;
     }
 
@@ -107,7 +107,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
     {
         if ((combinedShaderStages & pReflection[i].shaderStage) != 0)
         {
-            LOGF(LogLevel::eERROR, "Duplicate shader stage was detected in shader reflection array.");
+            LOGF(LogLevel::Error, "Duplicate shader stage was detected in shader reflection array.");
             return;
         }
         combinedShaderStages = (ShaderStage)(combinedShaderStages | pReflection[i].shaderStage);

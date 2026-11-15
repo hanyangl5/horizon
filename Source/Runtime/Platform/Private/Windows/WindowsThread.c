@@ -198,7 +198,7 @@ unsigned WINAPI ThreadFunctionStatic(void* data)
             BOOL res = SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, NULL);
             if (res != 0)
             {
-                LOGF(eERROR, "Failed to set affinity for thread %s for CPU group %u: 0x%x", item.threadName, groupId, res);
+                LOGF(Error, "Failed to set affinity for thread %s for CPU group %u: 0x%x", item.threadName, groupId, res);
             }
         }
     }

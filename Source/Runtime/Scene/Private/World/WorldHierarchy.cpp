@@ -72,7 +72,7 @@ bool WorldHierarchy::prepareLocalChange(ecs_entity_t entity, TypeID type, bool a
                                       (matrixType && ecs_has_id(world.pWorld, entity, matrixType) ? 2u : 0u));
     if (adding && (mask & (bit ^ 3u)))
     {
-        LOGF(eERROR, "An entity cannot have both LocalTransform and Matrix4");
+        LOGF(Error, "An entity cannot have both LocalTransform and Matrix4");
         return false;
     }
     const uint32_t next = adding ? mask | bit : mask & ~bit;
@@ -255,7 +255,7 @@ bool WorldHierarchy::writeLocalMatrix(ecs_entity_t entity, const Matrix4& matrix
         for (uint32_t row = 0; row < 4; ++row)
             if (!isfinite((float)matrix.getElem(column, row)))
             {
-                LOGF(eERROR, "Cannot preserve a non-finite world transform");
+                LOGF(Error, "Cannot preserve a non-finite world transform");
                 return false;
             }
     LocalTransform transform;
@@ -284,7 +284,7 @@ bool WorldHierarchy::writeLocalMatrix(ecs_entity_t entity, const Matrix4& matrix
     }
     else
     {
-        LOGF(eERROR, "Preserving world transforms requires registered local transform components");
+        LOGF(Error, "Preserving world transforms requires registered local transform components");
         return false;
     }
     markTransformDirty(entity);
@@ -295,7 +295,7 @@ bool WorldHierarchy::setParent(ecs_entity_t entity, ecs_entity_t parent, bool ke
 {
     if (ecs_is_deferred(world.pWorld))
     {
-        LOGF(eERROR, "Reparenting requires a committed World outside query/defer scopes");
+        LOGF(Error, "Reparenting requires a committed World outside query/defer scopes");
         return false;
     }
     for (ecs_entity_t ancestor = parent; ancestor; ancestor = ecs_get_target(world.pWorld, ancestor, world.parentRelation, 0))
@@ -314,7 +314,7 @@ bool WorldHierarchy::setParent(ecs_entity_t entity, ecs_entity_t parent, bool ke
             const float    det = (float)determinant(parentWorld);
             if (!isfinite(det) || det == 0.0f)
             {
-                LOGF(eERROR, "Cannot preserve world transform under a singular parent");
+                LOGF(Error, "Cannot preserve world transform under a singular parent");
                 return false;
             }
             local = inverse(parentWorld) * local;
@@ -347,12 +347,12 @@ bool WorldHierarchy::destroy(ecs_entity_t entity, bool subtree)
     }
     if (ecs_is_deferred(world.pWorld))
     {
-        LOGF(eERROR, "Deleting a hierarchy requires a committed World outside query/defer scopes");
+        LOGF(Error, "Deleting a hierarchy requires a committed World outside query/defer scopes");
         return false;
     }
     if (!subtree && !matrixType)
     {
-        LOGF(eERROR, "Deleting a parent requires registered Matrix4 support");
+        LOGF(Error, "Deleting a parent requires registered Matrix4 support");
         return false;
     }
     update();

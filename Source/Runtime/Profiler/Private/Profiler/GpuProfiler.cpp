@@ -288,13 +288,13 @@ ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pNam
 {
     if (!pRenderer->pGpu->settings.timestampQueries)
     {
-        LOGF(LogLevel::eWARNING, "GPU timestamp queries not supported");
+        LOGF(LogLevel::Warning, "GPU timestamp queries not supported");
         return PROFILE_INVALID_TOKEN;
     }
 
     if (gGpuProfilerContainer->size >= GpuProfilerContainer::MAX_GPU_PROFILERS)
     {
-        LOGF(LogLevel::eWARNING, "Reached maximum amount of Gpu Profilers");
+        LOGF(LogLevel::Warning, "Reached maximum amount of Gpu Profilers");
         return PROFILE_INVALID_TOKEN;
     }
 

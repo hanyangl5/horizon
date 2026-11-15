@@ -72,7 +72,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 {
     if (gInitialized)
     {
-        LOGF(LogLevel::eWARNING, "FileSystem already initialized.");
+        LOGF(LogLevel::Warning, "FileSystem already initialized.");
         return true;
     }
     ASSERT(pDesc);
@@ -297,7 +297,7 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
         stream->handle = (HANDLE)_get_osfhandle(_fileno(fp));
         if (stream->handle == INVALID_HANDLE_VALUE)
         {
-            LOGF(LogLevel::eERROR, "Error getting file handle for %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
+            LOGF(LogLevel::Error, "Error getting file handle for %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
             fclose(fp);
             return false;
         }
@@ -306,7 +306,7 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
     }
     else
     {
-        LOGF(LogLevel::eERROR, "Error opening file: %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
+        LOGF(LogLevel::Error, "Error opening file: %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
     }
 
     return false;
@@ -328,7 +328,7 @@ static ssize_t ioWindowsFsGetSize(FileStream* fs)
     LARGE_INTEGER fileSize = {};
     if (GetFileSizeEx(stream->handle, &fileSize))
         return (ssize_t)fileSize.QuadPart;
-    LOGF(eERROR, "Failed to get file size: %s", WindowsErrorString().c_str());
+    LOGF(Error, "Failed to get file size: %s", WindowsErrorString().c_str());
     return -1;
 }
 
@@ -348,7 +348,7 @@ static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** o
         HANDLE fileMapping = CreateFileMappingW(stream->handle, NULL, PAGE_READONLY, 0, 0, NULL);
         if (!fileMapping)
         {
-            LOGF(eERROR, "Failed to CreateFileMappingW, %s", WindowsErrorString().c_str());
+            LOGF(Error, "Failed to CreateFileMappingW, %s", WindowsErrorString().c_str());
             return false;
         }
 
@@ -357,7 +357,7 @@ static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** o
         LPVOID mem = MapViewOfFile(fileMapping, FILE_MAP_READ, 0, 0, 0);
         if (!mem)
         {
-            LOGF(eERROR, "Failed to MapViewOfFile, %s", WindowsErrorString().c_str());
+            LOGF(Error, "Failed to MapViewOfFile, %s", WindowsErrorString().c_str());
             CloseHandle(fileMapping);
             return false;
         }
@@ -377,7 +377,7 @@ static bool ioWindowsFsClose(FileStream* fs)
 
     if (stream->mapView && !UnmapViewOfFile(stream->mapView))
     {
-        LOGF(eERROR, "Error unmapping file: %s", WindowsErrorString().c_str());
+        LOGF(Error, "Error unmapping file: %s", WindowsErrorString().c_str());
     }
 
     if (stream->fileMapping != INVALID_HANDLE_VALUE)
@@ -388,7 +388,7 @@ static bool ioWindowsFsClose(FileStream* fs)
 
     if (fclose(stream->file) == EOF)
     {
-        LOGF(LogLevel::eERROR, "Error closing system FileStream: %s (%x)", strerror(errno), errno);
+        LOGF(LogLevel::Error, "Error closing system FileStream: %s (%x)", strerror(errno), errno);
         return false;
     }
 
@@ -401,7 +401,7 @@ static size_t ioWindowsFsRead(FileStream* fs, void* dst, size_t size)
     size_t read = fread(dst, 1, size, stream->file);
     if (read != size && ferror(stream->file))
     {
-        LOGF(LogLevel::eERROR, "Error reading %s bytes from file: %s (%x)", humanReadableSize(size).str, strerror(errno), errno);
+        LOGF(LogLevel::Error, "Error reading %s bytes from file: %s (%x)", HumanReadableSize(size).str, strerror(errno), errno);
     }
     return read;
 }
@@ -410,7 +410,7 @@ static size_t ioWindowsFsWrite(FileStream* fs, const void* src, size_t size)
 {
     if ((fs->mode & (FM_WRITE | FM_APPEND)) == 0)
     {
-        LOGF(LogLevel::eERROR, "Writing to FileStream with mode %i", fs->mode);
+        LOGF(LogLevel::Error, "Writing to FileStream with mode %i", fs->mode);
         return 0;
     }
 
@@ -419,7 +419,7 @@ static size_t ioWindowsFsWrite(FileStream* fs, const void* src, size_t size)
 
     if (written != size)
     {
-        LOGF(LogLevel::eERROR, "Error writing to system FileStream: %s (%x)", strerror(errno), errno);
+        LOGF(LogLevel::Error, "Error writing to system FileStream: %s (%x)", strerror(errno), errno);
     }
 
     return written;
@@ -451,7 +451,7 @@ static ssize_t ioWindowsFsGetPosition(FileStream* fs)
     ssize_t position = _ftelli64(stream->file);
     if (position < 0)
     {
-        LOGF(LogLevel::eERROR, "Error getting seek position in FileStream: %s (%x)", strerror(errno), errno);
+        LOGF(LogLevel::Error, "Error getting seek position in FileStream: %s (%x)", strerror(errno), errno);
     }
     return position;
 }
@@ -461,7 +461,7 @@ bool ioWindowsFsFlush(FileStream* fs)
     WSD(stream, fs);
     if (fflush(stream->file))
     {
-        LOGF(LogLevel::eWARNING, "Error flushing system FileStream: %s (%x)", strerror(errno), errno);
+        LOGF(LogLevel::Warning, "Error flushing system FileStream: %s (%x)", strerror(errno), errno);
         return false;
     }
     return true;

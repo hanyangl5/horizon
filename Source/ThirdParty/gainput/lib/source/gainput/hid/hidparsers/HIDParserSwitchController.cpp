@@ -714,10 +714,10 @@ static int SendSetup(HIDController* con, uint8_t command, bool waitForReply, uin
                 recBuf[0] != SW_PACKET_TYPE_IN_FULL_STATE &&
                 recBuf[0] != SW_PACKET_TYPE_IN_SIMPLE_STATE)
             {
-                RAW_LOGF(LogLevel::eINFO, "Setup:");
+                RAW_LOGF(LogLevel::Info, "Setup:");
                 for (int i = 0; i < 64; ++i)
-                    RAW_LOGF(LogLevel::eINFO, " %2x", recBuf[i]);
-                RAW_LOGF(LogLevel::eINFO, "\n");
+                    RAW_LOGF(LogLevel::Info, " %2x", recBuf[i]);
+                RAW_LOGF(LogLevel::Info, "\n");
             }
 #endif
 
@@ -787,10 +787,10 @@ static int SendCommand(HIDController* con, uint8_t command,
                 res->packetType != SW_PACKET_TYPE_IN_FULL_STATE &&
                 res->packetType != SW_PACKET_TYPE_IN_SIMPLE_STATE)
             {
-                RAW_LOGF(LogLevel::eINFO, "Command:");
+                RAW_LOGF(LogLevel::Info, "Command:");
                 for (int i = 0; i < 64; ++i)
-                    RAW_LOGF(LogLevel::eINFO, " %2x", recBuf[i]);
-                RAW_LOGF(LogLevel::eINFO, "\n");
+                    RAW_LOGF(LogLevel::Info, " %2x", recBuf[i]);
+                RAW_LOGF(LogLevel::Info, "\n");
             }
 #endif
 
@@ -842,7 +842,7 @@ static int SendReadRequest(HIDController* con, uint32_t memAddr, uint8_t numByte
 
     int size = SendCommand(con, SW_COMMAND_SPI_FLASH_READ, sendBuf, sizeof sendBuf, out, outSize);
     if (size < 0)
-        LOGF(eERROR, "Failed to read memory from Nintendo controller!");
+        LOGF(Error, "Failed to read memory from Nintendo controller!");
 
     return size;
 }
@@ -1251,7 +1251,7 @@ static void GetTriggerCalibration(HIDController* controller)
         GetCalibration(controller, SW_ADDR_CALIB_TRG_USER_RIGHT, false, &con->calib[tR]);
     }
 
-    LOGF(eINFO, "Controller calibration retrieved:\n"
+    LOGF(Info, "Controller calibration retrieved:\n"
         "  Left Config: %s\n"
         "    X: %i <--- %i ---> %i\n"
         "    Y: %i <--- %i ---> %i\n"
@@ -1271,8 +1271,8 @@ int HIDOpenSwitchController(HIDDeviceInfo* devInfo, HIDController* controller, u
     hid_device * hidDev = hid_open_path(devInfo->logicalSystemPath);
     if (!hidDev)
     {
-        LOGF(LogLevel::eWARNING, "HID Open failed on device %s", devInfo->logicalSystemPath);
-        LOGF(LogLevel::eWARNING, "   hid err str: %ls", hid_error(hidDev));
+        LOGF(LogLevel::Warning, "HID Open failed on device %s", devInfo->logicalSystemPath);
+        LOGF(LogLevel::Warning, "   hid err str: %ls", hid_error(hidDev));
         return -1;
     }
 
@@ -1313,16 +1313,16 @@ int HIDOpenSwitchController(HIDDeviceInfo* devInfo, HIDController* controller, u
     if (res < 0)
     {
         if (res == -1)
-            LOGF(LogLevel::eINFO, "No valid usb or bluetooth connection state! - %s", devInfo->logicalSystemPath);
+            LOGF(LogLevel::Info, "No valid usb or bluetooth connection state! - %s", devInfo->logicalSystemPath);
         else if (res == -2)
-            LOGF(LogLevel::eINFO, "Switch Controller is already connected!");
+            LOGF(LogLevel::Info, "Switch Controller is already connected!");
         HIDCloseSwitchController(controller);
         return -1;
     }
 
     if (InitializeConnection(controller) < 0)
     {
-        LOGF(LogLevel::eINFO, "Failed to initialize connection! - %s", devInfo->logicalSystemPath);
+        LOGF(LogLevel::Info, "Failed to initialize connection! - %s", devInfo->logicalSystemPath);
         HIDCloseSwitchController(controller);
         return -1;
     }
@@ -1338,7 +1338,7 @@ int HIDOpenSwitchController(HIDDeviceInfo* devInfo, HIDController* controller, u
     uint8_t rumbleData[] = { 1 };
     if (SendCommand(controller, SW_COMMAND_ENABLE_RUMBLE, rumbleData, sizeof rumbleData, NULL, 0) < 0)
     {
-        LOGF(LogLevel::eINFO, "Failed to initialize rumble! - %s", devInfo->logicalSystemPath);
+        LOGF(LogLevel::Info, "Failed to initialize rumble! - %s", devInfo->logicalSystemPath);
         HIDCloseSwitchController(controller);
         return -1;
     }
@@ -1347,7 +1347,7 @@ int HIDOpenSwitchController(HIDDeviceInfo* devInfo, HIDController* controller, u
     uint8_t imuData[] = { 1 };
     if (SendCommand(controller, SW_COMMAND_ENABLE_IMU, imuData, sizeof imuData, NULL, 0) < 0)
     {
-        LOGF(LogLevel::eINFO, "Failed to enable imu! - %s", devInfo->logicalSystemPath);
+        LOGF(LogLevel::Info, "Failed to enable imu! - %s", devInfo->logicalSystemPath);
         HIDCloseSwitchController(controller);
         return -1;
     }
@@ -1356,7 +1356,7 @@ int HIDOpenSwitchController(HIDDeviceInfo* devInfo, HIDController* controller, u
     uint8_t inputFormatData[] = { SW_PACKET_TYPE_IN_FULL_STATE };
     if (SendCommand(controller, SW_COMMAND_SET_INPUT_MODE, inputFormatData, sizeof inputFormatData, NULL, 0) < 0)
     {
-        LOGF(LogLevel::eINFO, "Failed to set input format! - %s", devInfo->logicalSystemPath);
+        LOGF(LogLevel::Info, "Failed to set input format! - %s", devInfo->logicalSystemPath);
         HIDCloseSwitchController(controller);
         return -1;
     }

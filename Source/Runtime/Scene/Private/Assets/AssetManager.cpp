@@ -536,7 +536,7 @@ AssetHandle AssetManager::request(AssetID id, AssetError* pError)
     {
         char text[kIDStringCapacity];
         id.toString(text);
-        LOGF(eERROR, "Asset request '%s' rejected (error %u)", text, (uint32_t)error);
+        LOGF(Error, "Asset request '%s' rejected (error %u)", text, (uint32_t)error);
         return {};
     }
     pData->freeIndices.reserve(pData->assets.size() + plan.entries.size());

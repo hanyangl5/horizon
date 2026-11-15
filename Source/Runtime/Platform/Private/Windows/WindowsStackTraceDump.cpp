@@ -83,7 +83,7 @@ void WindowsStackTrace::Log(const char* fmt, ...)
     if (init)
     {
         // Use the normal log output if we haven't shutdown the log system yet
-        writeLogVaList(LogLevel::eERROR, __FILE__, __LINE__, fmt, args);
+        WriteLogVaList(LogLevel::Error, __FILE__, __LINE__, fmt, args);
     }
     else
     {

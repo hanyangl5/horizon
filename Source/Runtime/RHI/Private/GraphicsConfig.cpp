@@ -64,7 +64,7 @@ typedef void (*PropertySetter)(GPUSettings* pSetting, uint64_t value);
         {                                                                           \
             UNREF_PARAM(value);                                                     \
             UNREF_PARAM(pSetting);                                                  \
-            LOGF(eDEBUG, "GPUConfig: Unsupported setting %s", name);                \
+            LOGF(Debug, "GPUConfig: Unsupported setting %s", name);                \
             ASSERT(false);                                                          \
         }                                                                           \
     }
@@ -293,7 +293,7 @@ void parseGPUDataFile()
     FileStream fh = {};
     if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "legacy_gpu_data", FM_READ, &fh))
     {
-        LOGF(LogLevel::eWARNING, "Legacy GPU data could not be found, setting preset will be set to Low as a default.");
+        LOGF(LogLevel::Warning, "Legacy GPU data could not be found, setting preset will be set to Low as a default.");
         return;
     }
     DataParsingStatus parsingStatus = DataParsingStatus::DATA_PARSE_NONE;
@@ -316,13 +316,13 @@ void parseGPUDataFile()
         int      read = sscanf(currentLineStr, "version:%u.%u", &versionMajor, &versionMinor);
         if (read != 2)
         {
-            LOGF(eINFO, "Ill-formatted legacy GPU data file. Missing version at beginning of file");
+            LOGF(Info, "Ill-formatted legacy GPU data file. Missing version at beginning of file");
             fsCloseStream(&fh);
             return;
         }
         else if (versionMajor != GPUCFG_VERSION_MAJOR || versionMinor != GPUCFG_VERSION_MINOR)
         {
-            LOGF(eINFO, "Legacy GPU data version mismatch. Expected version %u.%u but got %u.%u", GPUCFG_VERSION_MAJOR,
+            LOGF(Info, "Legacy GPU data version mismatch. Expected version %u.%u but got %u.%u", GPUCFG_VERSION_MAJOR,
                  GPUCFG_VERSION_MINOR, versionMajor, versionMinor);
             fsCloseStream(&fh);
             return;
@@ -421,10 +421,10 @@ void parseGPUDataFile()
     }
 
     // log default configuration
-    LOGF(eINFO, "Default GPU Data:");
-    LOGF(eINFO, "    DefaultGPUPresetLevel set to %s", presetLevelToString(gDefaultPresetLevel));
+    LOGF(Info, "Default GPU Data:");
+    LOGF(Info, "    DefaultGPUPresetLevel set to %s", presetLevelToString(gDefaultPresetLevel));
     // log gpu vendors
-    LOGF(eINFO, "GPU vendors:");
+    LOGF(Info, "GPU vendors:");
     for (uint32_t vendorIndex = 0; vendorIndex < gGPUVendorCount; vendorIndex++)
     {
         char                 vendorStr[1024] = { '\0' };
@@ -442,12 +442,12 @@ void parseGPUDataFile()
                 separator = ", ";
             }
         }
-        LOGF(eINFO, "    %s", vendorStr);
+        LOGF(Info, "    %s", vendorStr);
     }
 
     if (!gpuListBeginFileCursor || !gpuListEndFileCursor)
     {
-        LOGF(eINFO, "Could not find a valid GPU list in legacy GPU data.");
+        LOGF(Info, "Could not find a valid GPU list in legacy GPU data.");
     }
 
     fsCloseStream(&fh);
@@ -458,7 +458,7 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
     FileStream fh = {};
     if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "legacy_gpu_rules", FM_READ, &fh))
     {
-        LOGF(LogLevel::eWARNING, "Legacy GPU rule data could not be found, first GPU found set as active GPU.");
+        LOGF(LogLevel::Warning, "Legacy GPU rule data could not be found, first GPU found set as active GPU.");
         return;
     }
     ConfigParsingStatus parsingStatus = ConfigParsingStatus::CONFIG_PARSE_NONE;
@@ -554,16 +554,16 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
     }
 
     // log configuration rules and settings
-    LOGF(eINFO, "GPU selection settings:");
+    LOGF(Info, "GPU selection settings:");
     for (uint32_t choiceIndex = 0; choiceIndex < gGPUComparisonChoiceCount; choiceIndex++)
     {
         char                 choiceStr[1024] = { '\0' };
         GPUComparisonChoice* currentGPUChoice = &gGPUComparisonChoices[choiceIndex];
         printConfigureRules(currentGPUChoice->pGpuComparisonRules, currentGPUChoice->comparisonRulesCount, choiceStr);
-        LOGF(eINFO, "    Rule: %s", choiceStr);
+        LOGF(Info, "    Rule: %s", choiceStr);
     }
     // log driver rejection rules
-    LOGF(eINFO, "Driver rejections:");
+    LOGF(Info, "Driver rejections:");
     for (uint32_t driverIndex = 0; driverIndex < gDriverRejectionRulesCount; driverIndex++)
     {
         char                 ruleStr[1024] = {};
@@ -579,9 +579,9 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
         }
         strcat(ruleStr, "; ");
         strcat(ruleStr, currentRule->reasonStr);
-        LOGF(eINFO, "    %s", ruleStr);
+        LOGF(Info, "    %s", ruleStr);
     }
-    LOGF(eINFO, "GPU configuration settings:");
+    LOGF(Info, "GPU configuration settings:");
     for (uint32_t settingIndex = 0; settingIndex < gConfigurationSettingsCount; settingIndex++)
     {
         char                  settingStr[1024] = {};
@@ -592,9 +592,9 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
                             settingStr);
         snprintf(assignmentValueStr, 32, ": %lld", (long long)currentConfigurationSetting->assignmentValue);
         strcat(settingStr, assignmentValueStr);
-        LOGF(eINFO, "    %s", settingStr);
+        LOGF(Info, "    %s", settingStr);
     }
-    LOGF(eINFO, "User settings:");
+    LOGF(Info, "User settings:");
     for (uint32_t settingIndex = 0; settingIndex < gUserExtendedSettingsCount; settingIndex++)
     {
         char         settingStr[1024] = {};
@@ -604,7 +604,7 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
         printConfigureRules(currentUserSetting->pConfigurationRules, currentUserSetting->comparisonRulesCount, settingStr);
         snprintf(assignmentValueStr, 32, ": %u", currentUserSetting->assignmentValue);
         strcat(settingStr, assignmentValueStr);
-        LOGF(eINFO, "    %s", settingStr);
+        LOGF(Info, "    %s", settingStr);
     }
 
     tf_free(fileBuffer);
@@ -657,12 +657,12 @@ void parseDefaultDataConfigurationLine(char* currentLine)
         }
         else
         {
-            LOGF(eDEBUG, "Error invalid preset level in GPU Default Data Configuration value '%s' in '%s'.", assignmentValue, currentLine);
+            LOGF(Debug, "Error invalid preset level in GPU Default Data Configuration value '%s' in '%s'.", assignmentValue, currentLine);
         }
     }
     else
     {
-        LOGF(eDEBUG, "Error could not parse GPU Default Data Configuration rule '%s' in '%s'.", ruleName, currentLine);
+        LOGF(Debug, "Error could not parse GPU Default Data Configuration rule '%s' in '%s'.", ruleName, currentLine);
     }
 }
 
@@ -693,7 +693,7 @@ void parseGPUVendorLine(char* currentLine)
         }
         else
         {
-            LOGF(eDEBUG, "Invalid GPU vendor identifier %s from line: '%s'.", gpuIdentifier, currentLine);
+            LOGF(Debug, "Invalid GPU vendor identifier %s from line: '%s'.", gpuIdentifier, currentLine);
             break;
         }
         currentIdentifier += optionLength;
@@ -706,7 +706,7 @@ void parseGPUVendorLine(char* currentLine)
     }
     else
     {
-        LOGF(eDEBUG, "Error could not parse GPU vendor in '%s'.", currentLine);
+        LOGF(Debug, "Error could not parse GPU vendor in '%s'.", currentLine);
     }
 }
 
@@ -725,7 +725,7 @@ void parseGPUSelectionLine(char* currentLine)
     parseConfigurationRules(&currentChoice->pGpuComparisonRules, &currentChoice->comparisonRulesCount, ruleParameters);
     if (currentChoice->pGpuComparisonRules == NULL)
     {
-        LOGF(eDEBUG, "Invalid GPU Selection rule: '%s'.", currentLine);
+        LOGF(Debug, "Invalid GPU Selection rule: '%s'.", currentLine);
     }
     else
     {
@@ -774,17 +774,17 @@ void parseDriverRejectionLine(char* currentLine)
             }
             else
             {
-                LOGF(eDEBUG, "Driver Rejection| error parsing this line: '%s', invalid version number", currentLine);
+                LOGF(Debug, "Driver Rejection| error parsing this line: '%s', invalid version number", currentLine);
             }
         }
         else
         {
-            LOGF(eDEBUG, "Driver Rejection| missing DriverVersion literal in '%s'", currentLine);
+            LOGF(Debug, "Driver Rejection| missing DriverVersion literal in '%s'", currentLine);
         }
     }
     else
     {
-        LOGF(eDEBUG, "Driver Rejection| unknown gpu vendor %s in '%s'", vendorStr, currentLine);
+        LOGF(Debug, "Driver Rejection| unknown gpu vendor %s in '%s'", vendorStr, currentLine);
     }
 }
 
@@ -815,12 +815,12 @@ void parseConfigurationSettingLine(char* currentLine)
         parseConfigurationRules(&currentSettings->pConfigurationRules, &currentSettings->comparisonRulesCount, rulesBegin);
         if (currentSettings->pConfigurationRules == NULL)
         {
-            LOGF(eDEBUG, "parseGPUConfigurationSetting: invalid rules for Field name: '%s'.", currentSettings->pUpdateProperty->name);
+            LOGF(Debug, "parseGPUConfigurationSetting: invalid rules for Field name: '%s'.", currentSettings->pUpdateProperty->name);
             tf_free(currentSettings->pConfigurationRules);
         }
         else if (!validConversion)
         {
-            LOGF(eDEBUG, "parseGPUConfigurationSetting: cannot convert %s for Field name: '%s'.", assignmentValue,
+            LOGF(Debug, "parseGPUConfigurationSetting: cannot convert %s for Field name: '%s'.", assignmentValue,
                  currentSettings->pUpdateProperty->name);
             tf_free(currentSettings->pConfigurationRules);
         }
@@ -831,7 +831,7 @@ void parseConfigurationSettingLine(char* currentLine)
     }
     else
     {
-        LOGF(eDEBUG, "parseGPUConfigurationSetting: invalid property: '%s'.", propertyName);
+        LOGF(Debug, "parseGPUConfigurationSetting: invalid property: '%s'.", propertyName);
         tf_free(currentSettings->pConfigurationRules);
     }
 }
@@ -860,7 +860,7 @@ void parseUserExtendedSettingLine(char* currentLine, ExtendedSettings* pExtended
         bool validConversion = stringToInteger(assignmentValue, &currentSetting->assignmentValue, 10);
         if (!validConversion)
         {
-            LOGF(eDEBUG, "parseUserSettings: cannot convert %s for setting name: '%s'.", assignmentValue, currentSetting->name);
+            LOGF(Debug, "parseUserSettings: cannot convert %s for setting name: '%s'.", assignmentValue, currentSetting->name);
             tf_free(currentSetting->pConfigurationRules);
         }
         else
@@ -870,7 +870,7 @@ void parseUserExtendedSettingLine(char* currentLine, ExtendedSettings* pExtended
     }
     else
     {
-        LOGF(eDEBUG, "User Settings| Unknown ExtendedSetting: '%s' from line: '%s'", settingName, currentLine);
+        LOGF(Debug, "User Settings| Unknown ExtendedSetting: '%s' from line: '%s'", settingName, currentLine);
     }
 }
 
@@ -900,7 +900,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
         if (currentComparisonRule->pGpuProperty == NULL)
         {
             // discard current set of rules
-            LOGF(eDEBUG, "Extended Config| GPU Config invalid Field name: '%s'.", fieldName);
+            LOGF(Debug, "Extended Config| GPU Config invalid Field name: '%s'.", fieldName);
             tf_free(*ppConfigurationRules);
             *ppConfigurationRules = NULL;
             *pRulesCount = 0;
@@ -934,7 +934,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
                 if (!validConversion)
                 {
                     // discard current set of rules
-                    LOGF(eDEBUG, "Extended Config| GPU Config invalid comparison value: '%s' in rule: %s", parsedValue, ruleStr);
+                    LOGF(Debug, "Extended Config| GPU Config invalid comparison value: '%s' in rule: %s", parsedValue, ruleStr);
                     tf_free(*ppConfigurationRules);
                     *ppConfigurationRules = NULL;
                     *pRulesCount = 0;
@@ -1066,7 +1066,7 @@ GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, const char
         presetLevel = GPU_PRESET_HIGH;
     }
 
-    LOGF(eINFO, "Using built-in %s GPU preset for vendor %s.", presetLevelToString(presetLevel), vendorName);
+    LOGF(Info, "Using built-in %s GPU preset for vendor %s.", presetLevelToString(presetLevel), vendorName);
 
     return presetLevel;
 }
@@ -1459,7 +1459,7 @@ bool parseConfigLine(const char* pLine, const char* pInVendorName, const char* p
     // validate required fields
     if (pOutVendorName[0] == '\0' || pOutModelName[0] == '\0' || presetLevel[0] == '\0')
     {
-        LOGF(eWARNING,
+        LOGF(Warning,
              "GPU config requires VendorName, DeviceName and PresetLevel. "
              "Following line has invalid format:\n'%s'",
              pOrigLine);
@@ -1484,7 +1484,7 @@ bool parseConfigLine(const char* pLine, const char* pInVendorName, const char* p
     {
         if (strcmp(pInModelId, pOutModelId) != 0)
         {
-            LOGF(LogLevel::eWARNING, "Entry with matching GPUName found in legacy GPU data, however there was a mismatch in device IDs. \
+            LOGF(LogLevel::Warning, "Entry with matching GPUName found in legacy GPU data, however there was a mismatch in device IDs. \
                                       Entry has ID: %s | Device has ID: %s",
                  pInModelId, pInModelName);
             success = false;

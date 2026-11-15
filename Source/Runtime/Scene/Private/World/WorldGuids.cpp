@@ -17,19 +17,19 @@ Entity World::createPersistentEntity(const Guid& id)
     pImpl->checkThread();
     if (!pImpl->entityIdentityType)
     {
-        LOGF(eERROR, "Creating a persistent entity requires registered EntityIdentity support");
+        LOGF(Error, "Creating a persistent entity requires registered EntityIdentity support");
         return {};
     }
     if (!id.isValid())
     {
-        LOGF(eERROR, "A persistent entity requires a nonzero Guid");
+        LOGF(Error, "A persistent entity requires a nonzero Guid");
         return {};
     }
     if (hmgetp_null(pImpl->pEntityGuids, id))
     {
         char text[kIDStringCapacity];
         id.toString(text);
-        LOGF(eERROR, "Duplicate Guid: %s", text);
+        LOGF(Error, "Duplicate Guid: %s", text);
         return {};
     }
 

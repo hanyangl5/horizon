@@ -60,7 +60,7 @@ public:
         AssetGeometry& geometry = *(AssetGeometry*)pUser;
         const bool     success = geometry.buildBounds();
         if (!success)
-            LOGF(eERROR, "Invalid Mesh positions or draw ranges in '%s'", geometry.pPath);
+            LOGF(Error, "Invalid Mesh positions or draw ranges in '%s'", geometry.pPath);
         tfrg_atomic32_store_release(&geometry.status, (uint32_t)(success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
     }
 
@@ -115,7 +115,7 @@ public:
         ASSERT(desc.vertexLayout.attribCount && desc.vertexLayout.attribCount <= MAX_VERTEX_ATTRIBS);
         const ThreadSystemInitDesc threadDesc = { .threadCount = 1, .threadName = "AssetSource" };
         if (!threadSystemInit(&threads, &threadDesc))
-            LOGF(eERROR, "Cannot start Mesh/Material loader worker");
+            LOGF(Error, "Cannot start Mesh/Material loader worker");
     }
     ~AssetLoadersData()
     {
@@ -159,7 +159,7 @@ public:
         if (!loader.threads || (entry.type != AssetType::Mesh && entry.type != AssetType::Material) ||
             entry.location.root != AssetPathRoot::Cooked || entry.location.elementIndex == UINT32_MAX)
         {
-            LOGF(eERROR, "Invalid Mesh/Material location '%s'", entry.location.pPath);
+            LOGF(Error, "Invalid Mesh/Material location '%s'", entry.location.pPath);
             return nullptr;
         }
         return tf_new(SubassetRequest, entry, loader.acquireSource(entry.location.pPath));
@@ -225,7 +225,7 @@ public:
     }
     static AssetLoadResult invalid(const SubassetRequest& request)
     {
-        LOGF(eERROR, "Mesh/Material identity, index or dependencies differ from Catalog: '%s'", request.entry.location.pPath);
+        LOGF(Error, "Mesh/Material identity, index or dependencies differ from Catalog: '%s'", request.entry.location.pPath);
         return { .status = AssetLoadStatus::Failed, .pError = "Mesh/Material identity differs from the catalog" };
     }
     static void destroyRequest(void* pJob, void*) { tf_delete((SubassetRequest*)pJob); }
@@ -247,7 +247,7 @@ public:
         {
             if (submesh.draw >= mesh.pGeometry->draws.size())
             {
-                LOGF(eERROR, "Mesh submesh draw is outside Geometry '%s'", mesh.pGeometry->pPath);
+                LOGF(Error, "Mesh submesh draw is outside Geometry '%s'", mesh.pGeometry->pPath);
                 return AssetLoadStatus::Failed;
             }
         }
@@ -306,7 +306,7 @@ void AssetSource::decode(void* pUser, uint64_t)
     AssetSource& source = *(AssetSource*)pUser;
     const bool   success = source.read(source.owner.desc.cookedDirectory);
     if (!success)
-        LOGF(eERROR, "Cannot decode Mesh/Material source '%s'", source.pPath);
+        LOGF(Error, "Cannot decode Mesh/Material source '%s'", source.pPath);
     tfrg_atomic32_store_release(&source.status, (uint32_t)(success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
 }
 
@@ -385,7 +385,7 @@ AssetLoadStatus AssetGeometry::poll()
         return AssetLoadStatus::Pending;
     if (!uploadSucceeded || !pUpload)
     {
-        LOGF(eERROR, "Geometry upload failed: '%s'", pPath);
+        LOGF(Error, "Geometry upload failed: '%s'", pPath);
         return AssetLoadStatus::Failed;
     }
     if (!boundsQueued)

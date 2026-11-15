@@ -134,7 +134,7 @@ int AssetPipelineCmd(int argc, char** argv)
         {
             if (params.mPathMode == PROCESS_MODE_DIRECTORY_RECURSIVE)
             {
-                LOGF(eERROR, "--recursive flag not allowed on single file mode");
+                LOGF(Error, "--recursive flag not allowed on single file mode");
                 return 1;
             }
 
@@ -153,7 +153,7 @@ int AssetPipelineCmd(int argc, char** argv)
         {
             if (params.mPathMode == PROCESS_MODE_FILE)
             {
-                LOGF(eERROR, "--recursive flag not allowed on single file mode");
+                LOGF(Error, "--recursive flag not allowed on single file mode");
                 return 1;
             }
 
@@ -187,7 +187,7 @@ int AssetPipelineCmd(int argc, char** argv)
 
     if (!initFileSystem(&fsDesc))
     {
-        LOGF(eERROR, "Filesystem failed to initialize.");
+        LOGF(Error, "Filesystem failed to initialize.");
         exitMemAlloc();
         return 1;
     }
@@ -196,8 +196,8 @@ int AssetPipelineCmd(int argc, char** argv)
     fsSetPathForResourceDir(pSystemFileIO, RM_PROJECT, params.mRDOutput, "");
     fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
 
-    LogLevel logLevel = params.mSettings.quiet ? eWARNING : DEFAULT_LOG_LEVEL;
-    initLog(gApplicationName, logLevel);
+    LogLevel logLevel = params.mSettings.quiet ? Warning : DEFAULT_LOG_LEVEL;
+    InitLog(gApplicationName, logLevel);
 
     bool runAssetPipeline = false;
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(gAssetPipelineCommands); ++i)
@@ -224,10 +224,10 @@ int AssetPipelineCmd(int argc, char** argv)
     }
     else
     {
-        LOGF(eERROR, "Unrecognized argument %s.", argv[1]);
+        LOGF(Error, "Unrecognized argument %s.", argv[1]);
     }
 
-    exitLog();
+    ExitLog();
     exitFileSystem();
     exitMemAlloc();
 

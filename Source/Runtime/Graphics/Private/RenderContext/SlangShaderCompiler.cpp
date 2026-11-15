@@ -47,16 +47,16 @@ void initSlangGlobalSession()
     if (SLANG_FAILED(slang::createGlobalSession(&gSlangSession)))
     {
         gSlangSession = nullptr;
-        LOGF(eERROR, "Slang initialization failed");
+        LOGF(Error, "Slang initialization failed");
     }
 }
 
 static bool checkSlangResult(SlangResult result, const char* operation, const Slang::ComPtr<ISlangBlob>& diagnostics = {})
 {
     if (diagnostics && diagnostics->getBufferSize())
-        LOGF(SLANG_FAILED(result) ? eERROR : eWARNING, "Slang %s: %s", operation, (const char*)diagnostics->getBufferPointer());
+        LOGF(SLANG_FAILED(result) ? Error : Warning, "Slang %s: %s", operation, (const char*)diagnostics->getBufferPointer());
     else if (SLANG_FAILED(result))
-        LOGF(eERROR, "Slang %s failed (0x%08x)", operation, (uint32_t)result);
+        LOGF(Error, "Slang %s failed (0x%08x)", operation, (uint32_t)result);
     return SLANG_SUCCEEDED(result);
 }
 
@@ -221,7 +221,7 @@ Shader* RenderContext::createSlangShader(const ShaderSrcDesc& input)
 
     if (pRenderer->shaderTarget < SHADER_TARGET_6_0)
     {
-        LOGF(eERROR, "Slang DXIL requires Shader Model 6.0 or newer");
+        LOGF(Error, "Slang DXIL requires Shader Model 6.0 or newer");
         return nullptr;
     }
 

@@ -103,7 +103,7 @@ static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<
     const bool closed = !opened || fsCloseStream(&stream);
     if (!written || !closed)
     {
-        LOGF(eERROR, "Cannot publish scene asset file '%s'", pPath);
+        LOGF(Error, "Cannot publish scene asset file '%s'", pPath);
         return false;
     }
     char backup[FS_MAX_PATH];
@@ -112,17 +112,17 @@ static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<
     const bool exists = fsFileExist(directory, pPath);
     if ((fsFileExist(directory, backup) && !fsRemoveFile(directory, backup)) || (exists && !fsRenameFile(directory, pPath, backup)))
     {
-        LOGF(eERROR, "Cannot back up '%s'; check for an interrupted cook", pPath);
+        LOGF(Error, "Cannot back up '%s'; check for an interrupted cook", pPath);
         return false;
     }
     if (!fsRenameFile(directory, temporary, pPath))
     {
         if (exists && !fsRenameFile(directory, backup, pPath))
-            LOGF(eERROR, "Restore '%s' from '%s' before retrying", pPath, backup);
+            LOGF(Error, "Restore '%s' from '%s' before retrying", pPath, backup);
         return false;
     }
     if (exists && !fsRemoveFile(directory, backup))
-        LOGF(eWARNING, "Cannot remove completed cook backup '%s'", backup);
+        LOGF(Warning, "Cannot remove completed cook backup '%s'", backup);
     return true;
 }
 
@@ -250,11 +250,11 @@ static bool matchIdentities(cJSON* pOld, cJSON* pNew, bool submeshes = false)
                 generated.toString(id);
             if (containsID(pOld, id) || containsID(pNew, id))
             {
-                LOGF(eERROR, "Generated scene asset identity collision");
+                LOGF(Error, "Generated scene asset identity collision");
                 return false;
             }
             if (pOld && pOld->child)
-                LOGF(eWARNING, "No unique identity match for %s '%s'; assigning a new ID", text(pRecord, "kind"), text(pRecord, "name"));
+                LOGF(Warning, "No unique identity match for %s '%s'; assigning a new ID", text(pRecord, "kind"), text(pRecord, "name"));
         }
         cJSON_AddStringToObject(pRecord, "id", id);
         cJSON* pSubmeshes = cJSON_GetObjectItemCaseSensitive(pRecord, "submeshes");
@@ -424,7 +424,7 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
         if (!cJSON_IsNumber(pVersion) || pVersion->valuedouble != 1 || !sceneID.parse(text(pPrevious, "scene")) || !sceneID.isValid() ||
             !validateIdentities(pOldRecords) || containsID(pOldRecords, text(pPrevious, "scene")))
         {
-            LOGF(eERROR, "Invalid scene identity sidecar '%s'; refusing to replace persistent IDs", metadataFile);
+            LOGF(Error, "Invalid scene identity sidecar '%s'; refusing to replace persistent IDs", metadataFile);
             return false;
         }
     }
@@ -432,7 +432,7 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
     {
         if (fsFileExist(outputDirectory, assetFile))
         {
-            LOGF(eERROR, "Missing identity sidecar '%s'; restore it before recooking", metadataFile);
+            LOGF(Error, "Missing identity sidecar '%s'; restore it before recooking", metadataFile);
             return false;
         }
         sceneID = hz::AssetID::create();
@@ -472,7 +472,7 @@ bool SceneAssetCooker::registerTexture(CookedSceneTexture& texture)
         {
             if (!validTextureIdentity(pDocument))
             {
-                LOGF(eERROR, "Invalid texture identity sidecar '%s'; refusing to replace persistent IDs", path);
+                LOGF(Error, "Invalid texture identity sidecar '%s'; refusing to replace persistent IDs", path);
                 return false;
             }
         }
@@ -490,7 +490,7 @@ bool SceneAssetCooker::registerTexture(CookedSceneTexture& texture)
         if (!cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pRecord, "missing")) && strcmp(text(pRecord, "source"), texture.source) == 0 &&
             (bool)cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pRecord, "srgb")) == texture.srgb && strcmp(text(pRecord, "id"), pID) != 0)
         {
-            LOGF(eERROR, "Missing or changed texture identity in '%s'; restore the sidecar before recooking", path);
+            LOGF(Error, "Missing or changed texture identity in '%s'; restore the sidecar before recooking", path);
             return false;
         }
     if (*pID)
@@ -527,7 +527,7 @@ bool SceneAssetCooker::prepareTextures(const cgltf_data& data)
         }
         if (srgb && linear)
         {
-            LOGF(eERROR, "Texture %u in '%s' is used as both color and linear data; use separate texture entries for the same image", i,
+            LOGF(Error, "Texture %u in '%s' is used as both color and linear data; use separate texture entries for the same image", i,
                  pSourceFile);
             return false;
         }
@@ -543,15 +543,15 @@ bool SceneAssetCooker::prepareTextures(const cgltf_data& data)
             continue;
         if (!texture.image || !cooker.cook(*texture.image, srgb, textures[i]) || !registerTexture(textures[i]))
         {
-            LOGF(eERROR, "Cannot cook texture %u from '%s'", i, pSourceFile);
+            LOGF(Error, "Cannot cook texture %u from '%s'", i, pSourceFile);
             return false;
         }
-        LOGF(eINFO, "Texture %u/%u %s", i + 1, textures.size(), textures[i].source[0] ? textures[i].source : "(embedded)");
+        LOGF(Info, "Texture %u/%u %s", i + 1, textures.size(), textures[i].source[0] ? textures[i].source : "(embedded)");
         for (uint32_t j = 0; j < i; ++j)
             if (textures[i].registeredID.isValid() && textures[i].registeredID == textures[j].registeredID &&
                 (strcmp(textures[i].source, textures[j].source) != 0 || textures[i].srgb != textures[j].srgb))
             {
-                LOGF(eERROR, "Texture sidecars assign the same ID to different resources in '%s'", pSourceFile);
+                LOGF(Error, "Texture sidecars assign the same ID to different resources in '%s'", pSourceFile);
                 return false;
             }
     }
@@ -662,7 +662,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     }
     if (!matchIdentities(pOldRecords, pRecords) || !validateIdentities(pRecords) || containsID(pRecords, text(pMetadata, "scene")))
     {
-        LOGF(eERROR, "Conflicting scene/subasset identities in '%s'", pSourceFile);
+        LOGF(Error, "Conflicting scene/subasset identities in '%s'", pSourceFile);
         return false;
     }
 
@@ -738,7 +738,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
         stack.popBack();
         if (selected[index] != UINT32_MAX)
         {
-            LOGF(eERROR, "Scene node occurs more than once in the selected hierarchy");
+            LOGF(Error, "Scene node occurs more than once in the selected hierarchy");
             return false;
         }
         const cgltf_node& node = data.nodes[index];
