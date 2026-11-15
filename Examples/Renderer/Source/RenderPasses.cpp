@@ -184,7 +184,7 @@ static void ExecuteEnvironment(FrameContext& Frame, void* UserData)
 static void ExecuteTransparency(FrameContext& Frame, void* UserData)
 {
     Frame.Color = &((Transparency*)UserData)
-                       ->execute(Frame.Commands, Frame.Frame, *Frame.GBuffer.Depth, Frame.View, Frame.Draws, Frame.Resources,
+                       ->Execute(Frame.Commands, Frame.Frame, *Frame.GBuffer.Depth, Frame.View, Frame.Draws, Frame.Resources,
                                  *Frame.Color);
 }
 
@@ -251,7 +251,7 @@ bool RenderPasses::Resize(uint32_t Width, uint32_t Height)
     }
     GBufferTargets->Resize(Width, Height);
     Lighting->Resize(Width, Height);
-    Transparency->resize(Width, Height, 1);
+    Transparency->Resize(Width, Height, 1);
     RayTracing->resize(Width, Height);
     PostProcessing->resize(Width, Height);
 

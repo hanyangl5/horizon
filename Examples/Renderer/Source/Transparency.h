@@ -7,31 +7,32 @@
 class Transparency
 {
 public:
-    explicit Transparency(hz::RenderContext& context, hz::Format depthFormat = hz::Format::D24_UNORM_S8_UINT);
-    void resize(uint32_t width, uint32_t height, uint32_t fragmentsPerPixel = 4);
+    explicit Transparency(hz::RenderContext& Context, hz::Format DepthFormat = hz::Format::D24_UNORM_S8_UINT);
+    void Resize(uint32_t Width, uint32_t Height, uint32_t FragmentsPerPixel = 4);
 
-    const hz::GPUTexture& execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::GPUTexture& depth, const SceneView& view,
-                                  const GpuDrawList& draws, const LightingResources& lighting, const hz::GPUTexture& opaqueColor);
+    const hz::GPUTexture& Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
+                                  const SceneView& View, const GpuDrawList& Draws, const LightingResources& Lighting,
+                                  const hz::GPUTexture& OpaqueColor);
     // uint4: attempted fragments, allocation overflow, pixels exceeding the 64-fragment resolve limit, reserved.
-    const hz::GPUBuffer&  getStatistics() const { return counters; }
-    const hz::GPUTexture& getColor() const { return color; }
+    const hz::GPUBuffer&  GetStatistics() const { return Counters; }
+    const hz::GPUTexture& GetColor() const { return Color; }
 
-    float opacityBoost = 0;
-    bool  showHeatmap = false;
+    float OpacityBoost = 0;
+    bool  ShowHeatmap = false;
 
 private:
-    hz::RenderContext&               context;
-    hz::GPUPipeline                  clearPipeline;
-    hz::GPUPipeline                  gatherPipeline;
-    hz::GPUPipeline                  resolvePipeline;
-    hz::GPUSampler                   surfaceSampler;
-    hz::GPUTexture                   heads;
-    hz::GPUTexture                   color;
-    hz::GPUBuffer                    nodes;
-    hz::GPUBuffer                    counters;
-    hz::Array<const hz::GPUTexture*> sampled;
-    hz::Array<const hz::GPUBuffer*>  buffers;
-    uint32_t                         width = 0;
-    uint32_t                         height = 0;
-    uint32_t                         maxNodes = 0;
+    hz::RenderContext&               Context;
+    hz::GPUPipeline                  ClearPipeline;
+    hz::GPUPipeline                  GatherPipeline;
+    hz::GPUPipeline                  ResolvePipeline;
+    hz::GPUSampler                   SurfaceSampler;
+    hz::GPUTexture                   Heads;
+    hz::GPUTexture                   Color;
+    hz::GPUBuffer                    Nodes;
+    hz::GPUBuffer                    Counters;
+    hz::Array<const hz::GPUTexture*> Sampled;
+    hz::Array<const hz::GPUBuffer*>  Buffers;
+    uint32_t                         Width = 0;
+    uint32_t                         Height = 0;
+    uint32_t                         MaxNodes = 0;
 };

@@ -3,6 +3,7 @@
 #include "Profiler/IProfiler.h"
 #include "Core/ITime.h"
 
+// Mirrors the RootConstant0 block shared by the Transparency.slang entry points.
 struct TransparencyConstants
 {
     uint32_t instanceIndex = 0;
@@ -35,142 +36,144 @@ struct TransparencyConstants
     float    oitTime = 0;
 };
 
-Transparency::Transparency(hz::RenderContext& context, hz::Format depthFormat): context(context)
+Transparency::Transparency(hz::RenderContext& Context, hz::Format DepthFormat): Context(Context)
 {
-    clearPipeline = context.createComputePipeline(
+    ClearPipeline = Context.createComputePipeline(
         { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "ClearMain" } }, .pFileName = "Transparency.slang" },
           .pName = "Renderer.OIT.Clear" });
-    gatherPipeline =
-        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
+    GatherPipeline =
+        Context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
                                                                      { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSTransparent" } },
                                                          .pFileName = "Transparency.slang" },
                                          .depth = { .depthTest = true, .depthWrite = false, .depthFunc = CMP_LEQUAL },
-                                         .depthStencilFormat = depthFormat,
+                                         .depthStencilFormat = DepthFormat,
                                          .indirectDrawId = true,
                                          .pName = "Renderer.OIT.Gather" });
-    resolvePipeline = context.createComputePipeline(
+    ResolvePipeline = Context.createComputePipeline(
         { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "ResolveMain" } }, .pFileName = "Transparency.slang" },
           .pName = "Renderer.OIT.Resolve" });
-    surfaceSampler = context.createSampler();
-    ASSERT(clearPipeline.isValid() && gatherPipeline.isValid() && resolvePipeline.isValid() && surfaceSampler.isValid());
+    SurfaceSampler = Context.createSampler();
+    ASSERT(ClearPipeline.isValid() && GatherPipeline.isValid() && ResolvePipeline.isValid() && SurfaceSampler.isValid());
 }
-void Transparency::resize(uint32_t newWidth, uint32_t newHeight, uint32_t fragmentsPerPixel)
+
+void Transparency::Resize(uint32_t NewWidth, uint32_t NewHeight, uint32_t FragmentsPerPixel)
 {
-    ASSERT(newWidth && newHeight && fragmentsPerPixel);
-    width = newWidth;
-    height = newHeight;
-    const uint64_t capacity = uint64_t(width) * height * fragmentsPerPixel;
-    ASSERT(capacity <= UINT32_MAX / 16);
-    maxNodes = (uint32_t)capacity;
-    heads = context.createTexture({ .width = width,
-                                    .height = height,
+    ASSERT(NewWidth && NewHeight && FragmentsPerPixel);
+    Width = NewWidth;
+    Height = NewHeight;
+    const uint64_t Capacity = uint64_t(Width) * Height * FragmentsPerPixel;
+    ASSERT(Capacity <= UINT32_MAX / 16);
+    MaxNodes = (uint32_t)Capacity;
+    Heads = Context.createTexture({ .width = Width,
+                                    .height = Height,
                                     .format = hz::Format::R32_UINT,
                                     .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                     .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
                                     .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                     .pName = "Renderer.OIT.Heads" });
-    color = context.createTexture({ .width = width,
-                                    .height = height,
+    Color = Context.createTexture({ .width = Width,
+                                    .height = Height,
                                     .format = hz::Format::R32G32B32A32_SFLOAT,
                                     .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                     .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
                                     .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                     .pName = "Renderer.OIT.Resolved" });
-    nodes = context.createBuffer({ .size = capacity * 16,
-                                   .elementCount = maxNodes * 4,
+    Nodes = Context.createBuffer({ .size = Capacity * 16,
+                                   .elementCount = MaxNodes * 4,
                                    .pName = "Renderer.OIT.Nodes",
                                    .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                    .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                    .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) });
-    counters = context.createBuffer({ .size = 16,
+    Counters = Context.createBuffer({ .size = 16,
                                       .elementCount = 4,
                                       .pName = "Renderer.OIT.Counters",
                                       .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                       .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                       .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) });
-    ASSERT(heads.isValid() && color.isValid() && nodes.isValid() && counters.isValid());
+    ASSERT(Heads.isValid() && Color.isValid() && Nodes.isValid() && Counters.isValid());
 }
-const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::GPUTexture& depth,
-                                            const SceneView& view, const GpuDrawList& draws, const LightingResources& lighting,
-                                            const hz::GPUTexture& opaqueColor)
+
+const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
+                                            const SceneView& View, const GpuDrawList& Draws, const LightingResources& Lighting,
+                                            const hz::GPUTexture& OpaqueColor)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Transparency::execute");
-    ASSERT(width && height && lighting.LightingFrame && lighting.EnvironmentSampler);
-    TransparencyConstants constants = { .frameIndex = frame.getSrvIndex(),
-                                        .oitHeadsIndex = heads.getUavIndex(),
-                                        .oitCounterIndex = counters.getUavIndex(),
-                                        .oitNodesIndex = nodes.getUavIndex(),
-                                        .oitMaxNodes = maxNodes,
-                                        .lightingFrameIndex = lighting.LightingFrame->getSrvIndex() };
-    commands.beginGpuTimestamp("OIT");
-    commands.setPipeline(clearPipeline);
-    commands.setRootConstants(constants);
-    commands.dispatch((width + 15) / 16, (height + 15) / 16, 1, { .storageTextures = { &heads }, .storageBuffers = { &counters } });
-    const uint32_t backing = view.frameIndex;
-    if (draws.GetCount(backing))
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Transparency::Execute");
+    ASSERT(Width && Height && Lighting.LightingFrame && Lighting.EnvironmentSampler);
+    TransparencyConstants Constants = { .frameIndex = Frame.getSrvIndex(),
+                                        .oitHeadsIndex = Heads.getUavIndex(),
+                                        .oitCounterIndex = Counters.getUavIndex(),
+                                        .oitNodesIndex = Nodes.getUavIndex(),
+                                        .oitMaxNodes = MaxNodes,
+                                        .lightingFrameIndex = Lighting.LightingFrame->getSrvIndex() };
+    Commands.beginGpuTimestamp("OIT");
+    Commands.setPipeline(ClearPipeline);
+    Commands.setRootConstants(Constants);
+    Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1, { .storageTextures = { &Heads }, .storageBuffers = { &Counters } });
+    const uint32_t Backing = View.frameIndex;
+    if (Draws.GetCount(Backing))
     {
-        const hz::GPUBuffer& indirect = draws.GetCommands(backing, true);
-        hz::Dependencies     dependencies = draws.GetDependencies(frame, view, &indirect);
-        sampled.clear();
-        buffers.clear();
-        for (const hz::GPUTexture* texture : dependencies.sampledTextures)
+        const hz::GPUBuffer& Indirect = Draws.GetCommands(Backing, true);
+        hz::Dependencies     Dependencies = Draws.GetDependencies(Frame, View, &Indirect);
+        Sampled.clear();
+        Buffers.clear();
+        for (const hz::GPUTexture* Texture : Dependencies.sampledTextures)
         {
-            sampled.pushBack(texture);
+            Sampled.pushBack(Texture);
         }
-        for (const hz::GPUBuffer* buffer : dependencies.buffers)
+        for (const hz::GPUBuffer* Buffer : Dependencies.buffers)
         {
-            buffers.pushBack(buffer);
+            Buffers.pushBack(Buffer);
         }
-        buffers.pushBack(lighting.LightingFrame);
-        const hz::GPUTexture* lightingTextures[] = { lighting.ShadowMap, lighting.Environment, lighting.Irradiance, lighting.BRDFLut };
-        for (const hz::GPUTexture* texture : lightingTextures)
+        Buffers.pushBack(Lighting.LightingFrame);
+        const hz::GPUTexture* LightingTextures[] = { Lighting.ShadowMap, Lighting.Environment, Lighting.Irradiance, Lighting.BRDFLut };
+        for (const hz::GPUTexture* Texture : LightingTextures)
         {
-            if (texture && texture->isValid())
+            if (Texture && Texture->isValid())
             {
-                sampled.pushBack(texture);
+                Sampled.pushBack(Texture);
             }
         }
-        const hz::GPUTexture* storageTextures[] = { &heads };
-        const hz::GPUBuffer*  storageBuffers[] = { &counters, &nodes };
-        dependencies.sampledTextures = { sampled.data(), sampled.size() };
-        dependencies.buffers = { buffers.data(), buffers.size() };
-        dependencies.storageTextures = storageTextures;
-        dependencies.storageBuffers = storageBuffers;
-        commands.beginRendering(
-            { .depthAttachment = { .pTexture = &depth, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } }, dependencies);
-        commands.setViewport(0, 0, (float)width, (float)height);
-        commands.setScissor(0, 0, width, height);
-        commands.setPipeline(gatherPipeline);
-        const hz::GpuSceneBuffers& gpu = view.gpuScene.getBuffers();
-        constants.instancesIndex = gpu.instances.getSrvIndex();
-        constants.materialsIndex = gpu.materials.getSrvIndex();
-        constants.texturesIndex = gpu.textures.getSrvIndex();
-        constants.samplerIndex = surfaceSampler.getIndex();
-        constants.drawsIndex = draws.GetDrawData(backing).getSrvIndex();
-        constants.shadowMapIndex = lighting.ShadowMap ? lighting.ShadowMap->getSrvIndex() : UINT32_MAX;
-        constants.shadowSamplerIndex = lighting.ShadowSampler ? lighting.ShadowSampler->getIndex() : UINT32_MAX;
-        constants.environmentIndex = lighting.Environment ? lighting.Environment->getSrvIndex() : UINT32_MAX;
-        constants.irradianceIndex = lighting.Irradiance ? lighting.Irradiance->getSrvIndex() : UINT32_MAX;
-        constants.brdfLutIndex = lighting.BRDFLut ? lighting.BRDFLut->getSrvIndex() : UINT32_MAX;
-        constants.environmentSamplerIndex = lighting.EnvironmentSampler->getIndex();
-        commands.setRootConstants(constants);
-        commands.drawIndirect(indirect, 0, draws.GetCount(backing));
-        commands.endRendering();
+        const hz::GPUTexture* StorageTextures[] = { &Heads };
+        const hz::GPUBuffer*  StorageBuffers[] = { &Counters, &Nodes };
+        Dependencies.sampledTextures = { Sampled.data(), Sampled.size() };
+        Dependencies.buffers = { Buffers.data(), Buffers.size() };
+        Dependencies.storageTextures = StorageTextures;
+        Dependencies.storageBuffers = StorageBuffers;
+        Commands.beginRendering(
+            { .depthAttachment = { .pTexture = &Depth, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } }, Dependencies);
+        Commands.setViewport(0, 0, (float)Width, (float)Height);
+        Commands.setScissor(0, 0, Width, Height);
+        Commands.setPipeline(GatherPipeline);
+        const hz::GpuSceneBuffers& Gpu = View.gpuScene.getBuffers();
+        Constants.instancesIndex = Gpu.instances.getSrvIndex();
+        Constants.materialsIndex = Gpu.materials.getSrvIndex();
+        Constants.texturesIndex = Gpu.textures.getSrvIndex();
+        Constants.samplerIndex = SurfaceSampler.getIndex();
+        Constants.drawsIndex = Draws.GetDrawData(Backing).getSrvIndex();
+        Constants.shadowMapIndex = Lighting.ShadowMap ? Lighting.ShadowMap->getSrvIndex() : UINT32_MAX;
+        Constants.shadowSamplerIndex = Lighting.ShadowSampler ? Lighting.ShadowSampler->getIndex() : UINT32_MAX;
+        Constants.environmentIndex = Lighting.Environment ? Lighting.Environment->getSrvIndex() : UINT32_MAX;
+        Constants.irradianceIndex = Lighting.Irradiance ? Lighting.Irradiance->getSrvIndex() : UINT32_MAX;
+        Constants.brdfLutIndex = Lighting.BRDFLut ? Lighting.BRDFLut->getSrvIndex() : UINT32_MAX;
+        Constants.environmentSamplerIndex = Lighting.EnvironmentSampler->getIndex();
+        Commands.setRootConstants(Constants);
+        Commands.drawIndirect(Indirect, 0, Draws.GetCount(Backing));
+        Commands.endRendering();
     }
-    constants.oitHeadsIndex = heads.getSrvIndex();
-    constants.oitNodesIndex = nodes.getSrvIndex();
-    constants.oitOpaqueIndex = opaqueColor.getSrvIndex();
-    constants.oitOpacityBoost = opacityBoost;
-    constants.oitShowHeatmap = showHeatmap ? 1u : 0u;
-    constants.oitOutputIndex = color.getUavIndex();
-    constants.oitTime = float(double(getUSec(true)) * 1e-6);
-    commands.setPipeline(resolvePipeline);
-    commands.setRootConstants(constants);
-    commands.dispatch((width + 7) / 8, (height + 7) / 8, 1,
-                      { .sampledTextures = { &heads, &opaqueColor },
-                        .storageTextures = { &color },
-                        .buffers = { &nodes },
-                        .storageBuffers = { &counters } });
-    commands.endGpuTimestamp();
-    return color;
+    Constants.oitHeadsIndex = Heads.getSrvIndex();
+    Constants.oitNodesIndex = Nodes.getSrvIndex();
+    Constants.oitOpaqueIndex = OpaqueColor.getSrvIndex();
+    Constants.oitOpacityBoost = OpacityBoost;
+    Constants.oitShowHeatmap = ShowHeatmap ? 1u : 0u;
+    Constants.oitOutputIndex = Color.getUavIndex();
+    Constants.oitTime = float(double(getUSec(true)) * 1e-6);
+    Commands.setPipeline(ResolvePipeline);
+    Commands.setRootConstants(Constants);
+    Commands.dispatch((Width + 7) / 8, (Height + 7) / 8, 1,
+                      { .sampledTextures = { &Heads, &OpaqueColor },
+                        .storageTextures = { &Color },
+                        .buffers = { &Nodes },
+                        .storageBuffers = { &Counters } });
+    Commands.endGpuTimestamp();
+    return Color;
 }
