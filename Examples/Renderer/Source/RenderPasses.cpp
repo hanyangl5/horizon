@@ -195,7 +195,7 @@ static void ExecutePost(FrameContext& Frame, void* UserData)
 
 RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     Context(*Desc.Context), Scene(*Desc.Scene), Assets(*Desc.AssetManager), CameraId(Desc.Camera), Draws(Context),
-    GpuSceneData(Scene, Assets, Context, { .frameCount = FrameConstants.size() })
+    GpuSceneData(Scene, Assets, Context, { .frameCount = FrameConstants.Size() })
 {
     ASSERT(Context.isValid() && CameraId.isValid());
     GBufferTargets = hz::MakeUnique<GBuffer>(Context);
@@ -219,7 +219,7 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     for (FrameConstantBuffer& ConstantBuffer : FrameConstants)
     {
         hz::GPUBuffer& Buffer = ConstantBuffer.Buffer;
-        Buffer = Context.createBuffer({ .size = sizeof(FrameData),
+        Buffer = Context.createBuffer({ .Size = sizeof(FrameData),
                                         .elementCount = 1,
                                         .structStride = sizeof(FrameData),
                                         .pName = "Renderer.Frame",
@@ -288,7 +288,7 @@ void RenderPasses::Execute()
     {
         return;
     }
-    NextFrame = (NextFrame + 1) % FrameConstants.size();
+    NextFrame = (NextFrame + 1) % FrameConstants.Size();
     const SceneView         View = { .Scene = Scene, .GpuScene = GpuSceneData, .Assets = Assets, .FrameIndex = FrameIndex };
     const hz::RenderCamera* Camera = Scene.getCamera(CameraId);
     ASSERT(Camera);

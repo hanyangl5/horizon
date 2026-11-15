@@ -191,7 +191,7 @@ TEST_F(AssetManagerTest, SharesDependenciesAndDestroysParentsBeforeChildren)
     add(catalog, 1);
     add(catalog, 2, { assetID(1), assetID(1) });
     add(catalog, 3, { assetID(1) });
-    EXPECT_EQ(catalog.find(assetID(2))->dependencies.count, 1u);
+    EXPECT_EQ(catalog.find(assetID(2))->dependencies.Count, 1u);
     TestAssetLoader  loader;
     hz::AssetManager assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
@@ -506,7 +506,7 @@ TEST_F(SceneAssetLoaderTest, DecodesSceneAsynchronouslyAndPublishesTypedPayload)
     ASSERT_TRUE(catalog.serialize(index));
     FileStream stream = {};
     ASSERT_TRUE(OpenStreamFromPath(RD_OTHER_FILES, "scene.assetcatalog.json", FM_WRITE, &stream));
-    EXPECT_EQ(WriteToStream(&stream, index.data(), index.size() - 1), index.size() - 1);
+    EXPECT_EQ(WriteToStream(&stream, index.GetData(), index.Size() - 1), index.Size() - 1);
     CloseStream(&stream);
     catalog.Clear();
     ASSERT_TRUE(catalog.load(RD_OTHER_FILES, "scene.assetcatalog.json"));
@@ -629,13 +629,13 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
                                                                                              .pEntryPoint = "CSMain" } } },
                                                                .pName = "TextureAsset.Readback" });
     ASSERT_TRUE(pipeline.isValid());
-    hz::GPUBuffer    output = context.createBuffer({ .size = 16,
+    hz::GPUBuffer    output = context.createBuffer({ .Size = 16,
                                                      .elementCount = 1,
                                                      .structStride = 16,
                                                      .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                      .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                      .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
-    hz::GPUBuffer    readback = context.createBuffer({ .size = 16,
+    hz::GPUBuffer    readback = context.createBuffer({ .Size = 16,
                                                        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                        .startState = RESOURCE_STATE_COPY_DEST,
                                                        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -697,13 +697,13 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     hz::RenderInstance instance;
     instance.current = Matrix4::translation(Vector3(0.2f, 0, 0));
     const hz::GpuMaterialData   material;
-    const auto                  input = [&](const void* data, uint32_t size, uint32_t stride = 0)
+    const auto                  input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .size = size,
-                                      .elementCount = stride ? size / stride : size / 4,
+        return context.createBuffer({ .Size = Size,
+                                      .elementCount = stride ? Size / stride : Size / 4,
                                       .structStride = stride,
                                       .pInitialData = data,
-                                      .initialDataSize = size,
+                                      .initialDataSize = Size,
                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                       .startState = RESOURCE_STATE_SHADER_RESOURCE,
                                       .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
@@ -733,13 +733,13 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
         { .shaderDesc = {
               .stages = {
                   { .stage = SHADER_STAGE_COMP, .pSource = readPixel, .sourceSize = sizeof(readPixel) - 1, .pEntryPoint = "CSMain" } } } });
-    hz::GPUBuffer output = context.createBuffer({ .size = 16,
+    hz::GPUBuffer output = context.createBuffer({ .Size = 16,
                                                   .elementCount = 1,
                                                   .structStride = 16,
                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                   .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
-    hz::GPUBuffer readback = context.createBuffer({ .size = 16,
+    hz::GPUBuffer readback = context.createBuffer({ .Size = 16,
                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                     .startState = RESOURCE_STATE_COPY_DEST,
                                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -812,13 +812,13 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
         drawData[i][3] = i == 3 ? 2u : 0u;
         drawData[i][11] = 3 * (i + 1);
     }
-    const auto input = [&](const void* data, uint32_t size, uint32_t stride = 0)
+    const auto input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .size = size,
-                                      .elementCount = stride ? size / stride : size / 4,
+        return context.createBuffer({ .Size = Size,
+                                      .elementCount = stride ? Size / stride : Size / 4,
                                       .structStride = stride,
                                       .pInitialData = data,
-                                      .initialDataSize = size,
+                                      .initialDataSize = Size,
                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                       .startState = RESOURCE_STATE_SHADER_RESOURCE,
                                       .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW,
@@ -830,18 +830,18 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
     hz::GPUBuffer outputs[3];
     for (hz::GPUBuffer& buffer : outputs)
     {
-        buffer = context.createBuffer({ .size = 100,
+        buffer = context.createBuffer({ .Size = 100,
                                         .elementCount = 25,
                                         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                         .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                         .descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW });
     }
-    hz::GPUBuffer  statistics = context.createBuffer({ .size = 16,
+    hz::GPUBuffer  statistics = context.createBuffer({ .Size = 16,
                                                        .elementCount = 4,
                                                        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                        .descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW });
-    hz::GPUBuffer  readback = context.createBuffer({ .size = 316,
+    hz::GPUBuffer  readback = context.createBuffer({ .Size = 316,
                                                      .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                      .startState = RESOURCE_STATE_COPY_DEST,
                                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -1052,11 +1052,11 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     const hz::AssetHandle root = assetManager.request(scene.getID());
-    const hz::AssetHandle second = assetManager.request(scene.getMeshes().pData[1].id);
+    const hz::AssetHandle second = assetManager.request(scene.getMeshes().Data[1].id);
     wait(assetManager, root);
     ASSERT_EQ(assetManager.getState(root), hz::AssetState::Ready);
     EXPECT_EQ(assetManager.getCount(), 5u);
-    const hz::AssetHandle first = assetManager.find(scene.getMeshes().pData[0].id);
+    const hz::AssetHandle first = assetManager.find(scene.getMeshes().Data[0].id);
     const hz::MeshAsset*  pFirst = assetManager.getMesh(first);
     const hz::MeshAsset*  pSecond = assetManager.getMesh(second);
     ASSERT_NE(pFirst, nullptr);
@@ -1074,11 +1074,11 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     EXPECT_FLOAT_EQ(bounds.maximum[0], 4);
     EXPECT_FLOAT_EQ(bounds.maximum[1], 2);
     EXPECT_FLOAT_EQ(bounds.maximum[2], 6);
-    const hz::MaterialAsset* pMaterial = assetManager.getMaterial(assetManager.find(scene.getMaterials().pData[0].id));
+    const hz::MaterialAsset* pMaterial = assetManager.getMaterial(assetManager.find(scene.getMaterials().Data[0].id));
     ASSERT_NE(pMaterial, nullptr);
     EXPECT_FLOAT_EQ(pMaterial->getDescription().roughnessFactor, 0.8f);
     ASSERT_NE(assetManager.getTexture(assetManager.find(pMaterial->getDescription().baseColorTexture)), nullptr);
-    hz::GPUBuffer    readback = context.createBuffer({ .size = 36,
+    hz::GPUBuffer    readback = context.createBuffer({ .Size = 36,
                                                        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                        .startState = RESOURCE_STATE_COPY_DEST,
                                                        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -1147,10 +1147,10 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     for (uint32_t i = 0; i < 4; ++i)
     {
         entities[i] = world.createEntity();
-        hz::MeshRenderer renderer = { .mesh = asset.getMeshes().pData[i == 3 ? 1 : 0].id };
+        hz::MeshRenderer renderer = { .mesh = asset.getMeshes().Data[i == 3 ? 1 : 0].id };
         if (i == 1)
         {
-            renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = asset.getMaterials().pData[1].id });
+            renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = asset.getMaterials().Data[1].id });
         }
         const Matrix4 transform = Matrix4::translation(Vector3(offsets[i], 0, 0));
         ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::meshRenderer, &renderer));
@@ -1158,7 +1158,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     }
 
     scene.update();
-    const hz::AssetHandle blendMaterial = assetManager.find(asset.getMaterials().pData[1].id);
+    const hz::AssetHandle blendMaterial = assetManager.find(asset.getMaterials().Data[1].id);
     ASSERT_TRUE(blendMaterial.isValid());
     wait(assetManager, blendMaterial);
     ASSERT_EQ(assetManager.getState(blendMaterial), hz::AssetState::Ready);
@@ -1195,20 +1195,20 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
         Matrix4 current = Matrix4::identity(), previous = Matrix4::identity(), inverse = Matrix4::identity();
         Vector4 eye = Vector4(0, 0, -10, 1);
     } camera;
-    hz::GPUBuffer frame = context.createBuffer({ .size = sizeof(camera),
+    hz::GPUBuffer frame = context.createBuffer({ .Size = sizeof(camera),
                                                  .elementCount = sizeof(camera) / 4,
                                                  .pInitialData = &camera,
                                                  .initialDataSize = sizeof(camera),
                                                  .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                                  .startState = RESOURCE_STATE_SHADER_RESOURCE,
                                                  .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
-    hz::GPUBuffer output = context.createBuffer({ .size = 16,
+    hz::GPUBuffer output = context.createBuffer({ .Size = 16,
                                                   .elementCount = 4,
                                                   .structStride = 4,
                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                   .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
-    hz::GPUBuffer readback = context.createBuffer({ .size = 96,
+    hz::GPUBuffer readback = context.createBuffer({ .Size = 96,
                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                     .startState = RESOURCE_STATE_COPY_DEST,
                                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -1237,16 +1237,16 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
         draws.Prepare(commands, frame, view);
         rayScene.Update(commands, view, draws);
         EXPECT_EQ(rayScene.GetSceneTLAS().getInstanceCount(), pass < 3 ? 3 - pass : 0);
-        EXPECT_EQ(draws.GetGeometries().count, pass < 2 ? 2u : (pass == 2 ? 1u : 0u));
+        EXPECT_EQ(draws.GetGeometries().Count, pass < 2 ? 2u : (pass == 2 ? 1u : 0u));
         uint32_t expected[] = { UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX };
         if (pass < 3)
         {
             const hz::Span<GpuDrawData> prepared = draws.GetDraws();
-            EXPECT_EQ(prepared.count, 4 - pass);
-            for (uint32_t i = 0; i < prepared.count; ++i)
+            EXPECT_EQ(prepared.Count, 4 - pass);
+            for (uint32_t i = 0; i < prepared.Count; ++i)
             {
-                const GpuDrawData& draw = prepared.pData[i];
-                const float        x = (float)scene.getInstances().pData[draw.instance].current.getTranslation().getX();
+                const GpuDrawData& draw = prepared.Data[i];
+                const float        x = (float)scene.getInstances().Data[draw.instance].current.getTranslation().getX();
                 for (uint32_t j = 0; j < 4; ++j)
                 {
                     if (x == offsets[j] && draw.alphaMode != uint32_t(hz::MaterialAlphaMode::Blend))
@@ -1260,7 +1260,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
             commands.setRootConstant({ rayScene.GetSceneTLAS().getSrvIndex(), output.getUavIndex() });
             commands.dispatch(1, 1, 1, { .storageBuffers = { &output }, .pShared = &sceneDependencies });
             commands.copyBuffer(readback, 0, output, 0, 16);
-            commands.copyBuffer(readback, 16, draws.GetCommands(view.FrameIndex), 0, prepared.count * 20);
+            commands.copyBuffer(readback, 16, draws.GetCommands(view.FrameIndex), 0, prepared.Count * 20);
         }
 
         const hz::SubmitHandle submission = context.submit(commands);
@@ -1296,7 +1296,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
     hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
-    const hz::AssetHandle handle = assetManager.request(asset.getMeshes().pData[0].id);
+    const hz::AssetHandle handle = assetManager.request(asset.getMeshes().Data[0].id);
     wait(assetManager, handle);
     ASSERT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
     const hz::MeshAsset* mesh = assetManager.getMesh(handle);
@@ -1312,7 +1312,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     const hz::GpuMeshData* gpuMesh = assetManager.getGpuTables().getMesh({ .index = handle.index, .generation = handle.generation });
     ASSERT_NE(gpuMesh, nullptr);
     EXPECT_EQ(gpuMesh->indexStride, 4u);
-    hz::GPUBuffer    readback = context.createBuffer({ .size = 48,
+    hz::GPUBuffer    readback = context.createBuffer({ .Size = 48,
                                                        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                        .startState = RESOURCE_STATE_COPY_DEST,
                                                        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -1450,15 +1450,15 @@ TEST_F(AssetManagerTest, RenderSceneKeepsPendingEntriesAndRejectsReusedGeneratio
     const hz::RenderPrimitiveID first = scene.findPrimitive(a), second = scene.findPrimitive(b);
     ASSERT_TRUE(first.isValid());
     ASSERT_TRUE(second.isValid());
-    EXPECT_EQ(scene.getActivePrimitives().count, 2u);
-    EXPECT_EQ(scene.getActiveInstances().count, 2u);
-    EXPECT_EQ(scene.getActiveMeshBatches().count, 0u);
+    EXPECT_EQ(scene.getActivePrimitives().Count, 2u);
+    EXPECT_EQ(scene.getActiveInstances().Count, 2u);
+    EXPECT_EQ(scene.getActiveMeshBatches().Count, 0u);
     EXPECT_EQ(scene.getPrimitive(first)->instanceCount, 0u);
-    ASSERT_EQ(scene.getChanges().instanceIndices.count, 1u);
-    EXPECT_EQ(scene.getChanges().instanceIndices.pData[0].count, 2u);
+    ASSERT_EQ(scene.getChanges().instanceIndices.Count, 1u);
+    EXPECT_EQ(scene.getChanges().instanceIndices.Data[0].Count, 2u);
     for (uint32_t index : scene.getInstanceIndices())
         EXPECT_EQ(index, UINT32_MAX);
-    const hz::RenderInstanceID instance = scene.getInstances().pData[first.index].id;
+    const hz::RenderInstanceID instance = scene.getInstances().Data[first.index].id;
     const uint64_t             revision = scene.getRevision();
     const MemoryTrackingStats  before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
@@ -1470,16 +1470,16 @@ TEST_F(AssetManagerTest, RenderSceneKeepsPendingEntriesAndRejectsReusedGeneratio
         EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
     EXPECT_EQ(scene.getRevision(), revision);
-    EXPECT_EQ(scene.getChanges().primitives.ranges.count, 0u);
-    EXPECT_EQ(scene.getChanges().instances.ranges.count, 0u);
+    EXPECT_EQ(scene.getChanges().primitives.ranges.Count, 0u);
+    EXPECT_EQ(scene.getChanges().instances.ranges.Count, 0u);
     ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
     scene.update();
     EXPECT_EQ(scene.getPrimitive(first), nullptr);
     EXPECT_EQ(scene.getInstance(instance), nullptr);
     EXPECT_FALSE(scene.findPrimitive(a).isValid());
     EXPECT_EQ(scene.findPrimitive(b), second);
-    ASSERT_EQ(scene.getChanges().primitives.removed.count, 1u);
-    EXPECT_EQ(scene.getChanges().primitives.removed.pData[0], first.index);
+    ASSERT_EQ(scene.getChanges().primitives.removed.Count, 1u);
+    EXPECT_EQ(scene.getChanges().primitives.removed.Data[0], first.index);
     EXPECT_TRUE(scene.getChanges().primitives.activeList);
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
@@ -1491,8 +1491,8 @@ TEST_F(AssetManagerTest, RenderSceneKeepsPendingEntriesAndRejectsReusedGeneratio
     ASSERT_TRUE(world.destroyEntity(b));
     scene.update();
     EXPECT_EQ(scene.getPrimitive(second), nullptr);
-    EXPECT_EQ(scene.getActivePrimitives().count, 1u);
-    EXPECT_EQ(scene.getPrimitives().count, 2u);
+    EXPECT_EQ(scene.getActivePrimitives().Count, 1u);
+    EXPECT_EQ(scene.getPrimitives().Count, 2u);
 }
 
 TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocating)
@@ -1536,15 +1536,15 @@ TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocatin
         EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
         EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
-    ASSERT_EQ(scene.getChanges().instances.ranges.count, 20u);
+    ASSERT_EQ(scene.getChanges().instances.ranges.Count, 20u);
     for (uint32_t i = 0; i < 20; ++i)
     {
-        EXPECT_EQ(scene.getChanges().instances.ranges.pData[i].first, i * 2);
-        EXPECT_EQ(scene.getChanges().instances.ranges.pData[i].count, 1u);
+        EXPECT_EQ(scene.getChanges().instances.ranges.Data[i].first, i * 2);
+        EXPECT_EQ(scene.getChanges().instances.ranges.Data[i].Count, 1u);
     }
     EXPECT_FALSE(scene.getChanges().instances.activeList);
-    EXPECT_EQ(scene.getChanges().primitives.ranges.count, 0u);
-    EXPECT_EQ(scene.getChanges().instanceIndices.count, 0u);
+    EXPECT_EQ(scene.getChanges().primitives.ranges.Count, 0u);
+    EXPECT_EQ(scene.getChanges().instanceIndices.Count, 0u);
 }
 
 TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
@@ -1567,9 +1567,9 @@ TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
     scene.update();
     const hz::RenderSceneUploads initial = scene.getPendingUploads();
-    EXPECT_EQ(initial.primitives.count, 1u);
-    EXPECT_EQ(initial.instances.count, 1u);
-    EXPECT_EQ(initial.instanceIndices.count, 1u);
+    EXPECT_EQ(initial.primitives.Count, 1u);
+    EXPECT_EQ(initial.instances.Count, 1u);
+    EXPECT_EQ(initial.instanceIndices.Count, 1u);
     EXPECT_TRUE(initial.activePrimitives);
     EXPECT_TRUE(initial.activeInstances);
     EXPECT_FALSE(initial.activeMeshBatches);
@@ -1580,13 +1580,13 @@ TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
         scene.update();
     }
     // getChanges() covers only the latest update; pending uploads keep everything not yet acknowledged.
-    EXPECT_EQ(scene.getChanges().primitives.ranges.count, 0u);
+    EXPECT_EQ(scene.getChanges().primitives.ranges.Count, 0u);
     EXPECT_FALSE(scene.getChanges().primitives.activeList);
     const hz::RenderSceneUploads moved = scene.getPendingUploads();
-    ASSERT_EQ(moved.instances.count, 1u);
-    EXPECT_EQ(moved.instances.pData[0].first, 0u);
-    EXPECT_EQ(moved.instances.pData[0].count, 1u);
-    EXPECT_EQ(moved.primitives.count, 1u);
+    ASSERT_EQ(moved.instances.Count, 1u);
+    EXPECT_EQ(moved.instances.Data[0].first, 0u);
+    EXPECT_EQ(moved.instances.Data[0].Count, 1u);
+    EXPECT_EQ(moved.primitives.Count, 1u);
     EXPECT_TRUE(moved.activePrimitives);
     ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::meshRenderer));
     scene.update();
@@ -1594,9 +1594,9 @@ TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
     EXPECT_TRUE(removal.activePrimitives);
     EXPECT_TRUE(removal.activeInstances);
     EXPECT_FALSE(removal.activeMeshBatches);
-    EXPECT_EQ(removal.primitives.count, 1u);
-    EXPECT_EQ(removal.instances.count, 1u);
-    EXPECT_EQ(removal.instanceIndices.count, 1u);
+    EXPECT_EQ(removal.primitives.Count, 1u);
+    EXPECT_EQ(removal.instances.Count, 1u);
+    EXPECT_EQ(removal.instanceIndices.Count, 1u);
 }
 
 TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAndNoFrameAllocation)
@@ -1640,8 +1640,8 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
         ASSERT_TRUE(world.setParent(entities[i], parent, false));
     }
     scene.update();
-    EXPECT_EQ(scene.getActiveLights().count, 9u);
-    EXPECT_EQ(scene.getActiveCameras().count, 9u);
+    EXPECT_EQ(scene.getActiveLights().Count, 9u);
+    EXPECT_EQ(scene.getActiveCameras().Count, 9u);
     for (uint32_t i = 0; i < 9; ++i)
     {
         const hz::RenderLight* extracted = scene.getLight(scene.findLight(entities[i]));
@@ -1691,8 +1691,8 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     scene.update();
     const hz::RenderSceneChanges changes = scene.getChanges();
     EXPECT_GT(scene.getRevision(), initial);
-    EXPECT_EQ(changes.lights.ranges.count, 5u);
-    EXPECT_EQ(changes.cameras.ranges.count, 5u);
+    EXPECT_EQ(changes.lights.ranges.Count, 5u);
+    EXPECT_EQ(changes.cameras.ranges.Count, 5u);
     EXPECT_FALSE(changes.lights.activeList);
     EXPECT_FALSE(changes.cameras.activeList);
     const MemoryTrackingStats after = GetMemoryTrackingStats();
@@ -1724,8 +1724,8 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     EXPECT_FLOAT_EQ((float)replacement->previous.getElem(3, 0), 15.5f);
     ASSERT_TRUE(world.destroySubtree(parent));
     scene.update();
-    EXPECT_EQ(scene.getActiveLights().count, 0u);
-    EXPECT_EQ(scene.getActiveCameras().count, 0u);
+    EXPECT_EQ(scene.getActiveLights().Count, 0u);
+    EXPECT_EQ(scene.getActiveCameras().Count, 0u);
 }
 
 TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLeaseHandoffs)
@@ -1856,12 +1856,12 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     ASSERT_TRUE(overrideScene.parse({ overrideText.data(), (uint32_t)overrideText.size() }));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
-    const hz::AssetID alternate = overrideScene.getMaterials().pData[0].id;
+    const hz::AssetID alternate = overrideScene.getMaterials().Data[0].id;
     ASSERT_TRUE(catalog.add({ .id = alternate,
                               .type = hz::AssetType::Material,
                               .pSourcePath = "scene.gltf",
                               .location = { .pPath = "override.sceneasset.json", .elementIndex = 0 },
-                              .dependencies = { scene.getTextures().pData[0].id } }));
+                              .dependencies = { scene.getTextures().Data[0].id } }));
     hz::RenderContext context({ .pAppName = "WorldAssetBindingsTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
     hz::AssetManager  assetManager(catalog, &context);
@@ -1870,7 +1870,7 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     ASSERT_TRUE(types.registerBuiltins());
     hz::World        world(types);
     const hz::Entity a = world.createEntity(), b = world.createEntity();
-    hz::MeshRenderer renderer = { .mesh = scene.getMeshes().pData[0].id };
+    hz::MeshRenderer renderer = { .mesh = scene.getMeshes().Data[0].id };
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
     renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000003), .material = alternate });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
@@ -1886,11 +1886,11 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     bindings.update();
     ASSERT_EQ(bindings.get(a)->state, hz::AssetBindingState::Ready);
     ASSERT_EQ(bindings.get(b)->state, hz::AssetBindingState::Ready);
-    ASSERT_EQ(bindings.get(a)->materials.count, 2u);
-    EXPECT_EQ(bindings.get(a)->materials.pData[0].asset, scene.getMaterials().pData[0].id);
-    EXPECT_EQ(bindings.get(a)->materials.pData[1].asset, alternate);
-    EXPECT_EQ(bindings.get(b)->materials.pData[1].asset, scene.getMaterials().pData[0].id);
-    EXPECT_EQ(bindings.get(a)->materials.pData[1].handle, overrideMaterial);
+    ASSERT_EQ(bindings.get(a)->materials.Count, 2u);
+    EXPECT_EQ(bindings.get(a)->materials.Data[0].asset, scene.getMaterials().Data[0].id);
+    EXPECT_EQ(bindings.get(a)->materials.Data[1].asset, alternate);
+    EXPECT_EQ(bindings.get(b)->materials.Data[1].asset, scene.getMaterials().Data[0].id);
+    EXPECT_EQ(bindings.get(a)->materials.Data[1].handle, overrideMaterial);
 
     const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
@@ -1909,14 +1909,14 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
     ASSERT_EQ(bindings.get(a)->state, hz::AssetBindingState::Ready);
-    EXPECT_EQ(bindings.get(a)->materials.pData[0].handle, overrideMaterial);
-    EXPECT_EQ(bindings.get(a)->materials.pData[1].handle, overrideMaterial);
+    EXPECT_EQ(bindings.get(a)->materials.Data[0].handle, overrideMaterial);
+    EXPECT_EQ(bindings.get(a)->materials.Data[1].handle, overrideMaterial);
 
-    const hz::MeshRenderer pendingRenderer = { .mesh = scene.getMeshes().pData[1].id };
+    const hz::MeshRenderer pendingRenderer = { .mesh = scene.getMeshes().Data[1].id };
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &pendingRenderer));
     bindings.update();
     EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
-    EXPECT_EQ(bindings.get(a)->materials.count, 0u);
+    EXPECT_EQ(bindings.get(a)->materials.Count, 0u);
     assetManager.update();
     EXPECT_EQ(assetManager.getState(overrideMaterial), hz::AssetState::Retiring);
 
@@ -1929,7 +1929,7 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     bindings.update();
     EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Failed);
     renderer.overrides.Clear();
-    renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = scene.getTextures().pData[0].id });
+    renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = scene.getTextures().Data[0].id });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
     EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Failed);
@@ -1966,12 +1966,12 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     ASSERT_TRUE(alternateAssets.parse({ alternateText.data(), (uint32_t)alternateText.size() }));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(assets, "scene.sceneasset.json"));
-    const hz::AssetID alternate = alternateAssets.getMaterials().pData[0].id;
+    const hz::AssetID alternate = alternateAssets.getMaterials().Data[0].id;
     ASSERT_TRUE(catalog.add({ .id = alternate,
                               .type = hz::AssetType::Material,
                               .pSourcePath = "scene.gltf",
                               .location = { .pPath = "alternate.sceneasset.json", .elementIndex = 0 },
-                              .dependencies = { assets.getTextures().pData[0].id } }));
+                              .dependencies = { assets.getTextures().Data[0].id } }));
     hz::RenderContext context({ .pAppName = "RenderSceneTest", .enableGpuValidation = true });
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
     hz::AssetManager  assetManager(catalog);
@@ -1982,7 +1982,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     hz::RenderScene  scene(world, assetManager);
     const hz::Guid   identity = { .high = 2, .low = 1 };
     const hz::Entity a = world.createPersistentEntity(identity), b = world.createEntity();
-    hz::MeshRenderer renderer = { .mesh = assets.getMeshes().pData[0].id };
+    hz::MeshRenderer renderer = { .mesh = assets.getMeshes().Data[0].id };
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
     Matrix4 local;
@@ -1996,10 +1996,10 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     scene.update();
     ASSERT_EQ(scene.getPrimitive(primitive)->instanceCount, 1u);
     EXPECT_EQ(scene.findPrimitive(a), primitive);
-    ASSERT_EQ(scene.getActiveMeshBatches().count, 4u);
-    ASSERT_EQ(scene.getChanges().meshBatches.created.count, 4u);
-    const uint32_t             instanceIndex = scene.getInstanceIndices().pData[scene.getPrimitive(primitive)->instanceOffset];
-    const hz::RenderInstanceID instanceID = scene.getInstances().pData[instanceIndex].id;
+    ASSERT_EQ(scene.getActiveMeshBatches().Count, 4u);
+    ASSERT_EQ(scene.getChanges().meshBatches.created.Count, 4u);
+    const uint32_t             instanceIndex = scene.getInstanceIndices().Data[scene.getPrimitive(primitive)->instanceOffset];
+    const hz::RenderInstanceID instanceID = scene.getInstances().Data[instanceIndex].id;
     const hz::RenderInstance*  instance = scene.getInstance(instanceID);
     ASSERT_NE(instance, nullptr);
     EXPECT_EQ(instance->entityGuid, identity);
@@ -2012,9 +2012,9 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_FLOAT_EQ(instance->bounds.maximum[2], 33);
     hz::Array<hz::RenderMeshBatchID> meshBatchIDs;
     for (uint32_t index : scene.getActiveMeshBatches())
-        if (scene.getMeshBatches().pData[index].primitive == primitive)
-            meshBatchIDs.PushBack(scene.getMeshBatches().pData[index].id);
-    ASSERT_EQ(meshBatchIDs.size(), 2u);
+        if (scene.getMeshBatches().Data[index].primitive == primitive)
+            meshBatchIDs.PushBack(scene.getMeshBatches().Data[index].id);
+    ASSERT_EQ(meshBatchIDs.Size(), 2u);
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[0])->submesh, UINT64_C(0x8000000000000001));
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1])->submesh, UINT64_C(0x8000000000000003));
     const hz::GpuMaterialID original = scene.getMeshBatch(meshBatchIDs[0])->material;
@@ -2032,23 +2032,23 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
         EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
     EXPECT_EQ(scene.getRevision(), revision);
-    EXPECT_EQ(scene.getChanges().meshBatches.ranges.count, 0u);
+    EXPECT_EQ(scene.getChanges().meshBatches.ranges.Count, 0u);
     local.setTranslation(Vector3(11, 20, 30));
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localMatrix, &local));
     scene.update();
     EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->current.getElem(3, 0), 11);
     EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->previous.getElem(3, 0), 11);
-    EXPECT_EQ(scene.getChanges().primitives.ranges.count, 0u);
-    EXPECT_EQ(scene.getChanges().meshBatches.ranges.count, 0u);
-    ASSERT_EQ(scene.getChanges().instances.ranges.count, 1u);
-    EXPECT_EQ(scene.getChanges().instances.ranges.pData[0].first, instanceIndex);
-    EXPECT_EQ(scene.getChanges().instances.ranges.pData[0].count, 1u);
+    EXPECT_EQ(scene.getChanges().primitives.ranges.Count, 0u);
+    EXPECT_EQ(scene.getChanges().meshBatches.ranges.Count, 0u);
+    ASSERT_EQ(scene.getChanges().instances.ranges.Count, 1u);
+    EXPECT_EQ(scene.getChanges().instances.ranges.Data[0].first, instanceIndex);
+    EXPECT_EQ(scene.getChanges().instances.ranges.Data[0].Count, 1u);
     scene.update();
     EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->previous.getElem(3, 0), 11);
     scene.markDirty(a);
     scene.update();
     EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->previous.getElem(3, 0), 11);
-    EXPECT_EQ(scene.getChanges().instances.ranges.count, 0u);
+    EXPECT_EQ(scene.getChanges().instances.ranges.Count, 0u);
 
     renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000003), .material = alternate });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
@@ -2064,15 +2064,15 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     const hz::AssetHandle alternateHandle = assetManager.find(alternate);
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1])->material,
               (hz::GpuMaterialID{ .index = alternateHandle.index, .generation = alternateHandle.generation }));
-    EXPECT_EQ(scene.getChanges().meshBatches.created.count, 0u);
+    EXPECT_EQ(scene.getChanges().meshBatches.created.Count, 0u);
     renderer.overrides.Clear();
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1])->material, original);
-    EXPECT_EQ(scene.getChanges().primitives.ranges.count, 0u);
-    ASSERT_EQ(scene.getChanges().meshBatches.ranges.count, 1u);
-    EXPECT_EQ(scene.getChanges().meshBatches.ranges.pData[0].first, meshBatchIDs[1].index);
-    EXPECT_EQ(scene.getChanges().meshBatches.ranges.pData[0].count, 1u);
+    EXPECT_EQ(scene.getChanges().primitives.ranges.Count, 0u);
+    ASSERT_EQ(scene.getChanges().meshBatches.ranges.Count, 1u);
+    EXPECT_EQ(scene.getChanges().meshBatches.ranges.Data[0].first, meshBatchIDs[1].index);
+    EXPECT_EQ(scene.getChanges().meshBatches.ranges.Data[0].Count, 1u);
 
     ASSERT_TRUE(world.destroyEntity(a));
     scene.update();
@@ -2080,22 +2080,22 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_EQ(scene.getInstance(instanceID), nullptr);
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[0]), nullptr);
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1]), nullptr);
-    EXPECT_EQ(scene.getInstanceIndices().pData[primitive.index], UINT32_MAX);
-    EXPECT_EQ(scene.getActiveMeshBatches().count, 2u);
+    EXPECT_EQ(scene.getInstanceIndices().Data[primitive.index], UINT32_MAX);
+    EXPECT_EQ(scene.getActiveMeshBatches().Count, 2u);
     const hz::RenderPrimitiveID survivor = scene.findPrimitive(b);
-    const uint32_t              survivingInstance = scene.getInstanceIndices().pData[scene.getPrimitive(survivor)->instanceOffset];
-    EXPECT_EQ(scene.getInstances().pData[survivingInstance].primitive, survivor);
+    const uint32_t              survivingInstance = scene.getInstanceIndices().Data[scene.getPrimitive(survivor)->instanceOffset];
+    EXPECT_EQ(scene.getInstances().Data[survivingInstance].primitive, survivor);
     const hz::Entity replacement = world.createPersistentEntity(identity);
     ASSERT_TRUE(world.setComponent(replacement, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     const hz::RenderPrimitiveID reused = scene.findPrimitive(replacement);
     EXPECT_EQ(reused.index, primitive.index);
     EXPECT_NE(reused.generation, primitive.generation);
-    EXPECT_EQ(scene.getActiveMeshBatches().count, 4u);
+    EXPECT_EQ(scene.getActiveMeshBatches().Count, 4u);
     for (hz::RenderMeshBatchID old : meshBatchIDs)
     {
         EXPECT_EQ(scene.getMeshBatch(old), nullptr);
-        EXPECT_NE(scene.getMeshBatches().pData[old.index].id.generation, old.generation);
+        EXPECT_NE(scene.getMeshBatches().Data[old.index].id.generation, old.generation);
     }
 }
 
@@ -2104,7 +2104,7 @@ struct GpuSceneCopy
     hz::GPUBuffer hz::GpuSceneBuffers::* table = nullptr;
     uint64_t                             srcOffset = 0;
     uint64_t                             dstOffset = 0;
-    uint64_t                             size = 0;
+    uint64_t                             Size = 0;
 };
 
 // Uploads one GpuScene frame, copies table bytes into the readback buffer and waits for the GPU.
@@ -2114,7 +2114,7 @@ static void renderGpuSceneFrame(hz::RenderContext& context, hz::GpuScene& gpu, c
     hz::CommandList& commands = context.acquireCommandList();
     gpu.upload(commands);
     for (const GpuSceneCopy& copy : copies)
-        commands.copyBuffer(readback, copy.dstOffset, gpu.getBuffers().*copy.table, copy.srcOffset, copy.size);
+        commands.copyBuffer(readback, copy.dstOffset, gpu.getBuffers().*copy.table, copy.srcOffset, copy.Size);
     const hz::SubmitHandle submission = context.submit(commands);
     gpu.endFrame(submission);
     context.wait(submission);
@@ -2140,7 +2140,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     hz::World              world(types);
     hz::RenderScene        scene(world, assetManager);
     const hz::Entity       a = world.createEntity(), b = world.createEntity();
-    const hz::MeshRenderer renderer = { .mesh = assets.getMeshes().pData[0].id };
+    const hz::MeshRenderer renderer = { .mesh = assets.getMeshes().Data[0].id };
     hz::LocalTransform     transform = { .translation = Vector3(1, 0, 0) };
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
@@ -2151,17 +2151,17 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     scene.update();
     const hz::RenderPrimitiveID primitive = scene.findPrimitive(a);
     const hz::GpuMeshID         meshID = scene.getPrimitive(primitive)->mesh;
-    const uint32_t              instanceIndex = scene.getInstanceIndices().pData[scene.getPrimitive(primitive)->instanceOffset];
+    const uint32_t              instanceIndex = scene.getInstanceIndices().Data[scene.getPrimitive(primitive)->instanceOffset];
     hz::RenderMeshBatchID       meshBatchID;
     for (uint32_t index : scene.getActiveMeshBatches())
-        if (scene.getMeshBatches().pData[index].primitive == primitive)
-            meshBatchID = scene.getMeshBatches().pData[index].id;
+        if (scene.getMeshBatches().Data[index].primitive == primitive)
+            meshBatchID = scene.getMeshBatches().Data[index].id;
     ASSERT_TRUE(meshBatchID.isValid());
     const hz::GpuMaterialID materialID = scene.getMeshBatch(meshBatchID)->material;
-    const uint32_t textureSrv = assetManager.getTexture(assetManager.find(assets.getTextures().pData[0].id))->getTexture().getSrvIndex();
+    const uint32_t textureSrv = assetManager.getTexture(assetManager.find(assets.getTextures().Data[0].id))->getTexture().getSrvIndex();
 
     hz::GpuScene              gpu(scene, assetManager, context);
-    hz::GPUBuffer             readback = context.createBuffer({ .size = 1024,
+    hz::GPUBuffer             readback = context.createBuffer({ .Size = 1024,
                                                                 .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                                 .startState = RESOURCE_STATE_COPY_DEST,
                                                                 .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -2170,21 +2170,21 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     const hz::GpuMeshData&    copiedMesh = *(const hz::GpuMeshData*)(pBytes + 256);
     const GpuSceneCopy        instanceCopy = { .table = &hz::GpuSceneBuffers::instances,
                                                .srcOffset = sizeof(hz::RenderInstance) * instanceIndex,
-                                               .size = sizeof(hz::RenderInstance) };
+                                               .Size = sizeof(hz::RenderInstance) };
     const GpuSceneCopy        meshCopy = { .table = &hz::GpuSceneBuffers::meshes,
                                            .srcOffset = sizeof(hz::GpuMeshData) * meshID.index,
                                            .dstOffset = 256,
-                                           .size = sizeof(hz::GpuMeshData) };
+                                           .Size = sizeof(hz::GpuMeshData) };
     const GpuSceneCopy        firstCopies[] = {
         instanceCopy,
         meshCopy,
         { .table = &hz::GpuSceneBuffers::materials,
                  .srcOffset = sizeof(hz::GpuMaterialData) * materialID.index,
                  .dstOffset = 512,
-                 .size = sizeof(hz::GpuMaterialData) },
+                 .Size = sizeof(hz::GpuMaterialData) },
     };
     renderGpuSceneFrame(context, gpu, readback, firstCopies);
-    EXPECT_EQ(copiedInstance.id, scene.getInstances().pData[instanceIndex].id);
+    EXPECT_EQ(copiedInstance.id, scene.getInstances().Data[instanceIndex].id);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 1);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 1);
     EXPECT_EQ(copiedMesh.id, meshID);
@@ -2196,8 +2196,8 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     EXPECT_FLOAT_EQ(copiedMaterial.roughnessFactor, 0.8f);
     EXPECT_EQ(copiedMaterial.baseColorTexture, textureSrv);
     const hz::RenderSceneUploads acknowledged = scene.getPendingUploads();
-    EXPECT_EQ(acknowledged.primitives.count + acknowledged.instances.count + acknowledged.meshBatches.count +
-                  acknowledged.instanceIndices.count,
+    EXPECT_EQ(acknowledged.primitives.Count + acknowledged.instances.Count + acknowledged.meshBatches.Count +
+                  acknowledged.instanceIndices.Count,
               0u);
     EXPECT_FALSE(acknowledged.activePrimitives || acknowledged.activeInstances || acknowledged.activeMeshBatches);
 
@@ -2207,9 +2207,9 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     const GpuSceneCopy movedCopies[] = {
         instanceCopy,
         { .table = &hz::GpuSceneBuffers::textures,
-          .srcOffset = sizeof(hz::GpuTextureData) * assetManager.find(assets.getTextures().pData[0].id).index,
+          .srcOffset = sizeof(hz::GpuTextureData) * assetManager.find(assets.getTextures().Data[0].id).index,
           .dstOffset = 768,
-          .size = sizeof(hz::GpuTextureData) },
+          .Size = sizeof(hz::GpuTextureData) },
     };
     renderGpuSceneFrame(context, gpu, readback, movedCopies);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 2);
@@ -2269,14 +2269,14 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     // Removal frees the slots; re-adding reuses them with new generations and fresh history.
     ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
     const GpuSceneCopy activeCopies[] = {
-        { .table = &hz::GpuSceneBuffers::activePrimitives, .size = sizeof(uint32_t) },
+        { .table = &hz::GpuSceneBuffers::activePrimitives, .Size = sizeof(uint32_t) },
         { .table = &hz::GpuSceneBuffers::instanceIndices,
           .srcOffset = sizeof(uint32_t) * primitive.index,
           .dstOffset = sizeof(uint32_t),
-          .size = sizeof(uint32_t) },
+          .Size = sizeof(uint32_t) },
     };
     renderGpuSceneFrame(context, gpu, readback, activeCopies);
-    EXPECT_EQ(scene.getActivePrimitives().count, 1u);
+    EXPECT_EQ(scene.getActivePrimitives().Count, 1u);
     EXPECT_EQ(((const uint32_t*)pBytes)[0], scene.findPrimitive(b).index);
     EXPECT_EQ(((const uint32_t*)pBytes)[1], UINT32_MAX);
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
@@ -2284,8 +2284,8 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     const hz::RenderPrimitiveID reused = scene.findPrimitive(a);
     EXPECT_EQ(reused.index, primitive.index);
     EXPECT_NE(reused.generation, primitive.generation);
-    ASSERT_EQ(scene.getInstanceIndices().pData[reused.index], instanceIndex);
-    EXPECT_EQ(copiedInstance.id, scene.getInstances().pData[instanceIndex].id);
+    ASSERT_EQ(scene.getInstanceIndices().Data[reused.index], instanceIndex);
+    EXPECT_EQ(copiedInstance.id, scene.getInstances().Data[instanceIndex].id);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 300);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 300);
 
@@ -2293,7 +2293,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
     ASSERT_TRUE(world.removeComponent(b, hz::SceneTypes::meshRenderer));
     renderGpuSceneFrame(context, gpu, readback, { &meshCopy, 1 });
-    EXPECT_EQ(scene.getActivePrimitives().count, 0u);
+    EXPECT_EQ(scene.getActivePrimitives().Count, 0u);
     EXPECT_FALSE(copiedMesh.id.isValid());
     assetManager.update();
     EXPECT_EQ(assetManager.getCount(), 0u);
@@ -2306,7 +2306,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     renderGpuSceneFrame(context, gpu, readback, { &meshCopy, 1 });
     EXPECT_NE(scene.getPrimitive(scene.findPrimitive(a))->mesh, meshID);
     EXPECT_NE(copiedMesh.id, meshID);
-    EXPECT_EQ(scene.getActiveMeshBatches().count, 1u);
+    EXPECT_EQ(scene.getActiveMeshBatches().Count, 1u);
 }
 
 TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissionTextures)
@@ -2327,10 +2327,10 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     hz::World              world(types);
     hz::RenderScene        scene(world, assetManager);
     const hz::Entity       entity = world.createEntity();
-    hz::Light              light = { .type = hz::LightType::Mesh, .intensity = 4, .texture = assets.getTextures().pData[0].id };
+    hz::Light              light = { .type = hz::LightType::Mesh, .intensity = 4, .texture = assets.getTextures().Data[0].id };
     hz::Camera             lens = { .verticalFov = 0.8f };
     hz::LocalTransform     transform = { .translation = Vector3(1, 0, 0) };
-    const hz::MeshRenderer renderer = { .mesh = assets.getMeshes().pData[0].id };
+    const hz::MeshRenderer renderer = { .mesh = assets.getMeshes().Data[0].id };
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::light, &light));
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &lens));
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
@@ -2352,7 +2352,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
 
     hz::GpuScene gpu(scene, assetManager, context);
     gpu.Reserve(1, 1, 1, 1);
-    hz::GPUBuffer           readback = context.createBuffer({ .size = 1024,
+    hz::GPUBuffer           readback = context.createBuffer({ .Size = 1024,
                                                               .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                               .startState = RESOURCE_STATE_COPY_DEST,
                                                               .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -2364,13 +2364,13 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     const GpuSceneCopy copies[] = {
         { .table = &hz::GpuSceneBuffers::cameras,
           .srcOffset = sizeof(hz::RenderCamera) * cameraID.index,
-          .size = sizeof(hz::RenderCamera) },
+          .Size = sizeof(hz::RenderCamera) },
         { .table = &hz::GpuSceneBuffers::lights,
           .srcOffset = sizeof(hz::RenderLight) * lightID.index,
           .dstOffset = 512,
-          .size = sizeof(hz::RenderLight) },
-        { .table = &hz::GpuSceneBuffers::activeLights, .dstOffset = 1000, .size = sizeof(uint32_t) },
-        { .table = &hz::GpuSceneBuffers::activeCameras, .dstOffset = 1004, .size = sizeof(uint32_t) },
+          .Size = sizeof(hz::RenderLight) },
+        { .table = &hz::GpuSceneBuffers::activeLights, .dstOffset = 1000, .Size = sizeof(uint32_t) },
+        { .table = &hz::GpuSceneBuffers::activeCameras, .dstOffset = 1004, .Size = sizeof(uint32_t) },
     };
     renderGpuSceneFrame(context, gpu, readback, copies);
     EXPECT_EQ(copiedCamera.id, cameraID);
@@ -2449,10 +2449,10 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     const GpuSceneCopy textureCopy = { .table = &hz::GpuSceneBuffers::textures,
                                        .srcOffset = sizeof(hz::GpuTextureData) * textureID.index,
                                        .dstOffset = 768,
-                                       .size = sizeof(hz::GpuTextureData) };
+                                       .Size = sizeof(hz::GpuTextureData) };
     renderGpuSceneFrame(context, gpu, readback, { &textureCopy, 1 });
-    EXPECT_EQ(scene.getActiveLights().count, 0u);
-    EXPECT_EQ(scene.getActiveCameras().count, 0u);
+    EXPECT_EQ(scene.getActiveLights().Count, 0u);
+    EXPECT_EQ(scene.getActiveCameras().Count, 0u);
     EXPECT_FALSE(((const hz::GpuTextureData*)(pBytes + 768))->id.isValid());
     assetManager.update();
     EXPECT_EQ(assetManager.getCount(), 0u);
@@ -2499,7 +2499,7 @@ TEST_F(AssetManagerTest, GpuSceneUploadsSparseChangesForOneHundredThousandEntiti
     }
     hz::GpuScene gpu(scene, assetManager, context);
     gpu.Reserve(kEntityCount, kEntityCount);
-    hz::GPUBuffer             readback = context.createBuffer({ .size = sizeof(hz::RenderInstance),
+    hz::GPUBuffer             readback = context.createBuffer({ .Size = sizeof(hz::RenderInstance),
                                                                 .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                                 .startState = RESOURCE_STATE_COPY_DEST,
                                                                 .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -2521,13 +2521,13 @@ TEST_F(AssetManagerTest, GpuSceneUploadsSparseChangesForOneHundredThousandEntiti
         const uint32_t     instance = scene.findPrimitive(entities[frame]).index;
         const GpuSceneCopy copy = { .table = &hz::GpuSceneBuffers::instances,
                                     .srcOffset = sizeof(hz::RenderInstance) * instance,
-                                    .size = sizeof(hz::RenderInstance) };
+                                    .Size = sizeof(hz::RenderInstance) };
         const int64_t      start = GetUSec(true);
         renderGpuSceneFrame(context, gpu, readback, { &copy, 1 });
         sparseUSec += GetUSec(true) - start;
-        ASSERT_EQ(scene.getInstances().pData[instance].primitive, scene.findPrimitive(entities[frame]));
+        ASSERT_EQ(scene.getInstances().Data[instance].primitive, scene.findPrimitive(entities[frame]));
         EXPECT_FLOAT_EQ((float)copied.current.getElem(3, 1), (float)frame + 1);
-        EXPECT_EQ(scene.getChanges().instances.ranges.count, kEntityCount / kStride);
+        EXPECT_EQ(scene.getChanges().instances.ranges.Count, kEntityCount / kStride);
     }
     // Telemetry only; timings vary across machines.
     printf("GpuScene %u entities: full upload frame %.2f ms, 1%% sparse frame %.2f ms\n", kEntityCount, fullUSec / 1000.0,
@@ -2562,12 +2562,12 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
             hz::Entity* first;
             hz::Entity* second;
             hz::AssetID mesh;
-        } nodes = { &first, &second, assets.getMeshes().pData[0].id };
+        } nodes = { &first, &second, assets.getMeshes().Data[0].id };
         query.each(
             [](hz::Entity entity, hz::Span<const void*> fields, void* user)
             {
                 Nodes& nodes = *(Nodes*)user;
-                *(((const hz::MeshRenderer*)fields.pData[0])->mesh == nodes.mesh ? nodes.first : nodes.second) = entity;
+                *(((const hz::MeshRenderer*)fields.Data[0])->mesh == nodes.mesh ? nodes.first : nodes.second) = entity;
                 return true;
             },
             &nodes);
@@ -2579,9 +2579,9 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     ASSERT_TRUE(world->setParent(first, second, false));
     const hz::Name name = { "Edited" };
     ASSERT_TRUE(world->setComponent(first, hz::SceneTypes::name, &name));
-    hz::MeshRenderer renderer = { .mesh = assets.getMeshes().pData[0].id };
+    hz::MeshRenderer renderer = { .mesh = assets.getMeshes().Data[0].id };
     renderer.overrides.PushBack(
-        { .submesh = assets.getMeshes().pData[0].submeshes.pData[0].id, .material = assets.getMaterials().pData[0].id });
+        { .submesh = assets.getMeshes().Data[0].submeshes.Data[0].id, .material = assets.getMaterials().Data[0].id });
     ASSERT_TRUE(world->setComponent(first, hz::SceneTypes::meshRenderer, &renderer));
     const hz::Guid   rootID = world->getEntityGuid(root), firstID = world->getEntityGuid(first), secondID = world->getEntityGuid(second);
     hz::WorldArchive saved;
@@ -2591,10 +2591,10 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     ASSERT_TRUE(saved.serialize(original));
     hz::UniquePtr<hz::RenderScene> scene = hz::MakeUnique<hz::RenderScene>(*world, assetManager);
     scene->update();
-    ASSERT_EQ(scene->getActiveMeshBatches().count, 2u);
+    ASSERT_EQ(scene->getActiveMeshBatches().Count, 2u);
     ASSERT_TRUE(assetManager.release(source));
     hz::UniquePtr<hz::GpuScene> gpu = hz::MakeUnique<hz::GpuScene>(*scene, assetManager, context);
-    hz::GPUBuffer                readback = context.createBuffer({ .size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData) + 36,
+    hz::GPUBuffer                readback = context.createBuffer({ .Size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData) + 36,
                                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                                    .startState = RESOURCE_STATE_COPY_DEST,
                                                                    .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -2608,19 +2608,19 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         EXPECT_STREQ(((const hz::Name*)world->getComponent(entity, hz::SceneTypes::name))->value, "Edited");
         const hz::MeshRenderer* meshRenderer = (const hz::MeshRenderer*)world->getComponent(entity, hz::SceneTypes::meshRenderer);
         ASSERT_NE(meshRenderer, nullptr);
-        ASSERT_EQ(meshRenderer->overrides.size(), 1u);
+        ASSERT_EQ(meshRenderer->overrides.Size(), 1u);
         EXPECT_EQ(meshRenderer->mesh, renderer.mesh);
         EXPECT_EQ(meshRenderer->overrides[0].submesh, renderer.overrides[0].submesh);
         EXPECT_EQ(meshRenderer->overrides[0].material, renderer.overrides[0].material);
         ASSERT_TRUE(gpu->beginFrame());
-        ASSERT_EQ(scene->getActiveMeshBatches().count, 2u);
+        ASSERT_EQ(scene->getActiveMeshBatches().Count, 2u);
         const hz::RenderPrimitiveID primitiveID = scene->findPrimitive(entity);
         const hz::RenderPrimitive&  primitive = *scene->getPrimitive(primitiveID);
-        const uint32_t              instance = scene->getInstanceIndices().pData[primitive.instanceOffset];
+        const uint32_t              instance = scene->getInstanceIndices().Data[primitive.instanceOffset];
         const hz::RenderMeshBatch*  meshBatch = nullptr;
         for (uint32_t index : scene->getActiveMeshBatches())
-            if (scene->getMeshBatches().pData[index].primitive == primitiveID)
-                meshBatch = &scene->getMeshBatches().pData[index];
+            if (scene->getMeshBatches().Data[index].primitive == primitiveID)
+                meshBatch = &scene->getMeshBatches().Data[index];
         ASSERT_NE(meshBatch, nullptr);
         EXPECT_EQ(meshBatch->submesh, renderer.overrides[0].submesh);
         const hz::GpuMaterialData* material = gpu->getAssetTables().getMaterial(meshBatch->material);
@@ -2664,15 +2664,15 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         ASSERT_TRUE(loaded.capture(*world));
         hz::Array<char> restored;
         ASSERT_TRUE(loaded.serialize(restored));
-        ASSERT_EQ(restored.size(), original.size());
-        EXPECT_EQ(memcmp(restored.data(), original.data(), original.size()), 0);
+        ASSERT_EQ(restored.Size(), original.Size());
+        EXPECT_EQ(memcmp(restored.GetData(), original.GetData(), original.Size()), 0);
         scene = hz::MakeUnique<hz::RenderScene>(*world, assetManager);
         scene->update();
         const hz::AssetHandle reloadedMesh = assetManager.find(renderer.mesh);
         ASSERT_TRUE(reloadedMesh.isValid());
         EXPECT_NE(reloadedMesh, oldMesh);
         wait(assetManager, reloadedMesh);
-        wait(assetManager, assetManager.find(assets.getMeshes().pData[1].id));
+        wait(assetManager, assetManager.find(assets.getMeshes().Data[1].id));
         scene->update();
         gpu = hz::MakeUnique<hz::GpuScene>(*scene, assetManager, context);
     }
@@ -2692,15 +2692,15 @@ TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancels
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
 
     // Every prefix must fail without leaking partially decoded blocks or publishing GPU buffers.
-    const uintmax_t size = std::filesystem::file_size(directory / "scene.bin");
-    const uintmax_t prefixes[] = { 0, 10, 14, 14 + sizeof(Geometry), size - 1 };
+    const uintmax_t Size = std::filesystem::file_size(directory / "scene.bin");
+    const uintmax_t prefixes[] = { 0, 10, 14, 14 + sizeof(Geometry), Size - 1 };
     for (uintmax_t prefix : prefixes)
     {
         writeGeometry();
         std::filesystem::resize_file(directory / "scene.bin", prefix);
         hz::AssetManager assetManager(catalog);
         loaders.registerLoaders(assetManager);
-        const hz::AssetHandle mesh = assetManager.request(scene.getMeshes().pData[0].id);
+        const hz::AssetHandle mesh = assetManager.request(scene.getMeshes().Data[0].id);
         wait(assetManager, mesh);
         EXPECT_EQ(assetManager.getError(mesh), hz::AssetError::UploadFailed) << prefix;
         EXPECT_EQ(assetManager.getMesh(mesh), nullptr);
@@ -2709,7 +2709,7 @@ TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancels
     {
         hz::AssetManager assetManager(catalog);
         loaders.registerLoaders(assetManager);
-        const hz::AssetHandle mesh = assetManager.request(scene.getMeshes().pData[0].id);
+        const hz::AssetHandle mesh = assetManager.request(scene.getMeshes().Data[0].id);
         wait(assetManager, mesh);
         EXPECT_EQ(assetManager.getError(mesh), hz::AssetError::UploadFailed);
         EXPECT_EQ(assetManager.getMesh(mesh), nullptr);
@@ -2718,12 +2718,12 @@ TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancels
     {
         hz::AssetManager assetManager(catalog);
         loaders.registerLoaders(assetManager);
-        const hz::AssetHandle mesh = assetManager.request(scene.getMeshes().pData[0].id);
+        const hz::AssetHandle mesh = assetManager.request(scene.getMeshes().Data[0].id);
         wait(assetManager, mesh);
         EXPECT_EQ(assetManager.getError(mesh), hz::AssetError::UploadFailed);
     }
     writeGeometry();
-    hz::AssetCatalogEntry wrong = *catalog.find(scene.getMeshes().pData[0].id);
+    hz::AssetCatalogEntry wrong = *catalog.find(scene.getMeshes().Data[0].id);
     wrong.location.elementIndex = 1;
     ASSERT_TRUE(catalog.replace(wrong));
     {
@@ -2774,7 +2774,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = RD_OTHER_FILES });
     hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
-    const hz::AssetHandle handle = assetManager.request(asset.getMeshes().pData[0].id);
+    const hz::AssetHandle handle = assetManager.request(asset.getMeshes().Data[0].id);
     wait(assetManager, handle);
     ASSERT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
     const hz::MeshAsset* mesh = assetManager.getMesh(handle);
@@ -2814,13 +2814,13 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     materials[0].metallicFactor = materials[1].metallicFactor = 0;
     const float    positions[] = { -0.3f, -0.5f, 0.5f, 0.3f, -0.5f, 0.5f, 0, 0.5f, 0.5f };
     const uint32_t normals[] = { 0x80008000, 0x80008000, 0x80008000 }, uvs[] = { 0, 0, 0 };
-    const auto     input = [&](const void* data, uint32_t size, uint32_t stride = 0)
+    const auto     input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .size = size,
-                                      .elementCount = stride ? size / stride : size / 4,
+        return context.createBuffer({ .Size = Size,
+                                      .elementCount = stride ? Size / stride : Size / 4,
                                       .structStride = stride,
                                       .pInitialData = data,
-                                      .initialDataSize = size,
+                                      .initialDataSize = Size,
                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                       .startState = RESOURCE_STATE_SHADER_RESOURCE,
                                       .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
@@ -2857,7 +2857,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     };
     static_assert(sizeof(DrawCommand) == 20);
     const DrawCommand arguments[] = { { 0, 3, 1, 0, 0 }, { 1, 3, 1, 0, 0 } };
-    hz::GPUBuffer     indirect = context.createBuffer({ .size = sizeof(arguments),
+    hz::GPUBuffer     indirect = context.createBuffer({ .Size = sizeof(arguments),
                                                         .pInitialData = arguments,
                                                         .initialDataSize = sizeof(arguments),
                                                         .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
@@ -2887,13 +2887,13 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
         { .shaderDesc = {
               .stages = {
                   { .stage = SHADER_STAGE_COMP, .pSource = readPixel, .sourceSize = sizeof(readPixel) - 1, .pEntryPoint = "CSMain" } } } });
-    hz::GPUBuffer    output = context.createBuffer({ .size = 32,
+    hz::GPUBuffer    output = context.createBuffer({ .Size = 32,
                                                      .elementCount = 2,
                                                      .structStride = 16,
                                                      .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                      .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                      .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
-    hz::GPUBuffer    readback = context.createBuffer({ .size = 32,
+    hz::GPUBuffer    readback = context.createBuffer({ .Size = 32,
                                                        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                        .startState = RESOURCE_STATE_COPY_DEST,
                                                        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -2986,14 +2986,14 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
     ASSERT_TRUE(increment.isValid());
     const float                             positions[] = { -1, -1, 0, 1, -1, 0, 0, 1, 0 };
     const uint32_t                          indices[] = { 0, 1, 2 };
-    hz::GPUBuffer                           vertices = context.createBuffer({ .size = sizeof(positions),
+    hz::GPUBuffer                           vertices = context.createBuffer({ .Size = sizeof(positions),
                                                                               .elementCount = 9,
                                                                               .pInitialData = positions,
                                                                               .initialDataSize = sizeof(positions),
                                                                               .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                                                               .startState = RESOURCE_STATE_SHADER_RESOURCE,
                                                                               .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
-    hz::GPUBuffer                           indexBuffer = context.createBuffer({ .size = sizeof(indices),
+    hz::GPUBuffer                           indexBuffer = context.createBuffer({ .Size = sizeof(indices),
                                                                                  .elementCount = 3,
                                                                                  .pInitialData = indices,
                                                                                  .initialDataSize = sizeof(indices),
@@ -3016,13 +3016,13 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
                                               .instanceCount = 1 });
     ASSERT_TRUE(top.isValid());
     ASSERT_EQ(top.getInstanceCount(), 1u);
-    hz::GPUBuffer output = context.createBuffer({ .size = 8,
+    hz::GPUBuffer output = context.createBuffer({ .Size = 8,
                                                   .elementCount = 2,
                                                   .structStride = 4,
                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                   .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
-    hz::GPUBuffer readback = context.createBuffer({ .size = 40,
+    hz::GPUBuffer readback = context.createBuffer({ .Size = 40,
                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                     .startState = RESOURCE_STATE_COPY_DEST,
                                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -3041,11 +3041,11 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
         {
             for (UINT64 i = 0; i < info->GetNumStoredMessagesAllowedByRetrievalFilter(); ++i)
             {
-                SIZE_T size = 0;
-                info->GetMessage(i, nullptr, &size);
-                std::vector<uint8_t> bytes(size);
+                SIZE_T Size = 0;
+                info->GetMessage(i, nullptr, &Size);
+                std::vector<uint8_t> bytes(Size);
                 D3D12_MESSAGE*       message = (D3D12_MESSAGE*)bytes.data();
-                info->GetMessage(i, message, &size);
+                info->GetMessage(i, message, &Size);
                 if (message->Severity <= D3D12_MESSAGE_SEVERITY_ERROR)
                 {
                     ADD_FAILURE() << phase << ": " << message->pDescription;
@@ -3178,13 +3178,13 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
     ASSERT_TRUE(reflection.isValid() && reader.isValid());
-    const auto input = [&](const void* data, uint32_t size, uint32_t stride = 0)
+    const auto input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .size = size,
-                                      .elementCount = stride ? size / stride : size / 4,
+        return context.createBuffer({ .Size = Size,
+                                      .elementCount = stride ? Size / stride : Size / 4,
                                       .structStride = stride,
                                       .pInitialData = data,
-                                      .initialDataSize = size,
+                                      .initialDataSize = Size,
                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                       .startState = RESOURCE_STATE_SHADER_RESOURCE,
                                       .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW,
@@ -3277,13 +3277,13 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     hz::GPUAccelerationStructure maskedOnly =
         context.createAccelerationStructure({ .type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { maskedInstances, 1 } });
     ASSERT_TRUE(opaque.isValid() && masked.isValid() && opaqueTop.isValid() && maskedTop.isValid() && maskedOnly.isValid());
-    hz::GPUBuffer output = context.createBuffer({ .size = 16,
+    hz::GPUBuffer output = context.createBuffer({ .Size = 16,
                                                   .elementCount = 1,
                                                   .structStride = 16,
                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                   .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
-    hz::GPUBuffer readback = context.createBuffer({ .size = 16,
+    hz::GPUBuffer readback = context.createBuffer({ .Size = 16,
                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                     .startState = RESOURCE_STATE_COPY_DEST,
                                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -3412,11 +3412,11 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     {
         for (UINT64 i = 0; i < info->GetNumStoredMessagesAllowedByRetrievalFilter(); ++i)
         {
-            SIZE_T size = 0;
-            info->GetMessage(i, nullptr, &size);
-            std::vector<uint8_t> bytes(size);
+            SIZE_T Size = 0;
+            info->GetMessage(i, nullptr, &Size);
+            std::vector<uint8_t> bytes(Size);
             D3D12_MESSAGE*       message = (D3D12_MESSAGE*)bytes.data();
-            info->GetMessage(i, message, &size);
+            info->GetMessage(i, message, &Size);
             EXPECT_GT(message->Severity, D3D12_MESSAGE_SEVERITY_ERROR) << message->pDescription;
         }
         info->Release();
@@ -3445,13 +3445,13 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
     ASSERT_TRUE(shadow.isValid() && reader.isValid());
-    const auto input = [&](const void* data, uint32_t size, uint32_t stride = 0)
+    const auto input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .size = size,
-                                      .elementCount = stride ? size / stride : size / 4,
+        return context.createBuffer({ .Size = Size,
+                                      .elementCount = stride ? Size / stride : Size / 4,
                                       .structStride = stride,
                                       .pInitialData = data,
-                                      .initialDataSize = size,
+                                      .initialDataSize = Size,
                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                       .startState = RESOURCE_STATE_SHADER_RESOURCE,
                                       .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
@@ -3524,13 +3524,13 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     hz::GPUAccelerationStructure maskedTop =
         context.createAccelerationStructure({ .type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { instances + 1, 1 } });
     ASSERT_TRUE(opaque.isValid() && masked.isValid() && opaqueTop.isValid() && maskedTop.isValid());
-    hz::GPUBuffer output = context.createBuffer({ .size = 16,
+    hz::GPUBuffer output = context.createBuffer({ .Size = 16,
                                                   .elementCount = 1,
                                                   .structStride = 16,
                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                   .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
-    hz::GPUBuffer readback = context.createBuffer({ .size = 16,
+    hz::GPUBuffer readback = context.createBuffer({ .Size = 16,
                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                     .startState = RESOURCE_STATE_COPY_DEST,
                                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -3612,7 +3612,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     const hz::RenderInstance identity;
     hz::GPUBuffer            instanceBuffer = input(&identity, sizeof(identity));
     const uint32_t           arguments[2][5] = { { 5, 3, 1, 0, 0 }, { 6, 3, 1, 0, 0 } };
-    hz::GPUBuffer            indirect = context.createBuffer({ .size = sizeof(arguments),
+    hz::GPUBuffer            indirect = context.createBuffer({ .Size = sizeof(arguments),
                                                                .pInitialData = arguments,
                                                                .initialDataSize = sizeof(arguments),
                                                                .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
@@ -3689,13 +3689,13 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
     ASSERT_TRUE(gather.isValid() && Clear.isValid() && resolve.isValid() && reader.isValid());
-    const auto input = [&](const void* data, uint32_t size, uint32_t stride = 0)
+    const auto input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .size = size,
-                                      .elementCount = stride ? size / stride : size / 4,
+        return context.createBuffer({ .Size = Size,
+                                      .elementCount = stride ? Size / stride : Size / 4,
                                       .structStride = stride,
                                       .pInitialData = data,
-                                      .initialDataSize = size,
+                                      .initialDataSize = Size,
                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                       .startState = RESOURCE_STATE_SHADER_RESOURCE,
                                       .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
@@ -3738,28 +3738,28 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
     hz::GPUTexture depth = context.createTexture(
         { .width = 8, .height = 8, .format = hz::Format::D32_SFLOAT, .startState = RESOURCE_STATE_DEPTH_WRITE, .renderTarget = true });
     hz::GPUBuffer counters =
-        context.createBuffer({ .size = 16,
+        context.createBuffer({ .Size = 16,
                                .elementCount = 4,
                                .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) });
-    hz::GPUBuffer pixels = context.createBuffer({ .size = 64 * 16,
+    hz::GPUBuffer pixels = context.createBuffer({ .Size = 64 * 16,
                                                   .elementCount = 64,
                                                   .structStride = 16,
                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                   .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
-    hz::GPUBuffer readback = context.createBuffer({ .size = 64 * 16 + 16,
+    hz::GPUBuffer readback = context.createBuffer({ .Size = 64 * 16 + 16,
                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                     .startState = RESOURCE_STATE_COPY_DEST,
                                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     for (uint32_t scenario = 0; scenario < 4; ++scenario)
     {
         SCOPED_TRACE(scenario);
-        const uint32_t capacity = scenario == 3 ? 1 : 128;
+        const uint32_t Capacity = scenario == 3 ? 1 : 128;
         hz::GPUBuffer  nodes =
-            context.createBuffer({ .size = capacity * 16,
-                                   .elementCount = capacity * 4,
+            context.createBuffer({ .Size = Capacity * 16,
+                                   .elementCount = Capacity * 4,
                                    .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                    .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                    .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) });
@@ -3784,7 +3784,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         constants[12] = heads.getUavIndex();
         constants[13] = counters.getUavIndex();
         constants[14] = nodes.getUavIndex();
-        constants[15] = capacity;
+        constants[15] = Capacity;
         constants[16] = light.getSrvIndex();
         commands.setPipeline(Clear);
         commands.setRootConstant(constants);
@@ -3896,11 +3896,11 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
             if(id.x < w && id.y < h) output[id.xy] = float4(all(id.xy == uint2(peakX, 0)) ? peak : float3(0,0,0), 1);
         }
     )hlsl";
-    const auto helper = [&](const char* source, uint32_t size, const char* entry)
+    const auto helper = [&](const char* source, uint32_t Size, const char* entry)
     {
         return context.createComputePipeline(
             { .shaderDesc = {
-                  .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = size, .pEntryPoint = entry } } } });
+                  .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = Size, .pEntryPoint = entry } } } });
     };
 
     hz::GPUPipeline seedLogs = helper(seedSource, sizeof(seedSource) - 1, "CSLogGrid");
@@ -3926,13 +3926,13 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::GPUTexture       impulse = image(9, 9, rgba), blurred = image(9, 9, rgba);
     hz::GPUSampler       sampler = context.createSampler(
         { .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE, .addressW = ADDRESS_MODE_CLAMP_TO_EDGE });
-    hz::GPUBuffer  output = context.createBuffer({ .size = 256 * 16,
+    hz::GPUBuffer  output = context.createBuffer({ .Size = 256 * 16,
                                                    .elementCount = 256,
                                                    .structStride = 16,
                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                    .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                    .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
-    hz::GPUBuffer  readback = context.createBuffer({ .size = 256 * 16,
+    hz::GPUBuffer  readback = context.createBuffer({ .Size = 256 * 16,
                                                      .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                      .startState = RESOURCE_STATE_COPY_DEST,
                                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
@@ -3948,13 +3948,13 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     const PeakFrame   peakCamera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 2, 1) };
     LightingFrameData peakLight;
     peakLight.lightDirection = Vector4(0, 0, -1, 100000);
-    const auto upload = [&](const void* data, uint32_t size)
+    const auto upload = [&](const void* data, uint32_t Size)
     {
-        return context.createBuffer({ .size = size,
+        return context.createBuffer({ .Size = Size,
                                       .elementCount = 1,
-                                      .structStride = size,
+                                      .structStride = Size,
                                       .pInitialData = data,
-                                      .initialDataSize = size,
+                                      .initialDataSize = Size,
                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                       .startState = RESOURCE_STATE_SHADER_RESOURCE,
                                       .descriptors = DESCRIPTOR_TYPE_BUFFER });
@@ -4221,13 +4221,13 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
     ASSERT_TRUE(geometry.isValid() && reader.isValid());
-    const auto input = [&](const void* data, uint32_t size, uint32_t stride = 0)
+    const auto input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .size = size,
-                                      .elementCount = stride ? size / stride : size / 4,
+        return context.createBuffer({ .Size = Size,
+                                      .elementCount = stride ? Size / stride : Size / 4,
                                       .structStride = stride,
                                       .pInitialData = data,
-                                      .initialDataSize = size,
+                                      .initialDataSize = Size,
                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                       .startState = RESOURCE_STATE_SHADER_RESOURCE,
                                       .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW,
@@ -4271,13 +4271,13 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     hz::GPUBuffer              vertices = input(positions, sizeof(positions)), normal = input(normals, sizeof(normals)),
                   uv = input(nearUV, sizeof(nearUV));
     hz::GPUSampler sampler = context.createSampler();
-    hz::GPUBuffer  output = context.createBuffer({ .size = 16 * 16,
+    hz::GPUBuffer  output = context.createBuffer({ .Size = 16 * 16,
                                                    .elementCount = 16,
                                                    .structStride = 16,
                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                                    .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                    .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
-    hz::GPUBuffer  readback = context.createBuffer({ .size = 2 * 16 * 16,
+    hz::GPUBuffer  readback = context.createBuffer({ .Size = 2 * 16 * 16,
                                                      .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                      .startState = RESOURCE_STATE_COPY_DEST,
                                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });

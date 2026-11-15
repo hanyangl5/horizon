@@ -168,7 +168,7 @@ private:
     // for each frame index
     tfrg_atomic32_t* batchCounts = NULL;
 
-    // Keeps track of the size of the last batch as it can be less than MAX_INSTANCES
+    // Keeps track of the Size of the last batch as it can be less than MAX_INSTANCES
     tfrg_atomic32_t* batchSize = NULL;
 
     // Determines if this renderer will need to draw bones between each joint

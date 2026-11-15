@@ -29,8 +29,8 @@ public:
     void sync(const MeshRenderer& renderer)
     {
         seen = true;
-        bool changed = !initialized || meshID != renderer.mesh || overrides.size() != renderer.overrides.size();
-        for (uint32_t i = 0; !changed && i < overrides.size(); ++i)
+        bool changed = !initialized || meshID != renderer.mesh || overrides.Size() != renderer.overrides.Size();
+        for (uint32_t i = 0; !changed && i < overrides.Size(); ++i)
             changed = overrides[i].submesh != renderer.overrides[i].submesh || overrides[i].material != renderer.overrides[i].material;
         if (!changed)
             return;
@@ -38,8 +38,8 @@ public:
         view.state = AssetBindingState::Pending;
         view.materials = {};
         needsResolve = true;
-        overrides.resize(renderer.overrides.size());
-        for (uint32_t i = 0; i < overrides.size(); ++i)
+        overrides.resize(renderer.overrides.Size());
+        for (uint32_t i = 0; i < overrides.Size(); ++i)
             overrides[i] = renderer.overrides[i];
         if (!initialized || meshID != renderer.mesh)
         {
@@ -153,20 +153,20 @@ private:
 
     bool resolve(const MeshAsset& mesh)
     {
-        Array<MaterialOverride> sorted({ overrides.data(), overrides.size() });
+        Array<MaterialOverride> sorted({ overrides.GetData(), overrides.Size() });
         if (!sorted.Empty())
-            qsort(sorted.data(), sorted.size(), sizeof(MaterialOverride), compareMaterialOverrides);
-        for (uint32_t i = 0; i < sorted.size(); ++i)
+            qsort(sorted.GetData(), sorted.Size(), sizeof(MaterialOverride), compareMaterialOverrides);
+        for (uint32_t i = 0; i < sorted.Size(); ++i)
             if (!sorted[i].submesh || !sorted[i].material.isValid() || (i && sorted[i - 1].submesh == sorted[i].submesh))
                 return false;
 
         Array<MaterialAssetBinding>   next;
         const Span<SceneAssetSubmesh> submeshes = mesh.getDescription().submeshes;
-        next.Reserve(submeshes.count);
+        next.Reserve(submeshes.Count);
         uint32_t matched = 0;
         for (const SceneAssetSubmesh& submesh : submeshes)
         {
-            uint32_t first = 0, end = sorted.size();
+            uint32_t first = 0, end = sorted.Size();
             while (first < end)
             {
                 const uint32_t middle = first + (end - first) / 2;
@@ -175,11 +175,11 @@ private:
                 else
                     end = middle;
             }
-            const bool overridden = first < sorted.size() && sorted[first].submesh == submesh.id;
+            const bool overridden = first < sorted.Size() && sorted[first].submesh == submesh.id;
             matched += overridden;
             next.PushBack({ .submesh = submesh.id, .asset = overridden ? sorted[first].material : submesh.material });
         }
-        if (matched != sorted.size())
+        if (matched != sorted.Size())
             return false;
         // Acquire replacements before releasing old leases, including handoffs between entities in this update.
         bool acquired = true;
@@ -187,7 +187,7 @@ private:
             acquired &= acquire(material.asset, material.handle);
         releaseMaterials();
         materials = std::move(next);
-        view.materials = { materials.data(), materials.size() };
+        view.materials = { materials.GetData(), materials.Size() };
         needsResolve = false;
         return acquired;
     }
@@ -235,14 +235,14 @@ public:
     {
         WorldAssetBindingsData&  data = *(WorldAssetBindingsData*)pUser;
         const WorldBindingIndex* pIndex = hmgetp_null(data.pIndices, entity);
-        const uint32_t           index = pIndex ? pIndex->value : data.bindings.size();
+        const uint32_t           index = pIndex ? pIndex->value : data.bindings.Size();
         if (!pIndex)
         {
             data.bindings.PushBack(MemNew(WorldMeshBinding, entity, data.assetManager, data.releases));
             const WorldBindingIndex entry = { .key = entity, .value = index };
             hmputs(data.pIndices, entry);
         }
-        data.bindings[index]->sync(*(const MeshRenderer*)fields.pData[0]);
+        data.bindings[index]->sync(*(const MeshRenderer*)fields.Data[0]);
         return true;
     }
 
@@ -255,7 +255,7 @@ public:
         for (WorldMeshBinding* pBinding : bindings)
             if (pBinding->seen)
                 pBinding->update();
-        for (uint32_t i = 0; i < bindings.size();)
+        for (uint32_t i = 0; i < bindings.Size();)
         {
             WorldMeshBinding* pBinding = bindings[i];
             if (pBinding->seen)
@@ -265,9 +265,9 @@ public:
             }
             hmdel(pIndices, pBinding->entity);
             MemDelete(pBinding);
-            bindings[i] = bindings[bindings.size() - 1];
+            bindings[i] = bindings[bindings.Size() - 1];
             bindings.PopBack();
-            if (i < bindings.size())
+            if (i < bindings.Size())
                 hmgetp_null(pIndices, bindings[i]->entity)->value = i;
         }
         for (AssetHandle handle : releases)
@@ -283,16 +283,16 @@ public:
     WorldBindingIndex*       pIndices = nullptr;
 };
 
-WorldAssetBindings::WorldAssetBindings(World& world, AssetManager& assetManager): pData(MemNew(WorldAssetBindingsData, world, assetManager))
+WorldAssetBindings::WorldAssetBindings(World& world, AssetManager& assetManager): Data(MemNew(WorldAssetBindingsData, world, assetManager))
 {
 }
-WorldAssetBindings::~WorldAssetBindings() { MemDelete(pData); }
-void                    WorldAssetBindings::update() { pData->update(); }
-void                    WorldAssetBindings::Clear() { pData->Clear(); }
-uint32_t                WorldAssetBindings::getCount() const { return pData->bindings.size(); }
+WorldAssetBindings::~WorldAssetBindings() { MemDelete(Data); }
+void                    WorldAssetBindings::update() { Data->update(); }
+void                    WorldAssetBindings::Clear() { Data->Clear(); }
+uint32_t                WorldAssetBindings::getCount() const { return Data->bindings.Size(); }
 const MeshAssetBinding* WorldAssetBindings::get(Entity entity) const
 {
-    const WorldBindingIndex* pIndex = hmgetp_null(pData->pIndices, entity);
-    return pIndex ? &pData->bindings[pIndex->value]->view : nullptr;
+    const WorldBindingIndex* pIndex = hmgetp_null(Data->pIndices, entity);
+    return pIndex ? &Data->bindings[pIndex->value]->view : nullptr;
 }
 } // namespace hz

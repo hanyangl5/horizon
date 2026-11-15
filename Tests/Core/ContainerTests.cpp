@@ -5,7 +5,7 @@
 static_assert(sizeof(hz::Array<int>) == sizeof(int*));
 static_assert(sizeof(hz::FixedArray<int, 3>) == sizeof(int) * 3);
 constexpr hz::FixedArray<int, 3> fixedValues{ .values = { 2, 4, 6 } };
-static_assert(fixedValues.size() == 3 && fixedValues[1] == 4);
+static_assert(fixedValues.Size() == 3 && fixedValues[1] == 4);
 
 class CoreContainerTest: public ::testing::Test
 {
@@ -35,24 +35,24 @@ TEST_F(CoreContainerTest, ArrayPreservesElementsAndAliasedValuesAcrossGrowth)
     EXPECT_TRUE(values.Empty());
     EXPECT_EQ(values.begin(), values.end());
     values.Reserve(0);
-    EXPECT_EQ(values.data(), nullptr);
+    EXPECT_EQ(values.GetData(), nullptr);
 
     values.Reserve(4);
-    const uint32_t capacity = values.capacity();
-    for (uint32_t i = 0; i < capacity; ++i)
+    const uint32_t Capacity = values.Capacity();
+    for (uint32_t i = 0; i < Capacity; ++i)
         values.PushBack(i + 10);
     values.PushBack(values[0]);
-    ASSERT_EQ(values.size(), capacity + 1);
-    EXPECT_GT(values.capacity(), capacity);
-    for (uint32_t i = 0; i < capacity; ++i)
+    ASSERT_EQ(values.Size(), Capacity + 1);
+    EXPECT_GT(values.Capacity(), Capacity);
+    for (uint32_t i = 0; i < Capacity; ++i)
         EXPECT_EQ(values[i], i + 10);
-    EXPECT_EQ(values[capacity], 10u);
+    EXPECT_EQ(values[Capacity], 10u);
 
-    values.resize(capacity + 4);
-    EXPECT_EQ(values[capacity + 1], 0u);
-    EXPECT_EQ(values[capacity + 3], 0u);
+    values.resize(Capacity + 4);
+    EXPECT_EQ(values[Capacity + 1], 0u);
+    EXPECT_EQ(values[Capacity + 3], 0u);
     values.PopBack();
-    EXPECT_EQ(values.size(), capacity + 3);
+    EXPECT_EQ(values.Size(), Capacity + 3);
     values.resize(1);
     values.resize(3);
     EXPECT_EQ(values[0], 10u);
@@ -64,11 +64,11 @@ TEST_F(CoreContainerTest, ArrayMovesStorageAndRetainsCapacityWhenCleared)
 {
     const int      source[] = { 3, 5, 7 };
     hz::Array<int> values{ hz::Span<int>(source) };
-    int* const     pData = values.data();
-    const uint32_t capacity = values.capacity();
+    int* const     Data = values.GetData();
+    const uint32_t Capacity = values.Capacity();
     hz::Array<int> moved(std::move(values));
-    EXPECT_EQ(moved.data(), pData);
-    EXPECT_EQ(values.data(), nullptr);
+    EXPECT_EQ(moved.GetData(), Data);
+    EXPECT_EQ(values.GetData(), nullptr);
     EXPECT_TRUE(values.Empty());
 
     hz::Array<int> destination(12);
@@ -84,18 +84,18 @@ TEST_F(CoreContainerTest, ArrayMovesStorageAndRetainsCapacityWhenCleared)
     copied[0] = 99;
     EXPECT_EQ(destination[0], 3);
     values = destination;
-    EXPECT_NE(values.data(), destination.data());
+    EXPECT_NE(values.GetData(), destination.GetData());
     EXPECT_EQ(values[2], 7);
     values.reset();
     destination.Clear();
-    EXPECT_EQ(destination.data(), pData);
-    EXPECT_EQ(destination.capacity(), capacity);
+    EXPECT_EQ(destination.GetData(), Data);
+    EXPECT_EQ(destination.Capacity(), Capacity);
     EXPECT_TRUE(destination.Empty());
     destination.PushBack(9);
     EXPECT_EQ(destination[0], 9);
     destination.reset();
-    EXPECT_EQ(destination.capacity(), 0u);
-    EXPECT_EQ(destination.data(), nullptr);
+    EXPECT_EQ(destination.Capacity(), 0u);
+    EXPECT_EQ(destination.GetData(), nullptr);
     values.PushBack(11);
     EXPECT_EQ(values[0], 11);
 }
@@ -123,8 +123,8 @@ TEST_F(CoreContainerTest, FixedArrayEmbedsObjectsWithoutAllocating)
     {
         hz::FixedArray<FixedArrayObject, 3> objects;
         EXPECT_EQ(FixedArrayObject::liveCount, 3);
-        EXPECT_EQ((uintptr_t)objects.data() % alignof(FixedArrayObject), 0u);
-        EXPECT_EQ((void*)objects.data(), (void*)&objects);
+        EXPECT_EQ((uintptr_t)objects.GetData() % alignof(FixedArrayObject), 0u);
+        EXPECT_EQ((void*)objects.GetData(), (void*)&objects);
         EXPECT_EQ(objects[2].value, 42);
         const MemoryTrackingStats after = GetMemoryTrackingStats();
         EXPECT_EQ(after.TotalAllocationCount, before.TotalAllocationCount);
@@ -141,7 +141,7 @@ TEST_F(CoreContainerTest, FixedArraySupportsZeroLengthAndValueCopies)
 {
     hz::FixedArray<NonDefaultConstructible, 0> Empty;
     EXPECT_TRUE(Empty.Empty());
-    EXPECT_EQ(Empty.data(), nullptr);
+    EXPECT_EQ(Empty.GetData(), nullptr);
     EXPECT_EQ(Empty.begin(), Empty.end());
     hz::FixedArray<int, 3> zeroed{};
     for (const int value : zeroed)
@@ -180,22 +180,22 @@ TEST_F(CoreContainerTest, ArrayRelocatesAndDestroysAlignedMoveOnlyObjects)
     EXPECT_EQ(MovableObject::liveCount, 0);
     hz::Array<MovableObject> objects;
     objects.Reserve(4);
-    const uint32_t capacity = objects.capacity();
-    for (uint32_t i = 0; i < capacity; ++i)
+    const uint32_t Capacity = objects.Capacity();
+    for (uint32_t i = 0; i < Capacity; ++i)
         objects.EmplaceBack((int)i + 10);
     objects.EmplaceBack(objects[0].value);
-    EXPECT_EQ(MovableObject::liveCount, (int)objects.size());
-    EXPECT_EQ(objects[capacity].value, 10);
-    for (uint32_t i = 0; i < capacity; ++i)
+    EXPECT_EQ(MovableObject::liveCount, (int)objects.Size());
+    EXPECT_EQ(objects[Capacity].value, 10);
+    for (uint32_t i = 0; i < Capacity; ++i)
         EXPECT_EQ(objects[i].value, (int)i + 10);
-    EXPECT_EQ((uintptr_t)objects.data() % alignof(MovableObject), 0u);
+    EXPECT_EQ((uintptr_t)objects.GetData() % alignof(MovableObject), 0u);
     objects.resize(2);
     EXPECT_EQ(MovableObject::liveCount, 2);
     objects.PopBack();
     EXPECT_EQ(MovableObject::liveCount, 1);
-    MovableObject* const     pData = objects.data();
+    MovableObject* const     Data = objects.GetData();
     hz::Array<MovableObject> moved(std::move(objects));
-    EXPECT_EQ(moved.data(), pData);
+    EXPECT_EQ(moved.GetData(), Data);
     EXPECT_TRUE(objects.Empty());
     moved.Clear();
     EXPECT_EQ(MovableObject::liveCount, 0);

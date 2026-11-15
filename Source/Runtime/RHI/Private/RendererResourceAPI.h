@@ -244,7 +244,7 @@ struct SubresourceDataDesc;
 //     ResourceState_2 mUsageBefore;
 //     ResourceState_2 mUsageAfter;
 //     uint64_t             offset;
-//     uint64_t             size;
+//     uint64_t             Size;
 //     BarrierFlags         flags = BARRIER_FLAG_NONE;
 // };
 
@@ -296,7 +296,7 @@ void FORGE_CALLCONV addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buff
 void FORGE_CALLCONV removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 void FORGE_CALLCONV mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 void FORGE_CALLCONV unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t Size);
 void FORGE_CALLCONV cmdCopyTexture(Cmd* pCmd, Texture* pDstTexture, Texture* pSrcTexture);
 void FORGE_CALLCONV cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc);
 void FORGE_CALLCONV cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const SubresourceDataDesc* pSubresourceDesc);

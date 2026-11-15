@@ -33,7 +33,7 @@ void addGPURingBuffer(Renderer* pRenderer, const BufferDesc* pBufferDesc, GPURin
 {
     *pRingBuffer = {};
     pRingBuffer->pRenderer = pRenderer;
-    pRingBuffer->maxBufferSize = pBufferDesc->size;
+    pRingBuffer->maxBufferSize = pBufferDesc->Size;
     pRingBuffer->bufferAlignment = sizeof(float[4]);
     BufferLoadDesc loadDesc = {};
     loadDesc.desc = *pBufferDesc;
@@ -62,7 +62,7 @@ void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBuffer
 
     if (ownMemory)
         ubDesc.flags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-    ubDesc.size = maxUniformBufferSize;
+    ubDesc.Size = maxUniformBufferSize;
     ubDesc.pName = "UniformGPURingBuffer";
     BufferLoadDesc loadDesc = {};
     loadDesc.desc = ubDesc;

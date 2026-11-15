@@ -209,17 +209,17 @@ void wndTakeScreenshot(void* pUserData)
 }
 #endif
 
-void platformInitWindowSystem(WindowDesc* pData)
+void platformInitWindowSystem(WindowDesc* Data)
 {
     ASSERT(pWindowRef == NULL);
 
-    RectDesc currentRes = pData->fullScreen ? pData->fullscreenRect : pData->windowedRect;
-    pData->wndX = currentRes.left;
-    pData->wndY = currentRes.top;
-    pData->wndW = currentRes.right - currentRes.left;
-    pData->wndH = currentRes.bottom - currentRes.top;
+    RectDesc currentRes = Data->fullScreen ? Data->fullscreenRect : Data->windowedRect;
+    Data->wndX = currentRes.left;
+    Data->wndY = currentRes.top;
+    Data->wndW = currentRes.right - currentRes.left;
+    Data->wndH = currentRes.bottom - currentRes.top;
 
-    pWindowRef = pData;
+    pWindowRef = Data;
 
 #if WINDOW_DETAILS
     pWindowRef->pWindowedRectLabel = bempty();
@@ -327,7 +327,7 @@ extern void wndSetRecommendedWindowSize(void* pUserData);
 extern void wndHideCursor();
 extern void wndShowCursor();
 extern void wndUpdateCaptureCursor(void* pUserData);
-extern void platformInitWindowSystem(WindowDesc* pData);
+extern void platformInitWindowSystem(WindowDesc* Data);
 extern void platformExitWindowSystem();
 extern void platformSetupWindowSystemUI(IApp* pApp)
 {
@@ -366,7 +366,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
 #if defined(_WINDOWS) || defined(__APPLE__) && !defined(TARGET_IOS) || (defined(__linux__) && !defined(__ANDROID__))
     RadioButtonWidget rbWindowed;
-    rbWindowed.pData = &pWindowRef->windowMode;
+    rbWindowed.Data = &pWindowRef->windowMode;
     rbWindowed.radioId = WM_WINDOWED;
     UIWidget* pWindowed = uiCreateComponentWidget(pWindowControlsComponent, "Windowed", &rbWindowed, WIDGET_TYPE_RADIO_BUTTON);
     uiSetWidgetOnEditedCallback(pWindowed, nullptr, wndSetWindowed);
@@ -374,7 +374,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
     (pWindowed);
 
     RadioButtonWidget rbFullscreen;
-    rbFullscreen.pData = &pWindowRef->windowMode;
+    rbFullscreen.Data = &pWindowRef->windowMode;
     rbFullscreen.radioId = WM_FULLSCREEN;
     UIWidget* pFullscreen = uiCreateComponentWidget(pWindowControlsComponent, "Fullscreen", &rbFullscreen, WIDGET_TYPE_RADIO_BUTTON);
     uiSetWidgetOnEditedCallback(pFullscreen, nullptr, wndSetFullscreen);
@@ -382,7 +382,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
     (pFullscreen);
 
     RadioButtonWidget rbBorderless;
-    rbBorderless.pData = &pWindowRef->windowMode;
+    rbBorderless.Data = &pWindowRef->windowMode;
     rbBorderless.radioId = WM_BORDERLESS;
     UIWidget* pBorderless = uiCreateComponentWidget(pWindowControlsComponent, "Borderless", &rbBorderless, WIDGET_TYPE_RADIO_BUTTON);
     uiSetWidgetOnEditedCallback(pBorderless, nullptr, wndSetBorderless);
@@ -402,7 +402,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
     (pMinimize);
 
     CheckboxWidget rbCentered;
-    rbCentered.pData = &(pWindowRef->centered);
+    rbCentered.Data = &(pWindowRef->centered);
     (uiCreateComponentWidget(pWindowControlsComponent, "Toggle Window Centered", &rbCentered, WIDGET_TYPE_CHECKBOX));
 
     RectDesc recRes;
@@ -412,25 +412,25 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
     uint32_t recHeight = recRes.bottom - recRes.top;
 
     SliderIntWidget setRectSliderX;
-    setRectSliderX.pData = &pWindowRef->wndX;
+    setRectSliderX.Data = &pWindowRef->wndX;
     setRectSliderX.min = 0;
     setRectSliderX.max = recWidth;
     (uiCreateComponentWidget(pWindowControlsComponent, "Window X Offset", &setRectSliderX, WIDGET_TYPE_SLIDER_INT));
 
     SliderIntWidget setRectSliderY;
-    setRectSliderY.pData = &pWindowRef->wndY;
+    setRectSliderY.Data = &pWindowRef->wndY;
     setRectSliderY.min = 0;
     setRectSliderY.max = recHeight;
     (uiCreateComponentWidget(pWindowControlsComponent, "Window Y Offset", &setRectSliderY, WIDGET_TYPE_SLIDER_INT));
 
     SliderIntWidget setRectSliderW;
-    setRectSliderW.pData = &pWindowRef->wndW;
+    setRectSliderW.Data = &pWindowRef->wndW;
     setRectSliderW.min = 144;
     setRectSliderW.max = getRectWidth(&pWindowRef->fullscreenRect);
     (uiCreateComponentWidget(pWindowControlsComponent, "Window Width", &setRectSliderW, WIDGET_TYPE_SLIDER_INT));
 
     SliderIntWidget setRectSliderH;
-    setRectSliderH.pData = &pWindowRef->wndH;
+    setRectSliderH.Data = &pWindowRef->wndH;
     setRectSliderH.min = 144;
     setRectSliderH.max = getRectHeight(&pWindowRef->fullscreenRect);
     (uiCreateComponentWidget(pWindowControlsComponent, "Window Height", &setRectSliderH, WIDGET_TYPE_SLIDER_INT));
@@ -635,7 +635,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
         {
             Resolution res = monitor->resolutions[j];
 
-            radioWidgets[j].pData = &pWindowRef->pCurRes[i];
+            radioWidgets[j].Data = &pWindowRef->pCurRes[i];
             radioWidgets[j].radioId = (int32_t)j;
 
             monitorWidgets[j] = &monitorWidgetsBases[j];
@@ -694,21 +694,21 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_LABEL_WIDGET]->type = WIDGET_TYPE_LABEL;
 
     RadioButtonWidget rCursorInsideRectFalse;
-    rCursorInsideRectFalse.pData = &pWindowRef->cursorInsideWindow;
+    rCursorInsideRectFalse.Data = &pWindowRef->cursorInsideWindow;
     rCursorInsideRectFalse.radioId = 0;
     strcpy(inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->label, "No");
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->pWidget = &rCursorInsideRectFalse;
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->type = WIDGET_TYPE_RADIO_BUTTON;
 
     RadioButtonWidget rCursorInsideRectTrue;
-    rCursorInsideRectTrue.pData = &pWindowRef->cursorInsideWindow;
+    rCursorInsideRectTrue.Data = &pWindowRef->cursorInsideWindow;
     rCursorInsideRectTrue.radioId = 1;
     strcpy(inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->label, "Yes");
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->pWidget = &rCursorInsideRectTrue;
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->type = WIDGET_TYPE_RADIO_BUTTON;
 
     CheckboxWidget bClipCursor;
-    bClipCursor.pData = &pWindowRef->cursorCaptureRequested;
+    bClipCursor.Data = &pWindowRef->cursorCaptureRequested;
 
     strcpy(inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET]->label, "Capture cursor");
     inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET]->pWidget = &bClipCursor;

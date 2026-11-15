@@ -90,11 +90,11 @@ extern "C"
     FORGE_API MemoryStatistics GetMemoryStatistics(void);
 #endif
 
-    FORGE_API void* MemAllocateInternal(size_t size, const char* f, int l, const char* sf);
-    FORGE_API void* MemAllocateAlignedInternal(size_t align, size_t size, const char* f, int l, const char* sf);
-    FORGE_API void* MemCallocateInternal(size_t count, size_t size, const char* f, int l, const char* sf);
-    FORGE_API void* MemCallocateAlignedInternal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf);
-    FORGE_API void* MemReallocateInternal(void* ptr, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* MemAllocateInternal(size_t Size, const char* f, int l, const char* sf);
+    FORGE_API void* MemAllocateAlignedInternal(size_t align, size_t Size, const char* f, int l, const char* sf);
+    FORGE_API void* MemCallocateInternal(size_t Count, size_t Size, const char* f, int l, const char* sf);
+    FORGE_API void* MemCallocateAlignedInternal(size_t Count, size_t align, size_t Size, const char* f, int l, const char* sf);
+    FORGE_API void* MemReallocateInternal(void* ptr, size_t Size, const char* f, int l, const char* sf);
     FORGE_API void  MemDeallocateInternal(void* ptr, const char* f, int l, const char* sf);
 
 #ifdef __cplusplus
@@ -127,19 +127,19 @@ static void MemDeleteInternal(T* ptr, const char* f, int l, const char* sf)
 #endif
 
 #ifndef MemAllocate
-#define MemAllocate(size) MemAllocateInternal(size, __FILE__, __LINE__, __FUNCTION__)
+#define MemAllocate(Size) MemAllocateInternal(Size, __FILE__, __LINE__, __FUNCTION__)
 #endif
 #ifndef MemAllocateAligned
-#define MemAllocateAligned(align, size) MemAllocateAlignedInternal(align, size, __FILE__, __LINE__, __FUNCTION__)
+#define MemAllocateAligned(align, Size) MemAllocateAlignedInternal(align, Size, __FILE__, __LINE__, __FUNCTION__)
 #endif
 #ifndef MemCallocate
-#define MemCallocate(count, size) MemCallocateInternal(count, size, __FILE__, __LINE__, __FUNCTION__)
+#define MemCallocate(Count, Size) MemCallocateInternal(Count, Size, __FILE__, __LINE__, __FUNCTION__)
 #endif
 #ifndef MemCallocateAligned
-#define MemCallocateAligned(count, align, size) MemCallocateAlignedInternal(count, align, size, __FILE__, __LINE__, __FUNCTION__)
+#define MemCallocateAligned(Count, align, Size) MemCallocateAlignedInternal(Count, align, Size, __FILE__, __LINE__, __FUNCTION__)
 #endif
 #ifndef MemReallocate
-#define MemReallocate(ptr, size) MemReallocateInternal(ptr, size, __FILE__, __LINE__, __FUNCTION__)
+#define MemReallocate(ptr, Size) MemReallocateInternal(ptr, Size, __FILE__, __LINE__, __FUNCTION__)
 #endif
 #ifndef MemDeallocate
 #define MemDeallocate(ptr) MemDeallocateInternal(ptr, __FILE__, __LINE__, __FUNCTION__)
@@ -160,16 +160,16 @@ static void MemDeleteInternal(T* ptr, const char* f, int l, const char* sf)
 // would poison the next source file in the batch.
 #if !defined(IMEMORY_FROM_HEADER) && !defined(HORIZON_UNITY_BUILD)
 #ifndef malloc
-#define malloc(size) static_assert(false, "Please use MemAllocate");
+#define malloc(Size) static_assert(false, "Please use MemAllocate");
 #endif
 #ifndef calloc
-#define calloc(count, size) static_assert(false, "Please use MemCallocate");
+#define calloc(Count, Size) static_assert(false, "Please use MemCallocate");
 #endif
 #ifndef memalign
-#define memalign(align, size) static_assert(false, "Please use MemAllocateAligned");
+#define memalign(align, Size) static_assert(false, "Please use MemAllocateAligned");
 #endif
 #ifndef realloc
-#define realloc(ptr, size) static_assert(false, "Please use MemReallocate");
+#define realloc(ptr, Size) static_assert(false, "Please use MemReallocate");
 #endif
 #ifndef free
 #define free(ptr) static_assert(false, "Please use MemDeallocate");

@@ -9,18 +9,18 @@ namespace hz
 {
 static bool validatePropertyValue(const PropertyDesc& property, const PropertyValue& value)
 {
-    if (!value.pData || value.kind != property.kind || value.kind == PropertyKind::Array ||
-        (value.kind == PropertyKind::String ? !value.size || value.size > property.size : value.size != property.size))
+    if (!value.Data || value.kind != property.kind || value.kind == PropertyKind::Array ||
+        (value.kind == PropertyKind::String ? !value.Size || value.Size > property.Size : value.Size != property.Size))
     {
-        LOGF(Error, "Property '%s': value kind or size does not match", property.pName);
+        LOGF(Error, "Property '%s': value kind or Size does not match", property.pName);
         return false;
     }
-    if (value.kind == PropertyKind::String && !memchr(value.pData, 0, value.size))
+    if (value.kind == PropertyKind::String && !memchr(value.Data, 0, value.Size))
     {
         LOGF(Error, "Property '%s': string is not null terminated", property.pName);
         return false;
     }
-    if (value.kind == PropertyKind::Boolean && *(const uint8_t*)value.pData > 1)
+    if (value.kind == PropertyKind::Boolean && *(const uint8_t*)value.Data > 1)
     {
         LOGF(Error, "Property '%s': invalid boolean", property.pName);
         return false;
@@ -28,7 +28,7 @@ static bool validatePropertyValue(const PropertyDesc& property, const PropertyVa
     if (value.kind == PropertyKind::Enum)
     {
         int32_t enumValue;
-        memcpy(&enumValue, value.pData, sizeof(enumValue));
+        memcpy(&enumValue, value.Data, sizeof(enumValue));
         for (const EnumValue& entry : property.enumValues)
             if (entry.value == enumValue)
                 return true;
@@ -40,10 +40,10 @@ static bool validatePropertyValue(const PropertyDesc& property, const PropertyVa
 
 static void writeProperty(void* pDestination, const PropertyDesc& property, const PropertyValue& value)
 {
-    const size_t size = value.kind == PropertyKind::String ? strlen((const char*)value.pData) + 1 : value.size;
-    memmove(pDestination, value.pData, size);
-    if (size < property.size)
-        memset((uint8_t*)pDestination + size, 0, property.size - size);
+    const size_t Size = value.kind == PropertyKind::String ? strlen((const char*)value.Data) + 1 : value.Size;
+    memmove(pDestination, value.Data, Size);
+    if (Size < property.Size)
+        memset((uint8_t*)pDestination + Size, 0, property.Size - Size);
 }
 
 void* WorldImpl::findEditableProperty(ecs_entity_t entity, TypeID type, PropertyID property, const PropertyDesc*& pProperty)
@@ -95,7 +95,7 @@ static bool validateArray(const PropertyDesc& property)
     return false;
 }
 
-bool World::resizeArray(Entity entity, TypeID type, PropertyID property, uint32_t count)
+bool World::resizeArray(Entity entity, TypeID type, PropertyID property, uint32_t Count)
 {
     if (!isAlive(entity))
         return false;
@@ -103,11 +103,11 @@ bool World::resizeArray(Entity entity, TypeID type, PropertyID property, uint32_
     void*               pArray = pImpl->findEditableProperty(entity.value, type, property, pProperty);
     if (!pArray || !validateArray(*pProperty))
         return false;
-    if (count == pProperty->pArrayOperations->pCount(pArray))
+    if (Count == pProperty->pArrayOperations->pCount(pArray))
         return true;
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
         return false;
-    pProperty->pArrayOperations->pResize(pArray, count);
+    pProperty->pArrayOperations->pResize(pArray, Count);
     pImpl->notifyPropertyChange(entity.value, type);
     return true;
 }
@@ -127,7 +127,7 @@ bool World::insertArrayElement(Entity entity, TypeID type, PropertyID property, 
         return false;
     }
     for (const PropertyDesc& field : pProperty->pElementType->properties)
-        if (!validatePropertyValue(field, { .kind = field.kind, .pData = (const uint8_t*)pValue + field.offset, .size = field.size }))
+        if (!validatePropertyValue(field, { .kind = field.kind, .Data = (const uint8_t*)pValue + field.offset, .Size = field.Size }))
             return false;
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
         return false;
@@ -182,8 +182,8 @@ bool World::setArrayElementProperty(Entity entity, TypeID type, PropertyID prope
         return false;
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
         return false;
-    void* pData = const_cast<void*>(pProperty->pArrayOperations->pData(pArray));
-    writeProperty((uint8_t*)pData + (size_t)index * pProperty->pElementType->size + pField->offset, *pField, value);
+    void* Data = const_cast<void*>(pProperty->pArrayOperations->Data(pArray));
+    writeProperty((uint8_t*)Data + (size_t)index * pProperty->pElementType->Size + pField->offset, *pField, value);
     pImpl->notifyPropertyChange(entity.value, type);
     return true;
 }

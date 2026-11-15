@@ -83,5 +83,5 @@ struct GpuProfilerContainer
 {
     static const uint32_t MAX_GPU_PROFILERS = 8;
     GpuProfiler*          profilers[MAX_GPU_PROFILERS] = { NULL };
-    uint32_t              size = 0;
+    uint32_t              Size = 0;
 };

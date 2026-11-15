@@ -277,7 +277,7 @@ FORGE_API size_t NormalizePathContinue(const char* nextPath, char separator, con
         src += 1 + (nnc != 0);
     }
 
-    size_t size = (size_t)(cur - beg);
+    size_t Size = (size_t)(cur - beg);
 
     ASSERT(cur <= end);
 
@@ -289,17 +289,17 @@ FORGE_API size_t NormalizePathContinue(const char* nextPath, char separator, con
     }
 
     // If input wasn't Empty strings, write "."
-    if (!size && (notEmptyAtStart || *nextPath))
+    if (!Size && (notEmptyAtStart || *nextPath))
     {
         *cur = '.';
         ++cur;
-        size = (size_t)(cur - beg);
+        Size = (size_t)(cur - beg);
     }
 
     // success
     *cur = 0;
     ASSERT(IsNormalizedPath(beg, separator));
-    return size;
+    return Size;
 }
 
 FORGE_API bool MergeDirAndFileName(const char* prePath, const char* postPath, char separator, size_t outputSize, char* output)
@@ -336,7 +336,7 @@ FORGE_API bool MergeDirAndFileName(const char* prePath, const char* postPath, ch
     return success;
 }
 
-// output size is FS_MAX_PATH
+// output Size is FS_MAX_PATH
 FORGE_API void AppendPathExtension(const char* basePath, const char* extension, char* output)
 {
     size_t       extensionLength = strlen(extension);
@@ -377,7 +377,7 @@ FORGE_API void AppendPathExtension(const char* basePath, const char* extension, 
     output[baseLength + 1 + extensionLength] = 0;
 }
 
-// output size is FS_MAX_PATH
+// output Size is FS_MAX_PATH
 FORGE_API void GetPathExtension(const char* path, char* output)
 {
     size_t pathLength = strlen(path);
@@ -400,7 +400,7 @@ FORGE_API void GetPathExtension(const char* path, char* output)
     output[FS_MAX_PATH - 1] = 0;
 }
 
-// output size is FS_MAX_PATH
+// output Size is FS_MAX_PATH
 FORGE_API void ReplacePathExtension(const char* path, const char* newExtension, char* output)
 {
     size_t       newExtensionLength = strlen(newExtension);
@@ -452,7 +452,7 @@ FORGE_API void ReplacePathExtension(const char* path, const char* newExtension, 
     output[newPathLength + newExtensionLength] = '\0';
 }
 
-// output size is FS_MAX_PATH
+// output Size is FS_MAX_PATH
 FORGE_API void GetParentPath(const char* path, char* output)
 {
     size_t pathLength = strlen(path);
@@ -542,8 +542,8 @@ struct MemoryStream
 {
     uint8_t*    pBuffer;
     uintptr_t   cursor;
-    uintptr_t   capacity;
-    intptr_t    size;
+    uintptr_t   Capacity;
+    intptr_t    Size;
     uintptr_t   isOwner;
     FileStream* wrappedStream;
 };
@@ -552,7 +552,7 @@ struct MemoryStream
 
 static inline size_t MemoryStreamAvailableSize(struct MemoryStream* stream, size_t requestedSize)
 {
-    ssize_t sizeLeft = (ssize_t)stream->size - (ssize_t)stream->cursor;
+    ssize_t sizeLeft = (ssize_t)stream->Size - (ssize_t)stream->cursor;
     if (sizeLeft < 0)
         sizeLeft = 0;
     return (ssize_t)requestedSize > sizeLeft ? (size_t)sizeLeft : requestedSize;
@@ -576,7 +576,7 @@ static bool ioMemoryStreamClose(FileStream* fs)
     return true;
 }
 
-static size_t ioMemoryStreamRead(FileStream* fs, void* dst, size_t size)
+static size_t ioMemoryStreamRead(FileStream* fs, void* dst, size_t Size)
 {
     if (!(fs->mode & FM_READ))
     {
@@ -586,18 +586,18 @@ static size_t ioMemoryStreamRead(FileStream* fs, void* dst, size_t size)
 
     MEMSD(stream, fs);
 
-    if ((intptr_t)stream->cursor >= stream->size)
+    if ((intptr_t)stream->cursor >= stream->Size)
     {
         return 0;
     }
 
-    size_t bytesToRead = MemoryStreamAvailableSize(stream, size);
+    size_t bytesToRead = MemoryStreamAvailableSize(stream, Size);
     memcpy(dst, stream->pBuffer + stream->cursor, bytesToRead);
     stream->cursor += bytesToRead;
     return bytesToRead;
 }
 
-static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
+static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t Size)
 {
     if (!(fs->mode & FM_WRITE))
     {
@@ -607,18 +607,18 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
 
     MEMSD(stream, fs);
 
-    if (stream->cursor > (size_t)stream->size)
+    if (stream->cursor > (size_t)stream->Size)
     {
         LOGF(Warning, "Creating discontinuity in initialized memory in memory stream.");
     }
 
     size_t availableCapacity = 0;
-    if (stream->capacity >= stream->cursor)
-        availableCapacity = stream->capacity - stream->cursor;
+    if (stream->Capacity >= stream->cursor)
+        availableCapacity = stream->Capacity - stream->cursor;
 
-    if (size > availableCapacity)
+    if (Size > availableCapacity)
     {
-        size_t newCapacity = stream->cursor + size;
+        size_t newCapacity = stream->cursor + Size;
 
         newCapacity =
             MEMORY_STREAM_GROW_SIZE * (newCapacity / MEMORY_STREAM_GROW_SIZE + (newCapacity % MEMORY_STREAM_GROW_SIZE == 0 ? 0 : 1));
@@ -627,21 +627,21 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t size)
         if (!newBuffer)
         {
             LOGF(Error,
-                 "Failed to reallocate memory stream buffer with new capacity "
+                 "Failed to reallocate memory stream buffer with new Capacity "
                  "%llu.",
                  (unsigned long long)newCapacity);
             return 0;
         }
 
         stream->pBuffer = (uint8_t*)newBuffer;
-        stream->capacity = newCapacity;
+        stream->Capacity = newCapacity;
     }
 
-    memcpy(stream->pBuffer + stream->cursor, src, size);
-    stream->cursor += size;
+    memcpy(stream->pBuffer + stream->cursor, src, Size);
+    stream->cursor += Size;
 
-    stream->size = stream->size > (ssize_t)stream->cursor ? stream->size : (ssize_t)stream->cursor;
-    return size;
+    stream->Size = stream->Size > (ssize_t)stream->cursor ? stream->Size : (ssize_t)stream->cursor;
+    return Size;
 }
 
 static bool ioMemoryStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t seekOffset)
@@ -652,7 +652,7 @@ static bool ioMemoryStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_
     {
     case SBO_START_OF_FILE:
     {
-        if (seekOffset < 0 || seekOffset > stream->size)
+        if (seekOffset < 0 || seekOffset > stream->Size)
         {
             return false;
         }
@@ -662,7 +662,7 @@ static bool ioMemoryStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_
     case SBO_CURRENT_POSITION:
     {
         ssize_t newPosition = (ssize_t)stream->cursor + seekOffset;
-        if (newPosition < 0 || newPosition > stream->size)
+        if (newPosition < 0 || newPosition > stream->Size)
         {
             return false;
         }
@@ -671,8 +671,8 @@ static bool ioMemoryStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_
     break;
     case SBO_END_OF_FILE:
     {
-        ssize_t newPosition = (ssize_t)stream->size + seekOffset;
-        if (newPosition < 0 || newPosition > stream->size)
+        ssize_t newPosition = (ssize_t)stream->Size + seekOffset;
+        if (newPosition < 0 || newPosition > stream->Size)
         {
             return false;
         }
@@ -692,7 +692,7 @@ static ssize_t ioMemoryStreamGetPosition(FileStream* fs)
 static ssize_t ioMemoryStreamGetSize(FileStream* fs)
 {
     MEMSD(stream, fs);
-    return stream->size;
+    return stream->Size;
 }
 
 static bool ioMemoryStreamFlush(FileStream* fs)
@@ -705,7 +705,7 @@ static bool ioMemoryStreamFlush(FileStream* fs)
 static bool ioMemoryStreamIsAtEnd(FileStream* fs)
 {
     MEMSD(stream, fs);
-    return (ssize_t)stream->cursor == stream->size;
+    return (ssize_t)stream->cursor == stream->Size;
 }
 
 static bool ioMemoryStreamMemoryMap(FileStream* fs, size_t* outSize, void const** outData)
@@ -714,7 +714,7 @@ static bool ioMemoryStreamMemoryMap(FileStream* fs, size_t* outSize, void const*
         return false;
 
     MEMSD(stream, fs);
-    *outSize = stream->capacity;
+    *outSize = stream->Capacity;
     *outData = stream->pBuffer;
     return true;
 }
@@ -748,20 +748,20 @@ bool OpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, 
 {
     memset(fs, 0, sizeof *fs);
 
-    size_t size = buffer ? bufferSize : 0;
-    size_t capacity = bufferSize;
+    size_t Size = buffer ? bufferSize : 0;
+    size_t Capacity = bufferSize;
     // Move cursor to the end for appending buffer
-    size_t cursor = (mode & FM_APPEND) ? size : 0;
+    size_t cursor = (mode & FM_APPEND) ? Size : 0;
 
     // For write streams we have to own the memory as we might need to resize it
     if ((mode & FM_WRITE) && (!owner || !buffer))
     {
-        // make capacity multiple of MEMORY_STREAM_GROW_SIZE
-        capacity = MEMORY_STREAM_GROW_SIZE * (capacity / MEMORY_STREAM_GROW_SIZE + (capacity % MEMORY_STREAM_GROW_SIZE == 0 ? 0 : 1));
-        void* newBuffer = MemAllocate(capacity);
+        // make Capacity multiple of MEMORY_STREAM_GROW_SIZE
+        Capacity = MEMORY_STREAM_GROW_SIZE * (Capacity / MEMORY_STREAM_GROW_SIZE + (Capacity % MEMORY_STREAM_GROW_SIZE == 0 ? 0 : 1));
+        void* newBuffer = MemAllocate(Capacity);
         ASSERT(newBuffer);
         if (buffer)
-            memcpy(newBuffer, buffer, size);
+            memcpy(newBuffer, buffer, Size);
 
         buffer = newBuffer;
         owner = true;
@@ -774,9 +774,9 @@ bool OpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, 
 
     stream->pBuffer = (uint8_t*)buffer;
     stream->cursor = cursor;
-    stream->capacity = capacity;
+    stream->Capacity = Capacity;
     stream->isOwner = owner;
-    stream->size = (ssize_t)size;
+    stream->Size = (ssize_t)Size;
     return true;
 }
 
@@ -955,13 +955,13 @@ FORGE_API bool WrapStreamMemoryMap(FileStream* fs)
     if (IsMemoryStream(fs))
         return true;
 
-    size_t      size;
+    size_t      Size;
     const void* mem;
-    if (!StreamMemoryMap(fs, &size, &mem))
+    if (!StreamMemoryMap(fs, &Size, &mem))
         return false;
 
     FileStream wrapFs;
-    if (!OpenStreamFromMemory(mem, size, FM_READ, false, &wrapFs))
+    if (!OpenStreamFromMemory(mem, Size, FM_READ, false, &wrapFs))
     {
         // NOTE: OpenStreamFromMemory never returns false
         LOGF(Error, "Failed to open stream from memory");
@@ -1098,9 +1098,9 @@ static uint64_t archiveHashMurmur2_64(void const* key, size_t len, uint64_t seed
     return h;
 }
 
-static inline uint64_t archiveKeySlotIndex(uint64_t seed, uint64_t count, const void* key, size_t keySize)
+static inline uint64_t archiveKeySlotIndex(uint64_t seed, uint64_t Count, const void* key, size_t keySize)
 {
-    return archiveHashMurmur2_64(key, keySize, seed) % count;
+    return archiveHashMurmur2_64(key, keySize, seed) % Count;
 }
 
 struct BucketPointer
@@ -1113,7 +1113,7 @@ static int uint64Cmp(const void* v0, const void* v1) { return memcmp(v0, v1, 8);
 
 struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struct BunyArNode* nodes, const char* nodeNames)
 {
-    // More size -> faster computing
+    // More Size -> faster computing
     // Values less then 1.5 won't work
     const uint64_t tableSizeMultiplier = 2;
 
@@ -1146,7 +1146,7 @@ struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struc
             const struct BunyArNode* node = nodes + ni;
 
             uint64_t index =
-                archiveKeySlotIndex(ht->seed, ht->tableSlotCount, nodeNames + node->namePointer.offset, node->namePointer.size);
+                archiveKeySlotIndex(ht->seed, ht->tableSlotCount, nodeNames + node->namePointer.offset, node->namePointer.Size);
 
             table[index] = ni + 1;
 
@@ -1209,7 +1209,7 @@ struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struc
                         const struct BunyArNode* node = nodes + ni;
 
                         uint64_t index =
-                            archiveKeySlotIndex(salt, ht->tableSlotCount, nodeNames + node->namePointer.offset, node->namePointer.size);
+                            archiveKeySlotIndex(salt, ht->tableSlotCount, nodeNames + node->namePointer.offset, node->namePointer.Size);
 
                         if (table[index])
                             goto NEXT_SALT; // slot is clamed
@@ -1309,7 +1309,7 @@ const char* bunyArFormatName(enum BunyArFileFormat format)
 
 struct BunyArBlockBuffer
 {
-    size_t   usedSize;   // size of valid data
+    size_t   usedSize;   // Size of valid data
     size_t   memorySize; // buffer limit
     uint8_t* memory;
 };
@@ -1350,10 +1350,10 @@ struct BunyArNodeSearchCtx
     const char* nodeNames;
 };
 
-static void* tfAllocForZstd(void* pUser, size_t size)
+static void* tfAllocForZstd(void* pUser, size_t Size)
 {
     (void)pUser;
-    return MemAllocate(size);
+    return MemAllocate(Size);
 }
 static void tfFreeForZstd(void* pUser, void* memory)
 {
@@ -1385,17 +1385,17 @@ static inline void bunyArMemoryReadPrepare(const struct BunyArMetadata* a,
 {
     *out = a->memoryBeg + ptr.offset;
     *read = (uint64_t)(a->memoryEnd - *out);
-    if (*read > ptr.size)
-        *read = ptr.size;
+    if (*read > ptr.Size)
+        *read = ptr.Size;
 }
 
-static inline size_t bunyArStreamRead(struct BunyArMetadata* a, uint64_t position, uint64_t size, void* dst)
+static inline size_t bunyArStreamRead(struct BunyArMetadata* a, uint64_t position, uint64_t Size, void* dst)
 {
     if (a->memoryBeg)
     {
         const uint8_t* cur;
         uint64_t       read;
-        bunyArMemoryReadPrepare(a, (struct BunyArPointer64){ position, size }, &cur, &read);
+        bunyArMemoryReadPrepare(a, (struct BunyArPointer64){ position, Size }, &cur, &read);
         memcpy(dst, cur, read);
         return read;
     }
@@ -1411,7 +1411,7 @@ static inline size_t bunyArStreamRead(struct BunyArMetadata* a, uint64_t positio
     }
     else
     {
-        readed = ReadFromStream(a->archiveStream, dst, size);
+        readed = ReadFromStream(a->archiveStream, dst, Size);
     }
 
     if (a->archiveStreamLocking)
@@ -1424,7 +1424,7 @@ static inline bool bunyArReadLocation(struct BunyArMetadata* a,
                                       struct BunyArPointer64 ptr, //-V813
                                       void*                  dst)
 {
-    return bunyArStreamRead(a, ptr.offset, ptr.size, dst) == ptr.size;
+    return bunyArStreamRead(a, ptr.offset, ptr.Size, dst) == ptr.Size;
 }
 
 static const struct ArchiveOpenDesc BUNYAR_OPEN_DESC_DEFAULT = { 0 };
@@ -1485,7 +1485,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     // includes Archive struct, file nodes, file names
 
     struct BunyArMetadata* archive =
-        (struct BunyArMetadata*)MemAllocate(sizeof(*archive) + header.nodesPointer.size + header.namesPointer.size);
+        (struct BunyArMetadata*)MemAllocate(sizeof(*archive) + header.nodesPointer.Size + header.namesPointer.Size);
 
     {
         uint8_t* memPtr = (uint8_t*)(archive + 1);
@@ -1497,12 +1497,12 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
         archive->archiveStream = stream;
 
-        archive->nodeCount = header.nodesPointer.size / sizeof(struct BunyArNode);
+        archive->nodeCount = header.nodesPointer.Size / sizeof(struct BunyArNode);
         archive->nodes = (struct BunyArNode*)memPtr;
-        memPtr += header.nodesPointer.size;
+        memPtr += header.nodesPointer.Size;
 
         archive->nodeNames = (char*)memPtr;
-        memPtr += header.namesPointer.size;
+        memPtr += header.namesPointer.Size;
     }
 
     /////////////
@@ -1518,7 +1518,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     {
         struct BunyArNode* node = archive->nodes + fi;
 
-        if (node->namePointer.offset + node->namePointer.size > header.namesPointer.size)
+        if (node->namePointer.offset + node->namePointer.Size > header.namesPointer.Size)
         {
             LOGF(Error, "Failed to open archive: invalid namePointer for node %llu", (unsigned long long)fi);
             goto CANCEL;
@@ -1528,7 +1528,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     //////////////////
     // Read node names
 
-    if (header.namesPointer.size)
+    if (header.namesPointer.Size)
     {
         if (!bunyArReadLocation(archive, header.namesPointer, archive->nodeNames))
         {
@@ -1536,7 +1536,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
             goto CANCEL;
         }
 
-        if (archive->nodeNames[header.namesPointer.size - 1] != 0)
+        if (archive->nodeNames[header.namesPointer.Size - 1] != 0)
         {
             LOGF(Error, "Failed to open archive: missing 0 in the string end");
             goto CANCEL;
@@ -1553,9 +1553,9 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     //////////////////
     // Read hash table
 
-    if (!desc->disableHashTable && header.hashTablePointer.size)
+    if (!desc->disableHashTable && header.hashTablePointer.Size)
     {
-        archive->hashTable = MemAllocate(header.hashTablePointer.size);
+        archive->hashTable = MemAllocate(header.hashTablePointer.Size);
 
         if (!bunyArReadLocation(archive, header.hashTablePointer, archive->hashTable))
         {
@@ -1580,7 +1580,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
         BunyArBlockPointer ptr;
 
-        bool test = bunyArEncodeBlockPointer(info, &ptr) && bunyArDecodeBlockPointer(ptr).size == info.size &&
+        bool test = bunyArEncodeBlockPointer(info, &ptr) && bunyArDecodeBlockPointer(ptr).Size == info.Size &&
                     bunyArDecodeBlockPointer(ptr).offset == info.offset && bunyArDecodeBlockPointer(ptr).isCompressed == info.isCompressed;
         if (!VERIFYMSG(test, "Archive block pointer read/write test failure"))
         {
@@ -1599,14 +1599,14 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
             char* name = archive->nodeNames + node->namePointer.offset;
 
             size_t strLen = strlen(name);
-            if (node->namePointer.size > BUNYAR_FILE_NAME_LENGTH_MAX || node->namePointer.size != strLen)
+            if (node->namePointer.Size > BUNYAR_FILE_NAME_LENGTH_MAX || node->namePointer.Size != strLen)
             {
                 LOGF(Error,
                      "Archive contains file with wrong name length %llu when "
-                     "limit is %i and node name size is %llu: '%s'",
-                     (unsigned long long)strLen, BUNYAR_FILE_NAME_LENGTH_MAX, (unsigned long long)node->namePointer.size, name);
+                     "limit is %i and node name Size is %llu: '%s'",
+                     (unsigned long long)strLen, BUNYAR_FILE_NAME_LENGTH_MAX, (unsigned long long)node->namePointer.Size, name);
 
-                node->namePointer.size = (uint32_t)strLen;
+                node->namePointer.Size = (uint32_t)strLen;
 
                 namesChanged = true;
             }
@@ -1615,7 +1615,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
             {
                 LOGF(Error, "Archive contains file with unnormalized name: '%s'", name);
 
-                node->namePointer.size = (uint32_t)NormalizePathContinue(name, '/', name, name, (char*)UINTPTR_MAX);
+                node->namePointer.Size = (uint32_t)NormalizePathContinue(name, '/', name, name, (char*)UINTPTR_MAX);
 
                 namesChanged = true;
             }
@@ -1828,17 +1828,17 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     {
     case BUNYAR_FILE_FORMAT_RAW:
     {
-        if (node->originalFileSize == node->filePointer.size)
+        if (node->originalFileSize == node->filePointer.Size)
             break;
 
-        LOGF(Error, "Archive contains raw file '%s' with corrupted size (%llu vs %llu)", archive->nodeNames + node->namePointer.offset,
-             (unsigned long long)node->originalFileSize, (unsigned long long)node->filePointer.size);
+        LOGF(Error, "Archive contains raw file '%s' with corrupted Size (%llu vs %llu)", archive->nodeNames + node->namePointer.offset,
+             (unsigned long long)node->originalFileSize, (unsigned long long)node->filePointer.Size);
         return false;
     }
     case BUNYAR_FILE_FORMAT_LZ4_BLOCKS:
     case BUNYAR_FILE_FORMAT_ZSTD_BLOCKS:
     {
-        if (node->filePointer.size < sizeof(blocksHeader))
+        if (node->filePointer.Size < sizeof(blocksHeader))
         {
             LOGF(Error, "Currupted archive file '%s'", archive->nodeNames + node->namePointer.offset);
             return false;
@@ -1849,7 +1849,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
 
         if (blocksHeader.blockSize == 0)
         {
-            LOGF(Error, "Archive file '%s' is stored with 0 block size", archive->nodeNames + node->namePointer.offset);
+            LOGF(Error, "Archive file '%s' is stored with 0 block Size", archive->nodeNames + node->namePointer.offset);
             return false;
         }
 
@@ -1943,7 +1943,7 @@ static inline struct BunyArPointer64 bunyArDecodeBlockPointerInfo(struct BunyArN
 {
     return (struct BunyArPointer64){
         node->filePointer.offset + sizeof(*blockHeader) + sizeof(BunyArBlockPointer) * blockHeader->blockCount + block->offset,
-        block->size,
+        block->Size,
     };
 }
 
@@ -1963,7 +1963,7 @@ static bool bunyArReadBlockToBuffer(struct BunyArMetadata* archive, struct BunyA
         if (archive->memoryBeg)
         {
             bunyArMemoryReadPrepare(archive, loc, &srcMemory, &srcSize);
-            if (srcSize != loc.size)
+            if (srcSize != loc.Size)
                 return false;
         }
         else
@@ -1971,7 +1971,7 @@ static bool bunyArReadBlockToBuffer(struct BunyArMetadata* archive, struct BunyA
             if (!bunyArReadLocation(archive, loc, fs->compressed.memory))
                 return false;
             srcMemory = fs->compressed.memory;
-            srcSize = loc.size;
+            srcSize = loc.Size;
         }
     }
 
@@ -2043,7 +2043,7 @@ static size_t ioArchiveFsRead(FileStream* pFile, void* outputBuffer, size_t outp
     {
     case BUNYAR_FILE_FORMAT_RAW:
     {
-        size_t limit = node->filePointer.size - fs->position;
+        size_t limit = node->filePointer.Size - fs->position;
         if (outputSize > limit)
             outputSize = limit;
 
@@ -2083,16 +2083,16 @@ static size_t ioArchiveFsRead(FileStream* pFile, void* outputBuffer, size_t outp
             {
                 // Block is uncompressed, read it directly
 
-                if (blockSize != blockInfo.size)
+                if (blockSize != blockInfo.Size)
                 {
-                    LOGF(Error, "Raw black size is wrong (%llu vs %llu)", (unsigned long long)blockSize,
-                         (unsigned long long)blockInfo.size);
+                    LOGF(Error, "Raw black Size is wrong (%llu vs %llu)", (unsigned long long)blockSize,
+                         (unsigned long long)blockInfo.Size);
                     break;
                 }
 
                 struct BunyArPointer64 location = bunyArDecodeBlockPointerInfo(node, &fs->blocksHeader, &blockInfo);
 
-                size_t sizeLeft = location.size - offsetInBlock;
+                size_t sizeLeft = location.Size - offsetInBlock;
 
                 ASSERT(sizeLeft);
 
@@ -2201,7 +2201,7 @@ static bool ioArchiveMemoryMap(FileStream* fs, size_t* outSize, void const** out
     if (node->format != BUNYAR_FILE_FORMAT_RAW)
         return false;
 
-    *outSize = node->filePointer.size;
+    *outSize = node->filePointer.Size;
     *outData = archive->memoryBeg + node->filePointer.offset;
     return true;
 }
@@ -2254,7 +2254,7 @@ bool GetArchiveNodeDescription(IFileSystem* fs, uint64_t nodeId, struct BunyArNo
 
     outInfo->name = archive->nodeNames + node->namePointer.offset;
     outInfo->fileSize = node->originalFileSize;
-    outInfo->compressedSize = node->filePointer.size;
+    outInfo->compressedSize = node->filePointer.Size;
     outInfo->format = (enum BunyArFileFormat)node->format;
 
     return true;

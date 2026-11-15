@@ -438,12 +438,12 @@ static size_t doubleToShortStr(double d, int precision, char* str)
 {
     *str = 0;
 
-    int size = snprintf(NULL, 0, "%.*f", precision, d);
-    snprintf(str, (unsigned)size + 1, "%.*f", precision, d);
+    int Size = snprintf(NULL, 0, "%.*f", precision, d);
+    snprintf(str, (unsigned)Size + 1, "%.*f", precision, d);
 
     // remove trailing zeroes
-    int end = size;
-    for (int i = size - 1; i >= 0; i--)
+    int end = Size;
+    for (int i = Size - 1; i >= 0; i--)
     {
         if (str[i] == '0')
         {
@@ -464,13 +464,13 @@ static size_t doubleToShortStr(double d, int precision, char* str)
     return end > 0 ? (size_t)end : 0;
 }
 
-struct HumanReadableValue HumanReadableSSize(ssize_t size)
+struct HumanReadableValue HumanReadableSSize(ssize_t Size)
 {
     const char* strs[] = {
         "B\0", "KB", "MB", "GB", "TB",
     };
 
-    double value = (double)size;
+    double value = (double)Size;
 
     uint64_t i = 0;
 
@@ -493,10 +493,10 @@ struct HumanReadableValue HumanReadableTimeD(double value)
 
     uint64_t i = 0;
 
-    double capacity = 1000;
-    while ((value < 0 ? -value : value) >= capacity && i < sizeof(strs) / sizeof(*strs) - 1)
+    double Capacity = 1000;
+    while ((value < 0 ? -value : value) >= Capacity && i < sizeof(strs) / sizeof(*strs) - 1)
     {
-        value /= capacity;
+        value /= Capacity;
         ++i;
 
         switch (i)
@@ -504,13 +504,13 @@ struct HumanReadableValue HumanReadableTimeD(double value)
         case 0:
         case 1:
         case 2:
-            capacity = 1000;
+            Capacity = 1000;
             break;
         case 3:
-            capacity = 60;
+            Capacity = 60;
             break;
         case 4:
-            capacity = 24;
+            Capacity = 24;
             break;
         }
     }

@@ -45,11 +45,11 @@ struct EnumValue
 
 struct ArrayOperations
 {
-    uint32_t size = 0;
+    uint32_t Size = 0;
     uint32_t alignment = 1;
     uint32_t (*pCount)(const void* pArray) = nullptr;
-    const void* (*pData)(const void* pArray) = nullptr;
-    void (*pResize)(void* pArray, uint32_t count) = nullptr;
+    const void* (*Data)(const void* pArray) = nullptr;
+    void (*pResize)(void* pArray, uint32_t Count) = nullptr;
     bool (*pInsert)(void* pArray, uint32_t index, const void* pValue) = nullptr;
     bool (*pRemove)(void* pArray, uint32_t index) = nullptr;
 };
@@ -60,7 +60,7 @@ struct PropertyDesc
     const char*            pName = nullptr;
     PropertyKind           kind = PropertyKind::Boolean;
     uint32_t               offset = 0;
-    uint32_t               size = 0;
+    uint32_t               Size = 0;
     uint32_t               flags = PROPERTY_SERIALIZED;
     const TypeDesc*        pElementType = nullptr;
     const ArrayOperations* pArrayOperations = nullptr;
@@ -84,7 +84,7 @@ struct TypeDesc
     TypeID             id = 0;
     const char*        pName = nullptr;
     uint32_t           version = 1;
-    uint32_t           size = 0;
+    uint32_t           Size = 0;
     uint32_t           alignment = 1;
     Span<PropertyDesc> properties;
     bool               triviallyCopyable = true;
@@ -112,7 +112,7 @@ public:
     const TypeDesc* getType(TypeID id) const;
     const TypeDesc* getType(const char* pName) const;
     const TypeDesc* getTypeAt(uint32_t index) const;
-    uint32_t        size() const;
+    uint32_t        Size() const;
 
 private:
     const TypeDesc** ppTypes = nullptr;

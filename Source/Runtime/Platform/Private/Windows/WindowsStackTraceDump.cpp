@@ -62,16 +62,16 @@ bool WindowsStackTrace::Init()
 
 void WindowsStackTrace::Exit() { init = false; }
 
-void* WindowsStackTrace::Alloc(size_t size)
+void* WindowsStackTrace::Alloc(size_t Size)
 {
-    if ((usedMemorySize + size) > preallocatedMemorySize)
+    if ((usedMemorySize + Size) > preallocatedMemorySize)
     {
-        Log("Not enough preallocated memory remaining for allocation of %u bytes", size);
+        Log("Not enough preallocated memory remaining for allocation of %u bytes", Size);
         return NULL;
     }
 
     void* pMem = ((uint8_t*)preallocatedMemory + usedMemorySize);
-    usedMemorySize += size;
+    usedMemorySize += Size;
     return pMem;
 }
 

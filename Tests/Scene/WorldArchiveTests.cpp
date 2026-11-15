@@ -30,7 +30,7 @@ protected:
     {
         hz::Array<char> json;
         EXPECT_TRUE(archive.serialize(json));
-        return json.Empty() ? "" : std::string(json.data(), json.size() - 1);
+        return json.Empty() ? "" : std::string(json.GetData(), json.Size() - 1);
     }
     static bool parse(hz::WorldArchive& archive, const std::string& json) { return archive.parse({ json.data(), (uint32_t)json.size() }); }
     static std::string uuid(uint64_t value)
@@ -208,39 +208,39 @@ static const hz::PropertyDesc migratingProperties[] = {
       .pName = "label",
       .kind = hz::PropertyKind::String,
       .offset = offsetof(MigratingComponent, label),
-      .size = sizeof(MigratingComponent::label) },
+      .Size = sizeof(MigratingComponent::label) },
     { .id = 3,
       .pName = "reference",
       .kind = hz::PropertyKind::EntityReference,
       .offset = offsetof(MigratingComponent, reference),
-      .size = sizeof(hz::Guid) },
+      .Size = sizeof(hz::Guid) },
     { .id = 2,
       .pName = "precise",
       .kind = hz::PropertyKind::UnsignedInteger,
       .offset = offsetof(MigratingComponent, precise),
-      .size = sizeof(uint64_t) },
+      .Size = sizeof(uint64_t) },
     { .id = 1,
       .pName = "value",
       .kind = hz::PropertyKind::SignedInteger,
       .offset = offsetof(MigratingComponent, value),
-      .size = sizeof(int32_t) },
+      .Size = sizeof(int32_t) },
 };
 static const hz::TypeDesc migratingType = { .id = 99,
                                             .pName = "Migrating",
                                             .version = 3,
-                                            .size = sizeof(MigratingComponent),
+                                            .Size = sizeof(MigratingComponent),
                                             .alignment = alignof(MigratingComponent),
                                             .properties = migratingProperties };
 
 static bool renameMigration(hz::Span<char> input, hz::Array<char>& output, const char* from, const char* to)
 {
-    std::string  json(input.pData, input.count);
+    std::string  json(input.Data, input.Count);
     const size_t offset = json.find(from);
     if (offset == std::string::npos)
         return false;
     json.replace(offset, strlen(from), to);
     output.resize((uint32_t)json.size());
-    memcpy(output.data(), json.data(), json.size());
+    memcpy(output.GetData(), json.data(), json.size());
     return true;
 }
 static bool migrateOne(hz::Span<char> input, hz::Array<char>& output) { return renameMigration(input, output, "old", "middle"); }
@@ -376,26 +376,26 @@ TEST_F(WorldArchiveTest, NormalizesOverridesOnLoadAndRejectsDuplicateKeys)
     ASSERT_TRUE(archive.instantiate(types, target));
     const hz::MeshRenderer* mesh = (const hz::MeshRenderer*)target->getComponent(target->getEntity(id(1)), hz::SceneTypes::meshRenderer);
     ASSERT_NE(mesh, nullptr);
-    ASSERT_EQ(mesh->overrides.size(), 2u);
+    ASSERT_EQ(mesh->overrides.Size(), 2u);
     EXPECT_EQ(mesh->overrides[0].submesh, 1u);
     EXPECT_EQ(mesh->overrides[1].submesh, 2u);
     ASSERT_TRUE(archive.capture(*target));
     ASSERT_TRUE(parse(archive, envelope(entityJson(
                                    1, component("0000000000000005", "MeshRenderer", 1, "{\"overrides\":[" + first + "," + first + "]}")))));
     EXPECT_FALSE(archive.instantiate(types, target));
-    EXPECT_EQ(((const hz::MeshRenderer*)target->getComponent(target->getEntity(id(1)), hz::SceneTypes::meshRenderer))->overrides.size(),
+    EXPECT_EQ(((const hz::MeshRenderer*)target->getComponent(target->getEntity(id(1)), hz::SceneTypes::meshRenderer))->overrides.Size(),
               2u);
 }
 
 TEST_F(WorldArchiveTest, LoadsDeepHierarchyWithoutRecursiveTraversal)
 {
     std::string        entities;
-    constexpr uint32_t count = 5000;
-    for (uint32_t i = 1; i <= count; ++i)
+    constexpr uint32_t Count = 5000;
+    for (uint32_t i = 1; i <= Count; ++i)
     {
         if (i != 1)
             entities += ',';
-        entities += entityJson(i, "", i == count ? 0 : i + 1);
+        entities += entityJson(i, "", i == Count ? 0 : i + 1);
     }
     hz::WorldArchive archive;
     ASSERT_TRUE(parse(archive, envelope(entities)));
@@ -404,7 +404,7 @@ TEST_F(WorldArchiveTest, LoadsDeepHierarchyWithoutRecursiveTraversal)
     hz::UniquePtr<hz::World> world;
     ASSERT_TRUE(archive.instantiate(types, world));
     EXPECT_EQ(world->getParent(world->getEntity(id(1))), world->getEntity(id(2)));
-    EXPECT_FALSE(world->getParent(world->getEntity(id(count))).isValid());
+    EXPECT_FALSE(world->getParent(world->getEntity(id(Count))).isValid());
     ASSERT_NE(world->getWorldTransform(world->getEntity(id(1))), nullptr);
 }
 

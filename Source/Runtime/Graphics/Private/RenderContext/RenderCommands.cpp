@@ -154,7 +154,7 @@ void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GP
 
 void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::Dependencies& dependencies)
 {
-    ASSERT(desc.colorAttachments.count <= MAX_RENDER_TARGETS && (desc.colorAttachments.pData || !desc.colorAttachments.count));
+    ASSERT(desc.colorAttachments.Count <= MAX_RENDER_TARGETS && (desc.colorAttachments.Data || !desc.colorAttachments.Count));
     if (dependencies.pShared)
     {
         barrier(*dependencies.pShared, nullptr);
@@ -207,10 +207,10 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
     addBufferBarriers(dependencies.storageBuffers, true);
     addIndirectBarriers(dependencies.indirectBuffers);
 
-    BindRenderTargetsDesc bind = { .renderTargetCount = desc.colorAttachments.count };
-    for (uint32_t i = 0; i < desc.colorAttachments.count; ++i)
+    BindRenderTargetsDesc bind = { .renderTargetCount = desc.colorAttachments.Count };
+    for (uint32_t i = 0; i < desc.colorAttachments.Count; ++i)
     {
-        const hz::ColorAttachment& input = desc.colorAttachments.pData[i];
+        const hz::ColorAttachment& input = desc.colorAttachments.Data[i];
         addTextureBarrier(*input.pTexture, RESOURCE_STATE_RENDER_TARGET);
         bind.renderTargets[i] = {
             .pRenderTarget = input.pTexture->pRenderTarget,
@@ -273,14 +273,14 @@ void hz::CommandList::setViewport(float x, float y, float w, float h, float minD
 void hz::CommandList::setScissor(uint32_t x, uint32_t y, uint32_t w, uint32_t h) { cmdSetScissor(pCmd, x, y, w, h); }
 void hz::CommandList::setRootConstant(Span<const uint32_t> values, uint32_t offsetIn32BitValues)
 {
-    ASSERT(pCurrentRootSignature && values.pData && values.count);
+    ASSERT(pCurrentRootSignature && values.Data && values.Count);
     const uint32_t descriptorIndex = getDescriptorIndexFromName(pCurrentRootSignature, "RootConstant0");
     ASSERT(descriptorIndex != UINT32_MAX);
-    cmdBindPushConstants(pCmd, pCurrentRootSignature, descriptorIndex, values.pData, values.count, offsetIn32BitValues);
+    cmdBindPushConstants(pCmd, pCurrentRootSignature, descriptorIndex, values.Data, values.Count, offsetIn32BitValues);
 }
 
-void hz::CommandList::draw(uint32_t count, uint32_t first) { cmdDraw(pCmd, count, first); }
-void hz::CommandList::drawIndexed(uint32_t count, uint32_t first, uint32_t vertex) { cmdDrawIndexed(pCmd, count, first, vertex); }
+void hz::CommandList::draw(uint32_t Count, uint32_t first) { cmdDraw(pCmd, Count, first); }
+void hz::CommandList::drawIndexed(uint32_t Count, uint32_t first, uint32_t vertex) { cmdDrawIndexed(pCmd, Count, first, vertex); }
 
 void hz::CommandList::drawIndirect(const hz::GPUBuffer& buffer, uint64_t offset, uint32_t drawCount)
 {
@@ -325,10 +325,10 @@ void hz::CommandList::dispatchIndirect(const hz::GPUBuffer& buffer, uint64_t off
     cmdExecuteIndirect(pCmd, pContext->pDispatchIndirectSignature, 1, buffer.pBuffer, offset, nullptr, 0);
 }
 
-Buffer* hz::CommandList::createUploadBuffer(uint64_t size)
+Buffer* hz::CommandList::createUploadBuffer(uint64_t Size)
 {
     const ::BufferDesc desc = {
-        .size = size,
+        .Size = Size,
         .pName = "CommandList upload buffer",
         .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
         .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
@@ -341,15 +341,15 @@ Buffer* hz::CommandList::createUploadBuffer(uint64_t size)
     return buffer;
 }
 
-void hz::CommandList::copyBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, const hz::GPUBuffer& src, uint64_t srcOffset, uint64_t size)
+void hz::CommandList::copyBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, const hz::GPUBuffer& src, uint64_t srcOffset, uint64_t Size)
 {
-    const BufferCopyRegion region = { .srcOffset = srcOffset, .dstOffset = dstOffset, .size = size };
+    const BufferCopyRegion region = { .srcOffset = srcOffset, .dstOffset = dstOffset, .Size = Size };
     copyBufferRegions(dst, src, { &region, 1 });
 }
 
 void hz::CommandList::copyBufferRegions(const hz::GPUBuffer& dst, const hz::GPUBuffer& src, Span<BufferCopyRegion> regions)
 {
-    if (!regions.count)
+    if (!regions.Count)
     {
         return;
     }
@@ -379,7 +379,7 @@ void hz::CommandList::copyBufferRegions(const hz::GPUBuffer& dst, const hz::GPUB
     barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, 0, nullptr, 0, nullptr);
     for (const BufferCopyRegion& region : regions)
     {
-        cmdUpdateBuffer(pCmd, dst.pBuffer, region.dstOffset, src.pBuffer, region.srcOffset, region.size);
+        cmdUpdateBuffer(pCmd, dst.pBuffer, region.dstOffset, src.pBuffer, region.srcOffset, region.Size);
     }
 
     arrsetlen(bufferBarriers, 0);
@@ -406,14 +406,14 @@ void hz::CommandList::copyBufferRegions(const hz::GPUBuffer& dst, const hz::GPUB
     barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, 0, nullptr, 0, nullptr);
 }
 
-void hz::CommandList::fillBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, uint32_t value, uint64_t size)
+void hz::CommandList::fillBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, uint32_t value, uint64_t Size)
 {
-    const auto fill = [&](void* pData)
+    const auto fill = [&](void* Data)
     {
-        uint8_t* bytes = (uint8_t*)pData;
-        for (uint64_t offset = 0; offset < size; offset += sizeof(value))
+        uint8_t* bytes = (uint8_t*)Data;
+        for (uint64_t offset = 0; offset < Size; offset += sizeof(value))
         {
-            const size_t writeSize = (size_t)TF_MIN((uint64_t)sizeof(value), size - offset);
+            const size_t writeSize = (size_t)TF_MIN((uint64_t)sizeof(value), Size - offset);
             memcpy(bytes + offset, &value, writeSize);
         }
     };
@@ -424,7 +424,7 @@ void hz::CommandList::fillBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, u
     }
     else
     {
-        Buffer* upload = createUploadBuffer(size);
+        Buffer* upload = createUploadBuffer(Size);
         fill(upload->pCpuMappedAddress);
 
         const ResourceState dstState = dst.state;
@@ -436,7 +436,7 @@ void hz::CommandList::fillBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, u
             barrier(1, &dstBarrier, 0, nullptr, 0, nullptr);
             dst.state = RESOURCE_STATE_COPY_DEST;
         }
-        cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, upload, 0, size);
+        cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, upload, 0, Size);
         if (dst.state != dstState)
         {
             dstBarrier.currentState = dst.state;
@@ -447,16 +447,16 @@ void hz::CommandList::fillBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, u
     }
 }
 
-void hz::CommandList::updateBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, const void* pData, uint64_t size)
+void hz::CommandList::updateBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, const void* Data, uint64_t Size)
 {
     if (dst.usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
     {
-        memcpy((uint8_t*)dst.pBuffer->pCpuMappedAddress + dstOffset, pData, (size_t)size);
+        memcpy((uint8_t*)dst.pBuffer->pCpuMappedAddress + dstOffset, Data, (size_t)Size);
     }
     else
     {
-        Buffer* upload = createUploadBuffer(size);
-        memcpy(upload->pCpuMappedAddress, pData, (size_t)size);
+        Buffer* upload = createUploadBuffer(Size);
+        memcpy(upload->pCpuMappedAddress, Data, (size_t)Size);
 
         const ResourceState dstState = dst.state;
         BufferBarrier       dstBarrier = { .pBuffer = dst.pBuffer };
@@ -467,7 +467,7 @@ void hz::CommandList::updateBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset,
             barrier(1, &dstBarrier, 0, nullptr, 0, nullptr);
             dst.state = RESOURCE_STATE_COPY_DEST;
         }
-        cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, upload, 0, size);
+        cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, upload, 0, Size);
         if (dst.state != dstState)
         {
             dstBarrier.currentState = dst.state;

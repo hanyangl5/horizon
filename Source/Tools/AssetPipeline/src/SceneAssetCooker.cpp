@@ -32,10 +32,10 @@ static const char* text(const cJSON* pObject, const char* pField)
     return cJSON_IsString(pValue) ? pValue->valuestring : "";
 }
 
-static uint64_t hashBytes(const void* pData, size_t size, uint64_t hash = UINT64_C(14695981039346656037))
+static uint64_t hashBytes(const void* Data, size_t Size, uint64_t hash = UINT64_C(14695981039346656037))
 {
-    const uint8_t* pBytes = (const uint8_t*)pData;
-    for (size_t i = 0; i < size; ++i)
+    const uint8_t* pBytes = (const uint8_t*)Data;
+    for (size_t i = 0; i < Size; ++i)
         hash = (hash ^ pBytes[i]) * UINT64_C(1099511628211);
     return hash;
 }
@@ -52,20 +52,20 @@ static cJSON* readJson(ResourceDirectory directory, const char* pPath, uint64_t*
     FileStream stream = {};
     if (!OpenStreamFromPath(directory, pPath, FM_READ, &stream))
         return nullptr;
-    const ssize_t size = GetStreamFileSize(&stream);
-    if (size <= 0 || size > 64 * 1024 * 1024)
+    const ssize_t Size = GetStreamFileSize(&stream);
+    if (Size <= 0 || Size > 64 * 1024 * 1024)
     {
         CloseStream(&stream);
         return nullptr;
     }
-    hz::Array<char> bytes((uint32_t)size + 1);
-    const bool      read = ReadFromStream(&stream, bytes.data(), (size_t)size) == (size_t)size;
+    hz::Array<char> bytes((uint32_t)Size + 1);
+    const bool      read = ReadFromStream(&stream, bytes.GetData(), (size_t)Size) == (size_t)Size;
     CloseStream(&stream);
     if (!read)
         return nullptr;
     if (pHash)
-        *pHash = hashBytes(bytes.data(), (size_t)size);
-    return cJSON_ParseWithLength(bytes.data(), bytes.size());
+        *pHash = hashBytes(bytes.GetData(), (size_t)Size);
+    return cJSON_ParseWithLength(bytes.GetData(), bytes.Size());
 }
 
 static bool recoverJson(ResourceDirectory directory, const char* pPath)
@@ -99,7 +99,7 @@ static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<
     const bool validPath = snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) < (int)sizeof(temporary);
     FileStream stream = {};
     const bool opened = validPath && OpenStreamFromPath(directory, temporary, FM_WRITE, &stream);
-    const bool written = opened && WriteToStream(&stream, bytes.pData, bytes.count) == bytes.count;
+    const bool written = opened && WriteToStream(&stream, bytes.Data, bytes.Count) == bytes.Count;
     const bool closed = !opened || CloseStream(&stream);
     if (!written || !closed)
     {
@@ -148,10 +148,10 @@ static bool buildCatalog(const cJSON* pAsset, const char* pAssetFile, hz::Array<
     return valid && catalog.addScene(asset, pAssetFile) && catalog.serialize(output);
 }
 
-static void addFloats(cJSON* pObject, const char* pField, const float* pValues, uint32_t count)
+static void addFloats(cJSON* pObject, const char* pField, const float* pValues, uint32_t Count)
 {
     cJSON* pArray = cJSON_AddArrayToObject(pObject, pField);
-    for (uint32_t i = 0; i < count; ++i)
+    for (uint32_t i = 0; i < Count; ++i)
         cJSON_AddItemToArray(pArray, cJSON_CreateNumber(pValues[i]));
 }
 
@@ -183,21 +183,21 @@ static bool sameField(const cJSON* pA, const cJSON* pB, const char* pField)
 
 static cJSON* uniqueMatch(cJSON* pOld, cJSON* pNew, cJSON* pRecord, const char* pField)
 {
-    uint32_t count = 0;
+    uint32_t Count = 0;
     cJSON*   pCandidate = nullptr;
     for (cJSON* pItem = pOld ? pOld->child : nullptr; pItem; pItem = pItem->next)
         if (!cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pItem, "missing")) && sameField(pRecord, pItem, pField))
         {
             pCandidate = pItem;
-            ++count;
+            ++Count;
         }
-    if (count != 1)
+    if (Count != 1)
         return nullptr;
-    count = 0;
+    Count = 0;
     for (cJSON* pItem = pNew->child; pItem; pItem = pItem->next)
         if (sameField(pRecord, pItem, pField))
-            ++count;
-    return count == 1 ? pCandidate : nullptr;
+            ++Count;
+    return Count == 1 ? pCandidate : nullptr;
 }
 
 static bool containsID(const cJSON* pRecords, const char* pID)
@@ -231,7 +231,7 @@ static bool matchIdentities(cJSON* pOld, cJSON* pNew, bool submeshes = false)
     for (cJSON* pRecord = pNew->child; pRecord; pRecord = pRecord->next, ++index)
     {
         cJSON* pMatch = matches[index];
-        for (uint32_t i = 0; pMatch && i < matches.size(); ++i)
+        for (uint32_t i = 0; pMatch && i < matches.Size(); ++i)
             if (i != index && matches[i] == pMatch)
                 pMatch = nullptr;
         char id[hz::kIDStringCapacity];
@@ -307,9 +307,9 @@ static uint64_t accessorHash(const cgltf_accessor* pAccessor)
     if (pAccessor->is_sparse)
     {
         hz::Array<float> values((uint32_t)(pAccessor->count * cgltf_num_components(pAccessor->type)));
-        if (cgltf_accessor_unpack_floats(pAccessor, values.data(), values.size()) != values.size())
+        if (cgltf_accessor_unpack_floats(pAccessor, values.GetData(), values.Size()) != values.Size())
             return 0;
-        return hashBytes(values.data(), values.size() * sizeof(float), hash);
+        return hashBytes(values.GetData(), values.Size() * sizeof(float), hash);
     }
     for (cgltf_size i = 0; i < pAccessor->count; ++i)
     {
@@ -331,14 +331,14 @@ static int compareHashes(const void* pA, const void* pB)
 static uint64_t primitiveHash(const cgltf_primitive& primitive)
 {
     hz::Array<uint64_t> attributes((uint32_t)primitive.attributes_count);
-    for (uint32_t i = 0; i < attributes.size(); ++i)
+    for (uint32_t i = 0; i < attributes.Size(); ++i)
     {
         const cgltf_attribute& attribute = primitive.attributes[i];
         attributes[i] = accessorHash(attribute.data);
         attributes[i] = hashBytes(attribute.name, strlen(attribute.name), attributes[i]);
     }
-    qsort(attributes.data(), attributes.size(), sizeof(uint64_t), compareHashes);
-    uint64_t hash = hashBytes(attributes.data(), attributes.size() * sizeof(uint64_t));
+    qsort(attributes.GetData(), attributes.Size(), sizeof(uint64_t), compareHashes);
+    uint64_t hash = hashBytes(attributes.GetData(), attributes.Size() * sizeof(uint64_t));
     hash = hashBytes(&primitive.type, sizeof(primitive.type), hash);
     if (primitive.indices)
         for (cgltf_size i = 0; i < primitive.indices->count; ++i)
@@ -387,7 +387,7 @@ bool SceneAssetCooker::isCurrent(const char* pContentHash) const
     hz::AssetCatalog catalog;
     hz::Array<char>  expected, actual;
     if (!buildCatalog(asset.get(), assetFile, expected) || !catalog.load(outputDirectory, catalogFile) || !catalog.serialize(actual) ||
-        expected.size() != actual.size() || memcmp(expected.data(), actual.data(), actual.size()))
+        expected.Size() != actual.Size() || memcmp(expected.GetData(), actual.GetData(), actual.Size()))
         return false;
     const cJSON* pTextures = cJSON_GetObjectItemCaseSensitive(asset.get(), "textures");
     for (const cJSON* pTexture = pTextures ? pTextures->child : nullptr; pTexture; pTexture = pTexture->next)
@@ -511,7 +511,7 @@ bool SceneAssetCooker::prepareTextures(const cgltf_data& data)
     pTextureMetadata = cJSON_CreateArray();
     textures.resize((uint32_t)data.textures_count);
     const SceneTextureCooker cooker(sourceDirectory, outputDirectory, pSourceFile);
-    for (uint32_t i = 0; i < textures.size(); ++i)
+    for (uint32_t i = 0; i < textures.Size(); ++i)
     {
         const cgltf_texture& texture = data.textures[i];
         bool                 srgb = false;
@@ -546,7 +546,7 @@ bool SceneAssetCooker::prepareTextures(const cgltf_data& data)
             LOGF(Error, "Cannot cook texture %u from '%s'", i, pSourceFile);
             return false;
         }
-        LOGF(Info, "Texture %u/%u %s", i + 1, textures.size(), textures[i].source[0] ? textures[i].source : "(embedded)");
+        LOGF(Info, "Texture %u/%u %s", i + 1, textures.Size(), textures[i].source[0] ? textures[i].source : "(embedded)");
         for (uint32_t j = 0; j < i; ++j)
             if (textures[i].registeredID.isValid() && textures[i].registeredID == textures[j].registeredID &&
                 (strcmp(textures[i].source, textures[j].source) != 0 || textures[i].srgb != textures[j].srgb))
@@ -574,7 +574,7 @@ cJSON* SceneAssetCooker::createMaterial(const cgltf_data& data, const cgltf_mate
     };
     for (uint32_t i = 0; i < 4; ++i)
     {
-        const char* pReference = sources[i] ? text(textureRecords.pData[sources[i] - data.textures], signature ? "signature" : "id") : "";
+        const char* pReference = sources[i] ? text(textureRecords.Data[sources[i] - data.textures], signature ? "signature" : "id") : "";
         cJSON_AddItemToObject(pMaterial, fields[i], *pReference || signature ? cJSON_CreateString(pReference) : cJSON_CreateNull());
     }
     const float defaultBaseColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -603,7 +603,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     hz::Array<cJSON*> textures((uint32_t)data.textures_count);
     hz::Array<cJSON*> materials((uint32_t)data.materials_count + needsDefaultMaterial);
     hz::Array<cJSON*> meshes((uint32_t)data.meshes_count);
-    for (uint32_t i = 0; i < textures.size(); ++i)
+    for (uint32_t i = 0; i < textures.Size(); ++i)
     {
         const cgltf_texture&      texture = data.textures[i];
         const CookedSceneTexture& cooked = this->textures[i];
@@ -632,32 +632,32 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
         }
         cJSON_AddItemToArray(pRecords, textures[i]);
     }
-    for (uint32_t i = 0; i < materials.size(); ++i)
+    for (uint32_t i = 0; i < materials.Size(); ++i)
     {
         const cgltf_material& material = i < data.materials_count ? data.materials[i] : defaultMaterial;
         materials[i] = identity(i < data.materials_count ? "Material" : "DefaultMaterial", material.name, data, material.extras);
         // Texture array indices are not identity evidence.
-        const JsonDocument signature(createMaterial(data, material, { textures.data(), textures.size() }, true));
+        const JsonDocument signature(createMaterial(data, material, { textures.GetData(), textures.Size() }, true));
         char*              pText = cJSON_PrintUnformatted(signature.get());
         addHash(materials[i], "signature", hashBytes(pText, strlen(pText)));
         cJSON_free(pText);
         cJSON_AddItemToArray(pRecords, materials[i]);
     }
-    for (uint32_t i = 0; i < meshes.size(); ++i)
+    for (uint32_t i = 0; i < meshes.Size(); ++i)
     {
         const cgltf_mesh& mesh = data.meshes[i];
         meshes[i] = identity("Mesh", mesh.name, data, mesh.extras);
         cJSON*              pSubmeshes = cJSON_AddArrayToObject(meshes[i], "submeshes");
         hz::Array<uint64_t> hashes((uint32_t)mesh.primitives_count);
-        for (uint32_t j = 0; j < hashes.size(); ++j)
+        for (uint32_t j = 0; j < hashes.Size(); ++j)
         {
             hashes[j] = primitiveHash(mesh.primitives[j]);
             cJSON* pSubmesh = identity("Submesh", nullptr, data, mesh.primitives[j].extras);
             addHash(pSubmesh, "signature", hashes[j]);
             cJSON_AddItemToArray(pSubmeshes, pSubmesh);
         }
-        qsort(hashes.data(), hashes.size(), sizeof(uint64_t), compareHashes);
-        addHash(meshes[i], "signature", hashBytes(hashes.data(), hashes.size() * sizeof(uint64_t)));
+        qsort(hashes.GetData(), hashes.Size(), sizeof(uint64_t), compareHashes);
+        addHash(meshes[i], "signature", hashBytes(hashes.GetData(), hashes.Size() * sizeof(uint64_t)));
         cJSON_AddItemToArray(pRecords, meshes[i]);
     }
     if (!matchIdentities(pOldRecords, pRecords) || !validateIdentities(pRecords) || containsID(pRecords, text(pMetadata, "scene")))
@@ -673,7 +673,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     cJSON_AddStringToObject(pAsset, "source", pSourceFile);
     cJSON_AddStringToObject(pAsset, "contentHash", pContentHash);
     cJSON* pTextures = cJSON_AddArrayToObject(pAsset, "textures");
-    for (uint32_t i = 0; i < textures.size(); ++i)
+    for (uint32_t i = 0; i < textures.Size(); ++i)
     {
         if (containsID(pTextures, text(textures[i], "id")))
             continue;
@@ -686,16 +686,16 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
         cJSON_AddItemToArray(pTextures, pTexture);
     }
     cJSON* pMaterials = cJSON_AddArrayToObject(pAsset, "materials");
-    for (uint32_t i = 0; i < materials.size(); ++i)
+    for (uint32_t i = 0; i < materials.Size(); ++i)
     {
         const cgltf_material& material = i < data.materials_count ? data.materials[i] : defaultMaterial;
-        cJSON*                pMaterial = createMaterial(data, material, { textures.data(), textures.size() }, false);
+        cJSON*                pMaterial = createMaterial(data, material, { textures.GetData(), textures.Size() }, false);
         cJSON_AddStringToObject(pMaterial, "id", text(materials[i], "id"));
         cJSON_AddItemToArray(pMaterials, pMaterial);
     }
     cJSON*   pMeshes = cJSON_AddArrayToObject(pAsset, "meshes");
     uint32_t drawIndex = 0;
-    for (uint32_t i = 0; i < meshes.size(); ++i)
+    for (uint32_t i = 0; i < meshes.Size(); ++i)
     {
         cJSON* pMesh = cJSON_CreateObject();
         cJSON_AddStringToObject(pMesh, "id", text(meshes[i], "id"));
@@ -728,13 +728,13 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
             stack.PushBack((uint32_t)(pScene->nodes[i - 1] - data.nodes));
     }
     else
-        for (uint32_t i = selected.size(); i > 0; --i)
+        for (uint32_t i = selected.Size(); i > 0; --i)
             if (!data.nodes[i - 1].parent)
                 stack.PushBack(i - 1);
     uint32_t nodeCount = 0;
     while (!stack.Empty())
     {
-        const uint32_t index = stack[stack.size() - 1];
+        const uint32_t index = stack[stack.Size() - 1];
         stack.PopBack();
         if (selected[index] != UINT32_MAX)
         {
@@ -792,5 +792,5 @@ bool SceneAssetCooker::write() const
     if (!writeJson(sourceDirectory, metadataFile, pMetadata))
         return false;
     return writeJson(outputDirectory, assetFile, pAsset) &&
-           writeBytes(outputDirectory, catalogFile, { catalog.data(), catalog.size() - 1 });
+           writeBytes(outputDirectory, catalogFile, { catalog.GetData(), catalog.Size() - 1 });
 }

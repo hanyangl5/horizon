@@ -114,7 +114,7 @@ struct RenderCamera
 struct RenderRange
 {
     uint32_t first = 0;
-    uint32_t count = 0;
+    uint32_t Count = 0;
 };
 struct RenderChanges
 {
@@ -205,6 +205,6 @@ private:
     void             acknowledgeUploads();
     // Records the current transforms and lenses as submitted, so the next update renders them as previous.
     void             commitHistory();
-    RenderSceneData* pData = nullptr;
+    RenderSceneData* Data = nullptr;
 };
 } // namespace hz

@@ -217,16 +217,16 @@ TEST_F(SceneTransformTest, DeepSubtreeSupportsReparentingComponentEditsAndDeleti
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     hz::World             world(types);
-    const uint32_t        count = 10000;
-    hz::Array<hz::Entity> entities(count);
-    for (uint32_t i = 0; i < count; ++i)
+    const uint32_t        Count = 10000;
+    hz::Array<hz::Entity> entities(Count);
+    for (uint32_t i = 0; i < Count; ++i)
     {
         entities[i] = world.createEntity();
         setTranslation(world, entities[i], 1.0f);
     }
-    for (uint32_t i = 0; i + 1 < count; ++i)
+    for (uint32_t i = 0; i + 1 < Count; ++i)
         ASSERT_TRUE(world.setParent(entities[i], entities[i + 1], false));
-    const hz::Entity root = entities[count - 1];
+    const hz::Entity root = entities[Count - 1];
     const hz::Entity leaf = entities[0];
     world.updateTransforms();
     world.commitTransforms();
@@ -236,10 +236,10 @@ TEST_F(SceneTransformTest, DeepSubtreeSupportsReparentingComponentEditsAndDeleti
     setTranslation(world, secondParent, 5.0f);
     ASSERT_TRUE(world.setParent(root, firstParent, false));
     world.updateTransforms();
-    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)count + 12.0f, 0, 0)));
+    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)Count + 12.0f, 0, 0)));
     ASSERT_TRUE(world.setParent(root, secondParent));
     world.updateTransforms();
-    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)count + 12.0f, 0, 0)));
+    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)Count + 12.0f, 0, 0)));
     EXPECT_FALSE(world.setParent(secondParent, leaf));
     hz::MeshRenderer renderer;
     renderer.overrides.PushBack({ .submesh = 1, .material = { .low = 42 } });
@@ -247,12 +247,12 @@ TEST_F(SceneTransformTest, DeepSubtreeSupportsReparentingComponentEditsAndDeleti
     ASSERT_TRUE(world.addComponent(root, hz::SceneTypes::name));
     const char name[] = "DeepRoot";
     ASSERT_TRUE(
-        world.setProperty(root, hz::SceneTypes::name, 1, { .kind = hz::PropertyKind::String, .pData = name, .size = sizeof(name) }));
+        world.setProperty(root, hz::SceneTypes::name, 1, { .kind = hz::PropertyKind::String, .Data = name, .Size = sizeof(name) }));
     const Vector3 translation(4, 0, 0);
     ASSERT_TRUE(world.setProperty(root, hz::SceneTypes::localTransform, 1,
-                                  { .kind = hz::PropertyKind::Vector3, .pData = &translation, .size = sizeof(translation) }));
+                                  { .kind = hz::PropertyKind::Vector3, .Data = &translation, .Size = sizeof(translation) }));
     world.updateTransforms();
-    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)count + 8.0f, 0, 0)));
+    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)Count + 8.0f, 0, 0)));
     {
         hz::DeferredChanges changes = world.defer();
         ASSERT_TRUE(world.removeComponent(root, hz::SceneTypes::name));
@@ -263,11 +263,11 @@ TEST_F(SceneTransformTest, DeepSubtreeSupportsReparentingComponentEditsAndDeleti
         EXPECT_FALSE(world.destroyEntity(root));
     }
     world.updateTransforms();
-    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)count + 7.0f, 0, 0)));
+    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)Count + 7.0f, 0, 0)));
     ASSERT_TRUE(world.destroyEntity(secondParent));
     EXPECT_FALSE(world.getParent(root).isValid());
     world.updateTransforms();
-    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)count + 7.0f, 0, 0)));
+    expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)Count + 7.0f, 0, 0)));
     ASSERT_TRUE(world.destroySubtree(root));
     EXPECT_FALSE(world.isAlive(root));
     EXPECT_FALSE(world.isAlive(leaf));

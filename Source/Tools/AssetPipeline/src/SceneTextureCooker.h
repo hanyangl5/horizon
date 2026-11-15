@@ -29,7 +29,7 @@ public:
 
 private:
     bool readImage(const char* pPath, hz::Array<uint8_t>& bytes) const;
-    bool writeDDS(const char* pPath, const void* pBytes, size_t size) const;
+    bool writeDDS(const char* pPath, const void* pBytes, size_t Size) const;
 
     ResourceDirectory sourceDirectory;
     ResourceDirectory outputDirectory;

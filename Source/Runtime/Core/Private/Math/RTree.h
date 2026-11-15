@@ -49,8 +49,8 @@
 extern "C"
 {
 #endif
-    typedef void (*ForEachRLeafItemIntersectionFn)(void* pUserData, void* pData);
-    typedef bool (*CompareRLeafItemFn)(void* pUserData, void* pData);
+    typedef void (*ForEachRLeafItemIntersectionFn)(void* pUserData, void* Data);
+    typedef bool (*CompareRLeafItemFn)(void* pUserData, void* Data);
 
     typedef struct RTreeDescriptor
     {
@@ -63,7 +63,7 @@ extern "C"
 
     void initRTree(const RTreeDescriptor* pDesc, struct RTree** ppRTree);
     void exitRTree(RTree* pRTree);
-    void insertRTreePoint(RTree* pRTree, const float point[2], void* pData);
+    void insertRTreePoint(RTree* pRTree, const float point[2], void* Data);
     bool removeRTreePoint(RTree* pRTree, const float point[2], void* pToCompare, CompareRLeafItemFn pFn);
     void queryRTree(RTree* pRTree, const float minMax[4], ForEachRLeafItemIntersectionFn pFn, void* pUserData);
 
@@ -374,7 +374,7 @@ extern "C"
                     offset = strlen(buffer);
 
                     // Add child nodes to stack
-                    ASSERT(stack_ptr + 2 <= print_stack_size && "Undefined behavior, exceeds stack size");
+                    ASSERT(stack_ptr + 2 <= print_stack_size && "Undefined behavior, exceeds stack Size");
                     tree_stack[stack_ptr++] = node->leftOrFirst + 1;
                     tree_stack[stack_ptr++] = node->leftOrFirst;
                 }
@@ -458,7 +458,7 @@ extern "C"
     void rtree_split(RTree* pRTree, const uint32_t treeIndex, const float* leftrtree_box, const float* rightrtree_box,
                      const uint32_t leftCount, const uint32_t rightCount)
     {
-        ASSERT(treeIndex + 2 < pRTree->maxTreeSize && "Max tree size reached");
+        ASSERT(treeIndex + 2 < pRTree->maxTreeSize && "Max tree Size reached");
         RTreeNode* currentLeaf = &pRTree->pTree[treeIndex];
         ASSERT(currentLeaf->countOrNode >= 2 && currentLeaf->countOrNode != INTERNAL_NODE && "Required to be a filled leave node");
 
@@ -566,12 +566,12 @@ extern "C"
         }
     }
 
-    void insertRTreePoint(RTree* pRTree, const float point[2], void* pData)
+    void insertRTreePoint(RTree* pRTree, const float point[2], void* Data)
     {
         ASSERT(pRTree);
         pRTree->pPoints[pRTree->dataCount][0] = point[0];
         pRTree->pPoints[pRTree->dataCount][1] = point[1];
-        pRTree->ppData[pRTree->dataCount] = pData;
+        pRTree->ppData[pRTree->dataCount] = Data;
         rtree_insert_point(pRTree, 0, pRTree->dataCount);
         ++pRTree->dataCount;
     }
@@ -601,7 +601,7 @@ extern "C"
                 else
                 {
                     // Add child nodes to stack
-                    ASSERT(stack_ptr + 2 <= RTREE_STACK_SIZE && "Undefined behavior, exceeds stack size");
+                    ASSERT(stack_ptr + 2 <= RTREE_STACK_SIZE && "Undefined behavior, exceeds stack Size");
                     tree_stack[stack_ptr++] = node->leftOrFirst;
                     tree_stack[stack_ptr++] = node->leftOrFirst + 1;
                 }
@@ -629,7 +629,7 @@ extern "C"
             else
             {
                 // Add child nodes to stack
-                ASSERT(stack_ptr + 2 <= RTREE_STACK_SIZE && "Undefined behavior, exceeds stack size");
+                ASSERT(stack_ptr + 2 <= RTREE_STACK_SIZE && "Undefined behavior, exceeds stack Size");
                 tree_stack[stack_ptr++] = node->leftOrFirst;
                 tree_stack[stack_ptr++] = node->leftOrFirst + 1;
             }
@@ -644,7 +644,7 @@ extern "C"
         RTreeNode* node = &pTree[treeIndex];
         ASSERT(index < node->leftOrFirst + node->countOrNode && index >= node->leftOrFirst);
 
-        // Reduce data count and switch data last data location
+        // Reduce data Count and switch data last data location
         // This ensures usability of dataCount as last index for inserting new points
         --pRTree->dataCount;
         pRTree->ppData[pRTree->pIndices[index]] = pRTree->ppData[pRTree->dataCount];
@@ -679,7 +679,7 @@ extern "C"
             else
             {
                 // Add child nodes to stack
-                ASSERT(stack_ptr + 2 <= RTREE_STACK_SIZE && "Undefined behavior, exceeds stack size");
+                ASSERT(stack_ptr + 2 <= RTREE_STACK_SIZE && "Undefined behavior, exceeds stack Size");
                 tree_stack[stack_ptr++] = traversedNode->leftOrFirst;
                 tree_stack[stack_ptr++] = traversedNode->leftOrFirst + 1;
             }
@@ -791,7 +791,7 @@ extern "C"
                 else
                 {
                     // Add child nodes to stack
-                    ASSERT(stack_ptr + 2 <= RTREE_STACK_SIZE && "Undefined behavior, exceeds stack size");
+                    ASSERT(stack_ptr + 2 <= RTREE_STACK_SIZE && "Undefined behavior, exceeds stack Size");
                     tree_stack[stack_ptr++] = node->leftOrFirst;
                     tree_stack[stack_ptr++] = node->leftOrFirst + 1;
                 }

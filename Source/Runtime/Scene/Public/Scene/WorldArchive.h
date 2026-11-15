@@ -44,6 +44,6 @@ public:
                      const IDGenerator& entityGuids = {}) const;
 
 private:
-    WorldArchiveData* pData = nullptr;
+    WorldArchiveData* Data = nullptr;
 };
 } // namespace hz

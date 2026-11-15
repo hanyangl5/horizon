@@ -17,9 +17,9 @@ bool lessByKey(const void* lhs, const void* rhs, void*)
     return left.key < right.key;
 }
 
-void expectIntArrayEquals(const int32_t* actual, const int32_t* expected, size_t count)
+void expectIntArrayEquals(const int32_t* actual, const int32_t* expected, size_t Count)
 {
-    for (size_t i = 0; i < count; ++i)
+    for (size_t i = 0; i < Count; ++i)
     {
         EXPECT_EQ(actual[i], expected[i]) << "at index " << i;
     }

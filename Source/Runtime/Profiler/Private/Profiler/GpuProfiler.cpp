@@ -292,7 +292,7 @@ ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pNam
         return PROFILE_INVALID_TOKEN;
     }
 
-    if (gGpuProfilerContainer->size >= GpuProfilerContainer::MAX_GPU_PROFILERS)
+    if (gGpuProfilerContainer->Size >= GpuProfilerContainer::MAX_GPU_PROFILERS)
     {
         LOGF(LogLevel::Warning, "Reached maximum amount of Gpu Profilers");
         return PROFILE_INVALID_TOKEN;
@@ -307,7 +307,7 @@ ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pNam
         if (!gGpuProfilerContainer->profilers[i])
         {
             gGpuProfilerContainer->profilers[i] = pGpuProfiler;
-            ++gGpuProfilerContainer->size;
+            ++gGpuProfilerContainer->Size;
             pGpuProfiler->profilerIndex = i;
             break;
         }
@@ -324,7 +324,7 @@ void removeGpuProfiler(ProfileToken nProfileToken)
 
     removeGpuProfiler(pGpuProfiler);
     gGpuProfilerContainer->profilers[getProfileIndex(nProfileToken)] = NULL;
-    --gGpuProfilerContainer->size;
+    --gGpuProfilerContainer->Size;
 }
 
 void cmdBeginGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken, bool bUseMarker)

@@ -21,7 +21,7 @@ public:
     const GPUTexture& getTexture() const;
 
 private:
-    TextureAssetData* pData = nullptr;
+    TextureAssetData* Data = nullptr;
     friend class TextureAssetLoaderData;
 };
 
@@ -37,6 +37,6 @@ public:
     AssetLoader getLoader();
 
 private:
-    TextureAssetLoaderData* pData = nullptr;
+    TextureAssetLoaderData* Data = nullptr;
 };
 } // namespace hz

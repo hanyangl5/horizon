@@ -75,8 +75,8 @@ TEST_F(SceneAssetReadTest, PreservesHierarchyLocalTransformsAndAssetReferences)
     EXPECT_TRUE(asset.isValid());
     EXPECT_STREQ(asset.getSource(), "scene.gltf");
     EXPECT_STREQ(asset.getContentHash(), "fnv1a64:0123456789abcdef");
-    ASSERT_EQ(asset.getNodes().count, 3u);
-    const hz::SceneAssetNode* nodes = asset.getNodes().pData;
+    ASSERT_EQ(asset.getNodes().Count, 3u);
+    const hz::SceneAssetNode* nodes = asset.getNodes().Data;
     EXPECT_EQ(nodes[0].parent, UINT32_MAX);
     EXPECT_EQ(nodes[1].parent, 0u);
     EXPECT_FLOAT_EQ((float)nodes[0].transform.translation.getX(), 10.0f);
@@ -86,26 +86,26 @@ TEST_F(SceneAssetReadTest, PreservesHierarchyLocalTransformsAndAssetReferences)
     EXPECT_FLOAT_EQ((float)nodes[1].matrix.getElem(3, 1), 2.0f);
     EXPECT_FLOAT_EQ((float)nodes[2].transform.scale.getX(), -1.0f);
     EXPECT_FLOAT_EQ((float)nodes[2].transform.scale.getY(), 0.0f);
-    ASSERT_EQ(asset.getMeshes().count, 1u);
-    const hz::SceneAssetMesh& mesh = asset.getMeshes().pData[0];
+    ASSERT_EQ(asset.getMeshes().Count, 1u);
+    const hz::SceneAssetMesh& mesh = asset.getMeshes().Data[0];
     EXPECT_EQ(nodes[1].mesh, mesh.id);
     EXPECT_EQ(nodes[2].mesh, mesh.id);
-    ASSERT_EQ(mesh.submeshes.count, 2u);
-    EXPECT_EQ(mesh.submeshes.pData[0].id, UINT64_C(0x8000000000000001));
-    EXPECT_EQ(mesh.submeshes.pData[1].draw, 1u);
-    EXPECT_EQ(mesh.submeshes.pData[1].material, mesh.submeshes.pData[0].material);
-    ASSERT_EQ(asset.getMaterials().count, 1u);
-    const hz::SceneAssetMaterial& material = asset.getMaterials().pData[0];
-    EXPECT_EQ(mesh.submeshes.pData[0].material, material.id);
+    ASSERT_EQ(mesh.submeshes.Count, 2u);
+    EXPECT_EQ(mesh.submeshes.Data[0].id, UINT64_C(0x8000000000000001));
+    EXPECT_EQ(mesh.submeshes.Data[1].draw, 1u);
+    EXPECT_EQ(mesh.submeshes.Data[1].material, mesh.submeshes.Data[0].material);
+    ASSERT_EQ(asset.getMaterials().Count, 1u);
+    const hz::SceneAssetMaterial& material = asset.getMaterials().Data[0];
+    EXPECT_EQ(mesh.submeshes.Data[0].material, material.id);
     EXPECT_EQ(material.alphaMode, hz::MaterialAlphaMode::Mask);
     EXPECT_TRUE(material.doubleSided);
     EXPECT_FLOAT_EQ(material.alphaCutoff, 0.5f);
     EXPECT_FLOAT_EQ(material.emissiveFactor[1], 2.0f);
-    ASSERT_EQ(asset.getTextures().count, 1u);
-    EXPECT_EQ(material.baseColorTexture, asset.getTextures().pData[0].id);
-    EXPECT_TRUE(asset.getTextures().pData[0].srgb);
-    EXPECT_TRUE(asset.getTextures().pData[0].cooked);
-    EXPECT_STREQ(asset.getTextures().pData[0].pSource, "Textures/albedo.png");
+    ASSERT_EQ(asset.getTextures().Count, 1u);
+    EXPECT_EQ(material.baseColorTexture, asset.getTextures().Data[0].id);
+    EXPECT_TRUE(asset.getTextures().Data[0].srgb);
+    EXPECT_TRUE(asset.getTextures().Data[0].cooked);
+    EXPECT_STREQ(asset.getTextures().Data[0].pSource, "Textures/albedo.png");
 }
 
 TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadData)
@@ -124,7 +124,7 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadD
     const hz::Entity         parent = world.createPersistentEntity();
     const hz::LocalTransform transform = { .translation = Vector3(100, 0, 0) };
     ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
-    const hz::AssetID mesh = asset.getMeshes().pData[0].id;
+    const hz::AssetID mesh = asset.getMeshes().Data[0].id;
     const hz::Entity  firstRoot = asset.instantiate(world, parent);
     const hz::Entity  secondRoot = asset.instantiate(world);
     EXPECT_EQ(world.getParent(firstRoot), parent);
@@ -136,15 +136,15 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadD
     {
         hz::World*  world;
         hz::AssetID mesh;
-        uint32_t    count = 0;
+        uint32_t    Count = 0;
     } instances = { .world = &world, .mesh = mesh };
     hz::WorldQuery query(world, { hz::SceneTypes::meshRenderer, hz::SceneTypes::name });
     query.each(
         [](hz::Entity entity, hz::Span<const void*> fields, void* pUser)
         {
             Instances&              data = *(Instances*)pUser;
-            const hz::MeshRenderer& renderer = *(const hz::MeshRenderer*)fields.pData[0];
-            const hz::Name&         name = *(const hz::Name*)fields.pData[1];
+            const hz::MeshRenderer& renderer = *(const hz::MeshRenderer*)fields.Data[0];
+            const hz::Name&         name = *(const hz::Name*)fields.Data[1];
             EXPECT_EQ(renderer.mesh, data.mesh);
             const hz::Entity nodeParent = data.world->getParent(entity);
             EXPECT_STREQ(((const hz::Name*)data.world->getComponent(nodeParent, hz::SceneTypes::name))->value, "Root");
@@ -161,11 +161,11 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadD
             else
                 EXPECT_STREQ(name.value, "Second");
             EXPECT_EQ(data.world->getEntity(data.world->getEntityGuid(entity)), entity);
-            ++data.count;
+            ++data.Count;
             return true;
         },
         &instances);
-    EXPECT_EQ(instances.count, 4u);
+    EXPECT_EQ(instances.Count, 4u);
     ASSERT_TRUE(world.destroySubtree(firstRoot));
     EXPECT_TRUE(world.isAlive(secondRoot));
     EXPECT_TRUE(world.isAlive(parent));
@@ -201,7 +201,7 @@ TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
                 hz::World*  pWorld;
                 hz::Entity  root;
                 const char* pExpected;
-                uint32_t    count = 0;
+                uint32_t    Count = 0;
             } names = { .pWorld = &world, .root = root, .pExpected = expected.c_str() };
             hz::WorldQuery query(world, { hz::SceneTypes::name });
             query.each(
@@ -210,13 +210,13 @@ TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
                     Names& names = *(Names*)pUser;
                     if (entity == names.root || names.pWorld->getParent(entity) == names.root)
                     {
-                        EXPECT_STREQ(((const hz::Name*)fields.pData[0])->value, names.pExpected);
-                        ++names.count;
+                        EXPECT_STREQ(((const hz::Name*)fields.Data[0])->value, names.pExpected);
+                        ++names.Count;
                     }
                     return true;
                 },
                 &names);
-            EXPECT_EQ(names.count, 2u);
+            EXPECT_EQ(names.Count, 2u);
             hz::WorldArchive archive;
             ASSERT_TRUE(archive.capture(world));
             hz::UniquePtr<hz::World> restored;
@@ -276,7 +276,7 @@ TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
             EXPECT_EQ(world.getParent(child), parent);
             for (uint32_t i = 0; i < failureAt; ++i)
                 EXPECT_FALSE(world.getEntity({ .high = 0x4000, .low = UINT64_C(0x8000000000000020) + i }).isValid());
-            uint32_t       count = 0;
+            uint32_t       Count = 0;
             hz::WorldQuery query(world, {});
             query.each(
                 [](hz::Entity, hz::Span<const void*>, void* pUser)
@@ -284,8 +284,8 @@ TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
                     ++*(uint32_t*)pUser;
                     return true;
                 },
-                &count);
-            EXPECT_EQ(count, 2u);
+                &Count);
+            EXPECT_EQ(Count, 2u);
             world.updateTransforms();
             EXPECT_FLOAT_EQ((float)world.getWorldTransform(child)->current.getElem(3, 0), 3.0f);
             source.failureAt = UINT32_MAX;
@@ -309,17 +309,17 @@ TEST_F(SceneAssetReadTest, OwnsStringsAndSupportsMoveAndReplacement)
     }
     hz::SceneAsset moved(std::move(asset));
     EXPECT_FALSE(asset.isValid());
-    EXPECT_EQ(asset.getNodes().count, 0u);
+    EXPECT_EQ(asset.getNodes().Count, 0u);
     EXPECT_FALSE(asset.getID().isValid());
-    EXPECT_STREQ(moved.getNodes().pData[1].pName, "First");
-    EXPECT_STREQ(moved.getMeshes().pData[0].pGeometry, "scene.bin");
-    EXPECT_STREQ(moved.getMaterials().pData[0].pName, "Leaves");
-    EXPECT_STREQ(moved.getTextures().pData[0].pPath, "Textures/albedo.dds");
+    EXPECT_STREQ(moved.getNodes().Data[1].pName, "First");
+    EXPECT_STREQ(moved.getMeshes().Data[0].pGeometry, "scene.bin");
+    EXPECT_STREQ(moved.getMaterials().Data[0].pName, "Leaves");
+    EXPECT_STREQ(moved.getTextures().Data[0].pPath, "Textures/albedo.dds");
     ASSERT_TRUE(asset.parse(kScene));
     asset = std::move(moved);
     EXPECT_FALSE(moved.isValid());
     ASSERT_TRUE(parse(asset, replaceText("First", "Replaced")));
-    EXPECT_STREQ(asset.getNodes().pData[1].pName, "Replaced");
+    EXPECT_STREQ(asset.getNodes().Data[1].pName, "Replaced");
 }
 
 TEST_F(SceneAssetReadTest, RejectsInvalidIdentityAndReferencesWithoutChangingLoadedData)
@@ -341,13 +341,13 @@ TEST_F(SceneAssetReadTest, RejectsInvalidIdentityAndReferencesWithoutChangingLoa
     };
     hz::SceneAsset asset;
     ASSERT_TRUE(asset.parse(kScene));
-    const hz::SceneAssetNode* nodes = asset.getNodes().pData;
+    const hz::SceneAssetNode* nodes = asset.getNodes().Data;
     for (const char* const* replacement : replacements)
     {
         SCOPED_TRACE(replacement[1]);
         EXPECT_FALSE(parse(asset, replaceText(replacement[0], replacement[1])));
-        EXPECT_EQ(asset.getNodes().pData, nodes);
-        EXPECT_STREQ(asset.getNodes().pData[0].pName, "Root");
+        EXPECT_EQ(asset.getNodes().Data, nodes);
+        EXPECT_STREQ(asset.getNodes().Data[0].pName, "Root");
     }
 }
 
@@ -412,30 +412,30 @@ TEST_F(SceneAssetReadTest, RejectsMalformedJsonPathsAndMaterialFields)
         EXPECT_FALSE(parse(asset, replaceText(replacement[0], replacement[1])));
     }
     EXPECT_TRUE(parse(asset, replaceText("\"alphaCutoff\": 0.5", "\"alphaCutoff\": 2")));
-    EXPECT_FLOAT_EQ(asset.getMaterials().pData[0].alphaCutoff, 2.0f);
+    EXPECT_FLOAT_EQ(asset.getMaterials().Data[0].alphaCutoff, 2.0f);
 }
 
 TEST_F(SceneAssetReadTest, HandlesDeepHierarchyWithoutRecursiveTraversal)
 {
-    const uint32_t count = 10000;
+    const uint32_t Count = 10000;
     for (bool parentFirst : { true, false })
     {
         SCOPED_TRACE(parentFirst);
         std::string json = R"({"format":"Horizon.SceneAsset","version":1,"id":"00000000-0000-4000-8000-000000000001",
             "source":"deep.gltf","contentHash":"fnv1a64:0123456789abcdef","identityHash":"0123456789abcdef",
             "textures":[],"materials":[],"meshes":[],"nodes":[)";
-        for (uint32_t i = 0; i < count; ++i)
+        for (uint32_t i = 0; i < Count; ++i)
         {
             if (i)
                 json += ',';
-            const int parent = parentFirst ? (i ? (int)i - 1 : -1) : (i + 1 == count ? -1 : (int)i + 1);
+            const int parent = parentFirst ? (i ? (int)i - 1 : -1) : (i + 1 == Count ? -1 : (int)i + 1);
             json += "{\"name\":\"Node" + std::to_string(i) + "\",\"parent\":" + std::to_string(parent) +
                     ",\"translation\":[1,0,0],\"rotation\":[0,0,0,1],\"scale\":[1,1,1]}";
         }
         json += "]}";
         hz::SceneAsset asset;
         ASSERT_TRUE(parse(asset, json));
-        ASSERT_EQ(asset.getNodes().count, count);
+        ASSERT_EQ(asset.getNodes().Count, Count);
         hz::TypeRegistry types;
         ASSERT_TRUE(types.registerBuiltins());
         hz::World                world(types);
@@ -450,20 +450,20 @@ TEST_F(SceneAssetReadTest, HandlesDeepHierarchyWithoutRecursiveTraversal)
         {
             hz::World* world;
             hz::Entity root;
-            uint32_t   count;
+            uint32_t   Count;
             bool       parentFirst;
             uint32_t   found = 0;
-        } nodes = { .world = &world, .root = root, .count = count, .parentFirst = parentFirst };
+        } nodes = { .world = &world, .root = root, .Count = Count, .parentFirst = parentFirst };
         hz::WorldQuery query(world, { hz::SceneTypes::name, hz::SceneTypes::localTransform });
         query.each(
             [](hz::Entity entity, hz::Span<const void*> fields, void* pUser)
             {
                 Nodes&          nodes = *(Nodes*)pUser;
-                const hz::Name& name = *(const hz::Name*)fields.pData[0];
+                const hz::Name& name = *(const hz::Name*)fields.Data[0];
                 uint32_t        index = 0;
                 EXPECT_EQ(sscanf(name.value, "Node%u", &index), 1);
-                EXPECT_LT(index, nodes.count);
-                const uint32_t depth = nodes.parentFirst ? index + 1 : nodes.count - index;
+                EXPECT_LT(index, nodes.Count);
+                const uint32_t depth = nodes.parentFirst ? index + 1 : nodes.Count - index;
                 EXPECT_FLOAT_EQ((float)nodes.world->getWorldTransform(entity)->current.getElem(3, 0), (float)depth + 3.0f);
                 const hz::Entity parent = nodes.world->getParent(entity);
                 if (depth == 1)
@@ -482,7 +482,7 @@ TEST_F(SceneAssetReadTest, HandlesDeepHierarchyWithoutRecursiveTraversal)
                 return true;
             },
             &nodes);
-        EXPECT_EQ(nodes.found, count);
+        EXPECT_EQ(nodes.found, Count);
     }
 }
 
@@ -506,25 +506,25 @@ TEST_F(SceneAssetReadTest, CatalogLocatesSubassetsAndDeduplicatesDependencies)
     EXPECT_EQ(root->type, hz::AssetType::Scene);
     EXPECT_STREQ(root->pSourcePath, "scene.gltf");
     EXPECT_EQ(root->location.elementIndex, UINT32_MAX);
-    ASSERT_EQ(root->dependencies.count, 1u);
-    const hz::AssetCatalogEntry* mesh = catalog.find(root->dependencies.pData[0]);
+    ASSERT_EQ(root->dependencies.Count, 1u);
+    const hz::AssetCatalogEntry* mesh = catalog.find(root->dependencies.Data[0]);
     ASSERT_NE(mesh, nullptr);
     EXPECT_EQ(mesh->type, hz::AssetType::Mesh);
     EXPECT_EQ(mesh->location.elementIndex, 0u);
     EXPECT_STREQ(mesh->location.pPath, "Scenes/scene.sceneasset.json");
     EXPECT_EQ(mesh->location.root, hz::AssetPathRoot::Cooked);
-    ASSERT_EQ(mesh->dependencies.count, 1u);
-    const hz::AssetCatalogEntry* material = catalog.find(mesh->dependencies.pData[0]);
+    ASSERT_EQ(mesh->dependencies.Count, 1u);
+    const hz::AssetCatalogEntry* material = catalog.find(mesh->dependencies.Data[0]);
     ASSERT_NE(material, nullptr);
     EXPECT_EQ(material->type, hz::AssetType::Material);
     EXPECT_EQ(material->location.elementIndex, 0u);
-    ASSERT_EQ(material->dependencies.count, 2u);
-    EXPECT_EQ(material->dependencies.pData[0], scene.getMaterials().pData[0].baseColorTexture);
-    EXPECT_EQ(material->dependencies.pData[1], scene.getMaterials().pData[0].normalTexture);
-    const hz::AssetCatalogEntry* texture = catalog.find(material->dependencies.pData[0]);
+    ASSERT_EQ(material->dependencies.Count, 2u);
+    EXPECT_EQ(material->dependencies.Data[0], scene.getMaterials().Data[0].baseColorTexture);
+    EXPECT_EQ(material->dependencies.Data[1], scene.getMaterials().Data[0].normalTexture);
+    const hz::AssetCatalogEntry* texture = catalog.find(material->dependencies.Data[0]);
     ASSERT_NE(texture, nullptr);
     EXPECT_EQ(texture->type, hz::AssetType::Texture);
-    EXPECT_EQ(texture->dependencies.count, 0u);
+    EXPECT_EQ(texture->dependencies.Count, 0u);
     EXPECT_STREQ(texture->pSourcePath, "Textures/albedo.png");
     EXPECT_STREQ(texture->location.pPath, "Textures/albedo.dds");
     EXPECT_EQ(texture->location.root, hz::AssetPathRoot::Cooked);
@@ -544,7 +544,7 @@ TEST_F(SceneAssetReadTest, CatalogOwnsMetadataAcrossSceneDestructionMoveAndClear
         std::string path = "Scenes/scene.sceneasset.json";
         ASSERT_TRUE(catalog.addScene(scene, path.c_str()));
         id = scene.getID();
-        textureID = scene.getTextures().pData[0].id;
+        textureID = scene.getTextures().Data[0].id;
         path.assign(path.size(), '!');
     }
     hz::AssetCatalog moved(std::move(catalog));
@@ -553,7 +553,7 @@ TEST_F(SceneAssetReadTest, CatalogOwnsMetadataAcrossSceneDestructionMoveAndClear
     ASSERT_NE(moved.find(id), nullptr);
     EXPECT_STREQ(moved.find(id)->location.pPath, "Scenes/scene.sceneasset.json");
     EXPECT_EQ(moved.find(textureID)->location.root, hz::AssetPathRoot::Source);
-    EXPECT_NE(moved.find(moved.find(id)->dependencies.pData[0]), nullptr);
+    EXPECT_NE(moved.find(moved.find(id)->dependencies.Data[0]), nullptr);
     hz::SceneAsset scene;
     ASSERT_TRUE(scene.parse(kScene));
     ASSERT_TRUE(catalog.addScene(scene, "replacement.sceneasset.json"));
@@ -599,19 +599,19 @@ TEST_F(SceneAssetReadTest, CatalogSharesExternalTexturesAndRejectsConflictsAtomi
     ASSERT_TRUE(parse(conflict, changed));
     EXPECT_FALSE(catalog.addScene(conflict, "first.sceneasset.json"));
     EXPECT_EQ(catalog.getCount(), 7u);
-    EXPECT_EQ(catalog.find(conflict.getTextures().pData[0].id), nullptr);
+    EXPECT_EQ(catalog.find(conflict.getTextures().Data[0].id), nullptr);
     hz::AssetCatalog reverse;
     ASSERT_TRUE(reverse.addScene(second, "second.sceneasset.json"));
     ASSERT_TRUE(reverse.addScene(first, "first.sceneasset.json"));
     EXPECT_EQ(reverse.getCount(), catalog.getCount());
-    EXPECT_STREQ(reverse.find(first.getTextures().pData[0].id)->pSourcePath, "Textures/albedo.png");
+    EXPECT_STREQ(reverse.find(first.getTextures().Data[0].id)->pSourcePath, "Textures/albedo.png");
     hz::AssetCatalog firstOnly, secondOnly;
     ASSERT_TRUE(firstOnly.addScene(first, "first.sceneasset.json"));
     ASSERT_TRUE(secondOnly.addScene(second, "second.sceneasset.json"));
-    const hz::AssetCatalogEntry* pShared = firstOnly.find(first.getTextures().pData[0].id);
+    const hz::AssetCatalogEntry* pShared = firstOnly.find(first.getTextures().Data[0].id);
     ASSERT_TRUE(firstOnly.merge(secondOnly));
     EXPECT_EQ(firstOnly.getCount(), 7u);
-    EXPECT_EQ(firstOnly.find(first.getTextures().pData[0].id), pShared);
+    EXPECT_EQ(firstOnly.find(first.getTextures().Data[0].id), pShared);
     ASSERT_TRUE(
         secondOnly.replace({ .id = first.getID(), .pSourcePath = "different.gltf", .location = { .pPath = "different.sceneasset.json" } }));
     EXPECT_FALSE(firstOnly.merge(secondOnly));
@@ -638,20 +638,20 @@ TEST_F(SceneAssetReadTest, CatalogSerializationIsDeterministicAndRoundTrips)
     hz::AssetCatalog catalog, reverse, decoded;
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
     ASSERT_TRUE(reverse.add(*catalog.find(scene.getID())));
-    ASSERT_TRUE(reverse.add(*catalog.find(scene.getMeshes().pData[0].id)));
-    ASSERT_TRUE(reverse.add(*catalog.find(scene.getMaterials().pData[0].id)));
-    ASSERT_TRUE(reverse.add(*catalog.find(scene.getTextures().pData[0].id)));
+    ASSERT_TRUE(reverse.add(*catalog.find(scene.getMeshes().Data[0].id)));
+    ASSERT_TRUE(reverse.add(*catalog.find(scene.getMaterials().Data[0].id)));
+    ASSERT_TRUE(reverse.add(*catalog.find(scene.getTextures().Data[0].id)));
     hz::Array<char> first, second, roundtrip;
     ASSERT_TRUE(catalog.serialize(first));
     ASSERT_TRUE(reverse.serialize(second));
-    EXPECT_STREQ(first.data(), second.data());
-    ASSERT_TRUE(decoded.parse({ first.data(), first.size() }));
+    EXPECT_STREQ(first.GetData(), second.GetData());
+    ASSERT_TRUE(decoded.parse({ first.GetData(), first.Size() }));
     ASSERT_TRUE(decoded.serialize(roundtrip));
-    EXPECT_STREQ(first.data(), roundtrip.data());
+    EXPECT_STREQ(first.GetData(), roundtrip.GetData());
     EXPECT_EQ(decoded.getCount(), catalog.getCount());
-    EXPECT_EQ(decoded.find(scene.getMeshes().pData[0].id)->location.elementIndex, 0u);
-    EXPECT_TRUE(decoded.find(scene.getTextures().pData[0].id)->srgb);
-    EXPECT_EQ(decoded.find(scene.getID())->dependencies.pData[0], scene.getMeshes().pData[0].id);
+    EXPECT_EQ(decoded.find(scene.getMeshes().Data[0].id)->location.elementIndex, 0u);
+    EXPECT_TRUE(decoded.find(scene.getTextures().Data[0].id)->srgb);
+    EXPECT_EQ(decoded.find(scene.getID())->dependencies.Data[0], scene.getMeshes().Data[0].id);
 }
 
 TEST_F(SceneAssetReadTest, CatalogRejectsInvalidIndexWithoutChangingPublishedEntries)
@@ -678,7 +678,7 @@ TEST_F(SceneAssetReadTest, CatalogRejectsInvalidIndexWithoutChangingPublishedEnt
     for (const auto& replacement : replacements)
     {
         SCOPED_TRACE(replacement[1]);
-        std::string  invalid(json.data());
+        std::string  invalid(json.GetData());
         const size_t offset = invalid.find(replacement[0]);
         ASSERT_NE(offset, std::string::npos);
         invalid.replace(offset, strlen(replacement[0]), replacement[1]);
@@ -686,7 +686,7 @@ TEST_F(SceneAssetReadTest, CatalogRejectsInvalidIndexWithoutChangingPublishedEnt
         EXPECT_EQ(catalog.find(scene.getID()), original);
         EXPECT_EQ(catalog.getCount(), 4u);
     }
-    std::string trailing(json.data());
+    std::string trailing(json.GetData());
     trailing += "{}";
     EXPECT_FALSE(catalog.parse({ trailing.data(), (uint32_t)trailing.size() }));
     EXPECT_FALSE(catalog.parse({}));
@@ -714,15 +714,15 @@ TEST_F(SceneAssetReadTest, CatalogReplacementRemovalAndFullReloadPreserveOldMeta
     EXPECT_FALSE(catalog.remove(id));
     EXPECT_EQ(catalog.find(id), nullptr);
     EXPECT_STREQ(updated->location.pPath, "new.sceneasset.json");
-    EXPECT_EQ(original->dependencies.pData[0], scene.getMeshes().pData[0].id);
+    EXPECT_EQ(original->dependencies.Data[0], scene.getMeshes().Data[0].id);
     hz::AssetCatalog Empty;
     hz::Array<char>  json;
     ASSERT_TRUE(Empty.serialize(json));
-    ASSERT_TRUE(catalog.parse({ json.data(), json.size() }));
+    ASSERT_TRUE(catalog.parse({ json.GetData(), json.Size() }));
     EXPECT_EQ(catalog.getCount(), 0u);
     EXPECT_STREQ(original->pSourcePath, "scene.gltf");
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
     ASSERT_TRUE(catalog.serialize(json));
-    ASSERT_TRUE(catalog.parse({ json.data(), json.size() }));
+    ASSERT_TRUE(catalog.parse({ json.GetData(), json.Size() }));
     EXPECT_EQ(catalog.getCount(), 4u);
 }

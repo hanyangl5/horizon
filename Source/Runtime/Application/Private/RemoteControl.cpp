@@ -46,7 +46,7 @@
 
 // typedef struct RemoteCommandHeader
 // {
-//     uint32_t                 size = 0;
+//     uint32_t                 Size = 0;
 //     RemoteControlMessageType type = REMOTE_MESSAGE_INVALID;
 //     uint8_t                  padding[3] = { 0, 0, 0 };
 // } RemoteCommandHeader;
@@ -115,16 +115,16 @@
 //     tfrg_atomic64_t mIsBufferReady[2];
 //     tfrg_atomic64_t mIsBufferInUse[2];
 
-//     size_t size;
+//     size_t Size;
 // };
 
-// void init_circular_buffer(CircularBuffer* circularBuffer, size_t size)
+// void init_circular_buffer(CircularBuffer* circularBuffer, size_t Size)
 // {
-//     circularBuffer->size = size;
-//     circularBuffer->mBuffer1 = (unsigned char*)MemAllocate(size);
-//     circularBuffer->mBuffer2 = (unsigned char*)MemAllocate(size);
-//     memset(circularBuffer->mBuffer1, 0, size);
-//     memset(circularBuffer->mBuffer2, 0, size);
+//     circularBuffer->Size = Size;
+//     circularBuffer->mBuffer1 = (unsigned char*)MemAllocate(Size);
+//     circularBuffer->mBuffer2 = (unsigned char*)MemAllocate(Size);
+//     memset(circularBuffer->mBuffer1, 0, Size);
+//     memset(circularBuffer->mBuffer2, 0, Size);
 
 //     tfrg_atomic64_store_relaxed(&circularBuffer->mActiveBuffer, 0);
 //     tfrg_atomic64_store_relaxed(&circularBuffer->mIsBufferReady[0], 0);
@@ -178,11 +178,11 @@
 //     uint64_t readBufferIndex = 1 - tfrg_atomic64_load_relaxed(&circularBuffer->mActiveBuffer);
 //     if (readBufferIndex == 0)
 //     {
-//         memset(circularBuffer->mBuffer1, 0, circularBuffer->size);
+//         memset(circularBuffer->mBuffer1, 0, circularBuffer->Size);
 //     }
 //     else
 //     {
-//         memset(circularBuffer->mBuffer2, 0, circularBuffer->size);
+//         memset(circularBuffer->mBuffer2, 0, circularBuffer->Size);
 //     }
 //     tfrg_atomic64_store_relaxed(&circularBuffer->mIsBufferReady[readBufferIndex], 0);
 //     tfrg_atomic64_store_relaxed(&circularBuffer->mIsBufferInUse[readBufferIndex], 0);
@@ -192,19 +192,19 @@
 // // MARK: - Common
 // /****************************************************************************/
 
-// static size_t bufferedSend(Socket* socket, unsigned char* data, size_t size)
+// static size_t bufferedSend(Socket* socket, unsigned char* data, size_t Size)
 // {
-//     size_t remainingSize = size;
+//     size_t remainingSize = Size;
 //     while (remainingSize > 0)
 //     {
-//         ssize_t receivedSize = socketSend(socket, data + size - remainingSize, remainingSize);
+//         ssize_t receivedSize = socketSend(socket, data + Size - remainingSize, remainingSize);
 //         if (receivedSize > 0)
 //         {
 //             remainingSize -= receivedSize;
 //         }
 //         else if (receivedSize == 0)
 //         {
-//             return size - remainingSize;
+//             return Size - remainingSize;
 //         }
 //         else
 //         {
@@ -214,22 +214,22 @@
 //         }
 //     }
 
-//     return size;
+//     return Size;
 // }
 
-// static size_t bufferedReceive(Socket* socket, unsigned char* data, size_t size)
+// static size_t bufferedReceive(Socket* socket, unsigned char* data, size_t Size)
 // {
-//     size_t remainingSize = size;
+//     size_t remainingSize = Size;
 //     while (remainingSize > 0)
 //     {
-//         ssize_t receivedSize = socketRecv(socket, data + size - remainingSize, remainingSize);
+//         ssize_t receivedSize = socketRecv(socket, data + Size - remainingSize, remainingSize);
 //         if (receivedSize > 0)
 //         {
 //             remainingSize -= receivedSize;
 //         }
 //         else if (receivedSize == 0)
 //         {
-//             return size - remainingSize;
+//             return Size - remainingSize;
 //         }
 //         else
 //         {
@@ -239,13 +239,13 @@
 //         }
 //     }
 
-//     return size;
+//     return Size;
 // }
 
 // static bool sendPing(Socket* socket)
 // {
 //     RemoteCommandHeader remoteCommandHeader = {};
-//     remoteCommandHeader.size = sizeof(remoteCommandHeader);
+//     remoteCommandHeader.Size = sizeof(remoteCommandHeader);
 //     remoteCommandHeader.type = REMOTE_MESSAGE_PING;
 
 //     return bufferedSend(socket, (unsigned char*)&remoteCommandHeader, sizeof(remoteCommandHeader));
@@ -254,7 +254,7 @@
 // static bool sendDisconnect(Socket* socket)
 // {
 //     RemoteCommandHeader remoteCommandHeader = {};
-//     remoteCommandHeader.size = sizeof(remoteCommandHeader);
+//     remoteCommandHeader.Size = sizeof(remoteCommandHeader);
 //     remoteCommandHeader.type = REMOTE_MESSAGE_DISCONNECT;
 
 //     return bufferedSend(socket, (unsigned char*)&remoteCommandHeader, sizeof(remoteCommandHeader));
@@ -318,7 +318,7 @@
 //     size_t offset = 0;
 
 //     RemoteCommandUserInterfaceDrawData drawData = {};
-//     drawData.mHeader.size = (uint32_t)packetSize;
+//     drawData.mHeader.Size = (uint32_t)packetSize;
 //     drawData.vertexCount = pDrawData->vertexCount;
 //     drawData.indexCount = pDrawData->indexCount;
 //     drawData.vertexSize = pDrawData->vertexSize;
@@ -368,7 +368,7 @@
 //     if (drawDataToSend)
 //     {
 //         sendSucceed =
-//             sendSucceed && (bufferedSend(socket, drawDataToSend, ((RemoteCommandUserInterfaceDrawData*)drawDataToSend)->mHeader.size) >
+//             sendSucceed && (bufferedSend(socket, drawDataToSend, ((RemoteCommandUserInterfaceDrawData*)drawDataToSend)->mHeader.Size) >
 //             0);
 //         mark_buffer_processed(&pRemoteAppServer->mAwaitingSendDrawData);
 //     }
@@ -380,7 +380,7 @@
 //     if (textureDataToSend)
 //     {
 //         sendSucceed &=
-//             (bufferedSend(socket, textureDataToSend, ((RemoteCommandUserInterfaceTexture*)textureDataToSend)->mHeader.size) > 0);
+//             (bufferedSend(socket, textureDataToSend, ((RemoteCommandUserInterfaceTexture*)textureDataToSend)->mHeader.Size) > 0);
 //         mark_buffer_processed(&pRemoteAppServer->mAwaitingSendTextureData);
 //     }
 
@@ -433,7 +433,7 @@
 //                     isDataReceived = bufferedReceive(
 //                         socket,
 //                         oldInputs + sizeof(RemoteCommandUserInterfaceInput) + *oldNumInputs *
-//                         sizeof(RemoteCommandUserInterfaceInputData), remoteCommandHeader.size - sizeof(RemoteCommandUserInterfaceInput)
+//                         sizeof(RemoteCommandUserInterfaceInputData), remoteCommandHeader.Size - sizeof(RemoteCommandUserInterfaceInput)
 //                         - sizeof(RemoteCommandHeader));
 //                     if (isDataReceived)
 //                     {
@@ -466,9 +466,9 @@
 //     }
 // }
 
-// static void server(void* pData)
+// static void server(void* Data)
 // {
-//     UNREF_PARAM(pData);
+//     UNREF_PARAM(Data);
 //     while (pRemoteAppServer->mServerListenSocket && !pRemoteAppServer->mDisconnect)
 //     {
 //         SocketAddr addr = {};
@@ -532,7 +532,7 @@
 
 //     ThreadDesc threadDesc = {};
 //     threadDesc.pFunc = server;
-//     threadDesc.pData = NULL;
+//     threadDesc.Data = NULL;
 //     strncpy(threadDesc.threadName, "RemoteAppServerThread", sizeof(threadDesc.threadName));
 //     InitThread(&threadDesc, &pRemoteAppServer->mServerThread);
 // }
@@ -623,7 +623,7 @@
 //     swap_buffers(&pRemoteAppServer->mAwaitingSendDrawData);
 // }
 
-// void remoteControlSendTexture(TinyImageFormat format, uint64_t textureId, uint32_t width, uint32_t height, uint32_t size,
+// void remoteControlSendTexture(TinyImageFormat format, uint64_t textureId, uint32_t width, uint32_t height, uint32_t Size,
 //                               unsigned char* ptr)
 // {
 //     if (!pRemoteAppServer || pRemoteAppServer->mServerConnectionSocket == SOCKET_INVALID)
@@ -633,15 +633,15 @@
 
 //     unsigned char*                    data = get_write_buffer(&pRemoteAppServer->mAwaitingSendTextureData);
 //     RemoteCommandUserInterfaceTexture textureCommand = {};
-//     textureCommand.mHeader = RemoteCommandHeader{ (uint32_t)sizeof(RemoteCommandUserInterfaceTexture) + size, REMOTE_MESSAGE_TEXTURE };
+//     textureCommand.mHeader = RemoteCommandHeader{ (uint32_t)sizeof(RemoteCommandUserInterfaceTexture) + Size, REMOTE_MESSAGE_TEXTURE };
 //     textureCommand.textureId = textureId;
 //     textureCommand.width = width;
 //     textureCommand.height = height;
-//     textureCommand.mTextureSize = size;
+//     textureCommand.mTextureSize = Size;
 //     textureCommand.format = format;
 
 //     memcpy(data, &textureCommand, sizeof(RemoteCommandUserInterfaceTexture));
-//     memcpy(data + sizeof(RemoteCommandUserInterfaceTexture), ptr, size);
+//     memcpy(data + sizeof(RemoteCommandUserInterfaceTexture), ptr, Size);
 //     swap_buffers(&pRemoteAppServer->mAwaitingSendTextureData);
 // }
 
@@ -664,9 +664,9 @@
 // #ifdef FORGE_TOOLS // Only the UIRemoteControl tool can be the remote control client
 
 // /// Unpack the stream of bytes to UserInterfaceDrawData
-// static void unpackUserInterfaceDrawData(unsigned char* pData, UserInterfaceDrawData* drawData)
+// static void unpackUserInterfaceDrawData(unsigned char* Data, UserInterfaceDrawData* drawData)
 // {
-//     RemoteCommandUserInterfaceDrawData* remoteDrawData = (RemoteCommandUserInterfaceDrawData*)pData;
+//     RemoteCommandUserInterfaceDrawData* remoteDrawData = (RemoteCommandUserInterfaceDrawData*)Data;
 //     size_t                              offset = sizeof(RemoteCommandUserInterfaceDrawData);
 
 //     drawData->displayPos = remoteDrawData->displayPos;
@@ -685,7 +685,7 @@
 
 //     for (uint32_t i = 0; i < drawData->numDrawCommands; i++)
 //     {
-//         RemoteCommandUserInterfaceDrawCommand* remoteDrawCommand = (RemoteCommandUserInterfaceDrawCommand*)(pData + offset);
+//         RemoteCommandUserInterfaceDrawCommand* remoteDrawCommand = (RemoteCommandUserInterfaceDrawCommand*)(Data + offset);
 //         offset += sizeof(RemoteCommandUserInterfaceDrawCommand);
 
 //         drawData->drawCommands[i] = remoteDrawCommand->mElement;
@@ -723,9 +723,9 @@
 //     size_t vertexSizeAligned = ((size_t)remoteDrawData->vertexCount * remoteDrawData->vertexSize / 8 + 1) * 8;
 //     size_t indexSizeAligned = ((size_t)remoteDrawData->indexCount * remoteDrawData->indexSize / 8 + 1) * 8;
 
-//     memcpy(drawData->vertexBufferData, pData + offset, (size_t)remoteDrawData->vertexCount * remoteDrawData->vertexSize);
+//     memcpy(drawData->vertexBufferData, Data + offset, (size_t)remoteDrawData->vertexCount * remoteDrawData->vertexSize);
 //     offset += vertexSizeAligned;
-//     memcpy(drawData->indexBufferData, pData + offset, (size_t)remoteDrawData->indexCount * remoteDrawData->indexSize);
+//     memcpy(drawData->indexBufferData, Data + offset, (size_t)remoteDrawData->indexCount * remoteDrawData->indexSize);
 //     offset += indexSizeAligned;
 
 //     drawData->vertexCount = remoteDrawData->vertexCount;
@@ -775,7 +775,7 @@
 //     if (inputDataToSend)
 //     {
 //         sendSucceed =
-//             sendSucceed && (bufferedSend(socket, inputDataToSend, ((RemoteCommandUserInterfaceInput*)inputDataToSend)->mHeader.size) >
+//             sendSucceed && (bufferedSend(socket, inputDataToSend, ((RemoteCommandUserInterfaceInput*)inputDataToSend)->mHeader.Size) >
 //             0);
 //         mark_buffer_processed(&pRemoteControlClient->mAwaitingSendInput);
 //     }
@@ -807,7 +807,7 @@
 //             {
 //                 unsigned char* receivedDrawFrameData = get_write_buffer(&pRemoteControlClient->mReceivedDrawData);
 //                 bufferedReceive(socket, receivedDrawFrameData + sizeof(RemoteCommandHeader),
-//                                 remoteCommandHeader.size - sizeof(RemoteCommandHeader));
+//                                 remoteCommandHeader.Size - sizeof(RemoteCommandHeader));
 //                 swap_buffers(&pRemoteControlClient->mReceivedDrawData);
 //             }
 //             break;
@@ -815,7 +815,7 @@
 //             {
 //                 unsigned char* receivedTextureData = get_write_buffer(&pRemoteControlClient->mReceivedTextureData);
 //                 bufferedReceive(socket, receivedTextureData + sizeof(RemoteCommandHeader),
-//                                 remoteCommandHeader.size - sizeof(RemoteCommandHeader));
+//                                 remoteCommandHeader.Size - sizeof(RemoteCommandHeader));
 //                 swap_buffers(&pRemoteControlClient->mReceivedTextureData);
 //             }
 //             break;
@@ -841,9 +841,9 @@
 //     }
 // }
 
-// static void client(void* pData)
+// static void client(void* Data)
 // {
-//     UNREF_PARAM(pData);
+//     UNREF_PARAM(Data);
 //     while (pRemoteControlClient->mClientConnectionSocket)
 //     {
 //         bool sendSucceed = clientSend(&pRemoteControlClient->mClientConnectionSocket);
@@ -905,7 +905,7 @@
 
 //         ThreadDesc threadDesc = {};
 //         threadDesc.pFunc = client;
-//         threadDesc.pData = NULL;
+//         threadDesc.Data = NULL;
 //         strncpy(threadDesc.threadName, "RemoteControlClientThread", sizeof(threadDesc.threadName));
 //         InitThread(&threadDesc, &pRemoteControlClient->mClientThread);
 //     }
@@ -1029,7 +1029,7 @@
 //     packetSize += (numPrevInputs + numInputs) * sizeof(RemoteCommandUserInterfaceInputData);
 
 //     RemoteCommandUserInterfaceInput drawData = {};
-//     drawData.mHeader.size = (uint32_t)packetSize;
+//     drawData.mHeader.Size = (uint32_t)packetSize;
 //     drawData.mNumInputs = numInputs + numPrevInputs;
 //     memcpy(packedData, &drawData, sizeof(RemoteCommandUserInterfaceInput));
 

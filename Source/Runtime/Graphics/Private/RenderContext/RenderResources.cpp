@@ -15,7 +15,7 @@ namespace hz
 GPUBuffer::GPUBuffer(RenderContext* context, Buffer* buffer, uint64_t bufferSize, ResourceMemoryUsage memoryUsage,
                      DescriptorType bufferDescriptors, ResourceState initialState):
     pContext(context),
-    pBuffer(buffer), size(bufferSize), usage(memoryUsage), descriptors(bufferDescriptors), state(initialState)
+    pBuffer(buffer), Size(bufferSize), usage(memoryUsage), descriptors(bufferDescriptors), state(initialState)
 {
     ASSERT(pContext && pBuffer);
     ++pContext->resourceCount;
@@ -24,12 +24,12 @@ GPUBuffer::GPUBuffer(RenderContext* context, Buffer* buffer, uint64_t bufferSize
 GPUBuffer::~GPUBuffer() { destroy(); }
 
 GPUBuffer::GPUBuffer(GPUBuffer&& other) noexcept:
-    pContext(other.pContext), pBuffer(other.pBuffer), size(other.size), usage(other.usage), descriptors(other.descriptors),
+    pContext(other.pContext), pBuffer(other.pBuffer), Size(other.Size), usage(other.usage), descriptors(other.descriptors),
     state(other.state)
 {
     other.pContext = nullptr;
     other.pBuffer = nullptr;
-    other.size = 0;
+    other.Size = 0;
     other.usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
     other.descriptors = DESCRIPTOR_TYPE_UNDEFINED;
     other.state = RESOURCE_STATE_UNDEFINED;
@@ -42,13 +42,13 @@ GPUBuffer& GPUBuffer::operator=(GPUBuffer&& other) noexcept
         destroy();
         pContext = other.pContext;
         pBuffer = other.pBuffer;
-        size = other.size;
+        Size = other.Size;
         usage = other.usage;
         descriptors = other.descriptors;
         state = other.state;
         other.pContext = nullptr;
         other.pBuffer = nullptr;
-        other.size = 0;
+        other.Size = 0;
         other.usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
         other.descriptors = DESCRIPTOR_TYPE_UNDEFINED;
         other.state = RESOURCE_STATE_UNDEFINED;
@@ -244,10 +244,10 @@ void GPUPipeline::destroy()
 
 GPUBuffer RenderContext::createBuffer(const BufferDesc& input)
 {
-    ASSERT(ready && input.size && input.initialDataSize <= input.size && ((input.pInitialData != nullptr) == (input.initialDataSize != 0)));
+    ASSERT(ready && input.Size && input.initialDataSize <= input.Size && ((input.pInitialData != nullptr) == (input.initialDataSize != 0)));
 
     ::BufferDesc desc = {};
-    desc.size = input.size;
+    desc.Size = input.Size;
     desc.elementCount = input.elementCount;
     desc.structStride = input.structStride;
     desc.pName = input.pName;
@@ -259,11 +259,11 @@ GPUBuffer RenderContext::createBuffer(const BufferDesc& input)
 
     Buffer*        buffer = nullptr;
     SyncToken      token = 0;
-    BufferLoadDesc load = { .ppBuffer = &buffer, .pData = input.pInitialData, .desc = desc };
+    BufferLoadDesc load = { .ppBuffer = &buffer, .Data = input.pInitialData, .desc = desc };
     addResource(&load, &token);
     ASSERT(buffer);
     waitForToken(&token);
-    return GPUBuffer(this, buffer, input.size, input.usage, input.descriptors, input.startState);
+    return GPUBuffer(this, buffer, input.Size, input.usage, input.descriptors, input.startState);
 }
 
 GPUTexture RenderContext::createTexture(const TextureDesc& input)
@@ -474,10 +474,10 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
     }
     if (pFileSource)
         snprintf(sourcePath, sizeof(sourcePath), "%s/%s", GetResourceDirectory(input.sourceDirectory), input.pFileName);
-    uint32_t stageCount = input.stages.count;
+    uint32_t stageCount = input.stages.Count;
     for (uint32_t i = 0; i < stageCount; ++i)
     {
-        const ShaderStageDesc& inputStage = *(input.stages.pData + i);
+        const ShaderStageDesc& inputStage = *(input.stages.Data + i);
         ShaderSrcStageDesc*    stage = nullptr;
         switch (inputStage.stage)
         {
@@ -517,7 +517,7 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
 
 GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& input)
 {
-    ASSERT(ready && input.colorTargets.count <= MAX_RENDER_TARGETS && (input.colorTargets.pData || !input.colorTargets.count));
+    ASSERT(ready && input.colorTargets.Count <= MAX_RENDER_TARGETS && (input.colorTargets.Data || !input.colorTargets.Count));
     Shader* shader = this->createShader(input.shaderDesc);
     ASSERT(shader);
     Shader*           shaders[] = { shader };
@@ -530,14 +530,14 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
     RasterizerStateDesc raster = input.rasterizer;
     DepthStateDesc      depth = input.depth;
     BlendStateDesc      blend = {
-        .renderTargetMask = (BlendStateTargets)((1u << input.colorTargets.count) - 1),
+        .renderTargetMask = (BlendStateTargets)((1u << input.colorTargets.Count) - 1),
         .alphaToCoverage = input.alphaToCoverage,
         .independentBlend = true,
     };
     hz::Format formats[MAX_RENDER_TARGETS] = {};
-    for (uint32_t i = 0; i < input.colorTargets.count; ++i)
+    for (uint32_t i = 0; i < input.colorTargets.Count; ++i)
     {
-        const ColorTargetDesc& target = input.colorTargets.pData[i];
+        const ColorTargetDesc& target = input.colorTargets.Data[i];
         formats[i] = target.format;
         blend.srcFactors[i] = target.srcFactor;
         blend.dstFactors[i] = target.dstFactor;
@@ -556,7 +556,7 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
             .pDepthState = &depth,
             .pRasterizerState = &raster,
             .pColorFormats = formats,
-            .renderTargetCount = input.colorTargets.count,
+            .renderTargetCount = input.colorTargets.Count,
             .sampleCount = input.sampleCount,
             .depthStencilFormat = input.depthStencilFormat,
             .primitiveTopo = input.topology,
@@ -617,15 +617,15 @@ bool RenderContext::getGpuAddress(const GPUBuffer& buffer, uint64_t* pAddress) c
     return true;
 }
 
-bool RenderContext::updateBuffer(const GPUBuffer& buffer, uint64_t offset, const void* pData, uint64_t size)
+bool RenderContext::updateBuffer(const GPUBuffer& buffer, uint64_t offset, const void* Data, uint64_t Size)
 {
-    ASSERT(ready && buffer.pBuffer && pData && size);
-    ASSERT(buffer.usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU && offset <= buffer.size && size <= buffer.size - offset &&
+    ASSERT(ready && buffer.pBuffer && Data && Size);
+    ASSERT(buffer.usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU && offset <= buffer.Size && Size <= buffer.Size - offset &&
            buffer.pBuffer->pCpuMappedAddress);
-    if (buffer.usage != RESOURCE_MEMORY_USAGE_CPU_TO_GPU || offset > buffer.size || size > buffer.size - offset ||
+    if (buffer.usage != RESOURCE_MEMORY_USAGE_CPU_TO_GPU || offset > buffer.Size || Size > buffer.Size - offset ||
         !buffer.pBuffer->pCpuMappedAddress)
         return false;
-    memcpy((uint8_t*)buffer.pBuffer->pCpuMappedAddress + offset, pData, (size_t)size);
+    memcpy((uint8_t*)buffer.pBuffer->pCpuMappedAddress + offset, Data, (size_t)Size);
     return true;
 }
 
@@ -678,8 +678,8 @@ bool RenderContext::initPipelineCache()
             pBlob = MemAllocate(blobSize);
             if (pBlob && ReadFromStream(&stream, pBlob, blobSize) == blobSize)
             {
-                cacheDesc.pData = pBlob;
-                cacheDesc.size = blobSize;
+                cacheDesc.Data = pBlob;
+                cacheDesc.Size = blobSize;
             }
         }
         CloseStream(&stream);

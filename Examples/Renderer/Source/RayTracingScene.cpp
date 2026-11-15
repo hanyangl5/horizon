@@ -8,11 +8,11 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
     if (GeometryRevision != Draws.GetGeometryRevision())
     {
         hz::Array<hz::GPUAccelerationStructure> Previous = std::move(BottomLevelAS);
-        BottomLevelAS.resize(Geometries.count);
-        for (uint32_t Index = 0; Index < Geometries.count; ++Index)
+        BottomLevelAS.resize(Geometries.Count);
+        for (uint32_t Index = 0; Index < Geometries.Count; ++Index)
         {
-            const DrawGeometry& Source = Geometries.pData[Index];
-            if (GeometryRevision + 1 == Draws.GetGeometryRevision() && Source.PreviousIndex < Previous.size())
+            const DrawGeometry& Source = Geometries.Data[Index];
+            if (GeometryRevision + 1 == Draws.GetGeometryRevision() && Source.PreviousIndex < Previous.Size())
             {
                 BottomLevelAS[Index] = std::move(Previous[Source.PreviousIndex]);
                 continue;
@@ -66,14 +66,14 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
     }
     ASSERT(TopLevelAS.isValid());
     uint32_t InstanceIndex = 0;
-    for (uint32_t DrawIndex = 0; DrawIndex < Prepared.count; ++DrawIndex)
+    for (uint32_t DrawIndex = 0; DrawIndex < Prepared.Count; ++DrawIndex)
     {
-        const GpuDrawData& Draw = Prepared.pData[DrawIndex];
+        const GpuDrawData& Draw = Prepared.Data[DrawIndex];
         if (Draw.alphaMode == uint32_t(hz::MaterialAlphaMode::Blend))
         {
             continue;
         }
-        const Matrix4&                    Transform = View.Scene.getInstances().pData[Draw.instance].current;
+        const Matrix4&                    Transform = View.Scene.getInstances().Data[Draw.instance].current;
         hz::AccelerationStructureInstance Instance = {
             .pBottom = &BottomLevelAS[Draws.GetGeometryIndex(DrawIndex)],
             .instanceId = DrawIndex,

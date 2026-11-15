@@ -59,7 +59,7 @@ static bool ShaderVariableCmp(ShaderVariable* a, ShaderVariable* b)
     bool isSame = true;
 
     isSame = isSame && (a->offset == b->offset);
-    isSame = isSame && (a->size == b->size);
+    isSame = isSame && (a->Size == b->Size);
     isSame = isSame && (a->name_size == b->name_size);
 
     // early exit before string cmp
@@ -115,7 +115,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
 
     // Combine all shaders
     // this will have a large amount of looping
-    // 1. count number of resources
+    // 1. Count number of resources
     uint32_t        vertexStageIndex = ~0u;
     uint32_t        hullStageIndex = ~0u;
     uint32_t        domainStageIndex = ~0u;
@@ -212,7 +212,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
         }
     }
 
-    // Copy over the shader resources in a dynamic array of the correct size
+    // Copy over the shader resources in a dynamic array of the correct Size
     if (arrlen(pUniqueResources))
     {
         pResources = (ShaderResource*)MemCallocate(arrlen(pUniqueResources), sizeof(ShaderResource));
@@ -224,7 +224,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
         }
     }
 
-    // Copy over the shader variables in a dynamic array of the correct size
+    // Copy over the shader variables in a dynamic array of the correct Size
     if (arrlen(pUniqueVariable))
     {
         pVariables = (ShaderVariable*)MemAllocate(sizeof(ShaderVariable) * arrlen(pUniqueVariable));

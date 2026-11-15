@@ -184,7 +184,7 @@ GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
     ASSERT(pipeline.isValid());
 
     vertices = context.createBuffer({
-        .size = sizeof(Vertex) * kGeneratedVertexCount,
+        .Size = sizeof(Vertex) * kGeneratedVertexCount,
         .elementCount = kGeneratedVertexCount,
         .structStride = sizeof(Vertex),
         .pName = "DeferredShading.GeneratedVertices",
@@ -193,7 +193,7 @@ GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
         .descriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_VERTEX_BUFFER,
     });
     indices = context.createBuffer({
-        .size = sizeof(uint32_t) * kGeneratedIndexCount,
+        .Size = sizeof(uint32_t) * kGeneratedIndexCount,
         .elementCount = kGeneratedIndexCount,
         .structStride = sizeof(uint32_t),
         .pName = "DeferredShading.GeneratedIndices",
@@ -550,7 +550,7 @@ private:
         for (uint32_t object = 0; object < kSceneObjectCount; ++object)
         {
             sceneUniformBuffers[object] = context->createBuffer({
-                .size = sizeof(SceneUniforms),
+                .Size = sizeof(SceneUniforms),
                 .elementCount = 1,
                 .structStride = sizeof(SceneUniforms),
                 .pName = object == 0 ? "DeferredShading.CubeUniforms" : "DeferredShading.FloorUniforms",

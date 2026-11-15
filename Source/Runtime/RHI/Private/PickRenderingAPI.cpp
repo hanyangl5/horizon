@@ -64,7 +64,7 @@ extern HRESULT  d3d12_addDirectStorageQueue(DirectStorage* pDirectStorage, const
 extern void     d3d12_removeDirectStorageQueue(DirectStorageQueue* pQueue);
 extern HRESULT  d3d12_openDirectStorageFile(DirectStorage* pDirectStorage, const wchar_t* pPath, DirectStorageFile** ppFile);
 extern void     d3d12_closeDirectStorageFile(DirectStorageFile* pFile);
-extern HRESULT  d3d12_addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t capacity, const char* pName,
+extern HRESULT  d3d12_addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t Capacity, const char* pName,
                                                   DirectStorageStatusArray** ppStatusArray);
 extern void     d3d12_removeDirectStorageStatusArray(DirectStorageStatusArray* pStatusArray);
 extern bool     d3d12_isDirectStorageStatusComplete(DirectStorageStatusArray* pStatusArray, uint32_t index);
@@ -93,7 +93,7 @@ extern uint32_t d3d12_getDescriptorIndexFromName(const RootSignature* pRootSigna
 extern void     d3d12_addPipeline(Renderer* pRenderer, const PipelineDesc* pPipelineSettings, Pipeline** ppPipeline);
 extern void     d3d12_removePipeline(Renderer* pRenderer, Pipeline* pPipeline);
 extern void     d3d12_addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc, PipelineCache** ppPipelineCache);
-extern void     d3d12_getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* pData);
+extern void     d3d12_getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* Data);
 #if defined(SHADER_STATS_AVAILABLE)
 extern void d3d12_addPipelineStats(Renderer* pRenderer, Pipeline* pPipeline, bool generateDisassembly, PipelineStats* pOutStats);
 extern void d3d12_removePipelineStats(Renderer* pRenderer, PipelineStats* pStats);
@@ -177,7 +177,7 @@ extern void     d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Bu
 extern void     d3d12_removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 extern void     d3d12_mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 extern void     d3d12_unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-extern void d3d12_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+extern void d3d12_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t Size);
 extern void d3d12_cmdCopyTexture(Cmd* pCmd, Texture* pDstTexture, Texture* pSrcTexture);
 extern void d3d12_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc);
 extern void d3d12_cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const SubresourceDataDesc* pSubresourceDesc);
@@ -311,11 +311,11 @@ FORGE_RENDERER_API void FORGE_CALLCONV closeDirectStorageFile(DirectStorageFile*
     d3d12_closeDirectStorageFile(pFile);
 }
 
-FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t capacity, const char* pName,
+FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t Capacity, const char* pName,
                                                                       DirectStorageStatusArray** ppStatusArray)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    return d3d12_addDirectStorageStatusArray(pDirectStorage, capacity, pName, ppStatusArray);
+    return d3d12_addDirectStorageStatusArray(pDirectStorage, Capacity, pName, ppStatusArray);
 }
 
 FORGE_RENDERER_API void FORGE_CALLCONV removeDirectStorageStatusArray(DirectStorageStatusArray* pStatusArray)
@@ -485,10 +485,10 @@ FORGE_RENDERER_API void FORGE_CALLCONV addPipelineCache(Renderer* pRenderer, con
     d3d12_addPipelineCache(pRenderer, pDesc, ppPipelineCache);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* pData)
+FORGE_RENDERER_API void FORGE_CALLCONV getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* Data)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_getPipelineCacheData(pRenderer, pPipelineCache, pSize, pData);
+    d3d12_getPipelineCacheData(pRenderer, pPipelineCache, pSize, Data);
 }
 
 #if defined(SHADER_STATS_AVAILABLE)
@@ -900,10 +900,10 @@ void FORGE_CALLCONV unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
     d3d12_unmapBuffer(pRenderer, pBuffer);
 }
 
-void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
+void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t Size)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_cmdUpdateBuffer(pCmd, pBuffer, dstOffset, pSrcBuffer, srcOffset, size);
+    d3d12_cmdUpdateBuffer(pCmd, pBuffer, dstOffset, pSrcBuffer, srcOffset, Size);
 }
 
 void FORGE_CALLCONV cmdCopyTexture(Cmd* pCmd, Texture* pDstTexture, Texture* pSrcTexture)

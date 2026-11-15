@@ -120,15 +120,15 @@ FORGE_API void cmdDrawDebugFontAtlas(Cmd* pCmd, float2 screenCoordsInPx);
 /****************************************************************************/
 
 /// Loads an array of fonts from files and returns an array of their ID handles
-FORGE_API void fntDefineFonts(const FontDesc* pDescs, uint32_t count, uint32_t* pOutIDs);
+FORGE_API void fntDefineFonts(const FontDesc* pDescs, uint32_t Count, uint32_t* pOutIDs);
 
-/// Get current font atlas size
+/// Get current font atlas Size
 FORGE_API int2 fntGetFontAtlasSize();
 
-/// Clear all data from the font atlas and resize it to provide size. Pass zero to keep the current size.
+/// Clear all data from the font atlas and resize it to provide Size. Pass zero to keep the current Size.
 FORGE_API void fntResetFontAtlas(int2 newAtlasSize);
 
-/// Expands the font atlas size by given size without clearing the contents
+/// Expands the font atlas Size by given Size without clearing the contents
 FORGE_API void fntExpandAtlas(int2 additionalSize);
 
 /// Returns the bounds of text that would be drawn to supplied specification

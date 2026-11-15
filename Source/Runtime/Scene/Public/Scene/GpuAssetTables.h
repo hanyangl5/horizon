@@ -89,15 +89,15 @@ struct GpuAssetTables
 
     const GpuMeshData* getMesh(GpuMeshID id) const
     {
-        return id.isValid() && id.index < meshes.count && meshes.pData[id.index].id == id ? meshes.pData + id.index : nullptr;
+        return id.isValid() && id.index < meshes.Count && meshes.Data[id.index].id == id ? meshes.Data + id.index : nullptr;
     }
     const GpuMaterialData* getMaterial(GpuMaterialID id) const
     {
-        return id.isValid() && id.index < materials.count && materials.pData[id.index].id == id ? materials.pData + id.index : nullptr;
+        return id.isValid() && id.index < materials.Count && materials.Data[id.index].id == id ? materials.Data + id.index : nullptr;
     }
     const GpuTextureData* getTexture(GpuTextureID id) const
     {
-        return id.isValid() && id.index < textures.count && textures.pData[id.index].id == id ? textures.pData + id.index : nullptr;
+        return id.isValid() && id.index < textures.Count && textures.Data[id.index].id == id ? textures.Data + id.index : nullptr;
     }
 };
 } // namespace hz

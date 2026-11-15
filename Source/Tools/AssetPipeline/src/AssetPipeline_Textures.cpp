@@ -74,10 +74,10 @@ TinyDDS_WriteCallbacks ddsWriteCallbacks{ [](void* user, char const* msg)
                                               UNREF_PARAM(user);
                                               LOGF(Error, "%s", msg);
                                           },
-                                          [](void* user, size_t size)
+                                          [](void* user, size_t Size)
                                           {
                                               UNREF_PARAM(user);
-                                              return MemAllocate(size);
+                                              return MemAllocate(Size);
                                           },
                                           [](void* user, void* memory)
                                           {
@@ -92,10 +92,10 @@ TinyDDS_Callbacks ddsReadCallbacks{ [](void* user, char const* msg)
                                         UNREF_PARAM(user);
                                         LOGF(Error, "%s", msg);
                                     },
-                                    [](void* user, size_t size)
+                                    [](void* user, size_t Size)
                                     {
                                         UNREF_PARAM(user);
-                                        return MemAllocate(size);
+                                        return MemAllocate(Size);
                                     },
                                     [](void* user, void* memory)
                                     {
@@ -113,10 +113,10 @@ TinyKtx_WriteCallbacks ktxWriteCallbacks{ [](void* user, char const* msg)
                                               UNREF_PARAM(user);
                                               LOGF(Error, "%s", msg);
                                           },
-                                          [](void* user, size_t size)
+                                          [](void* user, size_t Size)
                                           {
                                               UNREF_PARAM(user);
-                                              return MemAllocate(size);
+                                              return MemAllocate(Size);
                                           },
                                           [](void* user, void* memory)
                                           {
@@ -131,10 +131,10 @@ TinyKtx_Callbacks ktxReadCallbacks{ [](void* user, char const* msg)
                                         UNREF_PARAM(user);
                                         LOGF(Error, "%s", msg);
                                     },
-                                    [](void* user, size_t size)
+                                    [](void* user, size_t Size)
                                     {
                                         UNREF_PARAM(user);
-                                        return MemAllocate(size);
+                                        return MemAllocate(Size);
                                     },
                                     [](void* user, void* memory)
                                     {
@@ -150,7 +150,7 @@ TinyKtx_Callbacks ktxReadCallbacks{ [](void* user, char const* msg)
 typedef struct InputTextureData
 {
     TextureDesc mDesc;
-    uint8_t*    pData[MAX_MIPLEVELS];
+    uint8_t*    Data[MAX_MIPLEVELS];
     uint32_t    mDataSize[MAX_MIPLEVELS];
     bool        isCompressed;
 } InputTextureData;
@@ -301,7 +301,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
     ssize_t fileSize = GetStreamFileSize(&file);
     if (fileSize > INT32_MAX)
     {
-        LOGF(Warning, "File '%s' exceeds max handled filesize, size: %zi max: %i", pFilepath, fileSize, INT32_MAX);
+        LOGF(Warning, "File '%s' exceeds max handled filesize, Size: %zi max: %i", pFilepath, fileSize, INT32_MAX);
         success = false;
     }
 
@@ -342,8 +342,8 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         for (uint32_t mip = 0; mip < pOut->mDesc.mipLevels; ++mip)
         {
             pOut->mDataSize[mip] = TinyKtx_ImageSize(tinyKTXCtx, mip);
-            pOut->pData[mip] = (uint8_t*)MemAllocate(pOut->mDataSize[mip]);
-            memcpy(pOut->pData[mip], (uint8_t*)TinyKtx_ImageRawData(tinyKTXCtx, mip), pOut->mDataSize[mip]);
+            pOut->Data[mip] = (uint8_t*)MemAllocate(pOut->mDataSize[mip]);
+            memcpy(pOut->Data[mip], (uint8_t*)TinyKtx_ImageRawData(tinyKTXCtx, mip), pOut->mDataSize[mip]);
         }
 
         TinyKtx_DestroyContext(tinyKTXCtx);
@@ -385,8 +385,8 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         for (uint32_t mip = 0; mip < pOut->mDesc.mipLevels; ++mip)
         {
             pOut->mDataSize[mip] = TinyDDS_ImageSize(tinyDDSCtx, mip);
-            pOut->pData[mip] = (uint8_t*)MemAllocate(pOut->mDataSize[mip]);
-            memcpy(pOut->pData[mip], (uint8_t*)TinyDDS_ImageRawData(tinyDDSCtx, mip), pOut->mDataSize[mip]);
+            pOut->Data[mip] = (uint8_t*)MemAllocate(pOut->mDataSize[mip]);
+            memcpy(pOut->Data[mip], (uint8_t*)TinyDDS_ImageRawData(tinyDDSCtx, mip), pOut->mDataSize[mip]);
         }
 
         TinyDDS_DestroyContext(tinyDDSCtx);
@@ -479,7 +479,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
 
         if (success)
         {
-            pOut->pData[0] =
+            pOut->Data[0] =
                 stbi_load_from_memory(pFileData, (int32_t)fileSize, &imageWidth, &imageHeight, &componentCount, forceComponents);
             pOut->mDataSize[0] = imageWidth * imageHeight * max(forceComponents, componentCount);
 
@@ -550,7 +550,7 @@ bool ASTCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MA
     {
         uint32_t width = max(1u, (pTexDesc->width >> i));
         uint32_t height = max(1u, (pTexDesc->height >> i));
-        uint8_t* pData = NULL;
+        uint8_t* Data = NULL;
         for (uint32_t slice_index = 0; slice_index < slices; ++slice_index)
         {
             bool     padded = false;
@@ -567,12 +567,12 @@ bool ASTCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MA
                 uint32_t resizedImageWidth = width % blockSizeX == 0 ? width : width + (blockSizeX - width % blockSizeX);
                 uint32_t resizedImageHeight = height % blockSizeY == 0 ? height : height + (blockSizeY - height % blockSizeY);
 
-                pData = (uint8_t*)MemAllocate(resizedImageWidth * resizedImageHeight * channels);
+                Data = (uint8_t*)MemAllocate(resizedImageWidth * resizedImageHeight * channels);
                 rgba_surface input_padded;
                 input_padded.width = resizedImageWidth;
                 input_padded.height = resizedImageHeight;
                 input_padded.stride = resizedImageWidth * channels;
-                input_padded.ptr = pData;
+                input_padded.ptr = Data;
 
                 ReplicateBorders(&input_padded, &input, 0, 0, 32 /* or 64 */);
 
@@ -588,7 +588,7 @@ bool ASTCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MA
             }
             else
             {
-                pData = ppData[i] + slice_offset;
+                Data = ppData[i] + slice_offset;
             }
 
             const uint32_t xblocks = (width + blockSizeX - 1) / blockSizeX;
@@ -612,18 +612,18 @@ bool ASTCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MA
             input.width = width;
             input.height = height;
             input.stride = width * channels;
-            input.ptr = pData;
+            input.ptr = Data;
 
             CompressBlocksASTC(&input, ppOutCompressed[i] + compressed_offset, &astcEncSettings);
 
             if (padded)
             {
-                MemDeallocate(pData);
+                MemDeallocate(Data);
             }
         }
     }
 
-    // Set image size to padding size
+    // Set image Size to padding Size
     pTexDesc->width = adjustedWidth;
     pTexDesc->height = adjustedHeight;
 
@@ -729,7 +729,7 @@ bool BCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MAX_
     {
         uint32_t width = max(1u, (pTexDesc->width >> i));
         uint32_t height = max(1u, (pTexDesc->height >> i));
-        uint8_t* pData = NULL;
+        uint8_t* Data = NULL;
 
         for (uint32_t slice_index = 0; slice_index < slices; ++slice_index)
         {
@@ -747,12 +747,12 @@ bool BCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MAX_
                 uint32_t resizedImageWidth = width % blockSize == 0 ? width : width + (blockSize - width % blockSize);
                 uint32_t resizedImageHeight = height % blockSize == 0 ? height : height + (blockSize - height % blockSize);
 
-                pData = (uint8_t*)MemAllocate(resizedImageWidth * resizedImageHeight * inputChannels);
+                Data = (uint8_t*)MemAllocate(resizedImageWidth * resizedImageHeight * inputChannels);
                 rgba_surface input_padded;
                 input_padded.width = resizedImageWidth;
                 input_padded.height = resizedImageHeight;
                 input_padded.stride = resizedImageWidth * inputChannels;
-                input_padded.ptr = pData;
+                input_padded.ptr = Data;
 
                 ReplicateBorders(&input_padded, &input, 0, 0, bitsPerPixel);
 
@@ -768,7 +768,7 @@ bool BCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MAX_
             }
             else
             {
-                pData = ppData[i] + slice_offset;
+                Data = ppData[i] + slice_offset;
             }
 
             const uint32_t xblocks = (width + blockSize - 1) / blockSize;
@@ -797,7 +797,7 @@ bool BCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MAX_
                     uint32_t outputDataIndex = pixelIndex * requiredInputChannels;
                     for (uint32_t reorderChannel = 0; reorderChannel < requiredInputChannels; ++reorderChannel)
                     {
-                        pData[outputDataIndex + reorderChannel] = pData[inputDataIndex + reorderChannel];
+                        Data[outputDataIndex + reorderChannel] = Data[inputDataIndex + reorderChannel];
                     }
                 }
             }
@@ -806,18 +806,18 @@ bool BCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MAX_
             input.width = width;
             input.height = height;
             input.stride = width * requiredInputChannels;
-            input.ptr = pData;
+            input.ptr = Data;
 
             bcCompress(&input, ppOutCompressed[i] + compressed_offset);
 
             if (padded)
             {
-                MemDeallocate(pData);
+                MemDeallocate(Data);
             }
         }
     }
 
-    // Set image size to padding size
+    // Set image Size to padding Size
     pTexDesc->width = adjustedWidth;
     pTexDesc->height = adjustedHeight;
 
@@ -994,16 +994,16 @@ bool GenerateVMFLayer(InputTextureData* pNormalTextureData, InputTextureData* pR
                 const uint32_t pixelIndexNormal = pixelIndex * normalTextureChannels;
                 const uint32_t pixelIndexRoughness = pixelIndex * roughnessTextureChannels;
 
-                Vector3 normal = Vector3(pNormalTextureData->pData[0][pixelIndexNormal + 0] / (float)UINT8_MAX,
-                                         pNormalTextureData->pData[0][pixelIndexNormal + 1] / (float)UINT8_MAX,
-                                         pNormalTextureData->pData[0][pixelIndexNormal + 2] / (float)UINT8_MAX);
+                Vector3 normal = Vector3(pNormalTextureData->Data[0][pixelIndexNormal + 0] / (float)UINT8_MAX,
+                                         pNormalTextureData->Data[0][pixelIndexNormal + 1] / (float)UINT8_MAX,
+                                         pNormalTextureData->Data[0][pixelIndexNormal + 2] / (float)UINT8_MAX);
 
                 // Set normal to range [-1.0, 1.0]
                 normal = normal * 2.0f - Vector3(1.0f);
 
                 // TODO Optional: Give channel to look into for the rougness value as argument
                 // For now expect the first channel to contain the actuall roughness value
-                const float roughnessValue = pRoughnessTextureData->pData[0][pixelIndexRoughness + 0] / (float)UINT8_MAX;
+                const float roughnessValue = pRoughnessTextureData->Data[0][pixelIndexRoughness + 0] / (float)UINT8_MAX;
 
                 // Convert to r form
                 const float invLambda = 0.5f * roughnessValue * roughnessValue;
@@ -1129,8 +1129,8 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
             // Release rougness texture data
             for (size_t mip = 0; mip < inputTextureData.mDesc.mipLevels; ++mip)
             {
-                MemDeallocate(inputRoughnessTextureData.pData[mip]);
-                inputRoughnessTextureData.pData[mip] = NULL;
+                MemDeallocate(inputRoughnessTextureData.Data[mip]);
+                inputRoughnessTextureData.Data[mip] = NULL;
                 inputRoughnessTextureData.mDataSize[mip] = 0;
             }
 
@@ -1151,19 +1151,19 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         if (copyTextureParams.mGenerateMipmaps == MIPMAP_CUSTOM)
         {
             ASSERT(copyTextureParams.pGenerateMipmapsCallback && "MIPMAP_CUSTOM requires pGenerateMipmapsCallback to be set");
-            if (inputTextureData.pData[0])
+            if (inputTextureData.Data[0])
             {
                 uint32_t channels = TinyImageFormat_ChannelCount((TinyImageFormat)inputTextureData.mDesc.format);
-                copyTextureParams.pGenerateMipmapsCallback(inputTextureData.pData, inputTextureData.mDataSize, &inputTextureData.mDesc,
+                copyTextureParams.pGenerateMipmapsCallback(inputTextureData.Data, inputTextureData.mDataSize, &inputTextureData.mDesc,
                                                            channels, copyTextureParams.pCallbackUserData);
             }
         }
 
         if (copyTextureParams.mGenerateMipmaps == MIPMAP_DEFAULT && inputTextureData.mDesc.mipLevels <= 1 && !inputTextureData.isCompressed)
         {
-            if (inputTextureData.pData[0])
+            if (inputTextureData.Data[0])
             {
-                GenerateMipmaps(inputTextureData.pData, inputTextureData.mDataSize, &inputTextureData.mDesc);
+                GenerateMipmaps(inputTextureData.Data, inputTextureData.mDataSize, &inputTextureData.mDesc);
             }
         }
 
@@ -1201,20 +1201,20 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         if (!inputTextureData.isCompressed && copyTextureParams.mCompression != TextureCompression::COMPRESSION_NONE)
         {
             // Process raw image data
-            if (!CompressImageData(inputTextureData.pData, pCompressedData, compressedDataSize, &compressDesc, &inputTextureData.mDesc))
+            if (!CompressImageData(inputTextureData.Data, pCompressedData, compressedDataSize, &compressDesc, &inputTextureData.mDesc))
             {
                 LOGF(Error, "Failed to compress texture %s", inFileName);
                 error = true;
             }
 
             // Free raw image data, can be released once image is compressed
-            if (inputTextureData.pData[0])
+            if (inputTextureData.Data[0])
             {
                 // Release image data
                 for (uint32_t mip = 0; mip < inputTextureData.mDesc.mipLevels; ++mip)
                 {
-                    stbi_image_free(inputTextureData.pData[mip]);
-                    inputTextureData.pData[mip] = NULL;
+                    stbi_image_free(inputTextureData.Data[mip]);
+                    inputTextureData.Data[mip] = NULL;
                 }
             }
         }
@@ -1223,7 +1223,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
             // Set raw pImageData as out data
             for (uint32_t mip = 0; mip < inputTextureData.mDesc.mipLevels; ++mip)
             {
-                pCompressedData[mip] = inputTextureData.pData[mip];
+                pCompressedData[mip] = inputTextureData.Data[mip];
                 compressedDataSize[mip] = inputTextureData.mDataSize[mip];
             }
         }
@@ -1254,7 +1254,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
 
         // Write .ktx file
         const bool     isCubemap = (inputTextureData.mDesc.descriptors & DESCRIPTOR_TYPE_TEXTURE_CUBE) == DESCRIPTOR_TYPE_TEXTURE_CUBE;
-        // Array size in the disk image needs to be 1 since we'll already multiply it by 6 when loading the texture in runtime
+        // Array Size in the disk image needs to be 1 since we'll already multiply it by 6 when loading the texture in runtime
         const uint32_t arraySize = isCubemap ? inputTextureData.mDesc.arraySize / 6 : inputTextureData.mDesc.arraySize;
         if (copyTextureParams.mContainer == CONTAINER_KTX)
         {

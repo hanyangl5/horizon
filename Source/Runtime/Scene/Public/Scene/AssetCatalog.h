@@ -73,6 +73,6 @@ public:
 
 private:
     bool              set(const AssetCatalogEntry& entry, bool replaceExisting);
-    AssetCatalogData* pData = nullptr;
+    AssetCatalogData* Data = nullptr;
 };
 } // namespace hz

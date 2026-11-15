@@ -328,7 +328,7 @@ static ssize_t ioWindowsFsGetSize(FileStream* fs)
     LARGE_INTEGER fileSize = {};
     if (GetFileSizeEx(stream->handle, &fileSize))
         return (ssize_t)fileSize.QuadPart;
-    LOGF(Error, "Failed to get file size: %s", WindowsErrorString().c_str());
+    LOGF(Error, "Failed to get file Size: %s", WindowsErrorString().c_str());
     return -1;
 }
 
@@ -395,18 +395,18 @@ static bool ioWindowsFsClose(FileStream* fs)
     return true;
 }
 
-static size_t ioWindowsFsRead(FileStream* fs, void* dst, size_t size)
+static size_t ioWindowsFsRead(FileStream* fs, void* dst, size_t Size)
 {
     WSD(stream, fs);
-    size_t read = fread(dst, 1, size, stream->file);
-    if (read != size && ferror(stream->file))
+    size_t read = fread(dst, 1, Size, stream->file);
+    if (read != Size && ferror(stream->file))
     {
-        LOGF(LogLevel::Error, "Error reading %s bytes from file: %s (%x)", HumanReadableSize(size).str, strerror(errno), errno);
+        LOGF(LogLevel::Error, "Error reading %s bytes from file: %s (%x)", HumanReadableSize(Size).str, strerror(errno), errno);
     }
     return read;
 }
 
-static size_t ioWindowsFsWrite(FileStream* fs, const void* src, size_t size)
+static size_t ioWindowsFsWrite(FileStream* fs, const void* src, size_t Size)
 {
     if ((fs->mode & (FM_WRITE | FM_APPEND)) == 0)
     {
@@ -415,9 +415,9 @@ static size_t ioWindowsFsWrite(FileStream* fs, const void* src, size_t size)
     }
 
     WSD(stream, fs);
-    size_t written = fwrite(src, 1, size, stream->file);
+    size_t written = fwrite(src, 1, Size, stream->file);
 
-    if (written != size)
+    if (written != Size)
     {
         LOGF(LogLevel::Error, "Error writing to system FileStream: %s (%x)", strerror(errno), errno);
     }

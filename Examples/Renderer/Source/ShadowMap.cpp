@@ -6,7 +6,7 @@
 #include <float.h>
 #include <math.h>
 
-// Rounds a light-space extent up to a 1/8 octave step: the texel size stays fixed while the scene bounds
+// Rounds a light-space extent up to a 1/8 octave step: the texel Size stays fixed while the scene bounds
 // move a little, and grows by at most 12.5% at a step instead of doubling like a power-of-two ladder.
 static float QuantizeShadowExtent(float Extent)
 {
@@ -38,9 +38,9 @@ ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(C
     Sampler = Context.createSampler(
         { .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE, .compareFunc = CMP_LEQUAL });
     SurfaceSampler = Context.createSampler();
-    for (uint32_t Index = 0; Index < ShadowFrames.size(); ++Index)
+    for (uint32_t Index = 0; Index < ShadowFrames.Size(); ++Index)
     {
-        ShadowFrames[Index] = Context.createBuffer({ .size = 208,
+        ShadowFrames[Index] = Context.createBuffer({ .Size = 208,
                                                      .elementCount = 1,
                                                      .structStride = 208,
                                                      .pName = "Renderer.ShadowCamera",
@@ -48,7 +48,7 @@ ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(C
                                                      .startState = RESOURCE_STATE_SHADER_RESOURCE,
                                                      .descriptors = DESCRIPTOR_TYPE_BUFFER,
                                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-        LightingFrames[Index] = Context.createBuffer({ .size = sizeof(LightingFrameData),
+        LightingFrames[Index] = Context.createBuffer({ .Size = sizeof(LightingFrameData),
                                                        .elementCount = 1,
                                                        .structStride = sizeof(LightingFrameData),
                                                        .pName = "Renderer.LightingFrame",
@@ -82,7 +82,7 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     Data.shadowEnabled = 0;
     for (uint32_t MeshBatchIndex : View.Scene.getActiveLights())
     {
-        const hz::RenderLight& Light = View.Scene.getLights().pData[MeshBatchIndex];
+        const hz::RenderLight& Light = View.Scene.getLights().Data[MeshBatchIndex];
         if (!Light.ready || Light.type != hz::LightType::Directional)
         {
             continue;
@@ -101,8 +101,8 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     bool          HasBounds = false;
     for (uint32_t MeshBatchIndex : View.Scene.getActiveInstances())
     {
-        const hz::RenderInstance& Instance = View.Scene.getInstances().pData[MeshBatchIndex];
-        if (!View.Scene.getPrimitives().pData[Instance.primitive.index].instanceCount)
+        const hz::RenderInstance& Instance = View.Scene.getInstances().Data[MeshBatchIndex];
+        if (!View.Scene.getPrimitives().Data[Instance.primitive.index].instanceCount)
         {
             continue;
         }
@@ -123,7 +123,7 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     if (HasBounds)
     {
         // Snap the light-space volume to a whole texel grid so the map does not crawl when the scene
-        // bounds move by a few centimetres, and quantize the extents so the texel size itself is stable.
+        // bounds move by a few centimetres, and quantize the extents so the texel Size itself is stable.
         // The margin keeps enough slack that snapping the centre cannot push geometry out of the volume.
         const float RawX = fmaxf(Maximum[0] - Minimum[0], 0.001f);
         const float RawY = fmaxf(Maximum[1] - Minimum[1], 0.001f);

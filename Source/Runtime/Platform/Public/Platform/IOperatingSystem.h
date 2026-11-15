@@ -246,7 +246,7 @@ typedef struct
     RectDesc     workRect;
     unsigned int dpi[2];
     unsigned int physicalSize[2];
-    // This size matches the static size of DISPLAY_DEVICE.DeviceName
+    // This Size matches the static Size of DISPLAY_DEVICE.DeviceName
 #if defined(_WINDOWS) || defined(XBOX)
     WCHAR adapterName[32];
     WCHAR displayName[32];

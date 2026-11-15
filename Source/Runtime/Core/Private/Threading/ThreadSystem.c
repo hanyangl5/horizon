@@ -180,15 +180,15 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
         return true;
 
     uint64_t cpuCount = GetNumCpuCores();
-    uint64_t count = desc->threadCount;
+    uint64_t Count = desc->threadCount;
 
-    if (count > cpuCount)
-        count = cpuCount;
+    if (Count > cpuCount)
+        Count = cpuCount;
 
-    if (count == 0) // something went wrong (maybe GetNumCpuCores returned 0)
+    if (Count == 0) // something went wrong (maybe GetNumCpuCores returned 0)
         return false;
 
-    struct ThreadSystemData* t = MemCallocate(1, sizeof(*t) + sizeof(ThreadHandle) * count);
+    struct ThreadSystemData* t = MemCallocate(1, sizeof(*t) + sizeof(ThreadHandle) * Count);
     if (!t)
         return false;
 
@@ -228,7 +228,7 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
     ThreadDesc threadDesc = { 0 };
 
     threadDesc.pFunc = taskThreadFunc;
-    threadDesc.pData = t;
+    threadDesc.Data = t;
 
 #if defined(_WINDOWS) // for some reason on Windows thread name won't change after creation
     strncpy(threadDesc.threadName, t->name, sizeof threadDesc.threadName);
@@ -243,9 +243,9 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
 
     arrsetlen(t->tasks, OPTIMAL_TASK_SLOTS_COUNT);
 
-    t->threadCount = count;
+    t->threadCount = Count;
 
-    for (uint64_t ti = 0; ti < count; ++ti)
+    for (uint64_t ti = 0; ti < Count; ++ti)
     {
         acquireThreadSystemHandle(t);
 
@@ -292,9 +292,9 @@ void threadSystemExit(ThreadSystem* thandle, const struct ThreadSystemExitDesc* 
     releaseThreadSystemHandle(t);
 }
 
-void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t count, uint64_t userSize, void* users)
+void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t Count, uint64_t userSize, void* users)
 {
-    if (count == 0)
+    if (Count == 0)
         return;
     if (!VERIFY(func))
         return;
@@ -303,7 +303,7 @@ void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t count, u
 
     if (!t) // dummy run
     {
-        for (uint64_t ti = 0; ti < count; ++ti)
+        for (uint64_t ti = 0; ti < Count; ++ti)
             func((uint8_t*)users + ti * userSize, 0);
         return;
     }
@@ -312,7 +312,7 @@ void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t count, u
 
     uint64_t offset = t->tasksQueued;
 
-    t->tasksQueued += count;
+    t->tasksQueued += Count;
 
     uint64_t len = arrlenu(t->tasks);
 
@@ -325,7 +325,7 @@ void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t count, u
         arrsetlen(t->tasks, newTasksLength);
     }
 
-    for (uint64_t ti = 0; ti < count; ++ti)
+    for (uint64_t ti = 0; ti < Count; ++ti)
     {
         t->tasks[offset + ti] = (struct ThreadSystemTask){
             func,
@@ -333,7 +333,7 @@ void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t count, u
         };
     }
 
-    if (count == 1)
+    if (Count == 1)
         SignalConditionVariable(&t->conditionTasks);
     else
         BroadcastConditionVariable(&t->conditionTasks);

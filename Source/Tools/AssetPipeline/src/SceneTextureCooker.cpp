@@ -20,7 +20,7 @@ public:
     TextureEncoder(const TextureEncoder&) = delete;
     TextureEncoder& operator=(const TextureEncoder&) = delete;
 
-    bool encode(const uint8_t* pBytes, size_t size, bool srgb, const char* pName, DirectX::Blob& dds) const;
+    bool encode(const uint8_t* pBytes, size_t Size, bool srgb, const char* pName, DirectX::Blob& dds) const;
 
 private:
     HRESULT             comResult;
@@ -31,9 +31,9 @@ private:
 
 #include "Core/IMemory.h"
 
-static uint64_t imageHash(const void* pBytes, size_t size, uint64_t hash = UINT64_C(14695981039346656037))
+static uint64_t imageHash(const void* pBytes, size_t Size, uint64_t hash = UINT64_C(14695981039346656037))
 {
-    for (size_t i = 0; i < size; ++i)
+    for (size_t i = 0; i < Size; ++i)
         hash = (hash ^ ((const uint8_t*)pBytes)[i]) * UINT64_C(1099511628211);
     return hash;
 }
@@ -43,14 +43,14 @@ bool SceneTextureCooker::readImage(const char* pPath, hz::Array<uint8_t>& bytes)
     FileStream stream = {};
     if (!OpenStreamFromPath(sourceDirectory, pPath, FM_READ, &stream))
         return false;
-    const ssize_t size = GetStreamFileSize(&stream);
-    if (size <= 0 || size > INT_MAX)
+    const ssize_t Size = GetStreamFileSize(&stream);
+    if (Size <= 0 || Size > INT_MAX)
     {
         CloseStream(&stream);
         return false;
     }
-    bytes.resize((uint32_t)size);
-    const bool read = ReadFromStream(&stream, bytes.data(), bytes.size()) == bytes.size();
+    bytes.resize((uint32_t)Size);
+    const bool read = ReadFromStream(&stream, bytes.GetData(), bytes.Size()) == bytes.Size();
     return CloseStream(&stream) && read;
 }
 
@@ -72,14 +72,14 @@ static bool decodeImageURI(const char* pURI, hz::Array<uint8_t>& bytes)
     bytes.resize((uint32_t)(length / 4 * 3 - padding));
     // Decode through cgltf into the already sized buffer.
     cgltf_options options = {};
-    options.memory_user_data = bytes.data();
+    options.memory_user_data = bytes.GetData();
     options.memory_alloc = [](void* pUser, cgltf_size) { return pUser; };
     options.memory_free = [](void*, void*) {};
     void* pDecoded = nullptr;
-    return cgltf_load_buffer_base64(&options, bytes.size(), pEncoded, &pDecoded) == cgltf_result_success;
+    return cgltf_load_buffer_base64(&options, bytes.Size(), pEncoded, &pDecoded) == cgltf_result_success;
 }
 
-bool SceneTextureCooker::writeDDS(const char* pPath, const void* pBytes, size_t size) const
+bool SceneTextureCooker::writeDDS(const char* pPath, const void* pBytes, size_t Size) const
 {
     char temporary[FS_MAX_PATH];
     if (snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) >= (int)sizeof(temporary) ||
@@ -88,7 +88,7 @@ bool SceneTextureCooker::writeDDS(const char* pPath, const void* pBytes, size_t 
     FileStream stream = {};
     if (!OpenStreamFromPath(outputDirectory, temporary, FM_WRITE, &stream))
         return false;
-    const bool written = WriteToStream(&stream, pBytes, size) == size;
+    const bool written = WriteToStream(&stream, pBytes, Size) == Size;
     const bool closed = CloseStream(&stream);
     if (!written || !closed)
         return false;
@@ -133,13 +133,13 @@ TextureEncoder::~TextureEncoder()
     }
 }
 
-bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, const char* pName, DirectX::Blob& dds) const
+bool TextureEncoder::encode(const uint8_t* pBytes, size_t Size, bool srgb, const char* pName, DirectX::Blob& dds) const
 {
     if (!pFactory)
         return false;
     DirectX::ScratchImage        image, mipmaps, compressed;
     const DirectX::ScratchImage* pInput = &image;
-    HRESULT                      result = DirectX::LoadFromWICMemory(pBytes, size, DirectX::WIC_FLAGS_IGNORE_SRGB, nullptr, image);
+    HRESULT                      result = DirectX::LoadFromWICMemory(pBytes, Size, DirectX::WIC_FLAGS_IGNORE_SRGB, nullptr, image);
     if (SUCCEEDED(result))
     {
         if (srgb)
@@ -219,7 +219,7 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
     output.srgb = srgb;
     hz::Array<uint8_t> bytes;
     const uint8_t*     pBytes = nullptr;
-    size_t             size = 0;
+    size_t             Size = 0;
     if (image.uri && strncmp(image.uri, "data:", 5) != 0)
     {
         if (strstr(image.uri, ":") || image.uri[0] == '/' || strchr(image.uri, '\\') ||
@@ -236,15 +236,15 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
         if (!pExtension || (stricmp(pExtension, ".png") != 0 && stricmp(pExtension, ".jpg") != 0 && stricmp(pExtension, ".jpeg") != 0) ||
             !readImage(output.source, bytes))
             return false;
-        pBytes = bytes.data();
-        size = bytes.size();
+        pBytes = bytes.GetData();
+        Size = bytes.Size();
     }
     else if (image.uri)
     {
         if (!decodeImageURI(image.uri, bytes))
             return false;
-        pBytes = bytes.data();
-        size = bytes.size();
+        pBytes = bytes.GetData();
+        Size = bytes.Size();
     }
     else if (image.buffer_view)
     {
@@ -252,11 +252,11 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
         if (!view.buffer || !view.buffer->data || view.offset > view.buffer->size || view.size > view.buffer->size - view.offset)
             return false;
         pBytes = (const uint8_t*)view.buffer->data + view.offset;
-        size = view.size;
+        Size = view.size;
     }
-    if (!pBytes || !size || size > INT_MAX)
+    if (!pBytes || !Size || Size > INT_MAX)
         return false;
-    output.signature = imageHash(pBytes, size);
+    output.signature = imageHash(pBytes, Size);
 #if defined(_WIN32)
     const uint32_t settings[] = { 1, (uint32_t)(srgb ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM) };
     const uint64_t hash = imageHash(settings, sizeof(settings), output.signature);
@@ -267,7 +267,7 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
     if (FileExists(outputDirectory, output.path))
         return true;
     DirectX::Blob dds;
-    if (!pEncoder->encode(pBytes, size, srgb, output.source[0] ? output.source : output.path, dds))
+    if (!pEncoder->encode(pBytes, Size, srgb, output.source[0] ? output.source : output.path, dds))
     {
         return false;
     }

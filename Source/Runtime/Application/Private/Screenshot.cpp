@@ -99,7 +99,7 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
     ASSERT(pRenderTarget);
     ASSERT(pRenderer);
 
-    // Calculate the size of buffer required for copying the src texture.
+    // Calculate the Size of buffer required for copying the src texture.
     D3D12_RESOURCE_DESC                resourceDesc = pRenderTarget->pTexture->dx.pResource->GetDesc();
     uint64_t                           padded_size = 0;
     uint64_t                           row_size = 0;
@@ -112,7 +112,7 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
     BufferDesc bufferDesc = {};
     bufferDesc.descriptors = DESCRIPTOR_TYPE_BUFFER;
     bufferDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
-    bufferDesc.size = padded_size;
+    bufferDesc.Size = padded_size;
     bufferDesc.flags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
     bufferDesc.startState = RESOURCE_STATE_COPY_DEST;
     bufferDesc.format = pRenderTarget->format;
@@ -182,11 +182,11 @@ struct stbiw_ctx
     int      offset;
 };
 
-static void stbiw_func(void* context, void* data, int size)
+static void stbiw_func(void* context, void* data, int Size)
 {
     stbiw_ctx* ctx = (stbiw_ctx*)context;
-    memcpy(ctx->pBuffer + ctx->offset, data, size);
-    ctx->offset += size;
+    memcpy(ctx->pBuffer + ctx->offset, data, Size);
+    ctx->offset += Size;
 }
 
 void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool noAlpha, bool forceFlipRedBlue)
@@ -211,8 +211,8 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     // Allocate temp space
     uint16_t byteSize = (uint16_t)TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pRenderTarget->format) / 8;
     uint8_t  channelCount = (uint8_t)TinyImageFormat_ChannelCount((TinyImageFormat)pRenderTarget->format);
-    uint32_t size = pRenderTarget->width * pRenderTarget->height * max((uint16_t)4U, byteSize);
-    uint8_t* alloc = (uint8_t*)MemAllocate(size);
+    uint32_t Size = pRenderTarget->width * pRenderTarget->height * max((uint16_t)4U, byteSize);
+    uint8_t* alloc = (uint8_t*)MemAllocate(Size);
 
     resetCmdPool(pRendererRef, pCmdPool);
 

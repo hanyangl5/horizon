@@ -25,18 +25,18 @@ public:
     {
         const size_t       sourceBytes = strlen(entry.pSourcePath) + 1;
         const size_t       pathBytes = strlen(entry.location.pPath) + 1;
-        const size_t       dependencyBytes = entry.dependencies.count * sizeof(AssetID);
+        const size_t       dependencyBytes = entry.dependencies.Count * sizeof(AssetID);
         AssetCatalogEntry* pEntry = (AssetCatalogEntry*)MemAllocate(sizeof(AssetCatalogEntry) + dependencyBytes + sourceBytes + pathBytes);
         *pEntry = entry;
         AssetID* pDependencies = (AssetID*)(pEntry + 1);
         if (dependencyBytes)
-            memcpy(pDependencies, entry.dependencies.pData, dependencyBytes);
+            memcpy(pDependencies, entry.dependencies.Data, dependencyBytes);
         char* pSource = (char*)pDependencies + dependencyBytes;
         memcpy(pSource, entry.pSourcePath, sourceBytes);
         memcpy(pSource + sourceBytes, entry.location.pPath, pathBytes);
         pEntry->pSourcePath = pSource;
         pEntry->location.pPath = pSource + sourceBytes;
-        pEntry->dependencies = dependencyBytes ? Span<AssetID>(pDependencies, entry.dependencies.count) : Span<AssetID>{};
+        pEntry->dependencies = dependencyBytes ? Span<AssetID>(pDependencies, entry.dependencies.Count) : Span<AssetID>{};
         const CatalogIndex mapping = { .key = entry.id, .value = pEntry };
         hmputs(pIndices, mapping);
     }
@@ -68,7 +68,7 @@ class CatalogBatch
 public:
     explicit CatalogBatch(const AssetCatalogEntry& entry)
     {
-        dependencies.Reserve(entry.dependencies.count);
+        dependencies.Reserve(entry.dependencies.Count);
         for (AssetID id : entry.dependencies)
             dependencies.PushBack(id);
         entries.PushBack(entry);
@@ -77,11 +77,11 @@ public:
 
     explicit CatalogBatch(const SceneAsset& scene, const char* pPath)
     {
-        uint32_t dependencyCount = scene.getNodes().count + scene.getMaterials().count * 4;
+        uint32_t dependencyCount = scene.getNodes().Count + scene.getMaterials().Count * 4;
         for (const SceneAssetMesh& mesh : scene.getMeshes())
-            dependencyCount += mesh.submeshes.count;
+            dependencyCount += mesh.submeshes.Count;
         dependencies.Reserve(dependencyCount);
-        entries.Reserve(1 + scene.getTextures().count + scene.getMaterials().count + scene.getMeshes().count);
+        entries.Reserve(1 + scene.getTextures().Count + scene.getMaterials().Count + scene.getMeshes().Count);
         for (const SceneAssetTexture& texture : scene.getTextures())
             entries.PushBack(
                 { .id = texture.id,
@@ -92,7 +92,7 @@ public:
         uint32_t index = 0;
         for (const SceneAssetMaterial& material : scene.getMaterials())
         {
-            const uint32_t start = dependencies.size();
+            const uint32_t start = dependencies.Size();
             addDependency(material.baseColorTexture);
             addDependency(material.normalTexture);
             addDependency(material.metallicRoughnessTexture);
@@ -106,7 +106,7 @@ public:
         index = 0;
         for (const SceneAssetMesh& mesh : scene.getMeshes())
         {
-            const uint32_t start = dependencies.size();
+            const uint32_t start = dependencies.Size();
             for (const SceneAssetSubmesh& submesh : mesh.submeshes)
                 addDependency(submesh.material);
             entries.PushBack({ .id = mesh.id,
@@ -115,7 +115,7 @@ public:
                                .location = { .pPath = pPath, .elementIndex = index++ },
                                .dependencies = finishDependencies(start) });
         }
-        const uint32_t start = dependencies.size();
+        const uint32_t start = dependencies.Size();
         for (const SceneAssetNode& node : scene.getNodes())
             addDependency(node.mesh);
         entries.PushBack({ .id = scene.getID(),
@@ -125,7 +125,7 @@ public:
                            .dependencies = finishDependencies(start) });
     }
 
-    Span<AssetCatalogEntry> getEntries() const { return { entries.data(), entries.size() }; }
+    Span<AssetCatalogEntry> getEntries() const { return { entries.GetData(), entries.Size() }; }
 
 private:
     void addDependency(AssetID id)
@@ -136,15 +136,15 @@ private:
 
     Span<AssetID> finishDependencies(uint32_t start)
     {
-        if (start == dependencies.size())
+        if (start == dependencies.Size())
             return {};
-        qsort(dependencies.data() + start, dependencies.size() - start, sizeof(AssetID), compareIDs);
+        qsort(dependencies.GetData() + start, dependencies.Size() - start, sizeof(AssetID), compareIDs);
         uint32_t end = start + 1;
-        for (uint32_t i = end; i < dependencies.size(); ++i)
+        for (uint32_t i = end; i < dependencies.Size(); ++i)
             if (dependencies[i] != dependencies[end - 1])
                 dependencies[end++] = dependencies[i];
         dependencies.resize(end);
-        return { dependencies.data() + start, end - start };
+        return { dependencies.GetData() + start, end - start };
     }
 
     Array<AssetCatalogEntry> entries;
@@ -154,10 +154,10 @@ private:
 static bool sameEntry(const AssetCatalogEntry& a, const AssetCatalogEntry& b)
 {
     if (a.type != b.type || a.location.root != b.location.root || a.location.elementIndex != b.location.elementIndex || a.srgb != b.srgb ||
-        strcmp(a.pSourcePath, b.pSourcePath) || strcmp(a.location.pPath, b.location.pPath) || a.dependencies.count != b.dependencies.count)
+        strcmp(a.pSourcePath, b.pSourcePath) || strcmp(a.location.pPath, b.location.pPath) || a.dependencies.Count != b.dependencies.Count)
         return false;
-    for (uint32_t i = 0; i < a.dependencies.count; ++i)
-        if (a.dependencies.pData[i] != b.dependencies.pData[i])
+    for (uint32_t i = 0; i < a.dependencies.Count; ++i)
+        if (a.dependencies.Data[i] != b.dependencies.Data[i])
             return false;
     return true;
 }
@@ -180,15 +180,15 @@ static bool validPath(const char* pPath)
 }
 
 AssetCatalog::~AssetCatalog() { Clear(); }
-AssetCatalog::AssetCatalog(AssetCatalog&& other) noexcept: pData(other.pData) { other.pData = nullptr; }
+AssetCatalog::AssetCatalog(AssetCatalog&& other) noexcept: Data(other.Data) { other.Data = nullptr; }
 
 AssetCatalog& AssetCatalog::operator=(AssetCatalog&& other) noexcept
 {
     if (this != &other)
     {
         Clear();
-        pData = other.pData;
-        other.pData = nullptr;
+        Data = other.Data;
+        other.Data = nullptr;
     }
     return *this;
 }
@@ -199,7 +199,7 @@ bool AssetCatalog::replace(const AssetCatalogEntry& entry) { return set(entry, t
 bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
 {
     if (!entry.id.isValid() || entry.type > AssetType::Texture || entry.location.root > AssetPathRoot::Cooked ||
-        !validPath(entry.pSourcePath) || !validPath(entry.location.pPath) || (entry.dependencies.count && !entry.dependencies.pData))
+        !validPath(entry.pSourcePath) || !validPath(entry.location.pPath) || (entry.dependencies.Count && !entry.dependencies.Data))
     {
         LOGF(Error, "Invalid AssetCatalog entry");
         return false;
@@ -211,7 +211,7 @@ bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
             return false;
         }
     const CatalogBatch       batch(entry);
-    const AssetCatalogEntry& normalized = batch.getEntries().pData[0];
+    const AssetCatalogEntry& normalized = batch.getEntries().Data[0];
     const AssetCatalogEntry* pExisting = find(entry.id);
     if (pExisting)
     {
@@ -222,11 +222,11 @@ bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
             LOGF(Error, "Conflicting AssetCatalog entry from '%s'", entry.pSourcePath);
             return false;
         }
-        pData->retiredEntries.PushBack((AssetCatalogEntry*)pExisting);
+        Data->retiredEntries.PushBack((AssetCatalogEntry*)pExisting);
     }
-    if (!pData)
-        pData = MemNew(AssetCatalogData);
-    pData->insert(normalized);
+    if (!Data)
+        Data = MemNew(AssetCatalogData);
+    Data->insert(normalized);
     return true;
 }
 
@@ -249,33 +249,33 @@ bool AssetCatalog::addScene(const SceneAsset& scene, const char* pCookedScenePat
             return false;
         }
     }
-    if (!pData)
-        pData = MemNew(AssetCatalogData);
+    if (!Data)
+        Data = MemNew(AssetCatalogData);
     for (const AssetCatalogEntry& entry : batch.getEntries())
     {
         if (find(entry.id))
             continue;
-        pData->insert(entry);
+        Data->insert(entry);
     }
     return true;
 }
 
 const AssetCatalogEntry* AssetCatalog::find(AssetID id) const
 {
-    if (!pData || !id.isValid())
+    if (!Data || !id.isValid())
         return nullptr;
-    const CatalogIndex* pIndex = hmgetp_null(pData->pIndices, id);
+    const CatalogIndex* pIndex = hmgetp_null(Data->pIndices, id);
     return pIndex ? pIndex->value : nullptr;
 }
 
-uint32_t                 AssetCatalog::getCount() const { return pData ? (uint32_t)hmlen(pData->pIndices) : 0; }
+uint32_t                 AssetCatalog::getCount() const { return Data ? (uint32_t)hmlen(Data->pIndices) : 0; }
 const AssetCatalogEntry* AssetCatalog::findScene(const char* pCookedScenePath) const
 {
-    if (!pData || !pCookedScenePath)
+    if (!Data || !pCookedScenePath)
         return nullptr;
-    for (ptrdiff_t i = 0; i < hmlen(pData->pIndices); ++i)
+    for (ptrdiff_t i = 0; i < hmlen(Data->pIndices); ++i)
     {
-        const AssetCatalogEntry* pEntry = pData->pIndices[i].value;
+        const AssetCatalogEntry* pEntry = Data->pIndices[i].value;
         if (pEntry->type == AssetType::Scene && pEntry->location.root == AssetPathRoot::Cooked &&
             !strcmp(pEntry->location.pPath, pCookedScenePath))
             return pEntry;
@@ -285,25 +285,25 @@ const AssetCatalogEntry* AssetCatalog::findScene(const char* pCookedScenePath) c
 
 bool AssetCatalog::remove(AssetID id)
 {
-    if (!pData)
+    if (!Data)
         return false;
-    const CatalogIndex* pIndex = hmgetp_null(pData->pIndices, id);
+    const CatalogIndex* pIndex = hmgetp_null(Data->pIndices, id);
     if (!pIndex)
     {
         return false;
     }
-    pData->retiredEntries.PushBack(pIndex->value);
-    hmdel(pData->pIndices, id);
+    Data->retiredEntries.PushBack(pIndex->value);
+    hmdel(Data->pIndices, id);
     return true;
 }
 
 bool AssetCatalog::merge(const AssetCatalog& other)
 {
-    if (!other.pData)
+    if (!other.Data)
         return true;
-    for (ptrdiff_t i = 0; i < hmlen(other.pData->pIndices); ++i)
+    for (ptrdiff_t i = 0; i < hmlen(other.Data->pIndices); ++i)
     {
-        const AssetCatalogEntry& entry = *other.pData->pIndices[i].value;
+        const AssetCatalogEntry& entry = *other.Data->pIndices[i].value;
         const AssetCatalogEntry* pExisting = find(entry.id);
         if (pExisting && !sameEntry(*pExisting, entry))
         {
@@ -311,13 +311,13 @@ bool AssetCatalog::merge(const AssetCatalog& other)
             return false;
         }
     }
-    if (!pData)
-        pData = MemNew(AssetCatalogData);
-    for (ptrdiff_t i = 0; i < hmlen(other.pData->pIndices); ++i)
+    if (!Data)
+        Data = MemNew(AssetCatalogData);
+    for (ptrdiff_t i = 0; i < hmlen(other.Data->pIndices); ++i)
     {
-        const AssetCatalogEntry& entry = *other.pData->pIndices[i].value;
+        const AssetCatalogEntry& entry = *other.Data->pIndices[i].value;
         if (!find(entry.id))
-            pData->insert(entry);
+            Data->insert(entry);
     }
     return true;
 }
@@ -359,19 +359,19 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
 {
     CatalogJson document;
     const char* pEnd = nullptr;
-    if (json.pData && json.count && json.count <= 64 * 1024 * 1024)
-        document.pRoot = cJSON_ParseWithLengthOpts(json.pData, json.count, &pEnd, false);
+    if (json.Data && json.Count && json.Count <= 64 * 1024 * 1024)
+        document.pRoot = cJSON_ParseWithLengthOpts(json.Data, json.Count, &pEnd, false);
     if (!document.pRoot)
         return false;
-    while (pEnd < json.pData + json.count && isspace((unsigned char)*pEnd))
+    while (pEnd < json.Data + json.Count && isspace((unsigned char)*pEnd))
         ++pEnd;
-    if (pEnd < json.pData + json.count && !*pEnd && pEnd + 1 == json.pData + json.count)
+    if (pEnd < json.Data + json.Count && !*pEnd && pEnd + 1 == json.Data + json.Count)
         ++pEnd;
     const cJSON* pRoot = document.pRoot;
     const char*  pFormat = catalogString(pRoot, "format");
     uint32_t     version = 0;
     const cJSON* pEntries = cJSON_GetObjectItemCaseSensitive(pRoot, "entries");
-    if (pEnd != json.pData + json.count || !uniqueFields(pRoot) || !pFormat || strcmp(pFormat, "Horizon.AssetCatalog") ||
+    if (pEnd != json.Data + json.Count || !uniqueFields(pRoot) || !pFormat || strcmp(pFormat, "Horizon.AssetCatalog") ||
         !catalogNumber(cJSON_GetObjectItemCaseSensitive(pRoot, "version"), version) || version != 1 || !cJSON_IsArray(pEntries))
         return false;
     Array<AssetID> dependencies;
@@ -402,7 +402,7 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
                 return false;
             dependencies.PushBack(id);
         }
-        entry.dependencies = { dependencies.data(), dependencies.size() };
+        entry.dependencies = { dependencies.GetData(), dependencies.Size() };
         if (!catalog.add(entry))
             return false;
     }
@@ -417,10 +417,10 @@ bool AssetCatalog::parse(Span<char> json)
         LOGF(Error, "Invalid AssetCatalog JSON");
         return false;
     }
-    if (candidate.pData)
-        for (ptrdiff_t i = 0; i < hmlen(candidate.pData->pIndices); ++i)
+    if (candidate.Data)
+        for (ptrdiff_t i = 0; i < hmlen(candidate.Data->pIndices); ++i)
         {
-            const AssetCatalogEntry& entry = *candidate.pData->pIndices[i].value;
+            const AssetCatalogEntry& entry = *candidate.Data->pIndices[i].value;
             const AssetCatalogEntry* pExisting = find(entry.id);
             if (pExisting && pExisting->type != entry.type)
             {
@@ -428,17 +428,17 @@ bool AssetCatalog::parse(Span<char> json)
                 return false;
             }
         }
-    if (!pData)
-        pData = MemNew(AssetCatalogData);
-    for (ptrdiff_t i = 0; i < hmlen(pData->pIndices); ++i)
+    if (!Data)
+        Data = MemNew(AssetCatalogData);
+    for (ptrdiff_t i = 0; i < hmlen(Data->pIndices); ++i)
     {
-        pData->retiredEntries.PushBack(pData->pIndices[i].value);
+        Data->retiredEntries.PushBack(Data->pIndices[i].value);
     }
-    hmfree(pData->pIndices);
-    if (candidate.pData)
+    hmfree(Data->pIndices);
+    if (candidate.Data)
     {
-        pData->pIndices = candidate.pData->pIndices;
-        candidate.pData->pIndices = nullptr;
+        Data->pIndices = candidate.Data->pIndices;
+        candidate.Data->pIndices = nullptr;
     }
     return true;
 }
@@ -453,22 +453,22 @@ bool AssetCatalog::load(ResourceDirectory directory, const char* pFileName)
     FileStream stream = {};
     if (!OpenStreamFromPath(directory, pFileName, FM_READ, &stream))
         return false;
-    const ssize_t size = GetStreamFileSize(&stream);
-    if (size <= 0 || size > 64 * 1024 * 1024)
+    const ssize_t Size = GetStreamFileSize(&stream);
+    if (Size <= 0 || Size > 64 * 1024 * 1024)
     {
         CloseStream(&stream);
-        LOGF(Error, "Invalid AssetCatalog file size: '%s'", pFileName);
+        LOGF(Error, "Invalid AssetCatalog file Size: '%s'", pFileName);
         return false;
     }
-    Array<char>  json((uint32_t)size);
-    const size_t bytesRead = ReadFromStream(&stream, json.data(), (size_t)size);
+    Array<char>  json((uint32_t)Size);
+    const size_t bytesRead = ReadFromStream(&stream, json.GetData(), (size_t)Size);
     CloseStream(&stream);
-    if (bytesRead != (size_t)size)
+    if (bytesRead != (size_t)Size)
     {
         LOGF(Error, "Cannot read AssetCatalog '%s'", pFileName);
         return false;
     }
-    return parse({ json.data(), json.size() });
+    return parse({ json.GetData(), json.Size() });
 }
 
 static int compareEntries(const void* pA, const void* pB)
@@ -480,13 +480,13 @@ bool AssetCatalog::serialize(Array<char>& json) const
 {
     Array<const AssetCatalogEntry*> entries;
     entries.Reserve(getCount());
-    if (pData)
-        for (ptrdiff_t i = 0; i < hmlen(pData->pIndices); ++i)
+    if (Data)
+        for (ptrdiff_t i = 0; i < hmlen(Data->pIndices); ++i)
         {
-            entries.PushBack(pData->pIndices[i].value);
+            entries.PushBack(Data->pIndices[i].value);
         }
     if (!entries.Empty())
-        qsort(entries.data(), entries.size(), sizeof(entries[0]), compareEntries);
+        qsort(entries.GetData(), entries.Size(), sizeof(entries[0]), compareEntries);
     CatalogJson document;
     document.pRoot = cJSON_CreateObject();
     cJSON_AddStringToObject(document.pRoot, "format", "Horizon.AssetCatalog");
@@ -519,14 +519,14 @@ bool AssetCatalog::serialize(Array<char>& json) const
     if (!pText)
         return false;
     json.resize((uint32_t)strlen(pText) + 1);
-    memcpy(json.data(), pText, json.size());
+    memcpy(json.GetData(), pText, json.Size());
     cJSON_free(pText);
     return true;
 }
 
 void AssetCatalog::Clear()
 {
-    MemDelete(pData);
-    pData = nullptr;
+    MemDelete(Data);
+    Data = nullptr;
 }
 } // namespace hz

@@ -209,17 +209,17 @@ void wndTakeScreenshot(void* pUserData)
 }
 #endif
 
-void platformInitWindowSystem(WindowDesc* pData)
+void platformInitWindowSystem(WindowDesc* Data)
 {
     ASSERT(pWindowRef == NULL);
 
-    RectDesc currentRes = pData->fullScreen ? pData->fullscreenRect : pData->windowedRect;
-    pData->wndX = currentRes.left;
-    pData->wndY = currentRes.top;
-    pData->wndW = currentRes.right - currentRes.left;
-    pData->wndH = currentRes.bottom - currentRes.top;
+    RectDesc currentRes = Data->fullScreen ? Data->fullscreenRect : Data->windowedRect;
+    Data->wndX = currentRes.left;
+    Data->wndY = currentRes.top;
+    Data->wndW = currentRes.right - currentRes.left;
+    Data->wndH = currentRes.bottom - currentRes.top;
 
-    pWindowRef = pData;
+    pWindowRef = Data;
 
 #if WINDOW_DETAILS
     pWindowRef->pWindowedRectLabel = bempty();

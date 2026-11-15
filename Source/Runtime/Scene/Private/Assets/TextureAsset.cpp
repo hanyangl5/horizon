@@ -50,7 +50,7 @@ public:
         }
         TextureRequest* pRequest = MemNew(TextureRequest);
         pRequest->pAsset = MemNew(TextureAsset);
-        pRequest->pAsset->pData = MemNew(TextureAssetData, entry);
+        pRequest->pAsset->Data = MemNew(TextureAssetData, entry);
         return pRequest;
     }
 
@@ -67,7 +67,7 @@ public:
     static void upload(void* pPayload, const AssetManager&, Span<AssetHandle>, void* pUser)
     {
         TextureAssetLoaderData& loader = *(TextureAssetLoaderData*)pUser;
-        TextureAssetData&       data = *((TextureAsset*)pPayload)->pData;
+        TextureAssetData&       data = *((TextureAsset*)pPayload)->Data;
         const char*             pExtension = strrchr(data.entry.location.pPath, '.');
         if (!pExtension || (stricmp(pExtension, ".dds") && stricmp(pExtension, ".ktx")))
         {
@@ -87,7 +87,7 @@ public:
 
     static AssetLoadStatus pollUpload(void* pPayload, void* pUser)
     {
-        TextureAssetData& data = *((TextureAsset*)pPayload)->pData;
+        TextureAssetData& data = *((TextureAsset*)pPayload)->Data;
         if (!isTokenCompleted(&data.token))
             return AssetLoadStatus::Pending;
         if (!data.uploadSucceeded || !data.pUpload)
@@ -98,28 +98,28 @@ public:
         data.texture = SceneResourceAccess::take(&((TextureAssetLoaderData*)pUser)->context, data.pUpload);
         return AssetLoadStatus::Succeeded;
     }
-    static void waitUpload(void* pPayload, void*) { waitForToken(&((TextureAsset*)pPayload)->pData->token); }
+    static void waitUpload(void* pPayload, void*) { waitForToken(&((TextureAsset*)pPayload)->Data->token); }
 
     RenderContext&    context;
     ResourceDirectory cookedDirectory;
     ResourceDirectory sourceDirectory;
 };
 
-TextureAsset::~TextureAsset() { MemDelete(pData); }
+TextureAsset::~TextureAsset() { MemDelete(Data); }
 const GPUTexture& TextureAsset::getTexture() const
 {
-    ASSERT(pData);
-    return pData->texture;
+    ASSERT(Data);
+    return Data->texture;
 }
 
 TextureAssetLoader::TextureAssetLoader(RenderContext& context, ResourceDirectory cooked, ResourceDirectory source):
-    pData(MemNew(TextureAssetLoaderData, context, cooked, source))
+    Data(MemNew(TextureAssetLoaderData, context, cooked, source))
 {
 }
-TextureAssetLoader::~TextureAssetLoader() { MemDelete(pData); }
+TextureAssetLoader::~TextureAssetLoader() { MemDelete(Data); }
 AssetLoader TextureAssetLoader::getLoader()
 {
-    return { .pUserData = pData,
+    return { .pUserData = Data,
              .pBegin = TextureAssetLoaderData::begin,
              .pPoll = TextureAssetLoaderData::poll,
              .pDestroyRequest = TextureAssetLoaderData::destroyRequest,

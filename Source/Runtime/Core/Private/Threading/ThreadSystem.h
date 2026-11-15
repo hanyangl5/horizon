@@ -44,7 +44,7 @@ extern "C"
 
         // limited to GetNumCpuCores()
         //
-        // If count is equal to 0, thread system is going to work in "dummy" mode.
+        // If Count is equal to 0, thread system is going to work in "dummy" mode.
         // Dummy mode is when tasks are executed by caller of 'threadSystemAddTasks'
         // Usefull to easily toggle singlethreaded mode by setting this value to 0
         // No memory is allocated for dummy mode.
@@ -105,9 +105,9 @@ extern "C"
     bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc);
     void threadSystemExit(ThreadSystem* ts, const struct ThreadSystemExitDesc* desc);
 
-    void threadSystemAddTasks(ThreadSystem ts, TaskFunc func, uint64_t count, uint64_t userSize, void* userArray);
+    void threadSystemAddTasks(ThreadSystem ts, TaskFunc func, uint64_t Count, uint64_t userSize, void* userArray);
 
-#define threadSystemAddTaskGroup(ts, func, count, userArray) threadSystemAddTasks(ts, func, count, sizeof *userArray, userArray)
+#define threadSystemAddTaskGroup(ts, func, Count, userArray) threadSystemAddTasks(ts, func, Count, sizeof *userArray, userArray)
 
     // returns result of expression "task is executed"
     bool threadSystemAssist(ThreadSystem ts);
@@ -152,9 +152,9 @@ public:
     void addTask(TaskFunc func, void* data) const { threadSystemAddTask(threadSystem, func, data); }
 
     template<typename T>
-    void addTasks(TaskFunc func, uint64_t count, T* dataArray) const
+    void addTasks(TaskFunc func, uint64_t Count, T* dataArray) const
     {
-        threadSystemAddTaskGroup(threadSystem, func, count, dataArray);
+        threadSystemAddTaskGroup(threadSystem, func, Count, dataArray);
     }
 
     bool assist() const { return threadSystemAssist(threadSystem); }

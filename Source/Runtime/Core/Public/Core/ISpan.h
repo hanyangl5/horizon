@@ -11,19 +11,19 @@ template<typename T>
 struct Span
 {
     constexpr Span() = default;
-    constexpr Span(const T* pValues, uint32_t valueCount): pData(pValues), count(valueCount) {}
-    constexpr Span(std::initializer_list<T> values): pData(values.begin()), count((uint32_t)values.size()) {}
+    constexpr Span(const T* pValues, uint32_t valueCount): Data(pValues), Count(valueCount) {}
+    constexpr Span(std::initializer_list<T> values): Data(values.begin()), Count((uint32_t)values.size()) {}
 
     template<size_t N>
-    constexpr Span(const T (&values)[N]): pData(values), count((uint32_t)N)
+    constexpr Span(const T (&values)[N]): Data(values), Count((uint32_t)N)
     {
     }
 
-    constexpr const T* begin() const { return pData; }
-    constexpr const T* end() const { return pData ? pData + count : nullptr; }
+    constexpr const T* begin() const { return Data; }
+    constexpr const T* end() const { return Data ? Data + Count : nullptr; }
 
-    const T* pData = nullptr;
-    uint32_t count = 0;
+    const T* Data = nullptr;
+    uint32_t Count = 0;
 };
 
 } // namespace hz

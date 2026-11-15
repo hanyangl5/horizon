@@ -14,83 +14,83 @@ static bool validAlignment(uint32_t alignment) { return alignment && !(alignment
 
 static bool validProperties(const TypeDesc& type, bool arrayElement)
 {
-    if (!type.id || !validName(type.pName) || !type.version || !type.size || !validAlignment(type.alignment) ||
-        type.size % type.alignment || (type.properties.count && !type.properties.pData))
+    if (!type.id || !validName(type.pName) || !type.version || !type.Size || !validAlignment(type.alignment) ||
+        type.Size % type.alignment || (type.properties.Count && !type.properties.Data))
         return false;
     const TypeLifecycle& ops = type.lifecycle;
     if (!type.triviallyCopyable && (!ops.pConstruct || !ops.pDestroy || !ops.pCopyConstruct || !ops.pMoveConstruct))
         return false;
     if (ops.pDestroy && (!ops.pConstruct || !ops.pCopyConstruct || !ops.pMoveConstruct))
         return false;
-    if (arrayElement && (!type.triviallyCopyable || ops.pDestroy || !type.properties.count))
+    if (arrayElement && (!type.triviallyCopyable || ops.pDestroy || !type.properties.Count))
         return false;
 
-    for (uint32_t i = 0; i < type.properties.count; ++i)
+    for (uint32_t i = 0; i < type.properties.Count; ++i)
     {
-        const PropertyDesc& property = type.properties.pData[i];
-        if (!property.id || !validName(property.pName) || !property.size || property.offset > type.size ||
-            property.size > type.size - property.offset ||
+        const PropertyDesc& property = type.properties.Data[i];
+        if (!property.id || !validName(property.pName) || !property.Size || property.offset > type.Size ||
+            property.Size > type.Size - property.offset ||
             (property.flags & ~(PROPERTY_SERIALIZED | PROPERTY_TRANSIENT | PROPERTY_READ_ONLY | PROPERTY_EDITOR_ONLY)) ||
             ((property.flags & PROPERTY_SERIALIZED) && (property.flags & PROPERTY_TRANSIENT)))
             return false;
         for (uint32_t j = 0; j < i; ++j)
         {
-            if (property.id == type.properties.pData[j].id || !strcmp(property.pName, type.properties.pData[j].pName))
+            if (property.id == type.properties.Data[j].id || !strcmp(property.pName, type.properties.Data[j].pName))
                 return false;
         }
         if (property.kind != PropertyKind::Array && (property.pElementType || property.pArrayOperations))
             return false;
-        if (property.kind != PropertyKind::Enum && property.enumValues.count)
+        if (property.kind != PropertyKind::Enum && property.enumValues.Count)
             return false;
 
         switch (property.kind)
         {
         case PropertyKind::Boolean:
-            if (property.size != sizeof(bool))
+            if (property.Size != sizeof(bool))
                 return false;
             break;
         case PropertyKind::SignedInteger:
         case PropertyKind::UnsignedInteger:
-            if (property.size != 1 && property.size != 2 && property.size != 4 && property.size != 8)
+            if (property.Size != 1 && property.Size != 2 && property.Size != 4 && property.Size != 8)
                 return false;
             break;
         case PropertyKind::Float:
-            if (property.size != 4 && property.size != 8)
+            if (property.Size != 4 && property.Size != 8)
                 return false;
             break;
         case PropertyKind::Vector2:
-            if (property.size != 8)
+            if (property.Size != 8)
                 return false;
             break;
         case PropertyKind::Vector3:
         case PropertyKind::Color:
-            if (property.size != 12 && property.size != 16)
+            if (property.Size != 12 && property.Size != 16)
                 return false;
             break;
         case PropertyKind::Vector4:
         case PropertyKind::Quaternion:
         case PropertyKind::AssetReference:
         case PropertyKind::EntityReference:
-            if (property.size != 16)
+            if (property.Size != 16)
                 return false;
             break;
         case PropertyKind::Matrix4:
-            if (property.size != 64)
+            if (property.Size != 64)
                 return false;
             break;
         case PropertyKind::String:
             break;
         case PropertyKind::Enum:
-            if (property.size != sizeof(int32_t) || !property.enumValues.count || !property.enumValues.pData)
+            if (property.Size != sizeof(int32_t) || !property.enumValues.Count || !property.enumValues.Data)
                 return false;
-            for (uint32_t j = 0; j < property.enumValues.count; ++j)
+            for (uint32_t j = 0; j < property.enumValues.Count; ++j)
             {
-                const EnumValue& value = property.enumValues.pData[j];
+                const EnumValue& value = property.enumValues.Data[j];
                 if (!validName(value.pName))
                     return false;
                 for (uint32_t k = 0; k < j; ++k)
                 {
-                    if (value.value == property.enumValues.pData[k].value || !strcmp(value.pName, property.enumValues.pData[k].pName))
+                    if (value.value == property.enumValues.Data[k].value || !strcmp(value.pName, property.enumValues.Data[k].pName))
                         return false;
                 }
             }
@@ -100,8 +100,8 @@ static bool validProperties(const TypeDesc& type, bool arrayElement)
             const ArrayOperations* pArray = property.pArrayOperations;
             if (arrayElement || type.triviallyCopyable || !property.pElementType || !pArray ||
                 !validProperties(*property.pElementType, true) || !validAlignment(pArray->alignment) ||
-                type.alignment < pArray->alignment || property.offset % pArray->alignment || property.size != pArray->size ||
-                !pArray->pCount || !pArray->pData || !pArray->pResize || !pArray->pInsert || !pArray->pRemove)
+                type.alignment < pArray->alignment || property.offset % pArray->alignment || property.Size != pArray->Size ||
+                !pArray->pCount || !pArray->Data || !pArray->pResize || !pArray->pInsert || !pArray->pRemove)
                 return false;
             break;
         }
@@ -135,7 +135,7 @@ void TypeDesc::construct(void* pDestination) const
     if (lifecycle.pConstruct)
         lifecycle.pConstruct(pDestination);
     else
-        memset(pDestination, 0, size);
+        memset(pDestination, 0, Size);
 }
 
 void TypeDesc::destroy(void* pValue) const
@@ -151,7 +151,7 @@ void TypeDesc::copyConstruct(void* pDestination, const void* pSource) const
     if (lifecycle.pCopyConstruct)
         lifecycle.pCopyConstruct(pDestination, pSource);
     else
-        memcpy(pDestination, pSource, size);
+        memcpy(pDestination, pSource, Size);
 }
 
 void TypeDesc::moveConstruct(void* pDestination, void* pSource) const
@@ -160,15 +160,15 @@ void TypeDesc::moveConstruct(void* pDestination, void* pSource) const
     if (lifecycle.pMoveConstruct)
         lifecycle.pMoveConstruct(pDestination, pSource);
     else
-        memcpy(pDestination, pSource, size);
+        memcpy(pDestination, pSource, Size);
 }
 
 TypeRegistry::~TypeRegistry() { arrfree(ppTypes); }
-uint32_t TypeRegistry::size() const { return (uint32_t)arrlenu(ppTypes); }
+uint32_t TypeRegistry::Size() const { return (uint32_t)arrlenu(ppTypes); }
 
 const TypeDesc* TypeRegistry::getType(TypeID id) const
 {
-    for (uint32_t i = 0; i < size(); ++i)
+    for (uint32_t i = 0; i < Size(); ++i)
         if (ppTypes[i]->id == id)
             return ppTypes[i];
     return nullptr;
@@ -177,7 +177,7 @@ const TypeDesc* TypeRegistry::getType(TypeID id) const
 const TypeDesc* TypeRegistry::getType(const char* pName) const
 {
     ASSERT(pName);
-    for (uint32_t i = 0; i < size(); ++i)
+    for (uint32_t i = 0; i < Size(); ++i)
         if (!strcmp(ppTypes[i]->pName, pName))
             return ppTypes[i];
     return nullptr;
@@ -185,16 +185,16 @@ const TypeDesc* TypeRegistry::getType(const char* pName) const
 
 const TypeDesc* TypeRegistry::getTypeAt(uint32_t index) const
 {
-    ASSERT(index < size());
+    ASSERT(index < Size());
     return ppTypes[index];
 }
 
 bool TypeRegistry::registerTypes(Span<TypeDesc> types)
 {
-    ASSERT(types.pData || !types.count);
-    for (uint32_t i = 0; i < types.count; ++i)
+    ASSERT(types.Data || !types.Count);
+    for (uint32_t i = 0; i < types.Count; ++i)
     {
-        const TypeDesc& type = types.pData[i];
+        const TypeDesc& type = types.Data[i];
         if (!validProperties(type, false))
         {
             LOGF(Error, "Invalid reflection metadata for type '%s'", type.pName ? type.pName : "<unnamed>");
@@ -202,14 +202,14 @@ bool TypeRegistry::registerTypes(Span<TypeDesc> types)
         }
         bool duplicate = getType(type.id) || getType(type.pName);
         for (uint32_t j = 0; j < i; ++j)
-            duplicate |= type.id == types.pData[j].id || !strcmp(type.pName, types.pData[j].pName);
+            duplicate |= type.id == types.Data[j].id || !strcmp(type.pName, types.Data[j].pName);
         if (duplicate)
         {
             LOGF(Error, "Duplicate reflection type '%s'", type.pName);
             return false;
         }
     }
-    arrsetcap(ppTypes, size() + types.count);
+    arrsetcap(ppTypes, Size() + types.Count);
     for (const TypeDesc& type : types)
         arrpush(ppTypes, &type);
     return true;

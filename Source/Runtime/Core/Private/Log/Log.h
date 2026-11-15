@@ -96,10 +96,10 @@ extern "C"
     {
         char str[16];
     };
-    FORGE_API struct HumanReadableValue HumanReadableSSize(ssize_t size);
+    FORGE_API struct HumanReadableValue HumanReadableSSize(ssize_t Size);
     FORGE_API struct HumanReadableValue HumanReadableTimeD(double nanoseconds);
 
-    static inline struct HumanReadableValue HumanReadableSize(size_t size) { return HumanReadableSSize((ssize_t)size); }
+    static inline struct HumanReadableValue HumanReadableSize(size_t Size) { return HumanReadableSSize((ssize_t)Size); }
     static inline struct HumanReadableValue HumanReadableTime(int64_t nanoseconds) { return HumanReadableTimeD((double)nanoseconds); }
 
 #ifdef __cplusplus

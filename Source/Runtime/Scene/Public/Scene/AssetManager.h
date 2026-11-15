@@ -111,6 +111,6 @@ public:
     void                 shutdown();
 
 private:
-    AssetManagerData* pData = nullptr;
+    AssetManagerData* Data = nullptr;
 };
 } // namespace hz

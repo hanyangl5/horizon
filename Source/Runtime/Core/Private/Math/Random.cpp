@@ -9,11 +9,11 @@
 
 namespace hz
 {
-bool GetSystemRandomBytes(void* pData, uint32_t size)
+bool GetSystemRandomBytes(void* Data, uint32_t Size)
 {
-    ASSERT(pData || !size);
-    if (!size)
+    ASSERT(Data || !Size);
+    if (!Size)
         return true;
-    return BCryptGenRandom(nullptr, (PUCHAR)pData, size, BCRYPT_USE_SYSTEM_PREFERRED_RNG) >= 0;
+    return BCryptGenRandom(nullptr, (PUCHAR)Data, Size, BCRYPT_USE_SYSTEM_PREFERRED_RNG) >= 0;
 }
 } // namespace hz

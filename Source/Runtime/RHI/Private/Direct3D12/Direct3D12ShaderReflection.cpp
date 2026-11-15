@@ -82,7 +82,7 @@ void calculate_bound_resource_count(ID3D12ReflectionT* d3d12reflection, const D3
         reflection.namePoolSize += (uint32_t)strlen(bindDesc.Name) + 1;
     }
 
-    // Count the number of variables and add to the size of the string pool
+    // Count the number of variables and add to the Size of the string pool
     for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)
     {
         ID3D12ShaderReflectionConstantBuffer* buffer = d3d12reflection->GetConstantBufferByIndex(i);
@@ -101,7 +101,7 @@ void calculate_bound_resource_count(ID3D12ReflectionT* d3d12reflection, const D3
             D3D12_SHADER_VARIABLE_DESC varDesc;
             variable->GetDesc(&varDesc);
 
-            // Only count used variables
+            // Only Count used variables
             if ((varDesc.uFlags | D3D_SVF_USED) != 0)
             {
                 reflection.namePoolSize += (uint32_t)strlen(varDesc.Name) + 1;
@@ -130,7 +130,7 @@ void fill_shader_resources(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADE
             reflection.pShaderResources[i].type = sD3D12_TO_DESCRIPTOR[bindDesc.Type];
             reflection.pShaderResources[i].set = bindDesc.Space;
             reflection.pShaderResources[i].reg = bindDesc.BindPoint;
-            reflection.pShaderResources[i].size = bindDesc.BindCount;
+            reflection.pShaderResources[i].Size = bindDesc.BindCount;
             reflection.pShaderResources[i].used_stages = shaderStage;
             reflection.pShaderResources[i].name = pCurrentName;
             reflection.pShaderResources[i].name_size = len;
@@ -204,7 +204,7 @@ void fill_shader_resources(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADE
 
                     reflection.pVariables[v].parent_index = resourceIndex;
                     reflection.pVariables[v].offset = varDesc.StartOffset;
-                    reflection.pVariables[v].size = varDesc.Size;
+                    reflection.pVariables[v].Size = varDesc.Size;
                     reflection.pVariables[v].name = pCurrentName;
                     reflection.pVariables[v].name_size = len;
 
@@ -288,7 +288,7 @@ void d3d12_createShaderReflection(ID3D12ShaderReflection* d3d12reflection, Shade
 
             reflection.pVertexInputs[i].name = pCurrentName;
             reflection.pVertexInputs[i].name_size = len;
-            reflection.pVertexInputs[i].size = (uint32_t)log2(paramDesc.Mask + 1) * sizeof(uint8_t[4]);
+            reflection.pVertexInputs[i].Size = (uint32_t)log2(paramDesc.Mask + 1) * sizeof(uint8_t[4]);
 
             // Copy over the name into the name pool
             pCurrentName += len + 1; // move the name pointer through the name pool

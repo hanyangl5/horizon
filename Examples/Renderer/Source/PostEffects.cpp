@@ -155,7 +155,7 @@ void PostEffects::Resize(uint32_t Width, uint32_t Height)
     this->Width = Width;
     this->Height = Height;
     const DescriptorType Views = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
-    // Bloom follows the render size so the glare keeps its screen-space radius instead of a fixed 512 texel image.
+    // Bloom follows the render Size so the glare keeps its screen-space radius instead of a fixed 512 texel image.
     BloomWidth = Width > 1 ? Width / 2 : 1;
     BloomHeight = Height > 1 ? Height / 2 : 1;
     hz::TextureDesc Desc = { .format = hz::Format::R16G16B16A16_SFLOAT,
@@ -163,7 +163,7 @@ void PostEffects::Resize(uint32_t Width, uint32_t Height)
                              .descriptors = Views,
                              .flags = TEXTURE_CREATION_FLAG_FORCE_2D };
     bool            Valid = true;
-    // Parked targets of the previous size never match again, so drop them once the GPU is idle.
+    // Parked targets of the previous Size never match again, so drop them once the GPU is idle.
     Context.purgeTransients();
     // Independent images let Dependencies describe every reduction without mixed SRV/UAV mip states.
     Desc.format = hz::Format::R16_SFLOAT;

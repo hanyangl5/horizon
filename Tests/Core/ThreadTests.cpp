@@ -68,7 +68,7 @@ TEST(CoreThreadTest, CallOnceInvokesFunctionSingleTimeAcrossThreads)
     {
         ThreadDesc desc = {
             .pFunc = callOnceWorker,
-            .pData = &workerData[i],
+            .Data = &workerData[i],
         };
         ASSERT_TRUE(InitThread(&desc, &handles[i]));
     }
@@ -102,7 +102,7 @@ TEST(CoreThreadTest, ThreadNamingAndConditionVariableWorkTogether)
 
     ThreadDesc desc = {
         .pFunc = namedThreadProbe,
-        .pData = &data,
+        .Data = &data,
     };
     memcpy(desc.threadName, "CoreThreadUT", sizeof("CoreThreadUT"));
 

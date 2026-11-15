@@ -50,10 +50,10 @@ struct VertexInput
     // resource name
     const char* name;
 
-    // The size of the attribute
-    uint32_t size;
+    // The Size of the attribute
+    uint32_t Size;
 
-    // name size
+    // name Size
     uint32_t name_size;
 };
 
@@ -68,8 +68,8 @@ struct ShaderResource
     // The resource binding location
     uint32_t reg;
 
-    // The size of the resource. This will be the DescriptorInfo array size for textures
-    uint32_t size;
+    // The Size of the resource. This will be the DescriptorInfo array Size for textures
+    uint32_t Size;
 
     // what stages use this resource
     ShaderStage used_stages;
@@ -77,7 +77,7 @@ struct ShaderResource
     // resource name
     const char* name;
 
-    // name size
+    // name Size
     uint32_t name_size;
 
     // 1D / 2D / Array / MSAA / ...
@@ -95,10 +95,10 @@ struct ShaderVariable
     // The offset of the Variable.
     uint32_t offset;
 
-    // The size of the Variable.
-    uint32_t size;
+    // The Size of the Variable.
+    uint32_t Size;
 
-    // name size
+    // name Size
     uint32_t name_size;
 };
 
@@ -118,7 +118,7 @@ struct ShaderReflection
     uint32_t shaderResourceCount;
     uint32_t variableCount;
 
-    // Thread group size for compute shader
+    // Thread group Size for compute shader
     uint32_t numThreadsPerGroup[3];
 
     uint32_t outputRenderTargetTypesMask;

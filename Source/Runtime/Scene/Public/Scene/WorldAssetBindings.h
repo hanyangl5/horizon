@@ -48,6 +48,6 @@ public:
     void                    Clear();
 
 private:
-    WorldAssetBindingsData* pData = nullptr;
+    WorldAssetBindingsData* Data = nullptr;
 };
 } // namespace hz

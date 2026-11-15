@@ -94,10 +94,10 @@ public:
     CookedGeometryFile(const CookedGeometryFile&) = delete;
     CookedGeometryFile& operator=(const CookedGeometryFile&) = delete;
 
-    void write(const void* pData, size_t size)
+    void write(const void* Data, size_t Size)
     {
         if (written)
-            written = WriteToStream(&stream, pData, size) == size;
+            written = WriteToStream(&stream, Data, Size) == Size;
     }
     bool publish()
     {
@@ -168,18 +168,18 @@ static void BeginAssetPipelineSection(const char* section) { LOGF(Info, "=======
 
 static void EndAssetPipelineSection(const char* section) { LOGF(Info, "========== !%s ==========", section); }
 
-static bool validateSceneAssetCookInput(const cgltf_data* pData)
+static bool validateSceneAssetCookInput(const cgltf_data* Data)
 {
-    for (cgltf_size i = 0; i < pData->meshes_count; ++i)
-        for (cgltf_size j = 0; j < pData->meshes[i].primitives_count; ++j)
-            if (pData->meshes[i].primitives[j].type != cgltf_primitive_type_triangles)
+    for (cgltf_size i = 0; i < Data->meshes_count; ++i)
+        for (cgltf_size j = 0; j < Data->meshes[i].primitives_count; ++j)
+            if (Data->meshes[i].primitives[j].type != cgltf_primitive_type_triangles)
             {
                 LOGF(Error, "Scene mesh %u primitive %u requires triangle-list topology", (uint32_t)i, (uint32_t)j);
                 return false;
             }
-    for (cgltf_size i = 0; i < pData->textures_count; ++i)
+    for (cgltf_size i = 0; i < Data->textures_count; ++i)
     {
-        const cgltf_image* pImage = pData->textures[i].image;
+        const cgltf_image* pImage = Data->textures[i].image;
         if (!pImage || (!pImage->uri && !pImage->buffer_view) || (pImage->uri && pImage->buffer_view))
         {
             LOGF(Error, "Scene texture %u must reference an image URI or buffer view", (uint32_t)i);
@@ -199,17 +199,17 @@ struct SceneAssetCookFingerprint
     char     mDependencies[kSceneAssetCookMaxDependencies][FS_MAX_PATH];
 };
 
-static void updateSceneAssetCookHash(uint64_t* pHash, const void* pData, size_t size)
+static void updateSceneAssetCookHash(uint64_t* pHash, const void* Data, size_t Size)
 {
-    const uint8_t* pBytes = (const uint8_t*)pData;
-    for (size_t i = 0; i < size; ++i)
+    const uint8_t* pBytes = (const uint8_t*)Data;
+    for (size_t i = 0; i < Size; ++i)
     {
         *pHash ^= pBytes[i];
         *pHash *= UINT64_C(1099511628211);
     }
 }
 
-static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint, const char* pPath, const void* pData, size_t size)
+static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint, const char* pPath, const void* Data, size_t Size)
 {
     char normalizedPath[FS_MAX_PATH] = {};
     NormalizePath(pPath, '/', normalizedPath);
@@ -225,12 +225,12 @@ static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint,
 
     snprintf(pFingerprint->mDependencies[pFingerprint->mDependencyCount++], FS_MAX_PATH, "%s", normalizedPath);
     updateSceneAssetCookHash(&pFingerprint->mHash, normalizedPath, strlen(normalizedPath) + 1);
-    updateSceneAssetCookHash(&pFingerprint->mHash, pData, size);
+    updateSceneAssetCookHash(&pFingerprint->mHash, Data, Size);
     return true;
 }
 
 static bool addSceneAssetCookStatDependency(ResourceDirectory resourceDirectory, SceneAssetCookFingerprint* pFingerprint, const char* pPath,
-                                            uint64_t size)
+                                            uint64_t Size)
 {
     char normalizedPath[FS_MAX_PATH] = {};
     NormalizePath(pPath, '/', normalizedPath);
@@ -249,12 +249,12 @@ static bool addSceneAssetCookStatDependency(ResourceDirectory resourceDirectory,
     snprintf(pFingerprint->mDependencies[pFingerprint->mDependencyCount++], FS_MAX_PATH, "%s", normalizedPath);
     updateSceneAssetCookHash(&pFingerprint->mHash, normalizedPath, strlen(normalizedPath) + 1);
     updateSceneAssetCookHash(&pFingerprint->mHash, &modified, sizeof(modified));
-    updateSceneAssetCookHash(&pFingerprint->mHash, &size, sizeof(size));
+    updateSceneAssetCookHash(&pFingerprint->mHash, &Size, sizeof(Size));
     return true;
 }
 
 static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, const char* pSourcePath, const void* pSourceData,
-                                           size_t sourceSize, const cgltf_data* pData, const ProcessGLTFParams* pParams,
+                                           size_t sourceSize, const cgltf_data* Data, const ProcessGLTFParams* pParams,
                                            time_t additionalModifiedTime, SceneAssetCookFingerprint* pFingerprint)
 {
     static const uint32_t kCookerRevision = 12;
@@ -272,9 +272,9 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
 
     char sourceParent[FS_MAX_PATH] = {};
     GetParentPath(pSourcePath, sourceParent);
-    for (cgltf_size i = 0; i < pData->buffers_count; ++i)
+    for (cgltf_size i = 0; i < Data->buffers_count; ++i)
     {
-        const cgltf_buffer* pBuffer = &pData->buffers[i];
+        const cgltf_buffer* pBuffer = &Data->buffers[i];
         if (!pBuffer->uri || strncmp(pBuffer->uri, "data:", 5) == 0 || strstr(pBuffer->uri, "://"))
             continue;
         char dependencyPath[FS_MAX_PATH] = {};
@@ -282,9 +282,9 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
         if (!addSceneAssetCookStatDependency(resourceDirectory, pFingerprint, dependencyPath, pBuffer->size))
             return false;
     }
-    for (cgltf_size i = 0; i < pData->images_count; ++i)
+    for (cgltf_size i = 0; i < Data->images_count; ++i)
     {
-        const cgltf_image* pImage = &pData->images[i];
+        const cgltf_image* pImage = &Data->images[i];
         if (!pImage->uri || strncmp(pImage->uri, "data:", 5) == 0 || strstr(pImage->uri, "://"))
             continue;
         char dependencyPath[FS_MAX_PATH] = {};
@@ -354,9 +354,9 @@ void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const ch
 }
 
 #if defined(HORIZON_ENABLE_ANIMATION_COOKER)
-void ReleaseSkeletonAndAnimationParams(SkeletonAndAnimations* pArray, uint32_t count)
+void ReleaseSkeletonAndAnimationParams(SkeletonAndAnimations* pArray, uint32_t Count)
 {
-    for (uint32_t i = 0; i < count; ++i)
+    for (uint32_t i = 0; i < Count; ++i)
     {
         bdestroy(&pArray[i].mSkeletonInFile);
         bdestroy(&pArray[i].mSkeletonOutFile);
@@ -395,10 +395,10 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
 
     cgltf_data*   data = NULL;
     cgltf_options options = {};
-    options.memory_alloc = [](void* user, cgltf_size size)
+    options.memory_alloc = [](void* user, cgltf_size Size)
     {
         UNREF_PARAM(user);
-        return MemAllocate(size);
+        return MemAllocate(Size);
     };
     options.memory_free = [](void* user, void* ptr)
     {
@@ -440,9 +440,9 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
             FileStream fs = {};
             if (OpenStreamFromPath(resourceDir, path, FM_READ, &fs))
             {
-                ASSERT(GetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].size);
-                data->buffers[i].data = MemAllocate(data->buffers[i].size);
-                ReadFromStream(&fs, data->buffers[i].data, data->buffers[i].size);
+                ASSERT(GetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].Size);
+                data->buffers[i].data = MemAllocate(data->buffers[i].Size);
+                ReadFromStream(&fs, data->buffers[i].data, data->buffers[i].Size);
                 CloseStream(&fs);
             }
         }
@@ -465,10 +465,10 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
 cgltf_result cgltf_write(ResourceDirectory resourceDir, const char* skeletonAsset, cgltf_data* data)
 {
     cgltf_options options = {};
-    options.memory_alloc = [](void* user, cgltf_size size)
+    options.memory_alloc = [](void* user, cgltf_size Size)
     {
         UNREF_PARAM(user);
-        return MemAllocate(size);
+        return MemAllocate(Size);
     };
     options.memory_free = [](void* user, void* ptr)
     {
@@ -799,12 +799,12 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
             "TEXCOORD_6", // Thickness coeffs
             "TEXCOORD_7", // Rest lengths
         };
-        const uint32_t count = sizeof(vertexData) / sizeof(vertexData[0]);
+        const uint32_t Count = sizeof(vertexData) / sizeof(vertexData[0]);
 
         cgltf_buffer      buffer = {};
-        cgltf_accessor    accessors[count] = {};
-        cgltf_buffer_view views[count] = {};
-        cgltf_attribute   attribs[count] = {};
+        cgltf_accessor    accessors[Count] = {};
+        cgltf_buffer_view views[Count] = {};
+        cgltf_attribute   attribs[Count] = {};
         cgltf_mesh        mesh = {};
         cgltf_primitive   prim = {};
         cgltf_size        offset = 0;
@@ -812,15 +812,15 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
         OpenStreamFromPath(assetParams->mRDOutput, binFilePath, FM_WRITE, &binFile);
         size_t fileSize = 0;
 
-        for (uint32_t j = 0; j < count; ++j)
+        for (uint32_t j = 0; j < Count; ++j)
         {
             views[j].type = (j ? cgltf_buffer_view_type_vertices : cgltf_buffer_view_type_indices);
             views[j].buffer = &buffer;
             views[j].offset = offset;
-            views[j].size = vertexCounts[j] * vertexStrides[j];
+            views[j].Size = vertexCounts[j] * vertexStrides[j];
             accessors[j].component_type = vertexTypes[j].comp;
             accessors[j].stride = vertexStrides[j];
-            accessors[j].count = vertexCounts[j];
+            accessors[j].Count = vertexCounts[j];
             accessors[j].offset = 0;
             accessors[j].type = vertexTypes[j].type;
             accessors[j].buffer_view = &views[j];
@@ -828,8 +828,8 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
             attribs[j].name = (char*)vertexNames[j];
             attribs[j].data = &accessors[j];
 
-            fileSize += WriteToStream(&binFile, vertexData[j], views[j].size);
-            offset += views[j].size;
+            fileSize += WriteToStream(&binFile, vertexData[j], views[j].Size);
+            offset += views[j].Size;
         }
         CloseStream(&binFile);
 
@@ -837,10 +837,10 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
         GetPathFileName(binFilePath, uri);
         // sprintf(uri, "%s", fn.buffer);
         buffer.uri = uri;
-        buffer.size = fileSize;
+        buffer.Size = fileSize;
 
         prim.indices = accessors;
-        prim.attributes_count = count - 1;
+        prim.attributes_count = Count - 1;
         prim.attributes = attribs + 1;
         prim.type = cgltf_primitive_type_triangles;
 
@@ -856,9 +856,9 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
         data.asset.generator = generator;
         data.buffers_count = 1;
         data.buffers = &buffer;
-        data.buffer_views_count = count;
+        data.buffer_views_count = Count;
         data.buffer_views = views;
-        data.accessors_count = count;
+        data.accessors_count = Count;
         data.accessors = accessors;
         data.meshes_count = 1;
         data.meshes = &mesh;
@@ -1155,7 +1155,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
     // Generate joint remaps in the gltf
     {
         char*    buffer = nullptr;
-        uint32_t size = 0;
+        uint32_t Size = 0;
 
         for (uint32_t i = 0; i < data->meshes_count; ++i)
         {
@@ -1189,9 +1189,9 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
                 }
 
                 offset += snprintf(jointRemaps + offset, sizeof(jointRemaps) - offset, " ]");
-                skin->extras.start_offset = size;
-                size += (uint32_t)strlen(jointRemaps) + 1;
-                skin->extras.end_offset = size - 1;
+                skin->extras.start_offset = Size;
+                Size += (uint32_t)strlen(jointRemaps) + 1;
+                skin->extras.end_offset = Size - 1;
 
                 const size_t iterCount = strlen(jointRemaps) + 1;
                 for (uint32_t j = 0; j < iterCount; ++j)
@@ -1212,7 +1212,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
 
                 FileStream fs = {};
                 OpenStreamFromPath(resourceDirGltfOutput, bufferOut, FM_WRITE, &fs);
-                WriteToStream(&fs, data->buffers[i].data, data->buffers[i].size);
+                WriteToStream(&fs, data->buffers[i].data, data->buffers[i].Size);
                 CloseStream(&fs);
             }
         }
@@ -1265,9 +1265,9 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
 
             if (channel->target_path == cgltf_animation_path_type_translation)
             {
-                arrsetlen(track->translations, channel->sampler->output->count);
-                memset((char*)track->translations, 0, sizeof(*track->translations) * channel->sampler->output->count);
-                for (cgltf_size j = 0; j < channel->sampler->output->count; j += 1)
+                arrsetlen(track->translations, channel->sampler->output->Count);
+                memset((char*)track->translations, 0, sizeof(*track->translations) * channel->sampler->output->Count);
+                for (cgltf_size j = 0; j < channel->sampler->output->Count; j += 1)
                 {
                     float time = 0.0;
                     Vector3 translation = Vector3(0.0f);
@@ -1280,9 +1280,9 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
 
             if (channel->target_path == cgltf_animation_path_type_rotation)
             {
-                arrsetlen(track->rotations, channel->sampler->output->count);
-                memset((char*)track->rotations, 0, sizeof(*track->rotations) * channel->sampler->output->count);
-                for (cgltf_size j = 0; j < channel->sampler->output->count; j += 1)
+                arrsetlen(track->rotations, channel->sampler->output->Count);
+                memset((char*)track->rotations, 0, sizeof(*track->rotations) * channel->sampler->output->Count);
+                for (cgltf_size j = 0; j < channel->sampler->output->Count; j += 1)
                 {
                     float time = 0.0;
                     Quat  rotation = Quat(0.0f);
@@ -1295,9 +1295,9 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
 
             if (channel->target_path == cgltf_animation_path_type_scale)
             {
-                arrsetlen(track->scales, channel->sampler->output->count);
-                memset((char*)track->scales, 0, sizeof(*track->scales) * channel->sampler->output->count);
-                for (cgltf_size j = 0; j < channel->sampler->output->count; j += 1)
+                arrsetlen(track->scales, channel->sampler->output->Count);
+                memset((char*)track->scales, 0, sizeof(*track->scales) * channel->sampler->output->Count);
+                for (cgltf_size j = 0; j < channel->sampler->output->Count; j += 1)
                 {
                     float time = 0.0;
                     Vector3 scale = Vector3(0.0f);
@@ -1519,9 +1519,9 @@ static inline constexpr hz::Format util_cgltf_type_to_image_format(cgltf_type ty
     }
 }
 
-typedef void (*PackingFunction)(uint32_t count, uint32_t srcStride, uint32_t dstStride, uint32_t offset, const uint8_t* src, uint8_t* dst);
+typedef void (*PackingFunction)(uint32_t Count, uint32_t srcStride, uint32_t dstStride, uint32_t offset, const uint8_t* src, uint8_t* dst);
 
-static inline void util_pack_float2_to_half2(uint32_t count, uint32_t srcStride, uint32_t dstStride, uint32_t offset, const uint8_t* src,
+static inline void util_pack_float2_to_half2(uint32_t Count, uint32_t srcStride, uint32_t dstStride, uint32_t offset, const uint8_t* src,
                                              uint8_t* dst)
 {
     COMPILE_ASSERT(sizeof(float2) == sizeof(float[2]));
@@ -1529,30 +1529,30 @@ static inline void util_pack_float2_to_half2(uint32_t count, uint32_t srcStride,
     ASSERT(dstStride == sizeof(uint32_t));
 
     float2* f = (float2*)src;
-    for (uint32_t e = 0; e < count; ++e)
+    for (uint32_t e = 0; e < Count; ++e)
     {
         *(uint32_t*)(dst + e * sizeof(uint32_t) + offset) = packFloat2ToHalf2(f[e]);
     }
 }
 
-static inline void util_pack_float3_direction_to_half2(uint32_t count, uint32_t srcStride, uint32_t dstStride, uint32_t offset,
+static inline void util_pack_float3_direction_to_half2(uint32_t Count, uint32_t srcStride, uint32_t dstStride, uint32_t offset,
                                                        const uint8_t* src, uint8_t* dst)
 {
     COMPILE_ASSERT(sizeof(float3) == sizeof(float[3]));
     ASSERT(dstStride == sizeof(uint32_t));
-    for (uint32_t e = 0; e < count; ++e)
+    for (uint32_t e = 0; e < Count; ++e)
     {
         float3 f = *(float3*)(src + e * srcStride);
         *(uint32_t*)(dst + e * dstStride + offset) = packFloat3DirectionToHalf2(f);
     }
 }
 
-static inline void util_unpack_uint8_to_uint16_joints(uint32_t count, uint32_t srcStride, uint32_t dstStride, uint32_t offset,
+static inline void util_unpack_uint8_to_uint16_joints(uint32_t Count, uint32_t srcStride, uint32_t dstStride, uint32_t offset,
                                                       const uint8_t* src, uint8_t* dst)
 {
     ASSERT(srcStride == 4 && "Expecting stride of 4 (sizeof(uint8_t) * 4 joints)");
 
-    for (uint32_t e = 0; e < count; ++e)
+    for (uint32_t e = 0; e < Count; ++e)
     {
         const uint8_t* srcBase = (const uint8_t*)(src + e * srcStride);
         uint16_t*      dstBase = (uint16_t*)(dst + e * dstStride + offset);
@@ -1588,10 +1588,10 @@ void CheckIfGltfHasAnimations(ResourceDirectory resourceDirInput, const char* gl
 
     cgltf_options options = {};
     cgltf_data*   data = NULL;
-    options.memory_alloc = [](void* user, cgltf_size size)
+    options.memory_alloc = [](void* user, cgltf_size Size)
     {
         UNREF_PARAM(user);
-        return MemAllocate(size);
+        return MemAllocate(Size);
     };
     options.memory_free = [](void* user, void* ptr)
     {
@@ -1701,7 +1701,7 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
         validStreamCount++;
     }
 
-    // Remap functions expect the same vertex count passed when generating the map, so we have to set the new vertex count later on
+    // Remap functions expect the same vertex Count passed when generating the map, so we have to set the new vertex Count later on
     uint32_t newVertCount = 0;
 
     // generating remap & new vertex/index sets
@@ -1868,10 +1868,10 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         cgltf_options options = {};
         cgltf_data*   data = NULL;
-        options.memory_alloc = [](void* user, cgltf_size size)
+        options.memory_alloc = [](void* user, cgltf_size Size)
         {
             UNREF_PARAM(user);
-            return MemAllocate(size);
+            return MemAllocate(Size);
         };
         options.memory_free = [](void* user, void* ptr)
         {
@@ -1995,7 +1995,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         uint32_t vertexAttribCount[MAX_SEMANTICS] = {};
 
         // Find number of traditional draw calls required to draw this piece of geometry
-        // Find total index count, total vertex count
+        // Find total index Count, total vertex Count
         for (uint32_t j = 0; j < data->meshes_count; ++j)
         {
             const cgltf_mesh* mesh = &data->meshes[j];
@@ -2024,7 +2024,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             }
         }
 
-        // Request the size that the user will need to load it's custom fields
+        // Request the Size that the user will need to load it's custom fields
         uint32_t userDataSize = 0;
         if (glTFParams->pWriteExtrasCallback)
             glTFParams->pWriteExtrasCallback(&userDataSize, NULL, glTFParams->pCallbackUserData);
@@ -2036,7 +2036,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             jointCount += (uint32_t)data->skins[j].joints_count;
 
         // Determine index stride
-        // This depends on vertex count rather than the stride specified in gltf
+        // This depends on vertex Count rather than the stride specified in gltf
         // since gltf assumes we have index buffer per primitive which is non optimal
         const uint32_t indexStride =
             !glTFParams->mProcessMeshlets ? (vertexCount > UINT16_MAX ? sizeof(uint32_t) : sizeof(uint16_t)) : sizeof(uint32_t);
@@ -2134,7 +2134,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                         vertexPacking[attr->semantic] = util_unpack_uint8_to_uint16_joints;
                     else
                     {
-                        LOGF(Error, "Joint size doesn't match");
+                        LOGF(Error, "Joint Size doesn't match");
                         ASSERT(false);
                     }
                     break;
@@ -2429,18 +2429,18 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
             for (uint32_t s = SEMANTIC_POSITION + 1; s < MAX_SEMANTICS; ++s)
             {
-                size_t size = (size_t)geomData->pShadow->vertexStrides[s] * geomData->pShadow->attributeCount[s];
-                if (size > 0)
+                size_t Size = (size_t)geomData->pShadow->vertexStrides[s] * geomData->pShadow->attributeCount[s];
+                if (Size > 0)
                 {
-                    memcpy(tempStagingBuffer, geomData->pShadow->pAttributes[s], size);
+                    memcpy(tempStagingBuffer, geomData->pShadow->pAttributes[s], Size);
                 }
 
                 geomData->pShadow->pAttributes[s] = (uint8_t*)geomData->pShadow->pAttributes[s - 1] +
                                                     geomData->pShadow->vertexStrides[s - 1] * geomData->pShadow->attributeCount[s - 1];
 
-                if (size > 0)
+                if (Size > 0)
                 {
-                    memcpy(geomData->pShadow->pAttributes[s], tempStagingBuffer, size);
+                    memcpy(geomData->pShadow->pAttributes[s], tempStagingBuffer, Size);
                 }
             }
 
@@ -2684,10 +2684,10 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
 
     cgltf_options options = {};
     cgltf_data*   data = NULL;
-    options.memory_alloc = [](void* user, cgltf_size size)
+    options.memory_alloc = [](void* user, cgltf_size Size)
     {
         UNREF_PARAM(user);
-        return MemAllocate(size);
+        return MemAllocate(Size);
     };
     options.memory_free = [](void* user, void* ptr)
     {

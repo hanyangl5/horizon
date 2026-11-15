@@ -89,7 +89,7 @@ time_t GetLastModifiedTime(ResourceDirectory rd, const char* fileName)
 
 struct UnixFileStream
 {
-    ssize_t size;
+    ssize_t Size;
     void*   mapping;
     int     descriptor;
 };
@@ -172,17 +172,17 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
 
     USD(stream, fs);
 
-    stream->size = -1;
+    stream->Size = -1;
     stream->descriptor = fd;
 
     struct stat finfo;
     if (fstat(stream->descriptor, &finfo) == 0)
     {
-        stream->size = finfo.st_size;
+        stream->Size = finfo.st_size;
     }
     else
     {
-        LOGF(Error, "Failed to get size for file '%s': %s", filePath, strerror(errno));
+        LOGF(Error, "Failed to get Size for file '%s': %s", filePath, strerror(errno));
     }
 
     fs->mode = mode;
@@ -214,12 +214,12 @@ static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outD
     // if not mapped already
     if (!stream->mapping)
     {
-        if (stream->size < 0)
+        if (stream->Size < 0)
             return false;
-        if (stream->size == 0)
+        if (stream->Size == 0)
             return true;
 
-        void* mem = mmap(NULL, (size_t)stream->size, PROT_READ, MAP_PRIVATE, stream->descriptor, 0);
+        void* mem = mmap(NULL, (size_t)stream->Size, PROT_READ, MAP_PRIVATE, stream->descriptor, 0);
 
         if (mem == MAP_FAILED)
         {
@@ -231,7 +231,7 @@ static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outD
         stream->mapping = mem;
     }
 
-    *outSize = (size_t)stream->size;
+    *outSize = (size_t)stream->Size;
     *outData = stream->mapping;
     return true;
 }
@@ -242,7 +242,7 @@ static bool ioUnixFsClose(FileStream* fs)
 
     if (stream->mapping)
     {
-        if (munmap(stream->mapping, (size_t)stream->size))
+        if (munmap(stream->mapping, (size_t)stream->Size))
         {
             char buffer[1024];
             LOGF(Error, "Error unmapping file '%s': '%s'", getFileName(stream, buffer, sizeof buffer), strerror(errno));
@@ -271,15 +271,15 @@ static bool ioUnixFsClose(FileStream* fs)
     return success;
 }
 
-static size_t ioUnixFsRead(FileStream* fs, void* dst, size_t size)
+static size_t ioUnixFsRead(FileStream* fs, void* dst, size_t Size)
 {
     USD(stream, fs);
-    ssize_t res = read(stream->descriptor, dst, size);
+    ssize_t res = read(stream->descriptor, dst, Size);
     if (res >= 0)
         return (size_t)res;
 
     char buffer[1024];
-    LOGF(Error, "Error reading %s from file '%s': %s", HumanReadableSize(size).str, getFileName(stream, buffer, sizeof buffer),
+    LOGF(Error, "Error reading %s from file '%s': %s", HumanReadableSize(Size).str, getFileName(stream, buffer, sizeof buffer),
          strerror(errno));
     return 0;
 }
@@ -297,15 +297,15 @@ static ssize_t ioUnixFsGetPosition(FileStream* fs)
     return false;
 }
 
-static size_t ioUnixFsWrite(FileStream* fs, const void* src, size_t size)
+static size_t ioUnixFsWrite(FileStream* fs, const void* src, size_t Size)
 {
     USD(stream, fs);
-    ssize_t res = write(stream->descriptor, src, size);
+    ssize_t res = write(stream->descriptor, src, Size);
     if (res >= 0)
         return (size_t)res;
 
     char buffer[1024];
-    LOGF(Error, "Error writing %s from file '%s': %s", HumanReadableSize(size).str, getFileName(stream, buffer, sizeof buffer),
+    LOGF(Error, "Error writing %s from file '%s': %s", HumanReadableSize(Size).str, getFileName(stream, buffer, sizeof buffer),
          strerror(errno));
     return 0;
 }
@@ -364,13 +364,13 @@ static bool unixFsUpdateSize(struct UnixFileStream* stream)
     off_t offset = lseek(stream->descriptor, 0, SEEK_CUR);
     if (offset < 0)
         return false;
-    off_t size = lseek(stream->descriptor, 0, SEEK_END);
-    if (size < 0)
+    off_t Size = lseek(stream->descriptor, 0, SEEK_END);
+    if (Size < 0)
         return false;
 
-    if (offset == size)
+    if (offset == Size)
     {
-        stream->size = size;
+        stream->Size = Size;
         return true;
     }
 
@@ -382,7 +382,7 @@ static bool unixFsUpdateSize(struct UnixFileStream* stream)
         close(stream->descriptor);
         stream->descriptor = -1;
     }
-    stream->size = size;
+    stream->Size = Size;
     return true;
 }
 
@@ -391,7 +391,7 @@ static ssize_t ioUnixFsGetSize(FileStream* fs)
     USD(stream, fs);
     if ((fs->mode & FM_WRITE) && !unixFsUpdateSize(stream))
         return -1;
-    return stream->size;
+    return stream->Size;
 }
 
 static bool ioUnixFsIsAtEnd(FileStream* fs) { return ioUnixFsGetPosition(fs) >= ioUnixFsGetSize(fs); }

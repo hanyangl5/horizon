@@ -34,7 +34,7 @@ WorldHierarchy::~WorldHierarchy()
         rebuild();
     ecs_query_fini(pEntities);
     // Avoid Flecs recursively cascading deletion through a deep hierarchy at ecs_fini.
-    for (uint32_t i = nodes.size(); i > 0; --i)
+    for (uint32_t i = nodes.Size(); i > 0; --i)
         ecs_delete(world.pWorld, nodes[i - 1].entity);
     hmfree(pIndices);
     hmfree(pBuildIndices);
@@ -113,13 +113,13 @@ void WorldHierarchy::rebuild()
     {
         for (int32_t row = 0; row < it.count; ++row)
         {
-            const Index mapping = { .key = it.entities[row], .value = buildNodes.size() };
+            const Index mapping = { .key = it.entities[row], .value = buildNodes.Size() };
             hmputs(pBuildIndices, mapping);
             buildNodes.PushBack({ .entity = it.entities[row] });
         }
     }
     uint32_t firstRoot = UINT32_MAX;
-    for (uint32_t i = 0; i < buildNodes.size(); ++i)
+    for (uint32_t i = 0; i < buildNodes.Size(); ++i)
     {
         BuildNode&         node = buildNodes[i];
         const ecs_entity_t parent = ecs_get_target(world.pWorld, node.entity, world.parentRelation, 0);
@@ -131,13 +131,13 @@ void WorldHierarchy::rebuild()
     }
 
     scratch.Clear();
-    scratch.Reserve(buildNodes.size());
+    scratch.Reserve(buildNodes.Size());
     stack.Clear();
     uint32_t current = firstRoot;
     while (current != UINT32_MAX)
     {
         BuildNode& entry = buildNodes[current];
-        entry.output = scratch.size();
+        entry.output = scratch.Size();
         const uint32_t old = find(entry.entity);
         Node           node = old != UINT32_MAX ? nodes[old] : Node{};
         node.entity = entry.entity;
@@ -154,8 +154,8 @@ void WorldHierarchy::rebuild()
         current = UINT32_MAX;
         while (!stack.Empty())
         {
-            const BuildNode& finished = buildNodes[stack[stack.size() - 1]];
-            scratch[finished.output].subtreeEnd = scratch.size();
+            const BuildNode& finished = buildNodes[stack[stack.Size() - 1]];
+            scratch[finished.output].subtreeEnd = scratch.Size();
             stack.PopBack();
             if (finished.nextSibling != UINT32_MAX)
             {
@@ -164,21 +164,21 @@ void WorldHierarchy::rebuild()
             }
         }
     }
-    ASSERT(scratch.size() == buildNodes.size());
+    ASSERT(scratch.Size() == buildNodes.Size());
     for (const Node& node : nodes)
         hmdel(pIndices, node.entity);
     Array<Node> old = std::move(nodes);
     nodes = std::move(scratch);
     scratch = std::move(old);
-    for (uint32_t i = 0; i < nodes.size(); ++i)
+    for (uint32_t i = 0; i < nodes.Size(); ++i)
     {
         const Index mapping = { .key = nodes[i].entity, .value = i };
         hmputs(pIndices, mapping);
     }
     dirtyRoots.Clear();
-    dirtyRoots.Reserve(nodes.size());
+    dirtyRoots.Reserve(nodes.Size());
     historyDirty.Clear();
-    for (uint32_t i = 0; i < nodes.size(); i = nodes[i].subtreeEnd)
+    for (uint32_t i = 0; i < nodes.Size(); i = nodes[i].subtreeEnd)
         dirtyRoots.PushBack(i);
     structureDirty = false;
 }
@@ -191,7 +191,7 @@ void WorldHierarchy::update()
         rebuild();
     if (dirtyRoots.Empty())
         return;
-    qsort(dirtyRoots.data(), dirtyRoots.size(), sizeof(uint32_t), compareIndices);
+    qsort(dirtyRoots.GetData(), dirtyRoots.Size(), sizeof(uint32_t), compareIndices);
     uint32_t processedEnd = 0;
     for (uint32_t root : dirtyRoots)
     {
@@ -244,7 +244,7 @@ void WorldHierarchy::markDirty(ecs_entity_t root)
     const uint32_t first = root ? find(root) : 0;
     if (first == UINT32_MAX)
         return;
-    const uint32_t end = root ? nodes[first].subtreeEnd : nodes.size();
+    const uint32_t end = root ? nodes[first].subtreeEnd : nodes.Size();
     for (uint32_t i = first; i < end; ++i)
         nodes[i].transform.previous = nodes[i].transform.current;
 }

@@ -38,27 +38,27 @@
 // Ammount of vertexes that will be processed in parallel by the compute shader in
 // the pre skin geometry step, transforming all vertexes by skinning matrixes and leaving them
 // ready to be processed by the triangle filtering stage.
-// Should be a multiple of the wavefront size
+// Should be a multiple of the wavefront Size
 #define SKIN_BATCH_SIZE      256
 
 // Limits the amount of skinning batches we can process on the GPU.
 // It depends on the amoutnt of data we need to store in the constant buffers, since
-// the max constant buffer size is 64KB -> sizeof(PreSkinBatchData) * 2048 = 64KB
+// the max constant buffer Size is 64KB -> sizeof(PreSkinBatchData) * 2048 = 64KB
 #define SKIN_BATCH_COUNT     2048
 
 // This defines the amount of triangles that will be processed in parallel by the
 // compute shader in the triangle filtering process.
-// Should be a multiple of the wavefront size
+// Should be a multiple of the wavefront Size
 #define FILTER_BATCH_SIZE    256
 
 // This defines the amount of triangles that will be processed in parallel by the
 // compute shader in the rasterization process.
-// Should be a multiple of the wavefront size
+// Should be a multiple of the wavefront Size
 #define RASTERIZE_BATCH_SIZE 64
 
 // FILTER_BATCH_COUNT limits the amount of triangle batches we can process on the GPU.
 // It depends on the amoutnt of data we need to store in the constant buffers, since
-// the max constant buffer size is 64KB -> sizeof(FilterBatchData) * 2048 = 64KB
+// the max constant buffer Size is 64KB -> sizeof(FilterBatchData) * 2048 = 64KB
 #define FILTER_BATCH_COUNT   2048
 
 // This defines the amount of viewports that are going to be culled in parallel.
@@ -138,10 +138,10 @@
 
 // The following value defines the maximum amount of triangles we can draw on each indirect draw call.
 // The values of FILTER_BATCH_COUNT, FILTER_BATCH_SIZE and MAX_PRIMITIVES_PER_DRAW_INDIRECT determine how many invocations to
-// triangle_filtering are needed, one of the values will exhaust first the capacity of each filtering batch.
+// triangle_filtering are needed, one of the values will exhaust first the Capacity of each filtering batch.
 //
 // If MAX_PRIMITIVES_PER_DRAW_INDIRECT is smaller than FILTER_BATCH_COUNT * FILTER_BATCH_SIZE, then it means we'll be making more
-// triangle_filtering dispatches and none of them will use the max capacity of the shader. This is needed when bigger
+// triangle_filtering dispatches and none of them will use the max Capacity of the shader. This is needed when bigger
 // DrawID values are needed, DrawID needs more bits and PrimitiveID has less bits.
 #ifndef MAX_PRIMITIVES_PER_DRAW_INDIRECT
 #define MAX_PRIMITIVES_PER_DRAW_INDIRECT \

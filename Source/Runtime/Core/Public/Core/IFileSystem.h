@@ -208,7 +208,7 @@ extern "C"
         /// Gets the current seek position in the file.
         ssize_t (*GetSeekPosition)(FileStream* pFile);
 
-        /// Gets the current size of the file. Returns -1 if the size is unknown or unavailable.
+        /// Gets the current Size of the file. Returns -1 if the Size is unknown or unavailable.
         ssize_t (*GetFileSize)(FileStream* pFile);
 
         /// Flushes all writes to the file stream to the underlying subsystem.
@@ -395,7 +395,7 @@ extern "C"
     /// Gets the current seek position in the file.
     static inline ssize_t GetStreamPosition(FileStream* fs) { return fs->pIO->GetSeekPosition(fs); }
 
-    /// Gets the current size of the file. Returns -1 if the size is unknown or unavailable.
+    /// Gets the current Size of the file. Returns -1 if the Size is unknown or unavailable.
     static inline ssize_t GetStreamFileSize(FileStream* fs) { return fs->pIO->GetFileSize(fs); }
 
     /// Flushes all writes to the file stream to the underlying subsystem.
@@ -484,10 +484,10 @@ extern "C"
     {
         BUNYAR_FILE_FORMAT_RAW = 0,
 
-        // File is splitted to N X-size blocks.
+        // File is splitted to N X-Size blocks.
         // Leading data in a "blocks" format is represented by
         // BunyArBlockFormatHeader and BunyArBlockPointer table.
-        // Table allows to seek through file quickly, while block size
+        // Table allows to seek through file quickly, while block Size
         // is large enough for compression to be effective.
         BUNYAR_FILE_FORMAT_LZ4_BLOCKS = 3,
         BUNYAR_FILE_FORMAT_ZSTD_BLOCKS = 5,
@@ -508,14 +508,14 @@ extern "C"
     struct BunyArPointer64
     {
         uint64_t offset; // exact offset
-        uint64_t size;   // exact size
+        uint64_t Size;   // exact Size
     };
 
     // points to relative location
     struct BunyArPointer32
     {
         uint32_t offset; // relative offset
-        uint32_t size;   // exact size
+        uint32_t Size;   // exact Size
     };
 
     // Reader can still use archive,
@@ -536,15 +536,15 @@ extern "C"
         // 0, reserved
         uint64_t flags;
 
-        // nodeCount = nodesPointer.size / sizeof(BunyArNode)
+        // nodeCount = nodesPointer.Size / sizeof(BunyArNode)
         struct BunyArPointer64 nodesPointer;
 
-        // required size > 0 if nodesPoinster.size > 0
-        // size of 0 allowed for archive without entries
+        // required Size > 0 if nodesPoinster.Size > 0
+        // Size of 0 allowed for archive without entries
         struct BunyArPointer64 namesPointer;
 
         // Location of BunyArHashTable.
-        // Hash table present, if size >= sizeof(BunyArHashTable)
+        // Hash table present, if Size >= sizeof(BunyArHashTable)
         struct BunyArPointer64 hashTablePointer;
 
         // header can be extended in the future by new variables or pointers
@@ -555,14 +555,14 @@ extern "C"
         // BunyArFileFormat
         uint64_t format;
 
-        // Original size of file compressed into an archive.
-        // Also exact size of the file after reading from an archive
+        // Original Size of file compressed into an archive.
+        // Also exact Size of the file after reading from an archive
         uint64_t originalFileSize;
 
         // location of name relative to location of BunyArHeader::namesPointer
         // name is utf8 null-terminated string
-        // size must not count trailing 0
-        // size must be <= BUNYAR_FILE_NAME_LENGTH_MAX
+        // Size must not Count trailing 0
+        // Size must be <= BUNYAR_FILE_NAME_LENGTH_MAX
         struct BunyArPointer32 namePointer;
 
         // location of compressed file
@@ -571,10 +571,10 @@ extern "C"
 
     struct BunyArBlockFormatHeader
     {
-        // size of all uncompressed blocks except the last one
+        // Size of all uncompressed blocks except the last one
         uint64_t blockSize;
 
-        // size of the last block. Strict rule: "blockSizeLast <= blockSize"
+        // Size of the last block. Strict rule: "blockSizeLast <= blockSize"
         uint64_t blockSizeLast;
 
         // number of BunyArBlockPointer
@@ -584,11 +584,11 @@ extern "C"
         // BunyArBlockPointer blockPointers[blockCount];
     };
 
-// Block pointer represents format, offset, and size of the block
+// Block pointer represents format, offset, and Size of the block
 // 1 + 40 + 23
 // 1  bit   boolean set when block is compressed
 // 40 bits  block offset, max offset is 1024GB-1B
-// 23 bits  block size minus one, max size is 8MB
+// 23 bits  block Size minus one, max Size is 8MB
 #define BUNYAR_BLOCK_MAX_SIZE_MINUS_ONE (((uint32_t)1 << 23) - 1)
 #define BUNYAR_BLOCK_MAX_OFFSET         (((uint64_t)1 << 40) - 1)
     typedef uint64_t BunyArBlockPointer;
@@ -596,9 +596,9 @@ extern "C"
     struct BunyArBlockInfo
     {
         bool     isCompressed;
-        // size of compressed block in archive
-        // uncompressed size is equal to blockSize or blockSizeLast
-        uint32_t size;
+        // Size of compressed block in archive
+        // uncompressed Size is equal to blockSize or blockSizeLast
+        uint32_t Size;
         // block offset relative to the end of blockPointers
         uint64_t offset;
     };
@@ -608,21 +608,21 @@ extern "C"
         struct BunyArBlockInfo info;
 
         info.isCompressed = (bool)(ptr & 1);
-        info.size = ((uint32_t)(ptr >> 41) & BUNYAR_BLOCK_MAX_SIZE_MINUS_ONE);
+        info.Size = ((uint32_t)(ptr >> 41) & BUNYAR_BLOCK_MAX_SIZE_MINUS_ONE);
         info.offset = ((ptr >> 1) & BUNYAR_BLOCK_MAX_OFFSET);
 
-        info.size += 1;
+        info.Size += 1;
         return info;
     }
 
     static inline bool bunyArEncodeBlockPointer(struct BunyArBlockInfo info, BunyArBlockPointer* dst)
     {
-        info.size -= 1;
+        info.Size -= 1;
 
-        if (info.offset > BUNYAR_BLOCK_MAX_OFFSET || info.size > BUNYAR_BLOCK_MAX_SIZE_MINUS_ONE)
+        if (info.offset > BUNYAR_BLOCK_MAX_OFFSET || info.Size > BUNYAR_BLOCK_MAX_SIZE_MINUS_ONE)
             return false;
 
-        *dst = ((uint64_t)info.isCompressed) | ((uint64_t)info.offset << 1) | ((uint64_t)info.size << 41);
+        *dst = ((uint64_t)info.isCompressed) | ((uint64_t)info.offset << 1) | ((uint64_t)info.Size << 41);
         return true;
     }
 

@@ -60,10 +60,10 @@ static bool checkSlangResult(SlangResult result, const char* operation, const Sl
     return SLANG_SUCCEEDED(result);
 }
 
-void hashShaderBytes(uint64_t& hash, const void* pData, size_t size)
+void hashShaderBytes(uint64_t& hash, const void* Data, size_t Size)
 {
-    const uint8_t* pBytes = (const uint8_t*)pData;
-    for (size_t i = 0; i < size; ++i)
+    const uint8_t* pBytes = (const uint8_t*)Data;
+    for (size_t i = 0; i < Size; ++i)
         hash = (hash ^ pBytes[i]) * UINT64_C(1099511628211);
 }
 
@@ -89,9 +89,9 @@ uint64_t getShaderCacheKey(const ShaderSrcDesc& source, ShaderTarget target)
     return hash;
 }
 
-void getShaderCacheFile(uint64_t key, char* pFileName, size_t size)
+void getShaderCacheFile(uint64_t key, char* pFileName, size_t Size)
 {
-    snprintf(pFileName, size, "%016llx.shadercache", (unsigned long long)key);
+    snprintf(pFileName, Size, "%016llx.shadercache", (unsigned long long)key);
 }
 
 // Owns the cache file bytes until the caller takes them; every early return frees.
@@ -107,7 +107,7 @@ struct ShaderCacheFile
     }
 
     uint8_t* pBytes = nullptr;
-    size_t   size = 0;
+    size_t   Size = 0;
 };
 
 bool readShaderCacheFile(uint64_t key, ShaderCacheFile& file)
@@ -121,14 +121,14 @@ bool readShaderCacheFile(uint64_t key, ShaderCacheFile& file)
     file.pBytes = fileSize > 0 ? (uint8_t*)MemAllocate((size_t)fileSize) : nullptr;
     const bool read = file.pBytes && ReadFromStream(&stream, file.pBytes, (size_t)fileSize) == (size_t)fileSize;
     CloseStream(&stream);
-    file.size = read ? (size_t)fileSize : 0;
+    file.Size = read ? (size_t)fileSize : 0;
     return read;
 }
 
 bool loadShaderCache(uint64_t key, const ShaderSrcDesc& source, BinaryShaderDesc& binary, void*& pStorage)
 {
     ShaderCacheFile file;
-    if (!readShaderCacheFile(key, file) || file.size <= sizeof(ShaderCacheHeader))
+    if (!readShaderCacheFile(key, file) || file.Size <= sizeof(ShaderCacheHeader))
         return false;
 
     const ShaderCacheHeader* pHeader = (const ShaderCacheHeader*)file.pBytes;
@@ -142,11 +142,11 @@ bool loadShaderCache(uint64_t key, const ShaderSrcDesc& source, BinaryShaderDesc
     size_t                    offset = sizeof(ShaderCacheHeader);
     for (uint32_t i = 0; i < pHeader->stageCount; ++i)
     {
-        if (offset + sizeof(ShaderCacheStageHeader) > file.size)
+        if (offset + sizeof(ShaderCacheStageHeader) > file.Size)
             return false;
         const ShaderCacheStageHeader* pStage = (const ShaderCacheStageHeader*)(file.pBytes + offset);
         offset += sizeof(ShaderCacheStageHeader);
-        if (!pStage->entryPointSize || !pStage->byteCodeSize || offset + pStage->entryPointSize + pStage->byteCodeSize > file.size)
+        if (!pStage->entryPointSize || !pStage->byteCodeSize || offset + pStage->entryPointSize + pStage->byteCodeSize > file.Size)
             return false;
         char* pEntryPoint = (char*)(file.pBytes + offset);
         if (pEntryPoint[pStage->entryPointSize - 1] != '\0')

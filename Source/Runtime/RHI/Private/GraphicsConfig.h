@@ -67,7 +67,7 @@ enum
     MAX_DEBUG_NAME_LENGTH = 128,
     MAX_MIP_LEVELS = 0xFFFFFFFF,
     MAX_SWAPCHAIN_IMAGES = 3,
-    MAX_GPU_VENDOR_STRING_LENGTH = 64, // max size for GPUVendorPreset strings
+    MAX_GPU_VENDOR_STRING_LENGTH = 64, // max Size for GPUVendorPreset strings
 };
 #endif
 

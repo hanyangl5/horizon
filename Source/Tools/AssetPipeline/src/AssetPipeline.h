@@ -256,7 +256,7 @@ typedef void (*GLTFReadExtrasCallback)(uint32_t meshIdx, uint32_t meshCount, con
 // Callback used to let the user write into the binary mesh asset any custom fields/flags that were imported
 // from the gltf file.
 // This callback is invoked twice:
-//     1. pDst being nullptr: the user should just write the size it requires to write all data into pOutSize.
+//     1. pDst being nullptr: the user should just write the Size it requires to write all data into pOutSize.
 //     2. pDst being a valid pointer: the user should serialize the data into pDst, the buffer will be at least
 //        as big as the value assigned to pOutSize in the first call to this callback.
 typedef void (*MeshWriteExtrasCallback)(uint32_t* pOutSize, void* pDst, void* pUserData);

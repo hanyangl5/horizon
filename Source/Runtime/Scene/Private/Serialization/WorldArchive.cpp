@@ -65,8 +65,8 @@ static int compareTypes(const void* pA, const void* pB)
     return (a > b) - (a < b);
 }
 
-WorldArchive::~WorldArchive() { MemDelete(pData); }
-Guid WorldArchive::getID() const { return pData ? pData->id : Guid{}; }
+WorldArchive::~WorldArchive() { MemDelete(Data); }
+Guid WorldArchive::getID() const { return Data ? Data->id : Guid{}; }
 bool WorldArchive::parse(Span<char> json)
 {
     UniquePtr<WorldArchiveData> candidate = MakeUnique<WorldArchiveData>();
@@ -80,25 +80,25 @@ bool WorldArchive::parse(Span<char> json)
         LOGF(Error, "Invalid World archive schema");
         return false;
     }
-    uint32_t count = json.count;
-    if (count && !json.pData[count - 1])
+    uint32_t Count = json.Count;
+    if (Count && !json.Data[Count - 1])
     {
-        --count;
+        --Count;
     }
-    candidate->text.resize(count + 1);
-    memcpy(candidate->text.data(), json.pData, count);
-    candidate->text[count] = 0;
-    MemDelete(pData);
-    pData = candidate.Release();
+    candidate->text.resize(Count + 1);
+    memcpy(candidate->text.GetData(), json.Data, Count);
+    candidate->text[Count] = 0;
+    MemDelete(Data);
+    Data = candidate.Release();
     return true;
 }
 bool WorldArchive::serialize(Array<char>& json) const
 {
-    if (!pData)
+    if (!Data)
     {
         return false;
     }
-    json = pData->text;
+    json = Data->text;
     return true;
 }
 bool WorldArchive::capture(World& world, Guid id)
@@ -110,7 +110,7 @@ bool WorldArchive::capture(World& world, Guid id)
     }
     if (!id.isValid())
     {
-        id = pData ? pData->id : Guid::create();
+        id = Data ? Data->id : Guid::create();
     }
     if (!id.isValid())
     {
@@ -123,7 +123,7 @@ bool WorldArchive::capture(World& world, Guid id)
     }
     if (!guids.Empty())
     {
-        qsort(guids.data(), guids.size(), sizeof(Guid), compareGuids);
+        qsort(guids.GetData(), guids.Size(), sizeof(Guid), compareGuids);
     }
     Array<const TypeDesc*> types;
     for (ptrdiff_t i = 0; i < hmlen(world.pImpl->pTypes); ++i)
@@ -135,7 +135,7 @@ bool WorldArchive::capture(World& world, Guid id)
     }
     if (!types.Empty())
     {
-        qsort(types.data(), types.size(), sizeof(types[0]), compareTypes);
+        qsort(types.GetData(), types.Size(), sizeof(types[0]), compareTypes);
     }
     JsonValue root(cJSON_CreateObject());
     cJSON_AddStringToObject(root.pValue, "format", "Horizon.World");
@@ -203,7 +203,7 @@ bool WorldArchive::capture(World& world, Guid id)
 class ComponentValue
 {
 public:
-    explicit ComponentValue(const TypeDesc& type): type(type), pValue(MemAllocateAligned(type.alignment, type.size)) { type.construct(pValue); }
+    explicit ComponentValue(const TypeDesc& type): type(type), pValue(MemAllocateAligned(type.alignment, type.Size)) { type.construct(pValue); }
     ~ComponentValue()
     {
         type.destroy(pValue);
@@ -257,7 +257,7 @@ public:
                     return false;
                 }
             }
-            const WorldNodeIndex index = { .key = node.id, .value = nodes.size() };
+            const WorldNodeIndex index = { .key = node.id, .value = nodes.Size() };
             hmputs(pIndices, index);
             nodes.PushBack(node);
         }
@@ -275,7 +275,7 @@ public:
             node.parentIndex = pIndex->value;
         }
         Array<uint32_t> path;
-        for (uint32_t i = 0; i < nodes.size(); ++i)
+        for (uint32_t i = 0; i < nodes.Size(); ++i)
         {
             uint32_t current = i;
             while (current != UINT32_MAX && !nodes[current].visit)
@@ -290,8 +290,8 @@ public:
             }
             while (!path.Empty())
             {
-                nodes[path[path.size() - 1]].visit = 2;
-                order.PushBack(path[path.size() - 1]);
+                nodes[path[path.Size() - 1]].visit = 2;
+                order.PushBack(path[path.Size() - 1]);
                 path.PopBack();
             }
         }
@@ -332,11 +332,11 @@ static bool loadComponent(const cJSON* pComponent, const TypeDesc& type, uint32_
         Array<char> output;
         const bool  success = pMigration->pMigrate({ pInput, (uint32_t)strlen(pInput) }, output);
         cJSON_free(pInput);
-        if (!success || !validWorldJsonStrings({ output.data(), output.size() }))
+        if (!success || !validWorldJsonStrings({ output.GetData(), output.Size() }))
         {
             return false;
         }
-        cJSON* pNext = parseWorldJson({ output.data(), output.size() });
+        cJSON* pNext = parseWorldJson({ output.GetData(), output.Size() });
         if (!pNext)
         {
             return false;
@@ -357,24 +357,24 @@ static bool loadComponent(const cJSON* pComponent, const TypeDesc& type, uint32_
 bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& target, Span<ComponentMigration> migrations,
                                const IDGenerator& entityGuids) const
 {
-    if (!pData || (target && target->isDeferred()))
+    if (!Data || (target && target->isDeferred()))
     {
         return false;
     }
-    if (!validWorldJsonStrings({ pData->text.data(), pData->text.size() }))
+    if (!validWorldJsonStrings({ Data->text.GetData(), Data->text.Size() }))
     {
         return false;
     }
-    for (uint32_t i = 0; i < migrations.count; ++i)
+    for (uint32_t i = 0; i < migrations.Count; ++i)
     {
-        const ComponentMigration& entry = migrations.pData[i];
+        const ComponentMigration& entry = migrations.Data[i];
         if (!entry.type || !entry.fromVersion || !entry.pMigrate)
         {
             return false;
         }
         for (uint32_t j = 0; j < i; ++j)
         {
-            if (entry.type == migrations.pData[j].type && entry.fromVersion == migrations.pData[j].fromVersion)
+            if (entry.type == migrations.Data[j].type && entry.fromVersion == migrations.Data[j].fromVersion)
             {
                 return false;
             }
@@ -382,7 +382,7 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
     }
     UniquePtr<World> staging = MakeUnique<World>(types, entityGuids);
     WorldLoadPlan     plan;
-    if (!plan.prepare(field(pData->pRoot, "entities"), *staging))
+    if (!plan.prepare(field(Data->pRoot, "entities"), *staging))
     {
         LOGF(Error, "Invalid World entities, parent references or hierarchy cycle");
         return false;
@@ -438,22 +438,22 @@ bool WorldArchive::load(ResourceDirectory directory, const char* pFileName)
         LOGF(Error, "Cannot open World archive '%s'", pFileName);
         return false;
     }
-    const ssize_t size = GetStreamFileSize(&stream);
-    if (size <= 0 || size > 64 * 1024 * 1024)
+    const ssize_t Size = GetStreamFileSize(&stream);
+    if (Size <= 0 || Size > 64 * 1024 * 1024)
     {
         CloseStream(&stream);
-        LOGF(Error, "Invalid World archive size: '%s'", pFileName);
+        LOGF(Error, "Invalid World archive Size: '%s'", pFileName);
         return false;
     }
-    Array<char>  bytes((uint32_t)size);
-    const size_t read = ReadFromStream(&stream, bytes.data(), (size_t)size);
+    Array<char>  bytes((uint32_t)Size);
+    const size_t read = ReadFromStream(&stream, bytes.GetData(), (size_t)Size);
     CloseStream(&stream);
-    if (read != (size_t)size)
+    if (read != (size_t)Size)
     {
         LOGF(Error, "Cannot read World archive '%s'", pFileName);
         return false;
     }
-    return parse({ bytes.data(), bytes.size() });
+    return parse({ bytes.GetData(), bytes.Size() });
 }
 static bool writeWorldFile(ResourceDirectory directory, const char* pFileName, Span<char> text)
 {
@@ -473,7 +473,7 @@ static bool writeWorldFile(ResourceDirectory directory, const char* pFileName, S
     {
         return false;
     }
-    const bool written = WriteToStream(&stream, text.pData, text.count) == text.count;
+    const bool written = WriteToStream(&stream, text.Data, text.Count) == text.Count;
     const bool closed = CloseStream(&stream);
     if (!written || !closed)
     {
@@ -500,7 +500,7 @@ static bool writeWorldFile(ResourceDirectory directory, const char* pFileName, S
 }
 bool WorldArchive::save(ResourceDirectory directory, const char* pFileName) const
 {
-    if (pData && writeWorldFile(directory, pFileName, { pData->text.data(), pData->text.size() - 1 }))
+    if (Data && writeWorldFile(directory, pFileName, { Data->text.GetData(), Data->text.Size() - 1 }))
     {
         return true;
     }

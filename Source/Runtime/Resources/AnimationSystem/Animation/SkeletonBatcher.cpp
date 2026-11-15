@@ -77,9 +77,9 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
     BufferLoadDesc ubDesc = {};
     ubDesc.desc.descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     ubDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    ubDesc.desc.size = sizeof(UniformSkeletonBlock);
+    ubDesc.desc.Size = sizeof(UniformSkeletonBlock);
     ubDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | skeletonRenderDesc.creationFlag;
-    ubDesc.pData = NULL;
+    ubDesc.Data = NULL;
 
     for (uint32_t i = 0; i < frameCount; ++i)
     {
@@ -341,7 +341,7 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t frameIndex, int32_t 
             uniformDataJoints.color[instanceIndex] = animObj->boneColor;
             uniformDataJoints.jointColor = animObj->jointColor;
 
-            // increment the count of uniform data that has been filled for this batch
+            // increment the Count of uniform data that has been filled for this batch
             ++instanceCount;
             ++batchInstanceCount;
 
@@ -349,7 +349,7 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t frameIndex, int32_t 
             if ((instanceIndex == MAX_SKELETON_BATCHER_BLOCK_INSTANCES - 1) ||
                 ((objIndex - objectsOffset == (uint32_t)(numObjects - 1)) && (jointIndex == numJoints - 1)))
             {
-                // Finalize the data for this batch by adding the batch instance to the batch total size
+                // Finalize the data for this batch by adding the batch instance to the batch total Size
                 uint32_t currBatchSize = tfrg_atomic32_add_relaxed(&pFrameBatchSize[batchIndex], batchInstanceCount) + batchInstanceCount;
 
                 // Only update if batch is full, or this is the last batch as it could be less than MAX_SKELETON_BATCHER_BLOCK_INSTANCES
@@ -367,7 +367,7 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t frameIndex, int32_t 
 
                 // Increase batchIndex for next batch
                 ++batchIndex;
-                // Reset the count so it can be used for the next batch
+                // Reset the Count so it can be used for the next batch
                 batchInstanceCount = 0;
             }
         }
@@ -384,7 +384,7 @@ void SkeletonBatcher::AddAnimatedObject(AnimatedObject* animatedObject)
         ASSERT(animatedObject != animatedObjects[i] && "Trying to add duplicated animated object");
     }
 
-    // Adds the rig so its data can be used and increments the rig count
+    // Adds the rig so its data can be used and increments the rig Count
     ASSERT(numAnimatedObjects < (uint32_t)arrlen(animatedObjects) && "Exceed maximum amount of rigs");
     animatedObjects[numAnimatedObjects] = animatedObject;
     uint32_t joints = animatedObject->rig->numJoints + cumulativeAnimatedObjectInstanceCount[numAnimatedObjects];

@@ -78,13 +78,13 @@ void Transparency::Resize(uint32_t NewWidth, uint32_t NewHeight, uint32_t Fragme
                                     .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
                                     .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                     .pName = "Renderer.OIT.Resolved" });
-    Nodes = Context.createBuffer({ .size = Capacity * 16,
+    Nodes = Context.createBuffer({ .Size = Capacity * 16,
                                    .elementCount = MaxNodes * 4,
                                    .pName = "Renderer.OIT.Nodes",
                                    .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                    .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                    .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) });
-    Counters = Context.createBuffer({ .size = 16,
+    Counters = Context.createBuffer({ .Size = 16,
                                       .elementCount = 4,
                                       .pName = "Renderer.OIT.Counters",
                                       .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
@@ -135,8 +135,8 @@ const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz:
         }
         const hz::GPUTexture* StorageTextures[] = { &Heads };
         const hz::GPUBuffer*  StorageBuffers[] = { &Counters, &Nodes };
-        Dependencies.sampledTextures = { Sampled.data(), Sampled.size() };
-        Dependencies.buffers = { Buffers.data(), Buffers.size() };
+        Dependencies.sampledTextures = { Sampled.GetData(), Sampled.Size() };
+        Dependencies.buffers = { Buffers.GetData(), Buffers.Size() };
         Dependencies.storageTextures = StorageTextures;
         Dependencies.storageBuffers = StorageBuffers;
         Commands.beginRendering(

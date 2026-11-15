@@ -151,11 +151,11 @@ private:
             return false;
         }
         Scene = hz::MakeUnique<hz::RenderScene>(*World, *AssetManager);
-        Scene->Reserve(Asset->getNodes().count, Asset->getNodes().count, 1, 1);
+        Scene->Reserve(Asset->getNodes().Count, Asset->getNodes().Count, 1, 1);
         Scene->update();
         LOGF(Info, "World ready: %u render primitives, %u instances, %u mesh batches, %u materials, %u textures",
-             Scene->getActivePrimitives().count, Scene->getActiveInstances().count, Scene->getActiveMeshBatches().count,
-             Asset->getMaterials().count, Asset->getTextures().count);
+             Scene->getActivePrimitives().Count, Scene->getActiveInstances().Count, Scene->getActiveMeshBatches().Count,
+             Asset->getMaterials().Count, Asset->getTextures().Count);
         AssetManager->release(Handle);
         return true;
     }
@@ -232,7 +232,7 @@ private:
     // The glTF cook check only touches files, so it runs while the device is created.
     void BeginSceneCook()
     {
-        ThreadDesc Thread = { .pFunc = SceneCookTask, .pData = this, .threadName = "SceneCook" };
+        ThreadDesc Thread = { .pFunc = SceneCookTask, .Data = this, .threadName = "SceneCook" };
         if (!InitThread(&Thread, &CookThread))
             CookThread = nullptr;
     }
@@ -270,7 +270,7 @@ private:
         bool             HasBounds = false;
         for (uint32_t Index : Scene->getActiveInstances())
         {
-            const hz::RenderInstance& Instance = Scene->getInstances().pData[Index];
+            const hz::RenderInstance& Instance = Scene->getInstances().Data[Index];
             if (!Scene->getPrimitive(Instance.primitive)->instanceCount)
             {
                 continue;

@@ -31,35 +31,35 @@ TEST_F(SceneReflectionTest, BuiltinsExposeStableTypedProperties)
 {
     hz::TypeRegistry registry;
     ASSERT_TRUE(registry.registerBuiltins());
-    ASSERT_EQ(registry.size(), 7u);
+    ASSERT_EQ(registry.Size(), 7u);
     const hz::TypeDesc* mesh = registry.getType(hz::SceneTypes::meshRenderer);
     ASSERT_NE(mesh, nullptr);
     EXPECT_EQ(mesh, registry.getType("MeshRenderer"));
     EXPECT_EQ(mesh->version, 1u);
-    EXPECT_EQ(mesh->size, sizeof(hz::MeshRenderer));
+    EXPECT_EQ(mesh->Size, sizeof(hz::MeshRenderer));
     const hz::PropertyDesc* property = mesh->getProperty("mesh");
     ASSERT_NE(property, nullptr);
     EXPECT_EQ(property, mesh->getProperty(1u));
     EXPECT_EQ(property->kind, hz::PropertyKind::AssetReference);
     EXPECT_EQ(property->offset, offsetof(hz::MeshRenderer, mesh));
-    EXPECT_EQ(property->size, sizeof(hz::AssetID));
+    EXPECT_EQ(property->Size, sizeof(hz::AssetID));
     EXPECT_EQ(mesh->getProperty(99u), nullptr);
     EXPECT_EQ(mesh->getProperty("missing"), nullptr);
     EXPECT_EQ(registry.getType(UINT64_C(999)), nullptr);
     EXPECT_EQ(registry.getType("missing"), nullptr);
-    for (uint32_t i = 0; i < registry.size(); ++i)
+    for (uint32_t i = 0; i < registry.Size(); ++i)
         EXPECT_EQ(registry.getTypeAt(i), registry.getType(registry.getTypeAt(i)->id));
 
     const hz::PropertyDesc* lightType = registry.getType(hz::SceneTypes::light)->getProperty("type");
     ASSERT_NE(lightType, nullptr);
-    ASSERT_EQ(lightType->enumValues.count, 9u);
-    EXPECT_STREQ(lightType->enumValues.pData[2].pName, "Spot");
-    EXPECT_EQ(lightType->enumValues.pData[2].value, (int32_t)hz::LightType::Spot);
+    ASSERT_EQ(lightType->enumValues.Count, 9u);
+    EXPECT_STREQ(lightType->enumValues.Data[2].pName, "Spot");
+    EXPECT_EQ(lightType->enumValues.Data[2].value, (int32_t)hz::LightType::Spot);
     const hz::PropertyDesc* emissionTexture = registry.getType(hz::SceneTypes::light)->getProperty("texture");
     ASSERT_NE(emissionTexture, nullptr);
     EXPECT_EQ(emissionTexture->kind, hz::PropertyKind::AssetReference);
     EXPECT_EQ(emissionTexture->offset, offsetof(hz::Light, texture));
-    EXPECT_EQ(registry.getType(hz::SceneTypes::name)->getProperty("value")->size, 128u);
+    EXPECT_EQ(registry.getType(hz::SceneTypes::name)->getProperty("value")->Size, 128u);
     EXPECT_TRUE(registry.getType(hz::SceneTypes::entityIdentity)->getProperty("value")->flags & hz::PROPERTY_READ_ONLY);
 }
 
@@ -68,39 +68,39 @@ TEST_F(SceneReflectionTest, RegistrationRejectsDuplicatesWithoutPublishingPartia
     hz::TypeRegistry registry;
     ASSERT_TRUE(registry.registerBuiltins());
     const hz::TypeDesc types[] = {
-        { .id = 100, .pName = "NewType", .size = 4, .alignment = 4 },
-        { .id = hz::SceneTypes::camera, .pName = "DuplicateID", .size = 4, .alignment = 4 },
+        { .id = 100, .pName = "NewType", .Size = 4, .alignment = 4 },
+        { .id = hz::SceneTypes::camera, .pName = "DuplicateID", .Size = 4, .alignment = 4 },
     };
     EXPECT_FALSE(registry.registerTypes(types));
-    EXPECT_EQ(registry.size(), 7u);
+    EXPECT_EQ(registry.Size(), 7u);
     EXPECT_EQ(registry.getType(UINT64_C(100)), nullptr);
-    const hz::TypeDesc duplicateName = { .id = 101, .pName = "Camera", .size = 4 };
+    const hz::TypeDesc duplicateName = { .id = 101, .pName = "Camera", .Size = 4 };
     EXPECT_FALSE(registry.registerTypes({ &duplicateName, 1 }));
     EXPECT_FALSE(registry.registerBuiltins());
-    EXPECT_EQ(registry.size(), 7u);
+    EXPECT_EQ(registry.Size(), 7u);
 
     const hz::TypeDesc repeated[] = {
-        { .id = 100, .pName = "Same", .size = 4 },
-        { .id = 101, .pName = "Same", .size = 4 },
+        { .id = 100, .pName = "Same", .Size = 4 },
+        { .id = 101, .pName = "Same", .Size = 4 },
     };
     EXPECT_FALSE(registry.registerTypes(repeated));
-    EXPECT_EQ(registry.size(), 7u);
+    EXPECT_EQ(registry.Size(), 7u);
     EXPECT_TRUE(registry.registerTypes({}));
 }
 
 TEST_F(SceneReflectionTest, RejectsInvalidPropertyLayoutsAndMetadata)
 {
     hz::TypeRegistry registry;
-    hz::PropertyDesc property = { .id = 1, .pName = "value", .kind = hz::PropertyKind::Float, .size = 4 };
-    hz::TypeDesc     type = { .id = 100, .pName = "Invalid", .size = 4, .alignment = 4, .properties = { &property, 1 } };
+    hz::PropertyDesc property = { .id = 1, .pName = "value", .kind = hz::PropertyKind::Float, .Size = 4 };
+    hz::TypeDesc     type = { .id = 100, .pName = "Invalid", .Size = 4, .alignment = 4, .properties = { &property, 1 } };
     property.offset = 1;
     EXPECT_FALSE(registry.registerTypes({ &type, 1 }));
     property.offset = UINT32_MAX;
     EXPECT_FALSE(registry.registerTypes({ &type, 1 }));
     property.offset = 0;
-    property.size = 3;
+    property.Size = 3;
     EXPECT_FALSE(registry.registerTypes({ &type, 1 }));
-    property.size = 4;
+    property.Size = 4;
     property.kind = (hz::PropertyKind)255;
     EXPECT_FALSE(registry.registerTypes({ &type, 1 }));
     property.kind = hz::PropertyKind::Float;
@@ -115,17 +115,17 @@ TEST_F(SceneReflectionTest, RejectsInvalidPropertyLayoutsAndMetadata)
     type.properties = { &property, 1 };
     type.version = 0;
     EXPECT_FALSE(registry.registerTypes({ &type, 1 }));
-    EXPECT_EQ(registry.size(), 0u);
+    EXPECT_EQ(registry.Size(), 0u);
 }
 
 TEST_F(SceneReflectionTest, RejectsDuplicatePropertiesAndIncompleteEnumOrArrayMetadata)
 {
     hz::TypeRegistry registry;
     hz::PropertyDesc properties[] = {
-        { .id = 1, .pName = "a", .kind = hz::PropertyKind::UnsignedInteger, .size = 4 },
-        { .id = 1, .pName = "b", .kind = hz::PropertyKind::UnsignedInteger, .offset = 4, .size = 4 },
+        { .id = 1, .pName = "a", .kind = hz::PropertyKind::UnsignedInteger, .Size = 4 },
+        { .id = 1, .pName = "b", .kind = hz::PropertyKind::UnsignedInteger, .offset = 4, .Size = 4 },
     };
-    hz::TypeDesc type = { .id = 100, .pName = "Invalid", .size = 8, .alignment = 4, .properties = properties };
+    hz::TypeDesc type = { .id = 100, .pName = "Invalid", .Size = 8, .alignment = 4, .properties = properties };
     EXPECT_FALSE(registry.registerTypes({ &type, 1 }));
     properties[1].id = 2;
     properties[1].pName = "a";
@@ -158,7 +158,7 @@ TEST_F(SceneReflectionTest, RejectsDuplicatePropertiesAndIncompleteEnumOrArrayMe
     element.triviallyCopyable = true;
     element.properties = {};
     EXPECT_FALSE(registry.registerTypes({ &incomplete, 1 }));
-    EXPECT_EQ(registry.size(), 7u);
+    EXPECT_EQ(registry.Size(), 7u);
 }
 
 TEST_F(SceneReflectionTest, ConstructionPreservesComponentDefaults)
@@ -214,16 +214,16 @@ TEST_F(SceneReflectionTest, OwningComponentCopyAndMoveManageArrayLifetime)
     type->copyConstruct(copyStorage, originalStorage);
     hz::MeshRenderer* copy = (hz::MeshRenderer*)copyStorage;
     EXPECT_EQ(copy->mesh, original->mesh);
-    ASSERT_EQ(copy->overrides.size(), 1u);
-    EXPECT_NE(copy->overrides.data(), original->overrides.data());
+    ASSERT_EQ(copy->overrides.Size(), 1u);
+    EXPECT_NE(copy->overrides.GetData(), original->overrides.GetData());
     EXPECT_EQ(copy->overrides[0].material, original->overrides[0].material);
     copy->overrides[0].submesh = 19;
     EXPECT_EQ(original->overrides[0].submesh, 17u);
-    const hz::MaterialOverride* data = copy->overrides.data();
+    const hz::MaterialOverride* data = copy->overrides.GetData();
     type->moveConstruct(movedStorage, copyStorage);
     EXPECT_TRUE(copy->overrides.Empty());
     const hz::MeshRenderer* moved = (const hz::MeshRenderer*)movedStorage;
-    EXPECT_EQ(moved->overrides.data(), data);
+    EXPECT_EQ(moved->overrides.GetData(), data);
     EXPECT_EQ(moved->overrides[0].submesh, 19u);
     type->destroy(copyStorage);
     type->destroy(originalStorage);
@@ -240,17 +240,17 @@ TEST_F(SceneReflectionTest, CollectionOperationsHandleGrowthAliasesAndRemoval)
     void*                      array = (uint8_t*)&renderer + property->offset;
     ops->pResize(array, 1);
     renderer.overrides[0] = { .submesh = 17, .material = { .low = 12 } };
-    ops->pResize(array, renderer.overrides.capacity());
-    const uint32_t count = ops->pCount(array);
-    ASSERT_TRUE(ops->pInsert(array, 0, ops->pData(array)));
-    EXPECT_EQ(ops->pCount(array), count + 1);
+    ops->pResize(array, renderer.overrides.Capacity());
+    const uint32_t Count = ops->pCount(array);
+    ASSERT_TRUE(ops->pInsert(array, 0, ops->Data(array)));
+    EXPECT_EQ(ops->pCount(array), Count + 1);
     EXPECT_EQ(renderer.overrides[0].submesh, 17u);
     EXPECT_EQ(renderer.overrides[1].material.low, 12u);
     EXPECT_TRUE(ops->pRemove(array, 0));
     EXPECT_EQ(renderer.overrides[0].submesh, 17u);
     EXPECT_FALSE(ops->pRemove(array, ops->pCount(array)));
-    EXPECT_FALSE(ops->pInsert(array, ops->pCount(array) + 1, ops->pData(array)));
-    EXPECT_EQ(ops->pCount(array), count);
+    EXPECT_FALSE(ops->pInsert(array, ops->pCount(array) + 1, ops->Data(array)));
+    EXPECT_EQ(ops->pCount(array), Count);
     ops->pResize(array, 0);
     EXPECT_EQ(ops->pCount(array), 0u);
 }

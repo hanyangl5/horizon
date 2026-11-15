@@ -51,7 +51,7 @@ private:
     static uint8_t      preallocatedMemory[preallocatedMemorySize];
     static size_t       usedMemorySize;
 
-    static void* Alloc(size_t size);
+    static void* Alloc(size_t Size);
     static void  Log(const char* msg, ...);
 #endif // ENABLE_FORGE_STACKTRACE_DUMP
 };

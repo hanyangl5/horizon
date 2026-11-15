@@ -15,14 +15,14 @@ bool validWorldJsonStrings(Span<char> json)
 {
     // cJSON loses decoded string lengths, so check for embedded nulls before consuming its strings.
     bool inString = false;
-    for (uint32_t i = 0; i < json.count; ++i)
+    for (uint32_t i = 0; i < json.Count; ++i)
     {
-        const char value = json.pData[i];
+        const char value = json.Data[i];
         if (value == '"')
             inString = !inString;
         else if (inString)
         {
-            if (!value || (value == '\\' && json.count - i >= 6 && !memcmp(json.pData + i + 1, "u0000", 5)))
+            if (!value || (value == '\\' && json.Count - i >= 6 && !memcmp(json.Data + i + 1, "u0000", 5)))
             {
                 LOGF(Error, "World JSON strings cannot contain embedded nulls");
                 return false;
@@ -35,17 +35,17 @@ bool validWorldJsonStrings(Span<char> json)
 }
 cJSON* parseWorldJson(Span<char> json)
 {
-    if (!json.pData || !json.count || json.count > 64 * 1024 * 1024)
+    if (!json.Data || !json.Count || json.Count > 64 * 1024 * 1024)
         return nullptr;
     const char* pEnd = nullptr;
-    cJSON*      pValue = cJSON_ParseWithLengthOpts(json.pData, json.count, &pEnd, false);
+    cJSON*      pValue = cJSON_ParseWithLengthOpts(json.Data, json.Count, &pEnd, false);
     if (!pValue)
         return nullptr;
-    while (pEnd < json.pData + json.count && isspace((unsigned char)*pEnd))
+    while (pEnd < json.Data + json.Count && isspace((unsigned char)*pEnd))
         ++pEnd;
-    if (pEnd < json.pData + json.count && pEnd + 1 == json.pData + json.count && !*pEnd)
+    if (pEnd < json.Data + json.Count && pEnd + 1 == json.Data + json.Count && !*pEnd)
         ++pEnd;
-    if (pEnd != json.pData + json.count)
+    if (pEnd != json.Data + json.Count)
     {
         cJSON_Delete(pValue);
         return nullptr;
@@ -89,16 +89,16 @@ static cJSON* number(double value, int precision)
     *result.ptr = 0;
     return cJSON_CreateRaw(text);
 }
-static uint64_t unsignedValue(const void* pValue, uint32_t size)
+static uint64_t unsignedValue(const void* pValue, uint32_t Size)
 {
     uint64_t value = 0;
-    memcpy(&value, pValue, size);
+    memcpy(&value, pValue, Size);
     return value;
 }
-static int64_t signedValue(const void* pValue, uint32_t size)
+static int64_t signedValue(const void* pValue, uint32_t Size)
 {
-    const uint64_t value = unsignedValue(pValue, size);
-    return (int64_t)(value << (64 - size * 8)) >> (64 - size * 8);
+    const uint64_t value = unsignedValue(pValue, Size);
+    return (int64_t)(value << (64 - Size * 8)) >> (64 - Size * 8);
 }
 static uint32_t floatCount(PropertyKind kind)
 {
@@ -128,8 +128,8 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
     case PropertyKind::UnsignedInteger:
     {
         const bool sign = property.kind == PropertyKind::SignedInteger;
-        if (property.size < 8)
-            return cJSON_CreateNumber(sign ? (double)signedValue(pValue, property.size) : (double)unsignedValue(pValue, property.size));
+        if (property.Size < 8)
+            return cJSON_CreateNumber(sign ? (double)signedValue(pValue, property.Size) : (double)unsignedValue(pValue, property.Size));
         char                       text[32];
         const std::to_chars_result result = sign ? std::to_chars(text, text + sizeof(text) - 1, signedValue(pValue, 8))
                                                  : std::to_chars(text, text + sizeof(text) - 1, unsignedValue(pValue, 8));
@@ -138,7 +138,7 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
     }
     case PropertyKind::Float:
     {
-        if (property.size == sizeof(float))
+        if (property.Size == sizeof(float))
         {
             float value;
             memcpy(&value, pValue, sizeof(value));
@@ -149,10 +149,10 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
         return number(value, 17);
     }
     case PropertyKind::String:
-        return memchr(pValue, 0, property.size) ? cJSON_CreateString((const char*)pValue) : nullptr;
+        return memchr(pValue, 0, property.Size) ? cJSON_CreateString((const char*)pValue) : nullptr;
     case PropertyKind::Enum:
         for (const EnumValue& entry : property.enumValues)
-            if (entry.value == signedValue(pValue, property.size))
+            if (entry.value == signedValue(pValue, property.Size))
                 return cJSON_CreateString(entry.pName);
         return nullptr;
     case PropertyKind::AssetReference:
@@ -172,10 +172,10 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
     case PropertyKind::Array:
     {
         JsonValue      array(cJSON_CreateArray());
-        const uint8_t* pElements = (const uint8_t*)property.pArrayOperations->pData(pValue);
+        const uint8_t* pElements = (const uint8_t*)property.pArrayOperations->Data(pValue);
         for (uint32_t i = 0; i < property.pArrayOperations->pCount(pValue); ++i)
         {
-            cJSON* pElement = writeWorldProperties(*property.pElementType, pElements + (size_t)i * property.pElementType->size);
+            cJSON* pElement = writeWorldProperties(*property.pElementType, pElements + (size_t)i * property.pElementType->Size);
             if (!pElement)
                 return nullptr;
             cJSON_AddItemToArray(array.pValue, pElement);
@@ -186,17 +186,17 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
     }
     default:
     {
-        const uint32_t count = floatCount(property.kind);
+        const uint32_t Count = floatCount(property.kind);
         float          values[16] = {};
-        if (!count)
+        if (!Count)
             return nullptr;
         if (property.kind == PropertyKind::Matrix4)
             for (uint32_t i = 0; i < 16; ++i)
                 values[i] = (float)((const Matrix4*)pValue)->getElem(i / 4, i % 4);
         else
-            memcpy(values, pValue, count * sizeof(float));
+            memcpy(values, pValue, Count * sizeof(float));
         JsonValue array(cJSON_CreateArray());
-        for (uint32_t i = 0; i < count; ++i)
+        for (uint32_t i = 0; i < Count; ++i)
         {
             cJSON* pNumber = number(values[i], 9);
             if (!pNumber)
@@ -216,7 +216,7 @@ cJSON* writeWorldProperties(const TypeDesc& type, const void* pValue)
         if (serialized(property))
             properties.PushBack(&property);
     if (!properties.Empty())
-        qsort(properties.data(), properties.size(), sizeof(properties[0]), compareProperties);
+        qsort(properties.GetData(), properties.Size(), sizeof(properties[0]), compareProperties);
     JsonValue object(cJSON_CreateObject());
     for (const PropertyDesc* pProperty : properties)
     {
@@ -245,7 +245,7 @@ static bool readProperty(const PropertyDesc& property, const cJSON* pJson, void*
     case PropertyKind::UnsignedInteger:
     {
         const bool sign = property.kind == PropertyKind::SignedInteger;
-        if (property.size == 8)
+        if (property.Size == 8)
         {
             if (!cJSON_IsString(pJson))
                 return false;
@@ -259,19 +259,19 @@ static bool readProperty(const PropertyDesc& property, const cJSON* pJson, void*
             memcpy(pValue, sign ? (const void*)&signedNumber : (const void*)&unsignedNumber, 8);
             return true;
         }
-        const double minimum = sign ? -(double)(UINT64_C(1) << (property.size * 8 - 1)) : 0;
-        const double maximum = (double)((UINT64_C(1) << (property.size * 8 - (sign ? 1 : 0))) - 1);
+        const double minimum = sign ? -(double)(UINT64_C(1) << (property.Size * 8 - 1)) : 0;
+        const double maximum = (double)((UINT64_C(1) << (property.Size * 8 - (sign ? 1 : 0))) - 1);
         if (!cJSON_IsNumber(pJson) || !(pJson->valuedouble >= minimum && pJson->valuedouble <= maximum) ||
             floor(pJson->valuedouble) != pJson->valuedouble)
             return false;
         const uint64_t value = sign ? (uint64_t)(int64_t)pJson->valuedouble : (uint64_t)pJson->valuedouble;
-        memcpy(pValue, &value, property.size);
+        memcpy(pValue, &value, property.Size);
         return true;
     }
     case PropertyKind::Float:
         if (!cJSON_IsNumber(pJson) || !isfinite(pJson->valuedouble))
             return false;
-        if (property.size == sizeof(float))
+        if (property.Size == sizeof(float))
         {
             if (fabs(pJson->valuedouble) > FLT_MAX)
                 return false;
@@ -282,9 +282,9 @@ static bool readProperty(const PropertyDesc& property, const cJSON* pJson, void*
             memcpy(pValue, &pJson->valuedouble, sizeof(double));
         return true;
     case PropertyKind::String:
-        if (!cJSON_IsString(pJson) || strlen(pJson->valuestring) >= property.size)
+        if (!cJSON_IsString(pJson) || strlen(pJson->valuestring) >= property.Size)
             return false;
-        memset(pValue, 0, property.size);
+        memset(pValue, 0, property.Size);
         memcpy(pValue, pJson->valuestring, strlen(pJson->valuestring));
         return true;
     case PropertyKind::Enum:
@@ -316,16 +316,16 @@ static bool readProperty(const PropertyDesc& property, const cJSON* pJson, void*
         if (!cJSON_IsArray(pJson))
             return false;
         property.pArrayOperations->pResize(pValue, (uint32_t)cJSON_GetArraySize(pJson));
-        uint8_t* pElement = (uint8_t*)property.pArrayOperations->pData(pValue);
-        for (const cJSON* pItem = pJson->child; pItem; pItem = pItem->next, pElement += property.pElementType->size)
+        uint8_t* pElement = (uint8_t*)property.pArrayOperations->Data(pValue);
+        for (const cJSON* pItem = pJson->child; pItem; pItem = pItem->next, pElement += property.pElementType->Size)
             if (!readWorldProperties(*property.pElementType, pItem, pElement))
                 return false;
         return true;
     }
     default:
     {
-        const uint32_t count = floatCount(property.kind);
-        if (!count || !cJSON_IsArray(pJson) || cJSON_GetArraySize(pJson) != (int)count)
+        const uint32_t Count = floatCount(property.kind);
+        if (!Count || !cJSON_IsArray(pJson) || cJSON_GetArraySize(pJson) != (int)Count)
             return false;
         float    values[16] = {};
         uint32_t i = 0;
@@ -343,8 +343,8 @@ static bool readProperty(const PropertyDesc& property, const cJSON* pJson, void*
         }
         else
         {
-            memset(pValue, 0, property.size);
-            memcpy(pValue, values, count * sizeof(float));
+            memset(pValue, 0, property.Size);
+            memcpy(pValue, values, Count * sizeof(float));
         }
         return true;
     }
@@ -380,9 +380,9 @@ bool validateWorldReferences(const TypeDesc& type, const void* pValue, const Wor
         }
         if (property.kind == PropertyKind::Array)
         {
-            const uint8_t* pElements = (const uint8_t*)property.pArrayOperations->pData(pField);
+            const uint8_t* pElements = (const uint8_t*)property.pArrayOperations->Data(pField);
             for (uint32_t i = 0; i < property.pArrayOperations->pCount(pField); ++i)
-                if (!validateWorldReferences(*property.pElementType, pElements + (size_t)i * property.pElementType->size, world))
+                if (!validateWorldReferences(*property.pElementType, pElements + (size_t)i * property.pElementType->Size, world))
                     return false;
         }
     }
@@ -401,8 +401,8 @@ bool normalizeWorldComponent(TypeID type, void* pValue, bool sortOverrides)
     {
         Array<MaterialOverride>& overrides = ((MeshRenderer*)pValue)->overrides;
         if (sortOverrides && !overrides.Empty())
-            qsort(overrides.data(), overrides.size(), sizeof(MaterialOverride), compareMaterialOverrides);
-        for (uint32_t i = 0; i < overrides.size(); ++i)
+            qsort(overrides.GetData(), overrides.Size(), sizeof(MaterialOverride), compareMaterialOverrides);
+        for (uint32_t i = 0; i < overrides.Size(); ++i)
             if (!overrides[i].submesh || !overrides[i].material.isValid() || (i && overrides[i - 1].submesh >= overrides[i].submesh))
                 return false;
     }

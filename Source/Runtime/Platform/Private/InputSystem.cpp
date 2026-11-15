@@ -75,7 +75,7 @@
 #ifdef GAINPUT_PLATFORM_GGP
 namespace gainput
 {
-extern void SetWindow(void* pData);
+extern void SetWindow(void* Data);
 }
 #endif
 
@@ -186,7 +186,7 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     vbDesc.desc.descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
     vbDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
     vbDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    vbDesc.desc.size = 128 * 4 * sizeof(float4);
+    vbDesc.desc.Size = 128 * 4 * sizeof(float4);
     vbDesc.ppBuffer = &gVirtualJoystick->pMeshBuffer;
     addResource(&vbDesc, NULL);
 #endif
@@ -1014,9 +1014,9 @@ struct InputSystemImpl: public gainput::InputListener
         gainput::InputDeviceKeyboard* keyboard = (gainput::InputDeviceKeyboard*)pInputManager->GetDevice(keyboardDeviceID);
         if (keyboard)
         {
-            uint32_t count = 0;
-            wchar_t* pText = keyboard->GetTextInput(&count);
-            if (count)
+            uint32_t Count = 0;
+            wchar_t* pText = keyboard->GetTextInput(&Count);
+            if (Count)
             {
                 InputActionContext ctx = {};
                 ctx.pText = pText;
@@ -1708,7 +1708,7 @@ struct InputSystemImpl: public gainput::InputListener
                                           UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin)];
 #else
             NSView*              mainView = (__bridge NSView*)view;
-            float                retinScale = ((CAMetalLayer*)(mainView.layer)).drawableSize.width / mainView.frame.size.width;
+            float                retinScale = ((CAMetalLayer*)(mainView.layer)).drawableSize.width / mainView.frame.Size.width;
             // Use view.window.contentLayoutRect instead of view.frame as a frame to avoid capturing inputs over title bar
             GainputMacInputView* newView = [[GainputMacInputView alloc] initWithFrame:mainView.window.contentLayoutRect
                                                                                window:mainView.window

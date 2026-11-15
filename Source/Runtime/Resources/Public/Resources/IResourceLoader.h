@@ -36,10 +36,10 @@ static FORGE_CONSTEXPR const ResourceState gIndexBufferState = RESOURCE_STATE_IN
 
 typedef struct MappedMemoryRange
 {
-    uint8_t* pData;
+    uint8_t* Data;
     Buffer*  pBuffer;
     uint64_t offset;
-    uint64_t size;
+    uint64_t Size;
     uint32_t flags;
 } MappedMemoryRange;
 
@@ -72,8 +72,8 @@ typedef struct BufferLoadDesc
 {
     Buffer**    ppBuffer;
     // This must stay valid until the buffer load is not completed
-    // Use waitForToken (if a token was passed to addResource) or waitForAllResourceLoads before freeing pData
-    const void* pData;
+    // Use waitForToken (if a token was passed to addResource) or waitForAllResourceLoads before freeing Data
+    const void* Data;
     BufferDesc  desc;
     /// MemZero buffer
     bool        forceReset;
@@ -112,7 +112,7 @@ typedef struct TextureLoadDesc
 typedef struct BufferChunk
 {
     uint32_t offset;
-    uint32_t size;
+    uint32_t Size;
 } BufferChunk;
 
 // Structure used to sub-allocate chunks on a buffer, keeps track of free memory to handle new requests.
@@ -121,7 +121,7 @@ typedef struct BufferChunkAllocator
 {
     Buffer*      pBuffer;
     uint32_t     usedChunkCount;
-    uint32_t     size;
+    uint32_t     Size;
     BufferChunk* unusedChunks;
 } BufferChunkAllocator;
 
@@ -143,7 +143,7 @@ typedef struct Meshlet
     uint vertexOffset;
     uint triangleOffset;
 
-    /// Number of vertices and triangles used in the meshlet; data is stored in consecutive range defined by offset and count
+    /// Number of vertices and triangles used in the meshlet; data is stored in consecutive range defined by offset and Count
     uint vertexCount;
     uint triangleCount;
 } Meshlet;
@@ -216,8 +216,8 @@ typedef struct Geometry
     uint32_t pad[20];
 } Geometry;
 
-static_assert(sizeof(Geometry) == 352, "If Geometry size changes we need to rebuild all custom binary meshes");
-static_assert(sizeof(Geometry) % 16 == 0, "Geometry size must be a multiple of 16");
+static_assert(sizeof(Geometry) == 352, "If Geometry Size changes we need to rebuild all custom binary meshes");
+static_assert(sizeof(Geometry) % 16 == 0, "Geometry Size must be a multiple of 16");
 
 // Outputs data that's only needed in the CPU side, OTOH the Geometry object holds GPU related information and buffers
 typedef struct GeometryData
@@ -273,7 +273,7 @@ typedef struct GeometryData
     uint32_t pad1[5];
 } GeometryData;
 
-static_assert(sizeof(GeometryData) % 16 == 0, "GeometryData size must be a multiple of 16");
+static_assert(sizeof(GeometryData) % 16 == 0, "GeometryData Size must be a multiple of 16");
 
 typedef enum GeometryLoadFlags
 {
@@ -341,7 +341,7 @@ typedef struct BufferUpdateDesc
 {
     Buffer*  pBuffer;
     uint64_t dstOffset;
-    uint64_t size;
+    uint64_t Size;
 
     /// To be filled by the caller between beginUpdateResource and endUpdateResource calls
     /// Example:
@@ -373,7 +373,7 @@ typedef struct TextureSubresourceUpdate
     uint32_t dstRowStride;
     /// Number of rows in this slice of the texture
     uint32_t rowCount;
-    /// Src row stride for convenience (rowCount * width * texture format size)
+    /// Src row stride for convenience (rowCount * width * texture format Size)
     uint32_t srcRowStride;
     /// Size of each slice in destination including padding - Use for offsetting dst data updating 3D textures
     uint32_t dstSliceStride;
@@ -513,7 +513,7 @@ FORGE_RENDERER_API void getResourceSizeAlign(const TextureLoadDesc* pDesc, Resou
 
 /// Adding and updating resources can be done using a addResource or
 /// beginUpdateResource/endUpdateResource pair.
-/// if addResource(BufferLoadDesc) is called with a data size larger than the ResourceLoader's staging buffer, the ResourceLoader
+/// if addResource(BufferLoadDesc) is called with a data Size larger than the ResourceLoader's staging buffer, the ResourceLoader
 /// will perform multiple copies/flushes rather than failing the copy.
 
 /// If token is NULL, the resource will be available when allResourceLoadsCompleted() returns true.
@@ -530,10 +530,10 @@ FORGE_RENDERER_API void endUpdateResource(TextureUpdateDesc* pTexture);
 
 /// This function is used to acquire geometry buffer location.
 /// It can be used on index or vertex buffer
-/// When there are no continious chunk with enough size, output chunk contains 0 size.
+/// When there are no continious chunk with enough Size, output chunk contains 0 Size.
 /// Use releaseGeometryBufferPart to release chunk.
 /// Make sure all chunks are released before removeGeometryBuffer.
-FORGE_RENDERER_API void addGeometryBufferPart(BufferChunkAllocator* buffer, uint32_t size, uint32_t alignment, BufferChunk* pOut,
+FORGE_RENDERER_API void addGeometryBufferPart(BufferChunkAllocator* buffer, uint32_t Size, uint32_t alignment, BufferChunk* pOut,
                                               BufferChunk* pPreferredChunk = NULL);
 
 /// Release previously claimed chunk to buffer.

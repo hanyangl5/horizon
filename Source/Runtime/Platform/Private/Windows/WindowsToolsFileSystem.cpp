@@ -188,7 +188,7 @@ FileWatcher* CreateFileWatcher(const char* path, FileWatcherEventMask eventMask,
 
     ThreadDesc threadDesc = {};
     threadDesc.pFunc = fswThreadFunc;
-    threadDesc.pData = watcher;
+    threadDesc.Data = watcher;
     strncpy(threadDesc.threadName, "FileWatcher", sizeof(threadDesc.threadName));
     InitThread(&threadDesc, &watcher->thread);
 

@@ -27,6 +27,6 @@ public:
     void registerLoaders(AssetManager& assetManager);
 
 private:
-    AssetLoadersData* pData = nullptr;
+    AssetLoadersData* Data = nullptr;
 };
 } // namespace hz

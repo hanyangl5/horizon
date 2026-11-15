@@ -81,12 +81,12 @@ extern "C"
     FORGE_TOOL_API bool DirectoryIteratorNext(FsDirectoryIterator iterator, struct FsDirectoryIteratorEntry* outEntry);
 
     /// Returns and allocates an array of all directories inside input resourceDir + directory. String also contains subDirectory
-    FORGE_TOOL_API bool GetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char*** out, int* count);
+    FORGE_TOOL_API bool GetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char*** out, int* Count);
 
     /// Returns and allocates array of all files inside input resourceDir + subDirectory. String also contains subDirectory
     /// Specifying Empty extension will collect all files
     FORGE_TOOL_API bool GetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char*** out,
-                                                int* count);
+                                                int* Count);
     /************************************************************************/
     /************************************************************************/
 
@@ -135,15 +135,15 @@ extern "C"
     ///   contains backlinks "/../".
     ///
     ///   Returns new length of string. Can be less than length between beg and cur.
-    ///   On success, length is less than size of the buffer.
-    ///   On failure, length is equal to size of the buffer.
+    ///   On success, length is less than Size of the buffer.
+    ///   On failure, length is equal to Size of the buffer.
     ///   Failure is when 'nextPath' insertion is unfinished.
     FORGE_API size_t NormalizePathContinue(const char* nextPath, char separator, //
                                              const char* outputBeg, char* outputCur, const char* outputEnd);
 
     /// Normalize 'path' with custom 'separator' into 'buffer'
     ///
-    ///  'output' buffer size required to be " >= strlen(path)+1",
+    ///  'output' buffer Size required to be " >= strlen(path)+1",
     ///  use NormalizePathContinue to avoid that restriction.
     ///
     ///  'path' and 'output' can point to single buffer:
@@ -157,11 +157,11 @@ extern "C"
 
     /// same as AppendPathComponent but with extra options
     /// 'separator' must be '/', but '\' in WindowsFileSystem.cpp
-    /// 'dstSize'   size of dst buffer
+    /// 'dstSize'   Size of dst buffer
     FORGE_API bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
 
     /// Write normalized version of 'dir'+ 'separator' + 'path' to dst
-    /// requires dst buffer size to be >= FS_MAX_PATH
+    /// requires dst buffer Size to be >= FS_MAX_PATH
     /// Default use-case:
     ///   char path[FS_MAX_PATH];
     ///   AppendPathComponent(GetResourceDirectory(rd), fileName, path);
@@ -172,24 +172,24 @@ extern "C"
 
     /// Appends `newExtension` to `basePath`.
     /// If `basePath` already has an extension, `newExtension` will be appended to the end.
-    /// `output` buffer size required to be >= FS_MAX_PATH
+    /// `output` buffer Size required to be >= FS_MAX_PATH
     FORGE_API void AppendPathExtension(const char* basePath, const char* newExtension, char* output);
 
     /// Appends `newExtension` to `basePath`.
     /// If `basePath` already has an extension, its previous extension will be replaced by `newExtension`.
-    /// `output` buffer size required to be >= FS_MAX_PATH
+    /// `output` buffer Size required to be >= FS_MAX_PATH
     FORGE_API void ReplacePathExtension(const char* path, const char* newExtension, char* output);
 
     /// Get `path`'s parent path, excluding the end seperator.
-    /// `output` buffer size required to be >= FS_MAX_PATH
+    /// `output` buffer Size required to be >= FS_MAX_PATH
     FORGE_API void GetParentPath(const char* path, char* output);
 
     /// Get `path`'s file name, without extension or parent path.
-    /// `output` buffer size required to be >= FS_MAX_PATH
+    /// `output` buffer Size required to be >= FS_MAX_PATH
     FORGE_API void GetPathFileName(const char* path, char* output);
 
     /// Returns `path`'s extension, excluding the '.'.
-    /// `output` buffer size required to be >= FS_MAX_PATH
+    /// `output` buffer Size required to be >= FS_MAX_PATH
     FORGE_API void GetPathExtension(const char* path, char* output);
 
     /************************************************************************/

@@ -19,6 +19,6 @@ public:
     AssetLoader getLoader();
 
 private:
-    SceneAssetLoaderData* pData = nullptr;
+    SceneAssetLoaderData* Data = nullptr;
 };
 } // namespace hz

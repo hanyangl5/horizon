@@ -56,15 +56,15 @@ public:
     GPUAccelerationStructure& operator=(GPUAccelerationStructure&&) noexcept;
     GPUAccelerationStructure(const GPUAccelerationStructure&) = delete;
     GPUAccelerationStructure& operator=(const GPUAccelerationStructure&) = delete;
-    bool                      isValid() const { return pData != nullptr; }
+    bool                      isValid() const { return Data != nullptr; }
     uint32_t                  getSrvIndex() const;
     uint32_t                  getInstanceCount() const;
     void                      setInstance(uint32_t index, const AccelerationStructureInstance& instance);
 
 private:
-    explicit GPUAccelerationStructure(AccelerationStructureData* data): pData(data) {}
+    explicit GPUAccelerationStructure(AccelerationStructureData* data): Data(data) {}
     void                       destroy();
-    AccelerationStructureData* pData = nullptr;
+    AccelerationStructureData* Data = nullptr;
     friend class RenderContext;
     friend class CommandList;
     friend class AccelerationStructureData;

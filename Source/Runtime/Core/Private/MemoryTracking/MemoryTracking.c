@@ -24,7 +24,7 @@
 //#include "Core/IMath.h"
 #define MEM_MAX(a, b)             ((a) > (b) ? (a) : (b))
 
-#define ALIGN_TO(size, alignment) (((size) + (alignment)-1) & ~((alignment)-1))
+#define ALIGN_TO(Size, alignment) (((Size) + (alignment)-1) & ~((alignment)-1))
 
 // Taken from EASTL EA_PLATFORM_MIN_MALLOC_ALIGNMENT
 #ifndef PLATFORM_MIN_MALLOC_ALIGNMENT
@@ -508,32 +508,32 @@ void PlotMemoryTrackingStats(void)
 #pragma GCC diagnostic pop
 #endif
 
-void* MemAllocateInternal(size_t size, const char* f, int l, const char* sf)
+void* MemAllocateInternal(size_t Size, const char* f, int l, const char* sf)
 {
-    return MemAllocateAlignedInternal(MIN_ALLOC_ALIGNMENT, size, f, l, sf);
+    return MemAllocateAlignedInternal(MIN_ALLOC_ALIGNMENT, Size, f, l, sf);
 }
 
-void* MemCallocateInternal(size_t count, size_t size, const char* f, int l, const char* sf)
+void* MemCallocateInternal(size_t Count, size_t Size, const char* f, int l, const char* sf)
 {
-    return MemCallocateAlignedInternal(count, MIN_ALLOC_ALIGNMENT, size, f, l, sf);
+    return MemCallocateAlignedInternal(Count, MIN_ALLOC_ALIGNMENT, Size, f, l, sf);
 }
 
-void* MemAllocateAlignedInternal(size_t align, size_t size, const char* f, int l, const char* sf)
+void* MemAllocateAlignedInternal(size_t align, size_t Size, const char* f, int l, const char* sf)
 {
-    void* pMemAlign = mmgrAllocator(f, l, sf, m_alloc_malloc, align, size);
+    void* pMemAlign = mmgrAllocator(f, l, sf, m_alloc_malloc, align, Size);
 
 #if defined(ENABLE_TRACY_MEMORY)
-    memoryTrackingRecordAlloc(pMemAlign, size, size, align);
+    memoryTrackingRecordAlloc(pMemAlign, Size, Size, align);
 #endif
 
     // Return handle to allocated memory.
     return pMemAlign;
 }
 
-void* MemCallocateAlignedInternal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf)
+void* MemCallocateAlignedInternal(size_t Count, size_t align, size_t Size, const char* f, int l, const char* sf)
 {
     size_t requestedSize = 0;
-    if (!MulSize(count, size, &requestedSize))
+    if (!MulSize(Count, Size, &requestedSize))
     {
 #if defined(ENABLE_TRACY_MEMORY)
         memoryTrackingRecordFailedAlloc();
@@ -541,9 +541,9 @@ void* MemCallocateAlignedInternal(size_t count, size_t align, size_t size, const
         return NULL;
     }
 
-    size_t alignedSize = ALIGN_TO(size, align);
+    size_t alignedSize = ALIGN_TO(Size, align);
     size_t allocationSize = 0;
-    if (!MulSize(count, alignedSize, &allocationSize))
+    if (!MulSize(Count, alignedSize, &allocationSize))
     {
 #if defined(ENABLE_TRACY_MEMORY)
         memoryTrackingRecordFailedAlloc();
@@ -561,20 +561,20 @@ void* MemCallocateAlignedInternal(size_t count, size_t align, size_t size, const
     return pMemAlign;
 }
 
-void* MemReallocateInternal(void* ptr, size_t size, const char* f, int l, const char* sf)
+void* MemReallocateInternal(void* ptr, size_t Size, const char* f, int l, const char* sf)
 {
 #if defined(ENABLE_TRACY_MEMORY)
-    if (ptr && !size)
+    if (ptr && !Size)
     {
         MemDeallocateInternal(ptr, f, l, sf);
         return NULL;
     }
     memoryTrackingLock();
 #endif
-    void* pRealloc = mmgrReallocator(f, l, sf, m_alloc_realloc, size, ptr);
+    void* pRealloc = mmgrReallocator(f, l, sf, m_alloc_realloc, Size, ptr);
 
 #if defined(ENABLE_TRACY_MEMORY)
-    memoryTrackingRecordRealloc(ptr, pRealloc, size, size, MIN_ALLOC_ALIGNMENT);
+    memoryTrackingRecordRealloc(ptr, pRealloc, Size, Size, MIN_ALLOC_ALIGNMENT);
 #endif
 
     // Return handle to reallocated memory.
@@ -606,21 +606,21 @@ void ExitMemoryAlloc(void)
     // Return all allocated memory to the OS. Analyze memory usage, dump memory leaks, ...
 }
 
-void* TrackedMalloc(size_t size)
+void* TrackedMalloc(size_t Size)
 {
 #ifdef _MSC_VER
-    void* ptr = _aligned_malloc(size, MIN_ALLOC_ALIGNMENT);
+    void* ptr = _aligned_malloc(Size, MIN_ALLOC_ALIGNMENT);
 #else
-    void* ptr = malloc(size);
+    void* ptr = malloc(Size);
 #endif
 
     return ptr;
 }
 
-void* TrackedCalloc(size_t count, size_t size)
+void* TrackedCalloc(size_t Count, size_t Size)
 {
     size_t sz = 0;
-    if (!MulSize(count, size, &sz))
+    if (!MulSize(Count, Size, &sz))
         return NULL;
 
 #ifdef _MSC_VER
@@ -628,20 +628,20 @@ void* TrackedCalloc(size_t count, size_t size)
     if (ptr)
         memset(ptr, 0, sz); //-V575
 #else
-    void* ptr = calloc(count, size);
+    void* ptr = calloc(Count, Size);
 #endif
 
     return ptr;
 }
 
-void* TrackedMemalign(size_t alignment, size_t size)
+void* TrackedMemalign(size_t alignment, size_t Size)
 {
 #ifdef _MSC_VER
-    void* ptr = _aligned_malloc(size, alignment);
+    void* ptr = _aligned_malloc(Size, alignment);
 #else
     void* ptr;
     alignment = alignment > sizeof(void*) ? alignment : sizeof(void*);
-    if (posix_memalign(&ptr, alignment, size))
+    if (posix_memalign(&ptr, alignment, Size))
     {
         ptr = NULL;
     }
@@ -650,11 +650,11 @@ void* TrackedMemalign(size_t alignment, size_t size)
     return ptr;
 }
 
-void* TrackedCallocMemalign(size_t count, size_t alignment, size_t size)
+void* TrackedCallocMemalign(size_t Count, size_t alignment, size_t Size)
 {
-    size_t alignedArrayElementSize = ALIGN_TO(size, alignment);
+    size_t alignedArrayElementSize = ALIGN_TO(Size, alignment);
     size_t totalBytes = 0;
-    if (!MulSize(count, alignedArrayElementSize, &totalBytes))
+    if (!MulSize(Count, alignedArrayElementSize, &totalBytes))
         return NULL;
 
     void* ptr = TrackedMemalign(alignment, totalBytes);
@@ -664,12 +664,12 @@ void* TrackedCallocMemalign(size_t count, size_t alignment, size_t size)
     return ptr;
 }
 
-void* TrackedRealloc(void* ptr, size_t size)
+void* TrackedRealloc(void* ptr, size_t Size)
 {
 #ifdef _MSC_VER
-    void* reallocPtr = _aligned_realloc(ptr, size, MIN_ALLOC_ALIGNMENT);
+    void* reallocPtr = _aligned_realloc(ptr, Size, MIN_ALLOC_ALIGNMENT);
 #else
-    void* reallocPtr = realloc(ptr, size);
+    void* reallocPtr = realloc(ptr, Size);
 #endif
 
     return reallocPtr;
@@ -684,37 +684,37 @@ void TrackedFree(void* ptr)
 #endif
 }
 
-void* MemAllocateInternal(size_t size, const char* f, int l, const char* sf)
+void* MemAllocateInternal(size_t Size, const char* f, int l, const char* sf)
 {
     UNREF_PARAM(f);
     UNREF_PARAM(l);
     UNREF_PARAM(sf);
-    void* ptr = TrackedMalloc(size);
+    void* ptr = TrackedMalloc(Size);
 #if defined(ENABLE_TRACY_MEMORY)
-    memoryTrackingRecordAlloc(ptr, size, memoryTrackingGetUsableSize(ptr, size, MIN_ALLOC_ALIGNMENT), MIN_ALLOC_ALIGNMENT);
+    memoryTrackingRecordAlloc(ptr, Size, memoryTrackingGetUsableSize(ptr, Size, MIN_ALLOC_ALIGNMENT), MIN_ALLOC_ALIGNMENT);
 #endif
     return ptr;
 }
 
-void* MemAllocateAlignedInternal(size_t align, size_t size, const char* f, int l, const char* sf)
+void* MemAllocateAlignedInternal(size_t align, size_t Size, const char* f, int l, const char* sf)
 {
     UNREF_PARAM(f);
     UNREF_PARAM(l);
     UNREF_PARAM(sf);
-    void* ptr = TrackedMemalign(align, size);
+    void* ptr = TrackedMemalign(align, Size);
 #if defined(ENABLE_TRACY_MEMORY)
-    memoryTrackingRecordAlloc(ptr, size, memoryTrackingGetUsableSize(ptr, size, align), align);
+    memoryTrackingRecordAlloc(ptr, Size, memoryTrackingGetUsableSize(ptr, Size, align), align);
 #endif
     return ptr;
 }
 
-void* MemCallocateInternal(size_t count, size_t size, const char* f, int l, const char* sf)
+void* MemCallocateInternal(size_t Count, size_t Size, const char* f, int l, const char* sf)
 {
     UNREF_PARAM(f);
     UNREF_PARAM(l);
     UNREF_PARAM(sf);
     size_t requestedSize = 0;
-    if (!MulSize(count, size, &requestedSize))
+    if (!MulSize(Count, Size, &requestedSize))
     {
 #if defined(ENABLE_TRACY_MEMORY)
         memoryTrackingRecordFailedAlloc();
@@ -722,7 +722,7 @@ void* MemCallocateInternal(size_t count, size_t size, const char* f, int l, cons
         return NULL;
     }
 
-    void* ptr = TrackedCalloc(count, size);
+    void* ptr = TrackedCalloc(Count, Size);
 #if defined(ENABLE_TRACY_MEMORY)
     memoryTrackingRecordAlloc(ptr, requestedSize, memoryTrackingGetUsableSize(ptr, requestedSize, MIN_ALLOC_ALIGNMENT),
                               MIN_ALLOC_ALIGNMENT);
@@ -730,13 +730,13 @@ void* MemCallocateInternal(size_t count, size_t size, const char* f, int l, cons
     return ptr;
 }
 
-void* MemCallocateAlignedInternal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf)
+void* MemCallocateAlignedInternal(size_t Count, size_t align, size_t Size, const char* f, int l, const char* sf)
 {
     UNREF_PARAM(f);
     UNREF_PARAM(l);
     UNREF_PARAM(sf);
     size_t requestedSize = 0;
-    if (!MulSize(count, size, &requestedSize))
+    if (!MulSize(Count, Size, &requestedSize))
     {
 #if defined(ENABLE_TRACY_MEMORY)
         memoryTrackingRecordFailedAlloc();
@@ -744,29 +744,29 @@ void* MemCallocateAlignedInternal(size_t count, size_t align, size_t size, const
         return NULL;
     }
 
-    void* ptr = TrackedCallocMemalign(count, align, size);
+    void* ptr = TrackedCallocMemalign(Count, align, Size);
 #if defined(ENABLE_TRACY_MEMORY)
     memoryTrackingRecordAlloc(ptr, requestedSize, memoryTrackingGetUsableSize(ptr, requestedSize, align), align);
 #endif
     return ptr;
 }
 
-void* MemReallocateInternal(void* ptr, size_t size, const char* f, int l, const char* sf)
+void* MemReallocateInternal(void* ptr, size_t Size, const char* f, int l, const char* sf)
 {
     UNREF_PARAM(f);
     UNREF_PARAM(l);
     UNREF_PARAM(sf);
 #if defined(ENABLE_TRACY_MEMORY)
-    if (ptr && !size)
+    if (ptr && !Size)
     {
         MemDeallocateInternal(ptr, f, l, sf);
         return NULL;
     }
     memoryTrackingLock();
 #endif
-    void* reallocPtr = TrackedRealloc(ptr, size);
+    void* reallocPtr = TrackedRealloc(ptr, Size);
 #if defined(ENABLE_TRACY_MEMORY)
-    memoryTrackingRecordRealloc(ptr, reallocPtr, size, memoryTrackingGetUsableSize(reallocPtr, size, MIN_ALLOC_ALIGNMENT),
+    memoryTrackingRecordRealloc(ptr, reallocPtr, Size, memoryTrackingGetUsableSize(reallocPtr, Size, MIN_ALLOC_ALIGNMENT),
                                 MIN_ALLOC_ALIGNMENT);
 #endif
     return reallocPtr;

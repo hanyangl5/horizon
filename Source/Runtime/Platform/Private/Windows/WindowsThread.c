@@ -137,11 +137,11 @@ char* thread_name()
     return name;
 }
 
-void GetCurrentThreadName(char* buffer, int size)
+void GetCurrentThreadName(char* buffer, int Size)
 {
     const char* name = thread_name();
     if (name[0])
-        snprintf(buffer, (size_t)size, "%s", name);
+        snprintf(buffer, (size_t)Size, "%s", name);
     else
         buffer[0] = 0;
 }
@@ -203,7 +203,7 @@ unsigned WINAPI ThreadFunctionStatic(void* data)
         }
     }
 
-    item.pFunc(item.pData);
+    item.pFunc(item.Data);
     return 0;
 }
 

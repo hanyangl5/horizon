@@ -43,7 +43,7 @@ public:
 
     // When app is loaded, app is provided of the render targets to load
     // App is responsible to keep track of these render targets until load is called again
-    virtual bool Load(RenderTarget** rts, uint32_t count = 1) = 0;
+    virtual bool Load(RenderTarget** rts, uint32_t Count = 1) = 0;
     virtual void Unload() = 0;
 
     virtual void Update(float deltaTime) = 0;

@@ -43,7 +43,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     const ImGuiStyle& style = g.Style;
 
     const ImGuiID id = window->GetID(label);
-    float         size = CalcItemWidth();
+    float         Size = CalcItemWidth();
 
     float2 extraPadding = style.ItemSpacing + style.ItemInnerSpacing;
     // extraPadding.y = 0.f;
@@ -51,9 +51,9 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     // extraPadding *= 2.f;
     float2 label_size = CalcTextSize(label, NULL, true);
     label_size.y = fmaxf(label_size.y, 0.f) + line_height;
-    ImRect total_bb(window->DC.CursorPos, window->DC.CursorPos + float2(size, size + label_size.y / 2.f) + extraPadding);
+    ImRect total_bb(window->DC.CursorPos, window->DC.CursorPos + float2(Size, Size + label_size.y / 2.f) + extraPadding);
 
-    float knobRadius = size * 0.5f;
+    float knobRadius = Size * 0.5f;
 
     float2 center = total_bb.GetCenter();
 
@@ -237,7 +237,7 @@ int KnobFloatN(const char* label, float* value_p, const int& components, const f
     // Scale the content based on how much of the width we would like to fill
     float contentWidth = window->Size.x - GetStyle().FrameBorderSize - GetStyle().ScrollbarSize - itemSpacing - extraFramePadding;
 
-    // Compute final size multipler > 0 to avoid undefined behavior
+    // Compute final Size multipler > 0 to avoid undefined behavior
     windowWidthRatio = fmaxf(windowWidthRatio, 0.05f);
 
     PushMultiItemsWidths(components, contentWidth * windowWidthRatio);

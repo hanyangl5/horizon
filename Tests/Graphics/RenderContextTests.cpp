@@ -50,7 +50,7 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
 
     const uint32_t       initial = 17;
     const hz::BufferDesc bufferDesc = {
-        .size = sizeof(initial),
+        .Size = sizeof(initial),
         .elementCount = 1,
         .structStride = sizeof(initial),
         .pName = "RenderContextTest.Buffer",
@@ -146,7 +146,7 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
     });
     ASSERT_TRUE(pipeline.isValid());
     hz::GPUBuffer    output = context.createBuffer({
-        .size = 4 * sizeof(uint32_t),
+        .Size = 4 * sizeof(uint32_t),
         .elementCount = 4,
         .structStride = sizeof(uint32_t),
         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
@@ -154,7 +154,7 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
         .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
     });
     hz::GPUBuffer    readback = context.createBuffer({
-        .size = 4 * sizeof(uint32_t),
+        .Size = 4 * sizeof(uint32_t),
         .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
         .startState = RESOURCE_STATE_COPY_DEST,
         .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
@@ -211,20 +211,20 @@ TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
     for (uint32_t i = 0; i < 16; ++i)
         values[i] = 100 + i;
     hz::GPUBuffer staging = context.createBuffer({
-        .size = sizeof(values),
+        .Size = sizeof(values),
         .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
         .startState = RESOURCE_STATE_GENERIC_READ,
         .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
     });
     hz::GPUBuffer target = context.createBuffer({
-        .size = sizeof(values),
+        .Size = sizeof(values),
         .elementCount = 16,
         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
         .startState = RESOURCE_STATE_SHADER_RESOURCE,
         .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
     });
     hz::GPUBuffer readback = context.createBuffer({
-        .size = sizeof(values),
+        .Size = sizeof(values),
         .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
         .startState = RESOURCE_STATE_COPY_DEST,
         .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
@@ -235,8 +235,8 @@ TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
     hz::CommandList& commands = context.acquireCommandList();
     commands.fillBuffer(target, 0, 0, sizeof(values));
     const hz::BufferCopyRegion regions[] = {
-        { .srcOffset = 0, .dstOffset = 8 * sizeof(uint32_t), .size = 4 * sizeof(uint32_t) },
-        { .srcOffset = 12 * sizeof(uint32_t), .dstOffset = 0, .size = 2 * sizeof(uint32_t) },
+        { .srcOffset = 0, .dstOffset = 8 * sizeof(uint32_t), .Size = 4 * sizeof(uint32_t) },
+        { .srcOffset = 12 * sizeof(uint32_t), .dstOffset = 0, .Size = 2 * sizeof(uint32_t) },
     };
     commands.copyBufferRegions(target, staging, regions);
     commands.copyBuffer(readback, 0, target, 0, sizeof(values));
@@ -251,7 +251,7 @@ TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
 
     // Released buffers return their SRV index for immediate reuse, which makes the release point observable.
     const hz::BufferDesc rawDesc = {
-        .size = sizeof(values),
+        .Size = sizeof(values),
         .elementCount = 16,
         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
         .startState = RESOURCE_STATE_SHADER_RESOURCE,
@@ -332,7 +332,7 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
     const uint32_t configData[64] = { 2 };
     const uint32_t bias = 3;
     hz::GPUBuffer  config = context.createBuffer({
-        .size = 256,
+        .Size = 256,
         .elementCount = 64,
         .structStride = 4,
         .pInitialData = configData,
@@ -342,7 +342,7 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
         .descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER,
     });
     hz::GPUBuffer  raw = context.createBuffer({
-        .size = 4,
+        .Size = 4,
         .elementCount = 1,
         .pInitialData = &bias,
         .initialDataSize = sizeof(bias),
@@ -351,7 +351,7 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
         .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
     });
     hz::GPUBuffer  output = context.createBuffer({
-        .size = 32,
+        .Size = 32,
         .elementCount = 2,
         .structStride = 16,
         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
@@ -359,7 +359,7 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
         .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
     });
     hz::GPUBuffer  readback = context.createBuffer({
-        .size = 32,
+        .Size = 32,
         .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
         .startState = RESOURCE_STATE_COPY_DEST,
         .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
@@ -425,9 +425,9 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
     hz::RenderContext context(desc);
 
     const uint32_t sizes[][2] = { { 900, 600 }, { 1400, 800 }, { 640, 480 }, { 1280, 720 } };
-    for (const auto& size : sizes)
+    for (const auto& Size : sizes)
     {
-        ASSERT_TRUE(context.resize(size[0], size[1]));
+        ASSERT_TRUE(context.resize(Size[0], Size[1]));
         hz::CommandList&       prepare = context.acquireCommandList();
         const hz::SubmitHandle prepareSubmit = context.submit(prepare);
 
@@ -469,9 +469,9 @@ TEST(DependencyListTest, SkipsOptionalResourcesAndReportsIndices)
     EXPECT_EQ(dependencies.write(buffer), UINT32_MAX);
     dependencies.indirect(buffer);
     const hz::Dependencies recorded = dependencies.get();
-    EXPECT_EQ(recorded.sampledTextures.count, 0u);
-    EXPECT_EQ(recorded.storageTextures.count, 0u);
-    EXPECT_EQ(recorded.buffers.count, 0u);
-    EXPECT_EQ(recorded.storageBuffers.count, 0u);
-    EXPECT_EQ(recorded.indirectBuffers.count, 0u);
+    EXPECT_EQ(recorded.sampledTextures.Count, 0u);
+    EXPECT_EQ(recorded.storageTextures.Count, 0u);
+    EXPECT_EQ(recorded.buffers.Count, 0u);
+    EXPECT_EQ(recorded.storageBuffers.Count, 0u);
+    EXPECT_EQ(recorded.indirectBuffers.Count, 0u);
 }

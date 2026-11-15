@@ -264,7 +264,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
     uiCreateComponent("VSync Control", &uiDesc, &pToggleVSyncComponent);
 
     CheckboxWidget checkbox;
-    checkbox.pData = &pApp->settings.vSyncEnabled;
+    checkbox.Data = &pApp->settings.vSyncEnabled;
     uiCreateComponentWidget(pToggleVSyncComponent, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
 
     // MICROPROFILER UI
@@ -288,10 +288,10 @@ void setupPlatformUI(const IApp::Settings* pSettings)
 
     // Select Api
     DropdownWidget selectApUIWidget = {};
-    selectApUIWidget.pData = &gSelectedApiIndex;
+    selectApUIWidget.Data = &gSelectedApiIndex;
 
     selectApUIWidget.pNames = pApiNames;
-    selectApUIWidget.count = (uint32_t)elementsOf(pApiNames);
+    selectApUIWidget.Count = (uint32_t)elementsOf(pApiNames);
 
     pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingComponent, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
     pSelectApUIWidget->pOnEdited = [](void* pUserData)
@@ -306,9 +306,9 @@ void setupPlatformUI(const IApp::Settings* pSettings)
                                       gPlatformParameters.ppAvailableGpuNames[2], gPlatformParameters.ppAvailableGpuNames[3] };
 
     DropdownWidget selectGraphicCardUIWidget = {};
-    selectGraphicCardUIWidget.pData = &gPlatformParameters.selectedGpuIndex;
+    selectGraphicCardUIWidget.Data = &gPlatformParameters.selectedGpuIndex;
     selectGraphicCardUIWidget.pNames = gpuNames;
-    selectGraphicCardUIWidget.count = gPlatformParameters.availableGpuCount;
+    selectGraphicCardUIWidget.Count = gPlatformParameters.availableGpuCount;
 
     pSelectGraphicCardWidget =
         uiCreateComponentWidget(pAPISwitchingComponent, "Select Graphic Card", &selectGraphicCardUIWidget, WIDGET_TYPE_DROPDOWN);

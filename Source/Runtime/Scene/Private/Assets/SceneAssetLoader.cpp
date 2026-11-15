@@ -19,21 +19,21 @@ public:
     bool matchesDependencies() const
     {
         Array<AssetID> dependencies;
-        dependencies.Reserve(pScene->getNodes().count);
+        dependencies.Reserve(pScene->getNodes().Count);
         for (const SceneAssetNode& node : pScene->getNodes())
             if (node.mesh.isValid())
                 dependencies.PushBack(node.mesh);
         if (!dependencies.Empty())
-            qsort(dependencies.data(), dependencies.size(), sizeof(AssetID), compareIDs);
-        uint32_t count = 0;
-        for (uint32_t i = 0; i < dependencies.size(); ++i)
+            qsort(dependencies.GetData(), dependencies.Size(), sizeof(AssetID), compareIDs);
+        uint32_t Count = 0;
+        for (uint32_t i = 0; i < dependencies.Size(); ++i)
         {
             if (i && dependencies[i] == dependencies[i - 1])
                 continue;
-            if (count == entry.dependencies.count || dependencies[i] != entry.dependencies.pData[count++])
+            if (Count == entry.dependencies.Count || dependencies[i] != entry.dependencies.Data[Count++])
                 return false;
         }
-        return count == entry.dependencies.count;
+        return Count == entry.dependencies.Count;
     }
 
     bool decode()
@@ -44,23 +44,23 @@ public:
             LOGF(Error, "Cannot open SceneAsset '%s'", entry.location.pPath);
             return false;
         }
-        const ssize_t size = GetStreamFileSize(&stream);
-        if (size <= 0 || size > 64 * 1024 * 1024)
+        const ssize_t Size = GetStreamFileSize(&stream);
+        if (Size <= 0 || Size > 64 * 1024 * 1024)
         {
             CloseStream(&stream);
-            LOGF(Error, "Invalid SceneAsset file size for '%s'", entry.location.pPath);
+            LOGF(Error, "Invalid SceneAsset file Size for '%s'", entry.location.pPath);
             return false;
         }
-        Array<char>  json((uint32_t)size);
-        const size_t bytesRead = ReadFromStream(&stream, json.data(), (size_t)size);
+        Array<char>  json((uint32_t)Size);
+        const size_t bytesRead = ReadFromStream(&stream, json.GetData(), (size_t)Size);
         CloseStream(&stream);
-        if (bytesRead != (size_t)size)
+        if (bytesRead != (size_t)Size)
         {
             LOGF(Error, "Cannot read SceneAsset '%s'", entry.location.pPath);
             return false;
         }
         pScene = MemNew(SceneAsset);
-        if (!pScene->parse({ json.data(), json.size() }) || pScene->getID() != entry.id)
+        if (!pScene->parse({ json.GetData(), json.Size() }) || pScene->getID() != entry.id)
         {
             LOGF(Error, "Invalid SceneAsset payload or mismatched identity in '%s'", entry.location.pPath);
             return false;
@@ -148,12 +148,12 @@ public:
     ThreadSystem      threads = nullptr;
 };
 
-SceneAssetLoader::SceneAssetLoader(ResourceDirectory cookedDirectory): pData(MemNew(SceneAssetLoaderData, cookedDirectory)) {}
-SceneAssetLoader::~SceneAssetLoader() { MemDelete(pData); }
+SceneAssetLoader::SceneAssetLoader(ResourceDirectory cookedDirectory): Data(MemNew(SceneAssetLoaderData, cookedDirectory)) {}
+SceneAssetLoader::~SceneAssetLoader() { MemDelete(Data); }
 
 AssetLoader SceneAssetLoader::getLoader()
 {
-    return { .pUserData = pData,
+    return { .pUserData = Data,
              .pBegin = SceneAssetLoaderData::begin,
              .pPoll = SceneAssetLoaderData::poll,
              .pDestroyRequest = SceneAssetLoaderData::destroyRequest,

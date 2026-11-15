@@ -19,17 +19,17 @@ inline void mergeRenderRanges(Array<uint32_t>& indices, Array<RenderRange>& rang
     {
         return;
     }
-    qsort(indices.data(), indices.size(), sizeof(uint32_t), compareRenderIndices);
+    qsort(indices.GetData(), indices.Size(), sizeof(uint32_t), compareRenderIndices);
     for (uint32_t index : indices)
     {
-        if (!ranges.Empty() && index <= ranges[ranges.size() - 1].first + ranges[ranges.size() - 1].count)
+        if (!ranges.Empty() && index <= ranges[ranges.Size() - 1].first + ranges[ranges.Size() - 1].Count)
         {
-            RenderRange& range = ranges[ranges.size() - 1];
-            range.count = index - range.first + 1;
+            RenderRange& range = ranges[ranges.Size() - 1];
+            range.Count = index - range.first + 1;
         }
         else
         {
-            ranges.PushBack({ .first = index, .count = 1 });
+            ranges.PushBack({ .first = index, .Count = 1 });
         }
     }
 }
@@ -38,19 +38,19 @@ template<typename T, typename ID>
 class RenderStorage
 {
 public:
-    void Reserve(uint32_t count)
+    void Reserve(uint32_t Count)
     {
-        values.Reserve(count);
-        active.Reserve(count);
-        positions.Reserve(count);
-        free.Reserve(count);
-        dirty.Reserve(count);
-        dirtyFlags.Reserve(count);
-        pending.Reserve(count);
-        pendingFlags.Reserve(count);
-        created.Reserve(count);
-        removed.Reserve(count);
-        ranges.Reserve(count);
+        values.Reserve(Count);
+        active.Reserve(Count);
+        positions.Reserve(Count);
+        free.Reserve(Count);
+        dirty.Reserve(Count);
+        dirtyFlags.Reserve(Count);
+        pending.Reserve(Count);
+        pendingFlags.Reserve(Count);
+        created.Reserve(Count);
+        removed.Reserve(Count);
+        ranges.Reserve(Count);
     }
     void beginUpdate()
     {
@@ -65,10 +65,10 @@ public:
     }
     ID add()
     {
-        uint32_t index = values.size();
+        uint32_t index = values.Size();
         if (!free.Empty())
         {
-            index = free[free.size() - 1];
+            index = free[free.Size() - 1];
             free.PopBack();
         }
         else
@@ -81,7 +81,7 @@ public:
         }
         T& value = values[index];
         value.id = { .index = index, .generation = value.id.generation ? value.id.generation : 1 };
-        positions[index] = active.size();
+        positions[index] = active.Size();
         active.PushBack(index);
         created.PushBack(index);
         pendingActive = true;
@@ -92,7 +92,7 @@ public:
     {
         ASSERT(get(id));
         const uint32_t position = positions[id.index];
-        const uint32_t last = active[active.size() - 1];
+        const uint32_t last = active[active.Size() - 1];
         active[position] = last;
         positions[last] = position;
         active.PopBack();
@@ -106,7 +106,7 @@ public:
     }
     const T* get(ID id) const
     {
-        return id.isValid() && id.index < values.size() && values[id.index].id == id ? &values[id.index] : nullptr;
+        return id.isValid() && id.index < values.Size() && values[id.index].id == id ? &values[id.index] : nullptr;
     }
     void markDirty(uint32_t index)
     {
@@ -136,9 +136,9 @@ public:
     void          finishUpdate() { mergeRenderRanges(dirty, ranges); }
     RenderChanges getChanges() const
     {
-        return { .created = { created.data(), created.size() },
-                 .removed = { removed.data(), removed.size() },
-                 .ranges = { ranges.data(), ranges.size() },
+        return { .created = { created.GetData(), created.Size() },
+                 .removed = { removed.GetData(), removed.Size() },
+                 .ranges = { ranges.GetData(), ranges.Size() },
                  .activeList = !created.Empty() || !removed.Empty() };
     }
 

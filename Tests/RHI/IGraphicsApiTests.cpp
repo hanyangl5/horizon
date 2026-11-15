@@ -37,7 +37,7 @@ void FORGE_CALLCONV addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buff
 void FORGE_CALLCONV removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 void FORGE_CALLCONV mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 void FORGE_CALLCONV unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t Size);
 void FORGE_CALLCONV cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const SubresourceDataDesc* pSubresourceDesc);
 
 namespace
@@ -556,13 +556,13 @@ std::wstring getD3DObjectName(ID3D12Object* pObject)
 {
 #if defined(ENABLE_GRAPHICS_DEBUG)
     wchar_t buffer[128] = {};
-    UINT    size = sizeof(buffer);
-    if (!pObject || FAILED(pObject->GetPrivateData(WKPDID_D3DDebugObjectNameW, &size, buffer)) || size == 0)
+    UINT    Size = sizeof(buffer);
+    if (!pObject || FAILED(pObject->GetPrivateData(WKPDID_D3DDebugObjectNameW, &Size, buffer)) || Size == 0)
     {
         return {};
     }
 
-    size_t length = size / sizeof(wchar_t);
+    size_t length = Size / sizeof(wchar_t);
     if (length > 0 && buffer[length - 1] == L'\0')
     {
         --length;
@@ -839,7 +839,7 @@ bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& 
 bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& cleanup, LifecyclePlacedBufferBundle* pOut)
 {
     BufferDesc placedBufferDesc = {
-        .size = sizeof(uint32_t) * 4,
+        .Size = sizeof(uint32_t) * 4,
         .elementCount = 4,
         .structStride = sizeof(uint32_t),
         .pName = "LifecyclePlacedBuffer",
@@ -850,7 +850,7 @@ bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& 
     getBufferSizeAlign(harness.pRenderer, &placedBufferDesc, &pOut->sizeAlign);
 
     ResourceHeapDesc heapDesc = {
-        .size = pOut->sizeAlign.size,
+        .Size = pOut->sizeAlign.Size,
         .alignment = pOut->sizeAlign.alignment,
         .memoryUsage = placedBufferDesc.memoryUsage,
         .descriptors = placedBufferDesc.descriptors,
@@ -995,7 +995,7 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
                                                           &pOut->totalTextureBytes);
 
     BufferDesc textureReadbackDesc = {
-        .size = pOut->totalTextureBytes,
+        .Size = pOut->totalTextureBytes,
         .pName = "CommandTextureReadback",
         .memoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
         .startState = RESOURCE_STATE_COPY_DEST,
@@ -1062,7 +1062,7 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
     }
 
     BufferDesc vertexBufferDesc = {
-        .size = sizeof(float) * 2 * 3,
+        .Size = sizeof(float) * 2 * 3,
         .pName = "GraphicsVertexBuffer",
         .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
         .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
@@ -1089,7 +1089,7 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
     memcpy(pOut->pVertexBuffer->pCpuMappedAddress, fullscreenTriangle, sizeof(fullscreenTriangle));
 
     BufferDesc indexBufferDesc = {
-        .size = sizeof(uint16_t) * 3,
+        .Size = sizeof(uint16_t) * 3,
         .pName = "GraphicsIndexBuffer",
         .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
         .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
@@ -1235,7 +1235,7 @@ PixelValue executeDrawAndReadPixel(LiveRendererHarness& harness, const GraphicsD
 
     ReadRange textureReadRange = {
         .offset = 0,
-        .size = setup.totalTextureBytes,
+        .Size = setup.totalTextureBytes,
     };
     mapBuffer(harness.pRenderer, setup.pReadbackBuffer, &textureReadRange);
     const uint8_t* textureBytes = (const uint8_t*)setup.pReadbackBuffer->pCpuMappedAddress;
@@ -1300,7 +1300,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
     }
 
     BufferDesc computeOutputDesc = {
-        .size = sizeof(uint32_t) * 2,
+        .Size = sizeof(uint32_t) * 2,
         .elementCount = 2,
         .structStride = sizeof(uint32_t),
         .pName = "ComputeOutputBuffer",
@@ -1325,7 +1325,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         });
 
     BufferDesc computeRootCbvDesc = {
-        .size = 256,
+        .Size = 256,
         .pName = "ComputeRootCbvBuffer",
         .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
         .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
@@ -1352,7 +1352,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
     memcpy(pOut->pRootCbvBuffer->pCpuMappedAddress, &pOut->rootCbvData, sizeof(pOut->rootCbvData));
 
     BufferDesc computeReadbackDesc = {
-        .size = sizeof(uint32_t) * 2,
+        .Size = sizeof(uint32_t) * 2,
         .pName = "ComputeReadbackBuffer",
         .memoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
         .startState = RESOURCE_STATE_COPY_DEST,
@@ -1374,7 +1374,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         });
 
     BufferDesc indirectBufferDesc = {
-        .size = sizeof(DispatchCommandData),
+        .Size = sizeof(DispatchCommandData),
         .pName = "DispatchIndirectBuffer",
         .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
         .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
@@ -1494,7 +1494,7 @@ void executeComputeAndReadBack(LiveRendererHarness& harness, const ComputeComman
 
     ReadRange computeReadRange = {
         .offset = 0,
-        .size = sizeof(uint32_t) * 2,
+        .Size = sizeof(uint32_t) * 2,
     };
     mapBuffer(harness.pRenderer, setup.pReadbackBuffer, &computeReadRange);
     const uint32_t* computeValues = (const uint32_t*)setup.pReadbackBuffer->pCpuMappedAddress;
@@ -1531,7 +1531,7 @@ bool createQueryPool(LiveRendererHarness& harness, DeferredCleanup& cleanup, Que
 bool createMarkerBuffer(LiveRendererHarness& harness, DeferredCleanup& cleanup, Buffer** ppMarkerBuffer)
 {
     BufferDesc markerBufferDesc = {
-        .size = sizeof(uint32_t),
+        .Size = sizeof(uint32_t),
         .pName = "GpuMarkerBuffer",
         .memoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
         .flags = BUFFER_CREATION_FLAG_MARKER,
@@ -1735,10 +1735,10 @@ TEST_F(RHIIGraphicsApiTest, ResourceHeapAndPlacedBufferApisCreateExpectedAllocat
 
     ASSERT_NE(placedBufferBundle.pHeap, nullptr);
     ASSERT_NE(placedBufferBundle.pBuffer, nullptr);
-    EXPECT_GT(placedBufferBundle.sizeAlign.size, 0u);
+    EXPECT_GT(placedBufferBundle.sizeAlign.Size, 0u);
     EXPECT_GT(placedBufferBundle.sizeAlign.alignment, 0u);
     EXPECT_NE(placedBufferBundle.pHeap->dx.pHeap, nullptr);
-    EXPECT_EQ(placedBufferBundle.pBuffer->size, sizeof(uint32_t) * 4);
+    EXPECT_EQ(placedBufferBundle.pBuffer->Size, sizeof(uint32_t) * 4);
 }
 
 // Verifies that pipeline-cache and compute-pipeline APIs create a usable pipeline and serialize cache data when available.
@@ -1759,7 +1759,7 @@ TEST_F(RHIIGraphicsApiTest, PipelineCacheAndPipelineApisCreateUsableComputePipel
     if (serializedPipelineCacheSize > 0)
     {
         std::vector<uint8_t> pipelineCacheBytes(serializedPipelineCacheSize);
-        getPipelineCacheData(harness.pRenderer, pipelineBundle.pPipelineCache, &serializedPipelineCacheSize, pipelineCacheBytes.data());
+        getPipelineCacheData(harness.pRenderer, pipelineBundle.pPipelineCache, &serializedPipelineCacheSize, pipelineCacheBytes.GetData());
         EXPECT_FALSE(pipelineCacheBytes.Empty());
     }
 
@@ -2005,7 +2005,7 @@ TEST_F(RHIIGraphicsApiTest, MarkerAndBufferCopyApisWriteExpectedResults)
 
     ReadRange computeReadRange = {
         .offset = 0,
-        .size = sizeof(uint32_t) * 2,
+        .Size = sizeof(uint32_t) * 2,
     };
     mapBuffer(harness.pRenderer, computeSetup.pReadbackBuffer, &computeReadRange);
     const uint32_t* computeValues = (const uint32_t*)computeSetup.pReadbackBuffer->pCpuMappedAddress;
@@ -2015,7 +2015,7 @@ TEST_F(RHIIGraphicsApiTest, MarkerAndBufferCopyApisWriteExpectedResults)
 
     ReadRange markerReadRange = {
         .offset = 0,
-        .size = sizeof(uint32_t),
+        .Size = sizeof(uint32_t),
     };
     mapBuffer(harness.pRenderer, pMarkerBuffer, &markerReadRange);
     const uint32_t* markerValue = (const uint32_t*)pMarkerBuffer->pCpuMappedAddress;

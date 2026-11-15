@@ -40,7 +40,7 @@ void ClipMask::Initialize(Rig* rig)
 void ClipMask::Exit()
 {
     ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
-    allocator->Deallocate(jointWeights.data());
+    allocator->Deallocate(jointWeights.GetData());
     jointWeights = {};
 }
 

@@ -24,9 +24,9 @@ public:
     uint32_t                             references = 1;
     void                                 setInstance(uint32_t index, const AccelerationStructureInstance& instance)
     {
-        ASSERT(index < instances.size() && instance.pBottom && instance.pBottom->isValid());
+        ASSERT(index < instances.Size() && instance.pBottom && instance.pBottom->isValid());
         ASSERT(instance.instanceId < (1u << 24) && instance.mask < (1u << 8) && instance.hitGroupOffset < (1u << 24));
-        AccelerationStructureData* bottom = instance.pBottom->pData;
+        AccelerationStructureData* bottom = instance.pBottom->Data;
         ASSERT(bottom->pContext == pContext && bottom->type == ACCELERATION_STRUCTURE_TYPE_BOTTOM);
         RaytracingInstanceData next = { .instanceIdAndMask = instance.instanceId | (instance.mask << 24),
                                         .hitGroupAndFlags = instance.hitGroupOffset | ((uint32_t)instance.flags << 24),
@@ -47,56 +47,56 @@ public:
     }
     void setInstances(Span<AccelerationStructureInstance> source)
     {
-        dirty |= instances.size() != source.count;
-        for (uint32_t i = source.count; i < bottoms.size(); ++i)
+        dirty |= instances.Size() != source.Count;
+        for (uint32_t i = source.Count; i < bottoms.Size(); ++i)
         {
             if (bottoms[i])
             {
                 pContext->releaseAccelerationStructure(bottoms[i]);
             }
         }
-        instances.resize(source.count);
-        bottoms.resize(source.count);
-        for (uint32_t i = 0; i < source.count; ++i)
+        instances.resize(source.Count);
+        bottoms.resize(source.Count);
+        for (uint32_t i = 0; i < source.Count; ++i)
         {
-            setInstance(i, source.pData[i]);
+            setInstance(i, source.Data[i]);
         }
     }
-    uint32_t                             capacity = 0;
+    uint32_t                             Capacity = 0;
     uint32_t                             builtCount = 0;
     bool                                 built = false;
     bool                                 dirty = true;
 };
 
 GPUAccelerationStructure::~GPUAccelerationStructure() { destroy(); }
-GPUAccelerationStructure::GPUAccelerationStructure(GPUAccelerationStructure&& other) noexcept: pData(other.pData) { other.pData = nullptr; }
+GPUAccelerationStructure::GPUAccelerationStructure(GPUAccelerationStructure&& other) noexcept: Data(other.Data) { other.Data = nullptr; }
 GPUAccelerationStructure& GPUAccelerationStructure::operator=(GPUAccelerationStructure&& other) noexcept
 {
     if (this != &other)
     {
         destroy();
-        pData = other.pData;
-        other.pData = nullptr;
+        Data = other.Data;
+        other.Data = nullptr;
     }
     return *this;
 }
 void GPUAccelerationStructure::destroy()
 {
-    if (!pData)
+    if (!Data)
     {
         return;
     }
-    pData->pContext->releaseAccelerationStructure(pData);
-    pData = nullptr;
+    Data->pContext->releaseAccelerationStructure(Data);
+    Data = nullptr;
 }
-uint32_t GPUAccelerationStructure::getSrvIndex() const { return pData ? getAccelerationStructureSrvIndex(pData->pStructure) : UINT32_MAX; }
+uint32_t GPUAccelerationStructure::getSrvIndex() const { return Data ? getAccelerationStructureSrvIndex(Data->pStructure) : UINT32_MAX; }
 
-uint32_t GPUAccelerationStructure::getInstanceCount() const { return pData ? pData->instances.size() : 0; }
+uint32_t GPUAccelerationStructure::getInstanceCount() const { return Data ? Data->instances.Size() : 0; }
 
 void GPUAccelerationStructure::setInstance(uint32_t index, const AccelerationStructureInstance& instance)
 {
-    ASSERT(pData && pData->type == ACCELERATION_STRUCTURE_TYPE_TOP);
-    pData->setInstance(index, instance);
+    ASSERT(Data && Data->type == ACCELERATION_STRUCTURE_TYPE_TOP);
+    Data->setInstance(index, instance);
 }
 
 void RenderContext::releaseAccelerationStructure(AccelerationStructureData* data)
@@ -143,7 +143,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
     Array<::AccelerationStructureInstanceDesc> instances;
     if (input.type == ACCELERATION_STRUCTURE_TYPE_BOTTOM)
     {
-        ASSERT(input.geometries.count);
+        ASSERT(input.geometries.Count);
         for (const AccelerationStructureGeometry& geometry : input.geometries)
         {
             ASSERT(geometry.pVertexBuffer && geometry.pVertexBuffer->isValid() && geometry.vertexCount);
@@ -164,22 +164,22 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
                 data->inputs.PushBack(geometry.pIndexBuffer);
             }
         }
-        desc.bottom = { .descCount = geometries.size(), .pGeometryDescs = geometries.data() };
+        desc.bottom = { .descCount = geometries.Size(), .pGeometryDescs = geometries.GetData() };
     }
     else
     {
-        data->capacity = TF_MAX(input.instances.count, input.instanceCount);
-        ASSERT(data->capacity);
+        data->Capacity = TF_MAX(input.instances.Count, input.instanceCount);
+        ASSERT(data->Capacity);
         data->setInstances(input.instances);
-        if (!input.instances.count)
+        if (!input.instances.Count)
         {
-            data->instances.resize(data->capacity);
-            data->bottoms.resize(data->capacity);
+            data->instances.resize(data->Capacity);
+            data->bottoms.resize(data->Capacity);
         }
         for (const AccelerationStructureInstance& instance : input.instances)
         {
             ASSERT(instance.pBottom && instance.pBottom->isValid());
-            ::AccelerationStructureInstanceDesc native = { .pBottomAS = instance.pBottom->pData->pStructure,
+            ::AccelerationStructureInstanceDesc native = { .pBottomAS = instance.pBottom->Data->pStructure,
                                                            .instanceID = instance.instanceId,
                                                            .instanceMask = instance.mask,
                                                            .instanceContributionToHitGroupIndex = instance.hitGroupOffset,
@@ -187,8 +187,8 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
             memcpy(native.transform, instance.transform, sizeof(native.transform));
             instances.PushBack(native);
         }
-        ASSERT(!input.instances.count || input.instanceCount <= input.instances.count);
-        desc.top = { .descCount = data->capacity, .pInstanceDescs = instances.data() };
+        ASSERT(!input.instances.Count || input.instanceCount <= input.instances.Count);
+        desc.top = { .descCount = data->Capacity, .pInstanceDescs = instances.GetData() };
     }
     addAccelerationStructure(pRaytracing, &desc, &data->pStructure);
     if (!data->pStructure)
@@ -211,32 +211,32 @@ void CommandList::buildAccelerationStructure(GPUAccelerationStructure& structure
                                              bool update)
 {
     ASSERT(structure.isValid());
-    AccelerationStructureData& data = *structure.pData;
+    AccelerationStructureData& data = *structure.Data;
     ASSERT(data.pContext == pContext);
     ASSERT(!update || (data.built && (data.flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE)));
     RaytracingBuildASDesc desc = { .pAccelerationStructure = data.pStructure, .issueRWBarrier = true, .update = update };
     if (data.type == ACCELERATION_STRUCTURE_TYPE_BOTTOM)
     {
         arrsetlen(bufferBarriers, 0);
-        addBufferBarriers({ data.inputs.data(), data.inputs.size() }, false);
+        addBufferBarriers({ data.inputs.GetData(), data.inputs.Size() }, false);
         barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, 0, nullptr, 0, nullptr);
     }
     else
     {
-        if (instances.count)
+        if (instances.Count)
         {
             data.setInstances(instances);
         }
-        ASSERT(data.instances.size() <= data.capacity && (!update || data.instances.size() == data.builtCount));
+        ASSERT(data.instances.Size() <= data.Capacity && (!update || data.instances.Size() == data.builtCount));
         for (AccelerationStructureData* bottom : data.bottoms)
         {
             ASSERT(bottom && bottom->built);
         }
-        Buffer* upload = createUploadBuffer((uint64_t)data.instances.size() * sizeof(RaytracingInstanceData));
-        memcpy(upload->pCpuMappedAddress, data.instances.data(), data.instances.size() * sizeof(RaytracingInstanceData));
+        Buffer* upload = createUploadBuffer((uint64_t)data.instances.Size() * sizeof(RaytracingInstanceData));
+        memcpy(upload->pCpuMappedAddress, data.instances.GetData(), data.instances.Size() * sizeof(RaytracingInstanceData));
         desc.pInstanceBuffer = upload;
-        desc.instanceCount = data.instances.size();
-        data.builtCount = data.instances.size();
+        desc.instanceCount = data.instances.Size();
+        data.builtCount = data.instances.Size();
     }
     cmdBuildAccelerationStructure(pCmd, pContext->pRaytracing, &desc);
     data.built = true;
@@ -245,13 +245,13 @@ void CommandList::buildAccelerationStructure(GPUAccelerationStructure& structure
 
 void CommandList::updateAccelerationStructure(GPUAccelerationStructure& structure)
 {
-    ASSERT(structure.isValid() && structure.pData->pContext == pContext);
-    AccelerationStructureData& data = *structure.pData;
+    ASSERT(structure.isValid() && structure.Data->pContext == pContext);
+    AccelerationStructureData& data = *structure.Data;
     ASSERT(data.type == ACCELERATION_STRUCTURE_TYPE_TOP);
     if (data.dirty)
     {
         const bool update =
-            data.built && (data.flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE) && data.instances.size() == data.builtCount;
+            data.built && (data.flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE) && data.instances.Size() == data.builtCount;
         buildAccelerationStructure(structure, {}, update);
     }
 }
@@ -333,15 +333,15 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
         LOGF(Error, "Cannot open ray tracing shader '%s'", input.pFileName);
         return {};
     }
-    const ssize_t size = GetStreamFileSize(&stream);
-    Array<char>   source(size > 0 && size < UINT32_MAX ? (uint32_t)size + 1 : 0);
-    const bool    read = size > 0 && size < UINT32_MAX && ReadFromStream(&stream, source.data(), (size_t)size) == (size_t)size;
+    const ssize_t Size = GetStreamFileSize(&stream);
+    Array<char>   source(Size > 0 && Size < UINT32_MAX ? (uint32_t)Size + 1 : 0);
+    const bool    read = Size > 0 && Size < UINT32_MAX && ReadFromStream(&stream, source.GetData(), (size_t)Size) == (size_t)Size;
     CloseStream(&stream);
     if (!read)
     {
         return {};
     }
-    source[(uint32_t)size] = 0;
+    source[(uint32_t)Size] = 0;
     char        path[FS_MAX_PATH];
     const char* searchPath = GetResourceDirectory(input.sourceDirectory);
     if (!AppendPathComponent(searchPath, input.pFileName, path))
@@ -367,7 +367,7 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
     {
         return {};
     }
-    slang::IModule* module = session->loadModuleFromSourceString("HorizonRayTracing", path, source.data(), diagnostics.writeRef());
+    slang::IModule* module = session->loadModuleFromSourceString("HorizonRayTracing", path, source.GetData(), diagnostics.writeRef());
     if (!raySlangResult(module ? SLANG_OK : SLANG_FAIL, diagnostics))
     {
         return {};
@@ -387,10 +387,10 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
         groups.PushBack(
             { .pName = group.pName, .pClosestHit = group.pClosestHit, .pAnyHit = group.pAnyHit, .pIntersection = group.pIntersection });
     }
-    Array<Slang::ComPtr<slang::IEntryPoint>> entryPoints(entries.size());
+    Array<Slang::ComPtr<slang::IEntryPoint>> entryPoints(entries.Size());
     Array<slang::IComponentType*>            components;
     components.PushBack(module);
-    for (uint32_t i = 0; i < entries.size(); ++i)
+    for (uint32_t i = 0; i < entries.Size(); ++i)
     {
         if (!raySlangResult(
                 module->findAndCheckEntryPoint(entries[i].name, entries[i].stage, entryPoints[i].writeRef(), diagnostics.writeRef()),
@@ -403,7 +403,7 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
     Slang::ComPtr<slang::IComponentType> program, linked;
     Slang::ComPtr<ISlangBlob>            library;
     if (!raySlangResult(
-            session->createCompositeComponentType(components.data(), components.size(), program.writeRef(), diagnostics.writeRef()),
+            session->createCompositeComponentType(components.GetData(), components.Size(), program.writeRef(), diagnostics.writeRef()),
             diagnostics) ||
         !raySlangResult(program->link(linked.writeRef(), diagnostics.writeRef()), diagnostics) ||
         !raySlangResult(linked->getTargetCode(0, library.writeRef(), diagnostics.writeRef()), diagnostics))
@@ -413,10 +413,10 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
     const RaytracingPipelineDesc desc = { .pLibrary = library->getBufferPointer(),
                                           .librarySize = library->getBufferSize(),
                                           .pRayGeneration = input.pRayGeneration,
-                                          .ppMissShaders = input.missShaders.pData,
-                                          .missShaderCount = input.missShaders.count,
-                                          .pHitGroups = groups.data(),
-                                          .hitGroupCount = groups.size(),
+                                          .ppMissShaders = input.missShaders.Data,
+                                          .missShaderCount = input.missShaders.Count,
+                                          .pHitGroups = groups.GetData(),
+                                          .hitGroupCount = groups.Size(),
                                           .payloadSize = input.payloadSize,
                                           .attributeSize = input.attributeSize,
                                           .maxRecursionDepth = input.maxRecursionDepth,

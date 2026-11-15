@@ -33,8 +33,8 @@ public:
     explicit GpuDrawList(hz::RenderContext& Context);
     void                  Prepare(hz::CommandList&, const hz::GPUBuffer& Frame, const SceneView&, bool Culling = true);
     // Draw indices refer to the complete list before GPU frustum culling.
-    hz::Span<GpuDrawData>  GetDraws() const { return { DrawData.data(), DrawData.size() }; }
-    hz::Span<DrawGeometry> GetGeometries() const { return { Geometries.data(), Geometries.size() }; }
+    hz::Span<GpuDrawData>  GetDraws() const { return { DrawData.GetData(), DrawData.Size() }; }
+    hz::Span<DrawGeometry> GetGeometries() const { return { Geometries.GetData(), Geometries.Size() }; }
     uint32_t               GetGeometryIndex(uint32_t DrawIndex) const { return GeometryIndices[DrawIndex]; }
     uint64_t               GetGeometryRevision() const { return GeometryRevision; }
     const hz::GPUBuffer&   GetDrawData(uint32_t Backing) const { return Frames[Backing].DrawData; }

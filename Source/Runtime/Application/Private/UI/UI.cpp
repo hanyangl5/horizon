@@ -44,7 +44,7 @@
 
 #define MAX_LABEL_LENGTH            128
 
-#define LABELID(prop, buffer)       snprintf(buffer, MAX_LABEL_LENGTH, "##%llu", (unsigned long long)(prop.pData))
+#define LABELID(prop, buffer)       snprintf(buffer, MAX_LABEL_LENGTH, "##%llu", (unsigned long long)(prop.Data))
 #define LABELID1(prop, buffer)      snprintf(buffer, MAX_LABEL_LENGTH, "##%llu", (unsigned long long)(prop))
 
 #define MAX_LUA_STR_LEN             256
@@ -144,7 +144,7 @@ extern void remoteAppSendDrawData(UserInterfaceDrawData* pDrawData);
 extern void remoteAppReceiveInputData();
 extern bool remoteAppIsConnected();
 extern bool remoteAppShouldSendFontTexture();
-extern void remoteControlSendTexture(hz::Format format, uint64_t textureId, uint32_t width, uint32_t height, uint32_t size,
+extern void remoteControlSendTexture(hz::Format format, uint64_t textureId, uint32_t width, uint32_t height, uint32_t Size,
                                      unsigned char* ptr);
 #endif
 
@@ -255,10 +255,10 @@ static void      processWidgetCallbacks(UIWidget* pWidget, bool deferred = false
 static void      processWidget(UIWidget* pWidget);
 static void      destroyWidget(UIWidget* pWidget, bool freeUnderlying);
 
-static void* alloc_func(size_t size, void* user_data)
+static void* alloc_func(size_t Size, void* user_data)
 {
     UNREF_PARAM(user_data);
-    return MemAllocate(size);
+    return MemAllocate(Size);
 }
 
 static void dealloc_func(void* ptr, void* user_data)
@@ -392,7 +392,7 @@ void DrawDriverMemoryTrackingUI(void*)
                 ImGui::Text("Memory: %zu %s", (size_t)(entries[type].memAmount / memDivisor), memUnit);
 
                 ImGui::TableSetColumnIndex(2);
-                ImGui::Text("Alloc count: %zu", (size_t)entries[type].memAllocs);
+                ImGui::Text("Alloc Count: %zu", (size_t)entries[type].memAllocs);
                 ImGui::PopStyleColor();
             }
             ImGui::EndTable();
@@ -467,7 +467,7 @@ void DrawDeviceMemoryReportUI(void*)
                 ImGui::Text("Memory: %lu %s", entries[type].memAmount / memDivisor, memUnit);
 
                 ImGui::TableSetColumnIndex(2);
-                ImGui::Text("Alloc count: %lu", entries[type].memAllocs);
+                ImGui::Text("Alloc Count: %lu", entries[type].memAllocs);
                 ImGui::PopStyleColor();
             }
             ImGui::EndTable();
@@ -668,7 +668,7 @@ static SliderFloatWidget* cloneSliderFloatWidget(const void* pWidget)
     memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(pClonedWidget->format, pOriginalWidget->format);
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->min = pOriginalWidget->min;
     pClonedWidget->max = pOriginalWidget->max;
     pClonedWidget->step = pOriginalWidget->step;
@@ -685,7 +685,7 @@ static SliderFloat2Widget* cloneSliderFloat2Widget(const void* pWidget)
     memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(pClonedWidget->format, pOriginalWidget->format);
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->min = pOriginalWidget->min;
     pClonedWidget->max = pOriginalWidget->max;
     pClonedWidget->step = pOriginalWidget->step;
@@ -702,7 +702,7 @@ static SliderFloat3Widget* cloneSliderFloat3Widget(const void* pWidget)
     memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(pClonedWidget->format, pOriginalWidget->format);
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->min = pOriginalWidget->min;
     pClonedWidget->max = pOriginalWidget->max;
     pClonedWidget->step = pOriginalWidget->step;
@@ -719,7 +719,7 @@ static SliderFloat4Widget* cloneSliderFloat4Widget(const void* pWidget)
     memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(pClonedWidget->format, pOriginalWidget->format);
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->min = pOriginalWidget->min;
     pClonedWidget->max = pOriginalWidget->max;
     pClonedWidget->step = pOriginalWidget->step;
@@ -736,7 +736,7 @@ static SliderIntWidget* cloneSliderIntWidget(const void* pWidget)
     memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(pClonedWidget->format, pOriginalWidget->format);
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->min = pOriginalWidget->min;
     pClonedWidget->max = pOriginalWidget->max;
     pClonedWidget->step = pOriginalWidget->step;
@@ -753,7 +753,7 @@ static SliderUintWidget* cloneSliderUintWidget(const void* pWidget)
     memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
     strcpy(pClonedWidget->format, pOriginalWidget->format);
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->min = pOriginalWidget->min;
     pClonedWidget->max = pOriginalWidget->max;
     pClonedWidget->step = pOriginalWidget->step;
@@ -767,7 +767,7 @@ static RadioButtonWidget* cloneRadioButtonWidget(const void* pWidget)
     const RadioButtonWidget* pOriginalWidget = (const RadioButtonWidget*)pWidget;
     RadioButtonWidget*       pClonedWidget = (RadioButtonWidget*)MemCallocate(1, sizeof(RadioButtonWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->radioId = pOriginalWidget->radioId;
 
     return pClonedWidget;
@@ -779,7 +779,7 @@ static CheckboxWidget* cloneCheckboxWidget(const void* pWidget)
     const CheckboxWidget* pOriginalWidget = (const CheckboxWidget*)pWidget;
     CheckboxWidget*       pClonedWidget = (CheckboxWidget*)MemCallocate(1, sizeof(CheckboxWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
 
     return pClonedWidget;
 }
@@ -790,7 +790,7 @@ static OneLineCheckboxWidget* cloneOneLineCheckboxWidget(const void* pWidget)
     const OneLineCheckboxWidget* pOriginalWidget = (const OneLineCheckboxWidget*)pWidget;
     OneLineCheckboxWidget*       pClonedWidget = (OneLineCheckboxWidget*)MemCallocate(1, sizeof(OneLineCheckboxWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->color = pOriginalWidget->color;
 
     return pClonedWidget;
@@ -814,9 +814,9 @@ static DropdownWidget* cloneDropdownWidget(const void* pWidget)
 
     DropdownWidget* pClonedWidget = (DropdownWidget*)MemAllocate(sizeof(DropdownWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->pNames = pOriginalWidget->pNames;
-    pClonedWidget->count = pOriginalWidget->count;
+    pClonedWidget->Count = pOriginalWidget->Count;
 
     return pClonedWidget;
 }
@@ -841,7 +841,7 @@ static ProgressBarWidget* cloneProgressBarWidget(const void* pWidget)
     const ProgressBarWidget* pOriginalWidget = (const ProgressBarWidget*)pWidget;
     ProgressBarWidget*       pClonedWidget = (ProgressBarWidget*)MemCallocate(1, sizeof(ProgressBarWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->maxProgress = pOriginalWidget->maxProgress;
 
     return pClonedWidget;
@@ -853,7 +853,7 @@ static ColorSliderWidget* cloneColorSliderWidget(const void* pWidget)
     const ColorSliderWidget* pOriginalWidget = (const ColorSliderWidget*)pWidget;
     ColorSliderWidget*       pClonedWidget = (ColorSliderWidget*)MemCallocate(1, sizeof(ColorSliderWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
 
     return pClonedWidget;
 }
@@ -865,7 +865,7 @@ static HistogramWidget* cloneHistogramWidget(const void* pWidget)
     HistogramWidget*       pClonedWidget = (HistogramWidget*)MemCallocate(1, sizeof(HistogramWidget));
 
     pClonedWidget->pValues = pOriginalWidget->pValues;
-    pClonedWidget->count = pOriginalWidget->count;
+    pClonedWidget->Count = pOriginalWidget->Count;
     pClonedWidget->minScale = pOriginalWidget->minScale;
     pClonedWidget->maxScale = pOriginalWidget->maxScale;
     pClonedWidget->histogramSize = pOriginalWidget->histogramSize;
@@ -896,7 +896,7 @@ static ColorPickerWidget* cloneColorPickerWidget(const void* pWidget)
     const ColorPickerWidget* pOriginalWidget = (const ColorPickerWidget*)pWidget;
     ColorPickerWidget*       pClonedWidget = (ColorPickerWidget*)MemCallocate(1, sizeof(ColorPickerWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
 
     return pClonedWidget;
 }
@@ -907,7 +907,7 @@ static Color3PickerWidget* cloneColor3PickerWidget(const void* pWidget)
     const Color3PickerWidget* pOriginalWidget = (const Color3PickerWidget*)pWidget;
     Color3PickerWidget*       pClonedWidget = (Color3PickerWidget*)MemCallocate(1, sizeof(Color3PickerWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
 
     return pClonedWidget;
 }
@@ -1417,10 +1417,10 @@ static void processSliderFloatWidget(UIWidget* pWidget)
     SliderFloatWidget* pOriginalWidget = (SliderFloatWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
     ImGui::Text("%s", pWidget->label);
-    ImGui::SliderFloatWithSteps(label, pOriginalWidget->pData, pOriginalWidget->min, pOriginalWidget->max, pOriginalWidget->step,
+    ImGui::SliderFloatWithSteps(label, pOriginalWidget->Data, pOriginalWidget->min, pOriginalWidget->max, pOriginalWidget->step,
                                 pOriginalWidget->format);
     processWidgetCallbacks(pWidget);
 }
@@ -1434,9 +1434,9 @@ static void processSliderFloat2Widget(UIWidget* pWidget)
     for (uint32_t i = 0; i < 2; ++i)
     {
         char label[MAX_LABEL_LENGTH];
-        LABELID1(&pOriginalWidget->pData->operator[](i), label);
+        LABELID1(&pOriginalWidget->Data->operator[](i), label);
 
-        ImGui::SliderFloatWithSteps(label, &pOriginalWidget->pData->operator[](i), pOriginalWidget->min[i], pOriginalWidget->max[i],
+        ImGui::SliderFloatWithSteps(label, &pOriginalWidget->Data->operator[](i), pOriginalWidget->min[i], pOriginalWidget->max[i],
                                     pOriginalWidget->step[i], pOriginalWidget->format);
         processWidgetCallbacks(pWidget);
     }
@@ -1451,8 +1451,8 @@ static void processSliderFloat3Widget(UIWidget* pWidget)
     for (uint32_t i = 0; i < 3; ++i)
     {
         char label[MAX_LABEL_LENGTH];
-        LABELID1(&pOriginalWidget->pData->operator[](i), label);
-        ImGui::SliderFloatWithSteps(label, &pOriginalWidget->pData->operator[](i), pOriginalWidget->min[i], pOriginalWidget->max[i],
+        LABELID1(&pOriginalWidget->Data->operator[](i), label);
+        ImGui::SliderFloatWithSteps(label, &pOriginalWidget->Data->operator[](i), pOriginalWidget->min[i], pOriginalWidget->max[i],
                                     pOriginalWidget->step[i], pOriginalWidget->format);
         processWidgetCallbacks(pWidget);
     }
@@ -1467,8 +1467,8 @@ static void processSliderFloat4Widget(UIWidget* pWidget)
     for (uint32_t i = 0; i < 4; ++i)
     {
         char label[MAX_LABEL_LENGTH];
-        LABELID1(&pOriginalWidget->pData->operator[](i), label);
-        ImGui::SliderFloatWithSteps(label, &pOriginalWidget->pData->operator[](i), pOriginalWidget->min[i], pOriginalWidget->max[i],
+        LABELID1(&pOriginalWidget->Data->operator[](i), label);
+        ImGui::SliderFloatWithSteps(label, &pOriginalWidget->Data->operator[](i), pOriginalWidget->min[i], pOriginalWidget->max[i],
                                     pOriginalWidget->step[i], pOriginalWidget->format);
         processWidgetCallbacks(pWidget);
     }
@@ -1480,10 +1480,10 @@ static void processSliderIntWidget(UIWidget* pWidget)
     SliderIntWidget* pOriginalWidget = (SliderIntWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
     ImGui::Text("%s", pWidget->label);
-    ImGui::SliderIntWithSteps(label, pOriginalWidget->pData, pOriginalWidget->min, pOriginalWidget->max, pOriginalWidget->step,
+    ImGui::SliderIntWithSteps(label, pOriginalWidget->Data, pOriginalWidget->min, pOriginalWidget->max, pOriginalWidget->step,
                               pOriginalWidget->format);
     processWidgetCallbacks(pWidget);
 }
@@ -1494,10 +1494,10 @@ static void processSliderUintWidget(UIWidget* pWidget)
     SliderUintWidget* pOriginalWidget = (SliderUintWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
     ImGui::Text("%s", pWidget->label);
-    ImGui::SliderIntWithSteps(label, (int32_t*)pOriginalWidget->pData, (int32_t)pOriginalWidget->min, (int32_t)pOriginalWidget->max,
+    ImGui::SliderIntWithSteps(label, (int32_t*)pOriginalWidget->Data, (int32_t)pOriginalWidget->min, (int32_t)pOriginalWidget->max,
                               (int32_t)pOriginalWidget->step, pOriginalWidget->format);
     processWidgetCallbacks(pWidget);
 }
@@ -1508,10 +1508,10 @@ static void processRadioButtonWidget(UIWidget* pWidget)
     RadioButtonWidget* pOriginalWidget = (RadioButtonWidget*)(pWidget->pWidget);
     unsigned char      labelBuf[MAX_LABEL_STR_LENGTH];
     bstring            label = bemptyfromarr(labelBuf);
-    bformat(&label, "%s##%p", pWidget->label, pOriginalWidget->pData);
+    bformat(&label, "%s##%p", pWidget->label, pOriginalWidget->Data);
     ASSERT(!bownsdata(&label));
 
-    ImGui::RadioButton((const char*)label.data, pOriginalWidget->pData, pOriginalWidget->radioId);
+    ImGui::RadioButton((const char*)label.data, pOriginalWidget->Data, pOriginalWidget->radioId);
     processWidgetCallbacks(pWidget);
 }
 
@@ -1521,10 +1521,10 @@ static void processCheckboxWidget(UIWidget* pWidget)
     CheckboxWidget* pOriginalWidget = (CheckboxWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
     ImGui::Text("%s", pWidget->label);
-    ImGui::Checkbox(label, pOriginalWidget->pData);
+    ImGui::Checkbox(label, pOriginalWidget->Data);
     processWidgetCallbacks(pWidget);
 }
 
@@ -1534,9 +1534,9 @@ static void processOneLineCheckboxWidget(UIWidget* pWidget)
     OneLineCheckboxWidget* pOriginalWidget = (OneLineCheckboxWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
-    ImGui::Checkbox(label, pOriginalWidget->pData);
+    ImGui::Checkbox(label, pOriginalWidget->Data);
     ImGui::SameLine();
     ImGui::TextColored(pOriginalWidget->color, "%s", pWidget->label);
     processWidgetCallbacks(pWidget);
@@ -1556,19 +1556,19 @@ static void processDropdownWidget(UIWidget* pWidget)
 {
     DropdownWidget* pOriginalWidget = (DropdownWidget*)(pWidget->pWidget);
 
-    if (pOriginalWidget->count == 0)
+    if (pOriginalWidget->Count == 0)
         return;
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
-    uint32_t* pCurrent = pOriginalWidget->pData;
+    uint32_t* pCurrent = pOriginalWidget->Data;
     ImGui::Text("%s", pWidget->label);
     ASSERT(pOriginalWidget->pNames);
 
     if (ImGui::BeginCombo(label, pOriginalWidget->pNames[*pCurrent]))
     {
-        for (uint32_t i = 0; i < pOriginalWidget->count; ++i)
+        for (uint32_t i = 0; i < pOriginalWidget->Count; ++i)
         {
             bool isSelected = (*pCurrent == i);
 
@@ -1623,7 +1623,7 @@ static void processProgressBarWidget(UIWidget* pWidget)
 {
     ProgressBarWidget* pOriginalWidget = (ProgressBarWidget*)(pWidget->pWidget);
 
-    size_t currProgress = *(pOriginalWidget->pData);
+    size_t currProgress = *(pOriginalWidget->Data);
     ImGui::Text("%s", pWidget->label);
     ImGui::ProgressBar((float)currProgress / pOriginalWidget->maxProgress);
     processWidgetCallbacks(pWidget);
@@ -1635,9 +1635,9 @@ static void processColorSliderWidget(UIWidget* pWidget)
     ColorSliderWidget* pOriginalWidget = (ColorSliderWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
-    float4* combo_color = pOriginalWidget->pData;
+    float4* combo_color = pOriginalWidget->Data;
 
     float col[4] = { combo_color->x, combo_color->y, combo_color->z, combo_color->w };
     ImGui::Text("%s", pWidget->label);
@@ -1661,7 +1661,7 @@ static void processHistogramWidget(UIWidget* pWidget)
     bformat(&label, "%s##%p", pWidget->label, pOriginalWidget->pValues);
     ASSERT(!bownsdata(&label));
 
-    ImGui::PlotHistogram((const char*)label.data, pOriginalWidget->pValues, pOriginalWidget->count, 0, pOriginalWidget->histogramTitle,
+    ImGui::PlotHistogram((const char*)label.data, pOriginalWidget->pValues, pOriginalWidget->Count, 0, pOriginalWidget->histogramTitle,
                          *(pOriginalWidget->minScale), *(pOriginalWidget->maxScale), pOriginalWidget->histogramSize);
 
     processWidgetCallbacks(pWidget);
@@ -1689,9 +1689,9 @@ void processColorPickerWidget(UIWidget* pWidget)
     ColorPickerWidget* pOriginalWidget = (ColorPickerWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
-    float4* combo_color = pOriginalWidget->pData;
+    float4* combo_color = pOriginalWidget->Data;
 
     float col[4] = { combo_color->x, combo_color->y, combo_color->z, combo_color->w };
     ImGui::Text("%s", pWidget->label);
@@ -1710,9 +1710,9 @@ void processColor3PickerWidget(UIWidget* pWidget)
     Color3PickerWidget* pOriginalWidget = (Color3PickerWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
-    float3* combo_color = pOriginalWidget->pData;
+    float3* combo_color = pOriginalWidget->Data;
 
     float col[3] = { combo_color->x, combo_color->y, combo_color->z };
     ImGui::Text("%s", pWidget->label);
@@ -2208,7 +2208,7 @@ void uiHideDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui)
     for (ptrdiff_t i = 0; i < arrlen(pDynamicUI->dynamicProperties); i++)
     {
         // We should not erase the widgets in this for-loop, otherwise the IDs
-        // in mDynamicPropHandles will not match once  UIComponent::widgets changes size.
+        // in mDynamicPropHandles will not match once  UIComponent::widgets changes Size.
         uiDestroyComponentWidget(pGui, pDynamicUI->dynamicProperties[i]);
     }
 #endif
@@ -2253,7 +2253,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
     uint32_t fontBufferSize = fntGetRawFontDataSize(pDesc->fontID);
     if (pFontBuffer)
     {
-        // See if that specific font id and size is already in use, if so just reuse it
+        // See if that specific font id and Size is already in use, if so just reuse it
         ptrdiff_t cachedFontIndex = -1;
         for (ptrdiff_t i = 0; i < arrlen(pUserInterface->pCachedFontsArr); ++i)
         {
@@ -2279,7 +2279,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
             }
             else
             {
-                LOGF(Warning, "uiCreateComponent() has reached fonts capacity.  Consider increasing 'maxUIFonts' when initializing the "
+                LOGF(Warning, "uiCreateComponent() has reached fonts Capacity.  Consider increasing 'maxUIFonts' when initializing the "
                                "user interface.");
                 useDefaultFallbackFont = true;
             }
@@ -2624,7 +2624,7 @@ void platformUpdateUserInterface(float deltaTime)
     guiUpdate.showDemoWindow = pUserInterface->showDemoUiWindow;
 
     ImGui::SetCurrentContext(pUserInterface->context);
-    // #TODO: Use window size as render-target size cannot be trusted to be the same as window size
+    // #TODO: Use window Size as render-target Size cannot be trusted to be the same as window Size
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize.x = pUserInterface->displayWidth;
     io.DisplaySize.y = pUserInterface->displayHeight;
@@ -2764,13 +2764,13 @@ void platformUpdateUserInterface(float deltaTime)
             }
 
             float2 pos = ImGui::GetWindowPos();
-            float2 size = ImGui::GetWindowSize();
+            float2 Size = ImGui::GetWindowSize();
             pCurrentWindowRect->x = pos.x;
             pCurrentWindowRect->y = pos.y;
-            pCurrentWindowRect->z = size.x;
-            pCurrentWindowRect->w = size.y;
+            pCurrentWindowRect->z = Size.x;
+            pCurrentWindowRect->w = Size.y;
             pUserInterface->lastUpdateMin[compIndex] = pos;
-            pUserInterface->lastUpdateMax[compIndex] = pos + size;
+            pUserInterface->lastUpdateMax[compIndex] = pos + Size;
 
             // Need to call ImGui::End event if result is false since we called ImGui::Begin
             ImGui::End();
@@ -2889,7 +2889,7 @@ static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawC
                              Pipeline** ppPipelineInOut, Pipeline** ppPrevPipelineInOut, int32_t& globalVtxOffsetInOut,
                              int32_t& globalIdxOffsetInOut, uint32_t& prevTextureIndexInOut)
 {
-    // for (uint32_t i = 0; i < (uint32_t)pCmdList->CmdBuffer.size(); i++)
+    // for (uint32_t i = 0; i < (uint32_t)pCmdList->CmdBuffer.Size(); i++)
     //{
     //	const ImDrawCmd* pImDrawCmd = &pCmdList->CmdBuffer[i];
     //	if (pImDrawCmd->UserCallback)
@@ -2976,7 +2976,7 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     BufferLoadDesc vbDesc = {};
     vbDesc.desc.descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
     vbDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    vbDesc.desc.size = VERTEX_BUFFER_SIZE * pDesc->frameCount;
+    vbDesc.desc.Size = VERTEX_BUFFER_SIZE * pDesc->frameCount;
     vbDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
     vbDesc.desc.pName = "UI Vertex Buffer";
     vbDesc.ppBuffer = &pUserInterface->pVertexBuffer;
@@ -2984,7 +2984,7 @@ void initUserInterface(UserInterfaceDesc* pDesc)
 
     BufferLoadDesc ibDesc = vbDesc;
     ibDesc.desc.descriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-    ibDesc.desc.size = INDEX_BUFFER_SIZE * pDesc->frameCount;
+    ibDesc.desc.Size = INDEX_BUFFER_SIZE * pDesc->frameCount;
     vbDesc.desc.pName = "UI Index Buffer";
     ibDesc.ppBuffer = &pUserInterface->pIndexBuffer;
     addResource(&ibDesc, NULL);
@@ -2993,7 +2993,7 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     ubDesc.desc.descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     ubDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
     ubDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    ubDesc.desc.size = sizeof(Matrix4);
+    ubDesc.desc.Size = sizeof(Matrix4);
     vbDesc.desc.pName = "UI Uniform Buffer";
     for (uint32_t i = 0; i < pDesc->frameCount; ++i)
     {

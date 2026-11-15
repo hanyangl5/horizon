@@ -3158,11 +3158,11 @@
 // } TinyImageFormat_GL_FORMAT;
 // #endif
 
-// #define FT(fmt, type, intfmt, size)             \
+// #define FT(fmt, type, intfmt, Size)             \
 //     *glformat = TIF_GL_FORMAT_##fmt;            \
 //     *gltype = TIF_GL_TYPE_##type;               \
 //     *glinternalformat = TIF_GL_FORMAT_##intfmt; \
-//     *typesize = size;                           \
+//     *typesize = Size;                           \
 //     return;
 // #define FTC(fmt, intfmt)                        \
 //     *glformat = TIF_GL_FORMAT_##fmt;            \
@@ -3585,7 +3585,7 @@ const char* getShaderPlatformName();
 
 struct FSLDerivative
 {
-    uint64_t hash, offset, size;
+    uint64_t hash, offset, Size;
 };
 
 struct FSLMetadata
@@ -3921,7 +3921,7 @@ typedef void (*PreMipStepFn)(FileStream* pStream, uint32_t mip);
 struct BufferLoadDescInternal
 {
     Buffer*       pBuffer;
-    const void*   pData;
+    const void*   Data;
     uint64_t      dataSize;
     Buffer*       pSrcBuffer;
     uint64_t      srcOffset;
@@ -3991,7 +3991,7 @@ struct CopyResourceSet
 // Synchronization?
 struct CopyEngineDesc
 {
-    uint64_t    size;
+    uint64_t    Size;
     const char* pQueueName;
     QueueType   queueType;
     uint32_t    bufferCount;
@@ -4106,7 +4106,7 @@ static void* alignMemory(void* ptr, uint64_t alignment)
     return ptr;
 }
 
-static void* allocShaderByteCode(ShaderByteCodeBuffer* pShaderByteCodeBuffer, uint32_t alignment, uint32_t size, const char* filename)
+static void* allocShaderByteCode(ShaderByteCodeBuffer* pShaderByteCodeBuffer, uint32_t alignment, uint32_t Size, const char* filename)
 {
     ASSERT(pShaderByteCodeBuffer && pShaderByteCodeBuffer->pStackMemory);
     ASSERT(alignment > 0);
@@ -4115,17 +4115,17 @@ static void* allocShaderByteCode(ShaderByteCodeBuffer* pShaderByteCodeBuffer, ui
     uint8_t* pBufferAligned = (uint8_t*)alignMemory(pBufferStart, alignment);
 
     void* pOutMemory = nullptr;
-    if (pBufferAligned + size <= (uint8_t*)pShaderByteCodeBuffer->pStackMemory + pShaderByteCodeBuffer->kStackSize)
+    if (pBufferAligned + Size <= (uint8_t*)pShaderByteCodeBuffer->pStackMemory + pShaderByteCodeBuffer->kStackSize)
     {
-        pShaderByteCodeBuffer->stackUsed += (uint32_t)((pBufferAligned + size) - pBufferStart);
+        pShaderByteCodeBuffer->stackUsed += (uint32_t)((pBufferAligned + Size) - pBufferStart);
         pOutMemory = pBufferAligned;
     }
     else
     {
-        LOGF(Info, "Loading shader bytecode in heap memory (%s - %u bytes) (Stack total size: %u, Free size: %u)", filename,
-             (uint32_t)(size + alignment), pShaderByteCodeBuffer->kStackSize,
+        LOGF(Info, "Loading shader bytecode in heap memory (%s - %u bytes) (Stack total Size: %u, Free Size: %u)", filename,
+             (uint32_t)(Size + alignment), pShaderByteCodeBuffer->kStackSize,
              pShaderByteCodeBuffer->kStackSize - pShaderByteCodeBuffer->stackUsed);
-        pOutMemory = MemAllocateAligned(alignment, size);
+        pOutMemory = MemAllocateAligned(alignment, Size);
     }
 
     ASSERT(((uintptr_t)pOutMemory % alignment) == 0);
@@ -4160,11 +4160,11 @@ static void freeShaderByteCode(ShaderByteCodeBuffer* pShaderByteCodeBuffer, Bina
 static MappedMemoryRange allocateUploadMemory(Renderer* pRenderer, uint64_t memoryRequirement, uint32_t alignment)
 {
     Buffer* buffer;
-    // LOGF(LogLevel::Info, "Allocating temporary staging buffer. Required allocation size of %llu is larger than the staging buffer
-    // capacity of %llu", memoryRequirement, size);
+    // LOGF(LogLevel::Info, "Allocating temporary staging buffer. Required allocation Size of %llu is larger than the staging buffer
+    // Capacity of %llu", memoryRequirement, Size);
     buffer = {};
     BufferDesc bufferDesc = {};
-    bufferDesc.size = memoryRequirement;
+    bufferDesc.Size = memoryRequirement;
     bufferDesc.alignment = alignment;
     bufferDesc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
     bufferDesc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
@@ -4179,7 +4179,7 @@ static void setupCopyEngine(Renderer* pRenderer, CopyEngineDesc* pDesc, CopyEngi
     addQueue(pRenderer, &desc, &pCopyEngine->pQueue);
 
     const uint64_t maxBlockSize = 32;
-    pDesc->size = max(pDesc->size, maxBlockSize);
+    pDesc->Size = max(pDesc->Size, maxBlockSize);
 
     pCopyEngine->resourceSets = (CopyResourceSet*)MemAllocate(sizeof(CopyResourceSet) * pDesc->bufferCount);
     for (uint32_t i = 0; i < pDesc->bufferCount; ++i)
@@ -4205,10 +4205,10 @@ static void setupCopyEngine(Renderer* pRenderer, CopyEngineDesc* pDesc, CopyEngi
 
         addSemaphore(pRenderer, &resourceSet.pSemaphore);
 
-        resourceSet.buffer = allocateUploadMemory(pRenderer, pDesc->size, util_get_texture_subresource_alignment(pRenderer)).pBuffer;
+        resourceSet.buffer = allocateUploadMemory(pRenderer, pDesc->Size, util_get_texture_subresource_alignment(pRenderer)).pBuffer;
     }
 
-    pCopyEngine->bufferSize = pDesc->size;
+    pCopyEngine->bufferSize = pDesc->Size;
     pCopyEngine->bufferCount = pDesc->bufferCount;
     pCopyEngine->isRecording = false;
     pCopyEngine->pLastSubmittedSemaphore = NULL;
@@ -4371,22 +4371,22 @@ static MappedMemoryRange allocateStagingMemory(CopyEngine* pCopyEngine, uint64_t
     acquireCmd(pCopyEngine);
 
     CopyResourceSet* pResourceSet = &pCopyEngine->resourceSets[pCopyEngine->activeSet];
-    uint64_t         size = (uint64_t)pResourceSet->buffer->size;
+    uint64_t         Size = (uint64_t)pResourceSet->buffer->Size;
     alignment = max((uint32_t)RESOURCE_BUFFER_ALIGNMENT, alignment);
     memoryRequirement = round_up_64(memoryRequirement, alignment);
-    if (memoryRequirement > size)
+    if (memoryRequirement > Size)
     {
         MappedMemoryRange range = allocateUploadMemory(pResourceLoader->pRenderer, memoryRequirement, alignment);
         LOADER_LOGF(
             LogLevel::Info,
-            "Allocating temporary staging buffer. Required allocation size of %llu is larger than the staging buffer capacity of %llu",
-            memoryRequirement, size);
+            "Allocating temporary staging buffer. Required allocation Size of %llu is larger than the staging buffer Capacity of %llu",
+            memoryRequirement, Size);
         arrpush(pResourceSet->tempBuffers, range.pBuffer);
         return range;
     }
 
     uint64_t offset = round_up_64(pCopyEngine->resourceSets[pCopyEngine->activeSet].allocatedSpace, alignment);
-    bool     memoryAvailable = (offset < size) && (memoryRequirement <= size - offset);
+    bool     memoryAvailable = (offset < Size) && (memoryRequirement <= Size - offset);
     if (memoryAvailable && pResourceSet->buffer->pCpuMappedAddress)
     {
         Buffer* buffer = pResourceSet->buffer;
@@ -4424,7 +4424,7 @@ static UploadFunctionResult updateBuffer(Renderer* pRenderer, CopyEngine* pCopyE
 
     MappedMemoryRange range = bufUpdateDesc.internal.mappedRange;
     cmdUpdateBuffer(pCmd, pBuffer, bufUpdateDesc.dstOffset, range.pBuffer, range.offset,
-                    bufUpdateDesc.size ? bufUpdateDesc.size : range.size);
+                    bufUpdateDesc.Size ? bufUpdateDesc.Size : range.Size);
 
     if (IssueBufferCopyBarriers() && bufUpdateDesc.currentState != RESOURCE_STATE_COPY_DEST)
     {
@@ -4445,7 +4445,7 @@ static UploadFunctionResult loadBuffer(Renderer* pRenderer, CopyEngine* pCopyEng
     if (loadDesc.pSrcBuffer)
     {
         range.offset = loadDesc.srcOffset;
-        range.size = loadDesc.pBuffer->size;
+        range.Size = loadDesc.pBuffer->Size;
         range.pBuffer = loadDesc.pSrcBuffer;
 
         if (!loadDesc.pSrcBuffer->pCpuMappedAddress)
@@ -4454,29 +4454,29 @@ static UploadFunctionResult loadBuffer(Renderer* pRenderer, CopyEngine* pCopyEng
             mapped = true;
         }
 
-        range.pData = (uint8_t*)loadDesc.pSrcBuffer->pCpuMappedAddress + loadDesc.srcOffset;
+        range.Data = (uint8_t*)loadDesc.pSrcBuffer->pCpuMappedAddress + loadDesc.srcOffset;
     }
     else
     {
-        range = allocateStagingMemory(pCopyEngine, loadDesc.pBuffer->size, RESOURCE_BUFFER_ALIGNMENT);
-        if (!range.pData)
+        range = allocateStagingMemory(pCopyEngine, loadDesc.pBuffer->Size, RESOURCE_BUFFER_ALIGNMENT);
+        if (!range.Data)
         {
             return UPLOAD_FUNCTION_RESULT_STAGING_BUFFER_FULL;
         }
     }
 
     updateDesc.internal.mappedRange = range;
-    updateDesc.pMappedData = updateDesc.internal.mappedRange.pData;
+    updateDesc.pMappedData = updateDesc.internal.mappedRange.Data;
     if (loadDesc.forceReset)
     {
-        memset(updateDesc.pMappedData, 0, (size_t)loadDesc.pBuffer->size);
+        memset(updateDesc.pMappedData, 0, (size_t)loadDesc.pBuffer->Size);
     }
     else
     {
-        memcpy(updateDesc.pMappedData, loadDesc.pData, (size_t)loadDesc.dataSize);
+        memcpy(updateDesc.pMappedData, loadDesc.Data, (size_t)loadDesc.dataSize);
     }
 
-    if (range.pData == loadDesc.pBuffer->pCpuMappedAddress)
+    if (range.Data == loadDesc.pBuffer->pCpuMappedAddress)
     {
         if (mapped)
         {
@@ -4546,7 +4546,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
     }
 #endif
 
-    if (!upload.pData)
+    if (!upload.Data)
     {
         if (stream.pIO)
             CloseStream(&stream);
@@ -4599,7 +4599,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                 uint32_t subSlicePitch = round_up(subRowPitch * numRows, sliceAlignment);
                 uint32_t subNumRows = numRows;
                 uint32_t subDepth = d;
-                uint8_t* data = upload.pData + offset;
+                uint8_t* data = upload.Data + offset;
 
                 if (!dataAlreadyFilled)
                 {
@@ -4665,7 +4665,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         const uint64_t    requiredSize = util_get_surface_size(fmt, texture->width, texture->height, texture->depth, rowAlignment,
                                                             sliceAlignment, 0, texture->mipLevels, 0, texture->arraySizeMinusOne + 1u);
         MappedMemoryRange range = allocateStagingMemory(pCopyEngine, requiredSize, sliceAlignment);
-        memset(range.pData, 0, range.size);
+        memset(range.Data, 0, range.Size);
 
         // Zero out all subresources
         TextureUpdateDescInternal updateDesc = {};
@@ -4732,8 +4732,8 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             {
                 success = loadKTXTextureDesc(&stream, &textureDesc);
                 updateDesc.mipsAfterSlice = true;
-                // KTX stores mip size before the mip data
-                // This function gets called to skip the mip size so we read the mip data
+                // KTX stores mip Size before the mip data
+                // This function gets called to skip the mip Size so we read the mip data
                 updateDesc.pPreMipFunc = [](FileStream* pStream, uint32_t)
                 {
                     uint32_t mipSize = 0;
@@ -4853,8 +4853,8 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
                               ? (BUFFER_CREATION_FLAG_SHADER_DEVICE_ADDRESS | BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT)
                               : BUFFER_CREATION_FLAG_NONE;
         // RAW loads read 32-bit words, including an odd final 16-bit index.
-        loadDesc.size = structuredBuffers ? indexBufferSize : round_up(indexBufferSize, (uint32_t)sizeof(uint32_t));
-        loadDesc.elementCount = (uint32_t)(loadDesc.size / (structuredBuffers ? *indexStride : sizeof(uint32_t)));
+        loadDesc.Size = structuredBuffers ? indexBufferSize : round_up(indexBufferSize, (uint32_t)sizeof(uint32_t));
+        loadDesc.elementCount = (uint32_t)(loadDesc.Size / (structuredBuffers ? *indexStride : sizeof(uint32_t)));
         loadDesc.structStride = *indexStride;
         loadDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
         loadDesc.startState = gUma ? gIndexBufferState : RESOURCE_STATE_COPY_DEST;
@@ -4863,7 +4863,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
         indexUpdateDesc->dstOffset = 0;
     }
 
-    indexUpdateDesc->size = geom->indexCount * *indexStride;
+    indexUpdateDesc->Size = geom->indexCount * *indexStride;
 
     // We need to check for pCpuMappedAddress because when we allocate a custom ResourceHeap with GPU_ONLY memory we don't get any CPU
     // mapped address and we need staging memory
@@ -4873,9 +4873,9 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
     }
     else
     {
-        indexUpdateDesc->internal.mappedRange.pData = (uint8_t*)MemCallocateAligned(1, RESOURCE_BUFFER_ALIGNMENT, indexUpdateDesc->size);
+        indexUpdateDesc->internal.mappedRange.Data = (uint8_t*)MemCallocateAligned(1, RESOURCE_BUFFER_ALIGNMENT, indexUpdateDesc->Size);
     }
-    indexUpdateDesc->pMappedData = indexUpdateDesc->internal.mappedRange.pData;
+    indexUpdateDesc->pMappedData = indexUpdateDesc->internal.mappedRange.Data;
 
     // Vertex buffers
     uint32_t bufferCounter = 0;
@@ -4884,11 +4884,11 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
         if (!geom->vertexStrides[i])
             continue;
 
-        uint32_t size = geom->vertexStrides[i] * geom->vertexCount;
+        uint32_t Size = geom->vertexStrides[i] * geom->vertexCount;
 
         if (pDesc->pGeometryBuffer)
         {
-            addGeometryBufferPart(&pDesc->pGeometryBuffer->vertex[i], size, geom->vertexStrides[i], &geom->vertexBufferChunks[i]);
+            addGeometryBufferPart(&pDesc->pGeometryBuffer->vertex[i], Size, geom->vertexStrides[i], &geom->vertexBufferChunks[i]);
             vertexUpdateDesc[i].pBuffer = pDesc->pGeometryBuffer->vertex[i].pBuffer;
             vertexUpdateDesc[i].dstOffset = geom->vertexBufferChunks[i].offset;
         }
@@ -4902,9 +4902,9 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
                 (pDesc->flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
                     ? (BUFFER_CREATION_FLAG_SHADER_DEVICE_ADDRESS | BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT)
                     : BUFFER_CREATION_FLAG_NONE;
-            vertexBufferDesc.size = size;
+            vertexBufferDesc.Size = Size;
             vertexBufferDesc.elementCount =
-                (uint32_t)(vertexBufferDesc.size / (structuredBuffers ? geom->vertexStrides[i] : sizeof(uint32_t)));
+                (uint32_t)(vertexBufferDesc.Size / (structuredBuffers ? geom->vertexStrides[i] : sizeof(uint32_t)));
             vertexBufferDesc.structStride = geom->vertexStrides[i];
             vertexBufferDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
             vertexBufferDesc.startState = gUma ? gVertexBufferState : RESOURCE_STATE_COPY_DEST;
@@ -4915,7 +4915,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
             vertexUpdateDesc[i].dstOffset = 0;
         }
 
-        vertexUpdateDesc[i].size = size;
+        vertexUpdateDesc[i].Size = Size;
 
         // We need to check for pCpuMappedAddress because when we allocate a custom ResourceHeap with GPU_ONLY memory we don't get any CPU
         // mapped address and we need staging memory
@@ -4926,10 +4926,10 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
         }
         else
         {
-            vertexUpdateDesc[i].internal.mappedRange.pData =
-                (uint8_t*)MemCallocateAligned(1, RESOURCE_BUFFER_ALIGNMENT, vertexUpdateDesc[i].size);
+            vertexUpdateDesc[i].internal.mappedRange.Data =
+                (uint8_t*)MemCallocateAligned(1, RESOURCE_BUFFER_ALIGNMENT, vertexUpdateDesc[i].Size);
         }
-        vertexUpdateDesc[i].pMappedData = vertexUpdateDesc[i].internal.mappedRange.pData;
+        vertexUpdateDesc[i].pMappedData = vertexUpdateDesc[i].internal.mappedRange.Data;
         ++bufferCounter;
     }
 
@@ -4945,14 +4945,14 @@ public:
             CloseStream(&file);
         MemDeallocate(pMeshlets);
         MemDeallocate(pShadow);
-        MemDeallocate(pData);
+        MemDeallocate(Data);
         MemDeallocate(pGeometry);
     }
 
-    bool read(void* pDestination, size_t size)
+    bool read(void* pDestination, size_t Size)
     {
-        return size <= (uint64_t)GetStreamFileSize(&file) - (uint64_t)GetStreamPosition(&file) &&
-               ReadFromStream(&file, pDestination, size) == size;
+        return Size <= (uint64_t)GetStreamFileSize(&file) - (uint64_t)GetStreamPosition(&file) &&
+               ReadFromStream(&file, pDestination, Size) == Size;
     }
 
     bool readBlock(void** ppDestination, size_t minimum, uint32_t* pSize)
@@ -4966,7 +4966,7 @@ public:
 
     FileStream                file = {};
     Geometry*                 pGeometry = nullptr;
-    GeometryData*             pData = nullptr;
+    GeometryData*             Data = nullptr;
     GeometryData::ShadowData* pShadow = nullptr;
     void*                     pMeshlets = nullptr;
 };
@@ -4992,14 +4992,14 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
 
     uint32_t geomSize = 0, geomDataSize = 0, shadowSize = 0;
     if (!reader.readBlock((void**)&reader.pGeometry, sizeof(Geometry), &geomSize) ||
-        !reader.readBlock((void**)&reader.pData, sizeof(GeometryData), &geomDataSize) ||
+        !reader.readBlock((void**)&reader.Data, sizeof(GeometryData), &geomDataSize) ||
         !reader.readBlock((void**)&reader.pShadow, sizeof(GeometryData::ShadowData), &shadowSize))
     {
         LOGF(Error, "Truncated Geometry file '%s'", pDesc->pFileName);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
     }
     Geometry*     geom = reader.pGeometry;
-    GeometryData* geomData = reader.pData;
+    GeometryData* geomData = reader.Data;
     geomData->pShadow = reader.pShadow;
     const uint32_t indexStride = geom->indexType == INDEX_TYPE_UINT16 ? sizeof(uint16_t) : sizeof(uint32_t);
     uint64_t       requiredShadowSize = sizeof(GeometryData::ShadowData) + (uint64_t)geom->indexCount * indexStride;
@@ -5008,7 +5008,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         requiredShadowSize += (uint64_t)reader.pShadow->vertexStrides[i] * reader.pShadow->attributeCount[i];
         if (reader.pShadow->attributeCount[i] > geom->vertexCount)
         {
-            LOGF(Error, "Invalid Geometry attribute count in '%s'", pDesc->pFileName);
+            LOGF(Error, "Invalid Geometry attribute Count in '%s'", pDesc->pFileName);
             return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
         }
     }
@@ -5211,7 +5211,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     }
 
     reader.pGeometry = nullptr;
-    reader.pData = nullptr;
+    reader.Data = nullptr;
     reader.pShadow = nullptr;
     reader.pMeshlets = nullptr;
 
@@ -5238,15 +5238,15 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
     if (!gUma || (indexUpdateDesc.pMappedData && !indexUpdateDesc.pBuffer->pCpuMappedAddress))
     {
         indexUpdateDesc.currentState = gUma ? indexUpdateDesc.currentState : RESOURCE_STATE_COPY_DEST;
-        indexUpdateDesc.internal.mappedRange = allocateStagingMemory(pCopyEngine, indexUpdateDesc.size, RESOURCE_BUFFER_ALIGNMENT);
+        indexUpdateDesc.internal.mappedRange = allocateStagingMemory(pCopyEngine, indexUpdateDesc.Size, RESOURCE_BUFFER_ALIGNMENT);
         ASSERT(indexUpdateDesc.pMappedData);
-        memcpy(indexUpdateDesc.internal.mappedRange.pData, indexUpdateDesc.pMappedData, indexUpdateDesc.size);
+        memcpy(indexUpdateDesc.internal.mappedRange.Data, indexUpdateDesc.pMappedData, indexUpdateDesc.Size);
         MemDeallocate(indexUpdateDesc.pMappedData);
         if (indexUpdateDesc.internal.mappedRange.flags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
         {
             setBufferName(pRenderer, indexUpdateDesc.internal.mappedRange.pBuffer, pDesc->pFileName);
         }
-        indexUpdateDesc.pMappedData = indexUpdateDesc.internal.mappedRange.pData;
+        indexUpdateDesc.pMappedData = indexUpdateDesc.internal.mappedRange.Data;
         uploadResult = updateBuffer(pRenderer, pCopyEngine, indexUpdateDesc);
     }
 
@@ -5260,15 +5260,15 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
             {
                 vertexUpdateDesc[i].currentState = gUma ? vertexUpdateDesc[i].currentState : RESOURCE_STATE_COPY_DEST;
                 vertexUpdateDesc[i].internal.mappedRange =
-                    allocateStagingMemory(pCopyEngine, vertexUpdateDesc[i].size, RESOURCE_BUFFER_ALIGNMENT);
+                    allocateStagingMemory(pCopyEngine, vertexUpdateDesc[i].Size, RESOURCE_BUFFER_ALIGNMENT);
                 ASSERT(vertexUpdateDesc[i].pMappedData);
-                memcpy(vertexUpdateDesc[i].internal.mappedRange.pData, vertexUpdateDesc[i].pMappedData, vertexUpdateDesc[i].size);
+                memcpy(vertexUpdateDesc[i].internal.mappedRange.Data, vertexUpdateDesc[i].pMappedData, vertexUpdateDesc[i].Size);
                 MemDeallocate(vertexUpdateDesc[i].pMappedData);
                 if (vertexUpdateDesc[i].internal.mappedRange.flags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
                 {
                     setBufferName(pRenderer, vertexUpdateDesc[i].internal.mappedRange.pBuffer, pDesc->pFileName);
                 }
-                vertexUpdateDesc[i].pMappedData = vertexUpdateDesc[i].internal.mappedRange.pData;
+                vertexUpdateDesc[i].pMappedData = vertexUpdateDesc[i].internal.mappedRange.Data;
                 uploadResult = updateBuffer(pRenderer, pCopyEngine, vertexUpdateDesc[i]);
             }
             barriers[barrierCount++] = { vertexUpdateDesc[i].pBuffer, RESOURCE_STATE_COPY_DEST, gVertexBufferState };
@@ -5519,14 +5519,14 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
     CopyEngineDesc desc = {};
     desc.bufferCount = pLoader->desc.bufferCount;
     desc.queueType = QUEUE_TYPE_GRAPHICS;
-    desc.size = pLoader->desc.bufferSize;
+    desc.Size = pLoader->desc.bufferSize;
     desc.pQueueName = "UPLOAD";
     setupCopyEngine(pLoader->pRenderer, &desc, &pLoader->uploadEngine);
 
     desc = {};
     desc.bufferCount = pLoader->desc.bufferCount;
     desc.queueType = QUEUE_TYPE_TRANSFER;
-    desc.size = pLoader->desc.bufferSize;
+    desc.Size = pLoader->desc.bufferSize;
     desc.pQueueName = "COPY";
     setupCopyEngine(pLoader->pRenderer, &desc, &pLoader->copyEngine);
 
@@ -5558,7 +5558,7 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
 
     ThreadDesc threadDesc = {};
     threadDesc.pFunc = streamerThreadFunc;
-    threadDesc.pData = pLoader;
+    threadDesc.Data = pLoader;
     strncpy(threadDesc.threadName, "ResourceLoaderTask", sizeof(threadDesc.threadName));
 
 #if defined(NX64)
@@ -5914,8 +5914,8 @@ static void parseMaterial(const char* pFileBuffer, uint64_t fileSize, Material**
     extraSize += sizeof(const char*) * numTextures;    // MaterialDesc::pTextureNames
     extraSize += sizeof(const char*) * numShaders;     // MaterialDesc::pShaderNames
 
-    // Note: We use file size for the string buffer size as it won't be bigger than that.
-    //       We could also compute a tighter buffer size during material compilation.
+    // Note: We use file Size for the string buffer Size as it won't be bigger than that.
+    //       We could also compute a tighter buffer Size during material compilation.
     extraSize += fileSize;
 
     const uint64_t totalSize = sizeof(Material) + sizeof(MaterialDesc) + alignof(MaterialDesc) + extraSize;
@@ -6416,11 +6416,11 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
         *token = max<uint64_t>(0, *token);
     }
 
-    if (pBufferDesc->pData && !token)
+    if (pBufferDesc->Data && !token)
     {
         LOADER_LOGF(Warning,
-                    "addResource : BufferLoadDesc(%s)::pData is non NULL but token is NULL. It is undefined behavior if pData is freed "
-                    "before the buffer load has completed on the ResourceLoader thread. Use waitForAllResourceLoads before freeing pData "
+                    "addResource : BufferLoadDesc(%s)::Data is non NULL but token is NULL. It is undefined behavior if Data is freed "
+                    "before the buffer load has completed on the ResourceLoader thread. Use waitForAllResourceLoads before freeing Data "
                     "when explicit token was not passed",
                     pBufferDesc->desc.pName ? pBufferDesc->desc.pName : "Unnamed");
     }
@@ -6434,7 +6434,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
     }
 
     Renderer*  pRenderer = pResourceLoader->pRenderer;
-    const bool update = pBufferDesc->pData || pBufferDesc->forceReset;
+    const bool update = pBufferDesc->Data || pBufferDesc->forceReset;
     const bool gpuUpdate = pBufferDesc->desc.memoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY && update && !gUma;
 
     if (gpuUpdate)
@@ -6446,7 +6446,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
         pBufferDesc->desc.startState = startState;
     }
 
-    const uint64_t bufferSize = pBufferDesc->desc.size;
+    const uint64_t bufferSize = pBufferDesc->desc.Size;
     addBuffer(pRenderer, &pBufferDesc->desc, pBufferDesc->ppBuffer);
 
     if (update)
@@ -6455,7 +6455,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
         loadDesc.forceReset = pBufferDesc->forceReset;
         loadDesc.startState = startState;
         loadDesc.pBuffer = *pBufferDesc->ppBuffer;
-        loadDesc.pData = pBufferDesc->pData;
+        loadDesc.Data = pBufferDesc->Data;
         loadDesc.dataSize = bufferSize;
         if (gpuUpdate && RESOURCE_MEMORY_USAGE_GPU_ONLY == loadDesc.pBuffer->memoryUsage)
         {
@@ -6618,9 +6618,9 @@ static void addBufferChunkAllocator(BufferChunkAllocatorDesc* pDesc, BufferChunk
     ASSERT(pOut);
 
     pOut->pBuffer = pDesc->pBuffer;
-    pOut->size = (uint32_t)pDesc->pBuffer->size;
+    pOut->Size = (uint32_t)pDesc->pBuffer->Size;
 
-    BufferChunk firstUnusedChunk{ 0, (uint32_t)pDesc->pBuffer->size };
+    BufferChunk firstUnusedChunk{ 0, (uint32_t)pDesc->pBuffer->Size };
     arrpush(pOut->unusedChunks, firstUnusedChunk);
 }
 
@@ -6644,12 +6644,12 @@ static void removeBufferChunkAllocator(BufferChunkAllocator* pBuffer)
         // One BufferChunkAllocator would cover memory range A and would be use by the App to store big chunks of data while other
         // BufferChunkAllocator would cover memory range B and be used to fit smaller ammounts of data.
         //
-        // Note: If we want this behavior we would need extend BufferChunkAllocatorDesc to provide offset and size that the
+        // Note: If we want this behavior we would need extend BufferChunkAllocatorDesc to provide offset and Size that the
         // BufferChunkAllocator would cover,
-        //       if size is 0 we would use the size of the buffer.
+        //       if Size is 0 we would use the Size of the buffer.
         //       We would also need to consider if we want to expose the add/removeBufferChunkAllocator interface to the user and let him
         //       allocate the BufferChunkAllocator or we want to include this splitting logic in addGeometryBuffer.
-        ASSERT(pBuffer->unusedChunks && (pBuffer->unusedChunks[0].offset == 0) && (pBuffer->unusedChunks[0].size == pBuffer->size) &&
+        ASSERT(pBuffer->unusedChunks && (pBuffer->unusedChunks[0].offset == 0) && (pBuffer->unusedChunks[0].Size == pBuffer->Size) &&
                "Expecting just one chunk since the buffer is completely Empty");
 
         arrfree(pBuffer->unusedChunks);
@@ -6675,11 +6675,11 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
     Buffer* pVertexBuffer = NULL;
 
     loadDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-    loadDesc.desc.size = pDesc->indicesSize;
+    loadDesc.desc.Size = pDesc->indicesSize;
     loadDesc.ppBuffer = &pIndexBuffer;
     loadDesc.desc.descriptors = DESCRIPTOR_TYPE_INDEX_BUFFER | flags;
     loadDesc.desc.structStride = sizeof(uint32_t);
-    loadDesc.desc.elementCount = (uint32_t)(loadDesc.desc.size / loadDesc.desc.structStride);
+    loadDesc.desc.elementCount = (uint32_t)(loadDesc.desc.Size / loadDesc.desc.structStride);
     loadDesc.desc.startState = gUma ? gIndexBufferState : pDesc->startState;
     loadDesc.desc.pName = pDesc->pNameIndexBuffer ? pDesc->pNameIndexBuffer : "GeometryBuffer Indices (unnamed)";
     loadDesc.desc.pPlacement = pDesc->pIndicesPlacement;
@@ -6693,11 +6693,11 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
         if (!pDesc->verticesSizes[i])
             continue;
 
-        loadDesc.desc.size = pDesc->verticesSizes[i];
+        loadDesc.desc.Size = pDesc->verticesSizes[i];
         loadDesc.ppBuffer = &pVertexBuffer;
         loadDesc.desc.descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | flags;
         loadDesc.desc.structStride = sizeof(uint32_t);
-        loadDesc.desc.elementCount = (uint32_t)(loadDesc.desc.size / loadDesc.desc.structStride);
+        loadDesc.desc.elementCount = (uint32_t)(loadDesc.desc.Size / loadDesc.desc.structStride);
         loadDesc.desc.startState = gUma ? gVertexBufferState : pDesc->startState;
         loadDesc.desc.pName = pDesc->pNamesVertexBuffers[i] ? pDesc->pNamesVertexBuffers[i] : "GeometryBuffer Vertices (unnamed)";
         loadDesc.desc.pPlacement = pDesc->pVerticesPlacements[i];
@@ -6727,12 +6727,12 @@ void removeGeometryBuffer(GeometryBuffer* pGeomBuffer)
     MemDeallocate(pGeomBuffer);
 }
 
-void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t size, uint32_t alignment, BufferChunk* pOut,
+void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t Size, uint32_t alignment, BufferChunk* pOut,
                            BufferChunk* pRequestedChunk)
 {
-    if (size == 0)
+    if (Size == 0)
         return;
-    if (size > pBuffer->size)
+    if (Size > pBuffer->Size)
     {
         *pOut = {};
         ASSERT(false);
@@ -6741,15 +6741,15 @@ void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t size, uint32_
 
     if (pRequestedChunk)
     {
-        ASSERT(pRequestedChunk->offset + pRequestedChunk->size <= pBuffer->size);
+        ASSERT(pRequestedChunk->offset + pRequestedChunk->Size <= pBuffer->Size);
 
         // Try to allocate the requested slot
         for (uint32_t i = 0; i < arrlenu(pBuffer->unusedChunks); ++i)
         {
             BufferChunk* chunk = &pBuffer->unusedChunks[i];
 
-            const uint32_t chunkEnd = chunk->offset + chunk->size;
-            const uint32_t requestedEnd = pRequestedChunk->offset + pRequestedChunk->size;
+            const uint32_t chunkEnd = chunk->offset + chunk->Size;
+            const uint32_t requestedEnd = pRequestedChunk->offset + pRequestedChunk->Size;
             if (chunk->offset <= pRequestedChunk->offset && chunkEnd >= requestedEnd)
             {
                 ++pBuffer->usedChunkCount;
@@ -6780,9 +6780,9 @@ void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t size, uint32_
                 else
                 {
                     // There's unnused memory after the requested chunk
-                    chunk->size = chunkEnd - requestedEnd;
-                    chunk->offset = pRequestedChunk->offset + pRequestedChunk->size;
-                    ASSERT(chunk->size > 0);
+                    chunk->Size = chunkEnd - requestedEnd;
+                    chunk->offset = pRequestedChunk->offset + pRequestedChunk->Size;
+                    ASSERT(chunk->Size > 0);
                 }
 
                 return;
@@ -6798,7 +6798,7 @@ void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t size, uint32_
     {
         BufferChunk* chunk = &pBuffer->unusedChunks[i];
 
-        if (chunk->size < size)
+        if (chunk->Size < Size)
             continue;
 
         if (alignment > 0)
@@ -6807,7 +6807,7 @@ void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t size, uint32_
             if (padding > 0)
                 padding = alignment - padding;
 
-            if (chunk->size - padding < size)
+            if (chunk->Size - padding < Size)
                 continue;
 
             if (padding > 0)
@@ -6822,17 +6822,17 @@ void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t size, uint32_
 
                 chunk = &pBuffer->unusedChunks[i];
                 chunk->offset += padding;
-                chunk->size -= padding;
+                chunk->Size -= padding;
             }
         }
 
         pOut->offset = chunk->offset;
-        pOut->size = size;
+        pOut->Size = Size;
 
-        chunk->offset += size;
-        chunk->size -= size;
+        chunk->offset += Size;
+        chunk->Size -= Size;
 
-        if (chunk->size == 0)
+        if (chunk->Size == 0)
         {
             arrdel(pBuffer->unusedChunks, i);
         }
@@ -6847,15 +6847,15 @@ void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t size, uint32_
 
 void removeGeometryBufferPart(BufferChunkAllocator* pBuffer, BufferChunk* pChunk)
 {
-    ASSERT(pChunk->size ? pBuffer != NULL : true);
-    if (!pBuffer || pChunk->size == 0)
+    ASSERT(pChunk->Size ? pBuffer != NULL : true);
+    if (!pBuffer || pChunk->Size == 0)
         return;
 
     ASSERT(pBuffer->usedChunkCount);
 
     --pBuffer->usedChunkCount;
 
-    const uint64_t partEnd = pChunk->offset + pChunk->size;
+    const uint64_t partEnd = pChunk->offset + pChunk->Size;
 
     // TODO binary search. (unused chunk array is sorted already)
     uint64_t i = 0;
@@ -6865,15 +6865,15 @@ void removeGeometryBufferPart(BufferChunkAllocator* pBuffer, BufferChunk* pChunk
         if (partEnd < chunk->offset)
             break;
 
-        auto chunkEnd = chunk->offset + chunk->size;
+        auto chunkEnd = chunk->offset + chunk->Size;
         if (chunkEnd == pChunk->offset) // if pChunk goes after chunk, merge both
         {
-            chunk->size += pChunk->size;
+            chunk->Size += pChunk->Size;
             if (i + 1 < arrlenu(pBuffer->unusedChunks)) // If there's another Empty chunk after pChunk, merge that one too
             {
                 if (partEnd == pBuffer->unusedChunks[i + 1].offset)
                 {
-                    chunk->size += pBuffer->unusedChunks[i + 1].size;
+                    chunk->Size += pBuffer->unusedChunks[i + 1].Size;
                     arrdel(pBuffer->unusedChunks, i + 1);
                 }
             }
@@ -6883,7 +6883,7 @@ void removeGeometryBufferPart(BufferChunkAllocator* pBuffer, BufferChunk* pChunk
         if (partEnd == chunk->offset) // If pChunk goes after chunk, merge both
         {
             chunk->offset = pChunk->offset;
-            chunk->size += pChunk->size;
+            chunk->Size += pChunk->Size;
             return;
         }
     }
@@ -6897,8 +6897,8 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
     Renderer* pRenderer = pResourceLoader->pRenderer;
     ASSERT(pBuffer);
 
-    uint64_t size = pBufferUpdate->size > 0 ? pBufferUpdate->size : (pBufferUpdate->pBuffer->size - pBufferUpdate->dstOffset);
-    ASSERT(pBufferUpdate->dstOffset + size <= pBuffer->size);
+    uint64_t Size = pBufferUpdate->Size > 0 ? pBufferUpdate->Size : (pBufferUpdate->pBuffer->Size - pBufferUpdate->dstOffset);
+    ASSERT(pBufferUpdate->dstOffset + Size <= pBuffer->Size);
 
     ResourceMemoryUsage memoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->memoryUsage;
     if (gUma || memoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
@@ -6913,7 +6913,7 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
         }
 
         pBufferUpdate->internal.mappedRange = { (uint8_t*)pBuffer->pCpuMappedAddress + pBufferUpdate->dstOffset, pBuffer };
-        pBufferUpdate->pMappedData = pBufferUpdate->internal.mappedRange.pData;
+        pBufferUpdate->pMappedData = pBufferUpdate->internal.mappedRange.Data;
         pBufferUpdate->internal.mappedRange.flags = map ? MAPPED_RANGE_FLAG_UNMAP_BUFFER : 0;
     }
     else
@@ -6923,22 +6923,22 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
         {
             pBufferUpdate->internal.mappedRange.pBuffer = pBufferUpdate->pSrcBuffer;
             pBufferUpdate->internal.mappedRange.offset = pBufferUpdate->srcOffset;
-            pBufferUpdate->internal.mappedRange.size = size;
-            pBufferUpdate->internal.mappedRange.pData = (uint8_t*)pBufferUpdate->pSrcBuffer->pCpuMappedAddress + pBufferUpdate->srcOffset;
-            pBufferUpdate->pMappedData = pBufferUpdate->internal.mappedRange.pData;
+            pBufferUpdate->internal.mappedRange.Size = Size;
+            pBufferUpdate->internal.mappedRange.Data = (uint8_t*)pBufferUpdate->pSrcBuffer->pCpuMappedAddress + pBufferUpdate->srcOffset;
+            pBufferUpdate->pMappedData = pBufferUpdate->internal.mappedRange.Data;
             return;
         }
 
         MutexLock         lock(pResourceLoader->uploadEngineMutex);
         CopyEngine*       pCopyEngine = &pResourceLoader->uploadEngine;
-        MappedMemoryRange range = allocateStagingMemory(pCopyEngine, size, RESOURCE_BUFFER_ALIGNMENT);
-        if (!range.pData)
+        MappedMemoryRange range = allocateStagingMemory(pCopyEngine, Size, RESOURCE_BUFFER_ALIGNMENT);
+        if (!range.Data)
         {
-            range = allocateUploadMemory(pRenderer, size, RESOURCE_BUFFER_ALIGNMENT);
+            range = allocateUploadMemory(pRenderer, Size, RESOURCE_BUFFER_ALIGNMENT);
             arrpush(pCopyEngine->resourceSets[pCopyEngine->activeSet].tempBuffers, range.pBuffer);
         }
 
-        pBufferUpdate->pMappedData = range.pData;
+        pBufferUpdate->pMappedData = range.Data;
         pBufferUpdate->internal.mappedRange = range;
     }
 }
@@ -6978,7 +6978,7 @@ TextureSubresourceUpdate TextureUpdateDesc::getSubresourceUpdateDesc(uint32_t mi
 
     ret.dstRowStride = round_up(ret.srcRowStride, util_get_texture_row_alignment(pRenderer));
     ret.dstSliceStride = round_up(ret.dstRowStride * ret.rowCount, sliceAlignment);
-    ret.pMappedData = internal.mappedRange.pData + (internal.dstSliceStride * (layer - baseArrayLayer));
+    ret.pMappedData = internal.mappedRange.Data + (internal.dstSliceStride * (layer - baseArrayLayer));
     // Calculate the offset for the mip in this array layer
     for (uint32_t i = baseMipLevel; i < mip; ++i)
     {
@@ -7016,7 +7016,7 @@ void beginUpdateResource(TextureUpdateDesc* pTextureUpdate)
     MutexLock         lock(pResourceLoader->uploadEngineMutex);
     CopyEngine*       pCopyEngine = &pResourceLoader->uploadEngine;
     MappedMemoryRange range = allocateStagingMemory(pCopyEngine, requiredSize, sliceAlignment);
-    if (!range.pData)
+    if (!range.Data)
     {
         range = allocateUploadMemory(pRenderer, requiredSize, sliceAlignment);
         arrpush(pCopyEngine->resourceSets[pCopyEngine->activeSet].tempBuffers, range.pBuffer);
@@ -7166,8 +7166,8 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
     if (!result)
         return result;
 
-    ssize_t size = GetStreamFileSize(&binaryFileStream);
-    ASSERT(size > 0);
+    ssize_t Size = GetStreamFileSize(&binaryFileStream);
+    ASSERT(Size > 0);
 
     FSLHeader header = {};
     if (sizeof(FSLHeader) != ReadFromStream(&binaryFileStream, (void*)&header, sizeof(FSLHeader)))
@@ -7177,9 +7177,9 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
     {
         // Shader was not compiled using FSL script
         SeekStream(&binaryFileStream, SBO_START_OF_FILE, 0);
-        pOut->pByteCode = allocShaderByteCode(pShaderByteCodeBuffer, 256, (uint32_t)size, binaryShaderPath);
-        pOut->byteCodeSize = (uint32_t)size;
-        ReadFromStream(&binaryFileStream, (void*)pOut->pByteCode, size);
+        pOut->pByteCode = allocShaderByteCode(pShaderByteCodeBuffer, 256, (uint32_t)Size, binaryShaderPath);
+        pOut->byteCodeSize = (uint32_t)Size;
+        ReadFromStream(&binaryFileStream, (void*)pOut->pByteCode, Size);
     }
     else
     {
@@ -7202,10 +7202,10 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
                     break;
                 }
 
-                size = pDerivatives[i].size;
-                pOut->pByteCode = allocShaderByteCode(pShaderByteCodeBuffer, 256, (uint32_t)size, binaryShaderPath);
-                pOut->byteCodeSize = (uint32_t)pDerivatives[i].size;
-                if (ReadFromStream(&binaryFileStream, (void*)pOut->pByteCode, size) != (size_t)size)
+                Size = pDerivatives[i].Size;
+                pOut->pByteCode = allocShaderByteCode(pShaderByteCodeBuffer, 256, (uint32_t)Size, binaryShaderPath);
+                pOut->byteCodeSize = (uint32_t)pDerivatives[i].Size;
+                if (ReadFromStream(&binaryFileStream, (void*)pOut->pByteCode, Size) != (size_t)Size)
                 {
                     LOGF(Error, "Failed to read file '%s'", binaryShaderPath);
                 }
@@ -7450,8 +7450,8 @@ void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, 
 
     PipelineCacheDesc desc = {};
     desc.flags = pDesc->flags;
-    desc.pData = data;
-    desc.size = dataSize;
+    desc.Data = data;
+    desc.Size = dataSize;
     addPipelineCache(pRenderer, &desc, ppPipelineCache);
 
     if (data)

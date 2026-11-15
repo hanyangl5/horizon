@@ -39,9 +39,9 @@
  *
  * Interface functions:
  *
- * attrs void Sort<type> (type* pData, size_t memberCount)
+ * attrs void Sort<type> (type* Data, size_t memberCount)
  *	regular Sort
- *	if size < QUICKSORT_THRESHOLD
+ *	if Size < QUICKSORT_THRESHOLD
  *		use insertion Sort
  *	else
  *		use quick Sort
@@ -111,10 +111,10 @@
     }
 
 #define DEFINE_QUICK_SORT_FUNCTION(attrs, fnName, type, quickSortImplFn) \
-    attrs void fnName(type* pData, size_t memberCount)                   \
+    attrs void fnName(type* Data, size_t memberCount)                   \
     {                                                                    \
         type tmp;                                                        \
-        quickSortImplFn(pData, pData + memberCount, &tmp);               \
+        quickSortImplFn(Data, Data + memberCount, &tmp);               \
     }
 
 #define CONCAT(x, y)      CONCAT_IMPL(x, y)

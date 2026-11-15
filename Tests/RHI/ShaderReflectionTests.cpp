@@ -40,7 +40,7 @@ ShaderResource makeResource(DescriptorType type, uint32_t set, uint32_t reg, Sha
         .type = type,
         .set = set,
         .reg = reg,
-        .size = 1,
+        .Size = 1,
         .used_stages = stage,
         .name = name,
         .name_size = (uint32_t)strlen(name),
@@ -48,13 +48,13 @@ ShaderResource makeResource(DescriptorType type, uint32_t set, uint32_t reg, Sha
     };
 }
 
-ShaderVariable makeVariable(const char* name, uint32_t parentIndex, uint32_t offset, uint32_t size)
+ShaderVariable makeVariable(const char* name, uint32_t parentIndex, uint32_t offset, uint32_t Size)
 {
     return {
         .name = name,
         .parent_index = parentIndex,
         .offset = offset,
-        .size = size,
+        .Size = Size,
         .name_size = (uint32_t)strlen(name),
     };
 }

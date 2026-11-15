@@ -60,11 +60,11 @@ void AnimatedObject::Initialize(Rig* rig, Animation* animation)
     void* alloc = MemAllocateAligned(alignof(Matrix4), totalSize);
 
     jointWorldMats = ozz::span<Matrix4>((Matrix4*)alloc, rig->numJoints);
-    jointModelMats = ozz::span<Matrix4>(jointWorldMats.data() + rig->numJoints, rig->numJoints);
-    localTrans = ozz::span<SoaTransform>((SoaTransform*)(jointModelMats.data() + rig->numJoints), rig->numSoaJoints); //-V1027
+    jointModelMats = ozz::span<Matrix4>(jointWorldMats.GetData() + rig->numJoints, rig->numJoints);
+    localTrans = ozz::span<SoaTransform>((SoaTransform*)(jointModelMats.GetData() + rig->numJoints), rig->numSoaJoints); //-V1027
 
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
-    jointScales = ozz::span<Vector3>((Vector3*)(localTrans.data() + rig->numSoaJoints), rig->numJoints); //-V1027
+    jointScales = ozz::span<Vector3>((Vector3*)(localTrans.GetData() + rig->numSoaJoints), rig->numJoints); //-V1027
 #endif
 
     for (uint32_t i = 0; i < rig->numJoints; ++i)
@@ -85,7 +85,7 @@ void AnimatedObject::Initialize(Rig* rig, Animation* animation)
 
 void AnimatedObject::Exit()
 {
-    MemDeallocate(jointWorldMats.data());
+    MemDeallocate(jointWorldMats.GetData());
 
     jointModelMats = {};
     jointWorldMats = {};
@@ -114,7 +114,7 @@ void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
     UNREF_PARAM(rootTransform);
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
     // Traverses through the skeleton's joint hierarchy, placing bones between
-    // joints and altering the size of joints and bones to reflect distances
+    // joints and altering the Size of joints and bones to reflect distances
     // between joints
 
     // Store smallest bone lenth to be reused for root joint scale
@@ -141,7 +141,7 @@ void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
         Vector3 boneDir = childMat.getCol3().getXYZ() - parentMat.getCol3().getXYZ();
         float boneLen = length(boneDir);
 
-        // Save smallest boneLen for the root joints scale size
+        // Save smallest boneLen for the root joints scale Size
         if ((!minBoneLenSet) || (boneLen < minBoneLen))
         {
             minBoneLen = boneLen;

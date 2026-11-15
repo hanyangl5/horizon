@@ -33,10 +33,10 @@
 // MARK: - File iteration
 /************************************************************************/
 
-bool GetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char*** out, int* count)
+bool GetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char*** out, int* Count)
 {
     *out = NULL;
-    *count = 0;
+    *Count = 0;
 
     char directoryPath[FS_MAX_PATH] = { 0 };
     AppendPathComponent(GetResourceDirectory(resourceDir), subDirectory, directoryPath);
@@ -128,16 +128,16 @@ bool GetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirecto
     else
     {
         *out = stringList;
-        *count = filesFound;
+        *Count = filesFound;
     }
 
     return success;
 }
 
-bool GetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char*** out, int* count)
+bool GetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char*** out, int* Count)
 {
     *out = NULL;
-    *count = 0;
+    *Count = 0;
 
     char directoryPath[FS_MAX_PATH] = { 0 };
     AppendPathComponent(GetResourceDirectory(resourceDir), subDirectory, directoryPath);
@@ -176,7 +176,7 @@ bool GetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, 
     }
 
     *out = stringList;
-    *count = filesFound;
+    *Count = filesFound;
 
     int strIndex = 0;
     for (;;)
@@ -204,7 +204,7 @@ bool GetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, 
     else
     {
         *out = stringList;
-        *count = filesFound;
+        *Count = filesFound;
     }
 
     return success;

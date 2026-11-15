@@ -200,10 +200,10 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
                                      UNREF_PARAM(user);
                                      LOGF(Error, "%s", msg);
                                  },
-                                 [](void* user, size_t size)
+                                 [](void* user, size_t Size)
                                  {
                                      UNREF_PARAM(user);
-                                     return MemAllocate(size);
+                                     return MemAllocate(Size);
                                  },
                                  [](void* user, void* memory)
                                  {
@@ -265,10 +265,10 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
                                      UNREF_PARAM(user);
                                      LOGF(Error, "%s", msg);
                                  },
-                                 [](void* user, size_t size)
+                                 [](void* user, size_t Size)
                                  {
                                      UNREF_PARAM(user);
-                                     return MemAllocate(size);
+                                     return MemAllocate(Size);
                                  },
                                  [](void* user, void* memory)
                                  {

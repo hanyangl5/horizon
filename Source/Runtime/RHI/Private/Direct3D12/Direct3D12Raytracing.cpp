@@ -250,7 +250,7 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
                         : false));
         }
         /************************************************************************/
-        // Get the size requirement for the Acceleration Structures
+        // Get the Size requirement for the Acceleration Structures
         /************************************************************************/
         D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS prebuildDesc = {};
         prebuildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
@@ -272,11 +272,11 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
         bufferDesc.structStride = 0;
         bufferDesc.firstElement = 0;
         bufferDesc.elementCount = (uint32_t)(info.ResultDataMaxSizeInBytes / sizeof(UINT32));
-        bufferDesc.size = info.ResultDataMaxSizeInBytes;
+        bufferDesc.Size = info.ResultDataMaxSizeInBytes;
         bufferDesc.startState = RESOURCE_STATE_ACCELERATION_STRUCTURE_WRITE;
         addBuffer(pRaytracing->pRenderer, &bufferDesc, &pAS->pASBuffer);
         /************************************************************************/
-        // Store the scratch buffer size so user can create the scratch buffer accordingly
+        // Store the scratch buffer Size so user can create the scratch buffer accordingly
         /************************************************************************/
         scratchBufferSize = info.ScratchDataSizeInBytes > info.UpdateScratchDataSizeInBytes ? info.ScratchDataSizeInBytes
                                                                                             : info.UpdateScratchDataSizeInBytes;
@@ -285,7 +285,7 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
     {
         pAS->descCount = pDesc->top.descCount;
         /************************************************************************/
-        // Get the size requirement for the Acceleration Structures
+        // Get the Size requirement for the Acceleration Structures
         /************************************************************************/
         D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS prebuildDesc = {};
         prebuildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
@@ -321,11 +321,11 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
         BufferDesc instanceDesc = {};
         instanceDesc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
         instanceDesc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-        instanceDesc.size = arrlenu(instanceDescs) * sizeof(instanceDescs[0]);
+        instanceDesc.Size = arrlenu(instanceDescs) * sizeof(instanceDescs[0]);
         addBuffer(pRaytracing->pRenderer, &instanceDesc, &pAS->pInstanceDescBuffer);
         if (arrlen(instanceDescs))
         {
-            memcpy(pAS->pInstanceDescBuffer->pCpuMappedAddress, instanceDescs, instanceDesc.size);
+            memcpy(pAS->pInstanceDescBuffer->pCpuMappedAddress, instanceDescs, instanceDesc.Size);
         }
         arrfree(instanceDescs);
         /************************************************************************/
@@ -338,7 +338,7 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
         bufferDesc.structStride = 0;
         bufferDesc.firstElement = 0;
         bufferDesc.elementCount = (uint32_t)(info.ResultDataMaxSizeInBytes / sizeof(UINT32));
-        bufferDesc.size = info.ResultDataMaxSizeInBytes;
+        bufferDesc.Size = info.ResultDataMaxSizeInBytes;
         bufferDesc.startState = RESOURCE_STATE_ACCELERATION_STRUCTURE_WRITE;
         addBuffer(pRaytracing->pRenderer, &bufferDesc, &pAS->pASBuffer);
 
@@ -364,7 +364,7 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
     scratchBufferDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
     scratchBufferDesc.startState = RESOURCE_STATE_UNORDERED_ACCESS;
     scratchBufferDesc.flags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
-    scratchBufferDesc.size = scratchBufferSize;
+    scratchBufferDesc.Size = scratchBufferSize;
     addBuffer(pRaytracing->pRenderer, &scratchBufferDesc, &pAS->pScratchBuffer);
 
     *ppAccelerationStructure = pAS;
@@ -550,10 +550,10 @@ static const wchar_t* rayExportName(const char* name, wchar_t*** names)
     {
         return nullptr;
     }
-    const int count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, name, -1, nullptr, 0);
-    ASSERT(count);
-    wchar_t* value = (wchar_t*)MemAllocate((size_t)count * sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, name, -1, value, count);
+    const int Count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, name, -1, nullptr, 0);
+    ASSERT(Count);
+    wchar_t* value = (wchar_t*)MemAllocate((size_t)Count * sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, name, -1, value, Count);
     arrpush(*names, value);
     return value;
 }
@@ -579,14 +579,14 @@ static bool createRayShaderTable(Raytracing* raytracing, RaytracingPipeline* pip
     const uint64_t   stride = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
     const uint64_t   missOffset = D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT;
     const uint64_t   hitOffset = (missOffset + missCount * stride + 63) & ~UINT64_C(63);
-    const BufferDesc desc = { .size = (hitOffset + groupCount * stride + 63) & ~UINT64_C(63),
+    const BufferDesc desc = { .Size = (hitOffset + groupCount * stride + 63) & ~UINT64_C(63),
                               .pName = "Ray tracing shader table",
                               .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                               .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT };
     addBuffer(raytracing->pRenderer, &desc, &pipeline->pShaderTable);
     ASSERT(pipeline->pShaderTable);
     uint8_t* bytes = (uint8_t*)pipeline->pShaderTable->pCpuMappedAddress;
-    memset(bytes, 0, (size_t)desc.size);
+    memset(bytes, 0, (size_t)desc.Size);
     bool valid = fillRayRecord(properties, rayGeneration, bytes);
     for (uint32_t i = 0; i < missCount; ++i)
     {

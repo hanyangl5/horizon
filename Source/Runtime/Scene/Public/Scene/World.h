@@ -33,9 +33,9 @@ struct WorldTransform;
 struct PropertyValue
 {
     PropertyKind kind = PropertyKind::Boolean;
-    const void*  pData = nullptr;
-    // Strings include the terminating null; other values must match the reflected field size.
-    uint32_t     size = 0;
+    const void*  Data = nullptr;
+    // Strings include the terminating null; other values must match the reflected field Size.
+    uint32_t     Size = 0;
 };
 
 class DeferredChanges
@@ -91,7 +91,7 @@ public:
 
     // Edits require an existing component and take effect immediately, including during defer.
     bool setProperty(Entity entity, TypeID type, PropertyID property, const PropertyValue& value);
-    bool resizeArray(Entity entity, TypeID type, PropertyID property, uint32_t count);
+    bool resizeArray(Entity entity, TypeID type, PropertyID property, uint32_t Count);
     // pValue points to an element of the reflected array type, including when inserting from this array.
     bool insertArrayElement(Entity entity, TypeID type, PropertyID property, uint32_t index, const void* pValue);
     bool removeArrayElement(Entity entity, TypeID type, PropertyID property, uint32_t index);

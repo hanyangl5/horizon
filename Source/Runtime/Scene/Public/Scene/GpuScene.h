@@ -58,6 +58,6 @@ public:
     const GpuAssetTables&  getAssetTables() const;
 
 private:
-    GpuSceneData* pData = nullptr;
+    GpuSceneData* Data = nullptr;
 };
 } // namespace hz

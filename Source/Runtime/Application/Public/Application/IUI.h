@@ -191,7 +191,7 @@ typedef struct ButtonWidget
 typedef struct SliderFloatWidget
 {
     char   format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
-    float* pData = NULL;
+    float* Data = NULL;
     float  min = 0.f;
     float  max = 0.f;
     float  step = 0.01f;
@@ -200,7 +200,7 @@ typedef struct SliderFloatWidget
 typedef struct SliderFloat2Widget
 {
     char    format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
-    float2* pData = NULL;
+    float2* Data = NULL;
     float2  min = float2(0.f, 0.f);
     float2  max = float2(0.f, 0.f);
     float2  step = float2(0.01f, 0.01f);
@@ -209,7 +209,7 @@ typedef struct SliderFloat2Widget
 typedef struct SliderFloat3Widget
 {
     char    format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
-    float3* pData = NULL;
+    float3* Data = NULL;
     float3  min = float3(0.f, 0.f, 0.f);
     float3  max = float3(0.f, 0.f, 0.f);
     float3  step = float3(0.01f, 0.01f, 0.01f);
@@ -218,7 +218,7 @@ typedef struct SliderFloat3Widget
 typedef struct SliderFloat4Widget
 {
     char    format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
-    float4* pData = NULL;
+    float4* Data = NULL;
     float4  min = float4(0.f, 0.f, 0.f, 0.f);
     float4  max = float4(0.f, 0.f, 0.f, 0.f);
     float4  step = float4(0.01f, 0.01f, 0.01f, 0.01f);
@@ -227,7 +227,7 @@ typedef struct SliderFloat4Widget
 typedef struct SliderIntWidget
 {
     char     format[MAX_FORMAT_STR_LENGTH] = { "%d" };
-    int32_t* pData = NULL;
+    int32_t* Data = NULL;
     int32_t  min = 0;
     int32_t  max = 0;
     int32_t  step = 1;
@@ -236,7 +236,7 @@ typedef struct SliderIntWidget
 typedef struct SliderUintWidget
 {
     char      format[MAX_FORMAT_STR_LENGTH] = { "%u" };
-    uint32_t* pData = NULL;
+    uint32_t* Data = NULL;
     uint32_t  min = 0;
     uint32_t  max = 0;
     uint32_t  step = 1;
@@ -244,18 +244,18 @@ typedef struct SliderUintWidget
 
 typedef struct RadioButtonWidget
 {
-    int32_t* pData = NULL;
+    int32_t* Data = NULL;
     int32_t  radioId = 0;
 } RadioButtonWidget;
 
 typedef struct CheckboxWidget
 {
-    bool* pData = NULL;
+    bool* Data = NULL;
 } CheckboxWidget;
 
 typedef struct OneLineCheckboxWidget
 {
-    bool*  pData = NULL;
+    bool*  Data = NULL;
     float4 color = float4(0.f, 0.f, 0.f, 0.f);
 } OneLineCheckboxWidget;
 
@@ -266,27 +266,27 @@ typedef struct CursorLocationWidget
 
 typedef struct DropdownWidget
 {
-    uint32_t*          pData = NULL;
-    // pNames is a C array of size count
+    uint32_t*          Data = NULL;
+    // pNames is a C array of Size Count
     const char* const* pNames = NULL;
-    uint32_t           count = 0;
+    uint32_t           Count = 0;
 } DropdownWidget;
 
 typedef struct ProgressBarWidget
 {
-    size_t* pData = NULL;
+    size_t* Data = NULL;
     size_t  maxProgress = 0;
 } ProgressBarWidget;
 
 typedef struct ColorSliderWidget
 {
-    float4* pData = NULL;
+    float4* Data = NULL;
 } ColorSliderWidget;
 
 typedef struct HistogramWidget
 {
     float*      pValues = NULL;
-    uint32_t    count = 0;
+    uint32_t    Count = 0;
     float*      minScale = NULL;
     float*      maxScale = NULL;
     float2      histogramSize = float2(0.f, 0.f);
@@ -305,12 +305,12 @@ typedef struct PlotLinesWidget
 
 typedef struct ColorPickerWidget
 {
-    float4* pData = NULL;
+    float4* Data = NULL;
 } ColorPickerWidget;
 
 typedef struct Color3PickerWidget
 {
-    float3* pData = NULL;
+    float3* Data = NULL;
 } Color3PickerWidget;
 
 typedef enum UITextFlags

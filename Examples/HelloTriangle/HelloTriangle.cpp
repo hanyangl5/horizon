@@ -145,7 +145,7 @@ private:
     bool createResources()
     {
         resources->vertexBuffer = context->createBuffer({
-            .size = sizeof(kTriangleVertices),
+            .Size = sizeof(kTriangleVertices),
             .elementCount = sizeof(kTriangleVertices) / sizeof(uint32_t),
             .pName = "HelloTriangle.VertexBuffer",
             .pInitialData = kTriangleVertices,

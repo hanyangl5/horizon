@@ -57,16 +57,16 @@ bool Clip::LoadClip(const ResourceDirectory resourceDir, const char* fileName)
         return false;
     }
 
-    ssize_t size = GetStreamFileSize(&file);
-    void*   data = MemAllocate(size);
-    ReadFromStream(&file, data, (size_t)size);
+    ssize_t Size = GetStreamFileSize(&file);
+    void*   data = MemAllocate(Size);
+    ReadFromStream(&file, data, (size_t)Size);
     CloseStream(&file);
 
     // Archive is doing a lot of freads from disk which is slow on some platforms and also generally not good
     // So we just read the entire file once into a mem stream so the freads from IArchive are actually
     // only reading from system memory instead of disk or network
     FileStream memStream = {};
-    OpenStreamFromMemory(data, size, FM_READ, true, &memStream);
+    OpenStreamFromMemory(data, Size, FM_READ, true, &memStream);
 
     ozz::io::IArchive archive(&memStream);
     if (!archive.TestTag<ozz::animation::Animation>())

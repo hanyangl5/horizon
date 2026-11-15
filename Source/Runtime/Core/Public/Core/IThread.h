@@ -131,7 +131,7 @@ extern "C"
     {
         /// Work item description and thread index (Main thread => 0)
         ThreadFunction pFunc;
-        void*          pData;
+        void*          Data;
         char           threadName[MAX_THREAD_NAME_LENGTH];
 
         // Affinity is a bit mask. It tells on which CPU thread can run.

@@ -287,11 +287,11 @@ static const char* d3d12_memory_pool_name(uint32_t pool)
     }
 }
 
-static void d3d12_track_gpu_alloc(const void* ptr, uint64_t size, uint32_t pool)
+static void d3d12_track_gpu_alloc(const void* ptr, uint64_t Size, uint32_t pool)
 {
-    if (ptr && size)
+    if (ptr && Size)
     {
-        TracyCAllocNS(ptr, (size_t)size, HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH, d3d12_memory_pool_name(pool));
+        TracyCAllocNS(ptr, (size_t)Size, HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH, d3d12_memory_pool_name(pool));
     }
 }
 
@@ -629,27 +629,27 @@ static void remove_descriptor_heap(DescriptorHeap* pHeap)
     SAFE_FREE(pHeap);
 }
 
-void return_descriptor_handles_unlocked(DescriptorHeap* pHeap, DxDescriptorID handle, uint32_t count)
+void return_descriptor_handles_unlocked(DescriptorHeap* pHeap, DxDescriptorID handle, uint32_t Count)
 {
-    if (D3D12_DESCRIPTOR_ID_NONE == handle || !count)
+    if (D3D12_DESCRIPTOR_ID_NONE == handle || !Count)
     {
         return;
     }
 
-    for (uint32_t id = handle; id < handle + count; ++id)
+    for (uint32_t id = handle; id < handle + Count; ++id)
     {
         const uint32_t i = id / 32;
         const uint32_t mask = ~(1 << (id % 32));
         pHeap->pFlags[i] &= mask;
     }
 
-    pHeap->usedDescriptors -= count;
+    pHeap->usedDescriptors -= Count;
 }
 
-void return_descriptor_handles(DescriptorHeap* pHeap, DxDescriptorID handle, uint32_t count)
+void return_descriptor_handles(DescriptorHeap* pHeap, DxDescriptorID handle, uint32_t Count)
 {
     MutexLock lock(pHeap->mutex);
-    return_descriptor_handles_unlocked(pHeap, handle, count);
+    return_descriptor_handles_unlocked(pHeap, handle, Count);
 }
 
 static DxDescriptorID consume_descriptor_handles(DescriptorHeap* pHeap, uint32_t descriptorCount)
@@ -721,16 +721,16 @@ static inline FORGE_CONSTEXPR D3D12_CPU_DESCRIPTOR_HANDLE descriptor_id_to_cpu_h
     return { pHeap->startCpuHandle.ptr + id * pHeap->descriptorSize };
 }
 
-static DxDescriptorID add_bindless_descriptors(Renderer* pRenderer, D3D12_DESCRIPTOR_HEAP_TYPE type, DxDescriptorID source, uint32_t count)
+static DxDescriptorID add_bindless_descriptors(Renderer* pRenderer, D3D12_DESCRIPTOR_HEAP_TYPE type, DxDescriptorID source, uint32_t Count)
 {
-    if (!count)
+    if (!Count)
         return D3D12_DESCRIPTOR_ID_NONE;
     DescriptorHeap* pSource = pRenderer->dx.pCPUDescriptorHeaps[type];
     DescriptorHeap* pDestination =
         type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER ? pRenderer->dx.pSamplerHeaps[0] : pRenderer->dx.pCbvSrvUavHeaps[0];
-    const DxDescriptorID index = consume_descriptor_handles(pDestination, count);
+    const DxDescriptorID index = consume_descriptor_handles(pDestination, Count);
     if (index != D3D12_DESCRIPTOR_ID_NONE)
-        pRenderer->dx.pDevice->CopyDescriptorsSimple(count, descriptor_id_to_cpu_handle(pDestination, index),
+        pRenderer->dx.pDevice->CopyDescriptorsSimple(Count, descriptor_id_to_cpu_handle(pDestination, index),
                                                      descriptor_id_to_cpu_handle(pSource, source), type);
     return index;
 }
@@ -1982,7 +1982,7 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
     gpuSettings.gpuVendorPreset.presetLevel = pGpuDesc->preset;
     // get VRAM
     gpuSettings.vram = pGpuDesc->dedicatedVideoMemory;
-    // get wave lane count
+    // get wave lane Count
     gpuSettings.waveLaneCount = pGpuDesc->featureDataOptions1.WaveLaneCountMin;
     gpuSettings.waveOpsSupported = pGpuDesc->featureDataOptions1.WaveOps ? true : false;
     gpuSettings.int64ShaderOpsSupported = pGpuDesc->featureDataOptions1.Int64ShaderOps ? true : false;
@@ -2017,13 +2017,13 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
     gpuSettings.gpuUploadHeapSupported = pGpuDesc->featureDataOptions16.GPUUploadHeapSupported ? true : false;
     gpuSettings.executeIndirectIncrementingConstantSupported = true;
     gpuSettings.directStorageSupported = is_directstorage_runtime_available();
-    // compute shader group count
+    // compute shader group Count
     gpuSettings.maxTotalComputeThreads = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP;
     gpuSettings.maxComputeThreads[0] = D3D12_CS_THREAD_GROUP_MAX_X;
     gpuSettings.maxComputeThreads[1] = D3D12_CS_THREAD_GROUP_MAX_Y;
     gpuSettings.maxComputeThreads[2] = D3D12_CS_THREAD_GROUP_MAX_Z;
 
-    // Determine root signature size for this gpu driver
+    // Determine root signature Size for this gpu driver
     DXGI_ADAPTER_DESC adapterDesc;
     pGpuDesc->pGpu->GetDesc(&adapterDesc);
 
@@ -2077,8 +2077,8 @@ static void InitializeBufferDesc(Renderer* pRenderer, const BufferDesc* pDesc, D
     ASSERT(pDesc);
     ASSERT(desc);
 
-    uint64_t allocationSize = pDesc->size;
-    // Align the buffer size to multiples of 256
+    uint64_t allocationSize = pDesc->Size;
+    // Align the buffer Size to multiples of 256
     if ((pDesc->descriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER))
     {
         allocationSize = round_up_64(allocationSize, pRenderer->pGpu->settings.uniformBufferAlignment);
@@ -2167,7 +2167,7 @@ static void InitializeTextureDesc(Renderer* pRenderer, const TextureDesc* pDesc,
     pRenderer->dx.pDevice->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &data, sizeof(data));
     while (data.NumQualityLevels == 0 && data.SampleCount > 0)
     {
-        LOGF(LogLevel::Warning, "Sample Count (%u) not supported. Trying a lower sample count (%u)", data.SampleCount,
+        LOGF(LogLevel::Warning, "Sample Count (%u) not supported. Trying a lower sample Count (%u)", data.SampleCount,
              data.SampleCount / 2);
         data.SampleCount = desc->SampleDesc.Count / 2;
         pRenderer->dx.pDevice->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &data, sizeof(data));
@@ -2808,7 +2808,7 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
             desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
             add_descriptor_heap(pRenderer->dx.pDevice, &desc, &pRenderer->dx.pCbvSrvUavHeaps[0]);
 
-            // Max sampler descriptor count
+            // Max sampler descriptor Count
             desc.NumDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
             desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
             add_descriptor_heap(pRenderer->dx.pDevice, &desc, &pRenderer->dx.pSamplerHeaps[0]);
@@ -2822,7 +2822,7 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
         desc.pAdapter = pRenderer->pGpu->dx.pGpu;
 
         D3D12MA::ALLOCATION_CALLBACKS allocationCallbacks = {};
-        allocationCallbacks.pAllocate = [](size_t size, size_t alignment, void*) { return MemAllocateAligned(alignment, size); };
+        allocationCallbacks.pAllocate = [](size_t Size, size_t alignment, void*) { return MemAllocateAligned(alignment, Size); };
         allocationCallbacks.pFree = [](void* ptr, void*) { MemDeallocate(ptr); };
         desc.pAllocationCallbacks = &allocationCallbacks;
         CHECK_HRESULT(D3D12MA::CreateAllocator(&desc, &pRenderer->dx.pResourceAllocator));
@@ -3164,7 +3164,7 @@ HRESULT d3d12_addDirectStorageQueue(DirectStorage* pDirectStorage, const DirectS
 
     DSTORAGE_QUEUE_DESC queueDesc = {};
     queueDesc.SourceType = util_to_dstorage_source_type(pDesc->sourceType);
-    queueDesc.Capacity = pDesc->capacity ? pDesc->capacity : DSTORAGE_MIN_QUEUE_CAPACITY;
+    queueDesc.Capacity = pDesc->Capacity ? pDesc->Capacity : DSTORAGE_MIN_QUEUE_CAPACITY;
     queueDesc.Priority = util_to_dstorage_priority(pDesc->priority);
     queueDesc.Name = pDesc->pName;
     queueDesc.Device = pDirectStorage->pRenderer->dx.pDevice;
@@ -3237,7 +3237,7 @@ void d3d12_closeDirectStorageFile(DirectStorageFile* pFile)
     SAFE_FREE(pFile);
 }
 
-HRESULT d3d12_addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t capacity, const char* pName,
+HRESULT d3d12_addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t Capacity, const char* pName,
                                           DirectStorageStatusArray** ppStatusArray)
 {
     ASSERT(pDirectStorage);
@@ -3246,7 +3246,7 @@ HRESULT d3d12_addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_
     *ppStatusArray = NULL;
 
     IDStorageStatusArray* pDxStatusArray = NULL;
-    HRESULT hr = pDirectStorage->pFactory->CreateStatusArray(capacity, pName, __uuidof(IDStorageStatusArray), (void**)&pDxStatusArray);
+    HRESULT hr = pDirectStorage->pFactory->CreateStatusArray(Capacity, pName, __uuidof(IDStorageStatusArray), (void**)&pDxStatusArray);
     if (FAILED(hr))
     {
         return hr;
@@ -3704,7 +3704,7 @@ void d3d12_addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, R
     ASSERT(pDesc);
     ASSERT(ppHeap);
 
-    uint64_t allocationSize = pDesc->size;
+    uint64_t allocationSize = pDesc->Size;
 
     if ((pDesc->descriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER))
     {
@@ -3737,7 +3737,7 @@ void d3d12_addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, R
 
     ResourceHeap* pHeap = (ResourceHeap*)MemCallocate(1, sizeof(ResourceHeap));
     pHeap->dx.pHeap = pDxHeap;
-    pHeap->size = pDesc->size;
+    pHeap->Size = pDesc->Size;
 
 #if defined(ENABLE_TRACY_MEMORY)
     pHeap->memoryTrackingPool = D3D12_MEMORY_TRACKING_POOL_EXPLICIT_HEAP;
@@ -3800,7 +3800,7 @@ void d3d12_getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, Reso
     const UINT                           visibleMask = 1;
     const D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pRenderer->dx.pDevice->GetResourceAllocationInfo(visibleMask, 1, &desc);
 
-    pOut->size = allocInfo.SizeInBytes;
+    pOut->Size = allocInfo.SizeInBytes;
     pOut->alignment = allocInfo.Alignment;
 }
 
@@ -3816,7 +3816,7 @@ void d3d12_getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, Re
     const UINT                           visibleMask = 1;
     const D3D12_RESOURCE_ALLOCATION_INFO allocInfo = pRenderer->dx.pDevice->GetResourceAllocationInfo(visibleMask, 1, &desc);
 
-    pOut->size = allocInfo.SizeInBytes;
+    pOut->Size = allocInfo.SizeInBytes;
     pOut->alignment = allocInfo.Alignment;
 }
 
@@ -3827,7 +3827,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     // verify adding at least 1 buffer
     ASSERT(pDesc);
     ASSERT(ppBuffer);
-    ASSERT(pDesc->size > 0);
+    ASSERT(pDesc->Size > 0);
 
     // initialize to zero
     Buffer* pBuffer = (Buffer*)MemCallocateAligned(1, alignof(Buffer), sizeof(Buffer));
@@ -3994,7 +3994,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
         d3d12_set_allocation_name(pBuffer->dx.pAllocation, pDesc->pName);
 #endif
 
-    pBuffer->size = (uint32_t)pDesc->size;
+    pBuffer->Size = (uint32_t)pDesc->Size;
     pBuffer->memoryUsage = memoryUsage;
     pBuffer->descriptors = pDesc->descriptors;
 
@@ -4050,11 +4050,11 @@ void d3d12_mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
     UNREF_PARAM(pRenderer);
     ASSERT(pBuffer->memoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY && "Trying to map non-cpu accessible resource");
 
-    D3D12_RANGE range = { 0, pBuffer->size };
+    D3D12_RANGE range = { 0, pBuffer->Size };
     if (pRange)
     {
         range.Begin += pRange->offset;
-        range.End = range.Begin + pRange->size;
+        range.End = range.Begin + pRange->Size;
     }
 
     CHECK_HRESULT(pBuffer->dx.pResource->Map(0, &range, &pBuffer->pCpuMappedAddress));
@@ -4955,24 +4955,24 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
         for (uint32_t i = 0; i < pReflection->shaderResourceCount; ++i)
         {
             const ShaderResource& resource = pReflection->pShaderResources[i];
-            if (resource.type != DESCRIPTOR_TYPE_UNIFORM_BUFFER || resource.size != 1 || !isDescriptorRootConstant(resource.name))
+            if (resource.type != DESCRIPTOR_TYPE_UNIFORM_BUFFER || resource.Size != 1 || !isDescriptorRootConstant(resource.name))
             {
                 LOGF(Error, "Shader resource '%s' must use descriptor heap indexing; only root constants may declare registers.",
                      resource.name);
                 valid = false;
                 break;
             }
-            uint32_t size = 0;
+            uint32_t Size = 0;
             for (uint32_t v = 0; v < pReflection->variableCount; ++v)
                 if (pReflection->pVariables[v].parent_index == i)
-                    size = max(size, pReflection->pVariables[v].offset + pReflection->pVariables[v].size);
-            size = (size + 3) / sizeof(uint32_t);
+                    Size = max(Size, pReflection->pVariables[v].offset + pReflection->pVariables[v].Size);
+            Size = (Size + 3) / sizeof(uint32_t);
             const DescriptorIndexMap* pExisting = shgetp_null(pRootSignature->pDescriptorNameToIndexMap, resource.name);
             if (pExisting)
             {
                 D3D12_ROOT_PARAMETER1& parameter = rootParams[pExisting->value];
                 if (parameter.Constants.ShaderRegister != resource.reg || parameter.Constants.RegisterSpace != resource.set ||
-                    parameter.Constants.Num32BitValues != size)
+                    parameter.Constants.Num32BitValues != Size)
                 {
                     LOGF(Error, "Root constant '%s' has incompatible layouts across shaders.", resource.name);
                     valid = false;
@@ -4980,21 +4980,21 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
                 }
                 continue;
             }
-            if (!size || rootSize + size > D3D12_MAX_ROOT_COST)
+            if (!Size || rootSize + Size > D3D12_MAX_ROOT_COST)
             {
                 LOGF(Error, "Root constants exceed the D3D12 limit of %u DWORDs.", D3D12_MAX_ROOT_COST);
                 valid = false;
                 break;
             }
             const uint32_t index = pRootSignature->descriptorCount++;
-            rootSize += size;
+            rootSize += Size;
             shput(pRootSignature->pDescriptorNameToIndexMap, resource.name, index);
             pRootSignature->pDescriptors[index] = { .pName = resource.name,
                                                     .type = DESCRIPTOR_TYPE_ROOT_CONSTANT,
-                                                    .size = size,
+                                                    .Size = Size,
                                                     .handleIndex = index };
             rootParams[index] = { .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
-                                  .Constants = { .ShaderRegister = resource.reg, .RegisterSpace = resource.set, .Num32BitValues = size },
+                                  .Constants = { .ShaderRegister = resource.reg, .RegisterSpace = resource.set, .Num32BitValues = Size },
                                   .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL };
         }
     }
@@ -5046,19 +5046,19 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
         *ppRootSignature = pRootSignature;
 }
 
-void d3d12_addRaytracingRootSignature(Renderer* renderer, uint32_t size, RootSignature** output)
+void d3d12_addRaytracingRootSignature(Renderer* renderer, uint32_t Size, RootSignature** output)
 {
     *output = nullptr;
-    ASSERT(size && !(size % 4) && size <= D3D12_MAX_ROOT_COST * sizeof(uint32_t));
+    ASSERT(Size && !(Size % 4) && Size <= D3D12_MAX_ROOT_COST * sizeof(uint32_t));
     RootSignature* root = (RootSignature*)MemCallocateAligned(1, alignof(RootSignature), sizeof(RootSignature) + sizeof(DescriptorInfo));
     root->pipelineType = PIPELINE_TYPE_COMPUTE;
     root->descriptorCount = 1;
     root->pDescriptors = (DescriptorInfo*)(root + 1);
-    root->pDescriptors[0] = { .pName = "RootConstant0", .type = DESCRIPTOR_TYPE_ROOT_CONSTANT, .size = size / 4, .handleIndex = 0 };
+    root->pDescriptors[0] = { .pName = "RootConstant0", .type = DESCRIPTOR_TYPE_ROOT_CONSTANT, .Size = Size / 4, .handleIndex = 0 };
     sh_new_arena(root->pDescriptorNameToIndexMap);
     shput(root->pDescriptorNameToIndexMap, "RootConstant0", 0);
     const D3D12_ROOT_PARAMETER1         parameter = { .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
-                                                      .Constants = { .ShaderRegister = 0, .RegisterSpace = 0, .Num32BitValues = size / 4 },
+                                                      .Constants = { .ShaderRegister = 0, .RegisterSpace = 0, .Num32BitValues = Size / 4 },
                                                       .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL };
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc = {};
     desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -5145,8 +5145,8 @@ void d3d12_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32
     ASSERT(pDesc);
     ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->type);
     if (!constantCount)
-        constantCount = pDesc->size;
-    ASSERT(offsetIn32BitValues <= pDesc->size && constantCount <= pDesc->size - offsetIn32BitValues);
+        constantCount = pDesc->Size;
+    ASSERT(offsetIn32BitValues <= pDesc->Size && constantCount <= pDesc->Size - offsetIn32BitValues);
 
     if (pRootSignature->pipelineType == PIPELINE_TYPE_GRAPHICS)
         pCmd->dx.pCmdList->SetGraphicsRoot32BitConstants(pDesc->handleIndex, constantCount, pConstants, offsetIn32BitValues);
@@ -5611,11 +5611,11 @@ void d3d12_addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc,
     PipelineCache* pPipelineCache = (PipelineCache*)MemCallocate(1, sizeof(PipelineCache));
     ASSERT(pPipelineCache);
 
-    if (pDesc->size)
+    if (pDesc->Size)
     {
         // D3D12 does not copy pipeline cache data. We have to keep it around until the cache is alive
-        pPipelineCache->dx.pData = MemAllocate(pDesc->size);
-        memcpy(pPipelineCache->dx.pData, pDesc->pData, pDesc->size);
+        pPipelineCache->dx.Data = MemAllocate(pDesc->Size);
+        memcpy(pPipelineCache->dx.Data, pDesc->Data, pDesc->Size);
     }
 
     D3D12_FEATURE_DATA_SHADER_CACHE feature = {};
@@ -5629,7 +5629,7 @@ void d3d12_addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc,
             result = pRenderer->dx.pDevice->QueryInterface(IID_ARGS(&device1));
             if (SUCCEEDED(result))
             {
-                result = device1->CreatePipelineLibrary(pPipelineCache->dx.pData, pDesc->size, IID_ARGS(&pPipelineCache->dx.pLibrary));
+                result = device1->CreatePipelineLibrary(pPipelineCache->dx.Data, pDesc->Size, IID_ARGS(&pPipelineCache->dx.pLibrary));
             }
             SAFE_RELEASE(device1);
         }
@@ -5653,16 +5653,16 @@ void d3d12_removePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCach
     ASSERT(pPipelineCache);
 
     SAFE_RELEASE(pPipelineCache->dx.pLibrary);
-    SAFE_FREE(pPipelineCache->dx.pData);
+    SAFE_FREE(pPipelineCache->dx.Data);
     SAFE_FREE(pPipelineCache);
 #endif
 }
 
-void d3d12_getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* pData)
+void d3d12_getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* Data)
 {
     UNREF_PARAM(pRenderer);
     UNREF_PARAM(pPipelineCache);
-    UNREF_PARAM(pData);
+    UNREF_PARAM(Data);
     ASSERT(pSize);
 
     *pSize = 0;
@@ -5674,9 +5674,9 @@ void d3d12_getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCac
     if (pPipelineCache->dx.pLibrary)
     {
         *pSize = pPipelineCache->dx.pLibrary->GetSerializedSize();
-        if (pData)
+        if (Data)
         {
-            CHECK_HRESULT(pPipelineCache->dx.pLibrary->Serialize(pData, *pSize));
+            CHECK_HRESULT(pPipelineCache->dx.pLibrary->Serialize(Data, *pSize));
         }
     }
 #endif
@@ -5980,7 +5980,7 @@ void d3d12_cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, ui
     D3D12_INDEX_BUFFER_VIEW ibView = {};
     ibView.BufferLocation = pBuffer->dx.gpuAddress + offset;
     ibView.Format = (INDEX_TYPE_UINT16 == indexType) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
-    ibView.SizeInBytes = (UINT)(pBuffer->size - offset);
+    ibView.SizeInBytes = (UINT)(pBuffer->Size - offset);
 
     // bind given index buffer
     pCmd->dx.pCmdList->IASetIndexBuffer(&ibView);
@@ -6000,7 +6000,7 @@ void d3d12_cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffe
         ASSERT(D3D12_GPU_VIRTUAL_ADDRESS_NULL != ppBuffers[i]->dx.gpuAddress);
 
         views[i].BufferLocation = (ppBuffers[i]->dx.gpuAddress + (pOffsets ? pOffsets[i] : 0));
-        views[i].SizeInBytes = (UINT)(ppBuffers[i]->size - (pOffsets ? pOffsets[i] : 0));
+        views[i].SizeInBytes = (UINT)(ppBuffers[i]->Size - (pOffsets ? pOffsets[i] : 0));
         views[i].StrideInBytes = (UINT)pStrides[i];
     }
 
@@ -6256,25 +6256,25 @@ void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarri
     }
 }
 
-void d3d12_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
+void d3d12_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t Size)
 {
     ASSERT(pCmd);
     ASSERT(pSrcBuffer);
     ASSERT(pSrcBuffer->dx.pResource);
     ASSERT(pBuffer);
     ASSERT(pBuffer->dx.pResource);
-    ASSERT(dstOffset <= pBuffer->size && size <= pBuffer->size - dstOffset);
-    ASSERT(srcOffset <= pSrcBuffer->size && size <= pSrcBuffer->size - srcOffset);
+    ASSERT(dstOffset <= pBuffer->Size && Size <= pBuffer->Size - dstOffset);
+    ASSERT(srcOffset <= pSrcBuffer->Size && Size <= pSrcBuffer->Size - srcOffset);
 
 #if defined(XBOX)
     if (pCmd->dx.dma.pCmdList)
     {
-        pCmd->dx.dma.pCmdList->CopyBufferRegion(pBuffer->dx.pResource, dstOffset, pSrcBuffer->dx.pResource, srcOffset, size);
+        pCmd->dx.dma.pCmdList->CopyBufferRegion(pBuffer->dx.pResource, dstOffset, pSrcBuffer->dx.pResource, srcOffset, Size);
     }
     else
 #endif
     {
-        pCmd->dx.pCmdList->CopyBufferRegion(pBuffer->dx.pResource, dstOffset, pSrcBuffer->dx.pResource, srcOffset, size);
+        pCmd->dx.pCmdList->CopyBufferRegion(pBuffer->dx.pResource, dstOffset, pSrcBuffer->dx.pResource, srcOffset, Size);
     }
 }
 
@@ -6489,16 +6489,16 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
         ID3D12InfoQueue* info = NULL;
         if (SUCCEEDED(device->QueryInterface(IID_ARGS(&info))))
         {
-            const UINT64 count = info->GetNumStoredMessagesAllowedByRetrievalFilter();
-            for (UINT64 i = 0; i < count; ++i)
+            const UINT64 Count = info->GetNumStoredMessagesAllowedByRetrievalFilter();
+            for (UINT64 i = 0; i < Count; ++i)
             {
-                SIZE_T size = 0;
-                if (FAILED(info->GetMessage(i, NULL, &size)))
+                SIZE_T Size = 0;
+                if (FAILED(info->GetMessage(i, NULL, &Size)))
                 {
                     continue;
                 }
-                D3D12_MESSAGE* message = (D3D12_MESSAGE*)MemAllocate(size);
-                if (SUCCEEDED(info->GetMessage(i, message, &size)) && message->Severity <= D3D12_MESSAGE_SEVERITY_ERROR)
+                D3D12_MESSAGE* message = (D3D12_MESSAGE*)MemAllocate(Size);
+                if (SUCCEEDED(info->GetMessage(i, message, &Size)) && message->Severity <= D3D12_MESSAGE_SEVERITY_ERROR)
                 {
                     LOGF(LogLevel::Error, "D3D12 message %u: %s", (uint32_t)message->ID, message->pDescription);
                 }
@@ -6644,7 +6644,7 @@ void d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatu
     ASSERT(pCommandSignature);
 
     bool                 needRootSignature = false;
-    // calculate size through arguement types
+    // calculate Size through arguement types
     uint32_t             commandStride = 0;
     IndirectArgumentType drawType = INDIRECT_ARG_INVALID;
 
@@ -6670,9 +6670,9 @@ void d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatu
             argumentDescs[i].Constant.DestOffsetIn32BitValues = pDesc->pArgDescs[i].rootConstantDestOffsetIn32BitValues;
             ASSERT(!(pDesc->pArgDescs[i].byteSize % sizeof(UINT)));
             argumentDescs[i].Constant.Num32BitValuesToSet =
-                pDesc->pArgDescs[i].byteSize ? pDesc->pArgDescs[i].byteSize / sizeof(UINT) : desc->size;
-            ASSERT(argumentDescs[i].Constant.DestOffsetIn32BitValues <= desc->size &&
-                   argumentDescs[i].Constant.Num32BitValuesToSet <= desc->size - argumentDescs[i].Constant.DestOffsetIn32BitValues);
+                pDesc->pArgDescs[i].byteSize ? pDesc->pArgDescs[i].byteSize / sizeof(UINT) : desc->Size;
+            ASSERT(argumentDescs[i].Constant.DestOffsetIn32BitValues <= desc->Size &&
+                   argumentDescs[i].Constant.Num32BitValuesToSet <= desc->Size - argumentDescs[i].Constant.DestOffsetIn32BitValues);
             commandStride += sizeof(UINT) * argumentDescs[i].Constant.Num32BitValuesToSet;
             needRootSignature = true;
             break;
@@ -6807,7 +6807,7 @@ void d3d12_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPo
     const uint32_t queryCount = pDesc->queryCount * (QUERY_TYPE_TIMESTAMP == pDesc->type ? 2 : 1);
 
     pQueryPool->dx.type = ToDX12QueryType(pDesc->type);
-    pQueryPool->count = queryCount;
+    pQueryPool->Count = queryCount;
     pQueryPool->stride = ToQueryWidth(pDesc->type);
 
     D3D12_QUERY_HEAP_DESC desc = {};
@@ -6821,7 +6821,7 @@ void d3d12_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPo
     bufDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
     bufDesc.flags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
     bufDesc.elementCount = queryCount;
-    bufDesc.size = queryCount * pQueryPool->stride;
+    bufDesc.Size = queryCount * pQueryPool->stride;
     bufDesc.structStride = pQueryPool->stride;
     bufDesc.pName = pDesc->pName;
     bufDesc.startState = RESOURCE_STATE_COPY_DEST;
@@ -6941,7 +6941,7 @@ void d3d12_getQueryData(Renderer* pRenderer, QueryPool* pQueryPool, uint32_t que
     const uint32_t queryCount = (D3D12_QUERY_TYPE_TIMESTAMP == pQueryPool->dx.type ? 2 : 1);
     ReadRange      range = {};
     range.offset = queryIndex * queryCount * pQueryPool->stride;
-    range.size = queryCount * pQueryPool->stride;
+    range.Size = queryCount * pQueryPool->stride;
     mapBuffer(pRenderer, pQueryPool->dx.pReadbackBuffer, &range);
     uint64_t* queries = (uint64_t*)((uint8_t*)pQueryPool->dx.pReadbackBuffer->pCpuMappedAddress + range.offset);
 

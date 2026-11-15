@@ -30,7 +30,7 @@ struct SceneResourceAccess;
 
 struct BufferDesc
 {
-    uint64_t            size = 0;
+    uint64_t            Size = 0;
     uint32_t            elementCount = 0;
     uint32_t            structStride = 0;
     const char*         pName = nullptr;
@@ -189,7 +189,7 @@ public:
     GPUBuffer& operator=(const GPUBuffer&) = delete;
     bool       isValid() const { return pBuffer != nullptr; }
     Buffer*    get() const { return pBuffer; }
-    uint64_t   getSize() const { return size; }
+    uint64_t   getSize() const { return Size; }
     uint32_t   getSrvIndex() const { return getBufferSrvIndex(pBuffer); }
     uint32_t   getUavIndex() const { return getBufferUavIndex(pBuffer); }
     uint32_t   getCbvIndex() const { return getBufferCbvIndex(pBuffer); }
@@ -199,7 +199,7 @@ private:
     void                  destroy();
     RenderContext*        pContext = nullptr;
     Buffer*               pBuffer = nullptr;
-    uint64_t              size = 0;
+    uint64_t              Size = 0;
     ResourceMemoryUsage   usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
     DescriptorType        descriptors = DESCRIPTOR_TYPE_UNDEFINED;
     mutable ResourceState state = RESOURCE_STATE_UNDEFINED;
@@ -320,7 +320,7 @@ struct Dependencies
 };
 
 // Collects the resources a command touches while handing out their descriptor indices, so binding a
-// resource and declaring its barrier cannot drift apart. Fixed capacity, no allocation.
+// resource and declaring its barrier cannot drift apart. Fixed Capacity, no allocation.
 class DependencyList
 {
 public:
@@ -402,7 +402,7 @@ struct BufferCopyRegion
 {
     uint64_t srcOffset = 0;
     uint64_t dstOffset = 0;
-    uint64_t size = 0;
+    uint64_t Size = 0;
 };
 
 class CommandList
@@ -440,11 +440,11 @@ public:
     void beginGpuTimestamp(const char* name);
     void endGpuTimestamp();
 
-    void copyBuffer(const GPUBuffer& dst, uint64_t dstOffset, const GPUBuffer& src, uint64_t srcOffset, uint64_t size);
+    void copyBuffer(const GPUBuffer& dst, uint64_t dstOffset, const GPUBuffer& src, uint64_t srcOffset, uint64_t Size);
     // Transitions both buffers once for all regions.
     void copyBufferRegions(const GPUBuffer& dst, const GPUBuffer& src, Span<BufferCopyRegion> regions);
-    void fillBuffer(const GPUBuffer& dst, uint64_t dstOffset, uint32_t value, uint64_t size);
-    void updateBuffer(const GPUBuffer& dst, uint64_t dstOffset, const void* pData, uint64_t size);
+    void fillBuffer(const GPUBuffer& dst, uint64_t dstOffset, uint32_t value, uint64_t Size);
+    void updateBuffer(const GPUBuffer& dst, uint64_t dstOffset, const void* Data, uint64_t Size);
 
     void copyTexture(const GPUTexture& dst, const GPUTexture& src);
 
@@ -462,7 +462,7 @@ private:
     void         endGpuFrameProfile();
     void         addBufferBarriers(Span<const GPUBuffer*> buffers, bool storage);
     void         addIndirectBarriers(Span<const GPUBuffer*> buffers);
-    Buffer*      createUploadBuffer(uint64_t size);
+    Buffer*      createUploadBuffer(uint64_t Size);
     void         barrier(uint32_t bufferCount, BufferBarrier*, uint32_t textureCount, TextureBarrier*, uint32_t renderTargetCount,
                          RenderTargetBarrier*);
     void         barrier(const Dependencies&, const GPUBuffer* pIndirectBuffer);
@@ -528,7 +528,7 @@ public:
     // handle alive between frames, so its resource state survives; releaseTransient parks it again.
     GPUTexture* acquireTransient(const TextureDesc&);
     void        releaseTransient(GPUTexture* pTexture);
-    // Destroys parked targets, for example when the render size changes and their descriptors no longer
+    // Destroys parked targets, for example when the render Size changes and their descriptors no longer
     // match. Call after waiting for the GPU; targets still in use are kept.
     void        purgeTransients();
     GPUTexture               loadTexture(ResourceDirectory, const char* pFileName, TextureCreationFlags = TEXTURE_CREATION_FLAG_NONE);
@@ -536,7 +536,7 @@ public:
     GPUPipeline createGraphicsPipeline(const GraphicsPipelineDesc&);
     GPUPipeline createComputePipeline(const ComputePipelineDesc&);
     bool        getGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
-    bool        updateBuffer(const GPUBuffer&, uint64_t offset, const void* pData, uint64_t size);
+    bool        updateBuffer(const GPUBuffer&, uint64_t offset, const void* Data, uint64_t Size);
     // Destroys the buffer once the open command list and all earlier submissions complete.
     void                     deferRelease(GPUBuffer&& buffer);
     // Identifies the open command list, or the latest submission when none is open.

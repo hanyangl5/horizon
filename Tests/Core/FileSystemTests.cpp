@@ -66,7 +66,7 @@ TEST(CoreFileSystemTest, WritableMemoryStreamGrowsWithoutTouchingOriginalBuffer)
     EXPECT_TRUE(CloseStream(&stream));
 }
 
-// Verifies that Buny archive block pointers preserve compression, size, and offset metadata through encode/decode.
+// Verifies that Buny archive block pointers preserve compression, Size, and offset metadata through encode/decode.
 TEST(CoreFileSystemTest, BunyArchiveBlockPointerRoundTripsMetadata)
 {
     const BunyArBlockInfo info = { true, 345u, 432u };
@@ -76,7 +76,7 @@ TEST(CoreFileSystemTest, BunyArchiveBlockPointerRoundTripsMetadata)
 
     const BunyArBlockInfo decoded = bunyArDecodeBlockPointer(ptr);
     EXPECT_EQ(decoded.isCompressed, info.isCompressed);
-    EXPECT_EQ(decoded.size, info.size);
+    EXPECT_EQ(decoded.Size, info.Size);
     EXPECT_EQ(decoded.offset, info.offset);
 }
 

@@ -70,7 +70,7 @@ enum
     MAX_DEBUG_NAME_LENGTH = 128,
     MAX_MIP_LEVELS = 0xFFFFFFFF,
     MAX_SWAPCHAIN_IMAGES = 3,
-    MAX_GPU_VENDOR_STRING_LENGTH = 256, // max size for GPUVendorPreset strings
+    MAX_GPU_VENDOR_STRING_LENGTH = 256, // max Size for GPUVendorPreset strings
     MAX_SAMPLE_LOCATIONS = 16,
 };
 #endif
@@ -196,7 +196,7 @@ struct PlatformParameters
     uint32_t    pAvailableGpuIds[MAX_MULTIPLE_GPUS];
     uint32_t    availableGpuCount;
     uint32_t    selectedGpuIndex;
-    // Could add swap chain size, render target format, ...
+    // Could add swap chain Size, render target format, ...
     uint32_t    preferedGpuId;
 };
 
@@ -677,7 +677,7 @@ struct RenderTargetBarrier
 struct ReadRange
 {
     uint64_t offset;
-    uint64_t size;
+    uint64_t Size;
 };
 
 enum QueryType : uint32_t
@@ -708,7 +708,7 @@ struct QueryPool
         Buffer*          pReadbackBuffer;
         D3D12_QUERY_TYPE type;
     } dx;
-    uint32_t count;
+    uint32_t Count;
     uint32_t stride;
 };
 
@@ -767,7 +767,7 @@ enum ResourceHeapCreationFlags : uint32_t
 
 struct ResourceHeapDesc
 {
-    uint64_t size;
+    uint64_t Size;
     uint64_t alignment;
 
     ResourceMemoryUsage       memoryUsage;
@@ -784,13 +784,13 @@ struct alignas(64) ResourceHeap
         ID3D12Heap* pHeap;
     } dx;
 
-    uint64_t size;
+    uint64_t Size;
     uint32_t memoryTrackingPool;
 };
 
 struct ResourceSizeAlign
 {
-    uint64_t size;
+    uint64_t Size;
     uint64_t alignment;
 };
 
@@ -806,7 +806,7 @@ struct BufferDesc
     /// Optional placement (addBuffer will place/bind buffer in this memory instead of allocating space)
     ResourcePlacement*  pPlacement;
     /// Size of the buffer (in bytes)
-    uint64_t            size;
+    uint64_t            Size;
     /// Set this to specify a counter buffer for this buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
     struct Buffer*      pCounterBuffer;
     /// Index of the first element accessible by the SRV/UAV (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
@@ -858,7 +858,7 @@ struct alignas(64) Buffer
             D3D12MA::Allocation* pAllocation;
         };
     } dx;
-    uint64_t size : 32;
+    uint64_t Size : 32;
     uint64_t descriptors : 20;
     uint64_t memoryUsage : 3;
     uint64_t memoryTrackingMode : 2;
@@ -886,7 +886,7 @@ struct TextureDesc
     uint32_t             height;
     /// Depth (Should be 1 if not a type is not TEXTURE_TYPE_3D)
     uint32_t             depth;
-    /// Texture array size (Should be 1 if texture is not a texture array or cubemap)
+    /// Texture array Size (Should be 1 if texture is not a texture array or cubemap)
     uint32_t             arraySize;
     /// Number of mip levels
     uint32_t             mipLevels;
@@ -948,7 +948,7 @@ struct RenderTargetDesc
     uint32_t             height;
     /// Depth (Should be 1 if not a type is not TEXTURE_TYPE_3D)
     uint32_t             depth;
-    /// Texture array size (Should be 1 if texture is not a texture array or cubemap)
+    /// Texture array Size (Should be 1 if texture is not a texture array or cubemap)
     uint32_t             arraySize;
     /// Number of mip levels
     uint32_t             mipLevels;
@@ -1072,7 +1072,7 @@ struct alignas(16) DescriptorInfo
 {
     const char* pName;
     uint32_t    type;
-    uint32_t    size;
+    uint32_t    Size;
     uint32_t    handleIndex;
 };
 static_assert(sizeof(DescriptorInfo) == 4 * sizeof(uint64_t));
@@ -1238,7 +1238,7 @@ struct ShaderConstant
 {
     const void* pValue;
     uint32_t    index;
-    uint32_t    size;
+    uint32_t    Size;
 };
 
 struct BinaryShaderStageDesc
@@ -1462,9 +1462,9 @@ MAKE_ENUM_FLAG(uint32_t, PipelineCacheFlags);
 struct PipelineCacheDesc
 {
     /// Initial pipeline cache data (can be NULL which means Empty pipeline cache)
-    void*              pData;
-    /// Initial pipeline cache size
-    size_t             size;
+    void*              Data;
+    /// Initial pipeline cache Size
+    size_t             Size;
     PipelineCacheFlags flags;
 };
 
@@ -1473,7 +1473,7 @@ struct PipelineCache
     struct
     {
         ID3D12PipelineLibrary* pLibrary;
-        void*                  pData;
+        void*                  Data;
     } dx;
 };
 
@@ -1579,11 +1579,11 @@ enum ShaderTarget : uint32_t
     SHADER_TARGET_6_6,
     // SM 6.7: advanced texture operations and helper-lane-aware wave ops.
     SHADER_TARGET_6_7,
-    // SM 6.8: work graphs, start vertex/instance system values, and expanded wave size range.
+    // SM 6.8: work graphs, start vertex/instance system values, and expanded wave Size range.
     SHADER_TARGET_6_8,
     // SM 6.9: required wave/16-bit/int64 support, OMM, SER, quad texture ops, and long vectors.
     SHADER_TARGET_6_9,
-    // SM 6.10: preview LinAlg matrix ops, group wave size, and variable group shared memory.
+    // SM 6.10: preview LinAlg matrix ops, group wave Size, and variable group shared memory.
     SHADER_TARGET_6_10,
     SHADER_TARGET_COUNT,
 };
@@ -1830,7 +1830,7 @@ struct DirectStorageDesc
 struct DirectStorageQueueDesc
 {
     DirectStorageSourceType sourceType;
-    uint16_t                capacity;
+    uint16_t                Capacity;
     DirectStoragePriority   priority;
     const char*             pName;
 };
@@ -2026,7 +2026,7 @@ FORGE_RENDERER_API uint32_t FORGE_CALLCONV getDescriptorIndexFromName(const Root
 FORGE_RENDERER_API void FORGE_CALLCONV addPipeline(Renderer* pRenderer, const PipelineDesc* pPipelineSettings, Pipeline** ppPipeline);
 FORGE_RENDERER_API void FORGE_CALLCONV removePipeline(Renderer* pRenderer, Pipeline* pPipeline);
 FORGE_RENDERER_API void FORGE_CALLCONV addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc, PipelineCache** ppPipelineCache);
-FORGE_RENDERER_API void FORGE_CALLCONV getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* pData);
+FORGE_RENDERER_API void FORGE_CALLCONV getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* Data);
 #if defined(SHADER_STATS_AVAILABLE)
 FORGE_RENDERER_API void FORGE_CALLCONV addPipelineStats(Renderer* pRenderer, Pipeline* pPipeline, bool generateDisassembly, PipelineStats* pOutStats);
 FORGE_RENDERER_API void FORGE_CALLCONV removePipelineStats(Renderer* pRenderer, PipelineStats* pStats);
@@ -2079,7 +2079,7 @@ FORGE_RENDERER_API void FORGE_CALLCONV removeDirectStorageQueue(DirectStorageQue
 FORGE_RENDERER_API HRESULT FORGE_CALLCONV openDirectStorageFile(DirectStorage* pDirectStorage, const wchar_t* pPath,
                                                                DirectStorageFile** ppFile);
 FORGE_RENDERER_API void FORGE_CALLCONV closeDirectStorageFile(DirectStorageFile* pFile);
-FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t capacity, const char* pName,
+FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t Capacity, const char* pName,
                                                                      DirectStorageStatusArray** ppStatusArray);
 FORGE_RENDERER_API void FORGE_CALLCONV removeDirectStorageStatusArray(DirectStorageStatusArray* pStatusArray);
 FORGE_RENDERER_API bool FORGE_CALLCONV isDirectStorageStatusComplete(DirectStorageStatusArray* pStatusArray, uint32_t index);

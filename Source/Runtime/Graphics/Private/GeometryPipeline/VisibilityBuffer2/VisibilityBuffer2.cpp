@@ -120,8 +120,8 @@
 //    PreSkinBatchData skinBatchData = {};
 //
 //    const uint32_t      maxTotalPreSkinBatches = gVBSettings.mPreSkinBatchCount * gVBSettings.mNumPreSkinBatchChunks;
-//    const uint64_t      size = maxTotalPreSkinBatches * sizeof(PreSkinBatchData);
-//    GPURingBufferOffset offset = getGPURingBufferOffset(&gPreSkinBatchDataBuffer, (uint32_t)size, (uint32_t)size);
+//    const uint64_t      Size = maxTotalPreSkinBatches * sizeof(PreSkinBatchData);
+//    GPURingBufferOffset offset = getGPURingBufferOffset(&gPreSkinBatchDataBuffer, (uint32_t)Size, (uint32_t)Size);
 //    BufferUpdateDesc    updateDesc = { offset.pBuffer, offset.offset };
 //    beginUpdateResource(&updateDesc);
 //
@@ -244,8 +244,8 @@
 //    cmdBindDescriptorSet(pCmd, pDesc->mFrameIndex, pDesc->pDescriptorSetTriangleFilteringPerFrame);
 //
 //    const uint32_t      maxTotalFilterBatches = gVBSettings.mFilterBatchCount * gVBSettings.mNumFilterBatchChunks;
-//    const uint64_t      size = maxTotalFilterBatches * sizeof(FilterBatchData);
-//    GPURingBufferOffset offset = getGPURingBufferOffset(&gFilterBatchDataBuffer, (uint32_t)size, (uint32_t)size);
+//    const uint64_t      Size = maxTotalFilterBatches * sizeof(FilterBatchData);
+//    GPURingBufferOffset offset = getGPURingBufferOffset(&gFilterBatchDataBuffer, (uint32_t)Size, (uint32_t)Size);
 //    BufferUpdateDesc    updateDesc = { offset.pBuffer, offset.offset };
 //    beginUpdateResource(&updateDesc);
 //
@@ -314,7 +314,7 @@
 //                                            batchDataOffset * sizeof(FilterBatchData));
 //                }
 //
-//                // Make sure we advance to a proper aligned batch count so that the next dispatch call has the memory properly aligned.
+//                // Make sure we advance to a proper aligned batch Count so that the next dispatch call has the memory properly aligned.
 //                // (this can happen if we reached gVBSettings.mMaxPrimitivesPerDrawIndirect before gVBSettings.mBatchCount)
 //                const uint32_t alignedBatchCount =
 //                    round_up(batchCount, gVBSettings.uniformBufferAlignment >= sizeof(FilterBatchData)
@@ -432,9 +432,9 @@
 //{
 //    BufferLoadDesc vertexBufferDesc = {};
 //    vertexBufferDesc.desc.descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | (DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW);
-//    vertexBufferDesc.desc.size =
+//    vertexBufferDesc.desc.Size =
 //        (pDesc->mMaxStaticVertexCount + pDesc->mMaxPreSkinnedVertexCountPerFrame * pDesc->mNumBuffers) * structStride;
-//    vertexBufferDesc.desc.elementCount = (uint32_t)(vertexBufferDesc.desc.size / sizeof(uint32_t));
+//    vertexBufferDesc.desc.elementCount = (uint32_t)(vertexBufferDesc.desc.Size / sizeof(uint32_t));
 //    vertexBufferDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 //    vertexBufferDesc.desc.structStride = structStride;
 //    return vertexBufferDesc;
@@ -461,7 +461,7 @@
 //    bufferDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 //    bufferDesc.desc.startState = RESOURCE_STATE_UNORDERED_ACCESS;
 //    bufferDesc.desc.elementCount = (uint32_t)(vbSize / sizeof(uint32_t));
-//    bufferDesc.desc.size = vbSize;
+//    bufferDesc.desc.Size = vbSize;
 //    bufferDesc.desc.structStride = attrStride;
 //    bufferDesc.desc.pName = pPreSkinBufferName;
 //    bufferDesc.desc.pPlacement = &preSkinnedVertexPlacement;
@@ -516,14 +516,14 @@
 //        getResourceSizeAlign(&VBDescs[0], &sizeAligns[0]);
 //        getResourceSizeAlign(&VBDescs[1], &sizeAligns[1]);
 //
-//        // TODO: There are issues when buffer size is greater than uint32_max, the value is truncated in D3D12 by one call to
+//        // TODO: There are issues when buffer Size is greater than uint32_max, the value is truncated in D3D12 by one call to
 //        // ID3D12Device::GetCopyableFootprints.
 //        //       For now 4Gb of vertex buffer memory per attribute seems more than enough
-//        ASSERT(sizeAligns[0].size <= UINT32_MAX);
-//        ASSERT(sizeAligns[1].size <= UINT32_MAX);
+//        ASSERT(sizeAligns[0].Size <= UINT32_MAX);
+//        ASSERT(sizeAligns[1].Size <= UINT32_MAX);
 //
-//        const uint64_t totalRequiredSize = sizeAligns[0].size + sizeAligns[0].alignment + sizeAligns[1].alignment +
-//        sizeAligns[1].size;
+//        const uint64_t totalRequiredSize = sizeAligns[0].Size + sizeAligns[0].alignment + sizeAligns[1].alignment +
+//        sizeAligns[1].Size;
 //
 //        ResourceHeapDesc desc = {};
 //        desc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
@@ -531,17 +531,17 @@
 //        desc.flags = RESOURCE_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
 //
 //        desc.alignment = sizeAligns[0].alignment; // Align it to the alignment of the first vertex buffer
-//        desc.size = totalRequiredSize;
+//        desc.Size = totalRequiredSize;
 //        desc.pName = "Skinned VertexBuffer Heap";
 //        addResourceHeap(pRenderer, &desc, &pBuffers->pHeap);
 //    }
 //
 //    const uint64_t posOffset = 0; // Heap is already aligned to the alignment of this vertex buffer
-//    const uint64_t normalOffset = round_up_64(posOffset + sizeAligns[0].size, sizeAligns[1].alignment);
+//    const uint64_t normalOffset = round_up_64(posOffset + sizeAligns[0].Size, sizeAligns[1].alignment);
 //
-//    addPreSkinACAliasedBuffer(pRenderer, pDesc, pBuffers->pHeap, posOffset, sizeAligns[0].size, &pBuffers->mPositions, sizeof(float3),
+//    addPreSkinACAliasedBuffer(pRenderer, pDesc, pBuffers->pHeap, posOffset, sizeAligns[0].Size, &pBuffers->mPositions, sizeof(float3),
 //                              "PreSkinBuffer Positions");
-//    addPreSkinACAliasedBuffer(pRenderer, pDesc, pBuffers->pHeap, normalOffset, sizeAligns[1].size, &pBuffers->mNormals, sizeof(uint32_t),
+//    addPreSkinACAliasedBuffer(pRenderer, pDesc, pBuffers->pHeap, normalOffset, sizeAligns[1].Size, &pBuffers->mNormals, sizeof(uint32_t),
 //                              "PreSkinBuffer Normals");
 //
 //    static PreSkinBufferOffsets offsets[VISIBILITY_BUFFER_MAX_NUM_BUFFERS] = {};
@@ -556,13 +556,13 @@
 //        offsets[i].vertexOffset = (uint32_t)vertexOffset;
 //
 //        BufferLoadDesc desc = {};
-//        desc.pData = &offsets[i];
+//        desc.Data = &offsets[i];
 //        desc.ppBuffer = &pBuffers->pShaderOffsets[i];
 //        desc.desc.descriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 //        desc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 //        desc.desc.elementCount = 1;
 //        desc.desc.structStride = sizeof(PreSkinBufferOffsets);
-//        desc.desc.size = desc.desc.elementCount * desc.desc.structStride;
+//        desc.desc.Size = desc.desc.elementCount * desc.desc.structStride;
 //        desc.desc.pName = "PreSkinACShaderBufferOffsets";
 //        addResource(&desc, NULL);
 //    }
@@ -632,10 +632,10 @@
 //    filterIbDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 //    filterIbDesc.desc.elementCount = pDesc->indexCount * 2;
 //    filterIbDesc.desc.structStride = sizeof(uint32_t);
-//    filterIbDesc.desc.size = filterIbDesc.desc.elementCount * filterIbDesc.desc.structStride;
+//    filterIbDesc.desc.Size = filterIbDesc.desc.elementCount * filterIbDesc.desc.structStride;
 //    filterIbDesc.desc.startState = RESOURCE_STATE_UNORDERED_ACCESS;
 //    filterIbDesc.desc.pName = "Bin Buffer";
-//    filterIbDesc.pData = NULL;
+//    filterIbDesc.Data = NULL;
 //
 //    for (uint32_t i = 0; i < pDesc->mNumBuffers; ++i)
 //    {
