@@ -403,19 +403,19 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
 #if defined(_WINDOWS)
     initWindowClass();
     WindowDesc window = {
-        .windowedRect = { 0, 0, 640, 480 },
-        .fullscreenRect = { 0, 0, 640, 480 },
-        .clientRect = { 0, 0, 640, 480 },
-        .hide = true,
-        .noresizeFrame = true,
-        .overrideDefaultPosition = true,
+        .WindowedRect = { 0, 0, 640, 480 },
+        .FullscreenRect = { 0, 0, 640, 480 },
+        .ClientRect = { 0, 0, 640, 480 },
+        .Hidden = true,
+        .NoResizeFrame = true,
+        .OverrideDefaultPosition = true,
     };
     OpenWindow("RenderContextResizeTest", &window);
-    ASSERT_NE(window.handle.window, nullptr);
+    ASSERT_NE(window.Handle.window, nullptr);
 
     const hz::ContextDesc desc = {
         .pAppName = "RenderContextResizeTest",
-        .windowHandle = window.handle,
+        .windowHandle = window.Handle,
         .width = 640,
         .height = 480,
         .imageCount = 2,

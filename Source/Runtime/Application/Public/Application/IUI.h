@@ -655,7 +655,7 @@ FORGE_API void uiOnText(const wchar_t* pText);
 /// 0 -> Not pressed, 1 -> Digits Only keyboard, 2 -> Full Keyboard (Chars + Digits)
 FORGE_API uint8_t uiWantTextInput();
 
-/// Toggle UI rendering, input processing still works (used to hide UI components while taking screenshots)
+/// Toggle UI rendering, input processing still works (used to Hidden UI components while taking screenshots)
 FORGE_API void uiToggleRendering(bool enabled);
 
 /// Returns whether or not UI rendering is currently enabled (see uiToggleRendering)

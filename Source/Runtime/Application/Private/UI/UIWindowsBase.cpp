@@ -115,14 +115,14 @@ void RequestReset(const ResetDesc* pResetDesc) { gResetDescriptor = *pResetDesc;
 
 void RequestReload(const ReloadDesc* pReloadDesc) { gReloadDescriptor = *pReloadDesc; }
 
-void ErrorMessagePopup(const char* title, const char* msg, WindowHandle* handle, errorMessagePopupCallbackFn callback)
+void ErrorMessagePopup(const char* title, const char* msg, WindowHandle* Handle, errorMessagePopupCallbackFn callback)
 {
-    UNREF_PARAM(handle);
+    UNREF_PARAM(Handle);
 #if defined(AUTOMATED_TESTING)
     LOGF(Error, title);
     LOGF(Error, msg);
 #else
-    MessageBoxA((HWND)handle->window, msg, title, MB_OK);
+    MessageBoxA((HWND)Handle->window, msg, title, MB_OK);
 #endif
     if (callback)
     {
@@ -434,8 +434,8 @@ int WindowsMain(int argc, char** argv, IApp* app)
     gWindow = &window;     // WindowsWindow.cpp
     gWindowDesc = &window; // WindowsBase.cpp
     gLogWindowHandle =
-        (HWND*)&window.handle
-            .window; // WindowsLog.c, save the address to this handle to avoid having to adding includes to WindowsLog.c to use WindowDesc*.
+        (HWND*)&window.Handle
+            .window; // WindowsLog.c, save the address to this Handle to avoid having to adding includes to WindowsLog.c to use WindowDesc*.
 
     if (pSettings->monitorIndex < 0 || pSettings->monitorIndex >= (int)gMonitorCount)
     {
@@ -447,31 +447,31 @@ int WindowsMain(int argc, char** argv, IApp* app)
         RectDesc rect = {};
 
         GetRecommendedResolution(&rect);
-        pSettings->width = getRectWidth(&rect);
-        pSettings->height = getRectHeight(&rect);
+        pSettings->width = GetRectWidth(&rect);
+        pSettings->height = GetRectHeight(&rect);
     }
 
     MonitorDesc* monitor = GetMonitor(pSettings->monitorIndex);
     ASSERT(monitor != nullptr);
 
-    gWindow->clientRect = { (int)pSettings->windowX + monitor->monitorRect.left, (int)pSettings->windowY + monitor->monitorRect.top,
+    gWindow->ClientRect = { (int)pSettings->windowX + monitor->MonitorRect.left, (int)pSettings->windowY + monitor->MonitorRect.top,
                             (int)pSettings->width, (int)pSettings->height };
 
-    gWindow->windowedRect = gWindow->clientRect;
-    gWindow->fullScreen = pSettings->fullScreen;
-    gWindow->maximized = false;
-    gWindow->noresizeFrame = !pSettings->dragToResize;
-    gWindow->borderlessWindow = pSettings->borderlessWindow;
-    gWindow->centered = false; // pSettings->centered;
-    gWindow->forceLowDPI = pSettings->forceLowDPI;
-    gWindow->overrideDefaultPosition = true;
-    gWindow->cursorCaptured = false;
+    gWindow->WindowedRect = gWindow->ClientRect;
+    gWindow->Fullscreen = pSettings->Fullscreen;
+    gWindow->Maximized = false;
+    gWindow->NoResizeFrame = !pSettings->dragToResize;
+    gWindow->Borderless = pSettings->Borderless;
+    gWindow->Centered = false; // pSettings->Centered;
+    gWindow->ForceLowDpi = pSettings->ForceLowDpi;
+    gWindow->OverrideDefaultPosition = true;
+    gWindow->CursorCaptured = false;
 
     if (!pSettings->externalWindow)
         OpenWindow(pApp->GetName(), gWindow);
 
-    pSettings->width = gWindow->fullScreen ? getRectWidth(&gWindow->fullscreenRect) : getRectWidth(&gWindow->clientRect);
-    pSettings->height = gWindow->fullScreen ? getRectHeight(&gWindow->fullscreenRect) : getRectHeight(&gWindow->clientRect);
+    pSettings->width = gWindow->Fullscreen ? GetRectWidth(&gWindow->FullscreenRect) : GetRectWidth(&gWindow->ClientRect);
+    pSettings->height = gWindow->Fullscreen ? GetRectHeight(&gWindow->FullscreenRect) : GetRectHeight(&gWindow->ClientRect);
 
     pApp->pCommandLine = GetCommandLineA();
 
@@ -536,7 +536,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
             if (pApp->unsupported)
             {
                 ErrorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
-                                  &pApp->pWindow->handle, NULL);
+                                  &pApp->pWindow->Handle, NULL);
                 ExitLog();
                 return 0;
             }
@@ -578,7 +578,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
         deltaTime = AUTOMATION_FIXED_FRAME_TIME;
 #endif
 
-        bool lastMinimized = gWindow->minimized;
+        bool lastMinimized = gWindow->Minimized;
 
         extern bool handleMessages();
         {
@@ -601,7 +601,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
                     "Graphics Device Lost",
                     "Connection to the graphics device has been lost.\nPlease verify the integrity of your graphics drivers.\nCheck the "
                     "logs for further details.",
-                    &pApp->pWindow->handle, NULL);
+                    &pApp->pWindow->Handle, NULL);
             }
 
             if (gResetDescriptor.type & ResetTypeGraphicCardSwitch)
@@ -633,7 +633,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
                     if (pApp->unsupported)
                     {
                         ErrorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
-                                          &pApp->pWindow->handle, NULL);
+                                          &pApp->pWindow->Handle, NULL);
                         ExitLog();
                         return 0;
                     }
@@ -667,11 +667,11 @@ int WindowsMain(int argc, char** argv, IApp* app)
             continue;
         }
 
-        // If window is minimized let other processes take over
-        if (gWindow->minimized)
+        // If window is Minimized let other processes take over
+        if (gWindow->Minimized)
         {
             // Call update once after minimize so app can react.
-            if (lastMinimized != gWindow->minimized)
+            if (lastMinimized != gWindow->Minimized)
             {
                 pApp->Update(deltaTime);
             }

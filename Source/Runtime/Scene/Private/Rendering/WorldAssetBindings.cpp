@@ -22,7 +22,7 @@ public:
     ~WorldMeshBinding()
     {
         for (const MaterialAssetBinding& material : materials)
-            assetManager.release(material.handle);
+            assetManager.release(material.Handle);
         assetManager.release(view.mesh);
     }
 
@@ -83,14 +83,14 @@ public:
         view.state = AssetBindingState::Ready;
         for (MaterialAssetBinding& material : materials)
         {
-            if (!material.handle.isValid() && !acquire(material.asset, material.handle))
+            if (!material.Handle.isValid() && !acquire(material.asset, material.Handle))
             {
                 fail("Cannot acquire material asset");
                 return;
             }
-            const AssetBindingState materialState = state(material.handle);
+            const AssetBindingState materialState = state(material.Handle);
             if (materialState == AssetBindingState::Failed ||
-                (materialState == AssetBindingState::Ready && !assetManager.getMaterial(material.handle)))
+                (materialState == AssetBindingState::Ready && !assetManager.getMaterial(material.Handle)))
             {
                 fail("Material asset failed to load or has the wrong type");
                 return;
@@ -105,22 +105,22 @@ public:
     bool             seen = false;
 
 private:
-    bool acquire(AssetID id, AssetHandle& handle)
+    bool acquire(AssetID id, AssetHandle& Handle)
     {
         if (assetManager.getState(assetManager.find(id)) == AssetState::Retiring)
         {
             return true;
         }
         AssetError error;
-        handle = assetManager.request(id, &error);
-        return handle.isValid() || error == AssetError::Retiring;
+        Handle = assetManager.request(id, &error);
+        return Handle.isValid() || error == AssetError::Retiring;
     }
 
-    AssetBindingState state(AssetHandle handle) const
+    AssetBindingState state(AssetHandle Handle) const
     {
-        if (!handle.isValid())
+        if (!Handle.isValid())
             return AssetBindingState::Pending;
-        switch (assetManager.getState(handle))
+        switch (assetManager.getState(Handle))
         {
         case AssetState::Ready:
             return AssetBindingState::Ready;
@@ -136,8 +136,8 @@ private:
     void releaseMaterials()
     {
         for (const MaterialAssetBinding& material : materials)
-            if (material.handle.isValid())
-                releases.PushBack(material.handle);
+            if (material.Handle.isValid())
+                releases.PushBack(material.Handle);
         materials.Clear();
         view.materials = {};
     }
@@ -184,7 +184,7 @@ private:
         // Acquire replacements before releasing old leases, including handoffs between entities in this update.
         bool acquired = true;
         for (MaterialAssetBinding& material : next)
-            acquired &= acquire(material.asset, material.handle);
+            acquired &= acquire(material.asset, material.Handle);
         releaseMaterials();
         materials = std::move(next);
         view.materials = { materials.GetData(), materials.Size() };
@@ -270,8 +270,8 @@ public:
             if (i < bindings.Size())
                 hmgetp_null(pIndices, bindings[i]->entity)->value = i;
         }
-        for (AssetHandle handle : releases)
-            assetManager.release(handle);
+        for (AssetHandle Handle : releases)
+            assetManager.release(Handle);
         releases.Clear();
     }
 

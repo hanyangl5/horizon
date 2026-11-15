@@ -175,7 +175,7 @@ Entity World::createEntity()
 
 bool World::owns(Entity entity) const
 {
-    // Invalid entities keep their "none" meaning; a handle from another World is simply not part of this one.
+    // Invalid entities keep their "none" meaning; a Handle from another World is simply not part of this one.
     return !entity.isValid() || entity.world == pImpl->id;
 }
 

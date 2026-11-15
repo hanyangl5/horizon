@@ -570,7 +570,7 @@ enum TextureCreationFlags : uint32_t
     TEXTURE_CREATION_FLAG_EXPORT_BIT = 0x02,
     /// Texture will be allocated in memory which can be shared among multiple gpus
     TEXTURE_CREATION_FLAG_EXPORT_ADAPTER_BIT = 0x04,
-    /// Texture will be imported from a handle created in another process
+    /// Texture will be imported from a Handle created in another process
     TEXTURE_CREATION_FLAG_IMPORT_BIT = 0x08,
     /// Use ESRAM to store this texture
     TEXTURE_CREATION_FLAG_ESRAM = 0x10,
@@ -841,15 +841,15 @@ struct alignas(64) Buffer
     {
         /// GPU Address - Cache to avoid calls to ID3D12Resource::GetGpuVirtualAddress
         D3D12_GPU_VIRTUAL_ADDRESS gpuAddress;
-        /// Descriptor handle of the CBV in a CPU visible descriptor heap (applicable to BUFFER_USAGE_UNIFORM)
+        /// Descriptor Handle of the CBV in a CPU visible descriptor heap (applicable to BUFFER_USAGE_UNIFORM)
         DxDescriptorID            descriptors;
         DxDescriptorID            gpuDescriptors;
-        /// Offset from descriptors for srv descriptor handle
+        /// Offset from descriptors for srv descriptor Handle
         uint8_t                   srvDescriptorOffset;
-        /// Offset from descriptors for uav descriptor handle
+        /// Offset from descriptors for uav descriptor Handle
         uint8_t                   uavDescriptorOffset;
         uint8_t                   markerBuffer : 1;
-        /// Native handle of the underlying resource
+        /// Native Handle of the underlying resource
         ID3D12Resource*           pResource;
         union
         {
@@ -874,7 +874,7 @@ struct TextureDesc
     ResourcePlacement*   pPlacement;
     /// Optimized Clear value (recommended to use this same value when clearing the rendertarget)
     ClearValue           clearValue;
-    /// Pointer to native texture handle if the texture does not own underlying resource
+    /// Pointer to native texture Handle if the texture does not own underlying resource
     const void*          pNativeHandle;
     /// Debug name used in gpu profile
     const char*          pName;
@@ -907,10 +907,10 @@ struct alignas(64) Texture
 {
     struct
     {
-        /// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
+        /// Descriptor Handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
         DxDescriptorID       descriptors;
         DxDescriptorID       gpuDescriptors;
-        /// Native handle of the underlying resource
+        /// Native Handle of the underlying resource
         ID3D12Resource*      pResource;
         /// Contains resource allocation info such as parent heap, offset in heap
         D3D12MA::Allocation* pAllocation;
@@ -1024,7 +1024,7 @@ struct alignas(16) Sampler
     {
         /// Description for creating the Sampler descriptor for this sampler
         D3D12_SAMPLER_DESC desc;
-        /// Descriptor handle of the Sampler in a CPU visible descriptor heap
+        /// Descriptor Handle of the Sampler in a CPU visible descriptor heap
         DxDescriptorID     descriptor;
         DxDescriptorID     gpuDescriptor;
     } dx;
@@ -1508,7 +1508,7 @@ MAKE_ENUM_FLAG(uint32_t, SwapChainCreationFlags);
 
 struct SwapChainDesc
 {
-    /// Window handle
+    /// Window Handle
     WindowHandle           windowHandle;
     /// Queues which should be allowed to present
     Queue**                ppPresentQueues;

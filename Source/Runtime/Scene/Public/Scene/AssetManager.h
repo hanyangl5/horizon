@@ -93,16 +93,16 @@ public:
 
     void                 setLoader(AssetType type, const AssetLoader& loader);
     AssetHandle          request(AssetID id, AssetError* pError = nullptr);
-    bool                 release(AssetHandle handle);
+    bool                 release(AssetHandle Handle);
     void                 update();
-    AssetState           getState(AssetHandle handle) const;
-    AssetError           getError(AssetHandle handle) const;
+    AssetState           getState(AssetHandle Handle) const;
+    AssetError           getError(AssetHandle Handle) const;
     // Empty until the asset fails; the loader reason when it provided one, otherwise the asset path.
-    const char*          getDiagnostic(AssetHandle handle) const;
-    const SceneAsset*    getScene(AssetHandle handle) const;
-    const TextureAsset*  getTexture(AssetHandle handle) const;
-    const MeshAsset*     getMesh(AssetHandle handle) const;
-    const MaterialAsset* getMaterial(AssetHandle handle) const;
+    const char*          getDiagnostic(AssetHandle Handle) const;
+    const SceneAsset*    getScene(AssetHandle Handle) const;
+    const TextureAsset*  getTexture(AssetHandle Handle) const;
+    const MeshAsset*     getMesh(AssetHandle Handle) const;
+    const MaterialAsset* getMaterial(AssetHandle Handle) const;
     // Lookup does not acquire a reference; use request() to retain the asset.
     AssetHandle          find(AssetID id) const;
     // Encodes the ready payload set once per revision. Views expire when the ready set changes.

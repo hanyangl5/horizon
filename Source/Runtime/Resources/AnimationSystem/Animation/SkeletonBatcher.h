@@ -51,7 +51,7 @@ struct UniformSkeletonBlock
     Matrix4 toWorldMat[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
 };
 
-// Description needed to handle buffer updates and draw calls
+// Description needed to Handle buffer updates and draw calls
 struct SkeletonRenderDesc
 {
     Renderer* renderer;

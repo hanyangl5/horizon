@@ -526,7 +526,7 @@ void* MemAllocateAlignedInternal(size_t align, size_t Size, const char* f, int l
     memoryTrackingRecordAlloc(pMemAlign, Size, Size, align);
 #endif
 
-    // Return handle to allocated memory.
+    // Return Handle to allocated memory.
     return pMemAlign;
 }
 
@@ -557,7 +557,7 @@ void* MemCallocateAlignedInternal(size_t Count, size_t align, size_t Size, const
     memoryTrackingRecordAlloc(pMemAlign, requestedSize, allocationSize, align);
 #endif
 
-    // Return handle to allocated memory.
+    // Return Handle to allocated memory.
     return pMemAlign;
 }
 
@@ -577,7 +577,7 @@ void* MemReallocateInternal(void* ptr, size_t Size, const char* f, int l, const 
     memoryTrackingRecordRealloc(ptr, pRealloc, Size, Size, MIN_ALLOC_ALIGNMENT);
 #endif
 
-    // Return handle to reallocated memory.
+    // Return Handle to reallocated memory.
     return pRealloc;
 }
 

@@ -739,7 +739,7 @@ struct InputSystemImpl: public gainput::InputListener
         pWindow = window;
 
 #ifdef GAINPUT_PLATFORM_GGP
-        gainput::SetWindow(pWindow->handle.window);
+        gainput::SetWindow(pWindow->Handle.window);
 #endif
 
 #if TOUCH_INPUT
@@ -765,13 +765,13 @@ struct InputSystemImpl: public gainput::InputListener
         // create input manager
         pInputManager = MemNew(gainput::InputManager);
         ASSERT(pInputManager);
-        pInputManager->Init((void*)pWindow->handle.window);
+        pInputManager->Init((void*)pWindow->Handle.window);
         pGainputView = NULL;
 
 #if defined(_WINDOWS) || defined(XBOX)
-        pInputManager->SetWindowsInstance(window->handle.window);
+        pInputManager->SetWindowsInstance(window->Handle.window);
 #elif defined(ANDROID) && !defined(QUEST_VR)
-        pInputManager->SetWindowsInstance(window->handle.configuration);
+        pInputManager->SetWindowsInstance(window->Handle.configuration);
 #endif
 
 #ifdef TOUCH_INPUT
@@ -1043,12 +1043,12 @@ struct InputSystemImpl: public gainput::InputListener
 
             float x = 0;
             float y = 0;
-            x = (pWindow->windowedRect.right - pWindow->windowedRect.left) / 2;
-            y = (pWindow->windowedRect.bottom - pWindow->windowedRect.top) / 2;
-            XWarpPointer(pWindow->handle.display, None, pWindow->handle.window, 0, 0, 0, 0, x, y);
+            x = (pWindow->WindowedRect.right - pWindow->WindowedRect.left) / 2;
+            y = (pWindow->WindowedRect.bottom - pWindow->WindowedRect.top) / 2;
+            XWarpPointer(pWindow->Handle.display, None, pWindow->Handle.window, 0, 0, 0, 0, x, y);
             gainput::InputDevice* device = pInputManager->GetDevice(rawMouseDeviceID);
             device->WarpMouse(x, y);
-            XFlush(pWindow->handle.display);
+            XFlush(pWindow->Handle.display);
         }
 #endif
     }
@@ -1692,7 +1692,7 @@ struct InputSystemImpl: public gainput::InputListener
 #ifdef __APPLE__
         if (pWindow)
         {
-            void* view = pWindow->handle.window;
+            void* view = pWindow->Handle.window;
             if (!view)
             {
                 ASSERT(false && "View is required");
@@ -1799,7 +1799,7 @@ struct InputSystemImpl: public gainput::InputListener
              *       So we do it manually using JNI.
              */
 
-            ANativeActivity* activity = pWindow->handle.activity;
+            ANativeActivity* activity = pWindow->Handle.activity;
             JNIEnv*          jni;
             jint             result = activity->vm->AttachCurrentThread(&jni, NULL);
             if (result == JNI_ERR)
@@ -2991,7 +2991,7 @@ int32_t InputSystemHandleMessage(WindowDesc* pWindow, void* msg)
         }
     }
 #elif defined(__ANDROID__) && !defined(QUEST_VR)
-    return pInputSystem->pInputManager->HandleInput((AInputEvent*)msg, pWindow->handle.activity);
+    return pInputSystem->pInputManager->HandleInput((AInputEvent*)msg, pWindow->Handle.activity);
 #elif defined(__linux__) && !defined(GAINPUT_PLATFORM_GGP) && !defined(QUEST_VR)
     pInputSystem->pInputManager->HandleEvent(*(XEvent*)msg);
 #endif

@@ -108,13 +108,13 @@ public:
         /// y position for window
         int32_t windowY = 0;
         /// Set to true if fullscreen mode has been requested
-        bool    fullScreen = false;
+        bool    Fullscreen = false;
         /// Set to true if app wants to use an external window
         bool    externalWindow = false;
         /// Drag to resize enabled
         bool    dragToResize = true;
         /// Border less window
-        bool    borderlessWindow = false;
+        bool    Borderless = false;
         /// Set to true if oversize windows requested
         bool    allowedOverSizeWindows = false;
         /// if settings is already initiazlied we don't fill when opening window
@@ -124,11 +124,11 @@ public:
         // Benchmarking is parked while the legacy MicroProfile dump path is replaced.
         // bool    mBenchmarking = false;
         /// if the window is positioned in the center of the screen
-        bool    centered = true;
+        bool    Centered = true;
         /// if the window is focused or in foreground
         bool    focused = true;
         /// Force lowDPI settings for this window
-        bool    forceLowDPI = false;
+        bool    ForceLowDpi = false;
         /// if the platform user interface is visible
         bool    showPlatformUI = true;
 

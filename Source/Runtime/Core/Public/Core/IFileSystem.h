@@ -170,7 +170,7 @@ extern "C"
     ///   io->Read(&stream, ...); // bug, potentially uses wrong io on wrong stream.
     ///   stream.FileSystem->Read(&stream, ...); // correct
     /// The reason for this is that IFileSystem::Open can open stream using another
-    /// IFileSystem handle.
+    /// IFileSystem Handle.
     ///
     /// It is best to use IFileSystem IO shortcuts "ReadFromStream(&stream,...)"
     typedef struct FileStream

@@ -525,7 +525,7 @@ public:
     GPUBuffer   createBuffer(const BufferDesc&);
     GPUTexture  createTexture(const TextureDesc&);
     // Pooled per-frame target, or null when every matching slot is still in use. The pool keeps the
-    // handle alive between frames, so its resource state survives; releaseTransient parks it again.
+    // Handle alive between frames, so its resource state survives; releaseTransient parks it again.
     GPUTexture* acquireTransient(const TextureDesc&);
     void        releaseTransient(GPUTexture* pTexture);
     // Destroys parked targets, for example when the render Size changes and their descriptors no longer
@@ -581,7 +581,7 @@ private:
         uint64_t    submitId = 0;
     };
 
-    // A parked target keeps its handle so resource state and descriptor indices stay valid between frames.
+    // A parked target keeps its Handle so resource state and descriptor indices stay valid between frames.
     struct TransientSlot
     {
         GPUTexture  texture;

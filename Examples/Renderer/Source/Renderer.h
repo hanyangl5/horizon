@@ -95,7 +95,7 @@ private:
     {
         const hz::ContextDesc Desc = {
             .pAppName = GetName(),
-            .windowHandle = pWindow->handle,
+            .windowHandle = pWindow->Handle,
             .imageCount = 3,
             .enableHDR = EnableHDR,
             .enableVSync = settings.vSyncEnabled,

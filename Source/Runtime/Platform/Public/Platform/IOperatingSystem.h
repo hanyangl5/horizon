@@ -179,37 +179,37 @@ typedef struct WindowHandle
 
 typedef struct WindowDesc
 {
-    WindowHandle handle;
-    RectDesc     windowedRect;
-    RectDesc     fullscreenRect;
-    RectDesc     clientRect;
-    uint32_t     windowsFlags;
-    bool         fullScreen;
-    bool         cursorCaptured;
-    bool         iconified;
-    bool         maximized;
-    bool         minimized;
-    bool         hide;
-    bool         noresizeFrame;
-    bool         borderlessWindow;
-    bool         overrideDefaultPosition;
-    bool         centered;
-    bool         forceLowDPI;
+    WindowHandle Handle;
+    RectDesc     WindowedRect;
+    RectDesc     FullscreenRect;
+    RectDesc     ClientRect;
+    uint32_t     Flags;
+    bool         Fullscreen;
+    bool         CursorCaptured;
+    bool         Iconified;
+    bool         Maximized;
+    bool         Minimized;
+    bool         Hidden;
+    bool         NoResizeFrame;
+    bool         Borderless;
+    bool         OverrideDefaultPosition;
+    bool         Centered;
+    bool         ForceLowDpi;
 
-    int32_t windowMode;
+    int32_t Mode;
 
-    int32_t pCurRes[MAX_MONITOR_COUNT];
-    int32_t pLastRes[MAX_MONITOR_COUNT];
+    int32_t CurrentResolution[MAX_MONITOR_COUNT];
+    int32_t LastResolution[MAX_MONITOR_COUNT];
 
-    int32_t wndX;
-    int32_t wndY;
-    int32_t wndW;
-    int32_t wndH;
+    int32_t WindowX;
+    int32_t WindowY;
+    int32_t WindowWidth;
+    int32_t WindowHeight;
 
-    bool    cursorHidden;
-    int32_t cursorInsideWindow;
-    bool    cursorCaptureRequested;
-    bool    minimizeRequested;
+    bool    CursorHidden;
+    int32_t CursorInsideWindow;
+    bool    CursorCaptureRequested;
+    bool    MinimizeRequested;
 
 #if WINDOW_DETAILS
     bstring pWindowedRectLabel;
@@ -242,40 +242,40 @@ typedef struct Resolution
 //
 typedef struct
 {
-    RectDesc     monitorRect;
-    RectDesc     workRect;
-    unsigned int dpi[2];
-    unsigned int physicalSize[2];
+    RectDesc     MonitorRect;
+    RectDesc     WorkRect;
+    unsigned int Dpi[2];
+    unsigned int PhysicalSize[2];
     // This Size matches the static Size of DISPLAY_DEVICE.DeviceName
 #if defined(_WINDOWS) || defined(XBOX)
-    WCHAR adapterName[32];
-    WCHAR displayName[32];
-    WCHAR publicAdapterName[128];
-    WCHAR publicDisplayName[128];
+    WCHAR AdapterName[32];
+    WCHAR DisplayName[32];
+    WCHAR PublicAdapterName[128];
+    WCHAR PublicDisplayName[128];
 #elif defined(__APPLE__)
 #if defined(TARGET_IOS)
 #else
     CGDirectDisplayID displayID;
-    char              publicAdapterName[64];
-    char              publicDisplayName[64];
+    char              PublicAdapterName[64];
+    char              PublicDisplayName[64];
 #endif
 #elif defined(__linux__) && !defined(__ANDROID__)
     Screen* screen;
-    char    adapterName[32];
-    char    displayName[32];
-    char    publicAdapterName[64];
-    char    publicDisplayName[64];
+    char    AdapterName[32];
+    char    DisplayName[32];
+    char    PublicAdapterName[64];
+    char    PublicDisplayName[64];
 #else
-    char                     adapterName[32];
-    char                     displayName[32];
-    char                     publicAdapterName[64];
-    char                     publicDisplayName[64];
+    char                     AdapterName[32];
+    char                     DisplayName[32];
+    char                     PublicAdapterName[64];
+    char                     PublicDisplayName[64];
 #endif
     // stb_ds array of Resolutions
-    Resolution* resolutions;
-    Resolution  defaultResolution;
-    bool        modesPruned;
-    bool        modeChanged;
+    Resolution* Resolutions;
+    Resolution  DefaultResolution;
+    bool        ModesPruned;
+    bool        ModeChanged;
 } MonitorDesc;
 
 typedef enum ThermalStatus
@@ -297,8 +297,8 @@ typedef enum ThermalStatus
     ThermalStatusMax,
 } ThermalStatus;
 
-inline int getRectWidth(const RectDesc* rect) { return rect->right - rect->left; }
-inline int getRectHeight(const RectDesc* rect) { return rect->bottom - rect->top; }
+inline int GetRectWidth(const RectDesc* rect) { return rect->right - rect->left; }
+inline int GetRectHeight(const RectDesc* rect) { return rect->bottom - rect->top; }
 
 // Window handling
 FORGE_API void OpenWindow(const char* app_name, WindowDesc* winDesc);

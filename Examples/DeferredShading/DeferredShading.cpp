@@ -467,7 +467,7 @@ public:
         PROFILER_SET_CPU_SCOPE("DeferredShading", "Init", kCpuProfileColor);
         hz::ContextDesc contextDesc = {
             .pAppName = GetName(),
-            .windowHandle = pWindow->handle,
+            .windowHandle = pWindow->Handle,
             .width = 0,
             .height = 0,
             .imageCount = 2,

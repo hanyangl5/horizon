@@ -218,8 +218,8 @@ public:
             }
             ++i;
         }
-        for (AssetHandle handle : textureReleases)
-            assetManager.release(handle);
+        for (AssetHandle Handle : textureReleases)
+            assetManager.release(Handle);
         textureReleases.Clear();
     }
     static bool extractCamera(Entity entity, Span<const void*> fields, void* User)
@@ -357,7 +357,7 @@ public:
             meshBatch.primitive = entity.primitive;
             meshBatch.submesh = material.submesh;
             meshBatch.mesh = { .mesh = primitives.values[entity.primitive.index].mesh, .submeshIndex = i };
-            meshBatch.material = { .index = material.handle.index, .generation = material.handle.generation };
+            meshBatch.material = { .index = material.Handle.index, .generation = material.Handle.generation };
             entity.meshBatches.PushBack(id);
             const MeshBounds& bounds = mesh.getBounds(i);
             for (uint32_t axis = 0; axis < 3; ++axis)
@@ -404,8 +404,8 @@ public:
             for (uint32_t i = 0; i < entity.meshBatches.Size(); ++i)
             {
                 RenderMeshBatch&    meshBatch = meshBatches.values[entity.meshBatches[i].index];
-                const AssetHandle   handle = pBinding->materials.Data[i].handle;
-                const GpuMaterialID material = { .index = handle.index, .generation = handle.generation };
+                const AssetHandle   Handle = pBinding->materials.Data[i].Handle;
+                const GpuMaterialID material = { .index = Handle.index, .generation = Handle.generation };
                 if (meshBatch.material != material)
                 {
                     meshBatch.material = material;

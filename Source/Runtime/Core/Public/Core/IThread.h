@@ -87,7 +87,7 @@ extern "C"
     typedef struct Mutex
     {
 #if defined(_WINDOWS) || defined(XBOX)
-        CRITICAL_SECTION handle;
+        CRITICAL_SECTION Handle;
 #elif defined(NX64)
     MutexTypeNX             mutexPlatformNX;
     uint32_t                SpinCount;
@@ -161,8 +161,8 @@ typedef pthread_t ThreadHandle;
 #endif
 
     FORGE_API bool InitThread(ThreadDesc* pItem, ThreadHandle* Handle);
-    FORGE_API void JoinThread(ThreadHandle handle);
-    FORGE_API void DetachThread(ThreadHandle handle);
+    FORGE_API void JoinThread(ThreadHandle Handle);
+    FORGE_API void DetachThread(ThreadHandle Handle);
 
     FORGE_API void         SetMainThread(void);
     FORGE_API ThreadID     GetCurrentThreadID(void);

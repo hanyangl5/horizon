@@ -48,27 +48,27 @@ static bstring gScriptName = bemptyfromarr(gScriptNameBuffer);
 static bool wndValidateWindowPos(int32_t x, int32_t y)
 {
     WindowDesc* winDesc = pWindowRef;
-    int         clientWidthStart = (getRectWidth(&winDesc->windowedRect) - getRectWidth(&winDesc->clientRect)) >> 1;
-    int         clientHeightStart = getRectHeight(&winDesc->windowedRect) - getRectHeight(&winDesc->clientRect) - clientWidthStart;
+    int         clientWidthStart = (GetRectWidth(&winDesc->WindowedRect) - GetRectWidth(&winDesc->ClientRect)) >> 1;
+    int         clientHeightStart = GetRectHeight(&winDesc->WindowedRect) - GetRectHeight(&winDesc->ClientRect) - clientWidthStart;
 
-    if (winDesc->centered)
+    if (winDesc->Centered)
     {
-        uint32_t FullscreenHalfWidth = getRectWidth(&winDesc->fullscreenRect) >> 1;
-        uint32_t FullscreenHalfHeight = getRectHeight(&winDesc->fullscreenRect) >> 1;
-        uint32_t windowWidth = getRectWidth(&winDesc->clientRect);
-        uint32_t windowHeight = getRectHeight(&winDesc->clientRect);
+        uint32_t FullscreenHalfWidth = GetRectWidth(&winDesc->FullscreenRect) >> 1;
+        uint32_t FullscreenHalfHeight = GetRectHeight(&winDesc->FullscreenRect) >> 1;
+        uint32_t windowWidth = GetRectWidth(&winDesc->ClientRect);
+        uint32_t windowHeight = GetRectHeight(&winDesc->ClientRect);
         uint32_t windowHalfWidth = windowWidth >> 1;
         uint32_t windowHalfHeight = windowHeight >> 1;
 
         int32_t X = FullscreenHalfWidth - windowHalfWidth;
         int32_t Y = FullscreenHalfHeight - windowHalfHeight;
 
-        if ((abs(winDesc->windowedRect.left + clientWidthStart - X) > 1) || (abs(winDesc->windowedRect.top + clientHeightStart - Y) > 1))
+        if ((abs(winDesc->WindowedRect.left + clientWidthStart - X) > 1) || (abs(winDesc->WindowedRect.top + clientHeightStart - Y) > 1))
             return false;
     }
     else
     {
-        if ((abs(x - winDesc->windowedRect.left - clientWidthStart) > 1) || (abs(y - winDesc->windowedRect.top - clientHeightStart) > 1))
+        if ((abs(x - winDesc->WindowedRect.left - clientWidthStart) > 1) || (abs(y - winDesc->WindowedRect.top - clientHeightStart) > 1))
             return false;
     }
 
@@ -77,8 +77,8 @@ static bool wndValidateWindowPos(int32_t x, int32_t y)
 
 static bool wndValidateWindowSize(int32_t width, int32_t height)
 {
-    RectDesc windowRect = pWindowRef->windowedRect;
-    if ((abs(getRectWidth(&windowRect) - width) > 1) || (abs(getRectHeight(&windowRect) - height) > 1))
+    RectDesc windowRect = pWindowRef->WindowedRect;
+    if ((abs(GetRectWidth(&windowRect) - width) > 1) || (abs(GetRectHeight(&windowRect) - height) > 1))
         return false;
     return true;
 }
@@ -86,7 +86,7 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
 void wndSetWindowed(void* UserData)
 {
     UNREF_PARAM(UserData);
-    SetWindowed(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
+    SetWindowed(pWindowRef, GetRectWidth(&pWindowRef->ClientRect), GetRectHeight(&pWindowRef->ClientRect));
 }
 
 void wndSetFullscreen(void* UserData)
@@ -98,7 +98,7 @@ void wndSetFullscreen(void* UserData)
 void wndSetBorderless(void* UserData)
 {
     UNREF_PARAM(UserData);
-    SetBorderless(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
+    SetBorderless(pWindowRef, GetRectWidth(&pWindowRef->ClientRect), GetRectHeight(&pWindowRef->ClientRect));
 }
 
 void wndMaximizeWindow(void* UserData)
@@ -112,7 +112,7 @@ void wndMaximizeWindow(void* UserData)
 void wndMinimizeWindow(void* UserData)
 {
     UNREF_PARAM(UserData);
-    pWindowRef->minimizeRequested = true;
+    pWindowRef->MinimizeRequested = true;
 }
 
 void wndHideWindow()
@@ -135,14 +135,14 @@ void wndUpdateResolution(void* UserData)
     uint32_t monitorCount = GetMonitorCount();
     for (uint32_t i = 0; i < monitorCount; ++i)
     {
-        if (pWindowRef->pCurRes[i] != pWindowRef->pLastRes[i])
+        if (pWindowRef->CurrentResolution[i] != pWindowRef->LastResolution[i])
         {
             MonitorDesc* monitor = GetMonitor(i);
 
-            int32_t resIndex = pWindowRef->pCurRes[i];
-            SetResolution(monitor, &monitor->resolutions[resIndex]);
+            int32_t resIndex = pWindowRef->CurrentResolution[i];
+            SetResolution(monitor, &monitor->Resolutions[resIndex]);
 
-            pWindowRef->pLastRes[i] = pWindowRef->pCurRes[i];
+            pWindowRef->LastResolution[i] = pWindowRef->CurrentResolution[i];
         }
     }
 }
@@ -152,13 +152,13 @@ void wndMoveWindow(void* UserData)
     WindowDesc* pWindow = pWindowRef;
 
     wndSetWindowed(UserData);
-    int clientWidthStart = (getRectWidth(&pWindow->windowedRect) - getRectWidth(&pWindow->clientRect)) >> 1,
-        clientHeightStart = getRectHeight(&pWindow->windowedRect) - getRectHeight(&pWindow->clientRect) - clientWidthStart;
-    RectDesc rectDesc{ pWindowRef->wndX, pWindowRef->wndY, pWindowRef->wndX + pWindowRef->wndW, pWindowRef->wndY + pWindowRef->wndH };
+    int clientWidthStart = (GetRectWidth(&pWindow->WindowedRect) - GetRectWidth(&pWindow->ClientRect)) >> 1,
+        clientHeightStart = GetRectHeight(&pWindow->WindowedRect) - GetRectHeight(&pWindow->ClientRect) - clientWidthStart;
+    RectDesc rectDesc{ pWindowRef->WindowX, pWindowRef->WindowY, pWindowRef->WindowX + pWindowRef->WindowWidth, pWindowRef->WindowY + pWindowRef->WindowHeight };
     SetWindowRect(pWindow, &rectDesc);
     LOGF(LogLevel::Info, "MoveWindow() Position check: %s",
-         wndValidateWindowPos(pWindowRef->wndX + clientWidthStart, pWindowRef->wndY + clientHeightStart) ? "SUCCESS" : "FAIL");
-    LOGF(LogLevel::Info, "MoveWindow() Size check: %s", wndValidateWindowSize(pWindowRef->wndW, pWindowRef->wndH) ? "SUCCESS" : "FAIL");
+         wndValidateWindowPos(pWindowRef->WindowX + clientWidthStart, pWindowRef->WindowY + clientHeightStart) ? "SUCCESS" : "FAIL");
+    LOGF(LogLevel::Info, "MoveWindow() Size check: %s", wndValidateWindowSize(pWindowRef->WindowWidth, pWindowRef->WindowHeight) ? "SUCCESS" : "FAIL");
 }
 
 void wndSetRecommendedWindowSize(void* UserData)
@@ -172,21 +172,21 @@ void wndSetRecommendedWindowSize(void* UserData)
 
     SetWindowRect(pWindow, &rect);
 
-    pWindowRef->wndX = rect.left;
-    pWindowRef->wndY = rect.top;
-    pWindowRef->wndW = rect.right - rect.left;
-    pWindowRef->wndH = rect.bottom - rect.top;
+    pWindowRef->WindowX = rect.left;
+    pWindowRef->WindowY = rect.top;
+    pWindowRef->WindowWidth = rect.right - rect.left;
+    pWindowRef->WindowHeight = rect.bottom - rect.top;
 }
 
 void wndHideCursor()
 {
-    pWindowRef->cursorHidden = true;
+    pWindowRef->CursorHidden = true;
     HideMouseCursor();
 }
 
 void wndShowCursor()
 {
-    pWindowRef->cursorHidden = false;
+    pWindowRef->CursorHidden = false;
     ShowMouseCursor();
 }
 
@@ -194,7 +194,7 @@ void wndUpdateCaptureCursor(void* UserData)
 {
     UNREF_PARAM(UserData);
 #ifdef ENABLE_FORGE_INPUT
-    SetEnableCaptureInput(pWindowRef->cursorCaptureRequested);
+    SetEnableCaptureInput(pWindowRef->CursorCaptureRequested);
 #endif
 }
 
@@ -213,11 +213,11 @@ void platformInitWindowSystem(WindowDesc* Data)
 {
     ASSERT(pWindowRef == NULL);
 
-    RectDesc currentRes = Data->fullScreen ? Data->fullscreenRect : Data->windowedRect;
-    Data->wndX = currentRes.left;
-    Data->wndY = currentRes.top;
-    Data->wndW = currentRes.right - currentRes.left;
-    Data->wndH = currentRes.bottom - currentRes.top;
+    RectDesc currentRes = Data->Fullscreen ? Data->FullscreenRect : Data->WindowedRect;
+    Data->WindowX = currentRes.left;
+    Data->WindowY = currentRes.top;
+    Data->WindowWidth = currentRes.right - currentRes.left;
+    Data->WindowHeight = currentRes.bottom - currentRes.top;
 
     pWindowRef = Data;
 
@@ -264,51 +264,51 @@ void platformExitWindowSystem()
 
 void platformUpdateWindowSystem()
 {
-    pWindowRef->cursorInsideWindow = IsCursorInsideTrackingArea();
+    pWindowRef->CursorInsideWindow = IsCursorInsideTrackingArea();
 
-    if (pWindowRef->minimizeRequested)
+    if (pWindowRef->MinimizeRequested)
     {
         MinimizeWindow(pWindowRef);
-        pWindowRef->minimizeRequested = false;
+        pWindowRef->MinimizeRequested = false;
     }
 
 #if WINDOW_DETAILS
     bdestroy(&pWindowRef->pWindowedRectLabel);
-    bformat(&pWindowRef->pWindowedRectLabel, "WindowedRect L: %d, T: %d, R: %d, B: %d", pWindowRef->windowedRect.left,
-            pWindowRef->windowedRect.top, pWindowRef->windowedRect.right, pWindowRef->windowedRect.bottom);
+    bformat(&pWindowRef->pWindowedRectLabel, "WindowedRect L: %d, T: %d, R: %d, B: %d", pWindowRef->WindowedRect.left,
+            pWindowRef->WindowedRect.top, pWindowRef->WindowedRect.right, pWindowRef->WindowedRect.bottom);
     bdestroy(&pWindowRef->pFullscreenRectLabel);
-    bformat(&pWindowRef->pFullscreenRectLabel, "FullscreenRect L: %d, T: %d, R: %d, B: %d", pWindowRef->fullscreenRect.left,
-            pWindowRef->fullscreenRect.top, pWindowRef->fullscreenRect.right, pWindowRef->fullscreenRect.bottom);
+    bformat(&pWindowRef->pFullscreenRectLabel, "FullscreenRect L: %d, T: %d, R: %d, B: %d", pWindowRef->FullscreenRect.left,
+            pWindowRef->FullscreenRect.top, pWindowRef->FullscreenRect.right, pWindowRef->FullscreenRect.bottom);
     bdestroy(&pWindowRef->pClientRectLabel);
-    bformat(&pWindowRef->pClientRectLabel, "ClientRect L: %d, T: %d, R: %d, B: %d", pWindowRef->clientRect.left, pWindowRef->clientRect.top,
-            pWindowRef->clientRect.right, pWindowRef->clientRect.bottom);
+    bformat(&pWindowRef->pClientRectLabel, "ClientRect L: %d, T: %d, R: %d, B: %d", pWindowRef->ClientRect.left, pWindowRef->ClientRect.top,
+            pWindowRef->ClientRect.right, pWindowRef->ClientRect.bottom);
     bdestroy(&pWindowRef->pWndLabel);
-    bformat(&pWindowRef->pWndLabel, "Wnd X: %d, Y: %d, W: %d, H: %d", pWindowRef->wndX, pWindowRef->wndY, pWindowRef->wndW,
-            pWindowRef->wndH);
+    bformat(&pWindowRef->pWndLabel, "Wnd X: %d, Y: %d, W: %d, H: %d", pWindowRef->WindowX, pWindowRef->WindowY, pWindowRef->WindowWidth,
+            pWindowRef->WindowHeight);
     bdestroy(&pWindowRef->pFullscreenLabel);
-    bformat(&pWindowRef->pFullscreenLabel, "Fullscreen: %s", pWindowRef->fullScreen ? "True" : "False");
+    bformat(&pWindowRef->pFullscreenLabel, "Fullscreen: %s", pWindowRef->Fullscreen ? "True" : "False");
     bdestroy(&pWindowRef->pCursorCapturedLabel);
-    bformat(&pWindowRef->pCursorCapturedLabel, "CursorCaptured: %s", pWindowRef->cursorCaptured ? "True" : "False");
+    bformat(&pWindowRef->pCursorCapturedLabel, "CursorCaptured: %s", pWindowRef->CursorCaptured ? "True" : "False");
     bdestroy(&pWindowRef->pIconifiedLabel);
-    bformat(&pWindowRef->pIconifiedLabel, "Iconified: %s", pWindowRef->iconified ? "True" : "False");
+    bformat(&pWindowRef->pIconifiedLabel, "Iconified: %s", pWindowRef->Iconified ? "True" : "False");
     bdestroy(&pWindowRef->pMaximizedLabel);
-    bformat(&pWindowRef->pMaximizedLabel, "Maximized: %s", pWindowRef->maximized ? "True" : "False");
+    bformat(&pWindowRef->pMaximizedLabel, "Maximized: %s", pWindowRef->Maximized ? "True" : "False");
     bdestroy(&pWindowRef->pMinimizedLabel);
-    bformat(&pWindowRef->pMinimizedLabel, "Minimized: %s", pWindowRef->minimized ? "True" : "False");
+    bformat(&pWindowRef->pMinimizedLabel, "Minimized: %s", pWindowRef->Minimized ? "True" : "False");
     bdestroy(&pWindowRef->pNoResizeFrameLabel);
-    bformat(&pWindowRef->pNoResizeFrameLabel, "NoResizeFrame: %s", pWindowRef->noresizeFrame ? "True" : "False");
+    bformat(&pWindowRef->pNoResizeFrameLabel, "NoResizeFrame: %s", pWindowRef->NoResizeFrame ? "True" : "False");
     bdestroy(&pWindowRef->pBorderlessWindowLabel);
-    bformat(&pWindowRef->pBorderlessWindowLabel, "BorderlessWindow: %s", pWindowRef->borderlessWindow ? "True" : "False");
+    bformat(&pWindowRef->pBorderlessWindowLabel, "BorderlessWindow: %s", pWindowRef->Borderless ? "True" : "False");
     bdestroy(&pWindowRef->pOverrideDefaultPositionLabel);
     bformat(&pWindowRef->pOverrideDefaultPositionLabel, "OverrideDefaultPosition: %s",
-            pWindowRef->overrideDefaultPosition ? "True" : "False");
+            pWindowRef->OverrideDefaultPosition ? "True" : "False");
     bdestroy(&pWindowRef->pCenteredLabel);
-    bformat(&pWindowRef->pCenteredLabel, "Centered: %s", pWindowRef->centered ? "True" : "False");
+    bformat(&pWindowRef->pCenteredLabel, "Centered: %s", pWindowRef->Centered ? "True" : "False");
     bdestroy(&pWindowRef->pForceLowDPILabel);
-    bformat(&pWindowRef->pForceLowDPILabel, "ForceLowDPI: %s", pWindowRef->forceLowDPI ? "True" : "False");
+    bformat(&pWindowRef->pForceLowDPILabel, "ForceLowDPI: %s", pWindowRef->ForceLowDpi ? "True" : "False");
     bdestroy(&pWindowRef->pWindowModeLabel);
     bformat(&pWindowRef->pWindowModeLabel, "WindowMode: %s",
-            pWindowRef->windowMode == WindowModeBorderless ? "Borderless" : (pWindowRef->windowMode == WindowModeFullscreen ? "Fullscreen" : "Windowed"));
+            pWindowRef->Mode == WindowModeBorderless ? "Borderless" : (pWindowRef->Mode == WindowModeFullscreen ? "Fullscreen" : "Windowed"));
 #endif
 }
 
@@ -366,7 +366,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
 #if defined(_WINDOWS) || defined(__APPLE__) && !defined(TARGET_IOS) || (defined(__linux__) && !defined(__ANDROID__))
     RadioButtonWidget rbWindowed;
-    rbWindowed.Data = &pWindowRef->windowMode;
+    rbWindowed.Data = &pWindowRef->Mode;
     rbWindowed.radioId = WindowModeWindowed;
     UIWidget* pWindowed = uiCreateComponentWidget(pWindowControlsComponent, "Windowed", &rbWindowed, WIDGET_TYPE_RADIO_BUTTON);
     uiSetWidgetOnEditedCallback(pWindowed, nullptr, wndSetWindowed);
@@ -374,7 +374,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
     (pWindowed);
 
     RadioButtonWidget rbFullscreen;
-    rbFullscreen.Data = &pWindowRef->windowMode;
+    rbFullscreen.Data = &pWindowRef->Mode;
     rbFullscreen.radioId = WindowModeFullscreen;
     UIWidget* pFullscreen = uiCreateComponentWidget(pWindowControlsComponent, "Fullscreen", &rbFullscreen, WIDGET_TYPE_RADIO_BUTTON);
     uiSetWidgetOnEditedCallback(pFullscreen, nullptr, wndSetFullscreen);
@@ -382,7 +382,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
     (pFullscreen);
 
     RadioButtonWidget rbBorderless;
-    rbBorderless.Data = &pWindowRef->windowMode;
+    rbBorderless.Data = &pWindowRef->Mode;
     rbBorderless.radioId = WindowModeBorderless;
     UIWidget* pBorderless = uiCreateComponentWidget(pWindowControlsComponent, "Borderless", &rbBorderless, WIDGET_TYPE_RADIO_BUTTON);
     uiSetWidgetOnEditedCallback(pBorderless, nullptr, wndSetBorderless);
@@ -402,7 +402,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
     (pMinimize);
 
     CheckboxWidget rbCentered;
-    rbCentered.Data = &(pWindowRef->centered);
+    rbCentered.Data = &(pWindowRef->Centered);
     (uiCreateComponentWidget(pWindowControlsComponent, "Toggle Window Centered", &rbCentered, WIDGET_TYPE_CHECKBOX));
 
     RectDesc recRes;
@@ -412,27 +412,27 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
     uint32_t recHeight = recRes.bottom - recRes.top;
 
     SliderIntWidget setRectSliderX;
-    setRectSliderX.Data = &pWindowRef->wndX;
+    setRectSliderX.Data = &pWindowRef->WindowX;
     setRectSliderX.min = 0;
     setRectSliderX.max = recWidth;
     (uiCreateComponentWidget(pWindowControlsComponent, "Window X Offset", &setRectSliderX, WIDGET_TYPE_SLIDER_INT));
 
     SliderIntWidget setRectSliderY;
-    setRectSliderY.Data = &pWindowRef->wndY;
+    setRectSliderY.Data = &pWindowRef->WindowY;
     setRectSliderY.min = 0;
     setRectSliderY.max = recHeight;
     (uiCreateComponentWidget(pWindowControlsComponent, "Window Y Offset", &setRectSliderY, WIDGET_TYPE_SLIDER_INT));
 
     SliderIntWidget setRectSliderW;
-    setRectSliderW.Data = &pWindowRef->wndW;
+    setRectSliderW.Data = &pWindowRef->WindowWidth;
     setRectSliderW.min = 144;
-    setRectSliderW.max = getRectWidth(&pWindowRef->fullscreenRect);
+    setRectSliderW.max = GetRectWidth(&pWindowRef->FullscreenRect);
     (uiCreateComponentWidget(pWindowControlsComponent, "Window Width", &setRectSliderW, WIDGET_TYPE_SLIDER_INT));
 
     SliderIntWidget setRectSliderH;
-    setRectSliderH.Data = &pWindowRef->wndH;
+    setRectSliderH.Data = &pWindowRef->WindowHeight;
     setRectSliderH.min = 144;
-    setRectSliderH.max = getRectHeight(&pWindowRef->fullscreenRect);
+    setRectSliderH.max = GetRectHeight(&pWindowRef->FullscreenRect);
     (uiCreateComponentWidget(pWindowControlsComponent, "Window Height", &setRectSliderH, WIDGET_TYPE_SLIDER_INT));
 
     ButtonWidget bSetRect;
@@ -595,47 +595,47 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
     {
         MonitorDesc* monitor = GetMonitor(i);
 
-        char publicDisplayName[128];
+        char PublicDisplayName[128];
 #if defined(_WINDOWS) || defined(XBOX) // Win platform uses wide chars
-        if (128 == wcstombs(publicDisplayName, monitor->publicDisplayName, sizeof(publicDisplayName)))
-            publicDisplayName[127] = '\0';
+        if (128 == wcstombs(PublicDisplayName, monitor->PublicDisplayName, sizeof(PublicDisplayName)))
+            PublicDisplayName[127] = '\0';
 #elif !defined(TARGET_IOS)
-        strcpy(publicDisplayName, monitor->publicDisplayName);
+        strcpy(PublicDisplayName, monitor->PublicDisplayName);
 #endif
         char monitorLabel[128];
-        snprintf(monitorLabel, 128, "%s", publicDisplayName);
+        snprintf(monitorLabel, 128, "%s", PublicDisplayName);
         strcat(monitorLabel, " (");
 
         char buffer[10];
-        snprintf(buffer, 10, "%u", monitor->physicalSize[0]);
+        snprintf(buffer, 10, "%u", monitor->PhysicalSize[0]);
         strcat(monitorLabel, buffer);
         strcat(monitorLabel, "x");
 
-        snprintf(buffer, 10, "%u", monitor->physicalSize[1]);
+        snprintf(buffer, 10, "%u", monitor->PhysicalSize[1]);
         strcat(monitorLabel, buffer);
         strcat(monitorLabel, " mm; ");
 
-        snprintf(buffer, 10, "%u", monitor->dpi[0]);
+        snprintf(buffer, 10, "%u", monitor->Dpi[0]);
         strcat(monitorLabel, buffer);
-        strcat(monitorLabel, " dpi; ");
+        strcat(monitorLabel, " Dpi; ");
 
-        snprintf(buffer, 10, "%u", (unsigned)arrlen(monitor->resolutions));
+        snprintf(buffer, 10, "%u", (unsigned)arrlen(monitor->Resolutions));
         strcat(monitorLabel, buffer);
-        strcat(monitorLabel, " resolutions)");
+        strcat(monitorLabel, " Resolutions)");
 
-        UIWidget**         monitorWidgets = (UIWidget**)MemAllocate(arrlen(monitor->resolutions) * sizeof(UIWidget*));
-        UIWidget*          monitorWidgetsBases = (UIWidget*)MemAllocate(arrlen(monitor->resolutions) * sizeof(UIWidget));
-        RadioButtonWidget* radioWidgets = (RadioButtonWidget*)MemAllocate(arrlen(monitor->resolutions) * sizeof(RadioButtonWidget));
+        UIWidget**         monitorWidgets = (UIWidget**)MemAllocate(arrlen(monitor->Resolutions) * sizeof(UIWidget*));
+        UIWidget*          monitorWidgetsBases = (UIWidget*)MemAllocate(arrlen(monitor->Resolutions) * sizeof(UIWidget));
+        RadioButtonWidget* radioWidgets = (RadioButtonWidget*)MemAllocate(arrlen(monitor->Resolutions) * sizeof(RadioButtonWidget));
 
         CollapsingHeaderWidget monitorHeader;
         monitorHeader.pGroupedWidgets = monitorWidgets;
-        monitorHeader.widgetsCount = (uint32_t)arrlen(monitor->resolutions);
+        monitorHeader.widgetsCount = (uint32_t)arrlen(monitor->Resolutions);
 
-        for (ptrdiff_t j = 0; j < arrlen(monitor->resolutions); ++j)
+        for (ptrdiff_t j = 0; j < arrlen(monitor->Resolutions); ++j)
         {
-            Resolution res = monitor->resolutions[j];
+            Resolution res = monitor->Resolutions[j];
 
-            radioWidgets[j].Data = &pWindowRef->pCurRes[i];
+            radioWidgets[j].Data = &pWindowRef->CurrentResolution[i];
             radioWidgets[j].radioId = (int32_t)j;
 
             monitorWidgets[j] = &monitorWidgetsBases[j];
@@ -650,11 +650,11 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
             snprintf(height, 10, "%u", res.height);
             strcat(monitorWidgetsBases[j].label, height);
 
-            if (monitor->defaultResolution.width == res.width && monitor->defaultResolution.height == res.height)
+            if (monitor->DefaultResolution.width == res.width && monitor->DefaultResolution.height == res.height)
             {
                 strcat(monitorWidgetsBases[j].label, " (native)");
-                pWindowRef->pCurRes[i] = (int32_t)j;
-                pWindowRef->pLastRes[i] = (int32_t)j;
+                pWindowRef->CurrentResolution[i] = (int32_t)j;
+                pWindowRef->LastResolution[i] = (int32_t)j;
             }
 
             uiSetWidgetOnEditedCallback(monitorWidgets[j], nullptr, wndUpdateResolution);
@@ -694,21 +694,21 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_LABEL_WIDGET]->type = WIDGET_TYPE_LABEL;
 
     RadioButtonWidget rCursorInsideRectFalse;
-    rCursorInsideRectFalse.Data = &pWindowRef->cursorInsideWindow;
+    rCursorInsideRectFalse.Data = &pWindowRef->CursorInsideWindow;
     rCursorInsideRectFalse.radioId = 0;
     strcpy(inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->label, "No");
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->pWidget = &rCursorInsideRectFalse;
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->type = WIDGET_TYPE_RADIO_BUTTON;
 
     RadioButtonWidget rCursorInsideRectTrue;
-    rCursorInsideRectTrue.Data = &pWindowRef->cursorInsideWindow;
+    rCursorInsideRectTrue.Data = &pWindowRef->CursorInsideWindow;
     rCursorInsideRectTrue.radioId = 1;
     strcpy(inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->label, "Yes");
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->pWidget = &rCursorInsideRectTrue;
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->type = WIDGET_TYPE_RADIO_BUTTON;
 
     CheckboxWidget bClipCursor;
-    bClipCursor.Data = &pWindowRef->cursorCaptureRequested;
+    bClipCursor.Data = &pWindowRef->CursorCaptureRequested;
 
     strcpy(inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET]->label, "Capture cursor");
     inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET]->pWidget = &bClipCursor;

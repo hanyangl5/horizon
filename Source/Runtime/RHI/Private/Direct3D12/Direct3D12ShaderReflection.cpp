@@ -136,12 +136,12 @@ void fill_shader_resources(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADE
             reflection.pShaderResources[i].name_size = len;
             reflection.pShaderResources[i].dim = sD3D12_TO_RESOURCE_DIM[bindDesc.Dimension];
 
-            // RWTyped is considered as DESCRIPTOR_TYPE_TEXTURE by default so we handle the case for RWBuffer here
+            // RWTyped is considered as DESCRIPTOR_TYPE_TEXTURE by default so we Handle the case for RWBuffer here
             if (bindDesc.Type == D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_RWTYPED && bindDesc.Dimension == D3D_SRV_DIMENSION_BUFFER)
             {
                 reflection.pShaderResources[i].type = DESCRIPTOR_TYPE_RW_BUFFER;
             }
-            // Buffer<> is considered as DESCRIPTOR_TYPE_TEXTURE by default so we handle the case for Buffer<> here
+            // Buffer<> is considered as DESCRIPTOR_TYPE_TEXTURE by default so we Handle the case for Buffer<> here
             if (bindDesc.Type == D3D_SHADER_INPUT_TYPE::D3D_SIT_TEXTURE && bindDesc.Dimension == D3D_SRV_DIMENSION_BUFFER)
             {
                 reflection.pShaderResources[i].type = DESCRIPTOR_TYPE_BUFFER;

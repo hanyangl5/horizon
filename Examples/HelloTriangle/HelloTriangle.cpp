@@ -67,7 +67,7 @@ public:
 
         hz::ContextDesc contextDesc = {
             .pAppName = GetName(),
-            .windowHandle = pWindow->handle,
+            .windowHandle = pWindow->Handle,
             .width = 0,
             .height = 0,
             .imageCount = 3,

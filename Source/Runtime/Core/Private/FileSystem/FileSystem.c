@@ -2028,7 +2028,7 @@ static bool bunyArReadBlockToStagingBuffer(struct BunyArMetadata* archive, struc
         return true;
     }
 
-    // decompressed buffer data is corrupted, so we have to reset handle
+    // decompressed buffer data is corrupted, so we have to reset Handle
     fs->currentBlock = NULL;
     return false;
 }

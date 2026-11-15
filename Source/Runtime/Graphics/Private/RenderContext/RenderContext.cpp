@@ -624,28 +624,28 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
         flipProfiler();
     }
 
-    const SubmitHandle handle = { .id = nextSubmitId++, .commandIndex = commands.commandIndex };
-    resources.submitId = handle.id;
+    const SubmitHandle Handle = { .id = nextSubmitId++, .commandIndex = commands.commandIndex };
+    resources.submitId = Handle.id;
     commands.Clear();
-    return handle;
+    return Handle;
 }
 
-void RenderContext::wait(SubmitHandle handle)
+void RenderContext::wait(SubmitHandle Handle)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::wait");
-    ASSERT(handle.isValid() && handle.commandIndex < maxCommandLists);
-    CommandResources& resources = commandResources[handle.commandIndex];
-    if (resources.submitId == handle.id)
+    ASSERT(Handle.isValid() && Handle.commandIndex < maxCommandLists);
+    CommandResources& resources = commandResources[Handle.commandIndex];
+    if (resources.submitId == Handle.id)
     {
         waitForFences(pRenderer, 1, &resources.pFence);
     }
 }
 
-bool RenderContext::isComplete(SubmitHandle handle) const
+bool RenderContext::isComplete(SubmitHandle Handle) const
 {
-    ASSERT(handle.isValid() && handle.commandIndex < maxCommandLists);
-    const CommandResources& resources = commandResources[handle.commandIndex];
-    if (resources.submitId != handle.id)
+    ASSERT(Handle.isValid() && Handle.commandIndex < maxCommandLists);
+    const CommandResources& resources = commandResources[Handle.commandIndex];
+    if (resources.submitId != Handle.id)
     {
         return true;
     }

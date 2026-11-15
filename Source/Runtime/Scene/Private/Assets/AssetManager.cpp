@@ -68,19 +68,19 @@ public:
     }
     ~AssetManagerData() { hmfree(pIndices); }
 
-    ManagedAsset* find(AssetHandle handle)
+    ManagedAsset* find(AssetHandle Handle)
     {
-        if (handle.index >= assets.Size())
+        if (Handle.index >= assets.Size())
         {
             return nullptr;
         }
-        ManagedAsset& asset = assets[handle.index];
-        return asset.pEntry && asset.generation == handle.generation ? &asset : nullptr;
+        ManagedAsset& asset = assets[Handle.index];
+        return asset.pEntry && asset.generation == Handle.generation ? &asset : nullptr;
     }
 
-    const void* getPayload(AssetHandle handle, AssetType type)
+    const void* getPayload(AssetHandle Handle, AssetType type)
     {
-        const ManagedAsset* pAsset = find(handle);
+        const ManagedAsset* pAsset = find(Handle);
         return pAsset && pAsset->state == AssetState::Ready && pAsset->pEntry->type == type ? pAsset->pPayload : nullptr;
     }
 
@@ -171,9 +171,9 @@ public:
         pending.PushBack(index);
     }
 
-    bool release(AssetHandle handle)
+    bool release(AssetHandle Handle)
     {
-        ManagedAsset* pAsset = find(handle);
+        ManagedAsset* pAsset = find(Handle);
         if (!pAsset || !pAsset->references)
         {
             return false;
@@ -183,8 +183,8 @@ public:
             pAsset->state = AssetState::Retiring;
             // The payload left the ready set; work recorded until now may still reference it.
             pAsset->gpuUse = pContext ? pContext->getResourceUseId() : 0;
-            markTableDirty(handle.index);
-            queueRetirement(handle.index);
+            markTableDirty(Handle.index);
+            queueRetirement(Handle.index);
         }
         return true;
     }
@@ -545,12 +545,12 @@ AssetHandle AssetManager::request(AssetID id, AssetError* pError)
     {
         Data->create(*pEntry);
     }
-    const AssetHandle handle = hmgetp_null(Data->pIndices, id)->value;
-    ++Data->assets[handle.index].references;
-    return handle;
+    const AssetHandle Handle = hmgetp_null(Data->pIndices, id)->value;
+    ++Data->assets[Handle.index].references;
+    return Handle;
 }
 
-bool AssetManager::release(AssetHandle handle) { return Data->release(handle); }
+bool AssetManager::release(AssetHandle Handle) { return Data->release(Handle); }
 
 void AssetManager::update()
 {
@@ -568,37 +568,37 @@ void AssetManager::update()
     data.retire();
 }
 
-AssetState AssetManager::getState(AssetHandle handle) const
+AssetState AssetManager::getState(AssetHandle Handle) const
 {
-    const ManagedAsset* pAsset = Data->find(handle);
+    const ManagedAsset* pAsset = Data->find(Handle);
     return pAsset ? pAsset->state : AssetState::Invalid;
 }
 
-AssetError AssetManager::getError(AssetHandle handle) const
+AssetError AssetManager::getError(AssetHandle Handle) const
 {
-    const ManagedAsset* pAsset = Data->find(handle);
+    const ManagedAsset* pAsset = Data->find(Handle);
     return pAsset ? pAsset->error : AssetError::UnknownAsset;
 }
 
-const char* AssetManager::getDiagnostic(AssetHandle handle) const
+const char* AssetManager::getDiagnostic(AssetHandle Handle) const
 {
-    const ManagedAsset* pAsset = Data->find(handle);
+    const ManagedAsset* pAsset = Data->find(Handle);
     return pAsset ? pAsset->diagnostic : "";
 }
 
-const SceneAsset* AssetManager::getScene(AssetHandle handle) const
+const SceneAsset* AssetManager::getScene(AssetHandle Handle) const
 {
-    return (const SceneAsset*)Data->getPayload(handle, AssetType::Scene);
+    return (const SceneAsset*)Data->getPayload(Handle, AssetType::Scene);
 }
 
-const TextureAsset* AssetManager::getTexture(AssetHandle handle) const
+const TextureAsset* AssetManager::getTexture(AssetHandle Handle) const
 {
-    return (const TextureAsset*)Data->getPayload(handle, AssetType::Texture);
+    return (const TextureAsset*)Data->getPayload(Handle, AssetType::Texture);
 }
-const MeshAsset* AssetManager::getMesh(AssetHandle handle) const { return (const MeshAsset*)Data->getPayload(handle, AssetType::Mesh); }
-const MaterialAsset* AssetManager::getMaterial(AssetHandle handle) const
+const MeshAsset* AssetManager::getMesh(AssetHandle Handle) const { return (const MeshAsset*)Data->getPayload(Handle, AssetType::Mesh); }
+const MaterialAsset* AssetManager::getMaterial(AssetHandle Handle) const
 {
-    return (const MaterialAsset*)Data->getPayload(handle, AssetType::Material);
+    return (const MaterialAsset*)Data->getPayload(Handle, AssetType::Material);
 }
 
 AssetHandle AssetManager::find(AssetID id) const

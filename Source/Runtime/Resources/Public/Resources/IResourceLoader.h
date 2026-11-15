@@ -115,7 +115,7 @@ typedef struct BufferChunk
     uint32_t Size;
 } BufferChunk;
 
-// Structure used to sub-allocate chunks on a buffer, keeps track of free memory to handle new requests.
+// Structure used to sub-allocate chunks on a buffer, keeps track of free memory to Handle new requests.
 // Interface to add/remove this allocator is currently private, could be made public if needed.
 typedef struct BufferChunkAllocator
 {
@@ -551,7 +551,7 @@ typedef struct FlushResourceUpdateDesc
 FORGE_RENDERER_API void flushResourceUpdates(FlushResourceUpdateDesc* pDesc);
 
 /// Copies texture data through the GPU copy path.
-/// For optimal use, the amount of data to transfer should be minimized as much as possible and applications should
+/// For optimal use, the amount of data to transfer should be Minimized as much as possible and applications should
 /// provide additional graphics/compute work that the GPU can execute alongside the copy.
 FORGE_RENDERER_API void copyResource(TextureCopyDesc* pTextureDesc, SyncToken* token);
 

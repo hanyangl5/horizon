@@ -629,14 +629,14 @@ static void remove_descriptor_heap(DescriptorHeap* pHeap)
     SAFE_FREE(pHeap);
 }
 
-void return_descriptor_handles_unlocked(DescriptorHeap* pHeap, DxDescriptorID handle, uint32_t Count)
+void return_descriptor_handles_unlocked(DescriptorHeap* pHeap, DxDescriptorID Handle, uint32_t Count)
 {
-    if (D3D12_DESCRIPTOR_ID_NONE == handle || !Count)
+    if (D3D12_DESCRIPTOR_ID_NONE == Handle || !Count)
     {
         return;
     }
 
-    for (uint32_t id = handle; id < handle + Count; ++id)
+    for (uint32_t id = Handle; id < Handle + Count; ++id)
     {
         const uint32_t i = id / 32;
         const uint32_t mask = ~(1 << (id % 32));
@@ -646,10 +646,10 @@ void return_descriptor_handles_unlocked(DescriptorHeap* pHeap, DxDescriptorID ha
     pHeap->usedDescriptors -= Count;
 }
 
-void return_descriptor_handles(DescriptorHeap* pHeap, DxDescriptorID handle, uint32_t Count)
+void return_descriptor_handles(DescriptorHeap* pHeap, DxDescriptorID Handle, uint32_t Count)
 {
     MutexLock lock(pHeap->mutex);
-    return_descriptor_handles_unlocked(pHeap, handle, Count);
+    return_descriptor_handles_unlocked(pHeap, Handle, Count);
 }
 
 static DxDescriptorID consume_descriptor_handles(DescriptorHeap* pHeap, uint32_t descriptorCount)
@@ -2432,15 +2432,15 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
             pRenderer->dx.pDebugValidation->AddStorageFilterEntries(&filter);
         }
 
-        D3D12_MESSAGE_ID hide[] = {
+        D3D12_MESSAGE_ID Hidden[] = {
             // Required when we want to Alias the same memory from multiple buffers and use them at the same time
             // (we know from the App that we don't read/write on the same memory at the same time)
             D3D12_MESSAGE_ID_HEAP_ADDRESS_RANGE_INTERSECTS_MULTIPLE_BUFFERS,
             D3D12_MESSAGE_ID_CREATERESOURCE_STATE_IGNORED,
         };
         D3D12_INFO_QUEUE_FILTER filter = {};
-        filter.DenyList.NumIDs = _countof(hide);
-        filter.DenyList.pIDList = hide;
+        filter.DenyList.NumIDs = _countof(Hidden);
+        filter.DenyList.pIDList = Hidden;
         pRenderer->dx.pDebugValidation->AddStorageFilterEntries(&filter);
 
         if (pRenderer->dx.useDebugCallback)
@@ -2471,10 +2471,10 @@ static void RemoveDevice(Renderer* pRenderer)
     if (pRenderer->dx.pDebugValidation && pRenderer->pGpu->settings.suppressInvalidSubresourceStateAfterExit)
     {
         // bypass AMD driver issue with vk and dxgi swapchains resource states
-        D3D12_MESSAGE_ID        hide[] = { D3D12_MESSAGE_ID_INVALID_SUBRESOURCE_STATE };
+        D3D12_MESSAGE_ID        Hidden[] = { D3D12_MESSAGE_ID_INVALID_SUBRESOURCE_STATE };
         D3D12_INFO_QUEUE_FILTER filter = {};
         filter.DenyList.NumIDs = 1;
-        filter.DenyList.pIDList = hide;
+        filter.DenyList.pIDList = Hidden;
         pRenderer->dx.pDebugValidation->PushStorageFilter(&filter);
     }
     if (pRenderer->dx.useDebugCallback)
@@ -4340,12 +4340,12 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
         uavDesc.Format = util_to_dx12_uav_format(dxFormat);
         for (uint32_t i = 0; i < pDesc->mipLevels; ++i)
         {
-            DxDescriptorID handle = pTexture->dx.descriptors + i + pTexture->dx.uavStartIndex;
+            DxDescriptorID Handle = pTexture->dx.descriptors + i + pTexture->dx.uavStartIndex;
 
             uavDesc.Texture1DArray.MipSlice = i;
             if (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
                 uavDesc.Texture3D.WSize = desc.DepthOrArraySize / (UINT)pow(2.0, int(i));
-            AddUav(pRenderer, NULL, pTexture->dx.pResource, NULL, &uavDesc, &handle);
+            AddUav(pRenderer, NULL, pTexture->dx.pResource, NULL, &uavDesc, &Handle);
         }
     }
 
@@ -4473,22 +4473,22 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
         {
             for (uint32_t j = 0; j < desc.DepthOrArraySize; ++j)
             {
-                DxDescriptorID handle = pRenderTarget->dx.descriptors + (1 + i * desc.DepthOrArraySize + j);
+                DxDescriptorID Handle = pRenderTarget->dx.descriptors + (1 + i * desc.DepthOrArraySize + j);
 
                 if (isDepth)
-                    AddDsv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, i, j, &handle);
+                    AddDsv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, i, j, &Handle);
                 else
-                    AddRtv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, i, j, &handle);
+                    AddRtv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, i, j, &Handle);
             }
         }
         else
         {
-            DxDescriptorID handle = pRenderTarget->dx.descriptors + 1 + i;
+            DxDescriptorID Handle = pRenderTarget->dx.descriptors + 1 + i;
 
             if (isDepth)
-                AddDsv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, i, (uint32_t)-1, &handle);
+                AddDsv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, i, (uint32_t)-1, &Handle);
             else
-                AddRtv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, i, (uint32_t)-1, &handle);
+                AddRtv(pRenderer, NULL, pRenderTarget->pTexture->dx.pResource, dxFormat, i, (uint32_t)-1, &Handle);
         }
     }
 
@@ -5782,25 +5782,25 @@ void d3d12_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
         }
         else
         {
-            uint32_t handle = 0;
+            uint32_t Handle = 0;
             if (desc->useMipSlice)
             {
                 if (desc->useArraySlice)
                 {
-                    handle = 1 + desc->mipSlice * (uint32_t)desc->pRenderTarget->arraySize + desc->arraySlice;
+                    Handle = 1 + desc->mipSlice * (uint32_t)desc->pRenderTarget->arraySize + desc->arraySlice;
                 }
                 else
                 {
-                    handle = 1 + desc->mipSlice;
+                    Handle = 1 + desc->mipSlice;
                 }
             }
             else if (desc->useArraySlice)
             {
-                handle = 1 + desc->arraySlice;
+                Handle = 1 + desc->arraySlice;
             }
 
             rtvs[i] = descriptor_id_to_cpu_handle(pCmd->pRenderer->dx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV],
-                                                  desc->pRenderTarget->dx.descriptors + handle);
+                                                  desc->pRenderTarget->dx.descriptors + Handle);
         }
 
         if (desc->loadAction == LOAD_ACTION_DONTCARE)
@@ -5838,25 +5838,25 @@ void d3d12_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
         }
         else
         {
-            uint32_t handle = 0;
+            uint32_t Handle = 0;
             if (desc->useMipSlice)
             {
                 if (desc->useArraySlice)
                 {
-                    handle = 1 + desc->mipSlice * (uint32_t)desc->pDepthStencil->arraySize + desc->arraySlice;
+                    Handle = 1 + desc->mipSlice * (uint32_t)desc->pDepthStencil->arraySize + desc->arraySlice;
                 }
                 else
                 {
-                    handle = 1 + desc->mipSlice;
+                    Handle = 1 + desc->mipSlice;
                 }
             }
             else if (desc->useArraySlice)
             {
-                handle = 1 + desc->arraySlice;
+                Handle = 1 + desc->arraySlice;
             }
 
             dsv = descriptor_id_to_cpu_handle(pCmd->pRenderer->dx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV],
-                                              desc->pDepthStencil->dx.descriptors + handle);
+                                              desc->pDepthStencil->dx.descriptors + Handle);
         }
 
         ASSERT(dsv.ptr != D3D12_GPU_VIRTUAL_ADDRESS_NULL);
@@ -6453,10 +6453,10 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
     decltype(pQueue->dx.pRenderer->dx)* pRenderer = &pQueue->dx.pRenderer->dx;
     if (pRenderer->pDebugValidation && pRenderer->suppressMismatchingCommandListDuringPresent)
     {
-        D3D12_MESSAGE_ID        hide[] = { D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE };
+        D3D12_MESSAGE_ID        Hidden[] = { D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE };
         D3D12_INFO_QUEUE_FILTER filter = {};
         filter.DenyList.NumIDs = 1;
-        filter.DenyList.pIDList = hide;
+        filter.DenyList.pIDList = Hidden;
         pRenderer->pDebugValidation->PushStorageFilter(&filter);
     }
 #endif

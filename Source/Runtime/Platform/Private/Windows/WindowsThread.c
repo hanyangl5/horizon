@@ -91,21 +91,21 @@ void CallOnce(CallOnceGuard* pGuard, CallOnceFn fn)
 
 bool InitMutex(Mutex* mutex)
 {
-    return InitializeCriticalSectionAndSpinCount((CRITICAL_SECTION*)&mutex->handle, (DWORD)MUTEX_DEFAULT_SPIN_COUNT);
+    return InitializeCriticalSectionAndSpinCount((CRITICAL_SECTION*)&mutex->Handle, (DWORD)MUTEX_DEFAULT_SPIN_COUNT);
 }
 
 void DestroyMutex(Mutex* mutex)
 {
-    CRITICAL_SECTION* cs = (CRITICAL_SECTION*)&mutex->handle;
+    CRITICAL_SECTION* cs = (CRITICAL_SECTION*)&mutex->Handle;
     DeleteCriticalSection(cs);
-    memset(&mutex->handle, 0, sizeof(mutex->handle));
+    memset(&mutex->Handle, 0, sizeof(mutex->Handle));
 }
 
-void LockMutex(Mutex* mutex) { EnterCriticalSection((CRITICAL_SECTION*)&mutex->handle); }
+void LockMutex(Mutex* mutex) { EnterCriticalSection((CRITICAL_SECTION*)&mutex->Handle); }
 
-bool TryLockMutex(Mutex* mutex) { return TryEnterCriticalSection((CRITICAL_SECTION*)&mutex->handle); }
+bool TryLockMutex(Mutex* mutex) { return TryEnterCriticalSection((CRITICAL_SECTION*)&mutex->Handle); }
 
-void UnlockMutex(Mutex* mutex) { LeaveCriticalSection((CRITICAL_SECTION*)&mutex->handle); }
+void UnlockMutex(Mutex* mutex) { LeaveCriticalSection((CRITICAL_SECTION*)&mutex->Handle); }
 
 bool InitConditionVariable(ConditionVariable* cv)
 {
@@ -118,7 +118,7 @@ void DestroyConditionVariable(ConditionVariable* cv) { MemDeallocate(cv->Handle)
 
 void WaitConditionVariable(ConditionVariable* cv, Mutex* pMutex, uint32_t ms)
 {
-    SleepConditionVariableCS((PCONDITION_VARIABLE)cv->Handle, (PCRITICAL_SECTION)&pMutex->handle, ms);
+    SleepConditionVariableCS((PCONDITION_VARIABLE)cv->Handle, (PCRITICAL_SECTION)&pMutex->Handle, ms);
 }
 
 void SignalConditionVariable(ConditionVariable* cv) { WakeConditionVariable((PCONDITION_VARIABLE)cv->Handle); }
@@ -222,19 +222,19 @@ bool InitThread(ThreadDesc* pDesc, ThreadHandle* Handle)
     return *Handle != NULL;
 }
 
-void JoinThread(ThreadHandle handle)
+void JoinThread(ThreadHandle Handle)
 {
-    if (!handle)
+    if (!Handle)
         return;
-    WaitForSingleObject((HANDLE)handle, INFINITE);
-    CloseHandle((HANDLE)handle);
+    WaitForSingleObject((HANDLE)Handle, INFINITE);
+    CloseHandle((HANDLE)Handle);
 }
 
-void DetachThread(ThreadHandle handle)
+void DetachThread(ThreadHandle Handle)
 {
-    if (!handle)
+    if (!Handle)
         return;
-    CloseHandle((HANDLE)handle);
+    CloseHandle((HANDLE)Handle);
 }
 
 unsigned int GetNumCpuCores(void)

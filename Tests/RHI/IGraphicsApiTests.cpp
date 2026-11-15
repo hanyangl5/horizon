@@ -408,16 +408,16 @@ struct LiveRendererHarness
         mWindowClassInitialized = true;
 
         mWindow = {
-            .windowedRect = { 0, 0, (int)width, (int)height },
-            .fullscreenRect = { 0, 0, (int)width, (int)height },
-            .clientRect = { 0, 0, (int)width, (int)height },
-            .hide = true,
-            .noresizeFrame = true,
-            .overrideDefaultPosition = true,
+            .WindowedRect = { 0, 0, (int)width, (int)height },
+            .FullscreenRect = { 0, 0, (int)width, (int)height },
+            .ClientRect = { 0, 0, (int)width, (int)height },
+            .Hidden = true,
+            .NoResizeFrame = true,
+            .OverrideDefaultPosition = true,
         };
 
         OpenWindow(appName, &mWindow);
-        mWindowOpened = mWindow.handle.window != nullptr;
+        mWindowOpened = mWindow.Handle.window != nullptr;
         if (!mWindowOpened)
         {
             mWindowCreationUnavailable = true;
@@ -426,10 +426,10 @@ struct LiveRendererHarness
 
         Queue*        presentQueues[] = { pQueue };
         SwapChainDesc swapChainDesc = {
-            .windowHandle = mWindow.handle,
+            .windowHandle = mWindow.Handle,
             .ppPresentQueues = presentQueues,
             .presentQueueCount = 1,
-            .imageCount = getRecommendedSwapchainImageCount(pRenderer, &mWindow.handle),
+            .imageCount = getRecommendedSwapchainImageCount(pRenderer, &mWindow.Handle),
             .width = width,
             .height = height,
             .enableVsync = false,
@@ -1632,7 +1632,7 @@ TEST_F(RHIIGraphicsApiTest, SwapChainApisAcquirePresentAndToggleVsync)
         FAIL() << "createWindowAndSwapChain failed";
     }
 
-    EXPECT_EQ(harness.pSwapChain->imageCount, getRecommendedSwapchainImageCount(harness.pRenderer, &harness.mWindow.handle));
+    EXPECT_EQ(harness.pSwapChain->imageCount, getRecommendedSwapchainImageCount(harness.pRenderer, &harness.mWindow.Handle));
     EXPECT_EQ(harness.pSwapChain->format, getSupportedSwapchainFormat(harness.pRenderer, nullptr, harness.pSwapChain->colorSpace));
 
     uint32_t imageIndex = UINT32_MAX;

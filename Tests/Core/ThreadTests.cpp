@@ -106,8 +106,8 @@ TEST(CoreThreadTest, ThreadNamingAndConditionVariableWorkTogether)
     };
     memcpy(desc.threadName, "CoreThreadUT", sizeof("CoreThreadUT"));
 
-    ThreadHandle handle = nullptr;
-    ASSERT_TRUE(InitThread(&desc, &handle));
+    ThreadHandle Handle = nullptr;
+    ASSERT_TRUE(InitThread(&desc, &Handle));
 
     LockMutex(&mutex);
     while (!ready)
@@ -116,7 +116,7 @@ TEST(CoreThreadTest, ThreadNamingAndConditionVariableWorkTogether)
     }
     UnlockMutex(&mutex);
 
-    JoinThread(handle);
+    JoinThread(Handle);
 
     EXPECT_STREQ(data.observedName, "CoreThreadUT");
     EXPECT_NE(data.observedThreadId, INVALID_THREAD_ID);

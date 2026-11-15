@@ -439,7 +439,7 @@ typedef struct ActionMappingDesc
     int32_t deviceButtons[4] = { 0 };
 
     // Used for axis buttons
-    // For example, if targetting the left joystick, and we want to handle both the x and y axes,
+    // For example, if targetting the left joystick, and we want to Handle both the x and y axes,
     // then deviceButtons[0] should be the start axis (GAMEPAD_BUTTON_LEFT_STICK_X), and numAxis should be 2.
     // numAxis should be either 1 or 2 when targetting an axis button.
     uint8_t numAxis = 1;

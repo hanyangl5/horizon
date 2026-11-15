@@ -6904,7 +6904,7 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
     if (gUma || memoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
     {
         ASSERTMSG(!pBufferUpdate->pSrcBuffer, "No point in staging buffer when we are directly writing into dst buffer. "
-                                              "If this is not a GPU_ONLY buffer you can use use isUma() to handle this case, no need to "
+                                              "If this is not a GPU_ONLY buffer you can use use isUma() to Handle this case, no need to "
                                               "create this staging buffer on the App side.");
         bool map = !pBuffer->pCpuMappedAddress;
         if (map)

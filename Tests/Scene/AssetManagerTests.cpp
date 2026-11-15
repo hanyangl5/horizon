@@ -243,20 +243,20 @@ TEST_F(AssetManagerTest, CancellationDrainsLateResultsWithoutPublishingOrReusing
     loader.ready = false;
     hz::AssetManager assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle handle = assetManager.request(assetID(1));
+    const hz::AssetHandle Handle = assetManager.request(assetID(1));
     assetManager.update();
-    ASSERT_EQ(assetManager.getState(handle), hz::AssetState::LoadingCPU);
-    EXPECT_TRUE(assetManager.release(handle));
+    ASSERT_EQ(assetManager.getState(Handle), hz::AssetState::LoadingCPU);
+    EXPECT_TRUE(assetManager.release(Handle));
     assetManager.update();
-    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Retiring);
-    EXPECT_EQ(assetManager.getScene(handle), nullptr);
+    EXPECT_EQ(assetManager.getState(Handle), hz::AssetState::Retiring);
+    EXPECT_EQ(assetManager.getScene(Handle), nullptr);
     hz::AssetError error;
     EXPECT_FALSE(assetManager.request(assetID(1), &error).isValid());
     EXPECT_EQ(error, hz::AssetError::Retiring);
     EXPECT_EQ(loader.requestsDestroyed, 0u);
     loader.jobs[1]->ready = true;
     assetManager.update();
-    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Invalid);
+    EXPECT_EQ(assetManager.getState(Handle), hz::AssetState::Invalid);
     EXPECT_EQ(loader.requestsDestroyed, 1u);
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1 }));
 }
@@ -270,15 +270,15 @@ TEST_F(AssetManagerTest, WaitsForDependenciesBeforePublishingDecodedPayload)
     loader.ready = false;
     hz::AssetManager assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle handle = assetManager.request(assetID(2));
+    const hz::AssetHandle Handle = assetManager.request(assetID(2));
     assetManager.update();
     loader.jobs[2]->ready = true;
     assetManager.update();
-    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::WaitingDependencies);
-    EXPECT_EQ(assetManager.getScene(handle), nullptr);
+    EXPECT_EQ(assetManager.getState(Handle), hz::AssetState::WaitingDependencies);
+    EXPECT_EQ(assetManager.getScene(Handle), nullptr);
     loader.jobs[1]->ready = true;
     assetManager.update();
-    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
+    EXPECT_EQ(assetManager.getState(Handle), hz::AssetState::Ready);
     assetManager.shutdown();
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 2, 1 }));
 }
@@ -347,10 +347,10 @@ TEST_F(AssetManagerTest, TraversesAndRetiresDeepDependenciesIteratively)
     TestAssetLoader  loader;
     hz::AssetManager assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle handle = assetManager.request(assetID(1024));
+    const hz::AssetHandle Handle = assetManager.request(assetID(1024));
     assetManager.update();
-    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
-    EXPECT_TRUE(assetManager.release(handle));
+    EXPECT_EQ(assetManager.getState(Handle), hz::AssetState::Ready);
+    EXPECT_TRUE(assetManager.release(Handle));
     assetManager.update();
     EXPECT_EQ(assetManager.getCount(), 0u);
     ASSERT_EQ(loader.destroyed.size(), 1024u);
@@ -391,15 +391,15 @@ TEST_F(AssetManagerTest, UploadFailureAndShutdownUseTheSamePayloadCleanup)
     TestAssetLoader  loader;
     hz::AssetManager assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Scene, loader.getGpuLoader());
-    const hz::AssetHandle handle = assetManager.request(assetID(1));
+    const hz::AssetHandle Handle = assetManager.request(assetID(1));
     assetManager.update();
     loader.uploadReady = true;
     loader.uploadFailed = true;
     assetManager.update();
-    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Failed);
-    EXPECT_EQ(assetManager.getError(handle), hz::AssetError::UploadFailed);
+    EXPECT_EQ(assetManager.getState(Handle), hz::AssetState::Failed);
+    EXPECT_EQ(assetManager.getError(Handle), hz::AssetError::UploadFailed);
     EXPECT_EQ(loader.destroyed, (std::vector<uint32_t>{ 1 }));
-    assetManager.release(handle);
+    assetManager.release(Handle);
     assetManager.update();
     loader.uploadReady = false;
     assetManager.request(assetID(1));
@@ -481,12 +481,12 @@ protected:
         std::filesystem::remove_all(directory);
         AssetManagerTest::TearDown();
     }
-    static void wait(hz::AssetManager& assetManager, hz::AssetHandle handle)
+    static void wait(hz::AssetManager& assetManager, hz::AssetHandle Handle)
     {
         for (uint32_t i = 0; i < 5000; ++i)
         {
             assetManager.update();
-            if (assetManager.getState(handle) == hz::AssetState::Ready || assetManager.getState(handle) == hz::AssetState::Failed)
+            if (assetManager.getState(Handle) == hz::AssetState::Ready || assetManager.getState(Handle) == hz::AssetState::Failed)
                 return;
             ThreadSleep(1);
         }
@@ -513,15 +513,15 @@ TEST_F(SceneAssetLoaderTest, DecodesSceneAsynchronouslyAndPublishesTypedPayload)
     hz::SceneAssetLoader loader(DirectoryOtherFiles);
     hz::AssetManager     assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
-    const hz::AssetHandle handle = assetManager.request(scene.getID());
-    EXPECT_EQ(assetManager.getScene(handle), nullptr);
-    wait(assetManager, handle);
-    ASSERT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
-    ASSERT_NE(assetManager.getScene(handle), nullptr);
-    EXPECT_EQ(assetManager.getScene(handle)->getID(), scene.getID());
-    assetManager.release(handle);
+    const hz::AssetHandle Handle = assetManager.request(scene.getID());
+    EXPECT_EQ(assetManager.getScene(Handle), nullptr);
+    wait(assetManager, Handle);
+    ASSERT_EQ(assetManager.getState(Handle), hz::AssetState::Ready);
+    ASSERT_NE(assetManager.getScene(Handle), nullptr);
+    EXPECT_EQ(assetManager.getScene(Handle)->getID(), scene.getID());
+    assetManager.release(Handle);
     assetManager.update();
-    EXPECT_EQ(assetManager.getScene(handle), nullptr);
+    EXPECT_EQ(assetManager.getScene(Handle), nullptr);
 }
 
 TEST_F(SceneAssetLoaderTest, RejectsMissingFileAndMismatchedIdentityAndDrainsOnShutdown)
@@ -564,10 +564,10 @@ TEST_F(SceneAssetLoaderTest, RejectsPayloadWithDifferentDependenciesFromCatalog)
     hz::AssetManager     assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
     assetManager.setLoader(hz::AssetType::Mesh, meshLoader.getLoader());
-    const hz::AssetHandle handle = assetManager.request(scene.getID());
-    wait(assetManager, handle);
-    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Failed);
-    EXPECT_EQ(assetManager.getScene(handle), nullptr);
+    const hz::AssetHandle Handle = assetManager.request(scene.getID());
+    wait(assetManager, Handle);
+    EXPECT_EQ(assetManager.getState(Handle), hz::AssetState::Failed);
+    EXPECT_EQ(assetManager.getScene(Handle), nullptr);
     EXPECT_EQ(meshLoader.destroyed, (std::vector<uint32_t>{ 1 }));
 }
 
@@ -608,12 +608,12 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
     hz::TextureAssetLoader loader(context, DirectoryOtherFiles);
     hz::AssetManager       assetManager(catalog, &context);
     assetManager.setLoader(hz::AssetType::Texture, loader.getLoader());
-    const hz::AssetHandle handle = assetManager.request(assetID(1));
-    EXPECT_EQ(assetManager.request(assetID(1)), handle);
-    assetManager.release(handle);
-    wait(assetManager, handle);
-    ASSERT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
-    const hz::GPUTexture& texture = assetManager.getTexture(handle)->getTexture();
+    const hz::AssetHandle Handle = assetManager.request(assetID(1));
+    EXPECT_EQ(assetManager.request(assetID(1)), Handle);
+    assetManager.release(Handle);
+    wait(assetManager, Handle);
+    ASSERT_EQ(assetManager.getState(Handle), hz::AssetState::Ready);
+    const hz::GPUTexture& texture = assetManager.getTexture(Handle)->getTexture();
     ASSERT_TRUE(texture.isValid());
     const char      shader[] = R"hlsl(
         cbuffer RootConstant0 { uint textureIndex; uint outputIndex; };
@@ -645,9 +645,9 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
     commands.dispatch(1, 1, 1, { .sampledTextures = { &texture }, .storageBuffers = { &output } });
     commands.copyBuffer(readback, 0, output, 0, 16);
     // The open command list references the texture, so its release waits for that work.
-    assetManager.release(handle);
+    assetManager.release(Handle);
     assetManager.update();
-    EXPECT_EQ(assetManager.getState(handle), hz::AssetState::Retiring);
+    EXPECT_EQ(assetManager.getState(Handle), hz::AssetState::Retiring);
     EXPECT_EQ(assetManager.getCount(), 1u);
     const hz::SubmitHandle submission = context.submit(commands);
     assetManager.shutdown();
@@ -1296,10 +1296,10 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = DirectoryOtherFiles });
     hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
-    const hz::AssetHandle handle = assetManager.request(asset.getMeshes().Data[0].id);
-    wait(assetManager, handle);
-    ASSERT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
-    const hz::MeshAsset* mesh = assetManager.getMesh(handle);
+    const hz::AssetHandle Handle = assetManager.request(asset.getMeshes().Data[0].id);
+    wait(assetManager, Handle);
+    ASSERT_EQ(assetManager.getState(Handle), hz::AssetState::Ready);
+    const hz::MeshAsset* mesh = assetManager.getMesh(Handle);
     ASSERT_NE(mesh, nullptr);
     EXPECT_EQ(mesh->getIndexType(), INDEX_TYPE_UINT32);
     const hz::MeshBounds& bounds = mesh->getBounds(0);
@@ -1309,7 +1309,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
         EXPECT_FLOAT_EQ(bounds.minimum[axis], minimum[axis]);
         EXPECT_FLOAT_EQ(bounds.maximum[axis], maximum[axis]);
     }
-    const hz::GpuMeshData* gpuMesh = assetManager.getGpuTables().getMesh({ .index = handle.index, .generation = handle.generation });
+    const hz::GpuMeshData* gpuMesh = assetManager.getGpuTables().getMesh({ .index = Handle.index, .generation = Handle.generation });
     ASSERT_NE(gpuMesh, nullptr);
     EXPECT_EQ(gpuMesh->indexStride, 4u);
     hz::GPUBuffer    readback = context.createBuffer({ .Size = 48,
@@ -1319,7 +1319,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     hz::CommandList& commands = context.acquireCommandList();
     commands.copyBuffer(readback, 0, mesh->getIndexBuffer(), 0, 12);
     commands.copyBuffer(readback, 12, mesh->getVertexBuffer(0), 0, 36);
-    assetManager.release(handle);
+    assetManager.release(Handle);
     const hz::SubmitHandle submission = context.submit(commands);
     assetManager.shutdown();
     EXPECT_TRUE(context.isComplete(submission));
@@ -1748,8 +1748,8 @@ TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLease
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::light, &light));
     scene.update();
     const hz::RenderLightID id = scene.findLight(a);
-    const hz::AssetHandle   handle = assetManager.find(light.texture);
-    ASSERT_TRUE(handle.isValid());
+    const hz::AssetHandle   Handle = assetManager.find(light.texture);
+    ASSERT_TRUE(Handle.isValid());
     assetManager.update();
     EXPECT_EQ(scene.getLight(id)->ready, 0u);
     EXPECT_FALSE(scene.getLight(id)->texture.isValid());
@@ -1764,7 +1764,7 @@ TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLease
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::light, &light));
     scene.update();
     assetManager.update();
-    EXPECT_EQ(assetManager.find(light.texture), handle);
+    EXPECT_EQ(assetManager.find(light.texture), Handle);
     EXPECT_EQ(loader.begun, 1u);
     loader.jobs[1]->failed = true;
     loader.jobs[1]->ready = true;
@@ -1890,7 +1890,7 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     EXPECT_EQ(bindings.get(a)->materials.Data[0].asset, scene.getMaterials().Data[0].id);
     EXPECT_EQ(bindings.get(a)->materials.Data[1].asset, alternate);
     EXPECT_EQ(bindings.get(b)->materials.Data[1].asset, scene.getMaterials().Data[0].id);
-    EXPECT_EQ(bindings.get(a)->materials.Data[1].handle, overrideMaterial);
+    EXPECT_EQ(bindings.get(a)->materials.Data[1].Handle, overrideMaterial);
 
     const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
@@ -1909,8 +1909,8 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
     ASSERT_EQ(bindings.get(a)->state, hz::AssetBindingState::Ready);
-    EXPECT_EQ(bindings.get(a)->materials.Data[0].handle, overrideMaterial);
-    EXPECT_EQ(bindings.get(a)->materials.Data[1].handle, overrideMaterial);
+    EXPECT_EQ(bindings.get(a)->materials.Data[0].Handle, overrideMaterial);
+    EXPECT_EQ(bindings.get(a)->materials.Data[1].Handle, overrideMaterial);
 
     const hz::MeshRenderer pendingRenderer = { .mesh = scene.getMeshes().Data[1].id };
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &pendingRenderer));
@@ -2774,10 +2774,10 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = DirectoryOtherFiles });
     hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
-    const hz::AssetHandle handle = assetManager.request(asset.getMeshes().Data[0].id);
-    wait(assetManager, handle);
-    ASSERT_EQ(assetManager.getState(handle), hz::AssetState::Ready);
-    const hz::MeshAsset* mesh = assetManager.getMesh(handle);
+    const hz::AssetHandle Handle = assetManager.request(asset.getMeshes().Data[0].id);
+    wait(assetManager, Handle);
+    ASSERT_EQ(assetManager.getState(Handle), hz::AssetState::Ready);
+    const hz::MeshAsset* mesh = assetManager.getMesh(Handle);
     ASSERT_NE(mesh, nullptr);
     ASSERT_EQ(mesh->getIndexType(), INDEX_TYPE_UINT16);
     // Three indices consume six bytes; RAW loads require a second complete DWORD.

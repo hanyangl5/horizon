@@ -172,7 +172,7 @@ time_t GetLastModifiedTime(ResourceDirectory rd, const char* fileName)
 struct WindowsFileStream
 {
     FILE*  file;
-    HANDLE handle;
+    HANDLE Handle;
     HANDLE fileMapping;
     LPVOID mapView;
 };
@@ -294,10 +294,10 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
         WSD(stream, pOut);
         stream->file = fp;
 
-        stream->handle = (HANDLE)_get_osfhandle(_fileno(fp));
-        if (stream->handle == INVALID_HANDLE_VALUE)
+        stream->Handle = (HANDLE)_get_osfhandle(_fileno(fp));
+        if (stream->Handle == INVALID_HANDLE_VALUE)
         {
-            LOGF(LogLevel::Error, "Error getting file handle for %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
+            LOGF(LogLevel::Error, "Error getting file Handle for %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
             fclose(fp);
             return false;
         }
@@ -326,7 +326,7 @@ static ssize_t ioWindowsFsGetSize(FileStream* fs)
 {
     WSD(stream, fs);
     LARGE_INTEGER fileSize = {};
-    if (GetFileSizeEx(stream->handle, &fileSize))
+    if (GetFileSizeEx(stream->Handle, &fileSize))
         return (ssize_t)fileSize.QuadPart;
     LOGF(Error, "Failed to get file Size: %s", WindowsErrorString().c_str());
     return -1;
@@ -345,7 +345,7 @@ static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** o
     // mapped already
     if (!stream->mapView)
     {
-        HANDLE fileMapping = CreateFileMappingW(stream->handle, NULL, PAGE_READONLY, 0, 0, NULL);
+        HANDLE fileMapping = CreateFileMappingW(stream->Handle, NULL, PAGE_READONLY, 0, 0, NULL);
         if (!fileMapping)
         {
             LOGF(Error, "Failed to CreateFileMappingW, %s", WindowsErrorString().c_str());

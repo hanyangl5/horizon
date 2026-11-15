@@ -17,7 +17,7 @@ struct MaterialAssetBinding
 {
     uint64_t    submesh = 0;
     AssetID     asset;
-    AssetHandle handle;
+    AssetHandle Handle;
 };
 
 struct MeshAssetBinding
