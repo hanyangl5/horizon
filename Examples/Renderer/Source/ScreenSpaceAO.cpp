@@ -3,6 +3,7 @@
 
 #include "Core/ILog.h"
 
+// Mirrors the RootConstant0 block of ScreenSpaceAO.slang field for field.
 struct ScreenSpaceAOConstants
 {
     uint32_t frameIndex = UINT32_MAX;
@@ -19,93 +20,93 @@ struct ScreenSpaceAOConstants
     float    depthThreshold = 0;
 };
 
-ScreenSpaceAO::ScreenSpaceAO(hz::RenderContext& context): context(context)
+ScreenSpaceAO::ScreenSpaceAO(hz::RenderContext& Context): Context(Context)
 {
-    aoPipeline = context.createComputePipeline(
+    AOPipeline = Context.createComputePipeline(
         { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "ScreenSpaceAO.slang" },
           .pName = "Renderer.SSAO" });
-    blurPipeline = context.createComputePipeline(
+    BlurPipeline = Context.createComputePipeline(
         { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "BlurMain" } }, .pFileName = "ScreenSpaceAO.slang" },
           .pName = "Renderer.SSAO.Blur" });
-    rotationSampler = context.createSampler({ .addressU = ADDRESS_MODE_REPEAT, .addressV = ADDRESS_MODE_REPEAT });
-    ASSERT(aoPipeline.isValid() && blurPipeline.isValid() && rotationSampler.isValid());
+    RotationSampler = Context.createSampler({ .addressU = ADDRESS_MODE_REPEAT, .addressV = ADDRESS_MODE_REPEAT });
+    ASSERT(AOPipeline.isValid() && BlurPipeline.isValid() && RotationSampler.isValid());
 }
 
-bool ScreenSpaceAO::resize(uint32_t newWidth, uint32_t newHeight)
+bool ScreenSpaceAO::Resize(uint32_t NewWidth, uint32_t NewHeight)
 {
-    ASSERT(newWidth && newHeight);
-    if (!rotations.isValid())
+    ASSERT(NewWidth && NewHeight);
+    if (!Rotations.isValid())
     {
         // Lossless RGBA8 conversion of Cookbook's data/rot_texture.bmp, with its original 4x4 texels.
-        rotations = context.loadTexture(RD_SHADER_SOURCES, "../Assets/rotations.dds");
-        if (!rotations.isValid())
+        Rotations = Context.loadTexture(RD_SHADER_SOURCES, "../Assets/rotations.dds");
+        if (!Rotations.isValid())
         {
             LOGF(eERROR, "SSAO requires Examples/Renderer/Assets/rotations.dds (Cookbook rotation texture)");
             return false;
         }
     }
-    width = newWidth;
-    height = newHeight;
-    const hz::TextureDesc desc = { .width = width,
-                                   .height = height,
+    Width = NewWidth;
+    Height = NewHeight;
+    const hz::TextureDesc Desc = { .width = Width,
+                                   .height = Height,
                                    .format = hz::Format::R8G8B8A8_UNORM,
                                    .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                    .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
                                    .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                    .pName = "Renderer.SSAO" };
-    occlusion = context.createTexture(desc);
-    for (hz::GPUTexture& texture : blur)
+    Occlusion = Context.createTexture(Desc);
+    for (hz::GPUTexture& Texture : Blur)
     {
-        texture = context.createTexture(desc);
+        Texture = Context.createTexture(Desc);
     }
-    blurred = false;
-    ASSERT(occlusion.isValid() && blur[0].isValid() && blur[1].isValid());
+    Blurred = false;
+    ASSERT(Occlusion.isValid() && Blur[0].isValid() && Blur[1].isValid());
     return true;
 }
 
-const hz::GPUTexture& ScreenSpaceAO::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::GPUTexture& depth,
-                                             const hz::GPUSampler& sampler)
+const hz::GPUTexture& ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
+                                             const hz::GPUSampler& Sampler)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ScreenSpaceAO::execute");
-    ASSERT(width && height && frame.isValid() && depth.isValid() && sampler.isValid());
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ScreenSpaceAO::Execute");
+    ASSERT(Width && Height && Frame.isValid() && Depth.isValid() && Sampler.isValid());
     // The Cookbook kernel and bilateral blur use depth; the deferred pass multiplies the result into indirect light.
-    hz::DependencyList        dependencies;
-    const ScreenSpaceAOConstants constants = { .frameIndex = dependencies.read(frame),
-                                               .depthIndex = dependencies.sample(&depth),
-                                               .rotationsIndex = dependencies.sample(&rotations),
-                                               .outputIndex = dependencies.store(&occlusion),
-                                               .samplerIndex = sampler.getIndex(),
-                                               .rotationSamplerIndex = rotationSampler.getIndex(),
-                                               .radius = settings.radius,
-                                               .attenuationScale = settings.attenuationScale,
-                                               .distanceScale = settings.distanceScale };
-    commands.beginGpuTimestamp("SSAO");
-    commands.setPipeline(aoPipeline);
-    commands.setRootConstants(constants);
-    commands.dispatch((width + 15) / 16, (height + 15) / 16, 1, dependencies.get());
-    const hz::GPUTexture* source = &occlusion;
-    blurred = false;
-    commands.setPipeline(blurPipeline);
-    for (uint32_t pass = 0; pass < settings.blurPasses; ++pass)
+    hz::DependencyList        Dependencies;
+    const ScreenSpaceAOConstants Constants = { .frameIndex = Dependencies.read(Frame),
+                                               .depthIndex = Dependencies.sample(&Depth),
+                                               .rotationsIndex = Dependencies.sample(&Rotations),
+                                               .outputIndex = Dependencies.store(&Occlusion),
+                                               .samplerIndex = Sampler.getIndex(),
+                                               .rotationSamplerIndex = RotationSampler.getIndex(),
+                                               .radius = Settings.Radius,
+                                               .attenuationScale = Settings.AttenuationScale,
+                                               .distanceScale = Settings.DistanceScale };
+    Commands.beginGpuTimestamp("SSAO");
+    Commands.setPipeline(AOPipeline);
+    Commands.setRootConstants(Constants);
+    Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1, Dependencies.get());
+    const hz::GPUTexture* Source = &Occlusion;
+    Blurred = false;
+    Commands.setPipeline(BlurPipeline);
+    for (uint32_t Pass = 0; Pass < Settings.BlurPasses; ++Pass)
     {
-        for (uint32_t axis = 0; axis < 2; ++axis)
+        for (uint32_t Axis = 0; Axis < 2; ++Axis)
         {
-            hz::GPUTexture&              target = blur[axis];
-            hz::DependencyList           blurDependencies;
-            const ScreenSpaceAOConstants blurConstants = { .depthIndex = blurDependencies.sample(&depth),
-                                                           .sourceIndex = blurDependencies.sample(source),
-                                                           .outputIndex = blurDependencies.store(&target),
-                                                           .samplerIndex = sampler.getIndex(),
-                                                           .horizontal = axis == 0,
-                                                           .depthThreshold = settings.depthThreshold };
-            commands.setRootConstants(blurConstants);
-            commands.dispatch((width + 15) / 16, (height + 15) / 16, 1, blurDependencies.get());
-            source = &target;
-            blurred = true;
+            hz::GPUTexture&              Target = Blur[Axis];
+            hz::DependencyList           BlurDependencies;
+            const ScreenSpaceAOConstants BlurConstants = { .depthIndex = BlurDependencies.sample(&Depth),
+                                                           .sourceIndex = BlurDependencies.sample(Source),
+                                                           .outputIndex = BlurDependencies.store(&Target),
+                                                           .samplerIndex = Sampler.getIndex(),
+                                                           .horizontal = Axis == 0,
+                                                           .depthThreshold = Settings.DepthThreshold };
+            Commands.setRootConstants(BlurConstants);
+            Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1, BlurDependencies.get());
+            Source = &Target;
+            Blurred = true;
         }
     }
-    commands.endGpuTimestamp();
-    return getOcclusion();
+    Commands.endGpuTimestamp();
+    return GetOcclusion();
 }
 
-const hz::GPUTexture& ScreenSpaceAO::getOcclusion() const { return blurred ? blur[1] : occlusion; }
+const hz::GPUTexture& ScreenSpaceAO::GetOcclusion() const { return Blurred ? Blur[1] : Occlusion; }

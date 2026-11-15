@@ -4,35 +4,35 @@
 
 struct EnvironmentFiles
 {
-    ResourceDirectory directory = RD_TEXTURES;
-    const char*       prefiltered = "immenstadter_horn_2k_prefilter.ktx";
-    const char*       irradiance = "immenstadter_horn_2k_irradiance.ktx";
-    const char*       brdfLut = "brdfLUT.ktx";
+    ResourceDirectory Directory = RD_TEXTURES;
+    const char*       Prefiltered = "immenstadter_horn_2k_prefilter.ktx";
+    const char*       Irradiance = "immenstadter_horn_2k_irradiance.ktx";
+    const char*       BrdfLut = "brdfLUT.ktx";
 };
 
 class EnvironmentPass
 {
 public:
-    EnvironmentPass(hz::RenderContext& context, hz::Format colorFormat = hz::Format::R32G32B32A32_SFLOAT,
-                    hz::Format depthFormat = hz::Format::D24_UNORM_S8_UINT);
+    EnvironmentPass(hz::RenderContext& Context, hz::Format ColorFormat = hz::Format::R32G32B32A32_SFLOAT,
+                    hz::Format DepthFormat = hz::Format::D24_UNORM_S8_UINT);
     // Resource replacement and unload require completion of earlier draws using this environment.
-    bool load(const EnvironmentFiles& files = {});
-    bool isValid() const;
-    void execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::GPUTexture& color, const hz::GPUTexture& depth,
-                 float intensity = 1.0f) const;
+    bool Load(const EnvironmentFiles& Files = {});
+    bool IsValid() const;
+    void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Color, const hz::GPUTexture& Depth,
+                 float Intensity = 1.0f) const;
 
-    const hz::GPUTexture& getPrefiltered() const { return prefiltered; }
-    const hz::GPUTexture& getIrradiance() const { return irradiance; }
-    const hz::GPUTexture& getBrdfLut() const { return brdfLut; }
-    const hz::GPUSampler& getSampler() const { return sampler; }
-    uint32_t              getPrefilteredMipCount() const { return prefilteredMipCount; }
+    const hz::GPUTexture& GetPrefiltered() const { return Prefiltered; }
+    const hz::GPUTexture& GetIrradiance() const { return Irradiance; }
+    const hz::GPUTexture& GetBrdfLut() const { return BrdfLut; }
+    const hz::GPUSampler& GetSampler() const { return Sampler; }
+    uint32_t              GetPrefilteredMipCount() const { return PrefilteredMipCount; }
 
 private:
-    hz::RenderContext& context;
-    hz::GPUPipeline    pipeline;
-    hz::GPUSampler     sampler;
-    hz::GPUTexture     prefiltered;
-    hz::GPUTexture     irradiance;
-    hz::GPUTexture     brdfLut;
-    uint32_t           prefilteredMipCount = 0;
+    hz::RenderContext& Context;
+    hz::GPUPipeline    Pipeline;
+    hz::GPUSampler     Sampler;
+    hz::GPUTexture     Prefiltered;
+    hz::GPUTexture     Irradiance;
+    hz::GPUTexture     BrdfLut;
+    uint32_t           PrefilteredMipCount = 0;
 };

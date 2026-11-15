@@ -6,64 +6,64 @@
 #include "Core/IToolFileSystem.h"
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
 
-EnvironmentPass::EnvironmentPass(hz::RenderContext& context, hz::Format colorFormat, hz::Format depthFormat): context(context)
+EnvironmentPass::EnvironmentPass(hz::RenderContext& Context, hz::Format ColorFormat, hz::Format DepthFormat): Context(Context)
 {
-    pipeline = context.createGraphicsPipeline({
+    Pipeline = Context.createGraphicsPipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
                         .pFileName = "Skybox.slang" },
         .depth = { .depthTest = true, .depthWrite = false, .depthFunc = CMP_LEQUAL },
-        .colorTargets = { { .format = colorFormat } },
-        .depthStencilFormat = depthFormat,
+        .colorTargets = { { .format = ColorFormat } },
+        .depthStencilFormat = DepthFormat,
         .pName = "Renderer.Skybox",
     });
-    sampler = context.createSampler(
+    Sampler = Context.createSampler(
         { .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE, .addressW = ADDRESS_MODE_CLAMP_TO_EDGE });
-    ASSERT(pipeline.isValid() && sampler.isValid());
+    ASSERT(Pipeline.isValid() && Sampler.isValid());
 }
 
-bool EnvironmentPass::load(const EnvironmentFiles& files)
+bool EnvironmentPass::Load(const EnvironmentFiles& Files)
 {
-    const char* paths[] = { files.prefiltered, files.irradiance, files.brdfLut };
-    for (const char* path : paths)
+    const char* Paths[] = { Files.Prefiltered, Files.Irradiance, Files.BrdfLut };
+    for (const char* Path : Paths)
     {
-        if (!path || !path[0] || !fsFileExist(files.directory, path))
+        if (!Path || !Path[0] || !fsFileExist(Files.Directory, Path))
         {
             LOGF(eERROR, "Environment requires prefiltered and irradiance cubemaps plus a BRDF LUT; missing '%s' in '%s'",
-                 path ? path : "<unset>", fsGetResourceDirectory(files.directory));
+                 Path ? Path : "<unset>", fsGetResourceDirectory(Files.Directory));
             return false;
         }
     }
-    hz::GPUTexture candidate[3];
-    for (uint32_t i = 0; i < 3; ++i)
+    hz::GPUTexture Candidate[3];
+    for (uint32_t Index = 0; Index < 3; ++Index)
     {
-        candidate[i] = context.loadTexture(files.directory, paths[i]);
-        if (!candidate[i].isValid())
+        Candidate[Index] = Context.loadTexture(Files.Directory, Paths[Index]);
+        if (!Candidate[Index].isValid())
         {
             return false;
         }
-        const hz::GPUTexture& texture = candidate[i];
-        const bool            cube = i != 2;
-        const TinyImageFormat format = (TinyImageFormat)texture.getFormat();
-        if (texture.getArraySize() != (cube ? 6u : 1u) || (cube && texture.getWidth() != texture.getHeight()) ||
-            (i == 0 && texture.getMipLevels() < 2) || !TinyImageFormat_IsFloat(format) || TinyImageFormat_HasDepthOrStencil(format) ||
-            TinyImageFormat_IsSRGB(format))
+        const hz::GPUTexture& Texture = Candidate[Index];
+        const bool            Cube = Index != 2;
+        const TinyImageFormat Format = (TinyImageFormat)Texture.getFormat();
+        if (Texture.getArraySize() != (Cube ? 6u : 1u) || (Cube && Texture.getWidth() != Texture.getHeight()) ||
+            (Index == 0 && Texture.getMipLevels() < 2) || !TinyImageFormat_IsFloat(Format) || TinyImageFormat_HasDepthOrStencil(Format) ||
+            TinyImageFormat_IsSRGB(Format))
         {
-            LOGF(eERROR, "Invalid environment texture '%s': expected linear floating-point %s%s", paths[i],
-                 cube ? "cubemap" : "2D BRDF LUT", i == 0 ? " with prefiltered mip levels" : "");
+            LOGF(eERROR, "Invalid environment texture '%s': expected linear floating-point %s%s", Paths[Index],
+                 Cube ? "cubemap" : "2D BRDF LUT", Index == 0 ? " with prefiltered mip levels" : "");
             return false;
         }
     }
-    prefilteredMipCount = candidate[0].getMipLevels();
-    prefiltered = std::move(candidate[0]);
-    irradiance = std::move(candidate[1]);
-    brdfLut = std::move(candidate[2]);
+    PrefilteredMipCount = Candidate[0].getMipLevels();
+    Prefiltered = std::move(Candidate[0]);
+    Irradiance = std::move(Candidate[1]);
+    BrdfLut = std::move(Candidate[2]);
     return true;
 }
 
-bool EnvironmentPass::isValid() const
+bool EnvironmentPass::IsValid() const
 {
-    return pipeline.isValid() && sampler.isValid() && prefiltered.isValid() && irradiance.isValid() && brdfLut.isValid();
+    return Pipeline.isValid() && Sampler.isValid() && Prefiltered.isValid() && Irradiance.isValid() && BrdfLut.isValid();
 }
 
 // Mirrors the RootConstant0 block of Skybox.slang field for field.
@@ -76,26 +76,26 @@ struct SkyboxConstants
 };
 static_assert(sizeof(SkyboxConstants) == 3 * sizeof(uint32_t) + sizeof(float));
 
-void EnvironmentPass::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::GPUTexture& color,
-                              const hz::GPUTexture& depth, float intensity) const
+void EnvironmentPass::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Color,
+                              const hz::GPUTexture& Depth, float Intensity) const
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("EnvironmentPass::execute");
-    ASSERT(isValid());
-    hz::DependencyList    dependencies;
-    const SkyboxConstants constants = { .frameIndex = dependencies.read(frame),
-                                        .environmentIndex = dependencies.sample(&prefiltered),
-                                        .samplerIndex = sampler.getIndex(),
-                                        .intensity = intensity };
-    commands.beginGpuTimestamp("Skybox");
-    commands.beginRendering(
-        { .colorAttachments = { { .pTexture = &color, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } },
-          .depthAttachment = { .pTexture = &depth, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } },
-        dependencies.get());
-    commands.setViewport(0, 0, (float)context.getWidth(), (float)context.getHeight());
-    commands.setScissor(0, 0, context.getWidth(), context.getHeight());
-    commands.setPipeline(pipeline);
-    commands.setRootConstants(constants);
-    commands.draw(36);
-    commands.endRendering();
-    commands.endGpuTimestamp();
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("EnvironmentPass::Execute");
+    ASSERT(IsValid());
+    hz::DependencyList    Dependencies;
+    const SkyboxConstants Constants = { .frameIndex = Dependencies.read(Frame),
+                                        .environmentIndex = Dependencies.sample(&Prefiltered),
+                                        .samplerIndex = Sampler.getIndex(),
+                                        .intensity = Intensity };
+    Commands.beginGpuTimestamp("Skybox");
+    Commands.beginRendering(
+        { .colorAttachments = { { .pTexture = &Color, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } },
+          .depthAttachment = { .pTexture = &Depth, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } },
+        Dependencies.get());
+    Commands.setViewport(0, 0, (float)Context.getWidth(), (float)Context.getHeight());
+    Commands.setScissor(0, 0, Context.getWidth(), Context.getHeight());
+    Commands.setPipeline(Pipeline);
+    Commands.setRootConstants(Constants);
+    Commands.draw(36);
+    Commands.endRendering();
+    Commands.endGpuTimestamp();
 }

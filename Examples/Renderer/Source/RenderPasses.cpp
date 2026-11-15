@@ -149,7 +149,7 @@ static void ExecuteScreenSpaceAO(FrameContext& Frame, void* UserData)
     if (!Frame.RayTracedAO)
     {
         Frame.Resources.SSAO =
-            &((ScreenSpaceAO*)UserData)->execute(Frame.Commands, Frame.Frame, *Frame.GBuffer.Depth, Frame.LinearSampler);
+            &((ScreenSpaceAO*)UserData)->Execute(Frame.Commands, Frame.Frame, *Frame.GBuffer.Depth, Frame.LinearSampler);
     }
 }
 
@@ -178,7 +178,7 @@ static void ExecuteLighting(FrameContext& Frame, void* UserData)
 
 static void ExecuteEnvironment(FrameContext& Frame, void* UserData)
 {
-    ((EnvironmentPass*)UserData)->execute(Frame.Commands, Frame.Frame, *Frame.Color, *Frame.GBuffer.Depth, Frame.EnvironmentIntensity);
+    ((EnvironmentPass*)UserData)->Execute(Frame.Commands, Frame.Frame, *Frame.Color, *Frame.GBuffer.Depth, Frame.EnvironmentIntensity);
 }
 
 static void ExecuteTransparency(FrameContext& Frame, void* UserData)
@@ -238,14 +238,14 @@ bool RenderPasses::Resize(uint32_t Width, uint32_t Height)
         return true;
     }
 
-    if (!Environment->isValid() && !Environment->load({ .directory = RD_SHADER_SOURCES,
-                                                        .prefiltered = "../../../Assets/Cookbook/immenstadter_horn_2k_prefilter.ktx",
-                                                        .irradiance = "../../../Assets/Cookbook/immenstadter_horn_2k_irradiance.ktx",
-                                                        .brdfLut = "../../../Assets/Cookbook/brdfLUT.ktx" }))
+    if (!Environment->IsValid() && !Environment->Load({ .Directory = RD_SHADER_SOURCES,
+                                                        .Prefiltered = "../../../Assets/Cookbook/immenstadter_horn_2k_prefilter.ktx",
+                                                        .Irradiance = "../../../Assets/Cookbook/immenstadter_horn_2k_irradiance.ktx",
+                                                        .BrdfLut = "../../../Assets/Cookbook/brdfLUT.ktx" }))
     {
         return false;
     }
-    if (!SSAO->resize(Width, Height))
+    if (!SSAO->Resize(Width, Height))
     {
         return false;
     }
@@ -307,7 +307,7 @@ void RenderPasses::Execute()
     GpuSceneData.upload(Commands);
     Draws.Prepare(Commands, Frame, View);
     // Frame shape the passes depend on; the shadow pass publishes its intensity once it ran.
-    Shadows->Data.environmentMipCount = Environment->getPrefilteredMipCount();
+    Shadows->Data.environmentMipCount = Environment->GetPrefilteredMipCount();
     Shadows->Data.rtShadowEnabled = RayTracing->isSupported() && RayTracing->settings.shadows ? 1u : 0u;
     Shadows->Data.rtAOEnabled = RayTracing->isSupported() && RayTracing->settings.ao ? 1u : 0u;
     const hz::GPUTexture& Backbuffer = Context.getCurrentBackbuffer();
@@ -322,10 +322,10 @@ void RenderPasses::Execute()
                                          .Resources = { .LightingFrame = &Shadows->GetLightingFrame(FrameIndex),
                                                         .ShadowMap = &Shadows->GetTexture(),
                                                         .ShadowSampler = &Shadows->GetSampler(),
-                                                        .Environment = &Environment->getPrefiltered(),
-                                                        .Irradiance = &Environment->getIrradiance(),
-                                                        .BRDFLut = &Environment->getBrdfLut(),
-                                                        .EnvironmentSampler = &Environment->getSampler() } };
+                                                        .Environment = &Environment->GetPrefiltered(),
+                                                        .Irradiance = &Environment->GetIrradiance(),
+                                                        .BRDFLut = &Environment->GetBrdfLut(),
+                                                        .EnvironmentSampler = &Environment->GetSampler() } };
     for (uint32_t Index = 0; Index < PassCount; ++Index)
     {
         const RenderPass& Pass = Passes[Index];

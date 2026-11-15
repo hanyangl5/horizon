@@ -4,12 +4,12 @@
 
 struct ScreenSpaceAOSettings
 {
-    uint32_t blurPasses = 1;
-    float    radius = 0.01f;
+    uint32_t BlurPasses = 1;
+    float    Radius = 0.01f;
     // The deferred pass multiplies this into indirect light directly, so an unoccluded sample must stay 1.
-    float    attenuationScale = 1.0f;
-    float    distanceScale = 1.7f;
-    float    depthThreshold = 30.0f;
+    float    AttenuationScale = 1.0f;
+    float    DistanceScale = 1.7f;
+    float    DepthThreshold = 30.0f;
 };
 
 // Adapted from Cookbook Renderer SSAOPass; see ../Cookbook-LICENSE.txt.
@@ -17,24 +17,24 @@ struct ScreenSpaceAOSettings
 class ScreenSpaceAO
 {
 public:
-    explicit ScreenSpaceAO(hz::RenderContext& context);
-    bool resize(uint32_t width, uint32_t height);
+    explicit ScreenSpaceAO(hz::RenderContext& Context);
+    bool Resize(uint32_t NewWidth, uint32_t NewHeight);
 
-    const hz::GPUTexture& execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::GPUTexture& depth,
-                                  const hz::GPUSampler& sampler);
-    const hz::GPUTexture& getOcclusion() const;
+    const hz::GPUTexture& Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
+                                  const hz::GPUSampler& Sampler);
+    const hz::GPUTexture& GetOcclusion() const;
 
-    ScreenSpaceAOSettings settings;
+    ScreenSpaceAOSettings Settings;
 
 private:
-    hz::RenderContext& context;
-    hz::GPUPipeline    aoPipeline;
-    hz::GPUPipeline    blurPipeline;
-    hz::GPUSampler     rotationSampler;
-    hz::GPUTexture     rotations;
-    hz::GPUTexture     occlusion;
-    hz::GPUTexture     blur[2];
-    uint32_t           width = 0;
-    uint32_t           height = 0;
-    bool               blurred = false;
+    hz::RenderContext& Context;
+    hz::GPUPipeline    AOPipeline;
+    hz::GPUPipeline    BlurPipeline;
+    hz::GPUSampler     RotationSampler;
+    hz::GPUTexture     Rotations;
+    hz::GPUTexture     Occlusion;
+    hz::GPUTexture     Blur[2];
+    uint32_t           Width = 0;
+    uint32_t           Height = 0;
+    bool               Blurred = false;
 };
