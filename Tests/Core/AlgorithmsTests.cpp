@@ -26,7 +26,7 @@ void expectIntArrayEquals(const int32_t* actual, const int32_t* expected, size_t
 }
 } // namespace
 
-// Verifies that sortInt32 orders a mixed input containing negatives and duplicates.
+// Verifies that SortInt32 orders a mixed input containing negatives and duplicates.
 TEST(CoreAlgorithmsTest, SortInt32OrdersLargeInput)
 {
     int32_t values[] = {
@@ -40,12 +40,12 @@ TEST(CoreAlgorithmsTest, SortInt32OrdersLargeInput)
         25, 26, 27, 28, 29, 30, 31, 32, 42, 99,
     };
 
-    sortInt32(values, TF_ARRAY_COUNT(values));
+    SortInt32(values, TF_ARRAY_COUNT(values));
 
     expectIntArrayEquals(values, expected, TF_ARRAY_COUNT(values));
 }
 
-// Verifies that stableSort keeps the original relative order of elements with equal keys.
+// Verifies that StableSort keeps the original relative order of elements with equal keys.
 TEST(CoreAlgorithmsTest, StableSortPreservesRelativeOrderForEqualKeys)
 {
     SortItem items[] = {
@@ -57,7 +57,7 @@ TEST(CoreAlgorithmsTest, StableSortPreservesRelativeOrderForEqualKeys)
         { 2, 5 },
     };
 
-    stableSort(items, TF_ARRAY_COUNT(items), sizeof(SortItem), lessByKey, nullptr);
+    StableSort(items, TF_ARRAY_COUNT(items), sizeof(SortItem), lessByKey, nullptr);
 
     EXPECT_EQ(items[0].key, 1);
     EXPECT_EQ(items[0].originalIndex, 1);
@@ -73,13 +73,13 @@ TEST(CoreAlgorithmsTest, StableSortPreservesRelativeOrderForEqualKeys)
     EXPECT_EQ(items[5].originalIndex, 4);
 }
 
-// Verifies that partitionInt32 places the pivot in its final slot and partitions around it.
+// Verifies that PartitionInt32 places the pivot in its final slot and partitions around it.
 TEST(CoreAlgorithmsTest, PartitionInt32PlacesElementsAroundPivotValue)
 {
     int32_t values[] = { 9, 1, 5, 3, 5, 8, 2, 7 };
     const int32_t pivotValue = values[2];
 
-    const size_t pivotIndex = partitionInt32(values, 2, TF_ARRAY_COUNT(values));
+    const size_t pivotIndex = PartitionInt32(values, 2, TF_ARRAY_COUNT(values));
 
     ASSERT_LT(pivotIndex, TF_ARRAY_COUNT(values));
     EXPECT_EQ(values[pivotIndex], pivotValue);
@@ -95,7 +95,7 @@ TEST(CoreAlgorithmsTest, PartitionInt32PlacesElementsAroundPivotValue)
     }
 }
 
-// Verifies that the generic comparator-based sort produces nondecreasing keys.
+// Verifies that the generic comparator-based Sort produces nondecreasing keys.
 TEST(CoreAlgorithmsTest, GenericSortOrdersByComparator)
 {
     SortItem items[] = {
@@ -107,7 +107,7 @@ TEST(CoreAlgorithmsTest, GenericSortOrdersByComparator)
         { 2, 5 },
     };
 
-    sort(items, TF_ARRAY_COUNT(items), sizeof(SortItem), lessByKey, nullptr);
+    Sort(items, TF_ARRAY_COUNT(items), sizeof(SortItem), lessByKey, nullptr);
 
     for (size_t i = 1; i < TF_ARRAY_COUNT(items); ++i)
     {

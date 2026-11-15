@@ -94,9 +94,9 @@ static void simpleSortDouble(double* pArr, size_t memberCount)
                      PTR_INC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)
 }
 
-// INSERTION SORT (stable sort)
+// INSERTION SORT (stable Sort)
 
-void stableSort(void* pVoidData, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
+void StableSort(void* pVoidData, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
 {
 #define SIMPLE_SORT(pArr, memberCount) simpleSort(pArr, memberCount, memberSize, less, pUserData)
     INSERTION_SORT_IMPL(char, (char*)pVoidData, memberCount, SIMPLE_SORT, LESS_GENERIC, CREATE_TEMP_GENERIC, DESTROY_TEMP_GENERIC,
@@ -104,54 +104,54 @@ void stableSort(void* pVoidData, size_t memberCount, size_t memberSize, LessFn l
 #undef SIMPLE_SORT
 }
 
-void stableSortInt8(int8_t* pArr, size_t memberCount)
+void StableSortInt8(int8_t* pArr, size_t memberCount)
 {
     INSERTION_SORT_IMPL(int8_t, pArr, memberCount, simpleSortInt8, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC,
                         PTR_INC_NUMERIC, PTR_DEC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)
 }
-void stableSortInt16(int16_t* pArr, size_t memberCount)
+void StableSortInt16(int16_t* pArr, size_t memberCount)
 {
     INSERTION_SORT_IMPL(int16_t, pArr, memberCount, simpleSortInt16, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC,
                         PTR_INC_NUMERIC, PTR_DEC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)
 }
-void stableSortInt32(int32_t* pArr, size_t memberCount)
+void StableSortInt32(int32_t* pArr, size_t memberCount)
 {
     INSERTION_SORT_IMPL(int32_t, pArr, memberCount, simpleSortInt32, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC,
                         PTR_INC_NUMERIC, PTR_DEC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)
 }
-void stableSortInt64(int64_t* pArr, size_t memberCount)
+void StableSortInt64(int64_t* pArr, size_t memberCount)
 {
     INSERTION_SORT_IMPL(int64_t, pArr, memberCount, simpleSortInt64, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC,
                         PTR_INC_NUMERIC, PTR_DEC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)
 }
 
-void stableSortUInt8(uint8_t* pArr, size_t memberCount)
+void StableSortUInt8(uint8_t* pArr, size_t memberCount)
 {
     INSERTION_SORT_IMPL(uint8_t, pArr, memberCount, simpleSortUInt8, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC,
                         PTR_INC_NUMERIC, PTR_DEC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)
 }
-void stableSortUInt16(uint16_t* pArr, size_t memberCount)
+void StableSortUInt16(uint16_t* pArr, size_t memberCount)
 {
     INSERTION_SORT_IMPL(uint16_t, pArr, memberCount, simpleSortUInt16, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC,
                         COPY_NUMERIC, PTR_INC_NUMERIC, PTR_DEC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)
 }
-void stableSortUInt32(uint32_t* pArr, size_t memberCount)
+void StableSortUInt32(uint32_t* pArr, size_t memberCount)
 {
     INSERTION_SORT_IMPL(uint32_t, pArr, memberCount, simpleSortUInt32, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC,
                         COPY_NUMERIC, PTR_INC_NUMERIC, PTR_DEC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)
 }
-void stableSortUInt64(uint64_t* pArr, size_t memberCount)
+void StableSortUInt64(uint64_t* pArr, size_t memberCount)
 {
     INSERTION_SORT_IMPL(uint64_t, pArr, memberCount, simpleSortUInt64, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC,
                         COPY_NUMERIC, PTR_INC_NUMERIC, PTR_DEC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)
 }
 
-void stableSortFloat(float* pArr, size_t memberCount)
+void StableSortFloat(float* pArr, size_t memberCount)
 {
     INSERTION_SORT_IMPL(float, pArr, memberCount, simpleSortFloat, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC,
                         PTR_INC_NUMERIC, PTR_DEC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)
 }
-void stableSortDouble(double* pArr, size_t memberCount)
+void StableSortDouble(double* pArr, size_t memberCount)
 {
     INSERTION_SORT_IMPL(double, pArr, memberCount, simpleSortDouble, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC,
                         PTR_INC_NUMERIC, PTR_DEC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)
@@ -162,7 +162,7 @@ void stableSortDouble(double* pArr, size_t memberCount)
 static char* partitionImpl(char* pBegin, char* pEnd, char* pPivot, size_t memberSize, LessFn less,
                            void* pUserData){ PARTITION_IMPL(char, pBegin, pEnd, pPivot, LESS_GENERIC, CREATE_TEMP_GENERIC,
                                                             DESTROY_TEMP_GENERIC, COPY_GENERIC, PTR_INC_GENERIC, PTR_SUB_GENERIC) } size_t
-    partition(void* pData, size_t pivot, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
+    Partition(void* pData, size_t pivot, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
 {
     if (memberCount == 0)
         return 0;
@@ -175,7 +175,7 @@ static char* partitionImpl(char* pBegin, char* pEnd, char* pPivot, size_t member
 static int8_t* partitionImplInt8(int8_t* pBegin, int8_t* pEnd, int8_t* pPivot){
     PARTITION_IMPL(int8_t, pBegin, pEnd, pPivot, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC, PTR_INC_NUMERIC,
                    PTR_SUB_NUMERIC)
-} size_t partitionInt8(int8_t* pArr, size_t pivot, size_t memberCount)
+} size_t PartitionInt8(int8_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
         return 0;
@@ -187,7 +187,7 @@ static int8_t* partitionImplInt8(int8_t* pBegin, int8_t* pEnd, int8_t* pPivot){
 static int16_t* partitionImplInt16(int16_t* pBegin, int16_t* pEnd, int16_t* pPivot){
     PARTITION_IMPL(int16_t, pBegin, pEnd, pPivot, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC, PTR_INC_NUMERIC,
                    PTR_SUB_NUMERIC)
-} size_t partitionInt16(int16_t* pArr, size_t pivot, size_t memberCount)
+} size_t PartitionInt16(int16_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
         return 0;
@@ -198,7 +198,7 @@ static int16_t* partitionImplInt16(int16_t* pBegin, int16_t* pEnd, int16_t* pPiv
 static int32_t* partitionImplInt32(int32_t* pBegin, int32_t* pEnd, int32_t* pPivot){
     PARTITION_IMPL(int32_t, pBegin, pEnd, pPivot, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC, PTR_INC_NUMERIC,
                    PTR_SUB_NUMERIC)
-} size_t partitionInt32(int32_t* pArr, size_t pivot, size_t memberCount)
+} size_t PartitionInt32(int32_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
         return 0;
@@ -209,7 +209,7 @@ static int32_t* partitionImplInt32(int32_t* pBegin, int32_t* pEnd, int32_t* pPiv
 static int64_t* partitionImplInt64(int64_t* pBegin, int64_t* pEnd, int64_t* pPivot){
     PARTITION_IMPL(int64_t, pBegin, pEnd, pPivot, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC, PTR_INC_NUMERIC,
                    PTR_SUB_NUMERIC)
-} size_t partitionInt64(int64_t* pArr, size_t pivot, size_t memberCount)
+} size_t PartitionInt64(int64_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
         return 0;
@@ -221,8 +221,8 @@ static int64_t* partitionImplInt64(int64_t* pBegin, int64_t* pEnd, int64_t* pPiv
 static uint8_t* partitionImplUInt8(uint8_t* pBegin, uint8_t* pEnd,
                                    uint8_t* pPivot){ PARTITION_IMPL(uint8_t, pBegin, pEnd, pPivot, LESS_NUMERIC, CREATE_TEMP_NUMERIC,
                                                                     DESTROY_TEMP_NUMERIC, COPY_NUMERIC, PTR_INC_NUMERIC, PTR_SUB_NUMERIC) }
-// V_RET_NOT_NULL, function:partitionUInt8
-size_t partitionUInt8(uint8_t* pArr, size_t pivot, size_t memberCount)
+// V_RET_NOT_NULL, function:PartitionUInt8
+size_t PartitionUInt8(uint8_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
         return 0;
@@ -233,8 +233,8 @@ size_t partitionUInt8(uint8_t* pArr, size_t pivot, size_t memberCount)
 static uint16_t* partitionImplUInt16(uint16_t* pBegin, uint16_t* pEnd, uint16_t* pPivot){
     PARTITION_IMPL(uint16_t, pBegin, pEnd, pPivot, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC, PTR_INC_NUMERIC,
                    PTR_SUB_NUMERIC)
-} // V_RET_NOT_NULL, function:partitionUInt16
-size_t partitionUInt16(uint16_t* pArr, size_t pivot, size_t memberCount)
+} // V_RET_NOT_NULL, function:PartitionUInt16
+size_t PartitionUInt16(uint16_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
         return 0;
@@ -245,7 +245,7 @@ size_t partitionUInt16(uint16_t* pArr, size_t pivot, size_t memberCount)
 static uint32_t* partitionImplUInt32(uint32_t* pBegin, uint32_t* pEnd, uint32_t* pPivot){
     PARTITION_IMPL(uint32_t, pBegin, pEnd, pPivot, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC, PTR_INC_NUMERIC,
                    PTR_SUB_NUMERIC)
-} size_t partitionUInt32(uint32_t* pArr, size_t pivot, size_t memberCount)
+} size_t PartitionUInt32(uint32_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
         return 0;
@@ -256,8 +256,8 @@ static uint32_t* partitionImplUInt32(uint32_t* pBegin, uint32_t* pEnd, uint32_t*
 static uint64_t* partitionImplUInt64(uint64_t* pBegin, uint64_t* pEnd, uint64_t* pPivot){
     PARTITION_IMPL(uint64_t, pBegin, pEnd, pPivot, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC, PTR_INC_NUMERIC,
                    PTR_SUB_NUMERIC)
-} // V_RET_NOT_NULL, function:partitionUInt64
-size_t partitionUInt64(uint64_t* pArr, size_t pivot, size_t memberCount)
+} // V_RET_NOT_NULL, function:PartitionUInt64
+size_t PartitionUInt64(uint64_t* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
         return 0;
@@ -269,7 +269,7 @@ size_t partitionUInt64(uint64_t* pArr, size_t pivot, size_t memberCount)
 static float* partitionImplFloat(float* pBegin, float* pEnd, float* pPivot){
     PARTITION_IMPL(float, pBegin, pEnd, pPivot, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC, PTR_INC_NUMERIC,
                    PTR_SUB_NUMERIC)
-} size_t partitionFloat(float* pArr, size_t pivot, size_t memberCount)
+} size_t PartitionFloat(float* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
         return 0;
@@ -280,7 +280,7 @@ static float* partitionImplFloat(float* pBegin, float* pEnd, float* pPivot){
 static double* partitionImplDouble(double* pBegin, double* pEnd, double* pPivot){
     PARTITION_IMPL(double, pBegin, pEnd, pPivot, LESS_NUMERIC, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_NUMERIC, PTR_INC_NUMERIC,
                    PTR_SUB_NUMERIC)
-} size_t partitionDouble(double* pArr, size_t pivot, size_t memberCount)
+} size_t PartitionDouble(double* pArr, size_t pivot, size_t memberCount)
 {
     if (memberCount == 0)
         return 0;
@@ -288,10 +288,10 @@ static double* partitionImplDouble(double* pBegin, double* pEnd, double* pPivot)
     return pPivot - pArr;
 }
 
-static void quickSort(char* pBegin, char* pEnd, char* tmp, size_t memberSize, LessFn less, void* pUserData)
+static void QuickSort(char* pBegin, char* pEnd, char* tmp, size_t memberSize, LessFn less, void* pUserData)
 {
-#define QUICKSORT_IMPL_FN(pBegin, pEnd, tmp)    quickSort(pBegin, pEnd, tmp, memberSize, less, pUserData);
-#define FALLBACK_SORT(pArr, memberCount)        stableSort(pArr, memberCount, memberSize, less, pUserData)
+#define QUICKSORT_IMPL_FN(pBegin, pEnd, tmp)    QuickSort(pBegin, pEnd, tmp, memberSize, less, pUserData);
+#define FALLBACK_SORT(pArr, memberCount)        StableSort(pArr, memberCount, memberSize, less, pUserData)
 #define PARTITION_IMPL_FN(pBegin, pEnd, pPivot) partitionImpl(pBegin, pEnd, pPivot, memberSize, less, pUserData)
 
     QUICKSORT_IMPL(char, pBegin, pEnd, tmp, QUICKSORT_IMPL_FN, FALLBACK_SORT, PARTITION_IMPL_FN, LESS_GENERIC, COPY_GENERIC,
@@ -301,49 +301,49 @@ static void quickSort(char* pBegin, char* pEnd, char* tmp, size_t memberSize, Le
 #undef PARTITION_IMPL_FN
 }
 
-void sort(void* pData, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
+void Sort(void* pData, size_t memberCount, size_t memberSize, LessFn less, void* pUserData)
 {
     CREATE_TEMP_GENERIC(char, tmp);
-    quickSort((char*)pData, (char*)pData + memberCount * memberSize, tmp, memberSize, less, pUserData);
+    QuickSort((char*)pData, (char*)pData + memberCount * memberSize, tmp, memberSize, less, pUserData);
     DESTROY_TEMP_GENERIC(tmp);
 }
 
 static void quickSortInt8(int8_t* pBegin, int8_t* pEnd, int8_t* tmp)
 {
-    QUICKSORT_IMPL(int8_t, pBegin, pEnd, tmp, quickSortInt8, stableSortInt8, partitionImplInt8, LESS_NUMERIC, COPY_NUMERIC, PTR_ADD_NUMERIC,
+    QUICKSORT_IMPL(int8_t, pBegin, pEnd, tmp, quickSortInt8, StableSortInt8, partitionImplInt8, LESS_NUMERIC, COPY_NUMERIC, PTR_ADD_NUMERIC,
                    PTR_SUB_NUMERIC, PTR_DIFF_NUMERIC)
 }
-void sortInt8(int8_t* pData, size_t memberCount)
+void SortInt8(int8_t* pData, size_t memberCount)
 {
     int8_t tmp;
     quickSortInt8(pData, pData + memberCount, &tmp);
 }
 static void quickSortInt16(int16_t* pBegin, int16_t* pEnd, int16_t* tmp)
 {
-    QUICKSORT_IMPL(int16_t, pBegin, pEnd, tmp, quickSortInt16, stableSortInt16, partitionImplInt16, LESS_NUMERIC, COPY_NUMERIC,
+    QUICKSORT_IMPL(int16_t, pBegin, pEnd, tmp, quickSortInt16, StableSortInt16, partitionImplInt16, LESS_NUMERIC, COPY_NUMERIC,
                    PTR_ADD_NUMERIC, PTR_SUB_NUMERIC, PTR_DIFF_NUMERIC)
 }
-void sortInt16(int16_t* pData, size_t memberCount)
+void SortInt16(int16_t* pData, size_t memberCount)
 {
     int16_t tmp;
     quickSortInt16(pData, pData + memberCount, &tmp);
 }
 static void quickSortInt32(int32_t* pBegin, int32_t* pEnd, int32_t* tmp)
 {
-    QUICKSORT_IMPL(int32_t, pBegin, pEnd, tmp, quickSortInt32, stableSortInt32, partitionImplInt32, LESS_NUMERIC, COPY_NUMERIC,
+    QUICKSORT_IMPL(int32_t, pBegin, pEnd, tmp, quickSortInt32, StableSortInt32, partitionImplInt32, LESS_NUMERIC, COPY_NUMERIC,
                    PTR_ADD_NUMERIC, PTR_SUB_NUMERIC, PTR_DIFF_NUMERIC)
 }
-void sortInt32(int32_t* pData, size_t memberCount)
+void SortInt32(int32_t* pData, size_t memberCount)
 {
     int32_t tmp;
     quickSortInt32(pData, pData + memberCount, &tmp);
 }
 static void quickSortInt64(int64_t* pBegin, int64_t* pEnd, int64_t* tmp)
 {
-    QUICKSORT_IMPL(int64_t, pBegin, pEnd, tmp, quickSortInt64, stableSortInt64, partitionImplInt64, LESS_NUMERIC, COPY_NUMERIC,
+    QUICKSORT_IMPL(int64_t, pBegin, pEnd, tmp, quickSortInt64, StableSortInt64, partitionImplInt64, LESS_NUMERIC, COPY_NUMERIC,
                    PTR_ADD_NUMERIC, PTR_SUB_NUMERIC, PTR_DIFF_NUMERIC)
 }
-void sortInt64(int64_t* pData, size_t memberCount)
+void SortInt64(int64_t* pData, size_t memberCount)
 {
     int64_t tmp;
     quickSortInt64(pData, pData + memberCount, &tmp);
@@ -351,40 +351,40 @@ void sortInt64(int64_t* pData, size_t memberCount)
 
 static void quickSortUInt8(uint8_t* pBegin, uint8_t* pEnd, uint8_t* tmp)
 {
-    QUICKSORT_IMPL(uint8_t, pBegin, pEnd, tmp, quickSortUInt8, stableSortUInt8, partitionImplUInt8, LESS_NUMERIC, COPY_NUMERIC,
+    QUICKSORT_IMPL(uint8_t, pBegin, pEnd, tmp, quickSortUInt8, StableSortUInt8, partitionImplUInt8, LESS_NUMERIC, COPY_NUMERIC,
                    PTR_ADD_NUMERIC, PTR_SUB_NUMERIC, PTR_DIFF_NUMERIC)
 }
-void sortUInt8(uint8_t* pData, size_t memberCount)
+void SortUInt8(uint8_t* pData, size_t memberCount)
 {
     uint8_t tmp;
     quickSortUInt8(pData, pData + memberCount, &tmp);
 }
 static void quickSortUInt16(uint16_t* pBegin, uint16_t* pEnd, uint16_t* tmp)
 {
-    QUICKSORT_IMPL(uint16_t, pBegin, pEnd, tmp, quickSortUInt16, stableSortUInt16, partitionImplUInt16, LESS_NUMERIC, COPY_NUMERIC,
+    QUICKSORT_IMPL(uint16_t, pBegin, pEnd, tmp, quickSortUInt16, StableSortUInt16, partitionImplUInt16, LESS_NUMERIC, COPY_NUMERIC,
                    PTR_ADD_NUMERIC, PTR_SUB_NUMERIC, PTR_DIFF_NUMERIC)
 }
-void sortUInt16(uint16_t* pData, size_t memberCount)
+void SortUInt16(uint16_t* pData, size_t memberCount)
 {
     uint16_t tmp;
     quickSortUInt16(pData, pData + memberCount, &tmp);
 }
 static void quickSortUInt32(uint32_t* pBegin, uint32_t* pEnd, uint32_t* tmp)
 {
-    QUICKSORT_IMPL(uint32_t, pBegin, pEnd, tmp, quickSortUInt32, stableSortUInt32, partitionImplUInt32, LESS_NUMERIC, COPY_NUMERIC,
+    QUICKSORT_IMPL(uint32_t, pBegin, pEnd, tmp, quickSortUInt32, StableSortUInt32, partitionImplUInt32, LESS_NUMERIC, COPY_NUMERIC,
                    PTR_ADD_NUMERIC, PTR_SUB_NUMERIC, PTR_DIFF_NUMERIC)
 }
-void sortUInt32(uint32_t* pData, size_t memberCount)
+void SortUInt32(uint32_t* pData, size_t memberCount)
 {
     uint32_t tmp;
     quickSortUInt32(pData, pData + memberCount, &tmp);
 }
 static void quickSortUInt64(uint64_t* pBegin, uint64_t* pEnd, uint64_t* tmp)
 {
-    QUICKSORT_IMPL(uint64_t, pBegin, pEnd, tmp, quickSortUInt64, stableSortUInt64, partitionImplUInt64, LESS_NUMERIC, COPY_NUMERIC,
+    QUICKSORT_IMPL(uint64_t, pBegin, pEnd, tmp, quickSortUInt64, StableSortUInt64, partitionImplUInt64, LESS_NUMERIC, COPY_NUMERIC,
                    PTR_ADD_NUMERIC, PTR_SUB_NUMERIC, PTR_DIFF_NUMERIC)
 }
-void sortUInt64(uint64_t* pData, size_t memberCount)
+void SortUInt64(uint64_t* pData, size_t memberCount)
 {
     uint64_t tmp;
     quickSortUInt64(pData, pData + memberCount, &tmp);
@@ -392,20 +392,20 @@ void sortUInt64(uint64_t* pData, size_t memberCount)
 
 static void quickSortFloat(float* pBegin, float* pEnd, float* tmp)
 {
-    QUICKSORT_IMPL(float, pBegin, pEnd, tmp, quickSortFloat, stableSortFloat, partitionImplFloat, LESS_NUMERIC, COPY_NUMERIC,
+    QUICKSORT_IMPL(float, pBegin, pEnd, tmp, quickSortFloat, StableSortFloat, partitionImplFloat, LESS_NUMERIC, COPY_NUMERIC,
                    PTR_ADD_NUMERIC, PTR_SUB_NUMERIC, PTR_DIFF_NUMERIC)
 }
-void sortFloat(float* pData, size_t memberCount)
+void SortFloat(float* pData, size_t memberCount)
 {
     float tmp;
     quickSortFloat(pData, pData + memberCount, &tmp);
 }
 static void quickSortDouble(double* pBegin, double* pEnd, double* tmp)
 {
-    QUICKSORT_IMPL(double, pBegin, pEnd, tmp, quickSortDouble, stableSortDouble, partitionImplDouble, LESS_NUMERIC, COPY_NUMERIC,
+    QUICKSORT_IMPL(double, pBegin, pEnd, tmp, quickSortDouble, StableSortDouble, partitionImplDouble, LESS_NUMERIC, COPY_NUMERIC,
                    PTR_ADD_NUMERIC, PTR_SUB_NUMERIC, PTR_DIFF_NUMERIC)
 }
-void sortDouble(double* pData, size_t memberCount)
+void SortDouble(double* pData, size_t memberCount)
 {
     double tmp;
     quickSortDouble(pData, pData + memberCount, &tmp);

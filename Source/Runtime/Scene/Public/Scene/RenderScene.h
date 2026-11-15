@@ -185,7 +185,7 @@ public:
     // CPU extraction views expire at the next update. Mesh/material handles are borrowed.
     // Iterate active lists; sparse arrays include holes. These views do not pin assets for GPU work.
     // Slot order follows sparse allocation, not insertion or Entity order: consumers that need deterministic
-    // output (transparency sorting, screenshots) must sort by their own key instead of relying on index order.
+    // output (transparency sorting, screenshots) must Sort by their own key instead of relying on index order.
     Span<RenderPrimitive> getPrimitives() const;
     Span<RenderInstance>  getInstances() const;
     Span<RenderMeshBatch> getMeshBatches() const;

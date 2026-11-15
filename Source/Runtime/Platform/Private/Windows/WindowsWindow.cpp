@@ -441,7 +441,7 @@ void collectMonitorInfo()
             videoMode.width = devMode.dmPelsWidth;
             arrpush(resolutions, videoMode);
         }
-        sort(
+        Sort(
             resolutions, arrlenu(resolutions), sizeof(Resolution),
             +[](const void* lhs, const void* rhs, void* pUser)
             {

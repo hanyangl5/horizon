@@ -40,54 +40,54 @@ extern "C"
      * Use macros from AlgorithmsImpl to create non-generic functions for performance critical code
      */
 
-    void sort(void* pData, size_t memberCount, size_t memberSize, LessFn less, void* pUserData);
+    void Sort(void* pData, size_t memberCount, size_t memberSize, LessFn less, void* pUserData);
 
-    void stableSort(void* pData, size_t memberCount, size_t memberSize, LessFn less, void* pUserData);
+    void StableSort(void* pData, size_t memberCount, size_t memberSize, LessFn less, void* pUserData);
 
-    size_t partition(void* pData, size_t pivot, size_t memberCount, size_t memberSize, LessFn less, void* pUserData);
+    size_t Partition(void* pData, size_t pivot, size_t memberCount, size_t memberSize, LessFn less, void* pUserData);
 
     /*
      * Numeric C algorithms
      */
 
-    void sortInt8(int8_t* pData, size_t memberCount);
-    void sortInt16(int16_t* pData, size_t memberCount);
-    void sortInt32(int32_t* pData, size_t memberCount);
-    void sortInt64(int64_t* pData, size_t memberCount);
+    void SortInt8(int8_t* pData, size_t memberCount);
+    void SortInt16(int16_t* pData, size_t memberCount);
+    void SortInt32(int32_t* pData, size_t memberCount);
+    void SortInt64(int64_t* pData, size_t memberCount);
 
-    void sortUInt8(uint8_t* pData, size_t memberCount);
-    void sortUInt16(uint16_t* pData, size_t memberCount);
-    void sortUInt32(uint32_t* pData, size_t memberCount);
-    void sortUInt64(uint64_t* pData, size_t memberCount);
+    void SortUInt8(uint8_t* pData, size_t memberCount);
+    void SortUInt16(uint16_t* pData, size_t memberCount);
+    void SortUInt32(uint32_t* pData, size_t memberCount);
+    void SortUInt64(uint64_t* pData, size_t memberCount);
 
-    void sortFloat(float* pData, size_t memberCount);
-    void sortDouble(double* pData, size_t memberCount);
+    void SortFloat(float* pData, size_t memberCount);
+    void SortDouble(double* pData, size_t memberCount);
 
-    void stableSortInt8(int8_t* pData, size_t memberCount);
-    void stableSortInt16(int16_t* pData, size_t memberCount);
-    void stableSortInt32(int32_t* pData, size_t memberCount);
-    void stableSortInt64(int64_t* pData, size_t memberCount);
+    void StableSortInt8(int8_t* pData, size_t memberCount);
+    void StableSortInt16(int16_t* pData, size_t memberCount);
+    void StableSortInt32(int32_t* pData, size_t memberCount);
+    void StableSortInt64(int64_t* pData, size_t memberCount);
 
-    void stableSortUInt8(uint8_t* pData, size_t memberCount);
-    void stableSortUInt16(uint16_t* pData, size_t memberCount);
-    void stableSortUInt32(uint32_t* pData, size_t memberCount);
-    void stableSortUInt64(uint64_t* pData, size_t memberCount);
+    void StableSortUInt8(uint8_t* pData, size_t memberCount);
+    void StableSortUInt16(uint16_t* pData, size_t memberCount);
+    void StableSortUInt32(uint32_t* pData, size_t memberCount);
+    void StableSortUInt64(uint64_t* pData, size_t memberCount);
 
-    void stableSortFloat(float* pData, size_t memberCount);
-    void stableSortDouble(double* pData, size_t memberCount);
+    void StableSortFloat(float* pData, size_t memberCount);
+    void StableSortDouble(double* pData, size_t memberCount);
 
-    size_t partitionInt8(int8_t* pData, size_t pivot, size_t memberCount);
-    size_t partitionInt16(int16_t* pData, size_t pivot, size_t memberCount);
-    size_t partitionInt32(int32_t* pData, size_t pivot, size_t memberCount);
-    size_t partitionInt64(int64_t* pData, size_t pivot, size_t memberCount);
+    size_t PartitionInt8(int8_t* pData, size_t pivot, size_t memberCount);
+    size_t PartitionInt16(int16_t* pData, size_t pivot, size_t memberCount);
+    size_t PartitionInt32(int32_t* pData, size_t pivot, size_t memberCount);
+    size_t PartitionInt64(int64_t* pData, size_t pivot, size_t memberCount);
 
-    size_t partitionUInt8(uint8_t* pData, size_t pivot, size_t memberCount);
-    size_t partitionUInt16(uint16_t* pData, size_t pivot, size_t memberCount);
-    size_t partitionUInt32(uint32_t* pData, size_t pivot, size_t memberCount);
-    size_t partitionUInt64(uint64_t* pData, size_t pivot, size_t memberCount);
+    size_t PartitionUInt8(uint8_t* pData, size_t pivot, size_t memberCount);
+    size_t PartitionUInt16(uint16_t* pData, size_t pivot, size_t memberCount);
+    size_t PartitionUInt32(uint32_t* pData, size_t pivot, size_t memberCount);
+    size_t PartitionUInt64(uint64_t* pData, size_t pivot, size_t memberCount);
 
-    size_t partitionFloat(float* pData, size_t pivot, size_t memberCount);
-    size_t partitionDouble(double* pData, size_t pivot, size_t memberCount);
+    size_t PartitionFloat(float* pData, size_t pivot, size_t memberCount);
+    size_t PartitionDouble(double* pData, size_t pivot, size_t memberCount);
 
 #ifdef __cplusplus
 }

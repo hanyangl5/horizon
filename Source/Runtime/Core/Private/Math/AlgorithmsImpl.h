@@ -39,40 +39,40 @@
  *
  * Interface functions:
  *
- * attrs void sort<type> (type* pData, size_t memberCount)
- *	regular sort
+ * attrs void Sort<type> (type* pData, size_t memberCount)
+ *	regular Sort
  *	if size < QUICKSORT_THRESHOLD
- *		use insertion sort
+ *		use insertion Sort
  *	else
- *		use quick sort
+ *		use quick Sort
  *
- * attrs void stableSort<type> (type* pArr, size_t memberCount)
- *	stable sort (uses insertion sort)
- *	NOTE: 2-3 times slower than regular sort for big arrays
+ * attrs void StableSort<type> (type* pArr, size_t memberCount)
+ *	stable Sort (uses insertion Sort)
+ *	NOTE: 2-3 times slower than regular Sort for big arrays
  *
- * attrs size_t partition<type> (type* pArr, size_t pivot, size_t memberCount)
+ * attrs size_t Partition<type> (type* pArr, size_t pivot, size_t memberCount)
  *	partitions array around the pivot(similar to std::nth_element)
  *
  * Implementation functions:
  *
  * attrs void simplSort<type> (type* pArr, size_t memberCount)
- *	sort used for small arrays (used in stableSort)
+ *	Sort used for small arrays (used in StableSort)
  *
  * attrs type* partitionImpl<type> (type* pBegin, type* pEnd, type* pPivot)
- *	implementation function for partition
+ *	implementation function for Partition
  *
  * attrs void quickSortImpl<type> (type* pBegin, type* pEnd, type* tmp)
- *	implementation function for sort
+ *	implementation function for Sort
  *
  */
 #define DEFINE_SORT_ALGORITHMS_FOR_TYPE(attrs, type, lessFn)                                                    \
     DEFINE_SIMPLE_SORT_FUNCTION(attrs, CONCAT(simpleSort, type), type, lessFn)                                  \
-    DEFINE_INSERTION_SORT_FUNCTION(attrs, CONCAT(stableSort, type), type, lessFn, CONCAT(simpleSort, type))     \
+    DEFINE_INSERTION_SORT_FUNCTION(attrs, CONCAT(StableSort, type), type, lessFn, CONCAT(simpleSort, type))     \
     DEFINE_PARTITION_IMPL_FUNCTION(attrs, CONCAT(partitionImpl, type), type, lessFn)                            \
-    DEFINE_PARTITION_FUNCTION(attrs, CONCAT(partition, type), type, lessFn, CONCAT(partitionImpl, type))        \
-    DEFINE_QUICK_SORT_IMPL_FUNCTION(attrs, CONCAT(quickSortImpl, type), type, lessFn, CONCAT(stableSort, type), \
+    DEFINE_PARTITION_FUNCTION(attrs, CONCAT(Partition, type), type, lessFn, CONCAT(partitionImpl, type))        \
+    DEFINE_QUICK_SORT_IMPL_FUNCTION(attrs, CONCAT(quickSortImpl, type), type, lessFn, CONCAT(StableSort, type), \
                                     CONCAT(partitionImpl, type))                                                \
-    DEFINE_QUICK_SORT_FUNCTION(attrs, CONCAT(sort, type), type, CONCAT(quickSortImpl, type))
+    DEFINE_QUICK_SORT_FUNCTION(attrs, CONCAT(Sort, type), type, CONCAT(quickSortImpl, type))
 
 #define DEFINE_SIMPLE_SORT_FUNCTION(attrs, fnName, type, lessFn)                                                                           \
     attrs void fnName(type* pArr, size_t memberCount)                                                                                      \
@@ -214,8 +214,8 @@
     }                                                                                                                               \
     DESTROY_TEMP(tmp);
 
-// INSERTION SORT (stable sort)
-// TODO: Optimize for large arrays (shell sort can be used)
+// INSERTION SORT (stable Sort)
+// TODO: Optimize for large arrays (shell Sort can be used)
 #define INSERTION_SORT_IMPL(type, pArr, memberCount, SIMPLE_SORT, LESS, CREATE_TEMP, DESTROY_TEMP, COPY, PTR_INC, PTR_DEC, PTR_ADD, \
                             PTR_SUB)                                                                                                \
     CREATE_TEMP(type, tmp);                                                                                                         \
