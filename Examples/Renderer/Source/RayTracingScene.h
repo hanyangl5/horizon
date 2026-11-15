@@ -8,13 +8,13 @@ class GpuDrawList;
 class RayTracingScene
 {
 public:
-    explicit RayTracingScene(hz::RenderContext& context): context(context) {}
-    void                                update(hz::CommandList& commands, const SceneView& view, const GpuDrawList& draws);
-    const hz::GPUAccelerationStructure& getSceneTLAS() const { return tlas; }
+    explicit RayTracingScene(hz::RenderContext& Context): Context(Context) {}
+    void                                Update(hz::CommandList& Commands, const SceneView& View, const GpuDrawList& Draws);
+    const hz::GPUAccelerationStructure& GetSceneTLAS() const { return TopLevelAS; }
 
 private:
-    hz::RenderContext&                      context;
-    hz::Array<hz::GPUAccelerationStructure> blas;
-    hz::GPUAccelerationStructure            tlas;
-    uint64_t                                geometryRevision = 0;
+    hz::RenderContext&                      Context;
+    hz::Array<hz::GPUAccelerationStructure> BottomLevelAS;
+    hz::GPUAccelerationStructure            TopLevelAS;
+    uint64_t                                GeometryRevision = 0;
 };

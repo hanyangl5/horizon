@@ -154,9 +154,9 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     }
     assetRevision = view.gpuScene.getAssetTables().revision;
     commands.beginGpuTimestamp("RT Acceleration Structures");
-    rayScene->update(commands, view, draws);
+    rayScene->Update(commands, view, draws);
     commands.endGpuTimestamp();
-    const hz::GPUAccelerationStructure& tlas = rayScene->getSceneTLAS();
+    const hz::GPUAccelerationStructure& tlas = rayScene->GetSceneTLAS();
     const hz::GPUBuffer&                drawData = draws.GetDrawData(view.frameIndex);
     auto        index = [](const hz::GPUTexture* texture) { return texture && texture->isValid() ? texture->getSrvIndex() : UINT32_MAX; };
     RTConstants                         constants = {

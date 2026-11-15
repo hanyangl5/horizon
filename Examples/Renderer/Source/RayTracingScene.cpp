@@ -2,91 +2,91 @@
 #include "GpuDrawList.h"
 #include "Scene/MeshAsset.h"
 
-void RayTracingScene::update(hz::CommandList& commands, const SceneView& view, const GpuDrawList& draws)
+void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, const GpuDrawList& Draws)
 {
-    const hz::Span<DrawGeometry> geometries = draws.GetGeometries();
-    if (geometryRevision != draws.GetGeometryRevision())
+    const hz::Span<DrawGeometry> Geometries = Draws.GetGeometries();
+    if (GeometryRevision != Draws.GetGeometryRevision())
     {
-        hz::Array<hz::GPUAccelerationStructure> previous = std::move(blas);
-        blas.resize(geometries.count);
-        for (uint32_t i = 0; i < geometries.count; ++i)
+        hz::Array<hz::GPUAccelerationStructure> Previous = std::move(BottomLevelAS);
+        BottomLevelAS.resize(Geometries.count);
+        for (uint32_t Index = 0; Index < Geometries.count; ++Index)
         {
-            const DrawGeometry& source = geometries.pData[i];
-            if (geometryRevision + 1 == draws.GetGeometryRevision() && source.PreviousIndex < previous.size())
+            const DrawGeometry& Source = Geometries.pData[Index];
+            if (GeometryRevision + 1 == Draws.GetGeometryRevision() && Source.PreviousIndex < Previous.size())
             {
-                blas[i] = std::move(previous[source.PreviousIndex]);
+                BottomLevelAS[Index] = std::move(Previous[Source.PreviousIndex]);
                 continue;
             }
-            const hz::MeshAsset* mesh = view.assets.getMesh({ source.Mesh.mesh.index, source.Mesh.mesh.generation });
-            ASSERT(mesh);
-            const IndirectDrawIndexArguments& submesh = mesh->getDraw(source.Mesh.submeshIndex);
-            const hz::GPUBuffer&              vertices = mesh->getVertexBuffer(0);
-            const uint32_t                    stride = mesh->getVertexStride(0);
-            const int32_t                     baseVertex = int32_t(submesh.vertexOffset);
-            ASSERT(baseVertex >= 0 && stride == 12 && submesh.indexCount % 3 == 0);
-            const uint64_t vertexOffset = uint64_t(baseVertex) * stride;
-            ASSERT(vertices.getSize() >= vertexOffset);
-            const hz::AccelerationStructureGeometry geometry = {
-                .pVertexBuffer = &vertices,
-                .pIndexBuffer = &mesh->getIndexBuffer(),
-                .vertexOffset = vertexOffset,
-                .indexOffset = uint64_t(submesh.startIndex) * (mesh->getIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u),
-                .vertexCount = uint32_t((vertices.getSize() - vertexOffset) / stride),
-                .vertexStride = stride,
-                .indexCount = submesh.indexCount,
-                .indexType = mesh->getIndexType(),
-                .opaque = source.Opaque,
+            const hz::MeshAsset* Mesh = View.assets.getMesh({ Source.Mesh.mesh.index, Source.Mesh.mesh.generation });
+            ASSERT(Mesh);
+            const IndirectDrawIndexArguments& Submesh = Mesh->getDraw(Source.Mesh.submeshIndex);
+            const hz::GPUBuffer&              Vertices = Mesh->getVertexBuffer(0);
+            const uint32_t                    Stride = Mesh->getVertexStride(0);
+            const int32_t                     BaseVertex = int32_t(Submesh.vertexOffset);
+            ASSERT(BaseVertex >= 0 && Stride == 12 && Submesh.indexCount % 3 == 0);
+            const uint64_t VertexOffset = uint64_t(BaseVertex) * Stride;
+            ASSERT(Vertices.getSize() >= VertexOffset);
+            const hz::AccelerationStructureGeometry Geometry = {
+                .pVertexBuffer = &Vertices,
+                .pIndexBuffer = &Mesh->getIndexBuffer(),
+                .vertexOffset = VertexOffset,
+                .indexOffset = uint64_t(Submesh.startIndex) * (Mesh->getIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u),
+                .vertexCount = uint32_t((Vertices.getSize() - VertexOffset) / Stride),
+                .vertexStride = Stride,
+                .indexCount = Submesh.indexCount,
+                .indexType = Mesh->getIndexType(),
+                .opaque = Source.Opaque,
             };
-            blas[i] = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
-            ASSERT(blas[i].isValid());
-            commands.buildAccelerationStructure(blas[i]);
+            BottomLevelAS[Index] = Context.createAccelerationStructure({ .geometries = { &Geometry, 1 } });
+            ASSERT(BottomLevelAS[Index].isValid());
+            Commands.buildAccelerationStructure(BottomLevelAS[Index]);
         }
-        geometryRevision = draws.GetGeometryRevision();
+        GeometryRevision = Draws.GetGeometryRevision();
     }
 
-    const hz::Span<GpuDrawData> prepared = draws.GetDraws();
-    uint32_t                    instanceCount = 0;
-    for (const GpuDrawData& draw : prepared)
+    const hz::Span<GpuDrawData> Prepared = Draws.GetDraws();
+    uint32_t                    InstanceCount = 0;
+    for (const GpuDrawData& Draw : Prepared)
     {
-        instanceCount += draw.alphaMode != uint32_t(hz::MaterialAlphaMode::Blend);
+        InstanceCount += Draw.alphaMode != uint32_t(hz::MaterialAlphaMode::Blend);
     }
-    if (!instanceCount)
+    if (!InstanceCount)
     {
-        tlas = {};
+        TopLevelAS = {};
         return;
     }
-    if (tlas.getInstanceCount() != instanceCount)
+    if (TopLevelAS.getInstanceCount() != InstanceCount)
     {
-        tlas = context.createAccelerationStructure({
+        TopLevelAS = Context.createAccelerationStructure({
             .type = ACCELERATION_STRUCTURE_TYPE_TOP,
             .flags = AccelerationStructureBuildFlags(ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE |
                                                      ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE),
-            .instanceCount = instanceCount,
+            .instanceCount = InstanceCount,
         });
     }
-    ASSERT(tlas.isValid());
-    uint32_t instanceIndex = 0;
-    for (uint32_t drawIndex = 0; drawIndex < prepared.count; ++drawIndex)
+    ASSERT(TopLevelAS.isValid());
+    uint32_t InstanceIndex = 0;
+    for (uint32_t DrawIndex = 0; DrawIndex < Prepared.count; ++DrawIndex)
     {
-        const GpuDrawData& draw = prepared.pData[drawIndex];
-        if (draw.alphaMode == uint32_t(hz::MaterialAlphaMode::Blend))
+        const GpuDrawData& Draw = Prepared.pData[DrawIndex];
+        if (Draw.alphaMode == uint32_t(hz::MaterialAlphaMode::Blend))
         {
             continue;
         }
-        const Matrix4&                    transform = view.scene.getInstances().pData[draw.instance].current;
-        hz::AccelerationStructureInstance instance = {
-            .pBottom = &blas[draws.GetGeometryIndex(drawIndex)],
-            .instanceId = drawIndex,
+        const Matrix4&                    Transform = View.scene.getInstances().pData[Draw.instance].current;
+        hz::AccelerationStructureInstance Instance = {
+            .pBottom = &BottomLevelAS[Draws.GetGeometryIndex(DrawIndex)],
+            .instanceId = DrawIndex,
             .flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE,
         };
-        for (uint32_t row = 0; row < 3; ++row)
+        for (uint32_t Row = 0; Row < 3; ++Row)
         {
-            for (uint32_t column = 0; column < 4; ++column)
+            for (uint32_t Column = 0; Column < 4; ++Column)
             {
-                instance.transform[row * 4 + column] = transform.getCol(column).getElem(row);
+                Instance.transform[Row * 4 + Column] = Transform.getCol(Column).getElem(Row);
             }
         }
-        tlas.setInstance(instanceIndex++, instance);
+        TopLevelAS.setInstance(InstanceIndex++, Instance);
     }
-    commands.updateAccelerationStructure(tlas);
+    Commands.updateAccelerationStructure(TopLevelAS);
 }
