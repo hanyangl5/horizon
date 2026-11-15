@@ -4,22 +4,22 @@
 
 void RayTracingScene::update(hz::CommandList& commands, const SceneView& view, const GpuDrawList& draws)
 {
-    const hz::Span<DrawGeometry> geometries = draws.getGeometries();
-    if (geometryRevision != draws.getGeometryRevision())
+    const hz::Span<DrawGeometry> geometries = draws.GetGeometries();
+    if (geometryRevision != draws.GetGeometryRevision())
     {
         hz::Array<hz::GPUAccelerationStructure> previous = std::move(blas);
         blas.resize(geometries.count);
         for (uint32_t i = 0; i < geometries.count; ++i)
         {
             const DrawGeometry& source = geometries.pData[i];
-            if (geometryRevision + 1 == draws.getGeometryRevision() && source.previousIndex < previous.size())
+            if (geometryRevision + 1 == draws.GetGeometryRevision() && source.PreviousIndex < previous.size())
             {
-                blas[i] = std::move(previous[source.previousIndex]);
+                blas[i] = std::move(previous[source.PreviousIndex]);
                 continue;
             }
-            const hz::MeshAsset* mesh = view.assets.getMesh({ source.mesh.mesh.index, source.mesh.mesh.generation });
+            const hz::MeshAsset* mesh = view.assets.getMesh({ source.Mesh.mesh.index, source.Mesh.mesh.generation });
             ASSERT(mesh);
-            const IndirectDrawIndexArguments& submesh = mesh->getDraw(source.mesh.submeshIndex);
+            const IndirectDrawIndexArguments& submesh = mesh->getDraw(source.Mesh.submeshIndex);
             const hz::GPUBuffer&              vertices = mesh->getVertexBuffer(0);
             const uint32_t                    stride = mesh->getVertexStride(0);
             const int32_t                     baseVertex = int32_t(submesh.vertexOffset);
@@ -35,16 +35,16 @@ void RayTracingScene::update(hz::CommandList& commands, const SceneView& view, c
                 .vertexStride = stride,
                 .indexCount = submesh.indexCount,
                 .indexType = mesh->getIndexType(),
-                .opaque = source.opaque,
+                .opaque = source.Opaque,
             };
             blas[i] = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
             ASSERT(blas[i].isValid());
             commands.buildAccelerationStructure(blas[i]);
         }
-        geometryRevision = draws.getGeometryRevision();
+        geometryRevision = draws.GetGeometryRevision();
     }
 
-    const hz::Span<GpuDrawData> prepared = draws.getDraws();
+    const hz::Span<GpuDrawData> prepared = draws.GetDraws();
     uint32_t                    instanceCount = 0;
     for (const GpuDrawData& draw : prepared)
     {
@@ -75,7 +75,7 @@ void RayTracingScene::update(hz::CommandList& commands, const SceneView& view, c
         }
         const Matrix4&                    transform = view.scene.getInstances().pData[draw.instance].current;
         hz::AccelerationStructureInstance instance = {
-            .pBottom = &blas[draws.getGeometryIndex(drawIndex)],
+            .pBottom = &blas[draws.GetGeometryIndex(drawIndex)],
             .instanceId = drawIndex,
             .flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE,
         };

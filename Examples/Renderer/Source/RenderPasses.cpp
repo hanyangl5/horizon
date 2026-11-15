@@ -104,7 +104,7 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
                              .loadAction = LOAD_ACTION_CLEAR,
                              .storeAction = STORE_ACTION_STORE,
                              .clearValue = { .depth = 1.0f } },
-    }, draws.getDependencies(frame, view, &draws.getCommands(view.frameIndex)));
+    }, draws.GetDependencies(frame, view, &draws.GetCommands(view.frameIndex)));
     commands.setViewport(0, 0, (float)width, (float)height);
     commands.setScissor(0, 0, width, height);
     commands.setPipeline(pipeline);
@@ -117,10 +117,10 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     };
     commands.setRootConstants(binding, kGeometryBindingSlot);
 
-    commands.setRootConstant({ draws.getDrawData(view.frameIndex).getSrvIndex() }, kGeometryDrawSlot);
-    if (draws.getCount(view.frameIndex))
+    commands.setRootConstant({ draws.GetDrawData(view.frameIndex).getSrvIndex() }, kGeometryDrawSlot);
+    if (draws.GetCount(view.frameIndex))
     {
-        commands.drawIndirect(draws.getCommands(view.frameIndex), 0, draws.getCount(view.frameIndex));
+        commands.drawIndirect(draws.GetCommands(view.frameIndex), 0, draws.GetCount(view.frameIndex));
     }
     commands.endRendering();
     commands.endGpuTimestamp();
@@ -304,7 +304,7 @@ void RenderPasses::execute()
     ASSERT(updated);
     hz::CommandList& commands = context.acquireCommandList();
     gpuScene.upload(commands);
-    draws.prepare(commands, frame, view);
+    draws.Prepare(commands, frame, view);
     // Frame shape the passes depend on; the shadow pass publishes its intensity once it ran.
     shadows->Data.environmentMipCount = environment->getPrefilteredMipCount();
     shadows->Data.rtShadowEnabled = rayTracing->isSupported() && rayTracing->settings.shadows ? 1u : 0u;

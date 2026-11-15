@@ -3,6 +3,7 @@
 #include "Graphics/RenderContext.h"
 #include "SceneView.h"
 
+// Uploaded to shaders as-is, so the fields keep the shader's names.
 struct GpuDrawData
 {
     uint32_t instance;
@@ -21,53 +22,54 @@ struct GpuDrawData
 
 struct DrawGeometry
 {
-    hz::GpuSubmeshRef mesh;
-    bool              opaque = true;
-    uint32_t          previousIndex = UINT32_MAX; // Geometry index in the preceding revision.
+    hz::GpuSubmeshRef Mesh;
+    bool              Opaque = true;
+    uint32_t          PreviousIndex = UINT32_MAX; // Geometry index in the preceding revision.
 };
 
 class GpuDrawList
 {
 public:
-    explicit GpuDrawList(hz::RenderContext& context);
-    void                 prepare(hz::CommandList&, const hz::GPUBuffer& frame, const SceneView&, bool culling = true);
+    explicit GpuDrawList(hz::RenderContext& Context);
+    void                  Prepare(hz::CommandList&, const hz::GPUBuffer& Frame, const SceneView&, bool Culling = true);
     // Draw indices refer to the complete list before GPU frustum culling.
-    hz::Span<GpuDrawData>  getDraws() const { return { drawData.data(), drawData.size() }; }
-    hz::Span<DrawGeometry> getGeometries() const { return { geometries.data(), geometries.size() }; }
-    uint32_t               getGeometryIndex(uint32_t drawIndex) const { return geometryIndices[drawIndex]; }
-    uint64_t               getGeometryRevision() const { return geometryRevision; }
-    const hz::GPUBuffer& getDrawData(uint32_t backing) const { return frames[backing].drawData; }
-    const hz::GPUBuffer& getCommands(uint32_t backing, bool transparent = false) const
+    hz::Span<GpuDrawData>  GetDraws() const { return { DrawData.data(), DrawData.size() }; }
+    hz::Span<DrawGeometry> GetGeometries() const { return { Geometries.data(), Geometries.size() }; }
+    uint32_t               GetGeometryIndex(uint32_t DrawIndex) const { return GeometryIndices[DrawIndex]; }
+    uint64_t               GetGeometryRevision() const { return GeometryRevision; }
+    const hz::GPUBuffer&   GetDrawData(uint32_t Backing) const { return Frames[Backing].DrawData; }
+    const hz::GPUBuffer&   GetCommands(uint32_t Backing, bool Transparent = false) const
     {
-        return transparent ? frames[backing].transparent : frames[backing].opaque;
+        return Transparent ? Frames[Backing].Transparent : Frames[Backing].Opaque;
     }
-    const hz::GPUBuffer& getShadowCommands(uint32_t backing) const { return frames[backing].shadow; }
-    hz::Dependencies     getDependencies(const hz::GPUBuffer& frame, const SceneView& view, const hz::GPUBuffer* indirect = nullptr) const;
-    const hz::GPUBuffer& getStatistics(uint32_t backing) const { return frames[backing].statistics; }
-    uint32_t             getCount(uint32_t backing) const { return frames[backing].count; }
+    const hz::GPUBuffer& GetShadowCommands(uint32_t Backing) const { return Frames[Backing].Shadow; }
+    hz::Dependencies     GetDependencies(const hz::GPUBuffer& Frame, const SceneView& View,
+                                         const hz::GPUBuffer* Indirect = nullptr) const;
+    const hz::GPUBuffer& GetStatistics(uint32_t Backing) const { return Frames[Backing].Statistics; }
+    uint32_t             GetCount(uint32_t Backing) const { return Frames[Backing].Count; }
 
 private:
     struct Frame
     {
-        hz::GPUBuffer drawData;
-        hz::GPUBuffer opaque;
-        hz::GPUBuffer transparent;
-        hz::GPUBuffer shadow;
-        hz::GPUBuffer statistics;
-        uint32_t      capacity = 0;
-        uint32_t      count = 0;
+        hz::GPUBuffer DrawData;
+        hz::GPUBuffer Opaque;
+        hz::GPUBuffer Transparent;
+        hz::GPUBuffer Shadow;
+        hz::GPUBuffer Statistics;
+        uint32_t      Capacity = 0;
+        uint32_t      Count = 0;
     };
-    hz::RenderContext&                       context;
-    hz::GPUPipeline                          pipeline;
-    hz::GPUPipeline                          clearPipeline;
-    hz::FixedArray<Frame, 3>                 frames;
-    hz::Array<GpuDrawData>                   drawData;
-    hz::Array<DrawGeometry>                  geometries;
-    hz::Array<uint32_t>                      geometryIndices;
-    uint64_t                                 geometryRevision = 0;
-    hz::Array<uint32_t>                      materialIds;
-    uint64_t                                 materialRevision = 0;
-    mutable hz::Array<const hz::GPUBuffer*>  buffers;
-    mutable hz::Array<const hz::GPUTexture*> textures;
-    mutable const hz::GPUBuffer*             indirectDependency = nullptr;
+    hz::RenderContext&                       Context;
+    hz::GPUPipeline                          Pipeline;
+    hz::GPUPipeline                          ClearPipeline;
+    hz::FixedArray<Frame, 3>                 Frames;
+    hz::Array<GpuDrawData>                   DrawData;
+    hz::Array<DrawGeometry>                  Geometries;
+    hz::Array<uint32_t>                      GeometryIndices;
+    uint64_t                                 GeometryRevision = 0;
+    hz::Array<uint32_t>                      MaterialIds;
+    uint64_t                                 MaterialRevision = 0;
+    mutable hz::Array<const hz::GPUBuffer*>  Buffers;
+    mutable hz::Array<const hz::GPUTexture*> Textures;
+    mutable const hz::GPUBuffer*             IndirectDependency = nullptr;
 };

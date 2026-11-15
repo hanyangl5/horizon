@@ -159,7 +159,7 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
                                                    .loadAction = LOAD_ACTION_CLEAR,
                                                    .storeAction = STORE_ACTION_STORE,
                                                    .clearValue = { .depth = 1 } } },
-                            Draws.getDependencies(ShadowFrames[Backing], View, &Draws.getShadowCommands(Backing)));
+                            Draws.GetDependencies(ShadowFrames[Backing], View, &Draws.GetShadowCommands(Backing)));
     Commands.setPipeline(Pipeline);
     Commands.setViewport(0, 0, (float)Resolution, (float)Resolution);
     Commands.setScissor(0, 0, Resolution, Resolution);
@@ -172,10 +172,10 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
         .samplerIndex = SurfaceSampler.getIndex(),
     };
     Commands.setRootConstants(Binding);
-    Commands.setRootConstant({ Draws.getDrawData(Backing).getSrvIndex() }, kGeometryDrawSlot);
-    if (Draws.getCount(Backing))
+    Commands.setRootConstant({ Draws.GetDrawData(Backing).getSrvIndex() }, kGeometryDrawSlot);
+    if (Draws.GetCount(Backing))
     {
-        Commands.drawIndirect(Draws.getShadowCommands(Backing), 0, Draws.getCount(Backing));
+        Commands.drawIndirect(Draws.GetShadowCommands(Backing), 0, Draws.GetCount(Backing));
     }
     Commands.endRendering();
     Commands.endGpuTimestamp();

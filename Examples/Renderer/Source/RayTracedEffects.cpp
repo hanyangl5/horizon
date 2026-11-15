@@ -157,7 +157,7 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
     rayScene->update(commands, view, draws);
     commands.endGpuTimestamp();
     const hz::GPUAccelerationStructure& tlas = rayScene->getSceneTLAS();
-    const hz::GPUBuffer&                drawData = draws.getDrawData(view.frameIndex);
+    const hz::GPUBuffer&                drawData = draws.GetDrawData(view.frameIndex);
     auto        index = [](const hz::GPUTexture* texture) { return texture && texture->isValid() ? texture->getSrvIndex() : UINT32_MAX; };
     RTConstants                         constants = {
                                 .frame = frame.getSrvIndex(),
@@ -185,7 +185,7 @@ void RayTracedEffects::execute(hz::CommandList& commands, const hz::GPUBuffer& f
                                 .aoPower = settings.aoPower,
                                 .shadowRadius = settings.shadowRadius,
     };
-    const hz::Dependencies sceneDependencies = draws.getDependencies(frame, view);
+    const hz::Dependencies sceneDependencies = draws.GetDependencies(frame, view);
     commands.beginGpuTimestamp("RT Shadow AO");
     commands.setPipeline(shadowPipeline);
     commands.setRootConstants(constants);

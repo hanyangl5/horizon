@@ -4,17 +4,17 @@
 #include "Scene/MeshAsset.h"
 #include "Scene/TextureAsset.h"
 
-GpuDrawList::GpuDrawList(hz::RenderContext& context): context(context)
+GpuDrawList::GpuDrawList(hz::RenderContext& Context): Context(Context)
 {
-    pipeline = context.createComputePipeline(
+    Pipeline = Context.createComputePipeline(
         { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain", .pName = "Renderer.FrustumCull" } },
                           .pFileName = "FrustumCulling.slang" },
           .pName = "Renderer.FrustumCull" });
-    clearPipeline =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "ClearStatistics" } },
+    ClearPipeline =
+        Context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "ClearStatistics" } },
                                                         .pFileName = "FrustumCulling.slang" },
                                         .pName = "Renderer.ClearCullingStatistics" });
-    ASSERT(pipeline.isValid() && clearPipeline.isValid());
+    ASSERT(Pipeline.isValid() && ClearPipeline.isValid());
 }
 
 // Mirrors the RootConstant0 block of FrustumCulling.slang field for field.
@@ -31,203 +31,207 @@ struct CullingConstants
     uint32_t shadowsIndex;
 };
 static_assert(sizeof(CullingConstants) == 9 * sizeof(uint32_t));
-void GpuDrawList::prepare(hz::CommandList& commands, const hz::GPUBuffer& frameBuffer, const SceneView& view, bool culling)
+
+void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameBuffer, const SceneView& View, bool Culling)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::prepare");
-    const hz::GpuAssetTables& tables = view.gpuScene.getAssetTables();
-    if (materialRevision != view.gpuScene.getAssetTables().revision)
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::Prepare");
+    const hz::GpuAssetTables& Tables = View.gpuScene.getAssetTables();
+    if (MaterialRevision != Tables.revision)
     {
-        materialIds.resize(tables.materials.count);
-        uint32_t id = 0;
-        for (uint32_t i = 0; i < tables.materials.count; ++i)
+        MaterialIds.resize(Tables.materials.count);
+        uint32_t Id = 0;
+        for (uint32_t Index = 0; Index < Tables.materials.count; ++Index)
         {
-            materialIds[i] = tables.materials.pData[i].id.isValid() ? id++ : UINT32_MAX;
+            MaterialIds[Index] = Tables.materials.pData[Index].id.isValid() ? Id++ : UINT32_MAX;
         }
-        materialRevision = view.gpuScene.getAssetTables().revision;
+        MaterialRevision = Tables.revision;
     }
-    drawData.clear();
-    geometryIndices.clear();
-    uint32_t   geometryCount = 0;
-    bool       geometryChanged = false;
-    const auto markGeometryChanged = [&]
+    DrawData.clear();
+    GeometryIndices.clear();
+    uint32_t   GeometryCount = 0;
+    bool       GeometryChanged = false;
+    const auto MarkGeometryChanged = [&]
     {
-        if (!geometryChanged)
+        if (!GeometryChanged)
         {
-            for (uint32_t i = 0; i < geometries.size(); ++i)
+            for (uint32_t Index = 0; Index < Geometries.size(); ++Index)
             {
-                geometries[i].previousIndex = i;
+                Geometries[Index].PreviousIndex = Index;
             }
-            geometryChanged = true;
+            GeometryChanged = true;
         }
     };
-    for (uint32_t meshBatchIndex : view.scene.getActiveMeshBatches())
+    for (uint32_t MeshBatchIndex : View.scene.getActiveMeshBatches())
     {
-        const hz::RenderMeshBatch&   draw = view.scene.getMeshBatches().pData[meshBatchIndex];
-        const hz::RenderPrimitive&   primitive = view.scene.getPrimitives().pData[draw.primitive.index];
-        const hz::GpuMeshData*       mesh = tables.getMesh(draw.mesh.mesh);
-        const hz::GpuMaterialData*   material = tables.getMaterial(draw.material);
-        if (!primitive.instanceCount || !mesh || !material)
+        const hz::RenderMeshBatch& Draw = View.scene.getMeshBatches().pData[MeshBatchIndex];
+        const hz::RenderPrimitive& Primitive = View.scene.getPrimitives().pData[Draw.primitive.index];
+        const hz::GpuMeshData*     Mesh = Tables.getMesh(Draw.mesh.mesh);
+        const hz::GpuMaterialData* Material = Tables.getMaterial(Draw.material);
+        if (!Primitive.instanceCount || !Mesh || !Material)
         {
             continue;
         }
-        ASSERT(mesh->vertexStreamCount == 3 && primitive.id == draw.primitive);
-        const hz::GpuSubmeshData& submesh = tables.submeshes.pData[mesh->submeshOffset + draw.mesh.submeshIndex];
-        uint32_t                  geometryIndex = UINT32_MAX;
-        if (material->alphaMode != uint32_t(hz::MaterialAlphaMode::Blend))
+        ASSERT(Mesh->vertexStreamCount == 3 && Primitive.id == Draw.primitive);
+        const hz::GpuSubmeshData& Submesh = Tables.submeshes.pData[Mesh->submeshOffset + Draw.mesh.submeshIndex];
+        uint32_t                  GeometryIndex = UINT32_MAX;
+        if (Material->alphaMode != uint32_t(hz::MaterialAlphaMode::Blend))
         {
-            const bool opaque = material->alphaMode == uint32_t(hz::MaterialAlphaMode::Opaque);
-            geometryIndex = 0;
-            while (geometryIndex < geometries.size() &&
-                   (geometries[geometryIndex].mesh != draw.mesh || geometries[geometryIndex].opaque != opaque))
+            const bool Opaque = Material->alphaMode == uint32_t(hz::MaterialAlphaMode::Opaque);
+            GeometryIndex = 0;
+            while (GeometryIndex < Geometries.size() &&
+                   (Geometries[GeometryIndex].Mesh != Draw.mesh || Geometries[GeometryIndex].Opaque != Opaque))
             {
-                ++geometryIndex;
+                ++GeometryIndex;
             }
-            if (geometryIndex >= geometryCount)
+            if (GeometryIndex >= GeometryCount)
             {
-                if (geometryIndex != geometryCount || geometryIndex == geometries.size())
+                if (GeometryIndex != GeometryCount || GeometryIndex == Geometries.size())
                 {
-                    markGeometryChanged();
+                    MarkGeometryChanged();
                 }
-                if (geometryIndex == geometries.size())
+                if (GeometryIndex == Geometries.size())
                 {
-                    geometries.pushBack({ .mesh = draw.mesh, .opaque = opaque });
+                    Geometries.pushBack({ .Mesh = Draw.mesh, .Opaque = Opaque });
                 }
-                std::swap(geometries[geometryIndex], geometries[geometryCount]);
-                geometryIndex = geometryCount++;
+                std::swap(Geometries[GeometryIndex], Geometries[GeometryCount]);
+                GeometryIndex = GeometryCount++;
             }
         }
-        for (uint32_t i = 0; i < primitive.instanceCount; ++i)
+        for (uint32_t Index = 0; Index < Primitive.instanceCount; ++Index)
         {
-            geometryIndices.pushBack(geometryIndex);
-            drawData.pushBack({ .instance = view.scene.getInstanceIndices().pData[primitive.instanceOffset + i],
-                                .material = draw.material.index,
-                                .materialId = materialIds[draw.material.index],
-                                .alphaMode = material->alphaMode,
-                                .positions = tables.vertexStreams.pData[mesh->vertexStreamOffset].srv,
-                                .normals = tables.vertexStreams.pData[mesh->vertexStreamOffset + 1].srv,
-                                .texcoords = tables.vertexStreams.pData[mesh->vertexStreamOffset + 2].srv,
-                                .indices = mesh->indexSrv,
-                                .indexStride = mesh->indexStride,
-                                .firstIndex = submesh.firstIndex,
-                                .vertexOffset = submesh.vertexOffset,
-                                .indexCount = submesh.indexCount });
+            GeometryIndices.pushBack(GeometryIndex);
+            DrawData.pushBack({ .instance = View.scene.getInstanceIndices().pData[Primitive.instanceOffset + Index],
+                                .material = Draw.material.index,
+                                .materialId = MaterialIds[Draw.material.index],
+                                .alphaMode = Material->alphaMode,
+                                .positions = Tables.vertexStreams.pData[Mesh->vertexStreamOffset].srv,
+                                .normals = Tables.vertexStreams.pData[Mesh->vertexStreamOffset + 1].srv,
+                                .texcoords = Tables.vertexStreams.pData[Mesh->vertexStreamOffset + 2].srv,
+                                .indices = Mesh->indexSrv,
+                                .indexStride = Mesh->indexStride,
+                                .firstIndex = Submesh.firstIndex,
+                                .vertexOffset = Submesh.vertexOffset,
+                                .indexCount = Submesh.indexCount });
         }
     }
-    if (geometryCount != geometries.size())
+    if (GeometryCount != Geometries.size())
     {
-        markGeometryChanged();
-        geometries.resize(geometryCount);
+        MarkGeometryChanged();
+        Geometries.resize(GeometryCount);
     }
-    if (geometryChanged)
+    if (GeometryChanged)
     {
-        ++geometryRevision;
+        ++GeometryRevision;
     }
-    Frame& frame = frames[view.frameIndex];
-    frame.count = drawData.size();
-    if (frame.count > frame.capacity || !frame.statistics.isValid())
+    Frame& CurrentFrame = Frames[View.frameIndex];
+    CurrentFrame.Count = DrawData.size();
+    if (CurrentFrame.Count > CurrentFrame.Capacity || !CurrentFrame.Statistics.isValid())
     {
-        frame.capacity = TF_MAX(64u, TF_MAX(frame.count, frame.capacity * 2));
-        frame.drawData = context.createBuffer({ .size = uint64_t(frame.capacity) * sizeof(GpuDrawData),
-                                                .elementCount = frame.capacity * (uint32_t)(sizeof(GpuDrawData) / 4),
-                                                .pName = "Renderer.DrawData",
-                                                .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                                .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                                .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
-                                                .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-        const hz::BufferDesc arguments = { .size = uint64_t(frame.capacity) * 20,
-                                           .elementCount = frame.capacity * 5,
+        CurrentFrame.Capacity = TF_MAX(64u, TF_MAX(CurrentFrame.Count, CurrentFrame.Capacity * 2));
+        CurrentFrame.DrawData = Context.createBuffer({ .size = uint64_t(CurrentFrame.Capacity) * sizeof(GpuDrawData),
+                                                       .elementCount = CurrentFrame.Capacity * (uint32_t)(sizeof(GpuDrawData) / 4),
+                                                       .pName = "Renderer.DrawData",
+                                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                       .startState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                       .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
+                                                       .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+        const hz::BufferDesc Arguments = { .size = uint64_t(CurrentFrame.Capacity) * 20,
+                                           .elementCount = CurrentFrame.Capacity * 5,
                                            .pName = "Renderer.IndirectDraws",
                                            .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
                                            .startState = RESOURCE_STATE_UNORDERED_ACCESS,
                                            .descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW | DESCRIPTOR_TYPE_INDIRECT_BUFFER };
-        frame.opaque = context.createBuffer(arguments);
-        frame.transparent = context.createBuffer(arguments);
-        frame.shadow = context.createBuffer(arguments);
-        frame.statistics = context.createBuffer({ .size = 16,
-                                                  .elementCount = 4,
-                                                  .pName = "Renderer.CullingStatistics",
-                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                  .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                  .descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW });
-        ASSERT(frame.drawData.isValid() && frame.opaque.isValid() && frame.transparent.isValid() && frame.statistics.isValid());
+        CurrentFrame.Opaque = Context.createBuffer(Arguments);
+        CurrentFrame.Transparent = Context.createBuffer(Arguments);
+        CurrentFrame.Shadow = Context.createBuffer(Arguments);
+        CurrentFrame.Statistics = Context.createBuffer({ .size = 16,
+                                                         .elementCount = 4,
+                                                         .pName = "Renderer.CullingStatistics",
+                                                         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                         .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                         .descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW });
+        ASSERT(CurrentFrame.DrawData.isValid() && CurrentFrame.Opaque.isValid() && CurrentFrame.Transparent.isValid() &&
+               CurrentFrame.Statistics.isValid());
     }
-    commands.setPipeline(clearPipeline);
-    commands.setRootConstant({ frame.statistics.getUavIndex() }, 5);
-    commands.dispatch(1, 1, 1, { .storageBuffers = { &frame.statistics } });
-    if (!frame.count)
+    Commands.setPipeline(ClearPipeline);
+    Commands.setRootConstant({ CurrentFrame.Statistics.getUavIndex() }, 5);
+    Commands.dispatch(1, 1, 1, { .storageBuffers = { &CurrentFrame.Statistics } });
+    if (!CurrentFrame.Count)
     {
         return;
     }
-    const bool uploaded = context.updateBuffer(frame.drawData, 0, drawData.data(), uint64_t(frame.count) * sizeof(GpuDrawData));
-    ASSERT(uploaded);
-    commands.beginGpuTimestamp("GPU Frustum Culling");
-    commands.setPipeline(pipeline);
-    const CullingConstants cullingConstants = { .frameIndex = frameBuffer.getSrvIndex(),
-                                                .drawsIndex = frame.drawData.getSrvIndex(),
-                                                .instancesIndex = view.gpuScene.getBuffers().instances.getSrvIndex(),
-                                                .opaqueIndex = frame.opaque.getUavIndex(),
-                                                .transparentIndex = frame.transparent.getUavIndex(),
-                                                .statisticsIndex = frame.statistics.getUavIndex(),
-                                                .drawCount = frame.count,
-                                                .cullingEnabled = culling ? 1u : 0u,
-                                                .shadowsIndex = frame.shadow.getUavIndex() };
-    commands.setRootConstants(cullingConstants);
-    commands.dispatch((frame.count + 63) / 64, 1, 1,
-                      { .buffers = { &frameBuffer, &frame.drawData, &view.gpuScene.getBuffers().instances },
-                        .storageBuffers = { &frame.opaque, &frame.transparent, &frame.statistics, &frame.shadow } });
-    commands.endGpuTimestamp();
+    const bool Uploaded = Context.updateBuffer(CurrentFrame.DrawData, 0, DrawData.data(), uint64_t(CurrentFrame.Count) * sizeof(GpuDrawData));
+    ASSERT(Uploaded);
+    Commands.beginGpuTimestamp("GPU Frustum Culling");
+    Commands.setPipeline(Pipeline);
+    const CullingConstants Binding = { .frameIndex = FrameBuffer.getSrvIndex(),
+                                       .drawsIndex = CurrentFrame.DrawData.getSrvIndex(),
+                                       .instancesIndex = View.gpuScene.getBuffers().instances.getSrvIndex(),
+                                       .opaqueIndex = CurrentFrame.Opaque.getUavIndex(),
+                                       .transparentIndex = CurrentFrame.Transparent.getUavIndex(),
+                                       .statisticsIndex = CurrentFrame.Statistics.getUavIndex(),
+                                       .drawCount = CurrentFrame.Count,
+                                       .cullingEnabled = Culling ? 1u : 0u,
+                                       .shadowsIndex = CurrentFrame.Shadow.getUavIndex() };
+    Commands.setRootConstants(Binding);
+    Commands.dispatch((CurrentFrame.Count + 63) / 64, 1, 1,
+                      { .buffers = { &FrameBuffer, &CurrentFrame.DrawData, &View.gpuScene.getBuffers().instances },
+                        .storageBuffers = { &CurrentFrame.Opaque, &CurrentFrame.Transparent, &CurrentFrame.Statistics,
+                                            &CurrentFrame.Shadow } });
+    Commands.endGpuTimestamp();
 }
 
-hz::Dependencies GpuDrawList::getDependencies(const hz::GPUBuffer& frame, const SceneView& view, const hz::GPUBuffer* indirect) const
+hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const SceneView& View,
+                                             const hz::GPUBuffer* Indirect) const
 {
-    buffers.clear();
-    textures.clear();
-    buffers.pushBack(&frame);
-    buffers.pushBack(&getDrawData(view.frameIndex));
-    const hz::GpuSceneBuffers& gpu = view.gpuScene.getBuffers();
-    if (gpu.instances.isValid())
+    Buffers.clear();
+    Textures.clear();
+    Buffers.pushBack(&Frame);
+    Buffers.pushBack(&GetDrawData(View.frameIndex));
+    const hz::GpuSceneBuffers& Gpu = View.gpuScene.getBuffers();
+    if (Gpu.instances.isValid())
     {
-        buffers.pushBack(&gpu.instances);
+        Buffers.pushBack(&Gpu.instances);
     }
-    if (gpu.materials.isValid())
+    if (Gpu.materials.isValid())
     {
-        buffers.pushBack(&gpu.materials);
+        Buffers.pushBack(&Gpu.materials);
     }
-    if (gpu.textures.isValid())
+    if (Gpu.textures.isValid())
     {
-        buffers.pushBack(&gpu.textures);
+        Buffers.pushBack(&Gpu.textures);
     }
-    const hz::GpuAssetTables&       tables = view.gpuScene.getAssetTables();
-    const hz::GPUBuffer*            previous = nullptr;
-    for (const hz::GpuMeshData& meshData : tables.meshes)
+    const hz::GpuAssetTables& Tables = View.gpuScene.getAssetTables();
+    const hz::GPUBuffer*      Previous = nullptr;
+    for (const hz::GpuMeshData& MeshData : Tables.meshes)
     {
-        if (!meshData.id.isValid())
+        if (!MeshData.id.isValid())
         {
             continue;
         }
-        const hz::MeshAsset* mesh = view.assets.getMesh({ .index = meshData.id.index, .generation = meshData.id.generation });
-        ASSERT(mesh);
-        if (&mesh->getIndexBuffer() == previous)
+        const hz::MeshAsset* Mesh = View.assets.getMesh({ .index = MeshData.id.index, .generation = MeshData.id.generation });
+        ASSERT(Mesh);
+        if (&Mesh->getIndexBuffer() == Previous)
         {
             continue;
         }
-        previous = &mesh->getIndexBuffer();
-        buffers.pushBack(previous);
-        for (uint32_t i = 0; i < mesh->getVertexBufferCount(); ++i)
+        Previous = &Mesh->getIndexBuffer();
+        Buffers.pushBack(Previous);
+        for (uint32_t Index = 0; Index < Mesh->getVertexBufferCount(); ++Index)
         {
-            buffers.pushBack(&mesh->getVertexBuffer(i));
+            Buffers.pushBack(&Mesh->getVertexBuffer(Index));
         }
     }
-    for (const hz::GpuTextureData& textureData : tables.textures)
+    for (const hz::GpuTextureData& TextureData : Tables.textures)
     {
-        if (textureData.id.isValid())
+        if (TextureData.id.isValid())
         {
-            textures.pushBack(
-                &view.assets.getTexture({ .index = textureData.id.index, .generation = textureData.id.generation })->getTexture());
+            Textures.pushBack(
+                &View.assets.getTexture({ .index = TextureData.id.index, .generation = TextureData.id.generation })->getTexture());
         }
     }
-    indirectDependency = indirect;
-    return { .sampledTextures = { textures.data(), textures.size() },
-             .buffers = { buffers.data(), buffers.size() },
-             .indirectBuffers = { &indirectDependency, indirect ? 1u : 0u } };
+    IndirectDependency = Indirect;
+    return { .sampledTextures = { Textures.data(), Textures.size() },
+             .buffers = { Buffers.data(), Buffers.size() },
+             .indirectBuffers = { &IndirectDependency, Indirect ? 1u : 0u } };
 }

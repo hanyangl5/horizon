@@ -107,10 +107,10 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
     commands.setRootConstants(constants);
     commands.dispatch((width + 15) / 16, (height + 15) / 16, 1, { .storageTextures = { &heads }, .storageBuffers = { &counters } });
     const uint32_t backing = view.frameIndex;
-    if (draws.getCount(backing))
+    if (draws.GetCount(backing))
     {
-        const hz::GPUBuffer& indirect = draws.getCommands(backing, true);
-        hz::Dependencies     dependencies = draws.getDependencies(frame, view, &indirect);
+        const hz::GPUBuffer& indirect = draws.GetCommands(backing, true);
+        hz::Dependencies     dependencies = draws.GetDependencies(frame, view, &indirect);
         sampled.clear();
         buffers.clear();
         for (const hz::GPUTexture* texture : dependencies.sampledTextures)
@@ -146,7 +146,7 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
         constants.materialsIndex = gpu.materials.getSrvIndex();
         constants.texturesIndex = gpu.textures.getSrvIndex();
         constants.samplerIndex = surfaceSampler.getIndex();
-        constants.drawsIndex = draws.getDrawData(backing).getSrvIndex();
+        constants.drawsIndex = draws.GetDrawData(backing).getSrvIndex();
         constants.shadowMapIndex = lighting.ShadowMap ? lighting.ShadowMap->getSrvIndex() : UINT32_MAX;
         constants.shadowSamplerIndex = lighting.ShadowSampler ? lighting.ShadowSampler->getIndex() : UINT32_MAX;
         constants.environmentIndex = lighting.Environment ? lighting.Environment->getSrvIndex() : UINT32_MAX;
@@ -154,7 +154,7 @@ const hz::GPUTexture& Transparency::execute(hz::CommandList& commands, const hz:
         constants.brdfLutIndex = lighting.BRDFLut ? lighting.BRDFLut->getSrvIndex() : UINT32_MAX;
         constants.environmentSamplerIndex = lighting.EnvironmentSampler->getIndex();
         commands.setRootConstants(constants);
-        commands.drawIndirect(indirect, 0, draws.getCount(backing));
+        commands.drawIndirect(indirect, 0, draws.GetCount(backing));
         commands.endRendering();
     }
     constants.oitHeadsIndex = heads.getSrvIndex();
