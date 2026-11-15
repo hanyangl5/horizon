@@ -39,7 +39,7 @@ public:
     bool decode()
     {
         FileStream stream = {};
-        if (!OpenStreamFromPath(directory, entry.location.pPath, FM_READ, &stream))
+        if (!OpenStreamFromPath(directory, entry.location.pPath, FileModeRead, &stream))
         {
             LOGF(Error, "Cannot open SceneAsset '%s'", entry.location.pPath);
             return false;

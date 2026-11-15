@@ -451,7 +451,7 @@ bool AssetCatalog::load(ResourceDirectory directory, const char* pFileName)
         return false;
     }
     FileStream stream = {};
-    if (!OpenStreamFromPath(directory, pFileName, FM_READ, &stream))
+    if (!OpenStreamFromPath(directory, pFileName, FileModeRead, &stream))
         return false;
     const ssize_t Size = GetStreamFileSize(&stream);
     if (Size <= 0 || Size > 64 * 1024 * 1024)

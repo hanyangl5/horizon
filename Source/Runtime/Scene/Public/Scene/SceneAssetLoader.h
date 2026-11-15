@@ -11,7 +11,7 @@ class SceneAssetLoaderData;
 class SceneAssetLoader
 {
 public:
-    explicit SceneAssetLoader(ResourceDirectory cookedDirectory = RD_MESHES);
+    explicit SceneAssetLoader(ResourceDirectory cookedDirectory = DirectoryMeshes);
     ~SceneAssetLoader();
     SceneAssetLoader(const SceneAssetLoader&) = delete;
     SceneAssetLoader& operator=(const SceneAssetLoader&) = delete;

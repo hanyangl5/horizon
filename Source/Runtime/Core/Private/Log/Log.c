@@ -170,13 +170,13 @@ void AddLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
 
     FileStream fh;
     memset(&fh, 0, sizeof(FileStream));
-    if (OpenStreamFromPath(RD_LOG, filename, file_mode, &fh)) // If the File Exists
+    if (OpenStreamFromPath(DirectoryLog, filename, file_mode, &fh)) // If the File Exists
     {
         FileStream* user = (FileStream*)MemAllocate(sizeof(FileStream));
         *user = fh;
         // AddCallback will try to acquire mutex
         char path[FS_MAX_PATH] = { 0 };
-        MergeDirAndFileName(GetResourceDirectory(RD_LOG), filename, '/', sizeof path, path);
+        MergeDirAndFileName(GetResourceDirectory(DirectoryLog), filename, '/', sizeof path, path);
         AddLogCallback(path, log_level, user, defaultCallback, defaultClose, defaultFlush);
 
         LockMutex(&gLogger.logMutex);
@@ -363,7 +363,7 @@ static void addInitialLogFile(const char* appName)
     }
     strncat(exeFileName, extension, extensionLength + 1);
 
-    AddLogFile(exeFileName, FM_WRITE_ALLOW_READ, All);
+    AddLogFile(exeFileName, FileModeWriteAllowRead, All);
 }
 
 static uint32_t writeLogPreamble(char* buffer, uint32_t buffer_size, const char* file, int line)

@@ -381,21 +381,21 @@ int WindowsMain(int argc, char** argv, IApp* app)
     if (!InitFileSystem(&FileSystemDesc))
         return EXIT_FAILURE;
 
-    SetResourceDirectoryPath(SystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
-    SetResourceDirectoryPath(SystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
-    SetResourceDirectoryPath(SystemFileIO, RM_SAVE_0, RD_PIPELINE_CACHE, "PipelineCaches");
-    SetResourceDirectoryPath(SystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
-    SetResourceDirectoryPath(SystemFileIO, RM_CONTENT, RD_COMPILED_MATERIALS, "CompiledMaterials");
-    SetResourceDirectoryPath(SystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
-    SetResourceDirectoryPath(SystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-    SetResourceDirectoryPath(SystemFileIO, RM_CONTENT, RD_ANIMATIONS, "Animation");
-    SetResourceDirectoryPath(SystemFileIO, RM_CONTENT, RD_AUDIO, "Audio");
-    SetResourceDirectoryPath(SystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-    SetResourceDirectoryPath(SystemFileIO, RM_DEBUG, RD_LOG, "");
-    SetResourceDirectoryPath(SystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-    SetResourceDirectoryPath(SystemFileIO, RM_SAVE_0, RD_SCREENSHOTS, "Screenshots");
-    SetResourceDirectoryPath(SystemFileIO, RM_DEBUG, RD_DEBUG, "");
-    SetResourceDirectoryPath(SystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
+    SetResourceDirectoryPath(SystemFileIO, MountDebug, DirectoryShaderBinaries, "CompiledShaders");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryShaderSources, "Shaders");
+    SetResourceDirectoryPath(SystemFileIO, MountSave0, DirectoryPipelineCache, "PipelineCaches");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryTextures, "Textures");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryCompiledMaterials, "CompiledMaterials");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryMeshes, "Meshes");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryFonts, "Fonts");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryAnimations, "Animation");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryAudio, "Audio");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryGpuConfig, "GPUCfg");
+    SetResourceDirectoryPath(SystemFileIO, MountDebug, DirectoryLog, "");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryScripts, "Scripts");
+    SetResourceDirectoryPath(SystemFileIO, MountSave0, DirectoryScreenshots, "Screenshots");
+    SetResourceDirectoryPath(SystemFileIO, MountDebug, DirectoryDebug, "");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryOtherFiles, "");
 
 #ifdef ENABLE_MTUNER
     rmemInit(0);

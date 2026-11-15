@@ -564,7 +564,7 @@ void fntDefineFonts(const FontDesc* pDescs, uint32_t Count, uint32_t* pOutIDs)
         FONScontext* fs = gFontstash.pContext;
 
         FileStream fh = {};
-        if (OpenStreamFromPath(RD_FONTS, pDescs[i].pFontPath, FM_READ, &fh))
+        if (OpenStreamFromPath(DirectoryFonts, pDescs[i].pFontPath, FileModeRead, &fh))
         {
             ssize_t bytes = GetStreamFileSize(&fh);
             void*   buffer = MemAllocate(bytes);

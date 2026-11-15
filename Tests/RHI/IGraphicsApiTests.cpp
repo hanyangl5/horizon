@@ -612,8 +612,8 @@ protected:
         };
         ASSERT_TRUE(InitFileSystem(&FileSystemDesc));
 
-        SetResourceDirectoryPath(SystemFileIO, RM_DEBUG, RD_LOG, "");
-        SetResourceDirectoryPath(SystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
+        SetResourceDirectoryPath(SystemFileIO, MountDebug, DirectoryLog, "");
+        SetResourceDirectoryPath(SystemFileIO, MountDebug, DirectoryShaderBinaries, "CompiledShaders");
 
         InitLog(nullptr, Error);
 

@@ -419,21 +419,21 @@ TEST_F(WorldArchiveTest, SavesLoadsAndRecoversInterruptedFileReplacement)
         std::filesystem::create_directory(directory);
         IFileSystem io = *SystemFileIO;
         io.GetResourceMount = nullptr;
-        SetResourceDirectoryPath(&io, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+        SetResourceDirectoryPath(&io, MountProject, DirectoryOtherFiles, directory.string().c_str());
         hz::WorldArchive original, loaded;
         ASSERT_TRUE(parse(original, envelope(entityJson(1))));
-        ASSERT_TRUE(original.save(RD_OTHER_FILES, "test.world.json"));
-        ASSERT_TRUE(loaded.load(RD_OTHER_FILES, "test.world.json"));
+        ASSERT_TRUE(original.save(DirectoryOtherFiles, "test.world.json"));
+        ASSERT_TRUE(loaded.load(DirectoryOtherFiles, "test.world.json"));
         EXPECT_EQ(text(loaded), text(original));
         std::filesystem::create_directory(directory / "test.world.json.tmp");
         ASSERT_TRUE(parse(original, envelope(entityJson(2))));
-        EXPECT_FALSE(original.save(RD_OTHER_FILES, "test.world.json"));
-        ASSERT_TRUE(loaded.load(RD_OTHER_FILES, "test.world.json"));
+        EXPECT_FALSE(original.save(DirectoryOtherFiles, "test.world.json"));
+        ASSERT_TRUE(loaded.load(DirectoryOtherFiles, "test.world.json"));
         EXPECT_EQ(text(loaded), envelope(entityJson(1)));
         std::filesystem::remove(directory / "test.world.json.tmp");
         std::filesystem::rename(directory / "test.world.json", directory / "test.world.json.bak");
-        ASSERT_TRUE(original.save(RD_OTHER_FILES, "test.world.json"));
-        ASSERT_TRUE(loaded.load(RD_OTHER_FILES, "test.world.json"));
+        ASSERT_TRUE(original.save(DirectoryOtherFiles, "test.world.json"));
+        ASSERT_TRUE(loaded.load(DirectoryOtherFiles, "test.world.json"));
         EXPECT_EQ(text(loaded), envelope(entityJson(2)));
         std::filesystem::remove_all(directory);
     }

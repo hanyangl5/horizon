@@ -41,7 +41,7 @@ static uint64_t imageHash(const void* pBytes, size_t Size, uint64_t hash = UINT6
 bool SceneTextureCooker::readImage(const char* pPath, hz::Array<uint8_t>& bytes) const
 {
     FileStream stream = {};
-    if (!OpenStreamFromPath(sourceDirectory, pPath, FM_READ, &stream))
+    if (!OpenStreamFromPath(sourceDirectory, pPath, FileModeRead, &stream))
         return false;
     const ssize_t Size = GetStreamFileSize(&stream);
     if (Size <= 0 || Size > INT_MAX)
@@ -86,7 +86,7 @@ bool SceneTextureCooker::writeDDS(const char* pPath, const void* pBytes, size_t 
         !MakeDirectory(outputDirectory, "Textures", true))
         return false;
     FileStream stream = {};
-    if (!OpenStreamFromPath(outputDirectory, temporary, FM_WRITE, &stream))
+    if (!OpenStreamFromPath(outputDirectory, temporary, FileModeWrite, &stream))
         return false;
     const bool written = WriteToStream(&stream, pBytes, Size) == Size;
     const bool closed = CloseStream(&stream);

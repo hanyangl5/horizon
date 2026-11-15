@@ -63,7 +63,7 @@ extern "C"
 
 #ifndef XBOX
 static bool        gInitialized = false;
-static const char* gResourceMounts[RM_COUNT];
+static const char* gResourceMounts[MountCount];
 static char        gProjectResourcePath[FS_MAX_PATH] = {};
 static char        gApplicationPath[FS_MAX_PATH] = {};
 static char        gDocumentsPath[FS_MAX_PATH] = {};
@@ -77,7 +77,7 @@ bool InitFileSystem(FileSystemInitDesc* pDesc)
     }
     ASSERT(pDesc);
 
-    for (uint32_t i = 0; i < RM_COUNT; ++i)
+    for (uint32_t i = 0; i < MountCount; ++i)
         gResourceMounts[i] = "";
 
     // Get application directory
@@ -86,21 +86,21 @@ bool InitFileSystem(FileSystemInitDesc* pDesc)
     char applicationFilePath[FS_MAX_PATH] = {};
     WideCharToMultiByte(CP_UTF8, 0, utf16Path, -1, applicationFilePath, MAX_PATH, NULL, NULL);
     GetParentPath(applicationFilePath, gApplicationPath);
-    gResourceMounts[RM_PROJECT] = PROJECT_ROOT;
+    gResourceMounts[MountProject] = PROJECT_ROOT;
     MergeDirAndFileName(PROJECT_ROOT, "Assets", '\\', sizeof gProjectResourcePath, gProjectResourcePath);
-    gResourceMounts[RM_CONTENT] = gProjectResourcePath;
-    gResourceMounts[RM_DEBUG] = gApplicationPath;
+    gResourceMounts[MountContent] = gProjectResourcePath;
+    gResourceMounts[MountDebug] = gApplicationPath;
 
     // Get user directory
     PWSTR userDocuments = NULL;
     SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &userDocuments);
     WideCharToMultiByte(CP_UTF8, 0, userDocuments, -1, gDocumentsPath, MAX_PATH, NULL, NULL);
     CoTaskMemFree(userDocuments);
-    gResourceMounts[RM_DOCUMENTS] = gDocumentsPath;
-    gResourceMounts[RM_SAVE_0] = gApplicationPath;
+    gResourceMounts[MountDocuments] = gDocumentsPath;
+    gResourceMounts[MountSave0] = gApplicationPath;
 
     // Override Resource mounts
-    for (uint32_t i = 0; i < RM_COUNT; ++i)
+    for (uint32_t i = 0; i < MountCount; ++i)
     {
         if (pDesc->pResourceMounts[i])
             gResourceMounts[i] = pDesc->pResourceMounts[i];
@@ -209,18 +209,18 @@ public:
 
 static inline FORGE_CONSTEXPR const char* FileModeToString(FileMode mode)
 {
-    mode = (FileMode)(mode & ~FM_ALLOW_READ);
+    mode = (FileMode)(mode & ~FileModeAllowRead);
     switch (mode)
     {
-    case FM_READ:
+    case FileModeRead:
         return "rb";
-    case FM_WRITE:
+    case FileModeWrite:
         return "wb";
-    case FM_WRITE_APPEND:
+    case FileModeWriteAppend:
         return "ab";
-    case FM_READ_WRITE:
+    case FileModeReadWrite:
         return "rb+";
-    case FM_READ_APPEND:
+    case FileModeReadAppend:
         return "ab+";
     default:
         return "r";
@@ -231,7 +231,7 @@ static inline FORGE_CONSTEXPR const char* OverwriteFileModeToString(FileMode mod
 {
     switch (mode)
     {
-    case FM_READ_WRITE:
+    case FileModeReadWrite:
         return "wb+";
     default:
         return FileModeToString(mode);
@@ -256,7 +256,7 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
     mbstowcs(modeWStr, modeStr, 4);
 
     FILE* fp = NULL;
-    if (mode & FM_ALLOW_READ)
+    if (mode & FileModeAllowRead)
     {
         fp = _wfsopen(pathStr, modeWStr, _SH_DENYWR);
     }
@@ -270,11 +270,11 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
     if (!fp)
     {
         // Try changing mode to 'w+' or 'wb+'
-        if ((mode & FM_READ_WRITE) == FM_READ_WRITE)
+        if ((mode & FileModeReadWrite) == FileModeReadWrite)
         {
             modeStr = OverwriteFileModeToString(mode);
             mbstowcs(modeWStr, modeStr, 4);
-            if (mode & FM_ALLOW_READ)
+            if (mode & FileModeAllowRead)
             {
                 fp = _wfsopen(pathStr, modeWStr, _SH_DENYWR);
             }
@@ -337,7 +337,7 @@ static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** o
     *outSize = 0;
     *outData = NULL;
 
-    if (fs->mode & FM_WRITE)
+    if (fs->mode & FileModeWrite)
         return false;
 
     WSD(stream, fs);
@@ -408,7 +408,7 @@ static size_t ioWindowsFsRead(FileStream* fs, void* dst, size_t Size)
 
 static size_t ioWindowsFsWrite(FileStream* fs, const void* src, size_t Size)
 {
-    if ((fs->mode & (FM_WRITE | FM_APPEND)) == 0)
+    if ((fs->mode & (FileModeWrite | FileModeAppend)) == 0)
     {
         LOGF(LogLevel::Error, "Writing to FileStream with mode %i", fs->mode);
         return 0;

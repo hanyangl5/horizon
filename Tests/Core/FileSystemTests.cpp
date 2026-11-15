@@ -13,7 +13,7 @@ TEST(CoreFileSystemTest, MemoryStreamSupportsReadSeekFindAndClose)
     constexpr char buffer[] = "abcXYZabc";
 
     FileStream stream = {};
-    ASSERT_TRUE(OpenStreamFromMemory(buffer, sizeof(buffer) - 1, FM_READ, false, &stream));
+    ASSERT_TRUE(OpenStreamFromMemory(buffer, sizeof(buffer) - 1, FileModeRead, false, &stream));
     ASSERT_TRUE(IsMemoryStream(&stream));
 
     char prefix[4] = {};
@@ -48,7 +48,7 @@ TEST(CoreFileSystemTest, WritableMemoryStreamGrowsWithoutTouchingOriginalBuffer)
     constexpr char suffix[] = "def";
 
     FileStream stream = {};
-    ASSERT_TRUE(OpenStreamFromMemory(original, 3, FM_READ_WRITE_APPEND, false, &stream));
+    ASSERT_TRUE(OpenStreamFromMemory(original, 3, FileModeReadWriteAppend, false, &stream));
 
     EXPECT_EQ(WriteToStream(&stream, suffix, sizeof(suffix) - 1), sizeof(suffix) - 1);
     EXPECT_EQ(GetStreamFileSize(&stream), 6);

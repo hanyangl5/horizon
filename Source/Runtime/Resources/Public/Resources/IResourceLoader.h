@@ -104,7 +104,7 @@ typedef struct TextureLoadDesc
     TextureCreationFlags creationFlag;
     /// The texture file format (dds/ktx/...)
     TextureContainerType container;
-    ResourceDirectory    resourceDirectory = RD_TEXTURES;
+    ResourceDirectory    resourceDirectory = DirectoryTextures;
     // Optional result storage, readable after the associated SyncToken completes.
     bool*                pSuccess = nullptr;
 } TextureLoadDesc;
@@ -332,7 +332,7 @@ typedef struct GeometryLoadDesc
 
     /// Used to convert data to desired state inside GeometryBuffer.
     GeometryBufferLayoutDesc* pGeometryBufferLayoutDesc;
-    ResourceDirectory         resourceDirectory = RD_MESHES;
+    ResourceDirectory         resourceDirectory = DirectoryMeshes;
     // Read only after the load token completes.
     bool*                     pSuccess = nullptr;
 } GeometryLoadDesc;

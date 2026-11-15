@@ -38,7 +38,7 @@ bool ScreenSpaceAO::Resize(uint32_t NewWidth, uint32_t NewHeight)
     if (!Rotations.isValid())
     {
         // Lossless RGBA8 conversion of Cookbook's data/rot_texture.bmp, with its original 4x4 texels.
-        Rotations = Context.loadTexture(RD_SHADER_SOURCES, "../Assets/rotations.dds");
+        Rotations = Context.loadTexture(DirectoryShaderSources, "../Assets/rotations.dds");
         if (!Rotations.isValid())
         {
             LOGF(Error, "SSAO requires Examples/Renderer/Assets/rotations.dds (Cookbook rotation texture)");

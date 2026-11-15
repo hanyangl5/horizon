@@ -51,7 +51,7 @@ bool Clip::Sample(ozz::animation::SamplingJob::Context* cacheInput, ozz::span<So
 bool Clip::LoadClip(const ResourceDirectory resourceDir, const char* fileName)
 {
     FileStream file = {};
-    if (!OpenStreamFromPath(resourceDir, fileName, FM_READ, &file))
+    if (!OpenStreamFromPath(resourceDir, fileName, FileModeRead, &file))
     {
         LOGF(Error, "Cannot open clip file '%s'", fileName);
         return false;
@@ -66,7 +66,7 @@ bool Clip::LoadClip(const ResourceDirectory resourceDir, const char* fileName)
     // So we just read the entire file once into a mem stream so the freads from IArchive are actually
     // only reading from system memory instead of disk or network
     FileStream memStream = {};
-    OpenStreamFromMemory(data, Size, FM_READ, true, &memStream);
+    OpenStreamFromMemory(data, Size, FileModeRead, true, &memStream);
 
     ozz::io::IArchive archive(&memStream);
     if (!archive.TestTag<ozz::animation::Animation>())

@@ -44,75 +44,75 @@ extern "C"
     typedef enum ResourceMount
     {
         /// Installed game directory / bundle resource directory
-        RM_PROJECT = 0,
-        RM_CONTENT,
+        MountProject = 0,
+        MountContent,
         /// For storing debug data such as log files. To be used only during development
-        RM_DEBUG,
+        MountDebug,
         /// Documents directory
-        RM_DOCUMENTS,
+        MountDocuments,
 #if defined(ANDROID)
         // System level files (/proc/ or equivalent if available)
-        RM_SYSTEM,
+        MountSystem,
 #endif
         /// Save game data mount 0
-        RM_SAVE_0,
+        MountSave0,
 #ifdef ENABLE_FS_EMPTY_MOUNT
         /// Empty mount for absolute paths
-        RM_EMPTY,
+        MountEmpty,
 #endif
-        RM_COUNT,
+        MountCount,
     } ResourceMount;
 
     typedef enum ResourceDirectory
     {
         /// The main application's shader binaries directory
-        RD_SHADER_BINARIES = 0,
+        DirectoryShaderBinaries = 0,
         /// The main application's shader source directory
-        RD_SHADER_SOURCES,
+        DirectoryShaderSources,
 
-        RD_PIPELINE_CACHE,
+        DirectoryPipelineCache,
         /// The main application's texture source directory (TODO processed texture folder)
-        RD_TEXTURES,
-        RD_COMPILED_MATERIALS,
-        RD_MESHES,
-        RD_FONTS,
-        RD_ANIMATIONS,
-        RD_AUDIO,
-        RD_GPU_CONFIG,
-        RD_LOG,
-        RD_SCRIPTS,
-        RD_SCREENSHOTS,
-        RD_DEBUG,
+        DirectoryTextures,
+        DirectoryCompiledMaterials,
+        DirectoryMeshes,
+        DirectoryFonts,
+        DirectoryAnimations,
+        DirectoryAudio,
+        DirectoryGpuConfig,
+        DirectoryLog,
+        DirectoryScripts,
+        DirectoryScreenshots,
+        DirectoryDebug,
 #if defined(ANDROID)
         // #TODO: Add for others if necessary
-        RD_SYSTEM,
+        DirectorySystem,
 #endif
-        RD_OTHER_FILES,
+        DirectoryOtherFiles,
 
         // Libraries can have their own directories.
         // Up to 100 libraries are supported.
-        ____rd_lib_counter_begin = RD_OTHER_FILES + 1,
+        ____rd_lib_counter_begin = DirectoryOtherFiles + 1,
 
         // Add libraries here
-        RD_MIDDLEWARE_0 = ____rd_lib_counter_begin,
-        RD_MIDDLEWARE_1,
-        RD_MIDDLEWARE_2,
-        RD_MIDDLEWARE_3,
-        RD_MIDDLEWARE_4,
-        RD_MIDDLEWARE_5,
-        RD_MIDDLEWARE_6,
-        RD_MIDDLEWARE_7,
-        RD_MIDDLEWARE_8,
-        RD_MIDDLEWARE_9,
-        RD_MIDDLEWARE_10,
-        RD_MIDDLEWARE_11,
-        RD_MIDDLEWARE_12,
-        RD_MIDDLEWARE_13,
-        RD_MIDDLEWARE_14,
-        RD_MIDDLEWARE_15,
+        DirectoryMiddleware0 = ____rd_lib_counter_begin,
+        DirectoryMiddleware1,
+        DirectoryMiddleware2,
+        DirectoryMiddleware3,
+        DirectoryMiddleware4,
+        DirectoryMiddleware5,
+        DirectoryMiddleware6,
+        DirectoryMiddleware7,
+        DirectoryMiddleware8,
+        DirectoryMiddleware9,
+        DirectoryMiddleware10,
+        DirectoryMiddleware11,
+        DirectoryMiddleware12,
+        DirectoryMiddleware13,
+        DirectoryMiddleware14,
+        DirectoryMiddleware15,
 
         ____rd_lib_counter_end = ____rd_lib_counter_begin + 99 * 2,
-        RD_COUNT
+        DirectoryCount
     } ResourceDirectory;
 
     typedef enum SeekBaseOffset
@@ -125,36 +125,36 @@ extern "C"
     typedef enum FileMode
     {
         // Get read access for file. Error if file not exist.
-        FM_READ = 1 << 0,
+        FileModeRead = 1 << 0,
 
         // Get write access for file. File is created if not exist.
-        FM_WRITE = 1 << 1,
+        FileModeWrite = 1 << 1,
 
         // Set initial seek position to the end of file.
-        FM_APPEND = 1 << 2,
+        FileModeAppend = 1 << 2,
 
         // Read access for other processes.
         // Note: flag is required for Windows&Xbox.
         //       On other platforms read access is always available.
-        FM_ALLOW_READ = 1 << 4,
+        FileModeAllowRead = 1 << 4,
 
         // RW mode
-        FM_READ_WRITE = FM_READ | FM_WRITE,
+        FileModeReadWrite = FileModeRead | FileModeWrite,
 
         // W mode and set position to the end
-        FM_WRITE_APPEND = FM_WRITE | FM_APPEND,
+        FileModeWriteAppend = FileModeWrite | FileModeAppend,
 
         // R mode and set position to the end
-        FM_READ_APPEND = FM_READ | FM_APPEND,
+        FileModeReadAppend = FileModeRead | FileModeAppend,
 
         // RW mode and set position to the end
-        FM_READ_WRITE_APPEND = FM_READ | FM_WRITE | FM_APPEND,
+        FileModeReadWriteAppend = FileModeRead | FileModeWrite | FileModeAppend,
 
         // -- mode and -- and also read access for other processes.
-        FM_WRITE_ALLOW_READ = FM_WRITE | FM_ALLOW_READ,
-        FM_READ_WRITE_ALLOW_READ = FM_READ_WRITE | FM_ALLOW_READ,
-        FM_WRITE_APPEND_ALLOW_READ = FM_WRITE_APPEND | FM_ALLOW_READ,
-        FM_READ_WRITE_APPEND_ALLOW_READ = FM_READ_WRITE_APPEND | FM_ALLOW_READ,
+        FileModeWriteAllowRead = FileModeWrite | FileModeAllowRead,
+        FileModeReadWriteAllowRead = FileModeReadWrite | FileModeAllowRead,
+        FileModeWriteAppendAllowRead = FileModeWriteAppend | FileModeAllowRead,
+        FileModeReadWriteAppendAllowRead = FileModeReadWriteAppend | FileModeAllowRead,
     } FileMode;
 
     typedef struct IFileSystem IFileSystem;
@@ -185,7 +185,7 @@ extern "C"
     {
         const char* pAppName;
         void*       pPlatformData;
-        const char* pResourceMounts[RM_COUNT];
+        const char* pResourceMounts[MountCount];
     } FileSystemInitDesc;
 
     struct IFileSystem
@@ -447,7 +447,7 @@ extern "C"
 
     /// Sets the relative path for `resourceDir` from `mount` to `bundledFolder`.
     /// The `resourceDir` will making use of the given IFileSystem `FileSystem` file functions.
-    /// When `mount` is set to `RM_CONTENT` for a `resourceDir`, this directory is marked as a bundled resource folder.
+    /// When `mount` is set to `MountContent` for a `resourceDir`, this directory is marked as a bundled resource folder.
     /// Bundled resource folders should only be used for Read operations.
     /// Sets or replaces the location associated with a resource directory.
     FORGE_API void SetResourceDirectoryPath(IFileSystem* FileSystem, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder);

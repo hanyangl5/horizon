@@ -80,7 +80,7 @@ struct RayTracingHitGroup
 
 struct RayTracingPipelineDesc
 {
-    ResourceDirectory        sourceDirectory = RD_SHADER_SOURCES;
+    ResourceDirectory        sourceDirectory = DirectoryShaderSources;
     const char*              pFileName = nullptr;
     const char*              pRayGeneration = nullptr;
     Span<const char*>        missShaders;

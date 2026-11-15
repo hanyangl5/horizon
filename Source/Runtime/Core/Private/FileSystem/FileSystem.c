@@ -529,7 +529,7 @@ typedef struct ResourceDirectoryInfo
     bool          bundled;
 } ResourceDirectoryInfo;
 
-static ResourceDirectoryInfo gResourceDirectories[RD_COUNT] = { { 0 } };
+static ResourceDirectoryInfo gResourceDirectories[DirectoryCount] = { { 0 } };
 
 // required by NXFileSystem.cpp
 FORGE_API bool IsBundledResourceDir(ResourceDirectory resourceDir) { return gResourceDirectories[resourceDir].bundled; }
@@ -578,9 +578,9 @@ static bool ioMemoryStreamClose(FileStream* fs)
 
 static size_t ioMemoryStreamRead(FileStream* fs, void* dst, size_t Size)
 {
-    if (!(fs->mode & FM_READ))
+    if (!(fs->mode & FileModeRead))
     {
-        LOGF(Warning, "Attempting to read from stream that doesn't have FM_READ flag.");
+        LOGF(Warning, "Attempting to read from stream that doesn't have FileModeRead flag.");
         return 0;
     }
 
@@ -599,9 +599,9 @@ static size_t ioMemoryStreamRead(FileStream* fs, void* dst, size_t Size)
 
 static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t Size)
 {
-    if (!(fs->mode & FM_WRITE))
+    if (!(fs->mode & FileModeWrite))
     {
-        LOGF(Warning, "Attempting to write to stream that doesn't have FM_WRITE flag.");
+        LOGF(Warning, "Attempting to write to stream that doesn't have FileModeWrite flag.");
         return 0;
     }
 
@@ -710,7 +710,7 @@ static bool ioMemoryStreamIsAtEnd(FileStream* fs)
 
 static bool ioMemoryStreamMemoryMap(FileStream* fs, size_t* outSize, void const** outData)
 {
-    if (fs->mode & FM_WRITE)
+    if (fs->mode & FileModeWrite)
         return false;
 
     MEMSD(stream, fs);
@@ -751,10 +751,10 @@ bool OpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, 
     size_t Size = buffer ? bufferSize : 0;
     size_t Capacity = bufferSize;
     // Move cursor to the end for appending buffer
-    size_t cursor = (mode & FM_APPEND) ? Size : 0;
+    size_t cursor = (mode & FileModeAppend) ? Size : 0;
 
     // For write streams we have to own the memory as we might need to resize it
-    if ((mode & FM_WRITE) && (!owner || !buffer))
+    if ((mode & FileModeWrite) && (!owner || !buffer))
     {
         // make Capacity multiple of MEMORY_STREAM_GROW_SIZE
         Capacity = MEMORY_STREAM_GROW_SIZE * (Capacity / MEMORY_STREAM_GROW_SIZE + (Capacity % MEMORY_STREAM_GROW_SIZE == 0 ? 0 : 1));
@@ -961,7 +961,7 @@ FORGE_API bool WrapStreamMemoryMap(FileStream* fs)
         return false;
 
     FileStream wrapFs;
-    if (!OpenStreamFromMemory(mem, Size, FM_READ, false, &wrapFs))
+    if (!OpenStreamFromMemory(mem, Size, FileModeRead, false, &wrapFs))
     {
         // NOTE: OpenStreamFromMemory never returns false
         LOGF(Error, "Failed to open stream from memory");
@@ -1011,17 +1011,17 @@ void SetResourceDirectoryPath(IFileSystem* FileSystem, ResourceMount mount, Reso
     ResourceDirectoryInfo* dir = &gResourceDirectories[resourceDir];
 
 #if !defined(FORGE_DEBUG) && !defined(ENABLE_LOGGING)
-    // Ignore RM_DEBUG on shipping builds, it's only supposed to be used in testing
-    if (mount == RM_DEBUG)
+    // Ignore MountDebug on shipping builds, it's only supposed to be used in testing
+    if (mount == MountDebug)
     {
-        LOGF(Warning, "RM_DEBUG is not available on shipping builds");
+        LOGF(Warning, "MountDebug is not available on shipping builds");
         return;
     }
 #endif
 
     dir->mount = mount;
 
-    dir->bundled = RM_CONTENT == mount;
+    dir->bundled = MountContent == mount;
 
     char resourcePath[FS_MAX_PATH] = { 0 };
     MergeDirAndFileName(FileSystem->GetResourceMount ? FileSystem->GetResourceMount(mount) : "", bundledFolder, '/', sizeof resourcePath, resourcePath);
@@ -1703,7 +1703,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 bool OpenArchive(ResourceDirectory rd, const char* path, const struct ArchiveOpenDesc* desc, IFileSystem* out)
 {
     FileStream stream;
-    if (!OpenStreamFromPath(rd, path, FM_READ, &stream))
+    if (!OpenStreamFromPath(rd, path, FileModeRead, &stream))
         return false;
 
     if (!OpenArchiveFromStream(&stream, desc, out))
@@ -1813,9 +1813,9 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
 
     struct BunyArNode* node = &archive->nodes[index];
 
-    if (mode != FM_READ)
+    if (mode != FileModeRead)
     {
-        LOGF(Error, "Cannot open archive file '%s': only FM_READ is supported", archive->nodeNames + node->namePointer.offset);
+        LOGF(Error, "Cannot open archive file '%s': only FileModeRead is supported", archive->nodeNames + node->namePointer.offset);
         return false;
     }
 

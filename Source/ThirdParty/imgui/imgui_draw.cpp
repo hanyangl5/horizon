@@ -2249,7 +2249,7 @@ ImFont* ImFontAtlas::AddFontFromFileTTF(const char* filename, float size_pixels,
     IM_ASSERT(!Locked && "Cannot modify a locked ImFontAtlas between NewFrame() and EndFrame/Render()!");
     size_t data_size = 0;
 #ifdef FORGE_UI_IMGUI_FORCE_FILE_SYSTEM
-    void* data = ImFileLoadToMemory(filename, FM_READ, &data_size, 0);
+    void* data = ImFileLoadToMemory(filename, FileModeRead, &data_size, 0);
 #else
     void* data = ImFileLoadToMemory(filename, "rb", &data_size, 0);
 #endif

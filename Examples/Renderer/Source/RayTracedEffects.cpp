@@ -126,7 +126,7 @@ void RayTracedEffects::Resize(uint32_t Width, uint32_t Height)
     Reflection = Context.createTexture(Desc);
     if (!BlueNoise.isValid())
     {
-        BlueNoise = Context.loadTexture(RD_SHADER_SOURCES, "../Assets/blue_noise_128x128x64.dds");
+        BlueNoise = Context.loadTexture(DirectoryShaderSources, "../Assets/blue_noise_128x128x64.dds");
     }
     HistoryIndex = 0;
     MarkDirty();

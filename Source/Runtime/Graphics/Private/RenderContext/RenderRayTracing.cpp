@@ -328,7 +328,7 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
         return {};
     }
     FileStream stream = {};
-    if (!OpenStreamFromPath(input.sourceDirectory, input.pFileName, FM_READ, &stream))
+    if (!OpenStreamFromPath(input.sourceDirectory, input.pFileName, FileModeRead, &stream))
     {
         LOGF(Error, "Cannot open ray tracing shader '%s'", input.pFileName);
         return {};

@@ -135,11 +135,11 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
     // 666
     mode_t omode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IROTH;
 
-    if (mode & FM_WRITE)
+    if (mode & FileModeWrite)
     {
         oflags |= O_CREAT;
 
-        if (mode & FM_APPEND)
+        if (mode & FileModeAppend)
         {
             oflags |= O_APPEND;
         }
@@ -148,7 +148,7 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
             oflags |= O_TRUNC;
         }
 
-        if (mode & FM_READ)
+        if (mode & FileModeRead)
         {
             oflags |= O_RDWR;
         }
@@ -189,7 +189,7 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
     fs->FileSystem = io;
     fs->mount = GetResourceDirectoryMount(rd);
 
-    if ((mode & FM_READ) && (mode & FM_APPEND) && !(mode & FM_WRITE))
+    if ((mode & FileModeRead) && (mode & FileModeAppend) && !(mode & FileModeWrite))
     {
         if (!io->Seek(fs, SBO_END_OF_FILE, 0))
         {
@@ -206,7 +206,7 @@ static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outD
     *outSize = 0;
     *outData = NULL;
 
-    if (fs->mode & FM_WRITE)
+    if (fs->mode & FileModeWrite)
         return false;
 
     USD(stream, fs);
@@ -339,7 +339,7 @@ static bool ioUnixFsSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t offs
 
 static bool ioUnixFsFlush(FileStream* fs)
 {
-    if (!(fs->mode & FM_WRITE))
+    if (!(fs->mode & FileModeWrite))
         return true;
 
     USD(stream, fs);
@@ -389,7 +389,7 @@ static bool unixFsUpdateSize(struct UnixFileStream* stream)
 static ssize_t ioUnixFsGetSize(FileStream* fs)
 {
     USD(stream, fs);
-    if ((fs->mode & FM_WRITE) && !unixFsUpdateSize(stream))
+    if ((fs->mode & FileModeWrite) && !unixFsUpdateSize(stream))
         return -1;
     return stream->Size;
 }

@@ -291,7 +291,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
 
     // Read input file
     FileStream file = {};
-    if (!OpenStreamFromPath(resourceDir, pFilepath, FileMode(FM_READ | FM_ALLOW_READ), &file))
+    if (!OpenStreamFromPath(resourceDir, pFilepath, FileMode(FileModeRead | FileModeAllowRead), &file))
     {
         LOGF(Error, "Could not open file '%s'.", pFilepath);
         success = false;
@@ -1246,7 +1246,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         }
 
         FileStream outFile = {};
-        if (!OpenStreamFromPath(assetParams->mRDOutput, outFileName, FM_WRITE, &outFile))
+        if (!OpenStreamFromPath(assetParams->mRDOutput, outFileName, FileModeWrite, &outFile))
         {
             LOGF(Error, "Could not open file '%s' for write.", outFileName);
             error = true;

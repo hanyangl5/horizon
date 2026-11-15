@@ -227,7 +227,7 @@ struct WriteZipParams
 struct RuntimeAnimationSettings
 {
     // Resource dir where all animation/skeleton (.ozz assets) will be outputed to
-    ResourceDirectory mSkeletonAndAnimOutRd = RD_MIDDLEWARE_2;
+    ResourceDirectory mSkeletonAndAnimOutRd = DirectoryMiddleware2;
 
     // Enabling this might introduce noise to the animation
     bool mOptimizeTracks = false;

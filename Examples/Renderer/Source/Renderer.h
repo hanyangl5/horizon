@@ -82,13 +82,13 @@ public:
 private:
     void ConfigureResourceDirectories()
     {
-        SetResourceDirectoryPath(SystemFileIO, RM_SAVE_0, RD_MESHES, "RendererAssets");
-        SetResourceDirectoryPath(SystemFileIO, RM_SAVE_0, RD_OTHER_FILES, "RendererAssets");
-        SetResourceDirectoryPath(SystemFileIO, RM_PROJECT, RD_TEXTURES, SceneDirectory);
-        SetResourceDirectoryPath(SystemFileIO, RM_PROJECT, RD_SHADER_SOURCES, "Examples/Renderer/Shaders");
+        SetResourceDirectoryPath(SystemFileIO, MountSave0, DirectoryMeshes, "RendererAssets");
+        SetResourceDirectoryPath(SystemFileIO, MountSave0, DirectoryOtherFiles, "RendererAssets");
+        SetResourceDirectoryPath(SystemFileIO, MountProject, DirectoryTextures, SceneDirectory);
+        SetResourceDirectoryPath(SystemFileIO, MountProject, DirectoryShaderSources, "Examples/Renderer/Shaders");
         // Compiled DXIL survives restarts here so a warm start skips the Slang front end.
-        SetResourceDirectoryPath(SystemFileIO, RM_SAVE_0, RD_SHADER_BINARIES, "ShaderCache");
-        MakeDirectory(RD_SHADER_BINARIES, "", true);
+        SetResourceDirectoryPath(SystemFileIO, MountSave0, DirectoryShaderBinaries, "ShaderCache");
+        MakeDirectory(DirectoryShaderBinaries, "", true);
     }
 
     void InitRenderContext()
@@ -111,7 +111,7 @@ private:
         char CatalogFile[FS_MAX_PATH], SceneFile[FS_MAX_PATH];
         ReplacePathExtension(SceneSource, "assetcatalog.json", CatalogFile);
         ReplacePathExtension(SceneSource, "sceneasset.json", SceneFile);
-        if (!Catalog.load(RD_OTHER_FILES, CatalogFile))
+        if (!Catalog.load(DirectoryOtherFiles, CatalogFile))
         {
             return false;
         }
@@ -122,7 +122,7 @@ private:
             return false;
         }
         Loaders = hz::MakeUnique<hz::AssetLoaders>(
-            *Context, hz::AssetLoadersDesc{ .vertexLayout = SceneVertexLayout, .cookedDirectory = RD_OTHER_FILES });
+            *Context, hz::AssetLoadersDesc{ .vertexLayout = SceneVertexLayout, .cookedDirectory = DirectoryOtherFiles });
         AssetManager = hz::MakeUnique<hz::AssetManager>(Catalog, Context.Get());
         Loaders->registerLoaders(*AssetManager);
         const hz::AssetHandle Handle = AssetManager->request(Entry->id);
@@ -258,7 +258,7 @@ private:
         RendererApp* App = (RendererApp*)Data;
         // Only builds that link the AssetPipeline tool can cook; shipping builds receive cooked assets instead.
 #if defined(HORIZON_RENDERER_ASSET_COOKING)
-        App->CookSucceeded = ensureSceneGltfCooked(RD_TEXTURES, SceneSource, RD_OTHER_FILES);
+        App->CookSucceeded = ensureSceneGltfCooked(DirectoryTextures, SceneSource, DirectoryOtherFiles);
 #else
         App->CookSucceeded = true;
 #endif

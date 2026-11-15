@@ -433,7 +433,7 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
 bool WorldArchive::load(ResourceDirectory directory, const char* pFileName)
 {
     FileStream stream = {};
-    if (!OpenStreamFromPath(directory, pFileName, FM_READ, &stream))
+    if (!OpenStreamFromPath(directory, pFileName, FileModeRead, &stream))
     {
         LOGF(Error, "Cannot open World archive '%s'", pFileName);
         return false;
@@ -469,7 +469,7 @@ static bool writeWorldFile(ResourceDirectory directory, const char* pFileName, S
         return false;
     }
     FileStream stream = {};
-    if (!OpenStreamFromPath(directory, temporary, FM_WRITE, &stream))
+    if (!OpenStreamFromPath(directory, temporary, FileModeWrite, &stream))
     {
         return false;
     }

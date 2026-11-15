@@ -11,8 +11,8 @@ class AssetLoadersData;
 struct AssetLoadersDesc
 {
     VertexLayout      vertexLayout = {};
-    ResourceDirectory cookedDirectory = RD_MESHES;
-    ResourceDirectory sourceDirectory = RD_TEXTURES;
+    ResourceDirectory cookedDirectory = DirectoryMeshes;
+    ResourceDirectory sourceDirectory = DirectoryTextures;
 };
 
 // Owns the typed loaders and shared decoded documents/geometry. Must outlive registered asset managers.

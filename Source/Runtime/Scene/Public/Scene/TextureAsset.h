@@ -28,8 +28,8 @@ private:
 class TextureAssetLoader
 {
 public:
-    explicit TextureAssetLoader(RenderContext& context, ResourceDirectory cookedDirectory = RD_MESHES,
-                                ResourceDirectory sourceDirectory = RD_TEXTURES);
+    explicit TextureAssetLoader(RenderContext& context, ResourceDirectory cookedDirectory = DirectoryMeshes,
+                                ResourceDirectory sourceDirectory = DirectoryTextures);
     ~TextureAssetLoader();
     TextureAssetLoader(const TextureAssetLoader&) = delete;
     TextureAssetLoader& operator=(const TextureAssetLoader&) = delete;

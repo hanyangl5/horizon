@@ -115,7 +115,7 @@ bool readShaderCacheFile(uint64_t key, ShaderCacheFile& file)
     char fileName[64] = {};
     getShaderCacheFile(key, fileName, sizeof(fileName));
     FileStream stream = {};
-    if (!OpenStreamFromPath(RD_SHADER_BINARIES, fileName, FM_READ, &stream))
+    if (!OpenStreamFromPath(DirectoryShaderBinaries, fileName, FileModeRead, &stream))
         return false;
     const ssize_t fileSize = GetStreamFileSize(&stream);
     file.pBytes = fileSize > 0 ? (uint8_t*)MemAllocate((size_t)fileSize) : nullptr;
@@ -185,7 +185,7 @@ void storeShaderCache(uint64_t key, const BinaryShaderDesc& binary)
     char       fileName[64] = {};
     FileStream stream = {};
     getShaderCacheFile(key, fileName, sizeof(fileName));
-    if (!OpenStreamFromPath(RD_SHADER_BINARIES, fileName, FM_WRITE, &stream))
+    if (!OpenStreamFromPath(DirectoryShaderBinaries, fileName, FileModeWrite, &stream))
         return;
     const ShaderCacheHeader header = {
         .magic = kShaderCacheMagic, .version = kShaderCacheVersion, .stages = (uint32_t)binary.stages, .stageCount = stageCount

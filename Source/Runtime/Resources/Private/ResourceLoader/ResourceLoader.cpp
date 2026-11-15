@@ -4542,7 +4542,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
         }
 
         CloseStream(&stream);
-        OpenStreamFromMemory(nxTempBuffer, remainingBytes, FM_READ, true, &stream);
+        OpenStreamFromMemory(nxTempBuffer, remainingBytes, FileModeRead, true, &stream);
     }
 #endif
 
@@ -4718,7 +4718,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         {
         case TEXTURE_CONTAINER_DDS:
         {
-            success = OpenStreamFromPath(pTextureDesc->resourceDirectory, pTextureDesc->pFileName, FM_READ, &stream);
+            success = OpenStreamFromPath(pTextureDesc->resourceDirectory, pTextureDesc->pFileName, FileModeRead, &stream);
             if (success)
             {
                 success = loadDDSTextureDesc(&stream, &textureDesc);
@@ -4727,7 +4727,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         }
         case TEXTURE_CONTAINER_KTX:
         {
-            success = OpenStreamFromPath(pTextureDesc->resourceDirectory, pTextureDesc->pFileName, FM_READ, &stream);
+            success = OpenStreamFromPath(pTextureDesc->resourceDirectory, pTextureDesc->pFileName, FileModeRead, &stream);
             if (success)
             {
                 success = loadKTXTextureDesc(&stream, &textureDesc);
@@ -4762,7 +4762,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
                 singleTexelNormal[0] = decodeBC5SingleTexelChannel(block);
                 singleTexelNormal[1] = decodeBC5SingleTexelChannel(block + 8);
-                if (!OpenStreamFromMemory(singleTexelNormal, sizeof(singleTexelNormal), FM_READ, false, &stream))
+                if (!OpenStreamFromMemory(singleTexelNormal, sizeof(singleTexelNormal), FileModeRead, false, &stream))
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
                 textureDesc.format = hz::Format::R8G8_UNORM;
             }
@@ -4976,7 +4976,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
                                                          BufferUpdateDesc indexUpdateDesc[1])
 {
     GeometryFileRead reader;
-    if (!OpenStreamFromPath(pDesc->resourceDirectory, pDesc->pFileName, FM_READ, &reader.file))
+    if (!OpenStreamFromPath(pDesc->resourceDirectory, pDesc->pFileName, FileModeRead, &reader.file))
     {
         LOGF(Error, "Failed to open bin file %s", pDesc->pFileName);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
@@ -5756,7 +5756,7 @@ void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
         {
             // During material compilation we generate an ini file with data to initialize the material library
             FileStream stream = {};
-            if (OpenStreamFromPath(RD_COMPILED_MATERIALS, "material_lib.ini", FM_READ, &stream))
+            if (OpenStreamFromPath(DirectoryCompiledMaterials, "material_lib.ini", FileModeRead, &stream))
             {
                 char buffer[256] = {};
                 ASSERT((uint64_t)GetStreamFileSize(&stream) <= sizeof(buffer));
@@ -6160,7 +6160,7 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
     uint64_t   fileSize = 0;
     FileStream stream = {};
 
-    if (OpenStreamFromPath(RD_COMPILED_MATERIALS, pMaterialFileName, FM_READ, &stream))
+    if (OpenStreamFromPath(DirectoryCompiledMaterials, pMaterialFileName, FileModeRead, &stream))
     {
         fileSize = GetStreamFileSize(&stream);
 
@@ -7158,10 +7158,10 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
 
     FileStream binaryFileStream = {};
 
-    // NOTE: On some platforms, we might not be allowed to write in the `RD_SHADER_BINARIES` directory.
+    // NOTE: On some platforms, we might not be allowed to write in the `DirectoryShaderBinaries` directory.
     // If we want to load re-compiled binaries, then they must be cached elsewhere and queried here.
 
-    const bool result = OpenStreamFromPath(RD_SHADER_BINARIES, binaryShaderPath, FM_READ, &binaryFileStream);
+    const bool result = OpenStreamFromPath(DirectoryShaderBinaries, binaryShaderPath, FileModeRead, &binaryFileStream);
     ASSERT(result);
     if (!result)
         return result;
@@ -7432,7 +7432,7 @@ void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, 
     strcat(rendererApi, pDesc->pFileName);
 
     FileStream stream = {};
-    bool       success = OpenStreamFromPath(RD_PIPELINE_CACHE, rendererApi, FM_READ, &stream);
+    bool       success = OpenStreamFromPath(DirectoryPipelineCache, rendererApi, FileModeRead, &stream);
     ssize_t    dataSize = 0;
     void*      data = nullptr;
     if (success)
@@ -7471,7 +7471,7 @@ void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, Pipel
     strcat(rendererApi, pDesc->pFileName);
 
     FileStream stream = {};
-    if (OpenStreamFromPath(RD_PIPELINE_CACHE, rendererApi, FM_WRITE, &stream))
+    if (OpenStreamFromPath(DirectoryPipelineCache, rendererApi, FileModeWrite, &stream))
     {
         size_t dataSize = 0;
         getPipelineCacheData(pRenderer, pPipelineCache, &dataSize, NULL);

@@ -464,7 +464,7 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
     const void*   pFileSource = nullptr;
     size_t        fileSize = 0;
     char          sourcePath[FS_MAX_PATH] = {};
-    if (input.pFileName && (!OpenStreamFromPath(input.sourceDirectory, input.pFileName, FM_READ, &sourceFile) ||
+    if (input.pFileName && (!OpenStreamFromPath(input.sourceDirectory, input.pFileName, FileModeRead, &sourceFile) ||
                             !StreamMemoryMap(&sourceFile, &fileSize, &pFileSource) || !fileSize || fileSize > UINT32_MAX))
     {
         LOGF(Error, "Could not map shader source '%s'", input.pFileName);
@@ -666,7 +666,7 @@ bool RenderContext::initPipelineCache()
     PipelineCacheDesc        cacheDesc = {};
     void*                    pBlob = nullptr;
     FileStream               stream = {};
-    if (OpenStreamFromPath(RD_SHADER_BINARIES, kPipelineCacheFile, FM_READ, &stream))
+    if (OpenStreamFromPath(DirectoryShaderBinaries, kPipelineCacheFile, FileModeRead, &stream))
     {
         PipelineCacheHeader header = {};
         const ssize_t       fileSize = GetStreamFileSize(&stream);
@@ -704,7 +704,7 @@ void RenderContext::savePipelineCache()
 
     const PipelineCacheHeader header = makeCacheHeader(pRenderer->pGpu->settings);
     FileStream                stream = {};
-    if (OpenStreamFromPath(RD_SHADER_BINARIES, kPipelineCacheFile, FM_WRITE, &stream))
+    if (OpenStreamFromPath(DirectoryShaderBinaries, kPipelineCacheFile, FileModeWrite, &stream))
     {
         WriteToStream(&stream, &header, sizeof(header));
         WriteToStream(&stream, pBlob, blobSize);

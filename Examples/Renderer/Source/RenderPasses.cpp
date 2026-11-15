@@ -238,7 +238,7 @@ bool RenderPasses::Resize(uint32_t Width, uint32_t Height)
         return true;
     }
 
-    if (!Environment->IsValid() && !Environment->Load({ .Directory = RD_SHADER_SOURCES,
+    if (!Environment->IsValid() && !Environment->Load({ .Directory = DirectoryShaderSources,
                                                         .Prefiltered = "../../../Assets/Cookbook/immenstadter_horn_2k_prefilter.ktx",
                                                         .Irradiance = "../../../Assets/Cookbook/immenstadter_horn_2k_irradiance.ktx",
                                                         .BrdfLut = "../../../Assets/Cookbook/brdfLUT.ktx" }))

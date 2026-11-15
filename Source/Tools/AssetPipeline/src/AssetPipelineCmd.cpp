@@ -109,9 +109,9 @@ int AssetPipelineCmd(int argc, char** argv)
     params.mFlagsCount = 0;
     params.mPathMode = PROCESS_MODE_NONE;
 
-    params.mRDInput = RD_MIDDLEWARE_1;
-    params.mRDOutput = RD_MIDDLEWARE_2;
-    params.mRDZipWrite = RD_MIDDLEWARE_3;
+    params.mRDInput = DirectoryMiddleware1;
+    params.mRDOutput = DirectoryMiddleware2;
+    params.mRDZipWrite = DirectoryMiddleware3;
 
     char filePath[FS_MAX_PATH] = { 0 };
     char fileNameWithoutExt[FS_MAX_PATH] = { 0 };
@@ -182,8 +182,8 @@ int AssetPipelineCmd(int argc, char** argv)
 
     FileSystemInitDesc FileSystemDesc = {};
     FileSystemDesc.pAppName = gApplicationName;
-    FileSystemDesc.pResourceMounts[RM_CONTENT] = input;
-    FileSystemDesc.pResourceMounts[RM_PROJECT] = output;
+    FileSystemDesc.pResourceMounts[MountContent] = input;
+    FileSystemDesc.pResourceMounts[MountProject] = output;
 
     if (!InitFileSystem(&FileSystemDesc))
     {
@@ -192,9 +192,9 @@ int AssetPipelineCmd(int argc, char** argv)
         return 1;
     }
 
-    SetResourceDirectoryPath(SystemFileIO, RM_CONTENT, params.mRDInput, "");
-    SetResourceDirectoryPath(SystemFileIO, RM_PROJECT, params.mRDOutput, "");
-    SetResourceDirectoryPath(SystemFileIO, RM_DEBUG, RD_LOG, "");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, params.mRDInput, "");
+    SetResourceDirectoryPath(SystemFileIO, MountProject, params.mRDOutput, "");
+    SetResourceDirectoryPath(SystemFileIO, MountDebug, DirectoryLog, "");
 
     LogLevel logLevel = params.mSettings.quiet ? Warning : DEFAULT_LOG_LEVEL;
     InitLog(gApplicationName, logLevel);

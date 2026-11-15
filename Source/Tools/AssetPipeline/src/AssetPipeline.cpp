@@ -83,7 +83,7 @@ public:
             return;
         if (!FileExists(directory, pPath) && FileExists(directory, backup) && !RenameFile(directory, backup, pPath))
             return;
-        opened = OpenStreamFromPath(directory, temporary, FM_WRITE_ALLOW_READ, &stream);
+        opened = OpenStreamFromPath(directory, temporary, FileModeWriteAllowRead, &stream);
         written = opened;
     }
     ~CookedGeometryFile()
@@ -381,7 +381,7 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
 {
     // Import the glTF with the animation
     FileStream file = {};
-    if (!OpenStreamFromPath(resourceDir, skeletonAsset, FM_READ, &file))
+    if (!OpenStreamFromPath(resourceDir, skeletonAsset, FileModeRead, &file))
     {
         LOGF(Error, "Failed to open gltf file %s", skeletonAsset);
         ASSERT(false);
@@ -438,7 +438,7 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
             char path[FS_MAX_PATH] = { 0 };
             AppendPathComponent(parent, uri, path);
             FileStream fs = {};
-            if (OpenStreamFromPath(resourceDir, path, FM_READ, &fs))
+            if (OpenStreamFromPath(resourceDir, path, FileModeRead, &fs))
             {
                 ASSERT(GetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].Size);
                 data->buffers[i].data = MemAllocate(data->buffers[i].Size);
@@ -486,7 +486,7 @@ cgltf_result cgltf_write(ResourceDirectory resourceDir, const char* skeletonAsse
     }
 
     FileStream file = {};
-    if (!OpenStreamFromPath(resourceDir, skeletonAsset, FM_WRITE, &file))
+    if (!OpenStreamFromPath(resourceDir, skeletonAsset, FileModeWrite, &file))
     {
         MemDeallocate(writeBuffer);
         return cgltf_result_io_error;
@@ -618,7 +618,7 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
 
             // Load skeleton from disk
             FileStream file = {};
-            if (!OpenStreamFromPath(assetParams->mRDOutput, skeletonOutput, FM_READ, &file))
+            if (!OpenStreamFromPath(assetParams->mRDOutput, skeletonOutput, FileModeRead, &file))
             {
                 LOGF(Error, "Couldn't load Skeleton for mesh '%s' in %s. Skipping asset and all it's animations", skeletonInputFile,
                      skeletonOutput);
@@ -716,7 +716,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
         AppendPathExtension(outputTemp, "bin", binFilePath);
 
         FileStream tfxFile = {};
-        OpenStreamFromPath(assetParams->mRDInput, input, FM_READ, &tfxFile);
+        OpenStreamFromPath(assetParams->mRDInput, input, FileModeRead, &tfxFile);
         AMD::TressFXAsset tressFXAsset = {};
         RETURN_IF_TFX_ERROR(tressFXAsset.LoadHairData(&tfxFile))
         CloseStream(&tfxFile);
@@ -809,7 +809,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
         cgltf_primitive   prim = {};
         cgltf_size        offset = 0;
         FileStream        binFile = {};
-        OpenStreamFromPath(assetParams->mRDOutput, binFilePath, FM_WRITE, &binFile);
+        OpenStreamFromPath(assetParams->mRDOutput, binFilePath, FileModeWrite, &binFile);
         size_t fileSize = 0;
 
         for (uint32_t j = 0; j < Count; ++j)
@@ -1145,7 +1145,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
 
     // Write skeleton to disk
     FileStream file = {};
-    if (!OpenStreamFromPath(resourceDirOzzOutput, skeletonOutputFile, FM_WRITE, &file))
+    if (!OpenStreamFromPath(resourceDirOzzOutput, skeletonOutputFile, FileModeWrite, &file))
         return true;
 
     ozz::io::OArchive archive(&file);
@@ -1211,7 +1211,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
                 LOGF(Info, "Writing binary gltf data: %s -> %s", skeletonInputfile, bufferOut);
 
                 FileStream fs = {};
-                OpenStreamFromPath(resourceDirGltfOutput, bufferOut, FM_WRITE, &fs);
+                OpenStreamFromPath(resourceDirGltfOutput, bufferOut, FileModeWrite, &fs);
                 WriteToStream(&fs, data->buffers[i].data, data->buffers[i].Size);
                 CloseStream(&fs);
             }
@@ -1361,7 +1361,7 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
 
     // Write animation to disk
     FileStream file = {};
-    if (!OpenStreamFromPath(animationSettings->mSkeletonAndAnimOutRd, animOutFile, FM_WRITE, &file))
+    if (!OpenStreamFromPath(animationSettings->mSkeletonAndAnimOutRd, animOutFile, FileModeWrite, &file))
     {
         LOGF(LogLevel::Error, "Animation %s:%s can not be saved to %s/%s", animationSourceFile, animationData->name,
              GetResourceDirectory(animationSettings->mSkeletonAndAnimOutRd), animOutFile);
@@ -1575,7 +1575,7 @@ void CheckIfGltfHasAnimations(ResourceDirectory resourceDirInput, const char* gl
     numAnimationsOut = 0;
 
     FileStream file = {};
-    if (!OpenStreamFromPath(resourceDirInput, gltfFileName, FM_READ, &file))
+    if (!OpenStreamFromPath(resourceDirInput, gltfFileName, FileModeRead, &file))
     {
         LOGF(Error, "Failed to open gltf file %s", gltfFileName);
         return;
@@ -1854,7 +1854,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         LOGF(Info, "Converting %s to TF custom binary file", fileName);
 
         FileStream file = {};
-        if (!OpenStreamFromPath(assetParams->mRDInput, fileName, FM_READ, &file))
+        if (!OpenStreamFromPath(assetParams->mRDInput, fileName, FileModeRead, &file))
         {
             LOGF(Error, "Failed to open gltf file %s", fileName);
             error = true;
@@ -1926,7 +1926,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 char path[FS_MAX_PATH] = { 0 };
                 AppendPathComponent(parent, uri, path);
                 FileStream fs = {};
-                if (OpenStreamFromPath(assetParams->mRDInput, path, FM_READ, &fs))
+                if (OpenStreamFromPath(assetParams->mRDInput, path, FileModeRead, &fs))
                 {
                     buffersLoaded = GetStreamFileSize(&fs) >= (ssize_t)data->buffers[j].size;
                     if (buffersLoaded)
@@ -2671,7 +2671,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
     OnDiscoverAnimationsParam* discoveredAnims = (OnDiscoverAnimationsParam*)UserData;
 
     FileStream file = {};
-    if (!OpenStreamFromPath(resourceDir, filename, FM_READ, &file))
+    if (!OpenStreamFromPath(resourceDir, filename, FileModeRead, &file))
     {
         LOGF(Error, "Failed to open gltf file %s", filename);
         return;

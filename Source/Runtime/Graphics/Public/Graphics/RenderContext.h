@@ -93,7 +93,7 @@ enum class ShaderLanguage
 struct ShaderDesc
 {
     hz::Span<ShaderStageDesc> stages = {};
-    ResourceDirectory         sourceDirectory = RD_SHADER_SOURCES;
+    ResourceDirectory         sourceDirectory = DirectoryShaderSources;
     const char*               pFileName = nullptr;
     ShaderLanguage            language = ShaderLanguage::Auto;
 };
@@ -174,7 +174,7 @@ struct ContextDesc
     bool         enableVSync;
     bool         enableGpuValidation;
     bool         enableGpuProfiler;
-    // Persists the driver pipeline cache between runs; only apps that map RD_SHADER_BINARIES should enable it.
+    // Persists the driver pipeline cache between runs; only apps that map DirectoryShaderBinaries should enable it.
     bool         enablePipelineCache = false;
 };
 

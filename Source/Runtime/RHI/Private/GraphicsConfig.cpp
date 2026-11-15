@@ -291,7 +291,7 @@ void parseGPUDataFile()
     gDefaultPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
 
     FileStream fh = {};
-    if (!OpenStreamFromPath(RD_GPU_CONFIG, "legacy_gpu_data", FM_READ, &fh))
+    if (!OpenStreamFromPath(DirectoryGpuConfig, "legacy_gpu_data", FileModeRead, &fh))
     {
         LOGF(LogLevel::Warning, "Legacy GPU data could not be found, setting preset will be set to Low as a default.");
         return;
@@ -456,7 +456,7 @@ void parseGPUDataFile()
 void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
 {
     FileStream fh = {};
-    if (!OpenStreamFromPath(RD_GPU_CONFIG, "legacy_gpu_rules", FM_READ, &fh))
+    if (!OpenStreamFromPath(DirectoryGpuConfig, "legacy_gpu_rules", FileModeRead, &fh))
     {
         LOGF(LogLevel::Warning, "Legacy GPU rule data could not be found, first GPU found set as active GPU.");
         return;

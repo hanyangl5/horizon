@@ -50,7 +50,7 @@ static void addHash(cJSON* pObject, const char* pField, uint64_t hash)
 static cJSON* readJson(ResourceDirectory directory, const char* pPath, uint64_t* pHash = nullptr)
 {
     FileStream stream = {};
-    if (!OpenStreamFromPath(directory, pPath, FM_READ, &stream))
+    if (!OpenStreamFromPath(directory, pPath, FileModeRead, &stream))
         return nullptr;
     const ssize_t Size = GetStreamFileSize(&stream);
     if (Size <= 0 || Size > 64 * 1024 * 1024)
@@ -98,7 +98,7 @@ static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<
     char       temporary[FS_MAX_PATH];
     const bool validPath = snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) < (int)sizeof(temporary);
     FileStream stream = {};
-    const bool opened = validPath && OpenStreamFromPath(directory, temporary, FM_WRITE, &stream);
+    const bool opened = validPath && OpenStreamFromPath(directory, temporary, FileModeWrite, &stream);
     const bool written = opened && WriteToStream(&stream, bytes.Data, bytes.Count) == bytes.Count;
     const bool closed = !opened || CloseStream(&stream);
     if (!written || !closed)

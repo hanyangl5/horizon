@@ -4,7 +4,7 @@
 
 struct EnvironmentFiles
 {
-    ResourceDirectory Directory = RD_TEXTURES;
+    ResourceDirectory Directory = DirectoryTextures;
     const char*       Prefiltered = "immenstadter_horn_2k_prefilter.ktx";
     const char*       Irradiance = "immenstadter_horn_2k_irradiance.ktx";
     const char*       BrdfLut = "brdfLUT.ktx";

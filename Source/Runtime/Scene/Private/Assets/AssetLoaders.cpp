@@ -288,7 +288,7 @@ void AssetSource::release()
 bool AssetSource::read(ResourceDirectory directory)
 {
     FileStream stream = {};
-    if (!OpenStreamFromPath(directory, pPath, FM_READ, &stream))
+    if (!OpenStreamFromPath(directory, pPath, FileModeRead, &stream))
         return false;
     const ssize_t Size = GetStreamFileSize(&stream);
     if (Size <= 0 || Size > 64 * 1024 * 1024)

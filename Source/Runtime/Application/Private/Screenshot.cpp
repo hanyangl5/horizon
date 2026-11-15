@@ -290,7 +290,7 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
 
     // Save screenshot to disk.
     FileStream fs = {};
-    if (OpenStreamFromPath(RD_SCREENSHOTS, screenshotFileName, FM_WRITE, &fs))
+    if (OpenStreamFromPath(DirectoryScreenshots, screenshotFileName, FileModeWrite, &fs))
     {
         LOGF(Info, "Writing screenshot to %s", screenshotFileName);
         VERIFY(WriteToStream(&fs, pEncoded, (size_t)encodedSize) == (size_t)encodedSize);

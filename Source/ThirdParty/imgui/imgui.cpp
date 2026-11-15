@@ -2097,7 +2097,7 @@ ImGuiID ImHashStr(const char* data_p, size_t data_size, ImGuiID seed)
 
 // Default file functions
 #ifdef FORGE_UI_IMGUI_FORCE_FILE_SYSTEM
-bool    ImFileOpen(const char* filename, FileMode mode, ImFileHandle* file) { return OpenStreamFromPath(RD_LOG, filename, mode, file); }
+bool    ImFileOpen(const char* filename, FileMode mode, ImFileHandle* file) { return OpenStreamFromPath(DirectoryLog, filename, mode, file); }
 bool    ImFileClose(ImFileHandle f) { return CloseStream(&f); }
 ImU64   ImFileGetSize(ImFileHandle f) { return GetStreamFileSize(&f); }
 ImU64   ImFileRead(void* data, ImU64 sz, ImU64 count, ImFileHandle f) { return ReadFromStream(&f, data, sz * count); }
@@ -13786,7 +13786,7 @@ void ImGui::LogToFile(int auto_open_depth, const char* filename)
         return;
 #ifdef FORGE_UI_IMGUI_FORCE_FILE_SYSTEM
     ImFileHandle f{};
-    if (!ImFileOpen(filename, FM_APPEND, &f))
+    if (!ImFileOpen(filename, FileModeAppend, &f))
 #else
     ImFileHandle f = ImFileOpen(filename, "ab");
     if (!f)
@@ -13985,7 +13985,7 @@ void ImGui::LoadIniSettingsFromDisk(const char* ini_filename)
 {
     size_t file_data_size = 0;
 #ifdef FORGE_UI_IMGUI_FORCE_FILE_SYSTEM
-    char* file_data = (char*)ImFileLoadToMemory(ini_filename, FM_READ, &file_data_size);
+    char* file_data = (char*)ImFileLoadToMemory(ini_filename, FileModeRead, &file_data_size);
 #else
     char* file_data = (char*)ImFileLoadToMemory(ini_filename, "rb", &file_data_size);
 #endif
@@ -14079,7 +14079,7 @@ void ImGui::SaveIniSettingsToDisk(const char* ini_filename)
     const char* ini_data = SaveIniSettingsToMemory(&ini_data_size);
 #ifdef FORGE_UI_IMGUI_FORCE_FILE_SYSTEM
     ImFileHandle f{};
-    if (!ImFileOpen(ini_filename, FM_WRITE, &f))
+    if (!ImFileOpen(ini_filename, FileModeWrite, &f))
 #else
     ImFileHandle f = ImFileOpen(ini_filename, "wt");
     if (!f)
