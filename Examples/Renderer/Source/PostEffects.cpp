@@ -1,4 +1,5 @@
 #include "PostEffects.h"
+#include "Core/ILog.h"
 #include "Profiler/IProfiler.h"
 
 #include <math.h>
@@ -102,9 +103,10 @@ PostEffects::PostEffects(hz::RenderContext& context): context(context)
            adaptationPipeline.isValid() && bloomDownsamplePipeline.isValid() && bloomUpsamplePipeline.isValid());
 }
 
-void PostEffects::acquireBloomChain()
+bool PostEffects::prepareBloomChain()
 {
     const DescriptorType views = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
+    bool                 valid = true;
     for (uint32_t level = 0; level < bloomLevels; ++level)
     {
         const hz::TextureDesc desc = { .width = bloomLevelSize(bloomWidth, level),
@@ -115,21 +117,35 @@ void PostEffects::acquireBloomChain()
                                        .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                        .pName = "Renderer.HDR.Bloom" };
         bloomDown[level] = context.acquireTransient(desc);
+        valid &= bloomDown[level] != nullptr;
         if (level + 1 < bloomLevels)
         {
             // The smallest level is the base of the accumulation and only needs its downsample.
             bloomUp[level] = context.acquireTransient(desc);
+            valid &= bloomUp[level] != nullptr;
         }
     }
+    if (!valid)
+    {
+        LOGF(eWARNING, "Bloom targets unavailable; skipping bloom for this frame");
+        releaseBloomChain();
+    }
+    return valid;
 }
 
 void PostEffects::releaseBloomChain()
 {
     for (uint32_t level = 0; level < bloomLevels; ++level)
     {
-        context.releaseTransient(bloomDown[level]);
+        if (bloomDown[level])
+            context.releaseTransient(bloomDown[level]);
+        bloomDown[level] = nullptr;
         if (level + 1 < bloomLevels)
-            context.releaseTransient(bloomUp[level]);
+        {
+            if (bloomUp[level])
+                context.releaseTransient(bloomUp[level]);
+            bloomUp[level] = nullptr;
+        }
     }
 }
 
@@ -147,15 +163,8 @@ void PostEffects::resize(uint32_t width, uint32_t height)
                              .descriptors = views,
                              .flags = TEXTURE_CREATION_FLAG_FORCE_2D };
     bool            valid = true;
-    // Bloom targets are pooled per frame, so create the chain once here; execute only borrows it.
-    acquireBloomChain();
-    for (uint32_t level = 0; level < bloomLevels; ++level)
-    {
-        valid &= bloomDown[level] && bloomDown[level]->isValid();
-        if (level + 1 < bloomLevels)
-            valid &= bloomUp[level] && bloomUp[level]->isValid();
-    }
-    releaseBloomChain();
+    // Parked targets of the previous size never match again, so drop them once the GPU is idle.
+    context.purgeTransients();
     // Independent images let Dependencies describe every reduction without mixed SRV/UAV mip states.
     desc.format = hz::Format::R16_SFLOAT;
     desc.width = desc.height = meteringSize;
@@ -223,9 +232,11 @@ void PostEffects::execute(hz::CommandList& commands, const hz::GPUTexture& scene
         commands.setRootConstants(reduce);
         commands.dispatch((size + 15) / 16, (size + 15) / 16, 1, reduceDependencies.get());
     }
-    acquireBloomChain();
-
-    runBloom(commands, sceneColor);
+    const bool bloomReady = prepareBloomChain();
+    if (bloomReady)
+    {
+        runBloom(commands, sceneColor);
+    }
     runAdaptation(commands, deltaSeconds);
     toneMap(commands, sceneColor, renderTarget);
     releaseBloomChain();
@@ -236,7 +247,7 @@ void PostEffects::execute(hz::CommandList& commands, const hz::GPUTexture& scene
 
 void PostEffects::runBloom(hz::CommandList& commands, const hz::GPUTexture& sceneColor)
 {
-    if (!settings.enableBloom)
+    if (!settings.enableBloom || !bloomDown[0])
     {
         return;
     }
@@ -302,14 +313,15 @@ void PostEffects::toneMap(hz::CommandList& commands, const hz::GPUTexture& scene
 {
     const bool srgbTarget = context.getColorFormat() == hz::Format::R8G8B8A8_SRGB || context.getColorFormat() == hz::Format::B8G8R8A8_SRGB;
     hz::DependencyList     dependencies;
+    const hz::GPUTexture*  pBloom = bloomUp[0];
     const PostToneConstants constants = {
         .sceneColor = dependencies.sample(&sceneColor),
         .adaptedLuminance = dependencies.sample(&adaptedLuminance[adaptedIndex]),
-        .bloom = dependencies.sample(bloomUp[0]),
+        .bloom = dependencies.sample(pBloom),
         .sampler = sampler.getIndex(),
         .toneMapping = (uint32_t)settings.toneMapping,
         .exposure = settings.exposure,
-        .bloomStrength = settings.enableBloom ? settings.bloomStrength : 0.0f,
+        .bloomStrength = settings.enableBloom && pBloom ? settings.bloomStrength : 0.0f,
         .maxWhite = settings.maxWhite,
         .P = settings.uchimuraP,
         .a = settings.uchimuraA,

@@ -528,6 +528,9 @@ public:
     // handle alive between frames, so its resource state survives; releaseTransient parks it again.
     GPUTexture* acquireTransient(const TextureDesc&);
     void        releaseTransient(GPUTexture* pTexture);
+    // Destroys parked targets, for example when the render size changes and their descriptors no longer
+    // match. Call after waiting for the GPU; targets still in use are kept.
+    void        purgeTransients();
     GPUTexture               loadTexture(ResourceDirectory, const char* pFileName, TextureCreationFlags = TEXTURE_CREATION_FLAG_NONE);
     GPUSampler  createSampler(const SamplerDesc& = {});
     GPUPipeline createGraphicsPipeline(const GraphicsPipelineDesc&);

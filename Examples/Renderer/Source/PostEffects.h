@@ -50,7 +50,7 @@ private:
     void runBloom(hz::CommandList& commands, const hz::GPUTexture& sceneColor);
     void runAdaptation(hz::CommandList& commands, float deltaSeconds);
     void toneMap(hz::CommandList& commands, const hz::GPUTexture& sceneColor, const hz::GPUTexture& renderTarget);
-    void acquireBloomChain();
+    bool prepareBloomChain();
     void releaseBloomChain();
 
     hz::RenderContext&                              context;

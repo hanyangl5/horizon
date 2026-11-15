@@ -376,6 +376,18 @@ void RenderContext::releaseTransient(GPUTexture* pTexture)
     ASSERT(false);
 }
 
+void RenderContext::purgeTransients()
+{
+    for (TransientSlot& slot : transientSlots)
+    {
+        if (!slot.used || slot.inUse)
+            continue;
+        slot.texture = GPUTexture{};
+        slot.used = false;
+        slot.useId = 0;
+    }
+}
+
 void RenderContext::releaseTransientSlots()
 {
     for (TransientSlot& slot : transientSlots)
