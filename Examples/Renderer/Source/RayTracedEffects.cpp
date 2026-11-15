@@ -150,23 +150,23 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         MarkDirty();
     }
     PreviousSettings = Settings;
-    if (AssetRevision != View.gpuScene.getAssetTables().revision)
+    if (AssetRevision != View.GpuScene.getAssetTables().revision)
     {
         MarkDirty();
     }
-    AssetRevision = View.gpuScene.getAssetTables().revision;
+    AssetRevision = View.GpuScene.getAssetTables().revision;
     Commands.beginGpuTimestamp("RT Acceleration Structures");
     RayScene->Update(Commands, View, Draws);
     Commands.endGpuTimestamp();
     const hz::GPUAccelerationStructure& TLAS = RayScene->GetSceneTLAS();
-    const hz::GPUBuffer&                DrawData = Draws.GetDrawData(View.frameIndex);
+    const hz::GPUBuffer&                DrawData = Draws.GetDrawData(View.FrameIndex);
     auto        Index = [](const hz::GPUTexture* Texture) { return Texture && Texture->isValid() ? Texture->getSrvIndex() : UINT32_MAX; };
     RTConstants Constants = {
                                 .frame = Frame.getSrvIndex(),
                                 .lighting = Lighting.LightingFrame->getSrvIndex(),
                                 .draws = DrawData.getSrvIndex(),
-                                .materials = View.gpuScene.getBuffers().materials.getSrvIndex(),
-                                .textures = View.gpuScene.getBuffers().textures.getSrvIndex(),
+                                .materials = View.GpuScene.getBuffers().materials.getSrvIndex(),
+                                .textures = View.GpuScene.getBuffers().textures.getSrvIndex(),
                                 .sampler = MaterialSampler.getIndex(),
                                 .tlas = TLAS.isValid() ? TLAS.getSrvIndex() : UINT32_MAX,
                                 .normal = GBuffer.NormalMaterial->getSrvIndex(),

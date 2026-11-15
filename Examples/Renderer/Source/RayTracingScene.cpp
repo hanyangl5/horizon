@@ -17,7 +17,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
                 BottomLevelAS[Index] = std::move(Previous[Source.PreviousIndex]);
                 continue;
             }
-            const hz::MeshAsset* Mesh = View.assets.getMesh({ Source.Mesh.mesh.index, Source.Mesh.mesh.generation });
+            const hz::MeshAsset* Mesh = View.Assets.getMesh({ Source.Mesh.mesh.index, Source.Mesh.mesh.generation });
             ASSERT(Mesh);
             const IndirectDrawIndexArguments& Submesh = Mesh->getDraw(Source.Mesh.submeshIndex);
             const hz::GPUBuffer&              Vertices = Mesh->getVertexBuffer(0);
@@ -73,7 +73,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
         {
             continue;
         }
-        const Matrix4&                    Transform = View.scene.getInstances().pData[Draw.instance].current;
+        const Matrix4&                    Transform = View.Scene.getInstances().pData[Draw.instance].current;
         hz::AccelerationStructureInstance Instance = {
             .pBottom = &BottomLevelAS[Draws.GetGeometryIndex(DrawIndex)],
             .instanceId = DrawIndex,

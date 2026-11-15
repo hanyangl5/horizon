@@ -35,7 +35,7 @@ static_assert(sizeof(CullingConstants) == 9 * sizeof(uint32_t));
 void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameBuffer, const SceneView& View, bool Culling)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::Prepare");
-    const hz::GpuAssetTables& Tables = View.gpuScene.getAssetTables();
+    const hz::GpuAssetTables& Tables = View.GpuScene.getAssetTables();
     if (MaterialRevision != Tables.revision)
     {
         MaterialIds.resize(Tables.materials.count);
@@ -61,10 +61,10 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
             GeometryChanged = true;
         }
     };
-    for (uint32_t MeshBatchIndex : View.scene.getActiveMeshBatches())
+    for (uint32_t MeshBatchIndex : View.Scene.getActiveMeshBatches())
     {
-        const hz::RenderMeshBatch& Draw = View.scene.getMeshBatches().pData[MeshBatchIndex];
-        const hz::RenderPrimitive& Primitive = View.scene.getPrimitives().pData[Draw.primitive.index];
+        const hz::RenderMeshBatch& Draw = View.Scene.getMeshBatches().pData[MeshBatchIndex];
+        const hz::RenderPrimitive& Primitive = View.Scene.getPrimitives().pData[Draw.primitive.index];
         const hz::GpuMeshData*     Mesh = Tables.getMesh(Draw.mesh.mesh);
         const hz::GpuMaterialData* Material = Tables.getMaterial(Draw.material);
         if (!Primitive.instanceCount || !Mesh || !Material)
@@ -100,7 +100,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
         for (uint32_t Index = 0; Index < Primitive.instanceCount; ++Index)
         {
             GeometryIndices.pushBack(GeometryIndex);
-            DrawData.pushBack({ .instance = View.scene.getInstanceIndices().pData[Primitive.instanceOffset + Index],
+            DrawData.pushBack({ .instance = View.Scene.getInstanceIndices().pData[Primitive.instanceOffset + Index],
                                 .material = Draw.material.index,
                                 .materialId = MaterialIds[Draw.material.index],
                                 .alphaMode = Material->alphaMode,
@@ -123,7 +123,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
     {
         ++GeometryRevision;
     }
-    Frame& CurrentFrame = Frames[View.frameIndex];
+    Frame& CurrentFrame = Frames[View.FrameIndex];
     CurrentFrame.Count = DrawData.size();
     if (CurrentFrame.Count > CurrentFrame.Capacity || !CurrentFrame.Statistics.isValid())
     {
@@ -166,7 +166,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
     Commands.setPipeline(Pipeline);
     const CullingConstants Binding = { .frameIndex = FrameBuffer.getSrvIndex(),
                                        .drawsIndex = CurrentFrame.DrawData.getSrvIndex(),
-                                       .instancesIndex = View.gpuScene.getBuffers().instances.getSrvIndex(),
+                                       .instancesIndex = View.GpuScene.getBuffers().instances.getSrvIndex(),
                                        .opaqueIndex = CurrentFrame.Opaque.getUavIndex(),
                                        .transparentIndex = CurrentFrame.Transparent.getUavIndex(),
                                        .statisticsIndex = CurrentFrame.Statistics.getUavIndex(),
@@ -175,7 +175,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
                                        .shadowsIndex = CurrentFrame.Shadow.getUavIndex() };
     Commands.setRootConstants(Binding);
     Commands.dispatch((CurrentFrame.Count + 63) / 64, 1, 1,
-                      { .buffers = { &FrameBuffer, &CurrentFrame.DrawData, &View.gpuScene.getBuffers().instances },
+                      { .buffers = { &FrameBuffer, &CurrentFrame.DrawData, &View.GpuScene.getBuffers().instances },
                         .storageBuffers = { &CurrentFrame.Opaque, &CurrentFrame.Transparent, &CurrentFrame.Statistics,
                                             &CurrentFrame.Shadow } });
     Commands.endGpuTimestamp();
@@ -187,8 +187,8 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
     Buffers.clear();
     Textures.clear();
     Buffers.pushBack(&Frame);
-    Buffers.pushBack(&GetDrawData(View.frameIndex));
-    const hz::GpuSceneBuffers& Gpu = View.gpuScene.getBuffers();
+    Buffers.pushBack(&GetDrawData(View.FrameIndex));
+    const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
     if (Gpu.instances.isValid())
     {
         Buffers.pushBack(&Gpu.instances);
@@ -201,7 +201,7 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
     {
         Buffers.pushBack(&Gpu.textures);
     }
-    const hz::GpuAssetTables& Tables = View.gpuScene.getAssetTables();
+    const hz::GpuAssetTables& Tables = View.GpuScene.getAssetTables();
     const hz::GPUBuffer*      Previous = nullptr;
     for (const hz::GpuMeshData& MeshData : Tables.meshes)
     {
@@ -209,7 +209,7 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
         {
             continue;
         }
-        const hz::MeshAsset* Mesh = View.assets.getMesh({ .index = MeshData.id.index, .generation = MeshData.id.generation });
+        const hz::MeshAsset* Mesh = View.Assets.getMesh({ .index = MeshData.id.index, .generation = MeshData.id.generation });
         ASSERT(Mesh);
         if (&Mesh->getIndexBuffer() == Previous)
         {
@@ -227,7 +227,7 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
         if (TextureData.id.isValid())
         {
             Textures.pushBack(
-                &View.assets.getTexture({ .index = TextureData.id.index, .generation = TextureData.id.generation })->getTexture());
+                &View.Assets.getTexture({ .index = TextureData.id.index, .generation = TextureData.id.generation })->getTexture());
         }
     }
     IndirectDependency = Indirect;

@@ -80,9 +80,9 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     Vector3 Z(0, 1, 0);
     Data.lightDirection = Vector4(0, -1, 0, 0);
     Data.shadowEnabled = 0;
-    for (uint32_t MeshBatchIndex : View.scene.getActiveLights())
+    for (uint32_t MeshBatchIndex : View.Scene.getActiveLights())
     {
-        const hz::RenderLight& Light = View.scene.getLights().pData[MeshBatchIndex];
+        const hz::RenderLight& Light = View.Scene.getLights().pData[MeshBatchIndex];
         if (!Light.ready || Light.type != hz::LightType::Directional)
         {
             continue;
@@ -99,10 +99,10 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     const Matrix4 LightView = orthoInverse(Matrix4(Vector4(X, 0), Vector4(Y, 0), Vector4(Z, 0), Vector4(0, 0, 0, 1)));
     float         Minimum[3] = { FLT_MAX, FLT_MAX, FLT_MAX }, Maximum[3] = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
     bool          HasBounds = false;
-    for (uint32_t MeshBatchIndex : View.scene.getActiveInstances())
+    for (uint32_t MeshBatchIndex : View.Scene.getActiveInstances())
     {
-        const hz::RenderInstance& Instance = View.scene.getInstances().pData[MeshBatchIndex];
-        if (!View.scene.getPrimitives().pData[Instance.primitive.index].instanceCount)
+        const hz::RenderInstance& Instance = View.Scene.getInstances().pData[MeshBatchIndex];
+        if (!View.Scene.getPrimitives().pData[Instance.primitive.index].instanceCount)
         {
             continue;
         }
@@ -149,7 +149,7 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     const ShadowFrame Camera = { Data.shadowViewProjection, Data.shadowViewProjection, inverse(Data.shadowViewProjection),
                                  Vector4(0, 0, 0, 1) };
 
-    const uint32_t Backing = View.frameIndex;
+    const uint32_t Backing = View.FrameIndex;
     const bool     CameraUpdated = Context.updateBuffer(ShadowFrames[Backing], 0, &Camera, sizeof(Camera));
     const bool     LightUpdated = Context.updateBuffer(LightingFrames[Backing], 0, &Data, sizeof(Data));
     ASSERT(CameraUpdated && LightUpdated);
@@ -163,7 +163,7 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     Commands.setPipeline(Pipeline);
     Commands.setViewport(0, 0, (float)Resolution, (float)Resolution);
     Commands.setScissor(0, 0, Resolution, Resolution);
-    const hz::GpuSceneBuffers& Gpu = View.gpuScene.getBuffers();
+    const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
     const ShadowBindingConstants Binding = {
         .frameIndex = ShadowFrames[Backing].getSrvIndex(),
         .instancesIndex = Gpu.instances.isValid() ? Gpu.instances.getSrvIndex() : UINT32_MAX,

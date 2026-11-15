@@ -90,7 +90,7 @@ void GBuffer::Resize(uint32_t Width, uint32_t Height)
 void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const SceneView& View, const GpuDrawList& Draws)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GBuffer::Execute");
-    const hz::GpuSceneBuffers& Gpu = View.gpuScene.getBuffers();
+    const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
     const ClearValue           Black = {};
     Cmd.beginGpuTimestamp("Geometry");
     Cmd.beginRendering({
@@ -104,7 +104,7 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const Sc
                              .loadAction = LOAD_ACTION_CLEAR,
                              .storeAction = STORE_ACTION_STORE,
                              .clearValue = { .depth = 1.0f } },
-    }, Draws.GetDependencies(Frame, View, &Draws.GetCommands(View.frameIndex)));
+    }, Draws.GetDependencies(Frame, View, &Draws.GetCommands(View.FrameIndex)));
     Cmd.setViewport(0, 0, (float)Width, (float)Height);
     Cmd.setScissor(0, 0, Width, Height);
     Cmd.setPipeline(Pipeline);
@@ -117,10 +117,10 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const Sc
     };
     Cmd.setRootConstants(Binding, GeometryBindingSlot);
 
-    Cmd.setRootConstant({ Draws.GetDrawData(View.frameIndex).getSrvIndex() }, GeometryDrawSlot);
-    if (Draws.GetCount(View.frameIndex))
+    Cmd.setRootConstant({ Draws.GetDrawData(View.FrameIndex).getSrvIndex() }, GeometryDrawSlot);
+    if (Draws.GetCount(View.FrameIndex))
     {
-        Cmd.drawIndirect(Draws.GetCommands(View.frameIndex), 0, Draws.GetCount(View.frameIndex));
+        Cmd.drawIndirect(Draws.GetCommands(View.FrameIndex), 0, Draws.GetCount(View.FrameIndex));
     }
     Cmd.endRendering();
     Cmd.endGpuTimestamp();
@@ -289,7 +289,7 @@ void RenderPasses::Execute()
         return;
     }
     NextFrame = (NextFrame + 1) % FrameConstants.size();
-    const SceneView         View = { .scene = Scene, .gpuScene = GpuSceneData, .assets = Assets, .frameIndex = FrameIndex };
+    const SceneView         View = { .Scene = Scene, .GpuScene = GpuSceneData, .Assets = Assets, .FrameIndex = FrameIndex };
     const hz::RenderCamera* Camera = Scene.getCamera(CameraId);
     ASSERT(Camera);
     const hz::RenderCamera& CameraState = *Camera;

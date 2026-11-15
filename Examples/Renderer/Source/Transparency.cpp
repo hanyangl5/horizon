@@ -109,7 +109,7 @@ const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz:
     Commands.setPipeline(ClearPipeline);
     Commands.setRootConstants(Constants);
     Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1, { .storageTextures = { &Heads }, .storageBuffers = { &Counters } });
-    const uint32_t Backing = View.frameIndex;
+    const uint32_t Backing = View.FrameIndex;
     if (Draws.GetCount(Backing))
     {
         const hz::GPUBuffer& Indirect = Draws.GetCommands(Backing, true);
@@ -144,7 +144,7 @@ const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz:
         Commands.setViewport(0, 0, (float)Width, (float)Height);
         Commands.setScissor(0, 0, Width, Height);
         Commands.setPipeline(GatherPipeline);
-        const hz::GpuSceneBuffers& Gpu = View.gpuScene.getBuffers();
+        const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
         Constants.instancesIndex = Gpu.instances.getSrvIndex();
         Constants.materialsIndex = Gpu.materials.getSrvIndex();
         Constants.texturesIndex = Gpu.textures.getSrvIndex();
