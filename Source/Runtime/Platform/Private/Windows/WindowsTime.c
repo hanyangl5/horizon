@@ -92,7 +92,7 @@ static void initTime(void)
 static void ensureTimeInit()
 {
     // Make sure time constants are initialized before anyone tries to use them
-    callOnce(&timeInitGuard, initTime);
+    CallOnce(&timeInitGuard, initTime);
 }
 
 int64_t GetTimerFrequency()

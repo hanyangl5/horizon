@@ -54,7 +54,7 @@ bool WindowsStackTrace::Init()
 
     SetUnhandledExceptionFilter(&dumpStackTrace);
 
-    initMutex(&dbgHelpMutex);
+    InitMutex(&dbgHelpMutex);
 
     init = true;
     return true;

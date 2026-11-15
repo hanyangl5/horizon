@@ -81,7 +81,7 @@ extern "C"
      * Notes:
      *   CallOnceGuard has to be a pointer to a global variable initialized with INIT_CALL_ONCE_GUARD
      */
-    void callOnce(CallOnceGuard* pGuard, CallOnceFn pFn);
+    void CallOnce(CallOnceGuard* pGuard, CallOnceFn pFn);
 
     /// Operating system mutual exclusion primitive.
     typedef struct Mutex
@@ -99,12 +99,12 @@ extern "C"
 
 #define MUTEX_DEFAULT_SPIN_COUNT 1500
 
-    FORGE_API bool initMutex(Mutex* pMutex);
-    FORGE_API void destroyMutex(Mutex* pMutex);
+    FORGE_API bool InitMutex(Mutex* pMutex);
+    FORGE_API void DestroyMutex(Mutex* pMutex);
 
-    FORGE_API void acquireMutex(Mutex* pMutex);
-    FORGE_API bool tryAcquireMutex(Mutex* pMutex);
-    FORGE_API void releaseMutex(Mutex* pMutex);
+    FORGE_API void LockMutex(Mutex* pMutex);
+    FORGE_API bool TryLockMutex(Mutex* pMutex);
+    FORGE_API void UnlockMutex(Mutex* pMutex);
 
     typedef struct ConditionVariable
     {
@@ -117,12 +117,12 @@ extern "C"
 #endif
     } ConditionVariable;
 
-    FORGE_API bool initConditionVariable(ConditionVariable* cv);
-    FORGE_API void destroyConditionVariable(ConditionVariable* cv);
+    FORGE_API bool InitConditionVariable(ConditionVariable* cv);
+    FORGE_API void DestroyConditionVariable(ConditionVariable* cv);
 
-    FORGE_API void waitConditionVariable(ConditionVariable* cv, Mutex* pMutex, uint32_t msTimeout);
-    FORGE_API void wakeOneConditionVariable(ConditionVariable* cv);
-    FORGE_API void wakeAllConditionVariable(ConditionVariable* cv);
+    FORGE_API void WaitConditionVariable(ConditionVariable* cv, Mutex* pMutex, uint32_t msTimeout);
+    FORGE_API void SignalConditionVariable(ConditionVariable* cv);
+    FORGE_API void BroadcastConditionVariable(ConditionVariable* cv);
 
     typedef void (*ThreadFunction)(void*);
 
@@ -136,12 +136,12 @@ extern "C"
 
         // Affinity is a bit mask. It tells on which CPU thread can run.
         // Maximum supported number of bits is 1024.
-        // Use 'setCpuAffinity()' helper function repeatedly for convenience
+        // Use 'SetCpuAffinity()' helper function repeatedly for convenience
         bool     setAffinityMask;
         uint64_t affinityMask[16];
     } ThreadDesc;
 
-    static inline void setCpuAffinity(struct ThreadDesc* desc, uint64_t cpuId)
+    static inline void SetCpuAffinity(struct ThreadDesc* desc, uint64_t cpuId)
     {
         if (cpuId >= 1024)
             return;
@@ -160,17 +160,17 @@ extern "C"
 typedef pthread_t ThreadHandle;
 #endif
 
-    FORGE_API bool initThread(ThreadDesc* pItem, ThreadHandle* pHandle);
-    FORGE_API void joinThread(ThreadHandle handle);
-    FORGE_API void detachThread(ThreadHandle handle);
+    FORGE_API bool InitThread(ThreadDesc* pItem, ThreadHandle* pHandle);
+    FORGE_API void JoinThread(ThreadHandle handle);
+    FORGE_API void DetachThread(ThreadHandle handle);
 
-    FORGE_API void         setMainThread(void);
-    FORGE_API ThreadID     getCurrentThreadID(void);
-    FORGE_API void         getCurrentThreadName(char* buffer, int buffer_size);
-    FORGE_API void         setCurrentThreadName(const char* name);
-    FORGE_API bool         isMainThread(void);
-    FORGE_API void         threadSleep(unsigned mSec);
-    FORGE_API unsigned int getNumCPUCores(void);
+    FORGE_API void         SetMainThread(void);
+    FORGE_API ThreadID     GetCurrentThreadID(void);
+    FORGE_API void         GetCurrentThreadName(char* buffer, int buffer_size);
+    FORGE_API void         SetCurrentThreadName(const char* name);
+    FORGE_API bool         IsMainThread(void);
+    FORGE_API void         ThreadSleep(unsigned mSec);
+    FORGE_API unsigned int GetNumCpuCores(void);
 
     // Performance metrics functions
 #if defined(ENABLE_THREAD_PERFORMANCE_STATS)
@@ -186,10 +186,10 @@ typedef pthread_t ThreadHandle;
         PERFORMANCE_STATS_FLAG_CORE_USAGE_PERCENTAGE = 0x0,
     } PerformanceStatsFlags;
 
-    FORGE_API int              initPerformanceStats(PerformanceStatsFlags flags);
-    FORGE_API void             updatePerformanceStats(void);
-    FORGE_API PerformanceStats getPerformanceStats(void);
-    FORGE_API void             exitPerformanceStats(void);
+    FORGE_API int              InitPerformanceStats(PerformanceStatsFlags flags);
+    FORGE_API void             UpdatePerformanceStats(void);
+    FORGE_API PerformanceStats GetPerformanceStats(void);
+    FORGE_API void             ExitPerformanceStats(void);
 #endif
 
 #ifdef __cplusplus
@@ -197,8 +197,8 @@ typedef pthread_t ThreadHandle;
 
 struct MutexLock
 {
-    MutexLock(Mutex& rhs): mutex(rhs) { acquireMutex(&rhs); }
-    ~MutexLock() { releaseMutex(&mutex); }
+    MutexLock(Mutex& rhs): mutex(rhs) { LockMutex(&rhs); }
+    ~MutexLock() { UnlockMutex(&mutex); }
 
     /// Prevent copy construction.
     MutexLock(const MutexLock& rhs) = delete;

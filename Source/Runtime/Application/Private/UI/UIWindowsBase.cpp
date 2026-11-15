@@ -675,7 +675,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
             {
                 pApp->Update(deltaTime);
             }
-            threadSleep(1);
+            ThreadSleep(1);
             continue;
         }
 

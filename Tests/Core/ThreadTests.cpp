@@ -21,7 +21,7 @@ struct CallOnceWorkerData
 void callOnceWorker(void* userData)
 {
     auto* data = (CallOnceWorkerData*)userData;
-    callOnce(data->guard, incrementCallOnceCounter);
+    CallOnce(data->guard, incrementCallOnceCounter);
 }
 
 struct ThreadProbeData
@@ -38,18 +38,18 @@ struct ThreadProbeData
 void namedThreadProbe(void* userData)
 {
     auto* data = (ThreadProbeData*)userData;
-    data->observedThreadId = getCurrentThreadID();
-    data->observedIsMainThread = isMainThread();
-    getCurrentThreadName(data->observedName, TF_ARRAY_COUNT(data->observedName));
+    data->observedThreadId = GetCurrentThreadID();
+    data->observedIsMainThread = IsMainThread();
+    GetCurrentThreadName(data->observedName, TF_ARRAY_COUNT(data->observedName));
 
-    acquireMutex(data->mutex);
+    LockMutex(data->mutex);
     *data->ready = true;
-    wakeOneConditionVariable(data->condition);
-    releaseMutex(data->mutex);
+    SignalConditionVariable(data->condition);
+    UnlockMutex(data->mutex);
 }
 } // namespace
 
-// Verifies that callOnce executes the guarded function exactly once even when multiple threads race to invoke it.
+// Verifies that CallOnce executes the guarded function exactly once even when multiple threads race to invoke it.
 TEST(CoreThreadTest, CallOnceInvokesFunctionSingleTimeAcrossThreads)
 {
     int callCount = 0;
@@ -70,12 +70,12 @@ TEST(CoreThreadTest, CallOnceInvokesFunctionSingleTimeAcrossThreads)
             .pFunc = callOnceWorker,
             .pData = &workerData[i],
         };
-        ASSERT_TRUE(initThread(&desc, &handles[i]));
+        ASSERT_TRUE(InitThread(&desc, &handles[i]));
     }
 
     for (size_t i = 0; i < TF_ARRAY_COUNT(handles); ++i)
     {
-        joinThread(handles[i]);
+        JoinThread(handles[i]);
     }
 
     EXPECT_EQ(callCount, 1);
@@ -85,13 +85,13 @@ TEST(CoreThreadTest, CallOnceInvokesFunctionSingleTimeAcrossThreads)
 // Verifies that worker threads expose their assigned name and can coordinate readiness with a condition variable.
 TEST(CoreThreadTest, ThreadNamingAndConditionVariableWorkTogether)
 {
-    setMainThread();
-    EXPECT_TRUE(isMainThread());
+    SetMainThread();
+    EXPECT_TRUE(IsMainThread());
 
     Mutex mutex = {};
     ConditionVariable condition = {};
-    ASSERT_TRUE(initMutex(&mutex));
-    ASSERT_TRUE(initConditionVariable(&condition));
+    ASSERT_TRUE(InitMutex(&mutex));
+    ASSERT_TRUE(InitConditionVariable(&condition));
 
     bool ready = false;
     ThreadProbeData data = {
@@ -107,22 +107,22 @@ TEST(CoreThreadTest, ThreadNamingAndConditionVariableWorkTogether)
     memcpy(desc.threadName, "CoreThreadUT", sizeof("CoreThreadUT"));
 
     ThreadHandle handle = nullptr;
-    ASSERT_TRUE(initThread(&desc, &handle));
+    ASSERT_TRUE(InitThread(&desc, &handle));
 
-    acquireMutex(&mutex);
+    LockMutex(&mutex);
     while (!ready)
     {
-        waitConditionVariable(&condition, &mutex, TIMEOUT_INFINITE);
+        WaitConditionVariable(&condition, &mutex, TIMEOUT_INFINITE);
     }
-    releaseMutex(&mutex);
+    UnlockMutex(&mutex);
 
-    joinThread(handle);
+    JoinThread(handle);
 
     EXPECT_STREQ(data.observedName, "CoreThreadUT");
     EXPECT_NE(data.observedThreadId, INVALID_THREAD_ID);
     EXPECT_FALSE(data.observedIsMainThread);
-    EXPECT_GT(getNumCPUCores(), 0u);
+    EXPECT_GT(GetNumCpuCores(), 0u);
 
-    destroyConditionVariable(&condition);
-    destroyMutex(&mutex);
+    DestroyConditionVariable(&condition);
+    DestroyMutex(&mutex);
 }

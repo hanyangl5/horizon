@@ -65,7 +65,7 @@ typedef struct FileWatcher
 
 void fswThreadFunc(void* data)
 {
-    setCurrentThreadName("FileWatcher");
+    SetCurrentThreadName("FileWatcher");
     FileWatcher* fs = (FileWatcher*)data;
 
     HANDLE hDir =
@@ -190,7 +190,7 @@ FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMas
     threadDesc.pFunc = fswThreadFunc;
     threadDesc.pData = watcher;
     strncpy(threadDesc.threadName, "FileWatcher", sizeof(threadDesc.threadName));
-    initThread(&threadDesc, &watcher->thread);
+    InitThread(&threadDesc, &watcher->thread);
 
     return watcher;
 }
@@ -199,7 +199,7 @@ void fsFreeFileWatcher(FileWatcher* fileWatcher)
 {
     fileWatcher->run = FALSE;
     SetEvent(fileWatcher->hExitEvt);
-    joinThread(fileWatcher->thread);
+    JoinThread(fileWatcher->thread);
     CloseHandle(fileWatcher->hExitEvt);
     tf_free(fileWatcher);
 }

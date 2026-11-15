@@ -134,12 +134,12 @@ void initLog(const char* appName, LogLevel level /* = eALL */)
     {
         gLogger.pCallbacks = NULL;
         gLogger.callbacksSize = 0;
-        initMutex(&gLogger.logMutex);
+        InitMutex(&gLogger.logMutex);
         gLogger.logLevel = level;
         gLogger.indentation = 0;
 
-        setMainThread();
-        setCurrentThreadName("MainThread");
+        SetMainThread();
+        SetCurrentThreadName("MainThread");
 
         if (appName)
             addInitialLogFile(appName);
@@ -158,7 +158,7 @@ void exitLog(void)
             pCallback->close(pCallback->userData);
     }
 
-    destroyMutex(&gLogger.logMutex);
+    DestroyMutex(&gLogger.logMutex);
     tf_free(gLogger.pCallbacks);
     gIsLoggerInitialized = false;
 }
@@ -179,7 +179,7 @@ void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
         fsMergeDirAndFileName(fsGetResourceDirectory(RD_LOG), filename, '/', sizeof path, path);
         addLogCallback(path, log_level, user, defaultCallback, defaultClose, defaultFlush);
 
-        acquireMutex(&gLogger.logMutex);
+        LockMutex(&gLogger.logMutex);
         {
             // Header
             static const char header[] = "date       time     "
@@ -190,7 +190,7 @@ void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
             fsWriteToStream(&fh, header, sizeof(header) - 1);
             fsFlushStream(&fh);
         }
-        releaseMutex(&gLogger.logMutex);
+        UnlockMutex(&gLogger.logMutex);
 
         writeLog(eINFO, __FILE__, __LINE__, "Opened log file %s", filename);
     }
@@ -202,7 +202,7 @@ void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
 
 void addLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close, LogFlushFn flush)
 {
-    acquireMutex(&gLogger.logMutex);
+    LockMutex(&gLogger.logMutex);
     {
         if (!isLogCallback(id))
         {
@@ -218,7 +218,7 @@ void addLogCallback(const char* id, uint32_t log_level, void* user_data, LogCall
         else
             close(user_data);
     }
-    releaseMutex(&gLogger.logMutex);
+    UnlockMutex(&gLogger.logMutex);
 }
 
 typedef char LogStr[LOG_LEVEL_SIZE + 1];
@@ -270,7 +270,7 @@ void writeLogVaList(uint32_t level, const char* filename, int line_number, const
             _PrintUnicode(gLogBuffer, level & eERROR);
         }
 
-        acquireMutex(&gLogger.logMutex);
+        LockMutex(&gLogger.logMutex);
         {
             for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
             {
@@ -278,7 +278,7 @@ void writeLogVaList(uint32_t level, const char* filename, int line_number, const
                     pCallback->callback(pCallback->userData, gLogBuffer);
             }
         }
-        releaseMutex(&gLogger.logMutex);
+        UnlockMutex(&gLogger.logMutex);
     }
 }
 
@@ -302,7 +302,7 @@ void writeRawLog(uint32_t level, bool error, const char* message, ...)
         _PrintUnicode(gLogBuffer, error);
     }
 
-    acquireMutex(&gLogger.logMutex);
+    LockMutex(&gLogger.logMutex);
     {
         for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
         {
@@ -310,7 +310,7 @@ void writeRawLog(uint32_t level, bool error, const char* message, ...)
                 pCallback->callback(pCallback->userData, gLogBuffer);
         }
     }
-    releaseMutex(&gLogger.logMutex);
+    UnlockMutex(&gLogger.logMutex);
 }
 
 void _FailedAssert(const char* file, int line, const char* statement, const char* msgFmt, ...)
@@ -391,7 +391,7 @@ static uint32_t writeLogPreamble(char* buffer, uint32_t buffer_size, const char*
     if (pos < buffer_size)
     {
         char thread_name[MAX_THREAD_NAME_LENGTH + 1] = { 0 };
-        getCurrentThreadName(thread_name, MAX_THREAD_NAME_LENGTH + 1);
+        GetCurrentThreadName(thread_name, MAX_THREAD_NAME_LENGTH + 1);
         pos += snprintf(buffer + pos, buffer_size - pos, "[%-15s]", thread_name[0] == 0 ? "NoName" : thread_name);
     }
 

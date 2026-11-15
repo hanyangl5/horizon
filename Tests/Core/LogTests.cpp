@@ -62,7 +62,7 @@ TEST(CoreLogTest, CallbackReceivesFormattedAndRawMessages)
     LogCapture capture = {};
 
     initLog(nullptr, eALL);
-    //setCurrentThreadName("CoreLogUT");
+    //SetCurrentThreadName("CoreLogUT");
     addLogCallback("CoreLogTest.CallbackReceivesFormattedAndRawMessages", eALL, &capture, captureLog, closeLogCapture, nullptr);
 
     writeLog(eINFO, __FILE__, __LINE__, "hello %d", 42);

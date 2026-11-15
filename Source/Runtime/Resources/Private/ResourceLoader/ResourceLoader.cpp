@@ -5341,7 +5341,7 @@ static void streamerThreadFunc(void* pThreadData)
 
     while (pLoader->run)
     {
-        acquireMutex(&pLoader->queueMutex);
+        LockMutex(&pLoader->queueMutex);
 
         // Check for pending tokens
         // Safe to use tokenCounter as we are inside critical section
@@ -5352,14 +5352,14 @@ static void streamerThreadFunc(void* pThreadData)
             // No waiting if not running dedicated resource loader thread.
             if (pLoader->desc.singleThreaded)
             {
-                releaseMutex(&pLoader->queueMutex);
+                UnlockMutex(&pLoader->queueMutex);
                 return;
             }
             // Sleep until someone adds an update request to the queue
-            waitConditionVariable(&pLoader->queueCond, &pLoader->queueMutex, TIMEOUT_INFINITE);
+            WaitConditionVariable(&pLoader->queueCond, &pLoader->queueMutex, TIMEOUT_INFINITE);
         }
 
-        releaseMutex(&pLoader->queueMutex);
+        UnlockMutex(&pLoader->queueMutex);
 
         CopyEngine* copyEngine = &pLoader->copyEngine;
         waitCopyEngineSet(pLoader->pRenderer, copyEngine);
@@ -5367,20 +5367,20 @@ static void streamerThreadFunc(void* pThreadData)
         copyEngine->activeSet = (copyEngine->activeSet + 1) % pLoader->desc.bufferCount;
 
         // Signal pending tokens from previous frames
-        acquireMutex(&pLoader->tokenMutex);
+        LockMutex(&pLoader->tokenMutex);
         tfrg_atomic64_store_release(&pLoader->tokenCompleted, pLoader->currentTokenState[pLoader->copyEngine.activeSet]);
-        releaseMutex(&pLoader->tokenMutex);
-        wakeAllConditionVariable(&pLoader->tokenCond);
+        UnlockMutex(&pLoader->tokenMutex);
+        BroadcastConditionVariable(&pLoader->tokenCond);
 
         {
-            acquireMutex(&pLoader->queueMutex);
+            LockMutex(&pLoader->queueMutex);
 
             UpdateRequest** pRequestQueue = &pLoader->requestQueue;
             CopyEngine*     pCopyEngine = &pLoader->copyEngine;
 
             if (!arrlen(*pRequestQueue))
             {
-                releaseMutex(&pLoader->queueMutex);
+                UnlockMutex(&pLoader->queueMutex);
                 if (pResourceLoader->desc.singleThreaded)
                 {
                     return;
@@ -5390,7 +5390,7 @@ static void streamerThreadFunc(void* pThreadData)
 
             UpdateRequest* activeQueue = *pRequestQueue;
             *pRequestQueue = NULL;
-            releaseMutex(&pLoader->queueMutex);
+            UnlockMutex(&pLoader->queueMutex);
 
             Renderer* pRenderer = pLoader->pRenderer;
             SyncToken maxNodeToken = {};
@@ -5445,19 +5445,19 @@ static void streamerThreadFunc(void* pThreadData)
             pLoader->maxToken = max(pLoader->maxToken, maxNodeToken);
 
             streamerFlush(pCopyEngine);
-            acquireMutex(&pLoader->semaphoreMutex);
+            LockMutex(&pLoader->semaphoreMutex);
             pCopyEngine->pLastSubmittedSemaphore = pCopyEngine->resourceSets[pCopyEngine->activeSet].pSemaphore;
-            releaseMutex(&pLoader->semaphoreMutex);
+            UnlockMutex(&pLoader->semaphoreMutex);
         }
 
         SyncToken nextToken = max(pLoader->maxToken, getLastTokenCompleted());
         pLoader->currentTokenState[pLoader->copyEngine.activeSet] = nextToken;
 
         // Signal submitted tokens
-        acquireMutex(&pLoader->tokenMutex);
+        LockMutex(&pLoader->tokenMutex);
         tfrg_atomic64_store_release(&pLoader->tokenSubmitted, pLoader->currentTokenState[pLoader->copyEngine.activeSet]);
-        releaseMutex(&pLoader->tokenMutex);
-        wakeAllConditionVariable(&pLoader->tokenCond);
+        UnlockMutex(&pLoader->tokenMutex);
+        BroadcastConditionVariable(&pLoader->tokenCond);
 
         if (pResourceLoader->desc.singleThreaded)
         {
@@ -5473,19 +5473,19 @@ static void streamerThreadFunc(void* pThreadData)
 static void CopyEngineFlush(CopyEngine* pCopyEngine)
 {
     streamerFlush(pCopyEngine);
-    acquireMutex(&pResourceLoader->semaphoreMutex);
+    LockMutex(&pResourceLoader->semaphoreMutex);
     pCopyEngine->pLastSubmittedSemaphore = pCopyEngine->resourceSets[pCopyEngine->activeSet].pSemaphore;
-    releaseMutex(&pResourceLoader->semaphoreMutex);
+    UnlockMutex(&pResourceLoader->semaphoreMutex);
 
     SyncToken nextToken = max(pResourceLoader->maxToken, getLastTokenCompleted());
     pResourceLoader->currentTokenState[pResourceLoader->copyEngine.activeSet] = nextToken;
 
     // Signal submitted tokens
-    acquireMutex(&pResourceLoader->tokenMutex);
+    LockMutex(&pResourceLoader->tokenMutex);
     tfrg_atomic64_store_release(&pResourceLoader->tokenSubmitted,
                                 pResourceLoader->currentTokenState[pResourceLoader->copyEngine.activeSet]);
-    releaseMutex(&pResourceLoader->tokenMutex);
-    wakeAllConditionVariable(&pResourceLoader->tokenCond);
+    UnlockMutex(&pResourceLoader->tokenMutex);
+    BroadcastConditionVariable(&pResourceLoader->tokenCond);
 
     pCopyEngine->activeSet = (pCopyEngine->activeSet + 1) % pResourceLoader->desc.bufferCount;
     acquireCmd(pCopyEngine);
@@ -5505,12 +5505,12 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
     pLoader->run = true; //-V601
     pLoader->desc = *pDesc;
 
-    initMutex(&pLoader->queueMutex);
-    initMutex(&pLoader->tokenMutex);
-    initConditionVariable(&pLoader->queueCond);
-    initConditionVariable(&pLoader->tokenCond);
-    initMutex(&pLoader->semaphoreMutex);
-    initMutex(&pLoader->uploadEngineMutex);
+    InitMutex(&pLoader->queueMutex);
+    InitMutex(&pLoader->tokenMutex);
+    InitConditionVariable(&pLoader->queueCond);
+    InitConditionVariable(&pLoader->tokenCond);
+    InitMutex(&pLoader->semaphoreMutex);
+    InitMutex(&pLoader->uploadEngineMutex);
 
     pLoader->tokenCounter = 0;
     pLoader->tokenCompleted = 0;
@@ -5569,7 +5569,7 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
     // Create dedicated resource loader thread.
     if (!pLoader->desc.singleThreaded)
     {
-        initThread(&threadDesc, &pLoader->thread);
+        InitThread(&threadDesc, &pLoader->thread);
     }
 
     *ppLoader = pLoader;
@@ -5585,26 +5585,26 @@ static void exitResourceLoader(ResourceLoader* pLoader)
     }
     else
     {
-        wakeOneConditionVariable(&pLoader->queueCond);
-        joinThread(pLoader->thread);
+        SignalConditionVariable(&pLoader->queueCond);
+        JoinThread(pLoader->thread);
     }
 
     waitQueueIdle(pLoader->uploadEngine.pQueue);
     cleanupCopyEngine(pLoader->pRenderer, &pLoader->uploadEngine);
 
-    destroyConditionVariable(&pLoader->queueCond);
-    destroyConditionVariable(&pLoader->tokenCond);
-    destroyMutex(&pLoader->queueMutex);
-    destroyMutex(&pLoader->tokenMutex);
-    destroyMutex(&pLoader->semaphoreMutex);
-    destroyMutex(&pLoader->uploadEngineMutex);
+    DestroyConditionVariable(&pLoader->queueCond);
+    DestroyConditionVariable(&pLoader->tokenCond);
+    DestroyMutex(&pLoader->queueMutex);
+    DestroyMutex(&pLoader->tokenMutex);
+    DestroyMutex(&pLoader->semaphoreMutex);
+    DestroyMutex(&pLoader->uploadEngineMutex);
 
     tf_delete(pLoader);
 }
 
 static void queueBufferLoad(ResourceLoader* pLoader, BufferLoadDescInternal* pBufferLoad, SyncToken* token)
 {
-    acquireMutex(&pLoader->queueMutex);
+    LockMutex(&pLoader->queueMutex);
 
     SyncToken t = tfrg_atomic64_add_relaxed(&pLoader->tokenCounter, 1) + 1;
 
@@ -5613,8 +5613,8 @@ static void queueBufferLoad(ResourceLoader* pLoader, BufferLoadDescInternal* pBu
     if (pLastRequest)
         pLastRequest->waitIndex = t;
 
-    releaseMutex(&pLoader->queueMutex);
-    wakeOneConditionVariable(&pLoader->queueCond);
+    UnlockMutex(&pLoader->queueMutex);
+    SignalConditionVariable(&pLoader->queueCond);
     if (token)
         *token = max(t, *token);
 
@@ -5626,7 +5626,7 @@ static void queueBufferLoad(ResourceLoader* pLoader, BufferLoadDescInternal* pBu
 
 static void queueTextureLoad(ResourceLoader* pLoader, TextureLoadDescInternal* pTextureLoad, SyncToken* token)
 {
-    acquireMutex(&pLoader->queueMutex);
+    LockMutex(&pLoader->queueMutex);
 
     SyncToken t = tfrg_atomic64_add_relaxed(&pLoader->tokenCounter, 1) + 1;
 
@@ -5635,8 +5635,8 @@ static void queueTextureLoad(ResourceLoader* pLoader, TextureLoadDescInternal* p
     if (pLastRequest)
         pLastRequest->waitIndex = t;
 
-    releaseMutex(&pLoader->queueMutex);
-    wakeOneConditionVariable(&pLoader->queueCond);
+    UnlockMutex(&pLoader->queueMutex);
+    SignalConditionVariable(&pLoader->queueCond);
     if (token)
         *token = max(t, *token);
 
@@ -5648,7 +5648,7 @@ static void queueTextureLoad(ResourceLoader* pLoader, TextureLoadDescInternal* p
 
 static void queueGeometryLoad(ResourceLoader* pLoader, GeometryLoadDesc* pGeometryLoad, SyncToken* token)
 {
-    acquireMutex(&pLoader->queueMutex);
+    LockMutex(&pLoader->queueMutex);
 
     SyncToken t = tfrg_atomic64_add_relaxed(&pLoader->tokenCounter, 1) + 1;
 
@@ -5657,8 +5657,8 @@ static void queueGeometryLoad(ResourceLoader* pLoader, GeometryLoadDesc* pGeomet
     if (pLastRequest)
         pLastRequest->waitIndex = t;
 
-    releaseMutex(&pLoader->queueMutex);
-    wakeOneConditionVariable(&pLoader->queueCond);
+    UnlockMutex(&pLoader->queueMutex);
+    SignalConditionVariable(&pLoader->queueCond);
     if (token)
         *token = max(t, *token);
 
@@ -5670,7 +5670,7 @@ static void queueGeometryLoad(ResourceLoader* pLoader, GeometryLoadDesc* pGeomet
 
 static void queueTextureBarrier(ResourceLoader* pLoader, Texture* pTexture, ResourceState state, SyncToken* token)
 {
-    acquireMutex(&pLoader->queueMutex);
+    LockMutex(&pLoader->queueMutex);
 
     SyncToken t = tfrg_atomic64_add_relaxed(&pLoader->tokenCounter, 1) + 1;
 
@@ -5679,8 +5679,8 @@ static void queueTextureBarrier(ResourceLoader* pLoader, Texture* pTexture, Reso
     if (pLastRequest)
         pLastRequest->waitIndex = t;
 
-    releaseMutex(&pLoader->queueMutex);
-    wakeOneConditionVariable(&pLoader->queueCond);
+    UnlockMutex(&pLoader->queueMutex);
+    SignalConditionVariable(&pLoader->queueCond);
     if (token)
         *token = max(t, *token);
 
@@ -5692,7 +5692,7 @@ static void queueTextureBarrier(ResourceLoader* pLoader, Texture* pTexture, Reso
 
 static void queueTextureCopy(ResourceLoader* pLoader, TextureCopyDesc* pTextureCopy, SyncToken* token)
 {
-    acquireMutex(&pLoader->queueMutex);
+    LockMutex(&pLoader->queueMutex);
 
     SyncToken t = tfrg_atomic64_add_relaxed(&pLoader->tokenCounter, 1) + 1;
 
@@ -5701,8 +5701,8 @@ static void queueTextureCopy(ResourceLoader* pLoader, TextureCopyDesc* pTextureC
     if (pLastRequest)
         pLastRequest->waitIndex = t;
 
-    releaseMutex(&pLoader->queueMutex);
-    wakeOneConditionVariable(&pLoader->queueCond);
+    UnlockMutex(&pLoader->queueMutex);
+    SignalConditionVariable(&pLoader->queueCond);
     if (token)
         *token = max(t, *token);
 
@@ -5718,12 +5718,12 @@ static void waitForToken(ResourceLoader* pLoader, const SyncToken* token)
     {
         return;
     }
-    acquireMutex(&pLoader->tokenMutex);
+    LockMutex(&pLoader->tokenMutex);
     while (!isTokenCompleted(token))
     {
-        waitConditionVariable(&pLoader->tokenCond, &pLoader->tokenMutex, TIMEOUT_INFINITE);
+        WaitConditionVariable(&pLoader->tokenCond, &pLoader->tokenMutex, TIMEOUT_INFINITE);
     }
-    releaseMutex(&pLoader->tokenMutex);
+    UnlockMutex(&pLoader->tokenMutex);
 }
 
 static void waitForTokenSubmitted(ResourceLoader* pLoader, const SyncToken* token)
@@ -5732,12 +5732,12 @@ static void waitForTokenSubmitted(ResourceLoader* pLoader, const SyncToken* toke
     {
         return;
     }
-    acquireMutex(&pLoader->tokenMutex);
+    LockMutex(&pLoader->tokenMutex);
     while (!isTokenSubmitted(token))
     {
-        waitConditionVariable(&pLoader->tokenCond, &pLoader->tokenMutex, TIMEOUT_INFINITE);
+        WaitConditionVariable(&pLoader->tokenCond, &pLoader->tokenMutex, TIMEOUT_INFINITE);
     }
-    releaseMutex(&pLoader->tokenMutex);
+    UnlockMutex(&pLoader->tokenMutex);
 }
 
 /************************************************************************/
@@ -7120,9 +7120,9 @@ bool isResourceLoaderSingleThreaded()
 Semaphore* getLastSemaphoreSubmitted(uint32_t nodeIndex)
 {
     UNREF_PARAM(nodeIndex);
-    acquireMutex(&pResourceLoader->semaphoreMutex);
+    LockMutex(&pResourceLoader->semaphoreMutex);
     Semaphore* sem = pResourceLoader->copyEngine.pLastSubmittedSemaphore;
-    releaseMutex(&pResourceLoader->semaphoreMutex);
+    UnlockMutex(&pResourceLoader->semaphoreMutex);
     return sem;
 }
 

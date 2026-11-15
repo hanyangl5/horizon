@@ -120,11 +120,11 @@ TEST(CoreMemoryTest, ConcurrentReallocationsLeaveNoLiveAllocations)
     };
     for (; started < TF_ARRAY_COUNT(threads); ++started)
     {
-        if (!initThread(&desc, &threads[started]))
+        if (!InitThread(&desc, &threads[started]))
             break;
     }
     for (uint32_t i = 0; i < started; ++i)
-        joinThread(threads[i]);
+        JoinThread(threads[i]);
     EXPECT_EQ(started, TF_ARRAY_COUNT(threads));
     const MemoryTrackingStats stats = memGetTrackingStats();
     if (stats.trackingEnabled)

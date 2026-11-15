@@ -39,7 +39,7 @@ private:
     friend class WorldArchive;
 
     const WorldType* findType(TypeID type) { return hmgetp_null(pTypes, type); }
-    void             checkThread() const { ASSERT(thread == getCurrentThreadID()); }
+    void             checkThread() const { ASSERT(thread == GetCurrentThreadID()); }
     void             finishGuidChanges();
     void*            findEditableProperty(ecs_entity_t entity, TypeID type, PropertyID property, const PropertyDesc*& pProperty);
     void             notifyPropertyChange(ecs_entity_t entity, TypeID type);
@@ -63,7 +63,7 @@ private:
     EntityGuidEntry* pEntityGuids = nullptr;
     Array<Guid>      pendingGuids;
     WorldHierarchy*  pHierarchy = nullptr;
-    ThreadID         thread = getCurrentThreadID();
+    ThreadID         thread = GetCurrentThreadID();
 };
 
 } // namespace hz

@@ -9,7 +9,7 @@
 
 namespace hz
 {
-bool getSystemRandomBytes(void* pData, uint32_t size)
+bool GetSystemRandomBytes(void* pData, uint32_t size)
 {
     ASSERT(pData || !size);
     if (!size)

@@ -209,7 +209,7 @@ void storeShaderCache(uint64_t key, const BinaryShaderDesc& binary)
 
 slang::IGlobalSession* getSlangGlobalSession()
 {
-    callOnce(&gSlangSessionGuard, initSlangGlobalSession);
+    CallOnce(&gSlangSessionGuard, initSlangGlobalSession);
     return gSlangSession;
 }
 

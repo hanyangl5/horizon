@@ -358,7 +358,7 @@
 //     {
 //         sendDisconnect(socket);
 //         // Ensure the client receives the disconnect and stop gracefully.
-//         threadSleep(100);
+//         ThreadSleep(100);
 //         return false;
 //     }
 
@@ -492,7 +492,7 @@
 //                 break;
 //             }
 
-//             threadSleep(10);
+//             ThreadSleep(10);
 //         }
 
 //         if (pRemoteAppServer->mServerConnectionSocket != SOCKET_INVALID)
@@ -500,7 +500,7 @@
 //             disconnectFromClient();
 //         }
 
-//         threadSleep(10);
+//         ThreadSleep(10);
 //     }
 
 //     if (pRemoteAppServer->mServerListenSocket != SOCKET_INVALID)
@@ -534,7 +534,7 @@
 //     threadDesc.pFunc = server;
 //     threadDesc.pData = NULL;
 //     strncpy(threadDesc.threadName, "RemoteAppServerThread", sizeof(threadDesc.threadName));
-//     initThread(&threadDesc, &pRemoteAppServer->mServerThread);
+//     InitThread(&threadDesc, &pRemoteAppServer->mServerThread);
 // }
 
 // void remoteServerDisconnect()
@@ -554,7 +554,7 @@
 
 //         if (pRemoteAppServer->mServerThread)
 //         {
-//             joinThread(pRemoteAppServer->mServerThread);
+//             JoinThread(pRemoteAppServer->mServerThread);
 //         }
 //     }
 // }
@@ -754,7 +754,7 @@
 
 //         if (pRemoteControlClient->mClientThread)
 //         {
-//             joinThread(pRemoteControlClient->mClientThread);
+//             JoinThread(pRemoteControlClient->mClientThread);
 //         }
 //     }
 // }
@@ -765,7 +765,7 @@
 //     {
 //         sendDisconnect(socket);
 //         // Ensure the server receives the disconnect and stop gracefully.
-//         threadSleep(100);
+//         ThreadSleep(100);
 //         return false;
 //     }
 
@@ -854,7 +854,7 @@
 //         }
 
 //         clientReceive(&pRemoteControlClient->mClientConnectionSocket);
-//         threadSleep(10);
+//         ThreadSleep(10);
 //     }
 
 //     LOGF(LogLevel::eINFO, "Disconnected from server.");
@@ -907,7 +907,7 @@
 //         threadDesc.pFunc = client;
 //         threadDesc.pData = NULL;
 //         strncpy(threadDesc.threadName, "RemoteControlClientThread", sizeof(threadDesc.threadName));
-//         initThread(&threadDesc, &pRemoteControlClient->mClientThread);
+//         InitThread(&threadDesc, &pRemoteControlClient->mClientThread);
 //     }
 //     else
 //     {

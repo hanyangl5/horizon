@@ -597,7 +597,7 @@ static void add_descriptor_heap(ID3D12Device* pDevice, const D3D12_DESCRIPTOR_HE
     pHeap->pFlags = (uint32_t*)(pHeap + 1);
     pHeap->pDevice = pDevice;
 
-    initMutex(&pHeap->mutex);
+    InitMutex(&pHeap->mutex);
 
     D3D12_DESCRIPTOR_HEAP_DESC desc = *pDesc;
     desc.NumDescriptors = numDescriptors;
@@ -625,7 +625,7 @@ void reset_descriptor_heap(DescriptorHeap* pHeap)
 static void remove_descriptor_heap(DescriptorHeap* pHeap)
 {
     SAFE_RELEASE(pHeap->pHeap);
-    destroyMutex(&pHeap->mutex);
+    DestroyMutex(&pHeap->mutex);
     SAFE_FREE(pHeap);
 }
 
@@ -6512,7 +6512,7 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
         // DXGI_ERROR error notification is asynchronous to the NVIDIA display
         // driver's GPU crash handling. Give the Nsight Aftermath GPU crash dump
         // thread some time to do its work before terminating the process.
-        threadSleep(3000);
+        ThreadSleep(3000);
 #endif
 
         ID3D12DeviceRemovedExtendedData* dred = NULL;
@@ -6554,7 +6554,7 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 
         if (!VERIFY(SUCCEEDED(removeHr)))
         {
-            threadSleep(5000); // Wait for a few seconds to allow the driver to come back online before doing a reset.
+            ThreadSleep(5000); // Wait for a few seconds to allow the driver to come back online before doing a reset.
             ResetDesc resetDesc;
             resetDesc.type = RESET_TYPE_DEVICE_LOST;
             requestReset(&resetDesc);

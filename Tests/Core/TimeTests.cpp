@@ -9,14 +9,14 @@ TEST(CoreTimeTest, TimerFunctionsReportMonotonicElapsedTime)
     EXPECT_GT(GetTimerFrequency(), 0);
 
     const int64_t start = GetUSec(true);
-    threadSleep(15);
+    ThreadSleep(15);
     const int64_t end = GetUSec(true);
     EXPECT_GE(end, start);
     EXPECT_GE(end - start, 5000);
 
     Timer timer = {};
     InitTimer(&timer);
-    threadSleep(15);
+    ThreadSleep(15);
     const uint32_t elapsedBeforeReset = GetTimerMSec(&timer, false);
     EXPECT_GE(elapsedBeforeReset, 5u);
 
@@ -33,11 +33,11 @@ TEST(CoreTimeTest, HiresTimerTracksHistoryAndAverage)
     HiresTimer timer = {};
     InitHiresTimer(&timer);
 
-    threadSleep(12);
+    ThreadSleep(12);
     const int64_t first = GetHiresTimerUSec(&timer, true);
     EXPECT_GE(first, 5000);
 
-    threadSleep(8);
+    ThreadSleep(8);
     const int64_t second = GetHiresTimerUSec(&timer, true);
     EXPECT_GE(second, 3000);
 

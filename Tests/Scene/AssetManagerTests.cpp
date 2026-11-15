@@ -488,7 +488,7 @@ protected:
             assetManager.update();
             if (assetManager.getState(handle) == hz::AssetState::Ready || assetManager.getState(handle) == hz::AssetState::Failed)
                 return;
-            threadSleep(1);
+            ThreadSleep(1);
         }
         FAIL() << "SceneAsset load timed out";
     }
@@ -2749,7 +2749,7 @@ TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancels
                 assetManager.update();
                 if (assetManager.getState(assetManager.find(wrong.id)) == hz::AssetState::UploadingGPU)
                     break;
-                threadSleep(1);
+                ThreadSleep(1);
             }
             EXPECT_EQ(assetManager.getState(assetManager.find(wrong.id)), hz::AssetState::UploadingGPU);
         }

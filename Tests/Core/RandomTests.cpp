@@ -33,14 +33,14 @@ TEST(CoreRandomTest, SystemRandomBytesRespectRangeAndVary)
 {
     uint8_t bytes[35];
     memset(bytes, 0xa5, sizeof(bytes));
-    ASSERT_TRUE(hz::getSystemRandomBytes(bytes + 1, 33));
+    ASSERT_TRUE(hz::GetSystemRandomBytes(bytes + 1, 33));
     EXPECT_EQ(bytes[0], 0xa5);
     EXPECT_EQ(bytes[34], 0xa5);
 
     uint8_t second[33] = {};
-    ASSERT_TRUE(hz::getSystemRandomBytes(second, sizeof(second)));
+    ASSERT_TRUE(hz::GetSystemRandomBytes(second, sizeof(second)));
     EXPECT_NE(memcmp(bytes + 1, second, sizeof(second)), 0);
-    EXPECT_TRUE(hz::getSystemRandomBytes(nullptr, 0));
-    EXPECT_TRUE(hz::getSystemRandomBytes(bytes, 0));
+    EXPECT_TRUE(hz::GetSystemRandomBytes(nullptr, 0));
+    EXPECT_TRUE(hz::GetSystemRandomBytes(bytes, 0));
     EXPECT_EQ(bytes[0], 0xa5);
 }

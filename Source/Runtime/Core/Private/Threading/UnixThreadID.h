@@ -51,7 +51,7 @@ static void initThreadIDKey(void)
 static ThreadID getCurrentPthreadID(void)
 {
     static tfrg_atomic32_t counter = 1;
-    callOnce(&gKeyInitGuard, initThreadIDKey);
+    CallOnce(&gKeyInitGuard, initThreadIDKey);
 
     void*     ptr = pthread_getspecific(gThreadIDKey);
     uintptr_t ptr_id = (uintptr_t)ptr;

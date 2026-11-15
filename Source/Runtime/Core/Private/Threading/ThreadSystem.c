@@ -72,9 +72,9 @@ static void threadSystemCleanup(struct ThreadSystemData* t)
 {
     ASSERT(tfrg_atomic32_load_relaxed(&t->references_Atomic) == 0);
 
-    destroyMutex(&t->mutex);
-    destroyConditionVariable(&t->conditionTasks);
-    destroyConditionVariable(&t->conditionIsIdle);
+    DestroyMutex(&t->mutex);
+    DestroyConditionVariable(&t->conditionTasks);
+    DestroyConditionVariable(&t->conditionIsIdle);
 
     arrfree(t->tasks);
     tf_free(t);
@@ -96,7 +96,7 @@ static struct ThreadSystemTask getTask(struct ThreadSystemData* t, uint64_t tid)
     if (t->stopAbandon)
         return task;
 
-    acquireMutex(&t->mutex);
+    LockMutex(&t->mutex);
 
     bool idleSet = false;
 
@@ -116,8 +116,8 @@ static struct ThreadSystemTask getTask(struct ThreadSystemData* t, uint64_t tid)
             idleSet = true;
             ++t->idleThreadCount;
         }
-        wakeAllConditionVariable(&t->conditionIsIdle);
-        waitConditionVariable(&t->conditionTasks, &t->mutex, TIMEOUT_INFINITE);
+        BroadcastConditionVariable(&t->conditionIsIdle);
+        WaitConditionVariable(&t->conditionTasks, &t->mutex, TIMEOUT_INFINITE);
     }
 
     if (idleSet)
@@ -139,7 +139,7 @@ static struct ThreadSystemTask getTask(struct ThreadSystemData* t, uint64_t tid)
     if (arrayLimit > OPTIMAL_TASK_SLOTS_COUNT * 2)
         arrsetlen(t->tasks, OPTIMAL_TASK_SLOTS_COUNT);
 
-    releaseMutex(&t->mutex);
+    UnlockMutex(&t->mutex);
 
     return task;
 }
@@ -153,7 +153,7 @@ static void taskThreadFunc(void* threadUserData)
     {
         char buffer[MAX_THREAD_NAME_LENGTH];
         snprintf(buffer, MAX_THREAD_NAME_LENGTH, "%s %llu", t->name, (unsigned long long)tid);
-        setCurrentThreadName(buffer);
+        SetCurrentThreadName(buffer);
     }
 
     struct ThreadSystemTask task = { 0 };
@@ -179,13 +179,13 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
     if (desc->threadCount == 0) // dummy run
         return true;
 
-    uint64_t cpuCount = getNumCPUCores();
+    uint64_t cpuCount = GetNumCpuCores();
     uint64_t count = desc->threadCount;
 
     if (count > cpuCount)
         count = cpuCount;
 
-    if (count == 0) // something went wrong (maybe getNumCPUCores returned 0)
+    if (count == 0) // something went wrong (maybe GetNumCpuCores returned 0)
         return false;
 
     struct ThreadSystemData* t = tf_calloc(1, sizeof(*t) + sizeof(ThreadHandle) * count);
@@ -199,19 +199,19 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
 
     do
     {
-        if (!initMutex(&t->mutex))
+        if (!InitMutex(&t->mutex))
         {
             memset(&t->mutex, 0, sizeof t->mutex);
             break;
         }
 
-        if (!initConditionVariable(&t->conditionTasks))
+        if (!InitConditionVariable(&t->conditionTasks))
         {
             memset(&t->conditionTasks, 0, sizeof t->conditionTasks);
             break;
         }
 
-        if (!initConditionVariable(&t->conditionIsIdle))
+        if (!InitConditionVariable(&t->conditionIsIdle))
         {
             memset(&t->conditionIsIdle, 0, sizeof t->conditionIsIdle);
             break;
@@ -249,7 +249,7 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
     {
         acquireThreadSystemHandle(t);
 
-        if (initThread(&threadDesc, t->threads + ti))
+        if (InitThread(&threadDesc, t->threads + ti))
             continue;
 
         t->stop = true;
@@ -271,22 +271,22 @@ void threadSystemExit(ThreadSystem* thandle, const struct ThreadSystemExitDesc* 
         return;
     *thandle = NULL;
 
-    acquireMutex(&t->mutex);
+    LockMutex(&t->mutex);
     t->stop = true;
     if (desc->abandonTasks)
         t->stopAbandon = true;
-    wakeAllConditionVariable(&t->conditionTasks);
-    releaseMutex(&t->mutex);
+    BroadcastConditionVariable(&t->conditionTasks);
+    UnlockMutex(&t->mutex);
 
     if (!desc->detachThreads)
     {
         for (uint64_t ti = 0; ti < t->threadCount; ++ti)
-            joinThread(t->threads[ti]);
+            JoinThread(t->threads[ti]);
     }
     else
     {
         for (uint64_t ti = 0; ti < t->threadCount; ++ti)
-            detachThread(t->threads[ti]);
+            DetachThread(t->threads[ti]);
     }
 
     releaseThreadSystemHandle(t);
@@ -308,7 +308,7 @@ void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t count, u
         return;
     }
 
-    acquireMutex(&t->mutex);
+    LockMutex(&t->mutex);
 
     uint64_t offset = t->tasksQueued;
 
@@ -334,11 +334,11 @@ void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t count, u
     }
 
     if (count == 1)
-        wakeOneConditionVariable(&t->conditionTasks);
+        SignalConditionVariable(&t->conditionTasks);
     else
-        wakeAllConditionVariable(&t->conditionTasks);
+        BroadcastConditionVariable(&t->conditionTasks);
 
-    releaseMutex(&t->mutex);
+    UnlockMutex(&t->mutex);
     return;
 }
 
@@ -364,7 +364,7 @@ bool threadSystemWaitIdleTimeout(ThreadSystem thandle, uint32_t timeout_ms)
     InitTimer(&timer);
 
     bool idle = false;
-    acquireMutex(&t->mutex);
+    LockMutex(&t->mutex);
     for (;;)
     {
         idle = (t->tasksTaken >= t->tasksQueued) && (t->idleThreadCount >= tfrg_atomic32_load_relaxed(&t->references_Atomic) - 1);
@@ -376,14 +376,14 @@ bool threadSystemWaitIdleTimeout(ThreadSystem thandle, uint32_t timeout_ms)
             uint32_t ms = GetTimerMSec(&timer, false);
             if (ms > timeout_ms)
                 break;
-            waitConditionVariable(&t->conditionIsIdle, &t->mutex, timeout_ms - ms);
+            WaitConditionVariable(&t->conditionIsIdle, &t->mutex, timeout_ms - ms);
         }
         else
         {
-            waitConditionVariable(&t->conditionIsIdle, &t->mutex, TIMEOUT_INFINITE);
+            WaitConditionVariable(&t->conditionIsIdle, &t->mutex, TIMEOUT_INFINITE);
         }
     }
-    releaseMutex(&t->mutex);
+    UnlockMutex(&t->mutex);
     return idle;
 }
 

@@ -1401,7 +1401,7 @@ static inline size_t bunyArStreamRead(struct BunyArMetadata* a, uint64_t positio
     }
 
     if (a->archiveStreamLocking)
-        acquireMutex(&a->mutex);
+        LockMutex(&a->mutex);
 
     size_t readed = 0;
     if (fsGetStreamSeekPosition(a->archiveStream) != (ssize_t)position &&
@@ -1415,7 +1415,7 @@ static inline size_t bunyArStreamRead(struct BunyArMetadata* a, uint64_t positio
     }
 
     if (a->archiveStreamLocking)
-        releaseMutex(&a->mutex);
+        UnlockMutex(&a->mutex);
 
     return readed;
 }
@@ -1688,7 +1688,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
     if (streamMode && desc->protectStreamCriticalSection)
     {
-        if (!initMutex(&archive->mutex))
+        if (!InitMutex(&archive->mutex))
         {
             fsArchiveClose(out);
             return false;
@@ -1760,7 +1760,7 @@ FORGE_API bool fsArchiveClose(IFileSystem* fs)
 
     if (archive->archiveStreamLocking)
     {
-        destroyMutex(&archive->mutex);
+        DestroyMutex(&archive->mutex);
     }
 
     tf_free(archive->hashTable);

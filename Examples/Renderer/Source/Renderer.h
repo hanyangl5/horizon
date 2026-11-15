@@ -133,7 +133,7 @@ private:
         while (AssetManager->getState(Handle) != hz::AssetState::Ready && AssetManager->getState(Handle) != hz::AssetState::Failed)
         {
             AssetManager->update();
-            threadSleep(1);
+            ThreadSleep(1);
         }
         const hz::SceneAsset* Asset = AssetManager->getScene(Handle);
         if (!Asset)
@@ -233,7 +233,7 @@ private:
     void BeginSceneCook()
     {
         ThreadDesc Thread = { .pFunc = SceneCookTask, .pData = this, .threadName = "SceneCook" };
-        if (!initThread(&Thread, &CookThread))
+        if (!InitThread(&Thread, &CookThread))
             CookThread = nullptr;
     }
 
@@ -241,7 +241,7 @@ private:
     {
         if (CookThread)
         {
-            joinThread(CookThread);
+            JoinThread(CookThread);
             CookThread = nullptr;
         }
         else

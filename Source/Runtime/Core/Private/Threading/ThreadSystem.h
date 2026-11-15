@@ -42,7 +42,7 @@ extern "C"
         bool     setAffinityMask;
         uint64_t affinityMask[16];
 
-        // limited to getNumCPUCores()
+        // limited to GetNumCpuCores()
         //
         // If count is equal to 0, thread system is going to work in "dummy" mode.
         // Dummy mode is when tasks are executed by caller of 'threadSystemAddTasks'
