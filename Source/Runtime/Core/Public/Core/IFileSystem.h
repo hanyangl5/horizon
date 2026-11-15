@@ -172,7 +172,7 @@ extern "C"
     /// The reason for this is that IFileSystem::Open can open stream using another
     /// IFileSystem handle.
     ///
-    /// It is best to use IFileSystem IO shortcuts "fsReadFromStream(&stream,...)"
+    /// It is best to use IFileSystem IO shortcuts "ReadFromStream(&stream,...)"
     typedef struct FileStream
     {
         IFileSystem*              pIO;
@@ -230,7 +230,7 @@ extern "C"
         // When memory mapping is done, file can be accessed just like an array.
         // This is more efficient than using "FILE" stream.
         // Not all platforms are supported.
-        // Use fsStreamWrapMemoryMap for strong cross-platform compatibility.
+        // Use WrapStreamMemoryMap for strong cross-platform compatibility.
         // This function does read-only memory map.
         bool (*MemoryMap)(FileStream* fs, size_t* outSize, void const** outData);
 
@@ -238,15 +238,15 @@ extern "C"
     };
 
     /// Default file system using C File IO or Bundled File IO (Android) based on the ResourceDirectory
-    FORGE_API extern IFileSystem* pSystemFileIO;
+    FORGE_API extern IFileSystem* SystemFileIO;
     /************************************************************************/
     // MARK: - Initialization
     /************************************************************************/
     /// Initializes the FileSystem API
-    FORGE_API bool                initFileSystem(FileSystemInitDesc* pDesc);
+    FORGE_API bool                InitFileSystem(FileSystemInitDesc* pDesc);
 
     /// Frees resources associated with the FileSystem API
-    FORGE_API void exitFileSystem(void);
+    FORGE_API void ExitFileSystem(void);
 
     /************************************************************************/
     // MARK: - Archive file system
@@ -274,7 +274,7 @@ extern "C"
 
         // Makes archive stream thread-safe
         // It allows to read several files from archive asynchronously.
-        // Not used for fsArchiveOpenFromMemory
+        // Not used for OpenArchiveFromMemory
         //
         // Allows: (if this flag is set)
         // Thread1: reads file "A"
@@ -290,20 +290,20 @@ extern "C"
         // "lets try to open file and see if this is an archive or not"
         bool tryMode;
 
-        // Try to memory map stream using fsStreamMemoryMap
+        // Try to memory map stream using StreamMemoryMap
         bool mmap;
     };
 
     /// 'desc' can be NULL
-    FORGE_API bool fsArchiveOpen(ResourceDirectory rd, const char* fileName, const struct ArchiveOpenDesc* desc, IFileSystem* out);
+    FORGE_API bool OpenArchive(ResourceDirectory rd, const char* fileName, const struct ArchiveOpenDesc* desc, IFileSystem* out);
 
     /// This function is useful to use arbitrary stream source as an archive stream.
     /// Only (*Seek) and (*Read) functions are required.
     ///
     /// 'desc' can be NULL
-    /// 'stream' is owned by user, must be valid until fsArchiveClose
+    /// 'stream' is owned by user, must be valid until CloseArchive
     ///          do not use stream while archive is opened
-    FORGE_API bool fsArchiveOpenFromStream(FileStream* stream, const struct ArchiveOpenDesc* desc, IFileSystem* out);
+    FORGE_API bool OpenArchiveFromStream(FileStream* stream, const struct ArchiveOpenDesc* desc, IFileSystem* out);
 
     /// Archive can be opened on "read from memory" mode.
     /// Benifits:
@@ -314,10 +314,10 @@ extern "C"
     /// Recommended for mmap-ed memory.
     ///
     /// 'desc' can be NULL
-    /// 'm' is owned by user, must be valid until fsArchiveClose
-    FORGE_API bool fsArchiveOpenFromMemory(uint64_t msize, const void* m, const struct ArchiveOpenDesc* desc, IFileSystem* out);
+    /// 'm' is owned by user, must be valid until CloseArchive
+    FORGE_API bool OpenArchiveFromMemory(uint64_t msize, const void* m, const struct ArchiveOpenDesc* desc, IFileSystem* out);
 
-    FORGE_API bool fsArchiveClose(IFileSystem* pArchive);
+    FORGE_API bool CloseArchive(IFileSystem* pArchive);
 
     /************************************************************************/
     // MARK: - File IO
@@ -325,44 +325,44 @@ extern "C"
 
     /// Opens the file at `filePath` using the mode `mode`, returning a new FileStream that can be used
     /// to read from or modify the file. May return NULL if the file could not be opened.
-    FORGE_API bool fsOpenStreamFromPath(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut);
+    FORGE_API bool OpenStreamFromPath(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut);
 
-    /// Opens a memory buffer as a FileStream, returning a stream that must be closed with `fsCloseStream`.
-    /// Use 'fsStreamMemoryMap' to do the opposite.
-    FORGE_API bool fsOpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, bool owner, FileStream* pOut);
+    /// Opens a memory buffer as a FileStream, returning a stream that must be closed with `CloseStream`.
+    /// Use 'StreamMemoryMap' to do the opposite.
+    FORGE_API bool OpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, bool owner, FileStream* pOut);
 
-    FORGE_API bool fsFindStream(FileStream* fs, const void* pFind, size_t findSize, ssize_t maxSeek, ssize_t* pPosition);
-    FORGE_API bool fsFindReverseStream(FileStream* fs, const void* pFind, size_t findSize, ssize_t maxSeek, ssize_t* pPosition);
+    FORGE_API bool FindStream(FileStream* fs, const void* pFind, size_t findSize, ssize_t maxSeek, ssize_t* pPosition);
+    FORGE_API bool FindReverseStream(FileStream* fs, const void* pFind, size_t findSize, ssize_t maxSeek, ssize_t* pPosition);
 
     /// Checks if stream is a standard system stream
-    FORGE_API bool fsIsSystemFileStream(FileStream* fs);
+    FORGE_API bool IsSystemStream(FileStream* fs);
     /// Checks if stream is a memory stream
-    FORGE_API bool fsIsMemoryStream(FileStream* fs);
+    FORGE_API bool IsMemoryStream(FileStream* fs);
 
     /// symbolsCount can be SIZE_MAX, then reads until the end of file
     /// appends '\0' to the end of string
-    // FORGE_API size_t fsReadBstringFromStream(FileStream* stream, struct bstring* pStr, size_t symbolsCount);
+    // FORGE_API size_t ReadBstringFromStream(FileStream* stream, struct bstring* pStr, size_t symbolsCount);
 
-    /// Wraps stream into new memory stream using fsStreamMemoryMap
+    /// Wraps stream into new memory stream using StreamMemoryMap
     /// returns true: old stream is wrapped by new one with new IO.
     /// returns false: stream is unaffected.
     /// In both cases stream stays in valid state.
-    /// fsCloseStream(FileStream*) takes care of cleaning wrapped stream.
+    /// CloseStream(FileStream*) takes care of cleaning wrapped stream.
     /// So checking return value is optional.
-    FORGE_API bool fsStreamWrapMemoryMap(FileStream* fs);
+    FORGE_API bool WrapStreamMemoryMap(FileStream* fs);
 
     /************************************************************************/
     // MARK: - IFileSystem IO shortcuts
     /************************************************************************/
 
-    static inline bool fsIoOpenStreamFromPath(IFileSystem* pIO, const ResourceDirectory rd, const char* fileName, FileMode mode,
+    static inline bool IoOpenStreamFromPath(IFileSystem* pIO, const ResourceDirectory rd, const char* fileName, FileMode mode,
                                               FileStream* pOut)
     {
         return pIO->Open(pIO, rd, fileName, mode, pOut);
     }
 
     /// Closes and invalidates the file stream.
-    static inline bool fsCloseStream(FileStream* fs)
+    static inline bool CloseStream(FileStream* fs)
     {
         if (!fs->pIO)
             return true;
@@ -372,14 +372,14 @@ extern "C"
     }
 
     /// Returns the number of bytes read.
-    static inline size_t fsReadFromStream(FileStream* fs, void* pOutputBuffer, size_t bufferSizeInBytes)
+    static inline size_t ReadFromStream(FileStream* fs, void* pOutputBuffer, size_t bufferSizeInBytes)
     {
         return fs->pIO->Read(fs, pOutputBuffer, bufferSizeInBytes);
     }
 
     /// Reads at most `bufferSizeInBytes` bytes from sourceBuffer and writes them into the file.
     /// Returns the number of bytes written.
-    static inline size_t fsWriteToStream(FileStream* fs, const void* pSourceBuffer, size_t byteCount)
+    static inline size_t WriteToStream(FileStream* fs, const void* pSourceBuffer, size_t byteCount)
     {
         if (!fs->pIO->Write)
             return 0;
@@ -387,19 +387,19 @@ extern "C"
     }
 
     /// Seeks to the specified position in the file, using `baseOffset` as the reference offset.
-    static inline bool fsSeekStream(FileStream* fs, SeekBaseOffset baseOffset, ssize_t seekOffset)
+    static inline bool SeekStream(FileStream* fs, SeekBaseOffset baseOffset, ssize_t seekOffset)
     {
         return fs->pIO->Seek(fs, baseOffset, seekOffset);
     }
 
     /// Gets the current seek position in the file.
-    static inline ssize_t fsGetStreamSeekPosition(FileStream* fs) { return fs->pIO->GetSeekPosition(fs); }
+    static inline ssize_t GetStreamPosition(FileStream* fs) { return fs->pIO->GetSeekPosition(fs); }
 
     /// Gets the current size of the file. Returns -1 if the size is unknown or unavailable.
-    static inline ssize_t fsGetStreamFileSize(FileStream* fs) { return fs->pIO->GetFileSize(fs); }
+    static inline ssize_t GetStreamFileSize(FileStream* fs) { return fs->pIO->GetFileSize(fs); }
 
     /// Flushes all writes to the file stream to the underlying subsystem.
-    static inline bool fsFlushStream(FileStream* fs)
+    static inline bool FlushStream(FileStream* fs)
     {
         if (!fs->pIO->Flush)
             return false;
@@ -407,30 +407,30 @@ extern "C"
     }
 
     /// Returns whether the current seek position is at the end of the file stream.
-    static inline bool fsStreamAtEnd(FileStream* fs) { return fs->pIO->IsAtEnd(fs); }
+    static inline bool StreamAtEnd(FileStream* fs) { return fs->pIO->IsAtEnd(fs); }
 
-    static inline const char* fsIoGetResourceMount(IFileSystem* pIO, ResourceMount mount)
+    static inline const char* IoGetResourceMount(IFileSystem* pIO, ResourceMount mount)
     {
         if (!pIO->GetResourceMount)
             return "";
         return pIO->GetResourceMount(mount);
     }
 
-    static inline bool fsIoGetFileUid(IFileSystem* pIO, ResourceDirectory rd, const char* fileName, uint64_t* outUid)
+    static inline bool IoGetFileUid(IFileSystem* pIO, ResourceDirectory rd, const char* fileName, uint64_t* outUid)
     {
         if (!pIO->GetFileUid)
             return false;
         return pIO->GetFileUid(pIO, rd, fileName, outUid);
     }
 
-    static inline bool fsIoOpenByUid(IFileSystem* pIO, uint64_t index, FileMode mode, FileStream* pOutStream)
+    static inline bool IoOpenByUid(IFileSystem* pIO, uint64_t index, FileMode mode, FileStream* pOutStream)
     {
         if (!pIO->OpenByUid)
             return false;
         return pIO->OpenByUid(pIO, index, mode, pOutStream);
     }
 
-    static inline bool fsStreamMemoryMap(FileStream* fs, size_t* outSize, void const** outData)
+    static inline bool StreamMemoryMap(FileStream* fs, size_t* outSize, void const** outData)
     {
         if (!fs->pIO->MemoryMap)
             return false;
@@ -440,30 +440,30 @@ extern "C"
     /************************************************************************/
     // MARK: - Directory queries
     /************************************************************************/
-    /// Returns location set for resource directory in fsSetPathForResourceDir.
-    FORGE_API const char*   fsGetResourceDirectory(ResourceDirectory resourceDir);
+    /// Returns location set for resource directory in SetResourceDirectoryPath.
+    FORGE_API const char*   GetResourceDirectory(ResourceDirectory resourceDir);
     /// Returns Resource Mount point for resource directory
-    FORGE_API ResourceMount fsGetResourceDirectoryMount(ResourceDirectory resourceDir);
+    FORGE_API ResourceMount GetResourceDirectoryMount(ResourceDirectory resourceDir);
 
     /// Sets the relative path for `resourceDir` from `mount` to `bundledFolder`.
     /// The `resourceDir` will making use of the given IFileSystem `pIO` file functions.
     /// When `mount` is set to `RM_CONTENT` for a `resourceDir`, this directory is marked as a bundled resource folder.
     /// Bundled resource folders should only be used for Read operations.
     /// Sets or replaces the location associated with a resource directory.
-    FORGE_API void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder);
+    FORGE_API void SetResourceDirectoryPath(IFileSystem* pIO, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder);
 
     /************************************************************************/
     // MARK: - File Queries
     /************************************************************************/
 
     /// Gets the time of last modification for the file at `fileName`, within 'resourceDir'.
-    FORGE_API time_t fsGetLastModifiedTime(ResourceDirectory resourceDir, const char* fileName);
+    FORGE_API time_t GetLastModifiedTime(ResourceDirectory resourceDir, const char* fileName);
 
     /************************************************************************/
     // MARK: - Platform-dependent function definitions
     /************************************************************************/
 
-    bool fsCreateResourceDirectory(ResourceDirectory resourceDir);
+    bool CreateResourceDirectory(ResourceDirectory resourceDir);
 
     /************************************************************************/
     // MARK: - Buny Archive format definitions
@@ -665,16 +665,16 @@ extern "C"
 
     FORGE_API const char* bunyArFormatName(enum BunyArFileFormat format);
 
-    FORGE_API void fsArchiveGetDescription(IFileSystem* pArchive, struct BunyArDescription* outInfo);
+    FORGE_API void GetArchiveDescription(IFileSystem* pArchive, struct BunyArDescription* outInfo);
 
-    FORGE_API bool fsArchiveGetNodeDescription(IFileSystem* pArchive, uint64_t nodeId, struct BunyArNodeDescription* outInfo);
+    FORGE_API bool GetArchiveNodeDescription(IFileSystem* pArchive, uint64_t nodeId, struct BunyArNodeDescription* outInfo);
 
     // Same as GetFileUid(), but without fileName postprocessing.
     // Uses fileName directly without resolving through ResourceDirectory
     // to search for file node.
-    FORGE_API bool fsArchiveGetNodeId(IFileSystem* fs, const char* fileName, uint64_t* outUid);
+    FORGE_API bool GetArchiveNodeId(IFileSystem* fs, const char* fileName, uint64_t* outUid);
 
-    FORGE_API bool fsArchiveGetFileBlockMetadata(FileStream* pFile, struct BunyArBlockFormatHeader* outHeader,
+    FORGE_API bool GetArchiveFileBlockMetadata(FileStream* pFile, struct BunyArBlockFormatHeader* outHeader,
                                                  const BunyArBlockPointer** outBlockPtrs);
 
     /************************************************************************/

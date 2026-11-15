@@ -333,17 +333,17 @@ static uint32_t gltfLoadContainer(const char* pFileName, GLTFFlags flags, GLTFCo
 {
 	FileStream file = {};
 
-	if (!fsOpenStreamFromPath(RD_MESHES, pFileName, FM_READ, &file))
+	if (!OpenStreamFromPath(RD_MESHES, pFileName, FM_READ, &file))
 	{
 		LOGF(eERROR, "Failed to open gltf file %s", pFileName);
 		ASSERT(false);
 		return -1;
 	}
 
-	ssize_t fileSize = fsGetStreamFileSize(&file);
+	ssize_t fileSize = GetStreamFileSize(&file);
 	void* fileData = tf_malloc(fileSize);
-	fsReadFromStream(&file, fileData, fileSize);
-	fsCloseStream(&file);
+	ReadFromStream(&file, fileData, fileSize);
+	CloseStream(&file);
 
 	cgltf_result result = cgltf_result_invalid_gltf;
 	cgltf_options options = {};
@@ -386,12 +386,12 @@ static uint32_t gltfLoadContainer(const char* pFileName, GLTFFlags flags, GLTFCo
 			fsGetParentPath(pFileName, parentPath);
 			fsAppendPathComponent(parentPath, uri, binFile);
 			FileStream fs = {};
-			if (fsOpenStreamFromPath(RD_MESHES, binFile, FM_READ, &fs))
+			if (OpenStreamFromPath(RD_MESHES, binFile, FM_READ, &fs))
 			{
-				ASSERT(fsGetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].size);
+				ASSERT(GetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].size);
 				data->buffers[i].data = tf_malloc(data->buffers[i].size);
-				fsReadFromStream(&fs, data->buffers[i].data, data->buffers[i].size);
-				fsCloseStream(&fs);
+				ReadFromStream(&fs, data->buffers[i].data, data->buffers[i].size);
+				CloseStream(&fs);
 			}
 		}
 	}

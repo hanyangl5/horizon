@@ -32,14 +32,14 @@
 #include "Core/IFileSystem.h"
 #include "Core/ILog.h"
 
-bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
-void fsGetParentPath(const char* path, char* output);
+bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+void GetParentPath(const char* path, char* output);
 
 #if defined(__APPLE__)
 #include <sys/param.h>
 #endif
 
-static bool fsDirectoryExists(const char* path)
+static bool DirectoryExists(const char* path)
 {
     struct stat s;
     if (stat(path, &s))
@@ -50,20 +50,20 @@ static bool fsDirectoryExists(const char* path)
     return (s.st_mode & S_IFDIR) != 0;
 }
 
-static bool fsUnixCreateDirectory(const char* path)
+static bool UnixCreateDirectory(const char* path)
 {
-    if (fsDirectoryExists(path)) // Check if directory already exists
+    if (DirectoryExists(path)) // Check if directory already exists
     {
         return true;
     }
 
     char parentPath[FS_MAX_PATH] = { 0 };
-    fsGetParentPath(path, parentPath);
+    GetParentPath(path, parentPath);
 
     // Recursively create all parent directories.
     if (parentPath[0] != 0)
     {
-        fsUnixCreateDirectory(parentPath);
+        UnixCreateDirectory(parentPath);
     }
 
     if (mkdir(path, 0777) != 0)
@@ -75,12 +75,12 @@ static bool fsUnixCreateDirectory(const char* path)
     return true;
 }
 
-bool fsCreateResourceDirectory(ResourceDirectory resourceDir) { return fsUnixCreateDirectory(fsGetResourceDirectory(resourceDir)); }
+bool CreateResourceDirectory(ResourceDirectory resourceDir) { return UnixCreateDirectory(GetResourceDirectory(resourceDir)); }
 
-time_t fsGetLastModifiedTime(ResourceDirectory rd, const char* fileName)
+time_t GetLastModifiedTime(ResourceDirectory rd, const char* fileName)
 {
     char filePath[FS_MAX_PATH];
-    fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '/', sizeof filePath, filePath);
+    MergeDirAndFileName(GetResourceDirectory(rd), fileName, '/', sizeof filePath, filePath);
 
     struct stat fileInfo = { 0 };
     stat(filePath, &fileInfo);
@@ -128,7 +128,7 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
     memset(fs, 0, sizeof *fs);
 
     char filePath[FS_MAX_PATH];
-    fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '/', sizeof filePath, filePath);
+    MergeDirAndFileName(GetResourceDirectory(rd), fileName, '/', sizeof filePath, filePath);
 
     int oflags = 0;
 
@@ -187,7 +187,7 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
 
     fs->mode = mode;
     fs->pIO = io;
-    fs->mount = fsGetResourceDirectoryMount(rd);
+    fs->mount = GetResourceDirectoryMount(rd);
 
     if ((mode & FM_READ) && (mode & FM_APPEND) && !(mode & FM_WRITE))
     {
@@ -402,7 +402,7 @@ IFileSystem gUnixSystemFileIO = {
 };
 
 #if !defined(ANDROID)
-IFileSystem* pSystemFileIO = &gUnixSystemFileIO;
+IFileSystem* SystemFileIO = &gUnixSystemFileIO;
 #endif
 
 #endif

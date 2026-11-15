@@ -39,21 +39,21 @@ public:
     bool decode()
     {
         FileStream stream = {};
-        if (!fsOpenStreamFromPath(directory, entry.location.pPath, FM_READ, &stream))
+        if (!OpenStreamFromPath(directory, entry.location.pPath, FM_READ, &stream))
         {
             LOGF(Error, "Cannot open SceneAsset '%s'", entry.location.pPath);
             return false;
         }
-        const ssize_t size = fsGetStreamFileSize(&stream);
+        const ssize_t size = GetStreamFileSize(&stream);
         if (size <= 0 || size > 64 * 1024 * 1024)
         {
-            fsCloseStream(&stream);
+            CloseStream(&stream);
             LOGF(Error, "Invalid SceneAsset file size for '%s'", entry.location.pPath);
             return false;
         }
         Array<char>  json((uint32_t)size);
-        const size_t bytesRead = fsReadFromStream(&stream, json.data(), (size_t)size);
-        fsCloseStream(&stream);
+        const size_t bytesRead = ReadFromStream(&stream, json.data(), (size_t)size);
+        CloseStream(&stream);
         if (bytesRead != (size_t)size)
         {
             LOGF(Error, "Cannot read SceneAsset '%s'", entry.location.pPath);

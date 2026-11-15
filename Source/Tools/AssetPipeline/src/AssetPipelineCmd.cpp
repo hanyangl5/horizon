@@ -140,13 +140,13 @@ int AssetPipelineCmd(int argc, char** argv)
 
             i++;
             params.mPathMode = PROCESS_MODE_FILE;
-            fsGetPathFileName(argv[i], fileNameWithoutExt);
-            fsGetPathExtension(argv[i], iext);
+            GetPathFileName(argv[i], fileNameWithoutExt);
+            GetPathExtension(argv[i], iext);
             params.mInExt = iext;
-            fsAppendPathExtension(fileNameWithoutExt, iext, fileName);
+            AppendPathExtension(fileNameWithoutExt, iext, fileName);
             params.mInFilePath = fileName;
 
-            fsGetParentPath(argv[i], filePath);
+            GetParentPath(argv[i], filePath);
             input = filePath;
         }
         else if (STRCMP(arg, "--recursive"))
@@ -180,21 +180,21 @@ int AssetPipelineCmd(int argc, char** argv)
     params.mInDir = input;
     params.mOutDir = output;
 
-    FileSystemInitDesc fsDesc = {};
-    fsDesc.pAppName = gApplicationName;
-    fsDesc.pResourceMounts[RM_CONTENT] = input;
-    fsDesc.pResourceMounts[RM_PROJECT] = output;
+    FileSystemInitDesc FileSystemDesc = {};
+    FileSystemDesc.pAppName = gApplicationName;
+    FileSystemDesc.pResourceMounts[RM_CONTENT] = input;
+    FileSystemDesc.pResourceMounts[RM_PROJECT] = output;
 
-    if (!initFileSystem(&fsDesc))
+    if (!InitFileSystem(&FileSystemDesc))
     {
         LOGF(Error, "Filesystem failed to initialize.");
         exitMemAlloc();
         return 1;
     }
 
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, params.mRDInput, "");
-    fsSetPathForResourceDir(pSystemFileIO, RM_PROJECT, params.mRDOutput, "");
-    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+    SetResourceDirectoryPath(SystemFileIO, RM_CONTENT, params.mRDInput, "");
+    SetResourceDirectoryPath(SystemFileIO, RM_PROJECT, params.mRDOutput, "");
+    SetResourceDirectoryPath(SystemFileIO, RM_DEBUG, RD_LOG, "");
 
     LogLevel logLevel = params.mSettings.quiet ? Warning : DEFAULT_LOG_LEVEL;
     InitLog(gApplicationName, logLevel);
@@ -217,7 +217,7 @@ int AssetPipelineCmd(int argc, char** argv)
     if (runAssetPipeline)
     {
         // Make sure output folder exists before starting the pipeline
-        if (fsCreateDirectory(params.mRDOutput, "", true))
+        if (MakeDirectory(params.mRDOutput, "", true))
         {
             ret = AssetPipelineRun(&params);
         }
@@ -228,7 +228,7 @@ int AssetPipelineCmd(int argc, char** argv)
     }
 
     ExitLog();
-    exitFileSystem();
+    ExitFileSystem();
     exitMemAlloc();
 
     return ret;

@@ -82,13 +82,13 @@ public:
 private:
     void ConfigureResourceDirectories()
     {
-        fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_MESHES, "RendererAssets");
-        fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_OTHER_FILES, "RendererAssets");
-        fsSetPathForResourceDir(pSystemFileIO, RM_PROJECT, RD_TEXTURES, SceneDirectory);
-        fsSetPathForResourceDir(pSystemFileIO, RM_PROJECT, RD_SHADER_SOURCES, "Examples/Renderer/Shaders");
+        SetResourceDirectoryPath(SystemFileIO, RM_SAVE_0, RD_MESHES, "RendererAssets");
+        SetResourceDirectoryPath(SystemFileIO, RM_SAVE_0, RD_OTHER_FILES, "RendererAssets");
+        SetResourceDirectoryPath(SystemFileIO, RM_PROJECT, RD_TEXTURES, SceneDirectory);
+        SetResourceDirectoryPath(SystemFileIO, RM_PROJECT, RD_SHADER_SOURCES, "Examples/Renderer/Shaders");
         // Compiled DXIL survives restarts here so a warm start skips the Slang front end.
-        fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_SHADER_BINARIES, "ShaderCache");
-        fsCreateDirectory(RD_SHADER_BINARIES, "", true);
+        SetResourceDirectoryPath(SystemFileIO, RM_SAVE_0, RD_SHADER_BINARIES, "ShaderCache");
+        MakeDirectory(RD_SHADER_BINARIES, "", true);
     }
 
     void InitRenderContext()
@@ -109,8 +109,8 @@ private:
     bool InitSceneAsset()
     {
         char CatalogFile[FS_MAX_PATH], SceneFile[FS_MAX_PATH];
-        fsReplacePathExtension(SceneSource, "assetcatalog.json", CatalogFile);
-        fsReplacePathExtension(SceneSource, "sceneasset.json", SceneFile);
+        ReplacePathExtension(SceneSource, "assetcatalog.json", CatalogFile);
+        ReplacePathExtension(SceneSource, "sceneasset.json", SceneFile);
         if (!Catalog.load(RD_OTHER_FILES, CatalogFile))
         {
             return false;

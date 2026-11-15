@@ -834,15 +834,15 @@ RECT getCenteredWindowRect(WindowDesc* winDesc)
 {
     UpdateWindowDescFullScreenRect(winDesc);
 
-    uint32_t fsHalfWidth = getRectWidth(&winDesc->fullscreenRect) >> 1;
-    uint32_t fsHalfHeight = getRectHeight(&winDesc->fullscreenRect) >> 1;
+    uint32_t FullscreenHalfWidth = getRectWidth(&winDesc->fullscreenRect) >> 1;
+    uint32_t FullscreenHalfHeight = getRectHeight(&winDesc->fullscreenRect) >> 1;
     uint32_t windowWidth = getRectWidth(&winDesc->clientRect);
     uint32_t windowHeight = getRectHeight(&winDesc->clientRect);
     uint32_t windowHalfWidth = windowWidth >> 1;
     uint32_t windowHalfHeight = windowHeight >> 1;
 
-    uint32_t X = fsHalfWidth - windowHalfWidth;
-    uint32_t Y = fsHalfHeight - windowHalfHeight;
+    uint32_t X = FullscreenHalfWidth - windowHalfWidth;
+    uint32_t Y = FullscreenHalfHeight - windowHalfHeight;
 
     RECT rect = { (LONG)(X), (LONG)(Y), (LONG)(X + windowWidth), (LONG)(Y + windowHeight) };
     return rect;

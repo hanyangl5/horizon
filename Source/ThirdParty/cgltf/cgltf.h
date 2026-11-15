@@ -861,28 +861,28 @@ cgltf_result cgltf_parse_file(const cgltf_options* options, const char* path, cg
 	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_default_free;
 
 	FileStream file;
-	if (!fsOpenStreamFromPath(options->rd, path, FM_READ, &file))
+	if (!OpenStreamFromPath(options->rd, path, FM_READ, &file))
 	{
 		return cgltf_result_file_not_found;
 	}
 
-	ssize_t length = fsGetStreamFileSize(&file);
+	ssize_t length = GetStreamFileSize(&file);
 	if (length < 0)
 	{
-		fsCloseStream(&file);
+		CloseStream(&file);
 		return cgltf_result_io_error;
 	}
 
 	char* file_data = (char*)memory_alloc(options->memory_user_data, length);
 	if (!file_data)
 	{
-		fsCloseStream(&file);
+		CloseStream(&file);
 		return cgltf_result_out_of_memory;
 	}
 
-	size_t read_size = fsReadFromStream(&file, file_data, (size_t)length);
+	size_t read_size = ReadFromStream(&file, file_data, (size_t)length);
 
-	fsCloseStream(&file);
+	CloseStream(&file);
 
 	if (read_size != (size_t)length)
 	{
@@ -936,7 +936,7 @@ static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_s
 	cgltf_combine_paths(path, gltf_path, uri);
 
 	FileStream file;
-	bool opened = fsOpenStreamFromPath(options->rd, path, FM_READ, &file);
+	bool opened = OpenStreamFromPath(options->rd, path, FM_READ, &file);
 
 	memory_free(options->memory_user_data, path);
 
@@ -948,13 +948,13 @@ static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_s
 	char* file_data = (char*)memory_alloc(options->memory_user_data, size);
 	if (!file_data)
 	{
-		fsCloseStream(&file);
+		CloseStream(&file);
 		return cgltf_result_out_of_memory;
 	}
 
-	size_t read_size = fsReadFromStream(&file, file_data, size);
+	size_t read_size = ReadFromStream(&file, file_data, size);
 
-	fsCloseStream(&file);
+	CloseStream(&file);
 
 	if (read_size != size)
 	{

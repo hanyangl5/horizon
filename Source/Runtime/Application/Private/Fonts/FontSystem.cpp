@@ -564,18 +564,18 @@ void fntDefineFonts(const FontDesc* pDescs, uint32_t count, uint32_t* pOutIDs)
         FONScontext* fs = gFontstash.pContext;
 
         FileStream fh = {};
-        if (fsOpenStreamFromPath(RD_FONTS, pDescs[i].pFontPath, FM_READ, &fh))
+        if (OpenStreamFromPath(RD_FONTS, pDescs[i].pFontPath, FM_READ, &fh))
         {
-            ssize_t bytes = fsGetStreamFileSize(&fh);
+            ssize_t bytes = GetStreamFileSize(&fh);
             void*   buffer = tf_malloc(bytes);
-            fsReadFromStream(&fh, buffer, bytes);
+            ReadFromStream(&fh, buffer, bytes);
 
             // add buffer to font buffers for cleanup
             arrpush(gFontstash.fontBuffers, buffer);
             ASSERT(bytes < UINT32_MAX);
             arrpush(gFontstash.fontBufferSizes, (uint32_t)bytes);
 
-            fsCloseStream(&fh);
+            CloseStream(&fh);
 
             id = fonsAddFontMem(fs, pDescs[i].pFontName, (unsigned char*)buffer, (int)bytes, 0);
         }

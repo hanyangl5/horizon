@@ -411,15 +411,15 @@ TEST_F(WorldArchiveTest, LoadsDeepHierarchyWithoutRecursiveTraversal)
 TEST_F(WorldArchiveTest, SavesLoadsAndRecoversInterruptedFileReplacement)
 {
     FileSystemInitDesc desc = { .pAppName = "WorldArchiveTest" };
-    ASSERT_TRUE(initFileSystem(&desc));
+    ASSERT_TRUE(InitFileSystem(&desc));
     {
         char name[hz::kIDStringCapacity];
         hz::Guid::create().toString(name);
         const std::filesystem::path directory = std::filesystem::temp_directory_path() / name;
         std::filesystem::create_directory(directory);
-        IFileSystem io = *pSystemFileIO;
+        IFileSystem io = *SystemFileIO;
         io.GetResourceMount = nullptr;
-        fsSetPathForResourceDir(&io, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+        SetResourceDirectoryPath(&io, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
         hz::WorldArchive original, loaded;
         ASSERT_TRUE(parse(original, envelope(entityJson(1))));
         ASSERT_TRUE(original.save(RD_OTHER_FILES, "test.world.json"));
@@ -437,5 +437,5 @@ TEST_F(WorldArchiveTest, SavesLoadsAndRecoversInterruptedFileReplacement)
         EXPECT_EQ(text(loaded), envelope(entityJson(2)));
         std::filesystem::remove_all(directory);
     }
-    exitFileSystem();
+    ExitFileSystem();
 }

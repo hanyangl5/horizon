@@ -58,34 +58,34 @@ void Rig::Exit() { skeleton.Deallocate(); }
 bool Rig::LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName)
 {
     FileStream file = {};
-    if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ, &file))
+    if (!OpenStreamFromPath(resourceDir, fileName, FM_READ, &file))
     {
         LOGF(Error, "Cannot open skeleton file");
         return false;
     }
 
-    ssize_t size = fsGetStreamFileSize(&file);
+    ssize_t size = GetStreamFileSize(&file);
     void*   data = tf_malloc(size);
-    fsReadFromStream(&file, data, (size_t)size);
-    fsCloseStream(&file);
+    ReadFromStream(&file, data, (size_t)size);
+    CloseStream(&file);
 
     // Archive is doing a lot of freads from disk which is slow on some platforms and also generally not good
     // So we just read the entire file once into a mem stream so the freads from IArchive are actually
     // only reading from system memory instead of disk or network
     FileStream memStream = {};
-    fsOpenStreamFromMemory(data, size, FM_READ, true, &memStream);
+    OpenStreamFromMemory(data, size, FM_READ, true, &memStream);
 
     ozz::io::IArchive archive(&memStream);
     if (!archive.TestTag<ozz::animation::Skeleton>())
     {
         LOGF(Error, "Skeleton Archive doesn't contain the expected object type");
-        fsCloseStream(&memStream);
+        CloseStream(&memStream);
         return false;
     }
 
     archive >> skeleton;
 
-    fsCloseStream(&memStream);
+    CloseStream(&memStream);
 
     return true;
 }

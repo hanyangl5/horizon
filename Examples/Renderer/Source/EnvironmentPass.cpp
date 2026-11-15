@@ -27,10 +27,10 @@ bool EnvironmentPass::Load(const EnvironmentFiles& Files)
     const char* Paths[] = { Files.Prefiltered, Files.Irradiance, Files.BrdfLut };
     for (const char* Path : Paths)
     {
-        if (!Path || !Path[0] || !fsFileExist(Files.Directory, Path))
+        if (!Path || !Path[0] || !FileExists(Files.Directory, Path))
         {
             LOGF(Error, "Environment requires prefiltered and irradiance cubemaps plus a BRDF LUT; missing '%s' in '%s'",
-                 Path ? Path : "<unset>", fsGetResourceDirectory(Files.Directory));
+                 Path ? Path : "<unset>", GetResourceDirectory(Files.Directory));
             return false;
         }
     }

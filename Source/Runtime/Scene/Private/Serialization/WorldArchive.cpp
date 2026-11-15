@@ -433,21 +433,21 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
 bool WorldArchive::load(ResourceDirectory directory, const char* pFileName)
 {
     FileStream stream = {};
-    if (!fsOpenStreamFromPath(directory, pFileName, FM_READ, &stream))
+    if (!OpenStreamFromPath(directory, pFileName, FM_READ, &stream))
     {
         LOGF(Error, "Cannot open World archive '%s'", pFileName);
         return false;
     }
-    const ssize_t size = fsGetStreamFileSize(&stream);
+    const ssize_t size = GetStreamFileSize(&stream);
     if (size <= 0 || size > 64 * 1024 * 1024)
     {
-        fsCloseStream(&stream);
+        CloseStream(&stream);
         LOGF(Error, "Invalid World archive size: '%s'", pFileName);
         return false;
     }
     Array<char>  bytes((uint32_t)size);
-    const size_t read = fsReadFromStream(&stream, bytes.data(), (size_t)size);
-    fsCloseStream(&stream);
+    const size_t read = ReadFromStream(&stream, bytes.data(), (size_t)size);
+    CloseStream(&stream);
     if (read != (size_t)size)
     {
         LOGF(Error, "Cannot read World archive '%s'", pFileName);
@@ -464,35 +464,35 @@ static bool writeWorldFile(ResourceDirectory directory, const char* pFileName, S
         return false;
     }
     // Recover an interrupted replacement before starting another write.
-    if (!fsFileExist(directory, pFileName) && fsFileExist(directory, backup) && !fsRenameFile(directory, backup, pFileName))
+    if (!FileExists(directory, pFileName) && FileExists(directory, backup) && !RenameFile(directory, backup, pFileName))
     {
         return false;
     }
     FileStream stream = {};
-    if (!fsOpenStreamFromPath(directory, temporary, FM_WRITE, &stream))
+    if (!OpenStreamFromPath(directory, temporary, FM_WRITE, &stream))
     {
         return false;
     }
-    const bool written = fsWriteToStream(&stream, text.pData, text.count) == text.count;
-    const bool closed = fsCloseStream(&stream);
+    const bool written = WriteToStream(&stream, text.pData, text.count) == text.count;
+    const bool closed = CloseStream(&stream);
     if (!written || !closed)
     {
         return false;
     }
-    const bool exists = fsFileExist(directory, pFileName);
-    if ((fsFileExist(directory, backup) && !fsRemoveFile(directory, backup)) || (exists && !fsRenameFile(directory, pFileName, backup)))
+    const bool exists = FileExists(directory, pFileName);
+    if ((FileExists(directory, backup) && !RemoveFile(directory, backup)) || (exists && !RenameFile(directory, pFileName, backup)))
     {
         return false;
     }
-    if (!fsRenameFile(directory, temporary, pFileName))
+    if (!RenameFile(directory, temporary, pFileName))
     {
-        if (exists && !fsRenameFile(directory, backup, pFileName))
+        if (exists && !RenameFile(directory, backup, pFileName))
         {
             LOGF(Error, "Restore World '%s' from '%s'", pFileName, backup);
         }
         return false;
     }
-    if (exists && !fsRemoveFile(directory, backup))
+    if (exists && !RemoveFile(directory, backup))
     {
         LOGF(Warning, "Cannot remove World backup '%s'", backup);
     }

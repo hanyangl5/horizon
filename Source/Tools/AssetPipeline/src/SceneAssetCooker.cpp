@@ -50,17 +50,17 @@ static void addHash(cJSON* pObject, const char* pField, uint64_t hash)
 static cJSON* readJson(ResourceDirectory directory, const char* pPath, uint64_t* pHash = nullptr)
 {
     FileStream stream = {};
-    if (!fsOpenStreamFromPath(directory, pPath, FM_READ, &stream))
+    if (!OpenStreamFromPath(directory, pPath, FM_READ, &stream))
         return nullptr;
-    const ssize_t size = fsGetStreamFileSize(&stream);
+    const ssize_t size = GetStreamFileSize(&stream);
     if (size <= 0 || size > 64 * 1024 * 1024)
     {
-        fsCloseStream(&stream);
+        CloseStream(&stream);
         return nullptr;
     }
     hz::Array<char> bytes((uint32_t)size + 1);
-    const bool      read = fsReadFromStream(&stream, bytes.data(), (size_t)size) == (size_t)size;
-    fsCloseStream(&stream);
+    const bool      read = ReadFromStream(&stream, bytes.data(), (size_t)size) == (size_t)size;
+    CloseStream(&stream);
     if (!read)
         return nullptr;
     if (pHash)
@@ -73,10 +73,10 @@ static bool recoverJson(ResourceDirectory directory, const char* pPath)
     char backup[FS_MAX_PATH];
     if (snprintf(backup, sizeof(backup), "%s.bak", pPath) >= (int)sizeof(backup))
         return false;
-    if (!fsFileExist(directory, backup))
+    if (!FileExists(directory, backup))
         return true;
-    if (!fsFileExist(directory, pPath))
-        return fsRenameFile(directory, backup, pPath);
+    if (!FileExists(directory, pPath))
+        return RenameFile(directory, backup, pPath);
     return true;
 }
 
@@ -98,9 +98,9 @@ static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<
     char       temporary[FS_MAX_PATH];
     const bool validPath = snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) < (int)sizeof(temporary);
     FileStream stream = {};
-    const bool opened = validPath && fsOpenStreamFromPath(directory, temporary, FM_WRITE, &stream);
-    const bool written = opened && fsWriteToStream(&stream, bytes.pData, bytes.count) == bytes.count;
-    const bool closed = !opened || fsCloseStream(&stream);
+    const bool opened = validPath && OpenStreamFromPath(directory, temporary, FM_WRITE, &stream);
+    const bool written = opened && WriteToStream(&stream, bytes.pData, bytes.count) == bytes.count;
+    const bool closed = !opened || CloseStream(&stream);
     if (!written || !closed)
     {
         LOGF(Error, "Cannot publish scene asset file '%s'", pPath);
@@ -109,19 +109,19 @@ static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<
     char backup[FS_MAX_PATH];
     if (snprintf(backup, sizeof(backup), "%s.bak", pPath) >= (int)sizeof(backup))
         return false;
-    const bool exists = fsFileExist(directory, pPath);
-    if ((fsFileExist(directory, backup) && !fsRemoveFile(directory, backup)) || (exists && !fsRenameFile(directory, pPath, backup)))
+    const bool exists = FileExists(directory, pPath);
+    if ((FileExists(directory, backup) && !RemoveFile(directory, backup)) || (exists && !RenameFile(directory, pPath, backup)))
     {
         LOGF(Error, "Cannot back up '%s'; check for an interrupted cook", pPath);
         return false;
     }
-    if (!fsRenameFile(directory, temporary, pPath))
+    if (!RenameFile(directory, temporary, pPath))
     {
-        if (exists && !fsRenameFile(directory, backup, pPath))
+        if (exists && !RenameFile(directory, backup, pPath))
             LOGF(Error, "Restore '%s' from '%s' before retrying", pPath, backup);
         return false;
     }
-    if (exists && !fsRemoveFile(directory, backup))
+    if (exists && !RemoveFile(directory, backup))
         LOGF(Warning, "Cannot remove completed cook backup '%s'", backup);
     return true;
 }
@@ -354,9 +354,9 @@ SceneAssetCooker::SceneAssetCooker(ResourceDirectory sourceDirectory, const char
     sourceDirectory(sourceDirectory),
     outputDirectory(outputDirectory), pSourceFile(pSourceFile), pGeometryFile(pGeometryFile)
 {
-    fsAppendPathExtension(pSourceFile, "asset.json", metadataFile);
-    fsReplacePathExtension(pGeometryFile, "sceneasset.json", assetFile);
-    fsReplacePathExtension(pGeometryFile, "assetcatalog.json", catalogFile);
+    AppendPathExtension(pSourceFile, "asset.json", metadataFile);
+    ReplacePathExtension(pGeometryFile, "sceneasset.json", assetFile);
+    ReplacePathExtension(pGeometryFile, "assetcatalog.json", catalogFile);
 }
 
 SceneAssetCooker::~SceneAssetCooker()
@@ -369,8 +369,8 @@ SceneAssetCooker::~SceneAssetCooker()
 
 bool SceneAssetCooker::isCurrent(const char* pContentHash) const
 {
-    if (!fsFileExist(sourceDirectory, metadataFile) || !fsFileExist(outputDirectory, assetFile) ||
-        !fsFileExist(outputDirectory, catalogFile))
+    if (!FileExists(sourceDirectory, metadataFile) || !FileExists(outputDirectory, assetFile) ||
+        !FileExists(outputDirectory, catalogFile))
         return false;
     uint64_t           hash = 0;
     const JsonDocument metadata(readJson(sourceDirectory, metadataFile, &hash));
@@ -391,7 +391,7 @@ bool SceneAssetCooker::isCurrent(const char* pContentHash) const
         return false;
     const cJSON* pTextures = cJSON_GetObjectItemCaseSensitive(asset.get(), "textures");
     for (const cJSON* pTexture = pTextures ? pTextures->child : nullptr; pTexture; pTexture = pTexture->next)
-        if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pTexture, "cooked")) && !fsFileExist(outputDirectory, text(pTexture, "path")))
+        if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pTexture, "cooked")) && !FileExists(outputDirectory, text(pTexture, "path")))
             return false;
     const cJSON* pRecords = cJSON_GetObjectItemCaseSensitive(metadata.get(), "assets");
     for (const cJSON* pRecord = pRecords ? pRecords->child : nullptr; pRecord; pRecord = pRecord->next)
@@ -414,7 +414,7 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
     ASSERT(!pMetadata && !pAsset);
     if (!recoverJson(sourceDirectory, metadataFile))
         return false;
-    const bool exists = fsFileExist(sourceDirectory, metadataFile);
+    const bool exists = FileExists(sourceDirectory, metadataFile);
     pPrevious = exists ? readJson(sourceDirectory, metadataFile) : nullptr;
     const cJSON* pVersion = cJSON_GetObjectItemCaseSensitive(pPrevious, "version");
     cJSON*       pOldRecords = cJSON_GetObjectItemCaseSensitive(pPrevious, "assets");
@@ -430,7 +430,7 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
     }
     else
     {
-        if (fsFileExist(outputDirectory, assetFile))
+        if (FileExists(outputDirectory, assetFile))
         {
             LOGF(Error, "Missing identity sidecar '%s'; restore it before recooking", metadataFile);
             return false;
@@ -462,7 +462,7 @@ bool SceneAssetCooker::registerTexture(CookedSceneTexture& texture)
     {
         if (!recoverJson(sourceDirectory, path))
             return false;
-        const bool exists = fsFileExist(sourceDirectory, path);
+        const bool exists = FileExists(sourceDirectory, path);
         cJSON*     pDocument = exists ? readJson(sourceDirectory, path) : cJSON_CreateObject();
         pEntry = cJSON_CreateObject();
         cJSON_AddStringToObject(pEntry, "path", path);

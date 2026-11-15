@@ -13,31 +13,31 @@ TEST(CoreFileSystemTest, MemoryStreamSupportsReadSeekFindAndClose)
     constexpr char buffer[] = "abcXYZabc";
 
     FileStream stream = {};
-    ASSERT_TRUE(fsOpenStreamFromMemory(buffer, sizeof(buffer) - 1, FM_READ, false, &stream));
-    ASSERT_TRUE(fsIsMemoryStream(&stream));
+    ASSERT_TRUE(OpenStreamFromMemory(buffer, sizeof(buffer) - 1, FM_READ, false, &stream));
+    ASSERT_TRUE(IsMemoryStream(&stream));
 
     char prefix[4] = {};
-    EXPECT_EQ(fsReadFromStream(&stream, prefix, 3), 3u);
+    EXPECT_EQ(ReadFromStream(&stream, prefix, 3), 3u);
     EXPECT_STREQ(prefix, "abc");
 
-    EXPECT_TRUE(fsSeekStream(&stream, SBO_START_OF_FILE, 0));
+    EXPECT_TRUE(SeekStream(&stream, SBO_START_OF_FILE, 0));
 
     ssize_t position = -1;
-    ASSERT_TRUE(fsFindStream(&stream, "XYZ", 3, fsGetStreamFileSize(&stream), &position));
+    ASSERT_TRUE(FindStream(&stream, "XYZ", 3, GetStreamFileSize(&stream), &position));
     EXPECT_EQ(position, 3);
-    EXPECT_EQ(fsGetStreamSeekPosition(&stream), 3);
+    EXPECT_EQ(GetStreamPosition(&stream), 3);
 
-    EXPECT_TRUE(fsSeekStream(&stream, SBO_END_OF_FILE, 0));
-    ASSERT_TRUE(fsFindReverseStream(&stream, "abc", 3, fsGetStreamFileSize(&stream), &position));
+    EXPECT_TRUE(SeekStream(&stream, SBO_END_OF_FILE, 0));
+    ASSERT_TRUE(FindReverseStream(&stream, "abc", 3, GetStreamFileSize(&stream), &position));
     EXPECT_EQ(position, 6);
 
     size_t mappedSize = 0;
     const void* mappedData = nullptr;
-    ASSERT_TRUE(fsStreamMemoryMap(&stream, &mappedSize, &mappedData));
+    ASSERT_TRUE(StreamMemoryMap(&stream, &mappedSize, &mappedData));
     EXPECT_EQ(mappedSize, sizeof(buffer) - 1);
     ASSERT_NE(mappedData, nullptr);
 
-    EXPECT_TRUE(fsCloseStream(&stream));
+    EXPECT_TRUE(CloseStream(&stream));
     EXPECT_EQ(stream.pIO, nullptr);
 }
 
@@ -48,22 +48,22 @@ TEST(CoreFileSystemTest, WritableMemoryStreamGrowsWithoutTouchingOriginalBuffer)
     constexpr char suffix[] = "def";
 
     FileStream stream = {};
-    ASSERT_TRUE(fsOpenStreamFromMemory(original, 3, FM_READ_WRITE_APPEND, false, &stream));
+    ASSERT_TRUE(OpenStreamFromMemory(original, 3, FM_READ_WRITE_APPEND, false, &stream));
 
-    EXPECT_EQ(fsWriteToStream(&stream, suffix, sizeof(suffix) - 1), sizeof(suffix) - 1);
-    EXPECT_EQ(fsGetStreamFileSize(&stream), 6);
+    EXPECT_EQ(WriteToStream(&stream, suffix, sizeof(suffix) - 1), sizeof(suffix) - 1);
+    EXPECT_EQ(GetStreamFileSize(&stream), 6);
     size_t mappedSize = 0;
     const void* mappedData = nullptr;
-    EXPECT_FALSE(fsStreamMemoryMap(&stream, &mappedSize, &mappedData));
+    EXPECT_FALSE(StreamMemoryMap(&stream, &mappedSize, &mappedData));
 
-    EXPECT_TRUE(fsSeekStream(&stream, SBO_START_OF_FILE, 0));
+    EXPECT_TRUE(SeekStream(&stream, SBO_START_OF_FILE, 0));
 
     char combined[7] = {};
-    EXPECT_EQ(fsReadFromStream(&stream, combined, 6), 6u);
+    EXPECT_EQ(ReadFromStream(&stream, combined, 6), 6u);
     EXPECT_STREQ(combined, "abcdef");
     EXPECT_STREQ(original, "abc");
 
-    EXPECT_TRUE(fsCloseStream(&stream));
+    EXPECT_TRUE(CloseStream(&stream));
 }
 
 // Verifies that Buny archive block pointers preserve compression, size, and offset metadata through encode/decode.

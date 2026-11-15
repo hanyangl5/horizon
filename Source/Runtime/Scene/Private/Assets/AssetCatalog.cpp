@@ -451,18 +451,18 @@ bool AssetCatalog::load(ResourceDirectory directory, const char* pFileName)
         return false;
     }
     FileStream stream = {};
-    if (!fsOpenStreamFromPath(directory, pFileName, FM_READ, &stream))
+    if (!OpenStreamFromPath(directory, pFileName, FM_READ, &stream))
         return false;
-    const ssize_t size = fsGetStreamFileSize(&stream);
+    const ssize_t size = GetStreamFileSize(&stream);
     if (size <= 0 || size > 64 * 1024 * 1024)
     {
-        fsCloseStream(&stream);
+        CloseStream(&stream);
         LOGF(Error, "Invalid AssetCatalog file size: '%s'", pFileName);
         return false;
     }
     Array<char>  json((uint32_t)size);
-    const size_t bytesRead = fsReadFromStream(&stream, json.data(), (size_t)size);
-    fsCloseStream(&stream);
+    const size_t bytesRead = ReadFromStream(&stream, json.data(), (size_t)size);
+    CloseStream(&stream);
     if (bytesRead != (size_t)size)
     {
         LOGF(Error, "Cannot read AssetCatalog '%s'", pFileName);

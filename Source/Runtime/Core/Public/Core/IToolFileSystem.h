@@ -51,23 +51,23 @@ extern "C"
     } FileWatcherEventMask;
 
     /// Creates a new FileWatcher that watches for changes specified by `eventMask` at `path` and calls `callback` when changes occur.
-    /// The return value must have `fsFreeFileWatcher` called to free it.
-    FORGE_TOOL_API FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMask, FileWatcherCallback callback,
+    /// The return value must have `FreeFileWatcher` called to free it.
+    FORGE_TOOL_API FileWatcher* CreateFileWatcher(const char* path, FileWatcherEventMask eventMask, FileWatcherCallback callback,
                                                     void* callbackUserData);
 
     /// Invalidates and frees `fileWatcher.
-    FORGE_TOOL_API void fsFreeFileWatcher(FileWatcher* fileWatcher);
+    FORGE_TOOL_API void FreeFileWatcher(FileWatcher* fileWatcher);
 
 /************************************************************************/
 // MARK: - File iteration
 /************************************************************************/
 #ifdef TARGET_IOS
-    void fsRegisterUTIForExtension(const char* uti, const char* extension);
+    void RegisterUTIForExtension(const char* uti, const char* extension);
 #endif
 
     typedef void*       FsDirectoryIterator;
-    FORGE_TOOL_API bool fsDirectoryIteratorOpen(ResourceDirectory rd, const char* dir, FsDirectoryIterator* out);
-    FORGE_TOOL_API void fsDirectoryIteratorClose(FsDirectoryIterator iterator);
+    FORGE_TOOL_API bool DirectoryIteratorOpen(ResourceDirectory rd, const char* dir, FsDirectoryIterator* out);
+    FORGE_TOOL_API void DirectoryIteratorClose(FsDirectoryIterator iterator);
 
     // If outEntry->name is NULL, than this is last entry in the loop.
     // Loop goes to the first entry after last one, so it never stops.
@@ -78,14 +78,14 @@ extern "C"
         bool        isDir;
         const char* name;
     };
-    FORGE_TOOL_API bool fsDirectoryIteratorNext(FsDirectoryIterator iterator, struct FsDirectoryIteratorEntry* outEntry);
+    FORGE_TOOL_API bool DirectoryIteratorNext(FsDirectoryIterator iterator, struct FsDirectoryIteratorEntry* outEntry);
 
     /// Returns and allocates an array of all directories inside input resourceDir + directory. String also contains subDirectory
-    FORGE_TOOL_API bool fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char*** out, int* count);
+    FORGE_TOOL_API bool GetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char*** out, int* count);
 
     /// Returns and allocates array of all files inside input resourceDir + subDirectory. String also contains subDirectory
     /// Specifying empty extension will collect all files
-    FORGE_TOOL_API bool fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char*** out,
+    FORGE_TOOL_API bool GetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char*** out,
                                                 int* count);
     /************************************************************************/
     /************************************************************************/
@@ -93,20 +93,20 @@ extern "C"
     // Fetches entry info.
     // On some platforms entry types are not limited to file or directory.
     // Returns false if fetch is failed.
-    FORGE_TOOL_API bool fsCheckPath(ResourceDirectory resourceDir, const char* path, bool* exist, bool* isDir, bool* isFile);
+    FORGE_TOOL_API bool CheckPath(ResourceDirectory resourceDir, const char* path, bool* exist, bool* isDir, bool* isFile);
 
-    FORGE_TOOL_API bool fsRemoveFile(ResourceDirectory resourceDir, const char* fileName);
+    FORGE_TOOL_API bool RemoveFile(ResourceDirectory resourceDir, const char* fileName);
 
-    FORGE_TOOL_API bool fsRenameFile(ResourceDirectory resourceDir, const char* fileName, const char* newFileName);
+    FORGE_TOOL_API bool RenameFile(ResourceDirectory resourceDir, const char* fileName, const char* newFileName);
 
-    FORGE_TOOL_API bool fsCopyFile(ResourceDirectory sourceResourceDir, const char* sourceFileName, const ResourceDirectory destResourceDir,
+    FORGE_TOOL_API bool CopyFileTo(ResourceDirectory sourceResourceDir, const char* sourceFileName, const ResourceDirectory destResourceDir,
                                    const char* destFileName);
 
-    FORGE_TOOL_API bool fsFileExist(ResourceDirectory resourceDir, const char* fileName);
+    FORGE_TOOL_API bool FileExists(ResourceDirectory resourceDir, const char* fileName);
 
     /// Recursively create directories for given resourceDir and path
     /// Returns true if directories are created or already exist
-    FORGE_TOOL_API bool fsCreateDirectory(ResourceDirectory resourceDir, const char* path, bool recursive);
+    FORGE_TOOL_API bool MakeDirectory(ResourceDirectory resourceDir, const char* path, bool recursive);
 
     /************************************************************************/
     // MARK: - Minor filename manipulation
@@ -122,7 +122,7 @@ extern "C"
     /// Note: "a/.." normalizes into ".", but "" is also normalized empty string
     ///
     /// Result is true when 'path' is normalized with custom 'separator'.
-    FORGE_API bool fsIsNormalizedPath(const char* path, char separator);
+    FORGE_API bool IsNormalizedPath(const char* path, char separator);
 
     /// Appends string buffer 'outputBeg' with normalized version of 'nextPath'
     ///
@@ -138,59 +138,59 @@ extern "C"
     ///   On success, length is less than size of the buffer.
     ///   On failure, length is equal to size of the buffer.
     ///   Failure is when 'nextPath' insertion is unfinished.
-    FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, //
+    FORGE_API size_t NormalizePathContinue(const char* nextPath, char separator, //
                                              const char* outputBeg, char* outputCur, const char* outputEnd);
 
     /// Normalize 'path' with custom 'separator' into 'buffer'
     ///
     ///  'output' buffer size required to be " >= strlen(path)+1",
-    ///  use fsNormalizePathContinue to avoid that restriction.
+    ///  use NormalizePathContinue to avoid that restriction.
     ///
     ///  'path' and 'output' can point to single buffer:
-    ///  fsNormalizePath(str, '/', str)
+    ///  NormalizePath(str, '/', str)
     ///
     /// Return value: length of 'output' string. Always success.
-    static inline size_t fsNormalizePath(const char* path, char separator, char* output)
+    static inline size_t NormalizePath(const char* path, char separator, char* output)
     {
-        return fsNormalizePathContinue(path, separator, output, output, (char*)UINTPTR_MAX);
+        return NormalizePathContinue(path, separator, output, output, (char*)UINTPTR_MAX);
     }
 
-    /// same as fsAppendPathComponent but with extra options
+    /// same as AppendPathComponent but with extra options
     /// 'separator' must be '/', but '\' in WindowsFileSystem.cpp
     /// 'dstSize'   size of dst buffer
-    FORGE_API bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+    FORGE_API bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
 
     /// Write normalized version of 'dir'+ 'separator' + 'path' to dst
     /// requires dst buffer size to be >= FS_MAX_PATH
     /// Default use-case:
     ///   char path[FS_MAX_PATH];
-    ///   fsAppendPathComponent(fsGetResourceDirectory(rd), fileName, path);
-    static inline bool fsAppendPathComponent(const char* dir, const char* path, char* dst)
+    ///   AppendPathComponent(GetResourceDirectory(rd), fileName, path);
+    static inline bool AppendPathComponent(const char* dir, const char* path, char* dst)
     {
-        return fsMergeDirAndFileName(dir, path, '/', FS_MAX_PATH, dst);
+        return MergeDirAndFileName(dir, path, '/', FS_MAX_PATH, dst);
     }
 
     /// Appends `newExtension` to `basePath`.
     /// If `basePath` already has an extension, `newExtension` will be appended to the end.
     /// `output` buffer size required to be >= FS_MAX_PATH
-    FORGE_API void fsAppendPathExtension(const char* basePath, const char* newExtension, char* output);
+    FORGE_API void AppendPathExtension(const char* basePath, const char* newExtension, char* output);
 
     /// Appends `newExtension` to `basePath`.
     /// If `basePath` already has an extension, its previous extension will be replaced by `newExtension`.
     /// `output` buffer size required to be >= FS_MAX_PATH
-    FORGE_API void fsReplacePathExtension(const char* path, const char* newExtension, char* output);
+    FORGE_API void ReplacePathExtension(const char* path, const char* newExtension, char* output);
 
     /// Get `path`'s parent path, excluding the end seperator.
     /// `output` buffer size required to be >= FS_MAX_PATH
-    FORGE_API void fsGetParentPath(const char* path, char* output);
+    FORGE_API void GetParentPath(const char* path, char* output);
 
     /// Get `path`'s file name, without extension or parent path.
     /// `output` buffer size required to be >= FS_MAX_PATH
-    FORGE_API void fsGetPathFileName(const char* path, char* output);
+    FORGE_API void GetPathFileName(const char* path, char* output);
 
     /// Returns `path`'s extension, excluding the '.'.
     /// `output` buffer size required to be >= FS_MAX_PATH
-    FORGE_API void fsGetPathExtension(const char* path, char* output);
+    FORGE_API void GetPathExtension(const char* path, char* output);
 
     /************************************************************************/
     /************************************************************************/

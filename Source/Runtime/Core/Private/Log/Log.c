@@ -85,7 +85,7 @@ static void     addInitialLogFile(const char* appName);
 static bool     isLogCallback(const char* id);
 static uint32_t writeLogPreamble(char* buffer, uint32_t buffer_size, const char* file, int line);
 
-bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
 
 // Returns the part of the path after the last / or \ (if any).
 static const char* getFilename(const char* path)
@@ -106,8 +106,8 @@ static void defaultCallback(void* user_data, const char* message)
     FileStream* fh = (FileStream*)user_data;
     ASSERT(fh);
 
-    fsWriteToStream(fh, message, strlen(message));
-    fsFlushStream(fh);
+    WriteToStream(fh, message, strlen(message));
+    FlushStream(fh);
 }
 
 // Close callback
@@ -115,7 +115,7 @@ static void defaultClose(void* user_data)
 {
     FileStream* fh = (FileStream*)user_data;
     ASSERT(fh);
-    fsCloseStream(fh);
+    CloseStream(fh);
     tf_free(fh);
 }
 
@@ -125,7 +125,7 @@ static void defaultFlush(void* user_data)
     FileStream* fh = (FileStream*)user_data;
     ASSERT(fh);
 
-    fsFlushStream(fh);
+    FlushStream(fh);
 }
 
 void InitLog(const char* appName, LogLevel level /* = All */)
@@ -170,13 +170,13 @@ void AddLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
 
     FileStream fh;
     memset(&fh, 0, sizeof(FileStream));
-    if (fsOpenStreamFromPath(RD_LOG, filename, file_mode, &fh)) // If the File Exists
+    if (OpenStreamFromPath(RD_LOG, filename, file_mode, &fh)) // If the File Exists
     {
         FileStream* user = (FileStream*)tf_malloc(sizeof(FileStream));
         *user = fh;
         // AddCallback will try to acquire mutex
         char path[FS_MAX_PATH] = { 0 };
-        fsMergeDirAndFileName(fsGetResourceDirectory(RD_LOG), filename, '/', sizeof path, path);
+        MergeDirAndFileName(GetResourceDirectory(RD_LOG), filename, '/', sizeof path, path);
         AddLogCallback(path, log_level, user, defaultCallback, defaultClose, defaultFlush);
 
         LockMutex(&gLogger.logMutex);
@@ -187,8 +187,8 @@ void AddLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
                                          "                   file:line  "
                                          "  v |\n";
 
-            fsWriteToStream(&fh, header, sizeof(header) - 1);
-            fsFlushStream(&fh);
+            WriteToStream(&fh, header, sizeof(header) - 1);
+            FlushStream(&fh);
         }
         UnlockMutex(&gLogger.logMutex);
 

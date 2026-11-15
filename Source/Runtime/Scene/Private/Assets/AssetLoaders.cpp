@@ -288,17 +288,17 @@ void AssetSource::release()
 bool AssetSource::read(ResourceDirectory directory)
 {
     FileStream stream = {};
-    if (!fsOpenStreamFromPath(directory, pPath, FM_READ, &stream))
+    if (!OpenStreamFromPath(directory, pPath, FM_READ, &stream))
         return false;
-    const ssize_t size = fsGetStreamFileSize(&stream);
+    const ssize_t size = GetStreamFileSize(&stream);
     if (size <= 0 || size > 64 * 1024 * 1024)
     {
-        fsCloseStream(&stream);
+        CloseStream(&stream);
         return false;
     }
     Array<char>  json((uint32_t)size);
-    const size_t read = fsReadFromStream(&stream, json.data(), (size_t)size);
-    fsCloseStream(&stream);
+    const size_t read = ReadFromStream(&stream, json.data(), (size_t)size);
+    CloseStream(&stream);
     return read == (size_t)size && scene.parse({ json.data(), json.size() });
 }
 void AssetSource::decode(void* pUser, uint64_t)

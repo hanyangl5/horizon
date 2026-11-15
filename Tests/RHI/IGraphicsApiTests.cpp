@@ -607,13 +607,13 @@ protected:
         ASSERT_TRUE(initMemAlloc(nullptr));
         _EnableInteractiveMode(false);
 
-        FileSystemInitDesc fsDesc = {
+        FileSystemInitDesc FileSystemDesc = {
             .pAppName = "RHITests",
         };
-        ASSERT_TRUE(initFileSystem(&fsDesc));
+        ASSERT_TRUE(InitFileSystem(&FileSystemDesc));
 
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
-        fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
+        SetResourceDirectoryPath(SystemFileIO, RM_DEBUG, RD_LOG, "");
+        SetResourceDirectoryPath(SystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
 
         InitLog(nullptr, Error);
 
@@ -631,7 +631,7 @@ protected:
         sSharedRenderer = nullptr;
 
         ExitLog();
-        exitFileSystem();
+        ExitFileSystem();
         _EnableInteractiveMode(true);
         exitMemAlloc();
     }

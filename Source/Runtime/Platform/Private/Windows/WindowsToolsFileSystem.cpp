@@ -159,10 +159,10 @@ void fswThreadFunc(void* data)
     CloseHandle(hEvt);
 };
 
-FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMask, FileWatcherCallback callback, void* callbackUserData)
+FileWatcher* CreateFileWatcher(const char* path, FileWatcherEventMask eventMask, FileWatcherCallback callback, void* callbackUserData)
 {
     FileWatcher* watcher = (FileWatcher*)tf_calloc(1, sizeof(FileWatcher));
-    // watcher->mWatchDir = fsCopyPath(path);
+    // watcher->mWatchDir = CopyPath(path);
     strcpy(watcher->path, path);
 
     uint32_t notifyFilter = 0;
@@ -195,7 +195,7 @@ FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMas
     return watcher;
 }
 
-void fsFreeFileWatcher(FileWatcher* fileWatcher)
+void FreeFileWatcher(FileWatcher* fileWatcher)
 {
     fileWatcher->run = FALSE;
     SetEvent(fileWatcher->hExitEvt);
@@ -205,11 +205,11 @@ void fsFreeFileWatcher(FileWatcher* fileWatcher)
 }
 #endif
 
-bool fsRemoveFile(const ResourceDirectory resourceDir, const char* fileName)
+bool RemoveFile(const ResourceDirectory resourceDir, const char* fileName)
 {
-    const char* resourcePath = fsGetResourceDirectory(resourceDir);
+    const char* resourcePath = GetResourceDirectory(resourceDir);
     char        filePath[FS_MAX_PATH] = {};
-    fsAppendPathComponent(resourcePath, fileName, filePath);
+    AppendPathComponent(resourcePath, fileName, filePath);
 
     // Path utf-16 conversion
     size_t   filePathLen = strlen(filePath);
@@ -220,15 +220,15 @@ bool fsRemoveFile(const ResourceDirectory resourceDir, const char* fileName)
     return !_wremove(pathStr);
 }
 
-bool fsRenameFile(const ResourceDirectory resourceDir, const char* fileName, const char* newFileName)
+bool RenameFile(const ResourceDirectory resourceDir, const char* fileName, const char* newFileName)
 {
-    const char* resourcePath = fsGetResourceDirectory(resourceDir);
+    const char* resourcePath = GetResourceDirectory(resourceDir);
     wchar_t*    pathStr = NULL;
     wchar_t*    newpathStr = NULL;
 
     {
         char filePath[FS_MAX_PATH] = {};
-        fsAppendPathComponent(resourcePath, fileName, filePath);
+        AppendPathComponent(resourcePath, fileName, filePath);
 
         // Path utf-16 conversion
         size_t filePathLen = strlen(filePath);
@@ -239,7 +239,7 @@ bool fsRenameFile(const ResourceDirectory resourceDir, const char* fileName, con
 
     {
         char newfilePath[FS_MAX_PATH] = {};
-        fsAppendPathComponent(resourcePath, newFileName, newfilePath);
+        AppendPathComponent(resourcePath, newFileName, newfilePath);
 
         // New path utf-16 conversion
         size_t newfilePathLen = strlen(newfilePath);
@@ -251,14 +251,14 @@ bool fsRenameFile(const ResourceDirectory resourceDir, const char* fileName, con
     return !_wrename(pathStr, newpathStr);
 }
 
-bool fsCopyFile(const ResourceDirectory sourceResourceDir, const char* sourceFileName, const ResourceDirectory destResourceDir,
+bool CopyFileTo(const ResourceDirectory sourceResourceDir, const char* sourceFileName, const ResourceDirectory destResourceDir,
                 const char* destFileName)
 {
-    const char* sourceResourcePath = fsGetResourceDirectory(sourceResourceDir);
-    const char* destResourcePath = fsGetResourceDirectory(destResourceDir);
+    const char* sourceResourcePath = GetResourceDirectory(sourceResourceDir);
+    const char* destResourcePath = GetResourceDirectory(destResourceDir);
 
     char sourceFilePath[FS_MAX_PATH] = {};
-    fsAppendPathComponent(sourceResourcePath, sourceFileName, sourceFilePath);
+    AppendPathComponent(sourceResourcePath, sourceFileName, sourceFilePath);
     // Path utf-16 conversion
     size_t   sourcefilePathLen = strlen(sourceFilePath);
     wchar_t* sourcePathStr = (wchar_t*)alloca((sourcefilePathLen + 1) * sizeof(wchar_t));
@@ -267,7 +267,7 @@ bool fsCopyFile(const ResourceDirectory sourceResourceDir, const char* sourceFil
     sourcePathStr[sourcepathStrLength] = 0;
 
     char destFilePath[FS_MAX_PATH] = {};
-    fsAppendPathComponent(destResourcePath, destFileName, destFilePath);
+    AppendPathComponent(destResourcePath, destFileName, destFilePath);
     // Path utf-16 conversion
     size_t   destfilePathLen = strlen(destFilePath);
     wchar_t* destPathStr = (wchar_t*)alloca((destfilePathLen + 1) * sizeof(wchar_t));
@@ -292,11 +292,11 @@ bool file_exist(const char* filePath)
     return true;
 }
 
-bool fsFileExist(const ResourceDirectory resourceDir, const char* fileName)
+bool FileExists(const ResourceDirectory resourceDir, const char* fileName)
 {
-    const char* resourcePath = fsGetResourceDirectory(resourceDir);
+    const char* resourcePath = GetResourceDirectory(resourceDir);
     char        filePath[FS_MAX_PATH] = {};
-    fsAppendPathComponent(resourcePath, fileName, filePath);
+    AppendPathComponent(resourcePath, fileName, filePath);
 
     return file_exist(filePath);
 }
@@ -353,21 +353,21 @@ bool create_directories(const char* path, bool recursive)
     return true;
 }
 
-bool fsCreateDirectory(const ResourceDirectory resourceDir, const char* path, bool recursive)
+bool MakeDirectory(const ResourceDirectory resourceDir, const char* path, bool recursive)
 {
-    const char* resourcePath = fsGetResourceDirectory(resourceDir);
+    const char* resourcePath = GetResourceDirectory(resourceDir);
     char        directoryPath[FS_MAX_PATH] = {};
-    fsAppendPathComponent(resourcePath, path, directoryPath);
+    AppendPathComponent(resourcePath, path, directoryPath);
     if (!*directoryPath)
         return true;
 
     return create_directories(directoryPath, recursive);
 }
 
-bool fsCheckPath(ResourceDirectory rd, const char* path, bool* exist, bool* isDir, bool* isFile)
+bool CheckPath(ResourceDirectory rd, const char* path, bool* exist, bool* isDir, bool* isFile)
 {
     char fullPath[FS_MAX_PATH] = { 0 };
-    fsAppendPathComponent(fsGetResourceDirectory(rd), path, fullPath);
+    AppendPathComponent(GetResourceDirectory(rd), path, fullPath);
 
     DWORD attrs = GetFileAttributesA(fullPath);
 
@@ -429,17 +429,17 @@ static bool windowsFsDirectoryIteratorReopen(struct WindowsFsDirectoryIterator* 
     return true;
 }
 
-bool fsDirectoryIteratorOpen(ResourceDirectory rd, const char* dir, FsDirectoryIterator* out)
+bool DirectoryIteratorOpen(ResourceDirectory rd, const char* dir, FsDirectoryIterator* out)
 {
     *out = 0;
 
     struct WindowsFsDirectoryIterator* iterator = (struct WindowsFsDirectoryIterator*)tf_calloc(1, sizeof *iterator);
 
-    fsAppendPathComponent(fsGetResourceDirectory(rd), dir, iterator->openedPath);
+    AppendPathComponent(GetResourceDirectory(rd), dir, iterator->openedPath);
 
     if (!windowsFsDirectoryIteratorReopen(iterator))
     {
-        fsDirectoryIteratorClose(iterator);
+        DirectoryIteratorClose(iterator);
         return false;
     }
 
@@ -447,7 +447,7 @@ bool fsDirectoryIteratorOpen(ResourceDirectory rd, const char* dir, FsDirectoryI
     return true;
 }
 
-void fsDirectoryIteratorClose(FsDirectoryIterator data)
+void DirectoryIteratorClose(FsDirectoryIterator data)
 {
     if (!data)
         return;
@@ -459,7 +459,7 @@ void fsDirectoryIteratorClose(FsDirectoryIterator data)
     tf_free(iterator);
 }
 
-bool fsDirectoryIteratorNext(FsDirectoryIterator data, struct FsDirectoryIteratorEntry* outEntry)
+bool DirectoryIteratorNext(FsDirectoryIterator data, struct FsDirectoryIteratorEntry* outEntry)
 {
     struct WindowsFsDirectoryIterator* iterator = (struct WindowsFsDirectoryIterator*)data;
 
@@ -471,7 +471,7 @@ bool fsDirectoryIteratorNext(FsDirectoryIterator data, struct FsDirectoryIterato
 
     for (;;)
     {
-        // to use first entry from fsDirectoryIteratorOpen
+        // to use first entry from DirectoryIteratorOpen
         if (iterator->entryUsed)
             iterator->success = FindNextFileW(iterator->hFind, &iterator->fd);
         iterator->entryUsed = true;

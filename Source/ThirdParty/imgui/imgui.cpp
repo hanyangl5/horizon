@@ -2097,11 +2097,11 @@ ImGuiID ImHashStr(const char* data_p, size_t data_size, ImGuiID seed)
 
 // Default file functions
 #ifdef FORGE_UI_IMGUI_FORCE_FILE_SYSTEM
-bool    ImFileOpen(const char* filename, FileMode mode, ImFileHandle* file) { return fsOpenStreamFromPath(RD_LOG, filename, mode, file); }
-bool    ImFileClose(ImFileHandle f) { return fsCloseStream(&f); }
-ImU64   ImFileGetSize(ImFileHandle f) { return fsGetStreamFileSize(&f); }
-ImU64   ImFileRead(void* data, ImU64 sz, ImU64 count, ImFileHandle f) { return fsReadFromStream(&f, data, sz * count); }
-ImU64   ImFileWrite(const void* data, ImU64 sz, ImU64 count, ImFileHandle f) { return fsWriteToStream(&f, data, sz * count); }
+bool    ImFileOpen(const char* filename, FileMode mode, ImFileHandle* file) { return OpenStreamFromPath(RD_LOG, filename, mode, file); }
+bool    ImFileClose(ImFileHandle f) { return CloseStream(&f); }
+ImU64   ImFileGetSize(ImFileHandle f) { return GetStreamFileSize(&f); }
+ImU64   ImFileRead(void* data, ImU64 sz, ImU64 count, ImFileHandle f) { return ReadFromStream(&f, data, sz * count); }
+ImU64   ImFileWrite(const void* data, ImU64 sz, ImU64 count, ImFileHandle f) { return WriteToStream(&f, data, sz * count); }
 #else
 #ifndef IMGUI_DISABLE_DEFAULT_FILE_FUNCTIONS
 

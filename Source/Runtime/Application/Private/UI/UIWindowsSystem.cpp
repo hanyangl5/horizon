@@ -53,15 +53,15 @@ static bool wndValidateWindowPos(int32_t x, int32_t y)
 
     if (winDesc->centered)
     {
-        uint32_t fsHalfWidth = getRectWidth(&winDesc->fullscreenRect) >> 1;
-        uint32_t fsHalfHeight = getRectHeight(&winDesc->fullscreenRect) >> 1;
+        uint32_t FullscreenHalfWidth = getRectWidth(&winDesc->fullscreenRect) >> 1;
+        uint32_t FullscreenHalfHeight = getRectHeight(&winDesc->fullscreenRect) >> 1;
         uint32_t windowWidth = getRectWidth(&winDesc->clientRect);
         uint32_t windowHeight = getRectHeight(&winDesc->clientRect);
         uint32_t windowHalfWidth = windowWidth >> 1;
         uint32_t windowHalfHeight = windowHeight >> 1;
 
-        int32_t X = fsHalfWidth - windowHalfWidth;
-        int32_t Y = fsHalfHeight - windowHalfHeight;
+        int32_t X = FullscreenHalfWidth - windowHalfWidth;
+        int32_t Y = FullscreenHalfHeight - windowHalfHeight;
 
         if ((abs(winDesc->windowedRect.left + clientWidthStart - X) > 1) || (abs(winDesc->windowedRect.top + clientHeightStart - Y) > 1))
             return false;

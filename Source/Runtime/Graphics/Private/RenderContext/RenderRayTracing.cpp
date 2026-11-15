@@ -328,23 +328,23 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
         return {};
     }
     FileStream stream = {};
-    if (!fsOpenStreamFromPath(input.sourceDirectory, input.pFileName, FM_READ, &stream))
+    if (!OpenStreamFromPath(input.sourceDirectory, input.pFileName, FM_READ, &stream))
     {
         LOGF(Error, "Cannot open ray tracing shader '%s'", input.pFileName);
         return {};
     }
-    const ssize_t size = fsGetStreamFileSize(&stream);
+    const ssize_t size = GetStreamFileSize(&stream);
     Array<char>   source(size > 0 && size < UINT32_MAX ? (uint32_t)size + 1 : 0);
-    const bool    read = size > 0 && size < UINT32_MAX && fsReadFromStream(&stream, source.data(), (size_t)size) == (size_t)size;
-    fsCloseStream(&stream);
+    const bool    read = size > 0 && size < UINT32_MAX && ReadFromStream(&stream, source.data(), (size_t)size) == (size_t)size;
+    CloseStream(&stream);
     if (!read)
     {
         return {};
     }
     source[(uint32_t)size] = 0;
     char        path[FS_MAX_PATH];
-    const char* searchPath = fsGetResourceDirectory(input.sourceDirectory);
-    if (!fsAppendPathComponent(searchPath, input.pFileName, path))
+    const char* searchPath = GetResourceDirectory(input.sourceDirectory);
+    if (!AppendPathComponent(searchPath, input.pFileName, path))
     {
         return {};
     }

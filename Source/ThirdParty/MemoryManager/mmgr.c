@@ -633,8 +633,8 @@ static void dumpLine(FileStream* fileToWrite, const char* format, ...)
 	_OutputDebugString("\n");
 	if (fileToWrite != NULL)
 	{
-		fsWriteToStream(fileToWrite, buffer, strlen(buffer));
-		fsWriteToStream(fileToWrite, "\n", 1);
+		WriteToStream(fileToWrite, buffer, strlen(buffer));
+		WriteToStream(fileToWrite, "\n", 1);
 		fsFlushStream(fileToWrite);
 	}
 }
@@ -685,7 +685,7 @@ static void dumpLeakReport()
 		strcat(outputFileName, extension);
 
 		FileStream fh = { 0 };
-		bool       success = fsOpenStreamFromPath(RD_LOG, outputFileName, FM_WRITE, NULL, &fh);
+		bool       success = OpenStreamFromPath(RD_LOG, outputFileName, FM_WRITE, NULL, &fh);
 
 		/*if (!fh)
 			return;*/
@@ -743,7 +743,7 @@ static void dumpLeakReport()
 		}
 		if (success)
 		{
-			fsCloseStream(&fh);
+			CloseStream(&fh);
 		}
 
 		m_assert(stats.totalAllocUnitCount == 0 && "Memory leaks found");
@@ -1681,14 +1681,14 @@ static void fsPrintf(FileStream* fileStream, const char* format, ...)
 	va_start(args, format);
 	vsnprintf(buffer, BUFFER_SIZE, format, args);
 	va_end(args);
-	fsWriteToStream(fileStream, buffer, strlen(buffer));
+	WriteToStream(fileStream, buffer, strlen(buffer));
 }
 
 void mmgrDumpMemoryReport(const char* filename, const bool overwrite)
 {
 	{
 		FileStream fh = { 0 };
-		bool       success = fsOpenStreamFromPath(RD_LOG, filename, overwrite ? FM_WRITE : FM_APPEND, NULL, &fh);
+		bool       success = OpenStreamFromPath(RD_LOG, filename, overwrite ? FM_WRITE : FM_APPEND, NULL, &fh);
 
 		// If you hit this assert, then the memory report generator is unable to log information to a file (can't open the file for
 		// some reason.)
@@ -1792,7 +1792,7 @@ void mmgrDumpMemoryReport(const char* filename, const bool overwrite)
 
 		dumpAllocations(&fh);
 
-		fsCloseStream(&fh);
+		CloseStream(&fh);
 	}
 }
 

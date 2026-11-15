@@ -115,12 +115,12 @@ bool readShaderCacheFile(uint64_t key, ShaderCacheFile& file)
     char fileName[64] = {};
     getShaderCacheFile(key, fileName, sizeof(fileName));
     FileStream stream = {};
-    if (!fsOpenStreamFromPath(RD_SHADER_BINARIES, fileName, FM_READ, &stream))
+    if (!OpenStreamFromPath(RD_SHADER_BINARIES, fileName, FM_READ, &stream))
         return false;
-    const ssize_t fileSize = fsGetStreamFileSize(&stream);
+    const ssize_t fileSize = GetStreamFileSize(&stream);
     file.pBytes = fileSize > 0 ? (uint8_t*)tf_malloc((size_t)fileSize) : nullptr;
-    const bool read = file.pBytes && fsReadFromStream(&stream, file.pBytes, (size_t)fileSize) == (size_t)fileSize;
-    fsCloseStream(&stream);
+    const bool read = file.pBytes && ReadFromStream(&stream, file.pBytes, (size_t)fileSize) == (size_t)fileSize;
+    CloseStream(&stream);
     file.size = read ? (size_t)fileSize : 0;
     return read;
 }
@@ -185,12 +185,12 @@ void storeShaderCache(uint64_t key, const BinaryShaderDesc& binary)
     char       fileName[64] = {};
     FileStream stream = {};
     getShaderCacheFile(key, fileName, sizeof(fileName));
-    if (!fsOpenStreamFromPath(RD_SHADER_BINARIES, fileName, FM_WRITE, &stream))
+    if (!OpenStreamFromPath(RD_SHADER_BINARIES, fileName, FM_WRITE, &stream))
         return;
     const ShaderCacheHeader header = {
         .magic = kShaderCacheMagic, .version = kShaderCacheVersion, .stages = (uint32_t)binary.stages, .stageCount = stageCount
     };
-    fsWriteToStream(&stream, &header, sizeof(header));
+    WriteToStream(&stream, &header, sizeof(header));
     for (uint32_t i = 0; i < kCachedStageCount; ++i)
     {
         if (!(binary.stages & kCachedStages[i]))
@@ -199,11 +199,11 @@ void storeShaderCache(uint64_t key, const BinaryShaderDesc& binary)
         const ShaderCacheStageHeader stage = { .stage = (uint32_t)kCachedStages[i],
                                                .entryPointSize = (uint32_t)entryPointSize,
                                                .byteCodeSize = stageDescs[i]->byteCodeSize };
-        fsWriteToStream(&stream, &stage, sizeof(stage));
-        fsWriteToStream(&stream, stageDescs[i]->pEntryPoint, entryPointSize);
-        fsWriteToStream(&stream, stageDescs[i]->pByteCode, stageDescs[i]->byteCodeSize);
+        WriteToStream(&stream, &stage, sizeof(stage));
+        WriteToStream(&stream, stageDescs[i]->pEntryPoint, entryPointSize);
+        WriteToStream(&stream, stageDescs[i]->pByteCode, stageDescs[i]->byteCodeSize);
     }
-    fsCloseStream(&stream);
+    CloseStream(&stream);
 }
 } // namespace
 

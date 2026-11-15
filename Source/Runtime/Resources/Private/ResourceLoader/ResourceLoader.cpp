@@ -3538,9 +3538,9 @@
 
 extern "C"
 {
-    void fsGetParentPath(const char* path, char* output);
-    void fsGetPathExtension(const char* path, char* output);
-    bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+    void GetParentPath(const char* path, char* output);
+    void GetPathExtension(const char* path, char* output);
+    bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
 }
 
 #define MIP_REDUCE(s, mip) (max(1u, (uint32_t)((s) >> (mip))))
@@ -4525,31 +4525,31 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
         cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
     }
 
-    // #TODO: Investigate - fsRead crashes if we pass the upload buffer mapped address. Allocating temporary buffer as a workaround. Does NX
+    // #TODO: Investigate - ReadStream crashes if we pass the upload buffer mapped address. Allocating temporary buffer as a workaround. Does NX
     // support loading from disk to GPU shared memory?
 #ifdef NX64
     void* nxTempBuffer = NULL;
     if (!dataAlreadyFilled)
     {
-        size_t remainingBytes = fsGetStreamFileSize(&stream) - fsGetStreamSeekPosition(&stream);
+        size_t remainingBytes = GetStreamFileSize(&stream) - GetStreamPosition(&stream);
         nxTempBuffer = tf_malloc(remainingBytes);
-        ssize_t bytesRead = fsReadFromStream(&stream, nxTempBuffer, remainingBytes);
+        ssize_t bytesRead = ReadFromStream(&stream, nxTempBuffer, remainingBytes);
         if (bytesRead != remainingBytes)
         {
-            fsCloseStream(&stream);
+            CloseStream(&stream);
             tf_free(nxTempBuffer);
             return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
         }
 
-        fsCloseStream(&stream);
-        fsOpenStreamFromMemory(nxTempBuffer, remainingBytes, FM_READ, true, &stream);
+        CloseStream(&stream);
+        OpenStreamFromMemory(nxTempBuffer, remainingBytes, FM_READ, true, &stream);
     }
 #endif
 
     if (!upload.pData)
     {
         if (stream.pIO)
-            fsCloseStream(&stream);
+            CloseStream(&stream);
         return UPLOAD_FUNCTION_RESULT_STAGING_BUFFER_FULL;
     }
 
@@ -4591,7 +4591,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                 if (!ret)
                 {
                     if (stream.pIO)
-                        fsCloseStream(&stream);
+                        CloseStream(&stream);
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
                 }
 
@@ -4608,10 +4608,10 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                         uint8_t* dstData = data + subSlicePitch * z;
                         for (uint32_t r = 0; r < subNumRows; ++r)
                         {
-                            ssize_t bytesRead = fsReadFromStream(&stream, dstData + r * subRowPitch, rowBytes);
+                            ssize_t bytesRead = ReadFromStream(&stream, dstData + r * subRowPitch, rowBytes);
                             if (bytesRead != rowBytes)
                             {
-                                fsCloseStream(&stream);
+                                CloseStream(&stream);
                                 return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
                             }
                         }
@@ -4637,7 +4637,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 
     if (stream.pIO)
     {
-        fsCloseStream(&stream);
+        CloseStream(&stream);
     }
 
     return UPLOAD_FUNCTION_RESULT_COMPLETED;
@@ -4718,7 +4718,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         {
         case TEXTURE_CONTAINER_DDS:
         {
-            success = fsOpenStreamFromPath(pTextureDesc->resourceDirectory, pTextureDesc->pFileName, FM_READ, &stream);
+            success = OpenStreamFromPath(pTextureDesc->resourceDirectory, pTextureDesc->pFileName, FM_READ, &stream);
             if (success)
             {
                 success = loadDDSTextureDesc(&stream, &textureDesc);
@@ -4727,7 +4727,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         }
         case TEXTURE_CONTAINER_KTX:
         {
-            success = fsOpenStreamFromPath(pTextureDesc->resourceDirectory, pTextureDesc->pFileName, FM_READ, &stream);
+            success = OpenStreamFromPath(pTextureDesc->resourceDirectory, pTextureDesc->pFileName, FM_READ, &stream);
             if (success)
             {
                 success = loadKTXTextureDesc(&stream, &textureDesc);
@@ -4737,7 +4737,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                 updateDesc.pPreMipFunc = [](FileStream* pStream, uint32_t)
                 {
                     uint32_t mipSize = 0;
-                    fsReadFromStream(pStream, &mipSize, sizeof(mipSize));
+                    ReadFromStream(pStream, &mipSize, sizeof(mipSize));
                 };
             }
             break;
@@ -4756,13 +4756,13 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                 textureDesc.mipLevels == 1 && textureDesc.format == hz::Format::DXBC5_UNORM)
             {
                 uint8_t    block[16] = {};
-                const bool read = fsReadFromStream(&stream, block, sizeof(block)) == sizeof(block);
-                fsCloseStream(&stream);
+                const bool read = ReadFromStream(&stream, block, sizeof(block)) == sizeof(block);
+                CloseStream(&stream);
                 if (!read)
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
                 singleTexelNormal[0] = decodeBC5SingleTexelChannel(block);
                 singleTexelNormal[1] = decodeBC5SingleTexelChannel(block + 8);
-                if (!fsOpenStreamFromMemory(singleTexelNormal, sizeof(singleTexelNormal), FM_READ, false, &stream))
+                if (!OpenStreamFromMemory(singleTexelNormal, sizeof(singleTexelNormal), FM_READ, false, &stream))
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
                 textureDesc.format = hz::Format::R8G8_UNORM;
             }
@@ -4815,7 +4815,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             return res;
         }
         if (stream.pIO)
-            fsCloseStream(&stream);
+            CloseStream(&stream);
     }
 
     LOGF(Error, "Failed to open texture file %s", pTextureDesc->pFileName ? pTextureDesc->pFileName : "<NULL>");
@@ -4942,7 +4942,7 @@ public:
     ~GeometryFileRead()
     {
         if (file.pIO)
-            fsCloseStream(&file);
+            CloseStream(&file);
         tf_free(pMeshlets);
         tf_free(pShadow);
         tf_free(pData);
@@ -4951,14 +4951,14 @@ public:
 
     bool read(void* pDestination, size_t size)
     {
-        return size <= (uint64_t)fsGetStreamFileSize(&file) - (uint64_t)fsGetStreamSeekPosition(&file) &&
-               fsReadFromStream(&file, pDestination, size) == size;
+        return size <= (uint64_t)GetStreamFileSize(&file) - (uint64_t)GetStreamPosition(&file) &&
+               ReadFromStream(&file, pDestination, size) == size;
     }
 
     bool readBlock(void** ppDestination, size_t minimum, uint32_t* pSize)
     {
         if (!read(pSize, sizeof(*pSize)) || *pSize < minimum ||
-            *pSize > (uint64_t)fsGetStreamFileSize(&file) - (uint64_t)fsGetStreamSeekPosition(&file))
+            *pSize > (uint64_t)GetStreamFileSize(&file) - (uint64_t)GetStreamPosition(&file))
             return false;
         *ppDestination = tf_calloc(1, *pSize);
         return read(*ppDestination, *pSize);
@@ -4976,7 +4976,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
                                                          BufferUpdateDesc indexUpdateDesc[1])
 {
     GeometryFileRead reader;
-    if (!fsOpenStreamFromPath(pDesc->resourceDirectory, pDesc->pFileName, FM_READ, &reader.file))
+    if (!OpenStreamFromPath(pDesc->resourceDirectory, pDesc->pFileName, FM_READ, &reader.file))
     {
         LOGF(Error, "Failed to open bin file %s", pDesc->pFileName);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
@@ -5036,7 +5036,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
 
         uint64_t alloc_size = meshlets_size + meshlets_data_size + vertices_size + triangles_size;
 
-        if (alloc_size > (uint64_t)fsGetStreamFileSize(&reader.file) - (uint64_t)fsGetStreamSeekPosition(&reader.file))
+        if (alloc_size > (uint64_t)GetStreamFileSize(&reader.file) - (uint64_t)GetStreamPosition(&reader.file))
             return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
         void* mem = reader.pMeshlets = tf_malloc(alloc_size);
 
@@ -5756,14 +5756,14 @@ void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
         {
             // During material compilation we generate an ini file with data to initialize the material library
             FileStream stream = {};
-            if (fsOpenStreamFromPath(RD_COMPILED_MATERIALS, "material_lib.ini", FM_READ, &stream))
+            if (OpenStreamFromPath(RD_COMPILED_MATERIALS, "material_lib.ini", FM_READ, &stream))
             {
                 char buffer[256] = {};
-                ASSERT((uint64_t)fsGetStreamFileSize(&stream) <= sizeof(buffer));
-                fsReadFromStream(&stream, buffer, sizeof(buffer));
+                ASSERT((uint64_t)GetStreamFileSize(&stream) <= sizeof(buffer));
+                ReadFromStream(&stream, buffer, sizeof(buffer));
                 sscanf(buffer, "%u %u", &maxShaders, &maxTextures);
 
-                fsCloseStream(&stream);
+                CloseStream(&stream);
             }
             else
             {
@@ -6160,20 +6160,20 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
     uint64_t   fileSize = 0;
     FileStream stream = {};
 
-    if (fsOpenStreamFromPath(RD_COMPILED_MATERIALS, pMaterialFileName, FM_READ, &stream))
+    if (OpenStreamFromPath(RD_COMPILED_MATERIALS, pMaterialFileName, FM_READ, &stream))
     {
-        fileSize = fsGetStreamFileSize(&stream);
+        fileSize = GetStreamFileSize(&stream);
 
         if (fileSize < sizeof(materialFileStackBuffer))
             materialFileBuffer = materialFileStackBuffer;
         else
             materialFileBuffer = (char*)tf_malloc(fileSize + 1);
 
-        const uint64_t readSize = fsReadFromStream(&stream, materialFileBuffer, fileSize);
+        const uint64_t readSize = ReadFromStream(&stream, materialFileBuffer, fileSize);
         ASSERT(readSize <= fileSize);
         materialFileBuffer[readSize] = '\0';
 
-        fsCloseStream(&stream);
+        CloseStream(&stream);
     }
     else
     {
@@ -7161,32 +7161,32 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
     // NOTE: On some platforms, we might not be allowed to write in the `RD_SHADER_BINARIES` directory.
     // If we want to load re-compiled binaries, then they must be cached elsewhere and queried here.
 
-    const bool result = fsOpenStreamFromPath(RD_SHADER_BINARIES, binaryShaderPath, FM_READ, &binaryFileStream);
+    const bool result = OpenStreamFromPath(RD_SHADER_BINARIES, binaryShaderPath, FM_READ, &binaryFileStream);
     ASSERT(result);
     if (!result)
         return result;
 
-    ssize_t size = fsGetStreamFileSize(&binaryFileStream);
+    ssize_t size = GetStreamFileSize(&binaryFileStream);
     ASSERT(size > 0);
 
     FSLHeader header = {};
-    if (sizeof(FSLHeader) != fsReadFromStream(&binaryFileStream, (void*)&header, sizeof(FSLHeader)))
+    if (sizeof(FSLHeader) != ReadFromStream(&binaryFileStream, (void*)&header, sizeof(FSLHeader)))
         ASSERT(false);
 
     if (strncmp("@FSL", header.magic, 4) != 0)
     {
         // Shader was not compiled using FSL script
-        fsSeekStream(&binaryFileStream, SBO_START_OF_FILE, 0);
+        SeekStream(&binaryFileStream, SBO_START_OF_FILE, 0);
         pOut->pByteCode = allocShaderByteCode(pShaderByteCodeBuffer, 256, (uint32_t)size, binaryShaderPath);
         pOut->byteCodeSize = (uint32_t)size;
-        fsReadFromStream(&binaryFileStream, (void*)pOut->pByteCode, size);
+        ReadFromStream(&binaryFileStream, (void*)pOut->pByteCode, size);
     }
     else
     {
         ASSERT(strncmp("@FSL", header.magic, 4) == 0);
         const size_t   derivativesSize = sizeof(FSLDerivative) * header.derivativeCount;
         FSLDerivative* pDerivatives = (FSLDerivative*)alloca(derivativesSize);
-        if (derivativesSize != fsReadFromStream(&binaryFileStream, (void*)pDerivatives, derivativesSize))
+        if (derivativesSize != ReadFromStream(&binaryFileStream, (void*)pDerivatives, derivativesSize))
             ASSERT(false);
 
         if (pOutMetadata)
@@ -7196,7 +7196,7 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
         {
             if (header.derivativeCount == 1 || pDerivatives[i].hash == 0)
             {
-                if (!fsSeekStream(&binaryFileStream, SBO_START_OF_FILE, pDerivatives[i].offset))
+                if (!SeekStream(&binaryFileStream, SBO_START_OF_FILE, pDerivatives[i].offset))
                 {
                     LOGF(Error, "Failed to read file '%s'", binaryShaderPath);
                     break;
@@ -7205,7 +7205,7 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
                 size = pDerivatives[i].size;
                 pOut->pByteCode = allocShaderByteCode(pShaderByteCodeBuffer, 256, (uint32_t)size, binaryShaderPath);
                 pOut->byteCodeSize = (uint32_t)pDerivatives[i].size;
-                if (fsReadFromStream(&binaryFileStream, (void*)pOut->pByteCode, size) != (size_t)size)
+                if (ReadFromStream(&binaryFileStream, (void*)pOut->pByteCode, size) != (size_t)size)
                 {
                     LOGF(Error, "Failed to read file '%s'", binaryShaderPath);
                 }
@@ -7216,7 +7216,7 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
         ASSERT(pOut->pByteCode);
     }
 
-    fsCloseStream(&binaryFileStream);
+    CloseStream(&binaryFileStream);
     return true;
 }
 
@@ -7302,7 +7302,7 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
             ShaderStage            stage;
             BinaryShaderStageDesc* pStage = nullptr;
             char                   ext[FS_MAX_PATH] = { 0 };
-            fsGetPathExtension(pDesc->stages[i].pFileName, ext);
+            GetPathExtension(pDesc->stages[i].pFileName, ext);
             if (find_shader_stage(ext, &binaryDesc, &pStage, &stage))
                 stages |= stage;
         }
@@ -7317,7 +7317,7 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
         BinaryShaderStageDesc* pStage = nullptr;
         {
             char ext[FS_MAX_PATH];
-            fsGetPathExtension(fileName, ext);
+            GetPathExtension(fileName, ext);
             if (!find_shader_stage(ext, &binaryDesc, &pStage, &stage))
                 continue;
         }
@@ -7371,7 +7371,7 @@ void addShaderSrc(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppS
             // ShaderStage            stage;
             // BinaryShaderStageDesc* pStage = NULL;
             // char                   ext[FS_MAX_PATH] = { 0 };
-            // fsGetPathExtension(pDesc->stages[i].pFileName, ext);
+            // GetPathExtension(pDesc->stages[i].pFileName, ext);
             // if (find_shader_stage(ext, &binaryDesc, &pStage, &stage))
             stages |= pDesc->stages[i].stage;
         }
@@ -7432,20 +7432,20 @@ void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, 
     strcat(rendererApi, pDesc->pFileName);
 
     FileStream stream = {};
-    bool       success = fsOpenStreamFromPath(RD_PIPELINE_CACHE, rendererApi, FM_READ, &stream);
+    bool       success = OpenStreamFromPath(RD_PIPELINE_CACHE, rendererApi, FM_READ, &stream);
     ssize_t    dataSize = 0;
     void*      data = nullptr;
     if (success)
     {
-        dataSize = fsGetStreamFileSize(&stream);
+        dataSize = GetStreamFileSize(&stream);
         data = nullptr;
         if (dataSize)
         {
             data = tf_malloc(dataSize);
-            fsReadFromStream(&stream, data, dataSize);
+            ReadFromStream(&stream, data, dataSize);
         }
 
-        fsCloseStream(&stream);
+        CloseStream(&stream);
     }
 
     PipelineCacheDesc desc = {};
@@ -7471,7 +7471,7 @@ void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, Pipel
     strcat(rendererApi, pDesc->pFileName);
 
     FileStream stream = {};
-    if (fsOpenStreamFromPath(RD_PIPELINE_CACHE, rendererApi, FM_WRITE, &stream))
+    if (OpenStreamFromPath(RD_PIPELINE_CACHE, rendererApi, FM_WRITE, &stream))
     {
         size_t dataSize = 0;
         getPipelineCacheData(pRenderer, pPipelineCache, &dataSize, NULL);
@@ -7479,11 +7479,11 @@ void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, Pipel
         {
             void* data = tf_malloc(dataSize);
             getPipelineCacheData(pRenderer, pPipelineCache, &dataSize, data);
-            fsWriteToStream(&stream, data, dataSize);
+            WriteToStream(&stream, data, dataSize);
             tf_free(data);
         }
 
-        fsCloseStream(&stream);
+        CloseStream(&stream);
     }
 #endif
 }

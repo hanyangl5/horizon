@@ -464,16 +464,16 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
     const void*   pFileSource = nullptr;
     size_t        fileSize = 0;
     char          sourcePath[FS_MAX_PATH] = {};
-    if (input.pFileName && (!fsOpenStreamFromPath(input.sourceDirectory, input.pFileName, FM_READ, &sourceFile) ||
-                            !fsStreamMemoryMap(&sourceFile, &fileSize, &pFileSource) || !fileSize || fileSize > UINT32_MAX))
+    if (input.pFileName && (!OpenStreamFromPath(input.sourceDirectory, input.pFileName, FM_READ, &sourceFile) ||
+                            !StreamMemoryMap(&sourceFile, &fileSize, &pFileSource) || !fileSize || fileSize > UINT32_MAX))
     {
         LOGF(Error, "Could not map shader source '%s'", input.pFileName);
         if (sourceFile.pIO)
-            fsCloseStream(&sourceFile);
+            CloseStream(&sourceFile);
         return {};
     }
     if (pFileSource)
-        snprintf(sourcePath, sizeof(sourcePath), "%s/%s", fsGetResourceDirectory(input.sourceDirectory), input.pFileName);
+        snprintf(sourcePath, sizeof(sourcePath), "%s/%s", GetResourceDirectory(input.sourceDirectory), input.pFileName);
     uint32_t stageCount = input.stages.count;
     for (uint32_t i = 0; i < stageCount; ++i)
     {
@@ -510,7 +510,7 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
     else
         addShaderSource(pRenderer, &source, &shader);
     if (sourceFile.pIO)
-        fsCloseStream(&sourceFile);
+        CloseStream(&sourceFile);
     ASSERT(shader);
     return shader;
 }
@@ -666,23 +666,23 @@ bool RenderContext::initPipelineCache()
     PipelineCacheDesc        cacheDesc = {};
     void*                    pBlob = nullptr;
     FileStream               stream = {};
-    if (fsOpenStreamFromPath(RD_SHADER_BINARIES, kPipelineCacheFile, FM_READ, &stream))
+    if (OpenStreamFromPath(RD_SHADER_BINARIES, kPipelineCacheFile, FM_READ, &stream))
     {
         PipelineCacheHeader header = {};
-        const ssize_t       fileSize = fsGetStreamFileSize(&stream);
+        const ssize_t       fileSize = GetStreamFileSize(&stream);
         const bool          headerRead =
-            fileSize > (ssize_t)sizeof(header) && fsReadFromStream(&stream, &header, sizeof(header)) == sizeof(header);
+            fileSize > (ssize_t)sizeof(header) && ReadFromStream(&stream, &header, sizeof(header)) == sizeof(header);
         if (headerRead && memcmp(&header, &expected, sizeof(header)) == 0)
         {
             const size_t blobSize = (size_t)fileSize - sizeof(header);
             pBlob = tf_malloc(blobSize);
-            if (pBlob && fsReadFromStream(&stream, pBlob, blobSize) == blobSize)
+            if (pBlob && ReadFromStream(&stream, pBlob, blobSize) == blobSize)
             {
                 cacheDesc.pData = pBlob;
                 cacheDesc.size = blobSize;
             }
         }
-        fsCloseStream(&stream);
+        CloseStream(&stream);
     }
     addPipelineCache(pRenderer, &cacheDesc, &pPipelineCache);
     tf_free(pBlob);
@@ -704,11 +704,11 @@ void RenderContext::savePipelineCache()
 
     const PipelineCacheHeader header = makeCacheHeader(pRenderer->pGpu->settings);
     FileStream                stream = {};
-    if (fsOpenStreamFromPath(RD_SHADER_BINARIES, kPipelineCacheFile, FM_WRITE, &stream))
+    if (OpenStreamFromPath(RD_SHADER_BINARIES, kPipelineCacheFile, FM_WRITE, &stream))
     {
-        fsWriteToStream(&stream, &header, sizeof(header));
-        fsWriteToStream(&stream, pBlob, blobSize);
-        fsCloseStream(&stream);
+        WriteToStream(&stream, &header, sizeof(header));
+        WriteToStream(&stream, pBlob, blobSize);
+        CloseStream(&stream);
     }
     tf_free(pBlob);
 }

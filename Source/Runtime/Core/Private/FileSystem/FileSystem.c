@@ -49,9 +49,9 @@ static inline char separatorFilter(char c, char separator) { return isDirectoryS
 
 static inline bool isDriveLetter(const char* path) { return path[0] && path[1] == ':' && isDirectorySeparator(path[2]); }
 
-FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, const char* beg, char* cur, const char* end);
+FORGE_API size_t NormalizePathContinue(const char* nextPath, char separator, const char* beg, char* cur, const char* end);
 
-FORGE_API bool fsIsNormalizedPath(const char* path, char separator)
+FORGE_API bool IsNormalizedPath(const char* path, char separator)
 {
     const char* cur = path;
 
@@ -124,19 +124,19 @@ FORGE_API bool fsIsNormalizedPath(const char* path, char separator)
     return true;
 
 RETURN_FALSE:
-    // Test if opinion of fsNormalizePath and fsIsNormalizedPath matches.
+    // Test if opinion of NormalizePath and IsNormalizedPath matches.
     // Test failure can cause infinite recursion here.
 #if defined(FORGE_DEBUG)
     if (strlen(path) > FS_MAX_PATH - 1)
         return false;
     char buffer[FS_MAX_PATH] = { 0 };
-    fsNormalizePathContinue(path, separator, buffer, buffer, (char*)UINTPTR_MAX);
+    NormalizePathContinue(path, separator, buffer, buffer, (char*)UINTPTR_MAX);
     ASSERT(strcmp(buffer, path) != 0);
 #endif
     return false;
 }
 
-FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, const char* beg, char* cur, const char* end)
+FORGE_API size_t NormalizePathContinue(const char* nextPath, char separator, const char* beg, char* cur, const char* end)
 {
     ASSERT(nextPath);
     ASSERT(separator);
@@ -298,15 +298,15 @@ FORGE_API size_t fsNormalizePathContinue(const char* nextPath, char separator, c
 
     // success
     *cur = 0;
-    ASSERT(fsIsNormalizedPath(beg, separator));
+    ASSERT(IsNormalizedPath(beg, separator));
     return size;
 }
 
-FORGE_API bool fsMergeDirAndFileName(const char* prePath, const char* postPath, char separator, size_t outputSize, char* output)
+FORGE_API bool MergeDirAndFileName(const char* prePath, const char* postPath, char separator, size_t outputSize, char* output)
 {
     *output = 0;
 
-    size_t outputLength = fsNormalizePathContinue(prePath, separator, output, output, output + outputSize);
+    size_t outputLength = NormalizePathContinue(prePath, separator, output, output, output + outputSize);
 
     if (                                         // put separator between paths, if conditions are met:
         outputLength &&                          // if path isn't empty
@@ -317,7 +317,7 @@ FORGE_API bool fsMergeDirAndFileName(const char* prePath, const char* postPath, 
         output[outputLength] = 0;
     }
 
-    outputLength = fsNormalizePathContinue(postPath, separator, output, output + outputLength, output + outputSize);
+    outputLength = NormalizePathContinue(postPath, separator, output, output + outputLength, output + outputSize);
 
     ASSERT(outputLength <= outputSize);
 
@@ -337,7 +337,7 @@ FORGE_API bool fsMergeDirAndFileName(const char* prePath, const char* postPath, 
 }
 
 // output size is FS_MAX_PATH
-FORGE_API void fsAppendPathExtension(const char* basePath, const char* extension, char* output)
+FORGE_API void AppendPathExtension(const char* basePath, const char* extension, char* output)
 {
     size_t       extensionLength = strlen(extension);
     const size_t baseLength = strlen(basePath);
@@ -378,7 +378,7 @@ FORGE_API void fsAppendPathExtension(const char* basePath, const char* extension
 }
 
 // output size is FS_MAX_PATH
-FORGE_API void fsGetPathExtension(const char* path, char* output)
+FORGE_API void GetPathExtension(const char* path, char* output)
 {
     size_t pathLength = strlen(path);
     ASSERT(pathLength != 0);
@@ -401,7 +401,7 @@ FORGE_API void fsGetPathExtension(const char* path, char* output)
 }
 
 // output size is FS_MAX_PATH
-FORGE_API void fsReplacePathExtension(const char* path, const char* newExtension, char* output)
+FORGE_API void ReplacePathExtension(const char* path, const char* newExtension, char* output)
 {
     size_t       newExtensionLength = strlen(newExtension);
     const size_t baseLength = strlen(path);
@@ -440,7 +440,7 @@ FORGE_API void fsReplacePathExtension(const char* path, const char* newExtension
     }
 
     char currentExtension[FS_MAX_PATH] = { 0 };
-    fsGetPathExtension(path, currentExtension);
+    GetPathExtension(path, currentExtension);
     newPathLength -= strlen(currentExtension);
     if (output[newPathLength - 1] != '.')
     {
@@ -453,13 +453,13 @@ FORGE_API void fsReplacePathExtension(const char* path, const char* newExtension
 }
 
 // output size is FS_MAX_PATH
-FORGE_API void fsGetParentPath(const char* path, char* output)
+FORGE_API void GetParentPath(const char* path, char* output)
 {
     size_t pathLength = strlen(path);
     if (!pathLength)
     {
         // We do this just before exit instead of at the beggining of the function to support calls
-        // like fsGetParentPath(path, path), were the output path points to the same memory as the input path
+        // like GetParentPath(path, path), were the output path points to the same memory as the input path
         output[0] = 0;
         return;
     }
@@ -476,7 +476,7 @@ FORGE_API void fsGetParentPath(const char* path, char* output)
     if (!dirSeperatorLoc)
     {
         // We do this just before exit instead of at the beggining of the function to support calls
-        // like fsGetParentPath(path, path), were the output path points to the same memory as the input path
+        // like GetParentPath(path, path), were the output path points to the same memory as the input path
         output[0] = 0;
         return;
     }
@@ -488,13 +488,13 @@ FORGE_API void fsGetParentPath(const char* path, char* output)
     output[reslen] = 0;
 }
 
-FORGE_API void fsGetPathFileName(const char* path, char* output)
+FORGE_API void GetPathFileName(const char* path, char* output)
 {
     const size_t pathLength = strlen(path);
     ASSERT(pathLength != 0);
 
     char parentPath[FS_MAX_PATH] = { 0 };
-    fsGetParentPath(path, parentPath);
+    GetParentPath(path, parentPath);
     size_t parentPathLength = strlen(parentPath);
 
     if (parentPathLength < pathLength && (isDirectorySeparator(path[parentPathLength])))
@@ -503,7 +503,7 @@ FORGE_API void fsGetPathFileName(const char* path, char* output)
     }
 
     char extension[FS_MAX_PATH] = { 0 };
-    fsGetPathExtension(path, extension);
+    GetPathExtension(path, extension);
 
     // Include dot in the length
     const size_t extensionLength = extension[0] != 0 ? strlen(extension) + 1 : 0;
@@ -532,7 +532,7 @@ typedef struct ResourceDirectoryInfo
 static ResourceDirectoryInfo gResourceDirectories[RD_COUNT] = { { 0 } };
 
 // required by NXFileSystem.cpp
-FORGE_API bool fsIsBundledResourceDir(ResourceDirectory resourceDir) { return gResourceDirectories[resourceDir].bundled; }
+FORGE_API bool IsBundledResourceDir(ResourceDirectory resourceDir) { return gResourceDirectories[resourceDir].bundled; }
 
 /************************************************************************/
 // Memory Stream Functions
@@ -569,7 +569,7 @@ static bool ioMemoryStreamClose(FileStream* fs)
 
     if (stream->wrappedStream)
     {
-        fsCloseStream(stream->wrappedStream);
+        CloseStream(stream->wrappedStream);
         tf_free(stream->wrappedStream);
     }
 
@@ -740,11 +740,11 @@ static IFileSystem gMemoryFileIO = {
 // File IO
 /************************************************************************/
 
-bool fsIsMemoryStream(FileStream* pStream) { return pStream->pIO == &gMemoryFileIO; }
+bool IsMemoryStream(FileStream* pStream) { return pStream->pIO == &gMemoryFileIO; }
 
-bool fsIsSystemFileStream(FileStream* pStream) { return pStream->pIO == pSystemFileIO; }
+bool IsSystemStream(FileStream* pStream) { return pStream->pIO == SystemFileIO; }
 
-bool fsOpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, bool owner, FileStream* fs)
+bool OpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, bool owner, FileStream* fs)
 {
     memset(fs, 0, sizeof *fs);
 
@@ -782,7 +782,7 @@ bool fsOpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode
 
 /// Opens the file at `filePath` using the mode `mode`, returning a new FileStream that can be used
 /// to read from or modify the file. May return NULL if the file could not be opened.
-bool fsOpenStreamFromPath(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)
+bool OpenStreamFromPath(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)
 {
     IFileSystem* io = gResourceDirectories[resourceDir].pIO;
     if (!io)
@@ -794,10 +794,10 @@ bool fsOpenStreamFromPath(ResourceDirectory resourceDir, const char* fileName, F
         return false;
     }
 
-    return fsIoOpenStreamFromPath(io, resourceDir, fileName, mode, pOut);
+    return IoOpenStreamFromPath(io, resourceDir, fileName, mode, pOut);
 }
 
-// size_t fsReadBstringFromStream(FileStream* stream, struct bstring* pStr, size_t symbolsCount)
+// size_t ReadBstringFromStream(FileStream* stream, struct bstring* pStr, size_t symbolsCount)
 // {
 //     ASSERT(bisvalid(pStr));
 
@@ -810,7 +810,7 @@ bool fsOpenStreamFromPath(ResourceDirectory resourceDir, const char* fileName, F
 //         do
 //         {
 //             balloc(pStr, pStr->slen + 512);
-//             readBytes = (int)fsReadFromStream(stream, pStr->data + pStr->slen, 512);
+//             readBytes = (int)ReadFromStream(stream, pStr->data + pStr->slen, 512);
 //             ASSERT(INT_MAX - pStr->slen > readBytes && "Integer overflow");
 //             pStr->slen += readBytes;
 //         } while (readBytes == 512);
@@ -823,13 +823,13 @@ bool fsOpenStreamFromPath(ResourceDirectory resourceDir, const char* fileName, F
 
 //     bassignliteral(pStr, "");
 //     balloc(pStr, (int)symbolsCount + 1);
-//     size_t readBytes = fsReadFromStream(stream, pStr->data, symbolsCount);
+//     size_t readBytes = ReadFromStream(stream, pStr->data, symbolsCount);
 //     pStr->data[readBytes] = '\0';
 //     pStr->slen = (int)readBytes;
 //     return readBytes;
 // }
 
-bool fsFindStream(FileStream* pStream, const void* pFind, size_t findSize, ssize_t maxSeek, ssize_t* pPosition)
+bool FindStream(FileStream* pStream, const void* pFind, size_t findSize, ssize_t maxSeek, ssize_t* pPosition)
 {
     ASSERT(pStream && pFind && pPosition);
     ASSERT(findSize < STREAM_FIND_BUFFER_SIZE);
@@ -859,7 +859,7 @@ bool fsFindStream(FileStream* pStream, const void* pFind, size_t findSize, ssize
     for (; maxSeek != 0; --maxSeek)
     {
         uint8_t byte;
-        if (fsReadFromStream(pStream, &byte, sizeof(byte)) != sizeof(byte))
+        if (ReadFromStream(pStream, &byte, sizeof(byte)) != sizeof(byte))
             return false;
 
         while (true)
@@ -869,10 +869,10 @@ bool fsFindStream(FileStream* pStream, const void* pFind, size_t findSize, ssize
                 ++patternPos;
                 if (patternPos == findSize)
                 {
-                    bool result = fsSeekStream(pStream, SBO_CURRENT_POSITION, -(ssize_t)findSize);
+                    bool result = SeekStream(pStream, SBO_CURRENT_POSITION, -(ssize_t)findSize);
                     UNREF_PARAM(result);
                     ASSERT(result);
-                    *pPosition = fsGetStreamSeekPosition(pStream);
+                    *pPosition = GetStreamPosition(pStream);
                     return true;
                 }
                 break;
@@ -887,7 +887,7 @@ bool fsFindStream(FileStream* pStream, const void* pFind, size_t findSize, ssize
     return false;
 }
 
-bool fsFindReverseStream(FileStream* pStream, const void* pFind, size_t findSize, ssize_t maxSeek, ssize_t* pPosition)
+bool FindReverseStream(FileStream* pStream, const void* pFind, size_t findSize, ssize_t maxSeek, ssize_t* pPosition)
 {
     ASSERT(pStream && pFind && pPosition);
     ASSERT(findSize < STREAM_FIND_BUFFER_SIZE);
@@ -922,13 +922,13 @@ bool fsFindReverseStream(FileStream* pStream, const void* pFind, size_t findSize
     for (; maxSeek != 0; --maxSeek)
     {
         uint8_t byte;
-        if (!fsSeekStream(pStream, SBO_CURRENT_POSITION, -1))
+        if (!SeekStream(pStream, SBO_CURRENT_POSITION, -1))
             return false;
 
-        size_t readBytes = fsReadFromStream(pStream, &byte, sizeof(byte));
+        size_t readBytes = ReadFromStream(pStream, &byte, sizeof(byte));
         ASSERT(readBytes == 1);
         UNREF_PARAM(readBytes);
-        fsSeekStream(pStream, SBO_CURRENT_POSITION, -1);
+        SeekStream(pStream, SBO_CURRENT_POSITION, -1);
 
         while (true)
         {
@@ -936,7 +936,7 @@ bool fsFindReverseStream(FileStream* pStream, const void* pFind, size_t findSize
             {
                 if (patternPos-- == 0)
                 {
-                    *pPosition = fsGetStreamSeekPosition(pStream);
+                    *pPosition = GetStreamPosition(pStream);
                     return true;
                 }
                 break;
@@ -950,31 +950,31 @@ bool fsFindReverseStream(FileStream* pStream, const void* pFind, size_t findSize
     return false;
 }
 
-FORGE_API bool fsStreamWrapMemoryMap(FileStream* fs)
+FORGE_API bool WrapStreamMemoryMap(FileStream* fs)
 {
-    if (fsIsMemoryStream(fs))
+    if (IsMemoryStream(fs))
         return true;
 
     size_t      size;
     const void* mem;
-    if (!fsStreamMemoryMap(fs, &size, &mem))
+    if (!StreamMemoryMap(fs, &size, &mem))
         return false;
 
     FileStream wrapFs;
-    if (!fsOpenStreamFromMemory(mem, size, FM_READ, false, &wrapFs))
+    if (!OpenStreamFromMemory(mem, size, FM_READ, false, &wrapFs))
     {
-        // NOTE: fsOpenStreamFromMemory never returns false
+        // NOTE: OpenStreamFromMemory never returns false
         LOGF(Error, "Failed to open stream from memory");
         return false;
     }
 
     MEMSD(stream, &wrapFs);
-    stream->cursor = (size_t)fsGetStreamSeekPosition(fs);
+    stream->cursor = (size_t)GetStreamPosition(fs);
 
     FileStream* wrappedFs = tf_malloc(sizeof *wrappedFs);
     if (!wrappedFs)
     {
-        fsCloseStream(&wrapFs);
+        CloseStream(&wrapFs);
         return false;
     }
 
@@ -989,7 +989,7 @@ FORGE_API bool fsStreamWrapMemoryMap(FileStream* fs)
 // Platform independent directory queries
 /************************************************************************/
 
-const char* fsGetResourceDirectory(ResourceDirectory resourceDir)
+const char* GetResourceDirectory(ResourceDirectory resourceDir)
 {
     const ResourceDirectoryInfo* dir = &gResourceDirectories[resourceDir];
 
@@ -1003,9 +1003,9 @@ const char* fsGetResourceDirectory(ResourceDirectory resourceDir)
     return dir->path;
 }
 
-ResourceMount fsGetResourceDirectoryMount(ResourceDirectory resourceDir) { return gResourceDirectories[resourceDir].mount; }
+ResourceMount GetResourceDirectoryMount(ResourceDirectory resourceDir) { return gResourceDirectories[resourceDir].mount; }
 
-void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder)
+void SetResourceDirectoryPath(IFileSystem* pIO, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder)
 {
     ASSERT(pIO);
     ResourceDirectoryInfo* dir = &gResourceDirectories[resourceDir];
@@ -1024,13 +1024,13 @@ void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDire
     dir->bundled = RM_CONTENT == mount;
 
     char resourcePath[FS_MAX_PATH] = { 0 };
-    fsMergeDirAndFileName(pIO->GetResourceMount ? pIO->GetResourceMount(mount) : "", bundledFolder, '/', sizeof resourcePath, resourcePath);
+    MergeDirAndFileName(pIO->GetResourceMount ? pIO->GetResourceMount(mount) : "", bundledFolder, '/', sizeof resourcePath, resourcePath);
     strncpy(dir->path, resourcePath, FS_MAX_PATH);
     dir->pIO = pIO;
 
     if (!dir->bundled && dir->path[0] != 0)
     {
-        if (!fsCreateResourceDirectory(resourceDir))
+        if (!CreateResourceDirectory(resourceDir))
         {
             LOGF(Error, "Could not create direcotry '%s' in filesystem", resourcePath);
         }
@@ -1404,14 +1404,14 @@ static inline size_t bunyArStreamRead(struct BunyArMetadata* a, uint64_t positio
         LockMutex(&a->mutex);
 
     size_t readed = 0;
-    if (fsGetStreamSeekPosition(a->archiveStream) != (ssize_t)position &&
-        !fsSeekStream(a->archiveStream, SBO_START_OF_FILE, (ssize_t)position))
+    if (GetStreamPosition(a->archiveStream) != (ssize_t)position &&
+        !SeekStream(a->archiveStream, SBO_START_OF_FILE, (ssize_t)position))
     {
         readed = 0;
     }
     else
     {
-        readed = fsReadFromStream(a->archiveStream, dst, size);
+        readed = ReadFromStream(a->archiveStream, dst, size);
     }
 
     if (a->archiveStreamLocking)
@@ -1449,7 +1449,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
     if (streamMode)
     {
-        headerReaded = fsSeekStream(stream, SBO_START_OF_FILE, 0) && fsReadFromStream(stream, &header, sizeof header) == sizeof header;
+        headerReaded = SeekStream(stream, SBO_START_OF_FILE, 0) && ReadFromStream(stream, &header, sizeof header) == sizeof header;
     }
     else if (memorySize >= sizeof header)
     {
@@ -1611,11 +1611,11 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
                 namesChanged = true;
             }
 
-            if (!(fsIsNormalizedPath(name, '/')))
+            if (!(IsNormalizedPath(name, '/')))
             {
                 LOGF(Error, "Archive contains file with unnormalized name: '%s'", name);
 
-                node->namePointer.size = (uint32_t)fsNormalizePathContinue(name, '/', name, name, (char*)UINTPTR_MAX);
+                node->namePointer.size = (uint32_t)NormalizePathContinue(name, '/', name, name, (char*)UINTPTR_MAX);
 
                 namesChanged = true;
             }
@@ -1690,7 +1690,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     {
         if (!InitMutex(&archive->mutex))
         {
-            fsArchiveClose(out);
+            CloseArchive(out);
             return false;
         }
 
@@ -1700,19 +1700,19 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     return true;
 }
 
-bool fsArchiveOpen(ResourceDirectory rd, const char* path, const struct ArchiveOpenDesc* desc, IFileSystem* out)
+bool OpenArchive(ResourceDirectory rd, const char* path, const struct ArchiveOpenDesc* desc, IFileSystem* out)
 {
     FileStream stream;
-    if (!fsOpenStreamFromPath(rd, path, FM_READ, &stream))
+    if (!OpenStreamFromPath(rd, path, FM_READ, &stream))
         return false;
 
-    if (!fsArchiveOpenFromStream(&stream, desc, out))
+    if (!OpenArchiveFromStream(&stream, desc, out))
     {
         if (!desc->tryMode)
         {
             LOGF(Error, "Failed to open archive: \'%s\'", path);
         }
-        fsCloseStream(&stream);
+        CloseStream(&stream);
         return false;
     }
 
@@ -1724,24 +1724,24 @@ bool fsArchiveOpen(ResourceDirectory rd, const char* path, const struct ArchiveO
     return true;
 }
 
-bool fsArchiveOpenFromStream(FileStream* stream, const struct ArchiveOpenDesc* desc, IFileSystem* out)
+bool OpenArchiveFromStream(FileStream* stream, const struct ArchiveOpenDesc* desc, IFileSystem* out)
 {
-    if (desc->mmap || fsIsMemoryStream(stream))
+    if (desc->mmap || IsMemoryStream(stream))
     {
         size_t      msize;
         const void* m;
-        if (fsStreamMemoryMap(stream, &msize, &m))
+        if (StreamMemoryMap(stream, &msize, &m))
             return bunyArchiveOpen(NULL, msize, m, desc, out);
     }
     return bunyArchiveOpen(stream, 0, NULL, desc, out);
 }
 
-FORGE_API bool fsArchiveOpenFromMemory(uint64_t msize, const void* m, const struct ArchiveOpenDesc* desc, IFileSystem* out)
+FORGE_API bool OpenArchiveFromMemory(uint64_t msize, const void* m, const struct ArchiveOpenDesc* desc, IFileSystem* out)
 {
     return bunyArchiveOpen(NULL, msize, m, desc, out);
 }
 
-FORGE_API bool fsArchiveClose(IFileSystem* fs)
+FORGE_API bool CloseArchive(IFileSystem* fs)
 {
     if (!fs || !fs->pUser)
         return true;
@@ -1755,7 +1755,7 @@ FORGE_API bool fsArchiveClose(IFileSystem* fs)
 
     if (archive->ownedStream.pIO)
     {
-        fsCloseStream(&archive->ownedStream);
+        CloseStream(&archive->ownedStream);
     }
 
     if (archive->archiveStreamLocking)
@@ -1768,7 +1768,7 @@ FORGE_API bool fsArchiveClose(IFileSystem* fs)
     return true;
 }
 
-bool fsArchiveGetNodeId(IFileSystem* fs, const char* fileName, uint64_t* outUid)
+bool GetArchiveNodeId(IFileSystem* fs, const char* fileName, uint64_t* outUid)
 {
     struct BunyArMetadata* archive = getFsArchive(fs);
 
@@ -1793,10 +1793,10 @@ bool fsArchiveGetNodeId(IFileSystem* fs, const char* fileName, uint64_t* outUid)
 static bool ioArchiveGetFileUid(IFileSystem* fs, ResourceDirectory rd, const char* fileName, uint64_t* outUid)
 {
     char        path[BUNYAR_FILE_NAME_LENGTH_MAX + 1];
-    const char* strrd = fsGetResourceDirectory(rd);
-    if (!fsMergeDirAndFileName(strrd, fileName, '/', sizeof path, path))
+    const char* strrd = GetResourceDirectory(rd);
+    if (!MergeDirAndFileName(strrd, fileName, '/', sizeof path, path))
         return false;
-    return fsArchiveGetNodeId(fs, path, outUid);
+    return GetArchiveNodeId(fs, path, outUid);
 }
 
 static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode, FileStream* pOutStream)
@@ -2231,7 +2231,7 @@ static void initBunyArFsInterface(IFileSystem* fs, struct BunyArMetadata* archiv
 // MARK: - Advanced Archive filesystem IO
 /************************************************************************/
 
-void fsArchiveGetDescription(IFileSystem* fs, struct BunyArDescription* outInfo)
+void GetArchiveDescription(IFileSystem* fs, struct BunyArDescription* outInfo)
 {
     memset(outInfo, 0, sizeof *outInfo);
 
@@ -2241,7 +2241,7 @@ void fsArchiveGetDescription(IFileSystem* fs, struct BunyArDescription* outInfo)
     outInfo->hashTable = archive->hashTable;
 }
 
-bool fsArchiveGetNodeDescription(IFileSystem* fs, uint64_t nodeId, struct BunyArNodeDescription* outInfo)
+bool GetArchiveNodeDescription(IFileSystem* fs, uint64_t nodeId, struct BunyArNodeDescription* outInfo)
 {
     memset(outInfo, 0, sizeof *outInfo);
 
@@ -2260,7 +2260,7 @@ bool fsArchiveGetNodeDescription(IFileSystem* fs, uint64_t nodeId, struct BunyAr
     return true;
 }
 
-bool fsArchiveGetFileBlockMetadata(FileStream* pFile, struct BunyArBlockFormatHeader* outHeader, const BunyArBlockPointer** outBlockPtrs)
+bool GetArchiveFileBlockMetadata(FileStream* pFile, struct BunyArBlockFormatHeader* outHeader, const BunyArBlockPointer** outBlockPtrs)
 {
     if (!pFile)
         return false;

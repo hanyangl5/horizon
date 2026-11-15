@@ -57,8 +57,8 @@ static inline T withUTF16Path(const char* path, T (*function)(const wchar_t*))
 
 extern "C"
 {
-    bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
-    void fsGetParentPath(const char* path, char* output);
+    bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+    void GetParentPath(const char* path, char* output);
 }
 
 #ifndef XBOX
@@ -68,7 +68,7 @@ static char        gProjectResourcePath[FS_MAX_PATH] = {};
 static char        gApplicationPath[FS_MAX_PATH] = {};
 static char        gDocumentsPath[FS_MAX_PATH] = {};
 
-bool initFileSystem(FileSystemInitDesc* pDesc)
+bool InitFileSystem(FileSystemInitDesc* pDesc)
 {
     if (gInitialized)
     {
@@ -85,9 +85,9 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     GetModuleFileNameW(0, utf16Path, FS_MAX_PATH);
     char applicationFilePath[FS_MAX_PATH] = {};
     WideCharToMultiByte(CP_UTF8, 0, utf16Path, -1, applicationFilePath, MAX_PATH, NULL, NULL);
-    fsGetParentPath(applicationFilePath, gApplicationPath);
+    GetParentPath(applicationFilePath, gApplicationPath);
     gResourceMounts[RM_PROJECT] = PROJECT_ROOT;
-    fsMergeDirAndFileName(PROJECT_ROOT, "Assets", '\\', sizeof gProjectResourcePath, gProjectResourcePath);
+    MergeDirAndFileName(PROJECT_ROOT, "Assets", '\\', sizeof gProjectResourcePath, gProjectResourcePath);
     gResourceMounts[RM_CONTENT] = gProjectResourcePath;
     gResourceMounts[RM_DEBUG] = gApplicationPath;
 
@@ -119,10 +119,10 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     return true;
 }
 
-void exitFileSystem(void) { gInitialized = false; }
+void ExitFileSystem(void) { gInitialized = false; }
 #endif
 
-static bool fsDirectoryExists(const char* path)
+static bool DirectoryExists(const char* path)
 {
     return withUTF16Path<bool>(path,
                                [](const wchar_t* pathStr)
@@ -132,31 +132,31 @@ static bool fsDirectoryExists(const char* path)
                                });
 }
 
-static bool fsCreateDirectory(const char* path)
+static bool MakeDirectory(const char* path)
 {
-    if (fsDirectoryExists(path))
+    if (DirectoryExists(path))
     {
         return true;
     }
 
     char parentPath[FS_MAX_PATH] = { 0 };
-    fsGetParentPath(path, parentPath);
+    GetParentPath(path, parentPath);
     if (parentPath[0] != 0)
     {
-        if (!fsDirectoryExists(parentPath))
+        if (!DirectoryExists(parentPath))
         {
-            fsCreateDirectory(parentPath);
+            MakeDirectory(parentPath);
         }
     }
     return withUTF16Path<bool>(path, [](const wchar_t* pathStr) { return ::CreateDirectoryW(pathStr, NULL) ? true : false; });
 }
 
-bool fsCreateResourceDirectory(ResourceDirectory resourceDir) { return fsCreateDirectory(fsGetResourceDirectory(resourceDir)); }
+bool CreateResourceDirectory(ResourceDirectory resourceDir) { return MakeDirectory(GetResourceDirectory(resourceDir)); }
 
-time_t fsGetLastModifiedTime(ResourceDirectory rd, const char* fileName)
+time_t GetLastModifiedTime(ResourceDirectory rd, const char* fileName)
 {
     char filePath[FS_MAX_PATH] = { 0 };
-    if (!fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '\\', sizeof filePath, filePath))
+    if (!MergeDirAndFileName(GetResourceDirectory(rd), fileName, '\\', sizeof filePath, filePath))
         return 0;
 
     // Fix paths for Windows 7 - needs to be generalized and propagated
@@ -207,7 +207,7 @@ public:
     const char* c_str() { return utf8; }
 };
 
-static inline FORGE_CONSTEXPR const char* fsFileModeToString(FileMode mode)
+static inline FORGE_CONSTEXPR const char* FileModeToString(FileMode mode)
 {
     mode = (FileMode)(mode & ~FM_ALLOW_READ);
     switch (mode)
@@ -227,21 +227,21 @@ static inline FORGE_CONSTEXPR const char* fsFileModeToString(FileMode mode)
     }
 }
 
-static inline FORGE_CONSTEXPR const char* fsOverwriteFileModeToString(FileMode mode)
+static inline FORGE_CONSTEXPR const char* OverwriteFileModeToString(FileMode mode)
 {
     switch (mode)
     {
     case FM_READ_WRITE:
         return "wb+";
     default:
-        return fsFileModeToString(mode);
+        return FileModeToString(mode);
     }
 }
 
 bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)
 {
     char filePath[FS_MAX_PATH];
-    fsMergeDirAndFileName(fsGetResourceDirectory(resourceDir), fileName, '\\', sizeof filePath, filePath);
+    MergeDirAndFileName(GetResourceDirectory(resourceDir), fileName, '\\', sizeof filePath, filePath);
 
     // Path utf-16 conversion
     size_t  filePathLen = strlen(filePath) + 1;
@@ -250,7 +250,7 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
     MultiByteToWideChar(CP_UTF8, 0, filePath, (int)filePathLen, pathStr, (int)filePathLen);
 
     // Mode string utf-16 conversion
-    const char* modeStr = fsFileModeToString(mode);
+    const char* modeStr = FileModeToString(mode);
 
     wchar_t modeWStr[4] = {};
     mbstowcs(modeWStr, modeStr, 4);
@@ -272,7 +272,7 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
         // Try changing mode to 'w+' or 'wb+'
         if ((mode & FM_READ_WRITE) == FM_READ_WRITE)
         {
-            modeStr = fsOverwriteFileModeToString(mode);
+            modeStr = OverwriteFileModeToString(mode);
             mbstowcs(modeWStr, modeStr, 4);
             if (mode & FM_ALLOW_READ)
             {
@@ -289,7 +289,7 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
     {
         *pOut = {};
         pOut->mode = mode;
-        pOut->pIO = pSystemFileIO;
+        pOut->pIO = SystemFileIO;
 
         WSD(stream, pOut);
         stream->file = fp;
@@ -316,7 +316,7 @@ static bool ioWindowsFsOpen(IFileSystem*, ResourceDirectory rd, const char* file
 {
     if (PlatformOpenFile(rd, fileName, mode, pOut))
     {
-        pOut->mount = fsGetResourceDirectoryMount(rd);
+        pOut->mount = GetResourceDirectoryMount(rd);
         return true;
     }
     return false;
@@ -496,4 +496,4 @@ static IFileSystem gWindowsFileIO = {
     NULL,
 };
 
-IFileSystem* pSystemFileIO = &gWindowsFileIO;
+IFileSystem* SystemFileIO = &gWindowsFileIO;

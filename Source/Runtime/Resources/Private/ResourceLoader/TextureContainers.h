@@ -192,7 +192,7 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 {
     RETURN_IF_FAILED(pStream);
 
-    ssize_t ddsDataSize = fsGetStreamFileSize(pStream);
+    ssize_t ddsDataSize = GetStreamFileSize(pStream);
     RETURN_IF_FAILED(ddsDataSize <= UINT32_MAX);
 
     TinyDDS_Callbacks callbacks{ [](void* user, char const* msg)
@@ -211,10 +211,10 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
                                      tf_free(memory);
                                  },
                                  [](void* user, void* buffer, size_t byteCount)
-                                 { return fsReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
+                                 { return ReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
                                  [](void* user, int64_t offset)
-                                 { return fsSeekStream((FileStream*)user, SBO_START_OF_FILE, (ssize_t)offset); },
-                                 [](void* user) { return (int64_t)fsGetStreamSeekPosition((FileStream*)user); } };
+                                 { return SeekStream((FileStream*)user, SBO_START_OF_FILE, (ssize_t)offset); },
+                                 [](void* user) { return (int64_t)GetStreamPosition((FileStream*)user); } };
 
     TinyDDS_ContextHandle ctx = TinyDDS_CreateContext(&callbacks, (void*)pStream);
     bool                  headerOkay = TinyDDS_ReadHeader(ctx);
@@ -257,7 +257,7 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 {
     RETURN_IF_FAILED(pStream);
 
-    ssize_t ktxDataSize = fsGetStreamFileSize(pStream);
+    ssize_t ktxDataSize = GetStreamFileSize(pStream);
     RETURN_IF_FAILED(ktxDataSize <= UINT32_MAX);
 
     TinyKtx_Callbacks callbacks{ [](void* user, char const* msg)
@@ -276,10 +276,10 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
                                      tf_free(memory);
                                  },
                                  [](void* user, void* buffer, size_t byteCount)
-                                 { return fsReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
+                                 { return ReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
                                  [](void* user, int64_t offset)
-                                 { return fsSeekStream((FileStream*)user, SBO_START_OF_FILE, (ssize_t)offset); },
-                                 [](void* user) { return (int64_t)fsGetStreamSeekPosition((FileStream*)user); } };
+                                 { return SeekStream((FileStream*)user, SBO_START_OF_FILE, (ssize_t)offset); },
+                                 [](void* user) { return (int64_t)GetStreamPosition((FileStream*)user); } };
 
     TinyKtx_ContextHandle ctx = TinyKtx_CreateContext(&callbacks, pStream);
     bool                  headerOkay = TinyKtx_ReadHeader(ctx);

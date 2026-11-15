@@ -291,7 +291,7 @@ void parseGPUDataFile()
     gDefaultPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
 
     FileStream fh = {};
-    if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "legacy_gpu_data", FM_READ, &fh))
+    if (!OpenStreamFromPath(RD_GPU_CONFIG, "legacy_gpu_data", FM_READ, &fh))
     {
         LOGF(LogLevel::Warning, "Legacy GPU data could not be found, setting preset will be set to Low as a default.");
         return;
@@ -302,9 +302,9 @@ void parseGPUDataFile()
     char* gpuListBeginFileCursor = nullptr;
     char* gpuListEndFileCursor = nullptr;
 
-    size_t fileSize = fsGetStreamFileSize(&fh);
+    size_t fileSize = GetStreamFileSize(&fh);
     gGpuDataFileBuffer = (char*)tf_malloc(fileSize * sizeof(char));
-    fsReadFromStream(&fh, (void*)gGpuDataFileBuffer, fileSize);
+    ReadFromStream(&fh, (void*)gGpuDataFileBuffer, fileSize);
     char* fileCursor = gGpuDataFileBuffer;
     char* gGpuDataFileEnd = gGpuDataFileBuffer + fileSize;
     char* previousLineCursor = fileCursor;
@@ -317,14 +317,14 @@ void parseGPUDataFile()
         if (read != 2)
         {
             LOGF(Info, "Ill-formatted legacy GPU data file. Missing version at beginning of file");
-            fsCloseStream(&fh);
+            CloseStream(&fh);
             return;
         }
         else if (versionMajor != GPUCFG_VERSION_MAJOR || versionMinor != GPUCFG_VERSION_MINOR)
         {
             LOGF(Info, "Legacy GPU data version mismatch. Expected version %u.%u but got %u.%u", GPUCFG_VERSION_MAJOR,
                  GPUCFG_VERSION_MINOR, versionMajor, versionMinor);
-            fsCloseStream(&fh);
+            CloseStream(&fh);
             return;
         }
     }
@@ -450,13 +450,13 @@ void parseGPUDataFile()
         LOGF(Info, "Could not find a valid GPU list in legacy GPU data.");
     }
 
-    fsCloseStream(&fh);
+    CloseStream(&fh);
 }
 
 void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
 {
     FileStream fh = {};
-    if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "legacy_gpu_rules", FM_READ, &fh))
+    if (!OpenStreamFromPath(RD_GPU_CONFIG, "legacy_gpu_rules", FM_READ, &fh))
     {
         LOGF(LogLevel::Warning, "Legacy GPU rule data could not be found, first GPU found set as active GPU.");
         return;
@@ -469,9 +469,9 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
     gGPUComparisonChoiceCount = 0;
     gUserExtendedSettingsCount = 0;
 
-    size_t fileSize = fsGetStreamFileSize(&fh);
+    size_t fileSize = GetStreamFileSize(&fh);
     char*  fileBuffer = (char*)tf_malloc(fileSize * sizeof(char));
-    fsReadFromStream(&fh, fileBuffer, fileSize);
+    ReadFromStream(&fh, fileBuffer, fileSize);
     char* fileCursor = fileBuffer;
     char* fileEnd = fileBuffer + fileSize;
     while (bufferedGetLine(currentLineStr, &fileCursor, fileEnd))
@@ -608,7 +608,7 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
     }
 
     tf_free(fileBuffer);
-    fsCloseStream(&fh);
+    CloseStream(&fh);
 }
 
 void removeGPUConfigurationRules()

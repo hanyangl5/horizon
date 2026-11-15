@@ -462,22 +462,22 @@ protected:
     {
         AssetManagerTest::SetUp();
         FileSystemInitDesc desc = { .pAppName = "SceneAssetLoaderTest" };
-        ASSERT_TRUE(initFileSystem(&desc));
+        ASSERT_TRUE(InitFileSystem(&desc));
         char id[hz::kIDStringCapacity];
         hz::AssetID::create().toString(id);
         directory = std::filesystem::temp_directory_path() / id;
         std::filesystem::create_directory(directory);
-        fileSystem = *pSystemFileIO;
+        fileSystem = *SystemFileIO;
         fileSystem.GetResourceMount = nullptr;
-        fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+        SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
         FileStream stream = {};
-        ASSERT_TRUE(fsOpenStreamFromPath(RD_OTHER_FILES, "scene.sceneasset.json", FM_WRITE, &stream));
-        EXPECT_EQ(fsWriteToStream(&stream, kEmptyScene, sizeof(kEmptyScene) - 1), sizeof(kEmptyScene) - 1);
-        fsCloseStream(&stream);
+        ASSERT_TRUE(OpenStreamFromPath(RD_OTHER_FILES, "scene.sceneasset.json", FM_WRITE, &stream));
+        EXPECT_EQ(WriteToStream(&stream, kEmptyScene, sizeof(kEmptyScene) - 1), sizeof(kEmptyScene) - 1);
+        CloseStream(&stream);
     }
     void TearDown() override
     {
-        exitFileSystem();
+        ExitFileSystem();
         std::filesystem::remove_all(directory);
         AssetManagerTest::TearDown();
     }
@@ -505,9 +505,9 @@ TEST_F(SceneAssetLoaderTest, DecodesSceneAsynchronouslyAndPublishesTypedPayload)
     hz::Array<char> index;
     ASSERT_TRUE(catalog.serialize(index));
     FileStream stream = {};
-    ASSERT_TRUE(fsOpenStreamFromPath(RD_OTHER_FILES, "scene.assetcatalog.json", FM_WRITE, &stream));
-    EXPECT_EQ(fsWriteToStream(&stream, index.data(), index.size() - 1), index.size() - 1);
-    fsCloseStream(&stream);
+    ASSERT_TRUE(OpenStreamFromPath(RD_OTHER_FILES, "scene.assetcatalog.json", FM_WRITE, &stream));
+    EXPECT_EQ(WriteToStream(&stream, index.data(), index.size() - 1), index.size() - 1);
+    CloseStream(&stream);
     catalog.clear();
     ASSERT_TRUE(catalog.load(RD_OTHER_FILES, "scene.assetcatalog.json"));
     hz::SceneAssetLoader loader(RD_OTHER_FILES);
@@ -592,9 +592,9 @@ protected:
         dds[27] = 0x1000;
         dds[32] = 0xff4080ff;
         FileStream stream = {};
-        ASSERT_TRUE(fsOpenStreamFromPath(RD_OTHER_FILES, "pixel.dds", FM_WRITE, &stream));
-        EXPECT_EQ(fsWriteToStream(&stream, dds, sizeof(dds)), sizeof(dds));
-        fsCloseStream(&stream);
+        ASSERT_TRUE(OpenStreamFromPath(RD_OTHER_FILES, "pixel.dds", FM_WRITE, &stream));
+        EXPECT_EQ(WriteToStream(&stream, dds, sizeof(dds)), sizeof(dds));
+        CloseStream(&stream);
     }
 };
 
@@ -665,7 +665,7 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
 {
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "RendererMotionTest", .enableGpuValidation = true });
     hz::GPUPipeline   pipeline = context.createGraphicsPipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
@@ -677,7 +677,7 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
                           { .format = hz::Format::R8G8B8A8_UNORM },
                           { .format = hz::Format::R8G8B8A8_UNORM } },
     });
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
     ASSERT_TRUE(pipeline.isValid());
     struct FrameData
     {
@@ -777,7 +777,7 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
 {
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "RendererCullingTest", .enableGpuValidation = true });
     hz::GPUPipeline   pipeline =
         context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } },
@@ -787,7 +787,7 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
         context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "ClearStatistics" } },
                                                         .sourceDirectory = RD_OTHER_FILES,
                                                         .pFileName = "FrustumCulling.slang" } });
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
     ASSERT_TRUE(pipeline.isValid() && clear.isValid());
     struct FrameData
     {
@@ -919,10 +919,10 @@ TEST_F(TextureAssetLiveTest, CancelsUploadsAndReportsInvalidFiles)
     std::filesystem::copy_file(directory / "pixel.dds", directory / "truncated.dds");
     std::filesystem::resize_file(directory / "truncated.dds", 128);
     FileStream broken = {};
-    ASSERT_TRUE(fsOpenStreamFromPath(RD_OTHER_FILES, "broken.dds", FM_WRITE, &broken));
+    ASSERT_TRUE(OpenStreamFromPath(RD_OTHER_FILES, "broken.dds", FM_WRITE, &broken));
     const uint32_t invalidHeader = 0;
-    fsWriteToStream(&broken, &invalidHeader, sizeof(invalidHeader));
-    fsCloseStream(&broken);
+    WriteToStream(&broken, &invalidHeader, sizeof(invalidHeader));
+    CloseStream(&broken);
     hz::RenderContext context({ .pAppName = "TextureAssetCancelTest" });
     hz::AssetCatalog  catalog;
     ASSERT_TRUE(catalog.add(
@@ -987,9 +987,9 @@ protected:
     void writeScene(const char* text = kTypedScene, const char* path = "scene.sceneasset.json")
     {
         FileStream stream = {};
-        ASSERT_TRUE(fsOpenStreamFromPath(RD_OTHER_FILES, path, FM_WRITE, &stream));
-        EXPECT_EQ(fsWriteToStream(&stream, text, strlen(text)), strlen(text));
-        fsCloseStream(&stream);
+        ASSERT_TRUE(OpenStreamFromPath(RD_OTHER_FILES, path, FM_WRITE, &stream));
+        EXPECT_EQ(WriteToStream(&stream, text, strlen(text)), strlen(text));
+        CloseStream(&stream);
     }
     void writeGeometry(IndexType indexType = INDEX_TYPE_UINT16, bool rendererLayout = false)
     {
@@ -1018,23 +1018,23 @@ protected:
         const uint32_t dataSize = sizeof(data);
         const uint32_t shadowSize = sizeof(shadow) + indexBytes + sizeof(positions) + (rendererLayout ? sizeof(normals) + sizeof(uvs) : 0);
         FileStream     stream = {};
-        ASSERT_TRUE(fsOpenStreamFromPath(RD_OTHER_FILES, "scene.bin", FM_WRITE, &stream));
-        fsWriteToStream(&stream, GEOMETRY_FILE_MAGIC_STR, sizeof(GEOMETRY_FILE_MAGIC_STR));
-        fsWriteToStream(&stream, &geometrySize, sizeof(geometrySize));
-        fsWriteToStream(&stream, &geometry, sizeof(geometry));
-        fsWriteToStream(&stream, &draw, sizeof(draw));
-        fsWriteToStream(&stream, &dataSize, sizeof(dataSize));
-        fsWriteToStream(&stream, &data, sizeof(data));
-        fsWriteToStream(&stream, &shadowSize, sizeof(shadowSize));
-        fsWriteToStream(&stream, &shadow, sizeof(shadow));
-        fsWriteToStream(&stream, pIndices, indexBytes);
-        fsWriteToStream(&stream, positions, sizeof(positions));
+        ASSERT_TRUE(OpenStreamFromPath(RD_OTHER_FILES, "scene.bin", FM_WRITE, &stream));
+        WriteToStream(&stream, GEOMETRY_FILE_MAGIC_STR, sizeof(GEOMETRY_FILE_MAGIC_STR));
+        WriteToStream(&stream, &geometrySize, sizeof(geometrySize));
+        WriteToStream(&stream, &geometry, sizeof(geometry));
+        WriteToStream(&stream, &draw, sizeof(draw));
+        WriteToStream(&stream, &dataSize, sizeof(dataSize));
+        WriteToStream(&stream, &data, sizeof(data));
+        WriteToStream(&stream, &shadowSize, sizeof(shadowSize));
+        WriteToStream(&stream, &shadow, sizeof(shadow));
+        WriteToStream(&stream, pIndices, indexBytes);
+        WriteToStream(&stream, positions, sizeof(positions));
         if (rendererLayout)
         {
-            fsWriteToStream(&stream, normals, sizeof(normals));
-            fsWriteToStream(&stream, uvs, sizeof(uvs));
+            WriteToStream(&stream, normals, sizeof(normals));
+            WriteToStream(&stream, uvs, sizeof(uvs));
         }
-        fsCloseStream(&stream);
+        CloseStream(&stream);
     }
 };
 
@@ -1164,7 +1164,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     ASSERT_EQ(assetManager.getState(blendMaterial), hz::AssetState::Ready);
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_SHADER_SOURCES, shaders.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_SHADER_SOURCES, shaders.string().c_str());
 
     GpuDrawList     draws(context);
     RayTracingScene rayScene(context);
@@ -2784,7 +2784,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     ASSERT_EQ(mesh->getIndexBuffer().getSize(), 8u);
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
     hz::GPUPipeline pipeline = context.createGraphicsPipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
@@ -2796,7 +2796,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
                           { .format = hz::Format::R8G8B8A8_UNORM } },
         .indirectDrawId = true,
     });
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
     ASSERT_TRUE(pipeline.isValid());
     struct FrameData
     {
@@ -2958,9 +2958,9 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
         }
     )slang";
     FileStream stream = {};
-    ASSERT_TRUE(fsOpenStreamFromPath(RD_OTHER_FILES, "dxr-regression.slang", FM_WRITE, &stream));
-    const size_t written = fsWriteToStream(&stream, source, sizeof(source) - 1);
-    fsCloseStream(&stream);
+    ASSERT_TRUE(OpenStreamFromPath(RD_OTHER_FILES, "dxr-regression.slang", FM_WRITE, &stream));
+    const size_t written = WriteToStream(&stream, source, sizeof(source) - 1);
+    CloseStream(&stream);
     ASSERT_EQ(written, sizeof(source) - 1);
     hz::GPURayTracingPipeline pipeline =
         context.createRayTracingPipeline({ .sourceDirectory = RD_OTHER_FILES,
@@ -3161,7 +3161,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     }
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
     hz::GPURayTracingPipeline reflection = context.createRayTracingPipeline({
         .sourceDirectory = RD_OTHER_FILES,
         .pFileName = "RTReflection.slang",
@@ -3171,7 +3171,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
         .payloadSize = 16,
         .maxRecursionDepth = 2,
     });
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
     hz::GPUPipeline reader =
         context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
                                                                       .pSource = kCookbookTextureReadback,
@@ -3433,12 +3433,12 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     }
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
     hz::GPUPipeline shadow =
         context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } },
                                                         .sourceDirectory = RD_OTHER_FILES,
                                                         .pFileName = "RTShadowAO.slang" } });
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
     hz::GPUPipeline reader =
         context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
                                                                       .pSource = kCookbookTextureReadback,
@@ -3598,7 +3598,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     }
 
     // Reuse the same scene to exercise the production raster shadow alpha test as well.
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
     hz::GPUPipeline raster =
         context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
                                                                      { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSShadow" } },
@@ -3607,7 +3607,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
                                          .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
                                          .depthStencilFormat = hz::Format::D16_UNORM,
                                          .indirectDrawId = true });
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
     ASSERT_TRUE(raster.isValid());
     const hz::RenderInstance identity;
     hz::GPUBuffer            instanceBuffer = input(&identity, sizeof(identity));
@@ -3666,7 +3666,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
 {
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "CookbookPpllTest", .enableGpuValidation = true });
     hz::GPUPipeline   gather =
         context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
@@ -3682,7 +3682,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                                                .pFileName = "Transparency.slang" } });
     };
     hz::GPUPipeline clear = compute("ClearMain"), resolve = compute("ResolveMain");
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
     hz::GPUPipeline reader =
         context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
                                                                       .pSource = kCookbookTextureReadback,
@@ -3855,7 +3855,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
 {
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "CookbookPostTest", .enableGpuValidation = true });
     const auto        compute = [&](const char* file, const char* entry)
     {
@@ -3880,7 +3880,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                                          .sourceDirectory = RD_OTHER_FILES,
                                                          .pFileName = "DeferredLighting.slang" },
                                          .colorTargets = { { .format = hz::Format::R32G32B32A32_SFLOAT } } });
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
 
     const char seedSource[] = R"hlsl(
         cbuffer RootConstant0 { uint outputIndex; uint peakX; };
@@ -4183,7 +4183,7 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     hz::RenderContext           context({ .pAppName = "RendererMaskAlphaTest", .enableGpuValidation = true });
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
     uint32_t normalDDS[36] = {};
     normalDDS[0] = 0x20534444; // DDS magic.
     normalDDS[1] = 124;
@@ -4195,16 +4195,16 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     normalDDS[21] = 0x32495441; // ATI2 / BC5_UNORM.
     normalDDS[27] = 0x1000;
     normalDDS[32] = normalDDS[34] = 0x8080; // Both BC4 blocks decode to 128/255; the texture has no Z channel.
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
     FileStream normalStream = {};
-    ASSERT_TRUE(fsOpenStreamFromPath(RD_OTHER_FILES, "normal-bc5.dds", FM_WRITE, &normalStream));
-    const size_t normalBytes = fsWriteToStream(&normalStream, normalDDS, sizeof(normalDDS));
-    fsCloseStream(&normalStream);
+    ASSERT_TRUE(OpenStreamFromPath(RD_OTHER_FILES, "normal-bc5.dds", FM_WRITE, &normalStream));
+    const size_t normalBytes = WriteToStream(&normalStream, normalDDS, sizeof(normalDDS));
+    CloseStream(&normalStream);
     ASSERT_EQ(normalBytes, sizeof(normalDDS));
     hz::GPUTexture normalMap = context.loadTexture(RD_OTHER_FILES, "normal-bc5.dds");
     ASSERT_TRUE(normalMap.isValid());
     ASSERT_EQ(normalMap.getFormat(), hz::Format::DXBC5_UNORM);
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
     hz::GPUPipeline geometry =
         context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
                                                                      { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
@@ -4214,7 +4214,7 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
                                                            { .format = hz::Format::R8G8B8A8_UNORM },
                                                            { .format = hz::Format::R8G8B8A8_UNORM },
                                                            { .format = hz::Format::R8G8B8A8_UNORM } } });
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
     hz::GPUPipeline reader =
         context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
                                                                       .pSource = kCookbookTextureReadback,
@@ -4353,7 +4353,7 @@ TEST_F(SceneAssetLoaderTest, RendererScreenSpaceAOShadersCompile)
 {
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
-    fsSetPathForResourceDir(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
+    SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "RendererShaderCompileTest", .enableGpuValidation = true });
     // The AO pass produces the indirect-light occlusion the deferred shader consumes, so both entry points must link.
     for (const char* entry : { "CSMain", "BlurMain" })

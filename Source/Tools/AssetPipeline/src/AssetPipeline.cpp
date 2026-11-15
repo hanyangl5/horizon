@@ -81,15 +81,15 @@ public:
         if (snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) >= (int)sizeof(temporary) ||
             snprintf(backup, sizeof(backup), "%s.bak", pPath) >= (int)sizeof(backup))
             return;
-        if (!fsFileExist(directory, pPath) && fsFileExist(directory, backup) && !fsRenameFile(directory, backup, pPath))
+        if (!FileExists(directory, pPath) && FileExists(directory, backup) && !RenameFile(directory, backup, pPath))
             return;
-        opened = fsOpenStreamFromPath(directory, temporary, FM_WRITE_ALLOW_READ, &stream);
+        opened = OpenStreamFromPath(directory, temporary, FM_WRITE_ALLOW_READ, &stream);
         written = opened;
     }
     ~CookedGeometryFile()
     {
         if (opened)
-            fsCloseStream(&stream);
+            CloseStream(&stream);
     }
     CookedGeometryFile(const CookedGeometryFile&) = delete;
     CookedGeometryFile& operator=(const CookedGeometryFile&) = delete;
@@ -97,26 +97,26 @@ public:
     void write(const void* pData, size_t size)
     {
         if (written)
-            written = fsWriteToStream(&stream, pData, size) == size;
+            written = WriteToStream(&stream, pData, size) == size;
     }
     bool publish()
     {
         if (!opened)
             return false;
-        const bool closed = fsCloseStream(&stream);
+        const bool closed = CloseStream(&stream);
         opened = false;
         if (!written || !closed)
             return false;
-        const bool exists = fsFileExist(directory, pPath);
-        if ((fsFileExist(directory, backup) && !fsRemoveFile(directory, backup)) || (exists && !fsRenameFile(directory, pPath, backup)))
+        const bool exists = FileExists(directory, pPath);
+        if ((FileExists(directory, backup) && !RemoveFile(directory, backup)) || (exists && !RenameFile(directory, pPath, backup)))
             return false;
-        if (!fsRenameFile(directory, temporary, pPath))
+        if (!RenameFile(directory, temporary, pPath))
         {
-            if (exists && !fsRenameFile(directory, backup, pPath))
+            if (exists && !RenameFile(directory, backup, pPath))
                 LOGF(Error, "Restore '%s' from '%s' before retrying", pPath, backup);
             return false;
         }
-        if (exists && !fsRemoveFile(directory, backup))
+        if (exists && !RemoveFile(directory, backup))
             LOGF(Warning, "Cannot remove completed geometry backup '%s'", backup);
         return true;
     }
@@ -212,7 +212,7 @@ static void updateSceneAssetCookHash(uint64_t* pHash, const void* pData, size_t 
 static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint, const char* pPath, const void* pData, size_t size)
 {
     char normalizedPath[FS_MAX_PATH] = {};
-    fsNormalizePath(pPath, '/', normalizedPath);
+    NormalizePath(pPath, '/', normalizedPath);
     for (uint32_t i = 0; i < pFingerprint->mDependencyCount; ++i)
     {
         if (strcmp(pFingerprint->mDependencies[i], normalizedPath) == 0)
@@ -233,7 +233,7 @@ static bool addSceneAssetCookStatDependency(ResourceDirectory resourceDirectory,
                                             uint64_t size)
 {
     char normalizedPath[FS_MAX_PATH] = {};
-    fsNormalizePath(pPath, '/', normalizedPath);
+    NormalizePath(pPath, '/', normalizedPath);
     for (uint32_t i = 0; i < pFingerprint->mDependencyCount; ++i)
     {
         if (strcmp(pFingerprint->mDependencies[i], normalizedPath) == 0)
@@ -242,7 +242,7 @@ static bool addSceneAssetCookStatDependency(ResourceDirectory resourceDirectory,
     if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH || pFingerprint->mDependencyCount >= kSceneAssetCookMaxDependencies)
         return false;
 
-    const time_t modified = fsGetLastModifiedTime(resourceDirectory, pPath);
+    const time_t modified = GetLastModifiedTime(resourceDirectory, pPath);
     if (!modified)
         return false;
 
@@ -271,14 +271,14 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
         return false;
 
     char sourceParent[FS_MAX_PATH] = {};
-    fsGetParentPath(pSourcePath, sourceParent);
+    GetParentPath(pSourcePath, sourceParent);
     for (cgltf_size i = 0; i < pData->buffers_count; ++i)
     {
         const cgltf_buffer* pBuffer = &pData->buffers[i];
         if (!pBuffer->uri || strncmp(pBuffer->uri, "data:", 5) == 0 || strstr(pBuffer->uri, "://"))
             continue;
         char dependencyPath[FS_MAX_PATH] = {};
-        fsAppendPathComponent(sourceParent, pBuffer->uri, dependencyPath);
+        AppendPathComponent(sourceParent, pBuffer->uri, dependencyPath);
         if (!addSceneAssetCookStatDependency(resourceDirectory, pFingerprint, dependencyPath, pBuffer->size))
             return false;
     }
@@ -288,7 +288,7 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
         if (!pImage->uri || strncmp(pImage->uri, "data:", 5) == 0 || strstr(pImage->uri, "://"))
             continue;
         char dependencyPath[FS_MAX_PATH] = {};
-        fsAppendPathComponent(sourceParent, pImage->uri, dependencyPath);
+        AppendPathComponent(sourceParent, pImage->uri, dependencyPath);
         if (!addSceneAssetCookStatDependency(resourceDirectory, pFingerprint, dependencyPath, 0))
             return false;
     }
@@ -303,8 +303,8 @@ static void formatSceneAssetCookHash(const SceneAssetCookFingerprint* pFingerpri
 void CreateDirectoryForFile(ResourceDirectory resourceDir, const char* filename)
 {
     char directory[FS_MAX_PATH] = {};
-    fsGetParentPath(filename, directory);
-    fsCreateDirectory(resourceDir, directory, true);
+    GetParentPath(filename, directory);
+    MakeDirectory(resourceDir, directory, true);
 }
 
 void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const char* ext, OnFind onFindCallback, void* pUserData,
@@ -315,7 +315,7 @@ void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const ch
     // Get all requested extension files
     char** filesInDirectory = NULL;
     int    filesFoundInDirectory = 0;
-    fsGetFilesWithExtension(resourceDir, subDir ? subDir : "", ext, &filesInDirectory, &filesFoundInDirectory);
+    GetFilesWithExtension(resourceDir, subDir ? subDir : "", ext, &filesInDirectory, &filesFoundInDirectory);
     for (int j = 0; j < filesFoundInDirectory; ++j)
     {
         if (filesInDirectory[j])
@@ -336,7 +336,7 @@ void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const ch
     {
         char** subDirectories = NULL;
         int    subDirectoryCount = 0;
-        fsGetSubDirectories(resourceDir, subDir ? subDir : "", &subDirectories, &subDirectoryCount);
+        GetSubDirectories(resourceDir, subDir ? subDir : "", &subDirectories, &subDirectoryCount);
         for (int i = 0; i < subDirectoryCount; ++i)
         {
             if (subDirectories[i])
@@ -381,17 +381,17 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
 {
     // Import the glTF with the animation
     FileStream file = {};
-    if (!fsOpenStreamFromPath(resourceDir, skeletonAsset, FM_READ, &file))
+    if (!OpenStreamFromPath(resourceDir, skeletonAsset, FM_READ, &file))
     {
         LOGF(Error, "Failed to open gltf file %s", skeletonAsset);
         ASSERT(false);
         return cgltf_result_file_not_found;
     }
 
-    ssize_t fileSize = fsGetStreamFileSize(&file);
+    ssize_t fileSize = GetStreamFileSize(&file);
     void*   fileData = tf_malloc(fileSize);
 
-    fsReadFromStream(&file, fileData, fileSize);
+    ReadFromStream(&file, fileData, fileSize);
 
     cgltf_data*   data = NULL;
     cgltf_options options = {};
@@ -407,7 +407,7 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
     };
     options.rd = resourceDir;
     cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
-    fsCloseStream(&file);
+    CloseStream(&file);
 
     if (!VERIFYMSG(cgltf_result_success == result, "Failed to parse gltf file %s with error %u", skeletonAsset, (uint32_t)result))
     {
@@ -434,16 +434,16 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
         if (strncmp(uri, "data:", 5) != 0 && !strstr(uri, "://"))
         {
             char parent[FS_MAX_PATH] = { 0 };
-            fsGetParentPath(skeletonAsset, parent);
+            GetParentPath(skeletonAsset, parent);
             char path[FS_MAX_PATH] = { 0 };
-            fsAppendPathComponent(parent, uri, path);
+            AppendPathComponent(parent, uri, path);
             FileStream fs = {};
-            if (fsOpenStreamFromPath(resourceDir, path, FM_READ, &fs))
+            if (OpenStreamFromPath(resourceDir, path, FM_READ, &fs))
             {
-                ASSERT(fsGetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].size);
+                ASSERT(GetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].size);
                 data->buffers[i].data = tf_malloc(data->buffers[i].size);
-                fsReadFromStream(&fs, data->buffers[i].data, data->buffers[i].size);
-                fsCloseStream(&fs);
+                ReadFromStream(&fs, data->buffers[i].data, data->buffers[i].size);
+                CloseStream(&fs);
             }
         }
     }
@@ -486,14 +486,14 @@ cgltf_result cgltf_write(ResourceDirectory resourceDir, const char* skeletonAsse
     }
 
     FileStream file = {};
-    if (!fsOpenStreamFromPath(resourceDir, skeletonAsset, FM_WRITE, &file))
+    if (!OpenStreamFromPath(resourceDir, skeletonAsset, FM_WRITE, &file))
     {
         tf_free(writeBuffer);
         return cgltf_result_io_error;
     }
 
-    fsWriteToStream(&file, writeBuffer, actual - 1);
-    fsCloseStream(&file);
+    WriteToStream(&file, writeBuffer, actual - 1);
+    CloseStream(&file);
     tf_free(writeBuffer);
 
     return cgltf_result_success;
@@ -505,7 +505,7 @@ static void DiscoverExtraAnimationsForMesh(ResourceDirectory resourceDirInput, c
     // Find sub directory called animations
     char** assetSubDirectories = NULL;
     int    assetSubDirectoryCount = 0;
-    fsGetSubDirectories(resourceDirInput, searchRootDir, &assetSubDirectories, &assetSubDirectoryCount);
+    GetSubDirectories(resourceDirInput, searchRootDir, &assetSubDirectories, &assetSubDirectoryCount);
     if (assetSubDirectories)
     {
         for (int k = 0; k < assetSubDirectoryCount; ++k)
@@ -513,13 +513,13 @@ static void DiscoverExtraAnimationsForMesh(ResourceDirectory resourceDirInput, c
             const char* assetSubDir = assetSubDirectories[k];
 
             char subDir[FS_MAX_PATH] = {};
-            fsGetPathFileName(assetSubDir, subDir);
+            GetPathFileName(assetSubDir, subDir);
             if (!stricmp(subDir, extraAnimationsSubdirName))
             {
                 // Add all files in animations to the animation asset
                 char** animationFiles = NULL;
                 int    animationFileCount = 0;
-                fsGetFilesWithExtension(resourceDirInput, assetSubDir, ".gltf", &animationFiles, &animationFileCount);
+                GetFilesWithExtension(resourceDirInput, assetSubDir, ".gltf", &animationFiles, &animationFileCount);
                 if (animationFiles)
                 {
                     for (int curAnim = 0; curAnim < animationFileCount; ++curAnim)
@@ -549,7 +549,7 @@ static void DiscoverExtraAnimationsForMesh(ResourceDirectory resourceDirInput, c
 
 bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams* pProcessAnimationsParams)
 {
-    LOGF(Info, "Processing animations and writing to directory: %s", fsGetResourceDirectory(assetParams->mRDOutput));
+    LOGF(Info, "Processing animations and writing to directory: %s", GetResourceDirectory(assetParams->mRDOutput));
 
     const SkeletonAndAnimations* pSkeletonAndAnims = pProcessAnimationsParams->pSkeletonAndAnims;
     for (uint32_t i = 0; i < (uint32_t)arrlen(pSkeletonAndAnims); ++i)
@@ -585,10 +585,10 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
         bool processSkeleton = true;
         if (!assetParams->mSettings.force)
         {
-            time_t lastModified = fsGetLastModifiedTime(assetParams->mRDInput, skeletonInputFile);
+            time_t lastModified = GetLastModifiedTime(assetParams->mRDInput, skeletonInputFile);
             if (assetParams->mAdditionalModifiedTime != 0)
                 lastModified = max(lastModified, assetParams->mAdditionalModifiedTime);
-            time_t lastProcessed = fsGetLastModifiedTime(assetParams->mRDOutput, skeletonOutput);
+            time_t lastProcessed = GetLastModifiedTime(assetParams->mRDOutput, skeletonOutput);
 
             if (lastModified < lastProcessed && lastProcessed != ~0u && lastProcessed > assetParams->mSettings.minLastModifiedTime)
                 processSkeleton = false;
@@ -618,7 +618,7 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
 
             // Load skeleton from disk
             FileStream file = {};
-            if (!fsOpenStreamFromPath(assetParams->mRDOutput, skeletonOutput, FM_READ, &file))
+            if (!OpenStreamFromPath(assetParams->mRDOutput, skeletonOutput, FM_READ, &file))
             {
                 LOGF(Error, "Couldn't load Skeleton for mesh '%s' in %s. Skipping asset and all it's animations", skeletonInputFile,
                      skeletonOutput);
@@ -628,7 +628,7 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
             }
             ozz::io::IArchive archive(&file);
             archive >> skeleton;
-            fsCloseStream(&file);
+            CloseStream(&file);
         }
 
         // Process animations
@@ -644,10 +644,10 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
             bool processAnimation = true;
             if (!assetParams->mSettings.force && !processSkeleton)
             {
-                time_t lastModified = fsGetLastModifiedTime(assetParams->mRDInput, animInputFile);
+                time_t lastModified = GetLastModifiedTime(assetParams->mRDInput, animInputFile);
                 if (assetParams->mAdditionalModifiedTime != 0)
                     lastModified = max(lastModified, assetParams->mAdditionalModifiedTime);
-                time_t lastProcessed = fsGetLastModifiedTime(assetParams->mRDOutput, animOutputPath);
+                time_t lastProcessed = GetLastModifiedTime(assetParams->mRDOutput, animOutputPath);
 
                 if (lastModified < lastProcessed && lastProcessed != ~0u && lastModified > assetParams->mSettings.minLastModifiedTime)
                     processAnimation = false;
@@ -688,7 +688,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
     int    tfxFileCount = 0;
     if (assetParams->mPathMode == PROCESS_MODE_DIRECTORY)
     {
-        fsGetFilesWithExtension(assetParams->mRDInput, "", "tfx", &tfxFiles, &tfxFileCount);
+        GetFilesWithExtension(assetParams->mRDInput, "", "tfx", &tfxFiles, &tfxFileCount);
     }
     else
     {
@@ -708,18 +708,18 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
     {
         const char* input = tfxFiles[i];
         char        outputTemp[FS_MAX_PATH] = {};
-        fsGetPathFileName(input, outputTemp);
+        GetPathFileName(input, outputTemp);
         char output[FS_MAX_PATH] = {};
-        fsAppendPathExtension(outputTemp, "gltf", output);
+        AppendPathExtension(outputTemp, "gltf", output);
 
         char binFilePath[FS_MAX_PATH] = {};
-        fsAppendPathExtension(outputTemp, "bin", binFilePath);
+        AppendPathExtension(outputTemp, "bin", binFilePath);
 
         FileStream tfxFile = {};
-        fsOpenStreamFromPath(assetParams->mRDInput, input, FM_READ, &tfxFile);
+        OpenStreamFromPath(assetParams->mRDInput, input, FM_READ, &tfxFile);
         AMD::TressFXAsset tressFXAsset = {};
         RETURN_IF_TFX_ERROR(tressFXAsset.LoadHairData(&tfxFile))
-        fsCloseStream(&tfxFile);
+        CloseStream(&tfxFile);
 
         if (tfxParams->mFollowHairCount)
         {
@@ -809,7 +809,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
         cgltf_primitive   prim = {};
         cgltf_size        offset = 0;
         FileStream        binFile = {};
-        fsOpenStreamFromPath(assetParams->mRDOutput, binFilePath, FM_WRITE, &binFile);
+        OpenStreamFromPath(assetParams->mRDOutput, binFilePath, FM_WRITE, &binFile);
         size_t fileSize = 0;
 
         for (uint32_t j = 0; j < count; ++j)
@@ -828,13 +828,13 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
             attribs[j].name = (char*)vertexNames[j];
             attribs[j].data = &accessors[j];
 
-            fileSize += fsWriteToStream(&binFile, vertexData[j], views[j].size);
+            fileSize += WriteToStream(&binFile, vertexData[j], views[j].size);
             offset += views[j].size;
         }
-        fsCloseStream(&binFile);
+        CloseStream(&binFile);
 
         char uri[FS_MAX_PATH] = {};
-        fsGetPathFileName(binFilePath, uri);
+        GetPathFileName(binFilePath, uri);
         // sprintf(uri, "%s", fn.buffer);
         buffer.uri = uri;
         buffer.size = fileSize;
@@ -1139,18 +1139,18 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
     // Ensure output dir exists before we write the skeleton to disk
     {
         char directory[FS_MAX_PATH] = {};
-        fsGetParentPath(skeletonOutputFile, directory);
-        fsCreateDirectory(resourceDirOzzOutput, directory, true);
+        GetParentPath(skeletonOutputFile, directory);
+        MakeDirectory(resourceDirOzzOutput, directory, true);
     }
 
     // Write skeleton to disk
     FileStream file = {};
-    if (!fsOpenStreamFromPath(resourceDirOzzOutput, skeletonOutputFile, FM_WRITE, &file))
+    if (!OpenStreamFromPath(resourceDirOzzOutput, skeletonOutputFile, FM_WRITE, &file))
         return true;
 
     ozz::io::OArchive archive(&file);
     archive << *pOutSkeleton;
-    fsCloseStream(&file);
+    CloseStream(&file);
 
     // Generate joint remaps in the gltf
     {
@@ -1204,16 +1204,16 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
             if (strncmp(data->buffers[i].uri, "://", 3) == 0)
             {
                 char parentPath[FS_MAX_PATH] = {};
-                fsGetParentPath(skeletonInputfile, parentPath);
+                GetParentPath(skeletonInputfile, parentPath);
                 char bufferOut[FS_MAX_PATH] = {};
-                fsAppendPathComponent(parentPath, data->buffers[i].uri, bufferOut);
+                AppendPathComponent(parentPath, data->buffers[i].uri, bufferOut);
 
                 LOGF(Info, "Writing binary gltf data: %s -> %s", skeletonInputfile, bufferOut);
 
                 FileStream fs = {};
-                fsOpenStreamFromPath(resourceDirGltfOutput, bufferOut, FM_WRITE, &fs);
-                fsWriteToStream(&fs, data->buffers[i].data, data->buffers[i].size);
-                fsCloseStream(&fs);
+                OpenStreamFromPath(resourceDirGltfOutput, bufferOut, FM_WRITE, &fs);
+                WriteToStream(&fs, data->buffers[i].data, data->buffers[i].size);
+                CloseStream(&fs);
             }
         }
 
@@ -1355,23 +1355,23 @@ static bool CreateRuntimeAnimation(RuntimeAnimationSettings* animationSettings, 
     // Ensure output dir exists before we write the animations to disk
     {
         char directory[FS_MAX_PATH] = {};
-        fsGetParentPath(animOutFile, directory);
-        fsCreateDirectory(animationSettings->mSkeletonAndAnimOutRd, directory, true);
+        GetParentPath(animOutFile, directory);
+        MakeDirectory(animationSettings->mSkeletonAndAnimOutRd, directory, true);
     }
 
     // Write animation to disk
     FileStream file = {};
-    if (!fsOpenStreamFromPath(animationSettings->mSkeletonAndAnimOutRd, animOutFile, FM_WRITE, &file))
+    if (!OpenStreamFromPath(animationSettings->mSkeletonAndAnimOutRd, animOutFile, FM_WRITE, &file))
     {
         LOGF(LogLevel::Error, "Animation %s:%s can not be saved to %s/%s", animationSourceFile, animationData->name,
-             fsGetResourceDirectory(animationSettings->mSkeletonAndAnimOutRd), animOutFile);
+             GetResourceDirectory(animationSettings->mSkeletonAndAnimOutRd), animOutFile);
         animation.Deallocate();
         return true;
     }
 
     ozz::io::OArchive archive(&file);
     archive << animation;
-    fsCloseStream(&file);
+    CloseStream(&file);
     // Deallocate animation
     animation.Deallocate();
 
@@ -1416,7 +1416,7 @@ bool CreateRuntimeAnimations(ResourceDirectory resourceDirInput, const char* ani
         {
             // If the file only contains one animation we use the name of the input file as the output file
             char inAnimFilename[FS_MAX_PATH / 2] = {};
-            fsGetPathFileName(animationInputFile, inAnimFilename);
+            GetPathFileName(animationInputFile, inAnimFilename);
             snprintf(buffer, sizeof(buffer), "%s/%s.ozz", animationOutputPath, inAnimFilename);
         }
         else
@@ -1575,16 +1575,16 @@ void CheckIfGltfHasAnimations(ResourceDirectory resourceDirInput, const char* gl
     numAnimationsOut = 0;
 
     FileStream file = {};
-    if (!fsOpenStreamFromPath(resourceDirInput, gltfFileName, FM_READ, &file))
+    if (!OpenStreamFromPath(resourceDirInput, gltfFileName, FM_READ, &file))
     {
         LOGF(Error, "Failed to open gltf file %s", gltfFileName);
         return;
     }
 
-    ssize_t fileSize = fsGetStreamFileSize(&file);
+    ssize_t fileSize = GetStreamFileSize(&file);
     void*   fileData = tf_malloc(fileSize);
 
-    fsReadFromStream(&file, fileData, fileSize);
+    ReadFromStream(&file, fileData, fileSize);
 
     cgltf_options options = {};
     cgltf_data*   data = NULL;
@@ -1600,7 +1600,7 @@ void CheckIfGltfHasAnimations(ResourceDirectory resourceDirInput, const char* gl
     };
     options.rd = resourceDirInput;
     cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
-    fsCloseStream(&file);
+    CloseStream(&file);
 
     if (cgltf_result_success != result)
     {
@@ -1841,30 +1841,30 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         if (assetParams->mOutSubdir)
         {
             char extractedFileName[FS_MAX_PATH] = {};
-            fsGetPathFileName(fileName, extractedFileName);
+            GetPathFileName(fileName, extractedFileName);
 
             strcat(extractedFileName, ".bin");
-            fsAppendPathComponent(assetParams->mOutSubdir, extractedFileName, newFileName);
+            AppendPathComponent(assetParams->mOutSubdir, extractedFileName, newFileName);
         }
         else
         {
-            fsReplacePathExtension(fileName, "bin", newFileName);
+            ReplacePathExtension(fileName, "bin", newFileName);
         }
 
         LOGF(Info, "Converting %s to TF custom binary file", fileName);
 
         FileStream file = {};
-        if (!fsOpenStreamFromPath(assetParams->mRDInput, fileName, FM_READ, &file))
+        if (!OpenStreamFromPath(assetParams->mRDInput, fileName, FM_READ, &file))
         {
             LOGF(Error, "Failed to open gltf file %s", fileName);
             error = true;
             continue;
         }
 
-        ssize_t fileSize = fsGetStreamFileSize(&file);
+        ssize_t fileSize = GetStreamFileSize(&file);
         void*   fileData = tf_malloc(fileSize);
 
-        fsReadFromStream(&file, fileData, fileSize);
+        ReadFromStream(&file, fileData, fileSize);
 
         cgltf_options options = {};
         cgltf_data*   data = NULL;
@@ -1880,7 +1880,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         };
         options.rd = assetParams->mRDInput;
         cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
-        fsCloseStream(&file);
+        CloseStream(&file);
 
         if (cgltf_result_success != result)
         {
@@ -1922,19 +1922,19 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             if (strncmp(uri, "data:", 5) != 0 && !strstr(uri, "://"))
             {
                 char parent[FS_MAX_PATH] = { 0 };
-                fsGetParentPath(fileName, parent);
+                GetParentPath(fileName, parent);
                 char path[FS_MAX_PATH] = { 0 };
-                fsAppendPathComponent(parent, uri, path);
+                AppendPathComponent(parent, uri, path);
                 FileStream fs = {};
-                if (fsOpenStreamFromPath(assetParams->mRDInput, path, FM_READ, &fs))
+                if (OpenStreamFromPath(assetParams->mRDInput, path, FM_READ, &fs))
                 {
-                    buffersLoaded = fsGetStreamFileSize(&fs) >= (ssize_t)data->buffers[j].size;
+                    buffersLoaded = GetStreamFileSize(&fs) >= (ssize_t)data->buffers[j].size;
                     if (buffersLoaded)
                     {
                         data->buffers[j].data = tf_malloc(data->buffers[j].size);
-                        buffersLoaded = fsReadFromStream(&fs, data->buffers[j].data, data->buffers[j].size) == data->buffers[j].size;
+                        buffersLoaded = ReadFromStream(&fs, data->buffers[j].data, data->buffers[j].size) == data->buffers[j].size;
                     }
-                    fsCloseStream(&fs);
+                    CloseStream(&fs);
                     if (!buffersLoaded)
                         break;
                 }
@@ -1968,7 +1968,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         char contentHash[kSceneAssetCookHashCapacity] = {};
         formatSceneAssetCookHash(pFingerprint, contentHash);
         SceneAssetCooker sceneCooker(assetParams->mRDInput, fileName, assetParams->mRDOutput, newFileName);
-        if (!assetParams->mSettings.force && fsFileExist(assetParams->mRDOutput, newFileName) && sceneCooker.isCurrent(contentHash))
+        if (!assetParams->mSettings.force && FileExists(assetParams->mRDOutput, newFileName) && sceneCooker.isCurrent(contentHash))
         {
             LOGF(Info, "Skipping %s (content hash unchanged)", fileName);
             tf_free(pFingerprint);
@@ -2529,7 +2529,7 @@ bool WriteZip(AssetPipelineParams* assetParams, WriteZipParams* zipParams)
         char** filteredFiles = NULL;
         int    filteredFileCount = 0;
 
-        fsGetFilesWithExtension(assetParams->mRDInput, "", zipParams->mFilters[i], &filteredFiles, &filteredFileCount);
+        GetFilesWithExtension(assetParams->mRDInput, "", zipParams->mFilters[i], &filteredFiles, &filteredFileCount);
 
         for (int j = 0; j < filteredFileCount; ++j)
         {
@@ -2579,7 +2579,7 @@ bool WriteZip(AssetPipelineParams* assetParams, WriteZipParams* zipParams)
 bool ZipAllAssets(AssetPipelineParams* assetParams, WriteZipParams* zipParams)
 {
     // TODO: we should check that none of the existing assets have been cooked
-    if (!assetParams->mSettings.force && fsFileExist(assetParams->mRDOutput, zipParams->mZipFileName))
+    if (!assetParams->mSettings.force && FileExists(assetParams->mRDOutput, zipParams->mZipFileName))
     {
         return false;
     }
@@ -2655,7 +2655,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
     // Ignore if parent is named "animations"
     {
         char parentPath[FS_MAX_PATH] = {};
-        fsGetParentPath(filename, parentPath);
+        GetParentPath(filename, parentPath);
         char* foundStrPntr = strstr(parentPath, subdirWithAnimationsName);
         if (foundStrPntr)
         {
@@ -2671,16 +2671,16 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
     OnDiscoverAnimationsParam* discoveredAnims = (OnDiscoverAnimationsParam*)pUserData;
 
     FileStream file = {};
-    if (!fsOpenStreamFromPath(resourceDir, filename, FM_READ, &file))
+    if (!OpenStreamFromPath(resourceDir, filename, FM_READ, &file))
     {
         LOGF(Error, "Failed to open gltf file %s", filename);
         return;
     }
 
-    ssize_t fileSize = fsGetStreamFileSize(&file);
+    ssize_t fileSize = GetStreamFileSize(&file);
     void*   fileData = tf_malloc(fileSize);
 
-    fsReadFromStream(&file, fileData, fileSize);
+    ReadFromStream(&file, fileData, fileSize);
 
     cgltf_options options = {};
     cgltf_data*   data = NULL;
@@ -2696,7 +2696,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
     };
     options.rd = resourceDir;
     cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
-    fsCloseStream(&file);
+    CloseStream(&file);
 
     if (cgltf_result_success != result)
     {
@@ -2710,7 +2710,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
     skeletonAndAnims.mSkeletonOutFile = bdynfromcstr("skeleton.ozz");
 
     char assetPath[FS_MAX_PATH] = {};
-    fsGetParentPath(filename, assetPath);
+    GetParentPath(filename, assetPath);
 
     if (data->animations_count > 0)
     {
@@ -2751,7 +2751,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
         {
             LOGF(Info, "ProcessAnimations with input filepath '%s'", assetParams->mInFilePath);
 
-            if (!fsFileExist(assetParams->mRDInput, assetParams->mInFilePath))
+            if (!FileExists(assetParams->mRDInput, assetParams->mInFilePath))
             {
                 LOGF(Error, "%s doesn't exist.", assetParams->mInFilePath);
                 return 1;
@@ -3163,7 +3163,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
 bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourceFile, ResourceDirectory outputDirectory)
 {
     if (!pSourceFile || !pSourceFile[0] || sourceDirectory == outputDirectory ||
-        strcmp(fsGetResourceDirectory(sourceDirectory), fsGetResourceDirectory(outputDirectory)) == 0)
+        strcmp(GetResourceDirectory(sourceDirectory), GetResourceDirectory(outputDirectory)) == 0)
     {
         LOGF(Error, "glTF cooking requires separate source and output directories");
         return false;
@@ -3175,7 +3175,7 @@ bool ensureSceneGltfCooked(ResourceDirectory sourceDirectory, const char* pSourc
     params.mPathMode = PROCESS_MODE_FILE;
     params.mRDInput = sourceDirectory;
     params.mRDOutput = outputDirectory;
-    if (!fsCreateDirectory(outputDirectory, "", true) || AssetPipelineRun(&params) != 0)
+    if (!MakeDirectory(outputDirectory, "", true) || AssetPipelineRun(&params) != 0)
     {
         LOGF(Error, "Failed to cook %s", pSourceFile);
         return false;

@@ -41,17 +41,17 @@ static uint64_t imageHash(const void* pBytes, size_t size, uint64_t hash = UINT6
 bool SceneTextureCooker::readImage(const char* pPath, hz::Array<uint8_t>& bytes) const
 {
     FileStream stream = {};
-    if (!fsOpenStreamFromPath(sourceDirectory, pPath, FM_READ, &stream))
+    if (!OpenStreamFromPath(sourceDirectory, pPath, FM_READ, &stream))
         return false;
-    const ssize_t size = fsGetStreamFileSize(&stream);
+    const ssize_t size = GetStreamFileSize(&stream);
     if (size <= 0 || size > INT_MAX)
     {
-        fsCloseStream(&stream);
+        CloseStream(&stream);
         return false;
     }
     bytes.resize((uint32_t)size);
-    const bool read = fsReadFromStream(&stream, bytes.data(), bytes.size()) == bytes.size();
-    return fsCloseStream(&stream) && read;
+    const bool read = ReadFromStream(&stream, bytes.data(), bytes.size()) == bytes.size();
+    return CloseStream(&stream) && read;
 }
 
 static bool decodeImageURI(const char* pURI, hz::Array<uint8_t>& bytes)
@@ -83,19 +83,19 @@ bool SceneTextureCooker::writeDDS(const char* pPath, const void* pBytes, size_t 
 {
     char temporary[FS_MAX_PATH];
     if (snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) >= (int)sizeof(temporary) ||
-        !fsCreateDirectory(outputDirectory, "Textures", true))
+        !MakeDirectory(outputDirectory, "Textures", true))
         return false;
     FileStream stream = {};
-    if (!fsOpenStreamFromPath(outputDirectory, temporary, FM_WRITE, &stream))
+    if (!OpenStreamFromPath(outputDirectory, temporary, FM_WRITE, &stream))
         return false;
-    const bool written = fsWriteToStream(&stream, pBytes, size) == size;
-    const bool closed = fsCloseStream(&stream);
+    const bool written = WriteToStream(&stream, pBytes, size) == size;
+    const bool closed = CloseStream(&stream);
     if (!written || !closed)
         return false;
     // Content-addressed output never overwrites a texture used by a previous cook.
-    if (fsFileExist(outputDirectory, pPath))
-        return fsRemoveFile(outputDirectory, temporary);
-    return fsRenameFile(outputDirectory, temporary, pPath);
+    if (FileExists(outputDirectory, pPath))
+        return RemoveFile(outputDirectory, temporary);
+    return RenameFile(outputDirectory, temporary, pPath);
 }
 
 #if defined(_WIN32)
@@ -201,7 +201,7 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, const
 SceneTextureCooker::SceneTextureCooker(ResourceDirectory sourceDirectory, ResourceDirectory outputDirectory, const char* pSourceFile):
     sourceDirectory(sourceDirectory), outputDirectory(outputDirectory)
 {
-    fsGetParentPath(pSourceFile, sourceParent);
+    GetParentPath(pSourceFile, sourceParent);
 #if defined(_WIN32)
     pEncoder = tf_new(TextureEncoder);
 #endif
@@ -225,13 +225,13 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
         if (strstr(image.uri, ":") || image.uri[0] == '/' || strchr(image.uri, '\\') ||
             strlen(sourceParent) + strlen(image.uri) + 2 >= FS_MAX_PATH)
             return false;
-        fsAppendPathComponent(sourceParent, image.uri, output.source);
+        AppendPathComponent(sourceParent, image.uri, output.source);
         const char* pExtension = strrchr(image.uri, '.');
         if (pExtension && (stricmp(pExtension, ".dds") == 0 || stricmp(pExtension, ".ktx") == 0))
         {
             snprintf(output.path, sizeof(output.path), "%s", output.source);
             output.signature = imageHash(output.source, strlen(output.source));
-            return fsFileExist(sourceDirectory, output.path);
+            return FileExists(sourceDirectory, output.path);
         }
         if (!pExtension || (stricmp(pExtension, ".png") != 0 && stricmp(pExtension, ".jpg") != 0 && stricmp(pExtension, ".jpeg") != 0) ||
             !readImage(output.source, bytes))
@@ -264,7 +264,7 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
     output.cooked = true;
     if (output.source[0])
         output.signature = imageHash(output.source, strlen(output.source));
-    if (fsFileExist(outputDirectory, output.path))
+    if (FileExists(outputDirectory, output.path))
         return true;
     DirectX::Blob dds;
     if (!pEncoder->encode(pBytes, size, srgb, output.source[0] ? output.source : output.path, dds))

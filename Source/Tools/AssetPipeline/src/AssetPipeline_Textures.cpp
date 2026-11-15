@@ -85,7 +85,7 @@ TinyDDS_WriteCallbacks ddsWriteCallbacks{ [](void* user, char const* msg)
                                               tf_free(memory);
                                           },
                                           [](void* user, const void* buffer, size_t byteCount)
-                                          { fsWriteToStream((FileStream*)user, buffer, (ssize_t)byteCount); } };
+                                          { WriteToStream((FileStream*)user, buffer, (ssize_t)byteCount); } };
 
 TinyDDS_Callbacks ddsReadCallbacks{ [](void* user, char const* msg)
                                     {
@@ -103,10 +103,10 @@ TinyDDS_Callbacks ddsReadCallbacks{ [](void* user, char const* msg)
                                         tf_free(memory);
                                     },
                                     [](void* user, void* buffer, size_t byteCount)
-                                    { return fsReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
+                                    { return ReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
                                     [](void* user, int64_t offset)
-                                    { return fsSeekStream((FileStream*)user, SBO_START_OF_FILE, (ssize_t)offset); },
-                                    [](void* user) { return (int64_t)fsGetStreamSeekPosition((FileStream*)user); } };
+                                    { return SeekStream((FileStream*)user, SBO_START_OF_FILE, (ssize_t)offset); },
+                                    [](void* user) { return (int64_t)GetStreamPosition((FileStream*)user); } };
 
 TinyKtx_WriteCallbacks ktxWriteCallbacks{ [](void* user, char const* msg)
                                           {
@@ -124,7 +124,7 @@ TinyKtx_WriteCallbacks ktxWriteCallbacks{ [](void* user, char const* msg)
                                               tf_free(memory);
                                           },
                                           [](void* user, const void* buffer, size_t byteCount)
-                                          { fsWriteToStream((FileStream*)user, buffer, (ssize_t)byteCount); } };
+                                          { WriteToStream((FileStream*)user, buffer, (ssize_t)byteCount); } };
 
 TinyKtx_Callbacks ktxReadCallbacks{ [](void* user, char const* msg)
                                     {
@@ -142,10 +142,10 @@ TinyKtx_Callbacks ktxReadCallbacks{ [](void* user, char const* msg)
                                         tf_free(memory);
                                     },
                                     [](void* user, void* buffer, size_t byteCount)
-                                    { return fsReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
+                                    { return ReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
                                     [](void* user, int64_t offset)
-                                    { return fsSeekStream((FileStream*)user, SBO_START_OF_FILE, (ssize_t)offset); },
-                                    [](void* user) { return (int64_t)fsGetStreamSeekPosition((FileStream*)user); } };
+                                    { return SeekStream((FileStream*)user, SBO_START_OF_FILE, (ssize_t)offset); },
+                                    [](void* user) { return (int64_t)GetStreamPosition((FileStream*)user); } };
 
 typedef struct InputTextureData
 {
@@ -291,14 +291,14 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
 
     // Read input file
     FileStream file = {};
-    if (!fsOpenStreamFromPath(resourceDir, pFilepath, FileMode(FM_READ | FM_ALLOW_READ), &file))
+    if (!OpenStreamFromPath(resourceDir, pFilepath, FileMode(FM_READ | FM_ALLOW_READ), &file))
     {
         LOGF(Error, "Could not open file '%s'.", pFilepath);
         success = false;
         return success;
     }
 
-    ssize_t fileSize = fsGetStreamFileSize(&file);
+    ssize_t fileSize = GetStreamFileSize(&file);
     if (fileSize > INT32_MAX)
     {
         LOGF(Warning, "File '%s' exceeds max handled filesize, size: %zi max: %i", pFilepath, fileSize, INT32_MAX);
@@ -394,7 +394,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
     else
     {
         uint8_t* pFileData = (uint8_t*)tf_malloc(fileSize);
-        ssize_t  fileReadBytes = fsReadFromStream(&file, pFileData, fileSize);
+        ssize_t  fileReadBytes = ReadFromStream(&file, pFileData, fileSize);
 
         if (fileSize != fileReadBytes)
         {
@@ -500,7 +500,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         }
     }
 
-    fsCloseStream(&file);
+    CloseStream(&file);
 
     return success;
 }
@@ -1057,32 +1057,32 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         const char* inFileName = (char*)inputImgFileNames[i].data;
 
         char inExtension[FS_MAX_PATH] = { 0 };
-        fsGetPathExtension(inFileName, inExtension);
+        GetPathExtension(inFileName, inExtension);
 
         char outFileName[FS_MAX_PATH] = { 0 };
 
         if (assetParams->mOutSubdir)
         {
             char fileName[FS_MAX_PATH] = {};
-            fsGetPathFileName(inFileName, fileName);
+            GetPathFileName(inFileName, fileName);
 
             strcat(fileName, ".tex");
 
-            fsAppendPathComponent(assetParams->mOutSubdir, fileName, outFileName);
+            AppendPathComponent(assetParams->mOutSubdir, fileName, outFileName);
         }
         else
         {
-            fsReplacePathExtension(inFileName, "tex", outFileName);
+            ReplacePathExtension(inFileName, "tex", outFileName);
         }
 
         // If input file newer than output file redo compression
-        if (!assetParams->mSettings.force && fsFileExist(assetParams->mRDOutput, outFileName))
+        if (!assetParams->mSettings.force && FileExists(assetParams->mRDOutput, outFileName))
         {
-            time_t lastModified = fsGetLastModifiedTime(assetParams->mRDInput, inFileName);
+            time_t lastModified = GetLastModifiedTime(assetParams->mRDInput, inFileName);
             if (assetParams->mAdditionalModifiedTime != 0)
                 lastModified = max(lastModified, assetParams->mAdditionalModifiedTime);
 
-            time_t lastProcessed = fsGetLastModifiedTime(assetParams->mRDOutput, outFileName);
+            time_t lastProcessed = GetLastModifiedTime(assetParams->mRDOutput, outFileName);
 
             if (lastModified < lastProcessed)
             {
@@ -1235,18 +1235,18 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         // Remove old file
         if (!error)
         {
-            fsRemoveFile(assetParams->mRDOutput, outFileName);
+            RemoveFile(assetParams->mRDOutput, outFileName);
         }
 
         // Make sure output folder exists
         {
             char assetPath[FS_MAX_PATH] = {};
-            fsGetParentPath(outFileName, assetPath);
-            fsCreateDirectory(assetParams->mRDOutput, assetPath, true);
+            GetParentPath(outFileName, assetPath);
+            MakeDirectory(assetParams->mRDOutput, assetPath, true);
         }
 
         FileStream outFile = {};
-        if (!fsOpenStreamFromPath(assetParams->mRDOutput, outFileName, FM_WRITE, &outFile))
+        if (!OpenStreamFromPath(assetParams->mRDOutput, outFileName, FM_WRITE, &outFile))
         {
             LOGF(Error, "Could not open file '%s' for write.", outFileName);
             error = true;
@@ -1322,7 +1322,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         }
 
         // Close out file stream
-        fsCloseStream(&outFile);
+        CloseStream(&outFile);
 
         if (pCompressedData[0])
         {
@@ -1350,7 +1350,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         // Remove the output file if it was created but process textures failed.
         if (error)
         {
-            fsRemoveFile(assetParams->mRDOutput, outFileName);
+            RemoveFile(assetParams->mRDOutput, outFileName);
         }
     }
 
