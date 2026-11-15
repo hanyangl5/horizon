@@ -477,10 +477,10 @@ public:
             .enableGpuValidation = true,
             .enableGpuProfiler = true,
         };
-        context = std::make_unique<hz::RenderContext>(contextDesc);
-        geometryBuildPass = std::make_unique<GeometryBuildPass>(*context);
-        gBufferPass = std::make_unique<GBufferPass>(*context);
-        lightingPass = std::make_unique<LightingPass>(*context, hz::Format::R8G8B8A8_SRGB);
+        context = std::MakeUnique<hz::RenderContext>(contextDesc);
+        geometryBuildPass = std::MakeUnique<GeometryBuildPass>(*context);
+        gBufferPass = std::MakeUnique<GBufferPass>(*context);
+        lightingPass = std::MakeUnique<LightingPass>(*context, hz::Format::R8G8B8A8_SRGB);
 
         createUniformBuffers();
         return true;
@@ -583,11 +583,11 @@ private:
         commands.updateBuffer(sceneUniformBuffers[1], 0, &floor, sizeof(floor));
     }
 
-    std::unique_ptr<hz::RenderContext> context;
+    std::UniquePtr<hz::RenderContext> context;
     hz::GPUBuffer                      sceneUniformBuffers[kSceneObjectCount];
-    std::unique_ptr<GeometryBuildPass> geometryBuildPass;
-    std::unique_ptr<GBufferPass>       gBufferPass;
-    std::unique_ptr<LightingPass>      lightingPass;
+    std::UniquePtr<GeometryBuildPass> geometryBuildPass;
+    std::UniquePtr<GBufferPass>       gBufferPass;
+    std::UniquePtr<LightingPass>      lightingPass;
     float                              elapsedTime = 0.0f;
 };
 

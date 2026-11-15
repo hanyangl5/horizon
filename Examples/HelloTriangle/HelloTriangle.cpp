@@ -77,7 +77,7 @@ public:
             .enableGpuValidation = true,
             .enableGpuProfiler = true,
         };
-        context = hz::make_unique<hz::RenderContext>(contextDesc);
+        context = hz::MakeUnique<hz::RenderContext>(contextDesc);
         vSync = settings.vSyncEnabled;
 
         resources.emplace();
@@ -198,7 +198,7 @@ private:
         hz::GPUPipeline pipeline;
     };
 
-    hz::unique_ptr<hz::RenderContext> context;
+    hz::UniquePtr<hz::RenderContext> context;
     std::optional<Resources>          resources;
     bool                              vSync = true;
 };

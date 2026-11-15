@@ -83,7 +83,7 @@ public:
 			//added
 			if (fb.duration_ms)
 			{
-				if (getSystemTime() > fb.duration_ms)
+				if (GetTickCountMs() > fb.duration_ms)
 				{
 					SetRumbleEffect(0.0f, 0.0f, 0);
 				}
@@ -100,7 +100,7 @@ public:
 		//added
 		if (fb.duration_ms)
 		{
-			if (getSystemTime() > fb.duration_ms)
+			if (GetTickCountMs() > fb.duration_ms)
 			{
 				SetRumbleEffect(0.0f, 0.0f, 0);
 			}
@@ -230,7 +230,7 @@ public:
 		fb.vibration_left = uint16_t(leftMotor * MaxMotorSpeed);
 		fb.vibration_right = uint16_t(rightMotor * MaxMotorSpeed);
 		if(duration_ms)
-			fb.duration_ms = getSystemTime() + duration_ms;
+			fb.duration_ms = GetTickCountMs() + duration_ms;
 		else
 			fb.duration_ms = 0;
 

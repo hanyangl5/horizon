@@ -87,7 +87,7 @@ TEST_F(WorldArchiveTest, RoundTripsComponentsHierarchyAndStableOrdering)
     EXPECT_LT(first.find(uuid(10)), first.find(uuid(20)));
     ASSERT_TRUE(archive.capture(world));
     EXPECT_EQ(text(archive), first);
-    hz::unique_ptr<hz::World> restored;
+    hz::UniquePtr<hz::World> restored;
     ASSERT_TRUE(archive.instantiate(types, restored));
     const hz::Entity loadedChild = restored->getEntity(id(10));
     const hz::Entity loadedParent = restored->getEntity(id(20));
@@ -120,7 +120,7 @@ TEST_F(WorldArchiveTest, SavesAffineLocalMatrixAfterReparentingUnderRotatedScale
         EXPECT_EQ((float)local->getElem(column, 3), column == 3 ? 1.0f : 0.0f);
     hz::WorldArchive archive;
     ASSERT_TRUE(archive.capture(world));
-    hz::unique_ptr<hz::World> restored;
+    hz::UniquePtr<hz::World> restored;
     ASSERT_TRUE(archive.instantiate(types, restored));
     const hz::Entity loaded = restored->getEntity(id(2));
     EXPECT_EQ(restored->getParent(loaded), restored->getEntity(id(1)));
@@ -134,9 +134,9 @@ TEST_F(WorldArchiveTest, FailedLoadsPreserveExistingWorldAndDocument)
 {
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
-    hz::unique_ptr<hz::World> target = hz::make_unique<hz::World>(types);
+    hz::UniquePtr<hz::World> target = hz::MakeUnique<hz::World>(types);
     const hz::Entity          original = target->createPersistentEntity(id(50));
-    hz::World*                pOriginal = target.get();
+    hz::World*                pOriginal = target.Get();
     const std::string         transform = component("0000000000000003", "LocalTransform", 1, "{}");
     const std::string         invalid[] = {
         envelope(entityJson(1) + "," + entityJson(1)),
@@ -162,7 +162,7 @@ TEST_F(WorldArchiveTest, FailedLoadsPreserveExistingWorldAndDocument)
     {
         ASSERT_TRUE(parse(archive, json));
         EXPECT_FALSE(archive.instantiate(types, target));
-        EXPECT_EQ(target.get(), pOriginal);
+        EXPECT_EQ(target.Get(), pOriginal);
         EXPECT_TRUE(target->isAlive(original));
         EXPECT_EQ(text(archive), json);
     }
@@ -183,7 +183,7 @@ TEST_F(WorldArchiveTest, CameraValidationAlsoAppliesToCaptureAndPreservesDocumen
     hz::WorldArchive archive;
     ASSERT_TRUE(archive.capture(world));
     const std::string         previous = text(archive);
-    hz::unique_ptr<hz::World> restored;
+    hz::UniquePtr<hz::World> restored;
     ASSERT_TRUE(archive.instantiate(types, restored));
     const hz::Camera* pRestored = (const hz::Camera*)restored->getComponent(restored->getEntity(id(1)), hz::SceneTypes::camera);
     ASSERT_NE(pRestored, nullptr);
@@ -255,7 +255,7 @@ TEST_F(WorldArchiveTest, MigratesAdjacentVersionsAndResolvesForwardEntityReferen
     const std::string json = envelope(entityJson(1, component("0000000000000063", "Migrating", 1, fields)) + "," + entityJson(2));
     hz::WorldArchive  archive;
     ASSERT_TRUE(parse(archive, json));
-    hz::unique_ptr<hz::World>    target;
+    hz::UniquePtr<hz::World>    target;
     const hz::ComponentMigration migrations[] = { { .type = 99, .fromVersion = 1, .pMigrate = migrateOne },
                                                   { .type = 99, .fromVersion = 2, .pMigrate = migrateTwo } };
     EXPECT_FALSE(archive.instantiate(types, target));
@@ -277,9 +277,9 @@ TEST_F(WorldArchiveTest, MigratesAdjacentVersionsAndResolvesForwardEntityReferen
     const std::string missing =
         envelope(entityJson(1, component("0000000000000063", "Migrating", 3, "{\"reference\":\"" + uuid(9) + "\"}")));
     ASSERT_TRUE(parse(archive, missing));
-    hz::World* pOriginal = target.get();
+    hz::World* pOriginal = target.Get();
     EXPECT_FALSE(archive.instantiate(types, target));
-    EXPECT_EQ(target.get(), pOriginal);
+    EXPECT_EQ(target.Get(), pOriginal);
 }
 
 TEST_F(WorldArchiveTest, PreservesUnknownComponentBlobWithoutInstantiatingIt)
@@ -292,7 +292,7 @@ TEST_F(WorldArchiveTest, PreservesUnknownComponentBlobWithoutInstantiatingIt)
     EXPECT_EQ(text(archive), json);
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
-    hz::unique_ptr<hz::World> target;
+    hz::UniquePtr<hz::World> target;
     EXPECT_FALSE(archive.instantiate(types, target));
     EXPECT_FALSE(target);
     EXPECT_EQ(text(archive), json);
@@ -307,8 +307,8 @@ TEST_F(WorldArchiveTest, RejectsEmbeddedNullsWithoutReplacingWorldOrTruncatingDo
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     ASSERT_TRUE(types.registerTypes({ &migratingType, 1 }));
-    hz::unique_ptr<hz::World> target = hz::make_unique<hz::World>(types);
-    hz::World*                pOriginal = target.get();
+    hz::UniquePtr<hz::World> target = hz::MakeUnique<hz::World>(types);
+    hz::World*                pOriginal = target.Get();
     const hz::Entity          original = target->createPersistentEntity(id(50));
     const std::string         named = "{\"id\":\"" + uuid(1) + "\",\"parent\":null,\"name\":\"before\\u0000after\",\"components\":[]}";
     const std::string         invalid[] = {
@@ -325,7 +325,7 @@ TEST_F(WorldArchiveTest, RejectsEmbeddedNullsWithoutReplacingWorldOrTruncatingDo
     {
         ASSERT_TRUE(parse(archive, json));
         EXPECT_FALSE(archive.instantiate(types, target));
-        EXPECT_EQ(target.get(), pOriginal);
+        EXPECT_EQ(target.Get(), pOriginal);
         EXPECT_TRUE(target->isAlive(original));
         EXPECT_EQ(text(archive), json);
     }
@@ -349,15 +349,15 @@ TEST_F(WorldArchiveTest, RejectsEmbeddedNullsProducedByMigration)
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
     ASSERT_TRUE(types.registerTypes({ &migratingType, 1 }));
-    hz::unique_ptr<hz::World> target = hz::make_unique<hz::World>(types);
-    hz::World*                pOriginal = target.get();
+    hz::UniquePtr<hz::World> target = hz::MakeUnique<hz::World>(types);
+    hz::World*                pOriginal = target.Get();
     const hz::Entity          original = target->createPersistentEntity(id(50));
     const std::string         json = envelope(entityJson(1, component("0000000000000063", "Migrating", 2, R"({"value":7})")));
     hz::WorldArchive          archive;
     ASSERT_TRUE(parse(archive, json));
     const hz::ComponentMigration migration = { .type = 99, .fromVersion = 2, .pMigrate = migrateNull };
     EXPECT_FALSE(archive.instantiate(types, target, { &migration, 1 }));
-    EXPECT_EQ(target.get(), pOriginal);
+    EXPECT_EQ(target.Get(), pOriginal);
     EXPECT_TRUE(target->isAlive(original));
     EXPECT_EQ(text(archive), json);
 }
@@ -372,7 +372,7 @@ TEST_F(WorldArchiveTest, NormalizesOverridesOnLoadAndRejectsDuplicateKeys)
     hz::WorldArchive  archive;
     ASSERT_TRUE(parse(archive, envelope(entityJson(1, component("0000000000000005", "MeshRenderer", 1,
                                                                 "{\"overrides\":[" + second + "," + first + "]}")))));
-    hz::unique_ptr<hz::World> target;
+    hz::UniquePtr<hz::World> target;
     ASSERT_TRUE(archive.instantiate(types, target));
     const hz::MeshRenderer* mesh = (const hz::MeshRenderer*)target->getComponent(target->getEntity(id(1)), hz::SceneTypes::meshRenderer);
     ASSERT_NE(mesh, nullptr);
@@ -401,7 +401,7 @@ TEST_F(WorldArchiveTest, LoadsDeepHierarchyWithoutRecursiveTraversal)
     ASSERT_TRUE(parse(archive, envelope(entities)));
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
-    hz::unique_ptr<hz::World> world;
+    hz::UniquePtr<hz::World> world;
     ASSERT_TRUE(archive.instantiate(types, world));
     EXPECT_EQ(world->getParent(world->getEntity(id(1))), world->getEntity(id(2)));
     EXPECT_FALSE(world->getParent(world->getEntity(id(count))).isValid());

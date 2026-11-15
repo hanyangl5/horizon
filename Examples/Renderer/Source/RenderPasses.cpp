@@ -198,22 +198,22 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     GpuSceneData(Scene, Assets, Context, { .frameCount = FrameConstants.size() })
 {
     ASSERT(Context.isValid() && CameraId.isValid());
-    GBufferTargets = hz::make_unique<GBuffer>(Context);
-    Lighting = hz::make_unique<DeferredLighting>(Context);
-    SSAO = hz::make_unique<ScreenSpaceAO>(Context);
-    Environment = hz::make_unique<EnvironmentPass>(Context, hz::Format::R32G32B32A32_SFLOAT);
-    Shadows = hz::make_unique<ShadowMap>(Context);
-    PostProcessing = hz::make_unique<PostEffects>(Context);
-    Transparency = hz::make_unique<::Transparency>(Context);
-    RayTracing = hz::make_unique<RayTracedEffects>(Context);
-    AddPass({ .Name = "Shadows", .Execute = ExecuteShadows, .UserData = Shadows.get() });
-    AddPass({ .Name = "GBuffer", .Execute = ExecuteGBuffer, .UserData = GBufferTargets.get() });
-    AddPass({ .Name = "SSAO", .Execute = ExecuteScreenSpaceAO, .UserData = SSAO.get(), .Enabled = &EnableScreenSpaceAO });
-    AddPass({ .Name = "Ray Tracing", .Execute = ExecuteRayTracing, .UserData = RayTracing.get() });
-    AddPass({ .Name = "Lighting", .Execute = ExecuteLighting, .UserData = Lighting.get() });
-    AddPass({ .Name = "Environment", .Execute = ExecuteEnvironment, .UserData = Environment.get() });
-    AddPass({ .Name = "Transparency", .Execute = ExecuteTransparency, .UserData = Transparency.get(), .Enabled = &EnableTransparency });
-    AddPass({ .Name = "Post", .Execute = ExecutePost, .UserData = PostProcessing.get() });
+    GBufferTargets = hz::MakeUnique<GBuffer>(Context);
+    Lighting = hz::MakeUnique<DeferredLighting>(Context);
+    SSAO = hz::MakeUnique<ScreenSpaceAO>(Context);
+    Environment = hz::MakeUnique<EnvironmentPass>(Context, hz::Format::R32G32B32A32_SFLOAT);
+    Shadows = hz::MakeUnique<ShadowMap>(Context);
+    PostProcessing = hz::MakeUnique<PostEffects>(Context);
+    Transparency = hz::MakeUnique<::Transparency>(Context);
+    RayTracing = hz::MakeUnique<RayTracedEffects>(Context);
+    AddPass({ .Name = "Shadows", .Execute = ExecuteShadows, .UserData = Shadows.Get() });
+    AddPass({ .Name = "GBuffer", .Execute = ExecuteGBuffer, .UserData = GBufferTargets.Get() });
+    AddPass({ .Name = "SSAO", .Execute = ExecuteScreenSpaceAO, .UserData = SSAO.Get(), .Enabled = &EnableScreenSpaceAO });
+    AddPass({ .Name = "Ray Tracing", .Execute = ExecuteRayTracing, .UserData = RayTracing.Get() });
+    AddPass({ .Name = "Lighting", .Execute = ExecuteLighting, .UserData = Lighting.Get() });
+    AddPass({ .Name = "Environment", .Execute = ExecuteEnvironment, .UserData = Environment.Get() });
+    AddPass({ .Name = "Transparency", .Execute = ExecuteTransparency, .UserData = Transparency.Get(), .Enabled = &EnableTransparency });
+    AddPass({ .Name = "Post", .Execute = ExecutePost, .UserData = PostProcessing.Get() });
 
     LinearSampler = Context.createSampler({ .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE });
     for (FrameConstantBuffer& ConstantBuffer : FrameConstants)

@@ -7,69 +7,69 @@
 namespace hz
 {
 template<typename T>
-class unique_ptr
+class UniquePtr
 {
 public:
-    using element_type = T;
-    using pointer = T*;
+    using ElementType = T;
+    using Pointer = T*;
 
-    constexpr unique_ptr() noexcept = default;
-    constexpr unique_ptr(decltype(nullptr)) noexcept {}
-    explicit unique_ptr(pointer ptr) noexcept: pPtr(ptr) {}
+    constexpr UniquePtr() noexcept = default;
+    constexpr UniquePtr(decltype(nullptr)) noexcept {}
+    explicit UniquePtr(Pointer Value) noexcept: Ptr(Value) {}
 
-    unique_ptr(const unique_ptr&) = delete;
-    unique_ptr& operator=(const unique_ptr&) = delete;
+    UniquePtr(const UniquePtr&) = delete;
+    UniquePtr& operator=(const UniquePtr&) = delete;
 
-    unique_ptr(unique_ptr&& other) noexcept: pPtr(other.release()) {}
-    unique_ptr& operator=(unique_ptr&& other) noexcept
+    UniquePtr(UniquePtr&& Other) noexcept: Ptr(Other.Release()) {}
+    UniquePtr& operator=(UniquePtr&& Other) noexcept
     {
-        if (this != &other)
-            reset(other.release());
+        if (this != &Other)
+            Reset(Other.Release());
         return *this;
     }
 
-    unique_ptr& operator=(decltype(nullptr)) noexcept
+    UniquePtr& operator=(decltype(nullptr)) noexcept
     {
-        reset();
+        Reset();
         return *this;
     }
 
-    ~unique_ptr() { reset(); }
+    ~UniquePtr() { Reset(); }
 
-    T&       operator*() const noexcept { return *pPtr; }
-    pointer  operator->() const noexcept { return pPtr; }
-    explicit operator bool() const noexcept { return pPtr != nullptr; }
+    T&      operator*() const noexcept { return *Ptr; }
+    Pointer operator->() const noexcept { return Ptr; }
+    explicit operator bool() const noexcept { return Ptr != nullptr; }
 
-    pointer get() const noexcept { return pPtr; }
+    Pointer Get() const noexcept { return Ptr; }
 
-    pointer release() noexcept
+    Pointer Release() noexcept
     {
-        pointer ptr = pPtr;
-        pPtr = nullptr;
-        return ptr;
+        Pointer Raw = Ptr;
+        Ptr = nullptr;
+        return Raw;
     }
 
-    void reset(pointer ptr = nullptr) noexcept
+    void Reset(Pointer NewPtr = nullptr) noexcept
     {
-        pointer old = pPtr;
-        pPtr = ptr;
-        tf_delete_internal(old, __FILE__, __LINE__, __FUNCTION__);
+        Pointer Old = Ptr;
+        Ptr = NewPtr;
+        tf_delete_internal(Old, __FILE__, __LINE__, __FUNCTION__);
     }
 
-    void swap(unique_ptr& other) noexcept
+    void Swap(UniquePtr& Other) noexcept
     {
-        pointer ptr = pPtr;
-        pPtr = other.pPtr;
-        other.pPtr = ptr;
+        Pointer Raw = Ptr;
+        Ptr = Other.Ptr;
+        Other.Ptr = Raw;
     }
 
 private:
-    pointer pPtr = nullptr;
+    Pointer Ptr = nullptr;
 };
 
 template<typename T, typename... Args>
-unique_ptr<T> make_unique(Args&&... args)
+UniquePtr<T> MakeUnique(Args&&... args)
 {
-    return unique_ptr<T>(tf_new_internal<T>(__FILE__, __LINE__, __FUNCTION__, std::forward<Args>(args)...));
+    return UniquePtr<T>(tf_new_internal<T>(__FILE__, __LINE__, __FUNCTION__, std::forward<Args>(args)...));
 }
 } // namespace hz

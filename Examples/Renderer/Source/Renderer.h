@@ -52,25 +52,25 @@ public:
     {
         ConfigureResourceDirectories();
         BeginSceneCook();
-        int64_t Start = getUSec(true);
+        int64_t Start = GetUSec(true);
         InitRenderContext();
-        LOGF(eINFO, "Startup: RenderContext %.1f ms", (getUSec(true) - Start) / 1000.0);
+        LOGF(eINFO, "Startup: RenderContext %.1f ms", (GetUSec(true) - Start) / 1000.0);
         if (!FinishSceneCook())
         {
             Exit();
             return false;
         }
-        Start = getUSec(true);
+        Start = GetUSec(true);
         if (!InitSceneAsset())
         {
             Exit();
             return false;
         }
-        LOGF(eINFO, "Startup: scene load/instantiate %.1f ms", (getUSec(true) - Start) / 1000.0);
+        LOGF(eINFO, "Startup: scene load/instantiate %.1f ms", (GetUSec(true) - Start) / 1000.0);
         InitCamera();
-        Start = getUSec(true);
+        Start = GetUSec(true);
         const bool Ready = InitRenderPasses();
-        LOGF(eINFO, "Startup: render pass shaders and pipelines %.1f ms", (getUSec(true) - Start) / 1000.0);
+        LOGF(eINFO, "Startup: render pass shaders and pipelines %.1f ms", (GetUSec(true) - Start) / 1000.0);
         if (Ready)
         {
             // Persist the driver PSOs built here so the next start only validates them.
@@ -103,7 +103,7 @@ private:
             .enableGpuProfiler = true,
             .enablePipelineCache = true,
         };
-        Context = hz::make_unique<hz::RenderContext>(Desc);
+        Context = hz::MakeUnique<hz::RenderContext>(Desc);
     }
 
     bool InitSceneAsset()
@@ -121,9 +121,9 @@ private:
             LOGF(eERROR, "Catalog contains no SceneAsset '%s'", SceneFile);
             return false;
         }
-        Loaders = hz::make_unique<hz::AssetLoaders>(
+        Loaders = hz::MakeUnique<hz::AssetLoaders>(
             *Context, hz::AssetLoadersDesc{ .vertexLayout = SceneVertexLayout, .cookedDirectory = RD_OTHER_FILES });
-        AssetManager = hz::make_unique<hz::AssetManager>(Catalog, Context.get());
+        AssetManager = hz::MakeUnique<hz::AssetManager>(Catalog, Context.Get());
         Loaders->registerLoaders(*AssetManager);
         const hz::AssetHandle Handle = AssetManager->request(Entry->id);
         if (!Handle.isValid())
@@ -141,16 +141,16 @@ private:
             LOGF(eERROR, "SceneAsset '%s' failed to load (error %u)", SceneFile, (uint32_t)AssetManager->getError(Handle));
             return false;
         }
-        Types = hz::make_unique<hz::TypeRegistry>();
+        Types = hz::MakeUnique<hz::TypeRegistry>();
         const bool Registered = Types->registerBuiltins();
         ASSERT(Registered);
-        World = hz::make_unique<hz::World>(*Types);
+        World = hz::MakeUnique<hz::World>(*Types);
         if (!Asset->instantiate(*World).isValid())
         {
             LOGF(eERROR, "Cannot instantiate SceneAsset '%s'", SceneFile);
             return false;
         }
-        Scene = hz::make_unique<hz::RenderScene>(*World, *AssetManager);
+        Scene = hz::MakeUnique<hz::RenderScene>(*World, *AssetManager);
         Scene->reserve(Asset->getNodes().count, Asset->getNodes().count, 1, 1);
         Scene->update();
         LOGF(eINFO, "World ready: %u render primitives, %u instances, %u mesh batches, %u materials, %u textures",
@@ -163,12 +163,12 @@ private:
     bool InitRenderPasses()
     {
         const RenderPassesDesc Desc = {
-            .Context = Context.get(),
-            .Scene = Scene.get(),
-            .AssetManager = AssetManager.get(),
+            .Context = Context.Get(),
+            .Scene = Scene.Get(),
+            .AssetManager = AssetManager.Get(),
             .Camera = Scene->findCamera(CameraEntity),
         };
-        Passes = hz::make_unique<RenderPasses>(Desc);
+        Passes = hz::MakeUnique<RenderPasses>(Desc);
         ASSERT(Passes);
         return true;
     }
@@ -208,9 +208,9 @@ public:
             LOGF(eERROR, "Failed to resize RenderContext to %ux%u", Width, Height);
             return false;
         }
-        const int64_t Start = getUSec(true);
+        const int64_t Start = GetUSec(true);
         const bool    Ready = Passes->Resize(Width, Height);
-        LOGF(eINFO, "Startup/resize: targets and environment %.1f ms", (getUSec(true) - Start) / 1000.0);
+        LOGF(eINFO, "Startup/resize: targets and environment %.1f ms", (GetUSec(true) - Start) / 1000.0);
         return Ready;
     }
     void Unload(ReloadDesc*) override { Context->waitIdle(); }
@@ -298,7 +298,7 @@ private:
             .motion = { .maxSpeed = 8.0f, .acceleration = 40.0f, .braking = 60.0f },
             .boostMultiplier = 4.0f,
         };
-        Camera = hz::make_unique<FreeCameraController>(Desc);
+        Camera = hz::MakeUnique<FreeCameraController>(Desc);
         CameraEntity = World->createPersistentEntity();
         const hz::Camera      CameraData = { .verticalFov = PI / 3.0f };
         const Matrix4         Pose = Camera->getWorldMatrix();
@@ -318,15 +318,15 @@ private:
         LOGF(eINFO, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R reset, Esc release mouse");
     }
 
-    hz::unique_ptr<FreeCameraController> Camera;
-    hz::unique_ptr<hz::RenderContext>    Context;
+    hz::UniquePtr<FreeCameraController> Camera;
+    hz::UniquePtr<hz::RenderContext>    Context;
     hz::AssetCatalog                     Catalog;
-    hz::unique_ptr<hz::AssetLoaders>     Loaders;
-    hz::unique_ptr<hz::AssetManager>     AssetManager;
-    hz::unique_ptr<hz::TypeRegistry>     Types;
-    hz::unique_ptr<hz::World>            World;
-    hz::unique_ptr<hz::RenderScene>      Scene;
-    hz::unique_ptr<RenderPasses>         Passes;
+    hz::UniquePtr<hz::AssetLoaders>     Loaders;
+    hz::UniquePtr<hz::AssetManager>     AssetManager;
+    hz::UniquePtr<hz::TypeRegistry>     Types;
+    hz::UniquePtr<hz::World>            World;
+    hz::UniquePtr<hz::RenderScene>      Scene;
+    hz::UniquePtr<RenderPasses>         Passes;
     hz::Entity                           CameraEntity;
     ThreadHandle                         CookThread = nullptr;
     bool                                 CookSucceeded = false;

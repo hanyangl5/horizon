@@ -379,7 +379,7 @@ static uint32_t writeLogPreamble(char* buffer, uint32_t buffer_size, const char*
 #elif defined(ORBIS) || defined(PROSPERO)
         localtime_s(&t, &time_info);
 #elif defined(NX64)
-        t = getTimeSinceStart();
+        t = GetUnixTimeSeconds();
         localtime_r(&t, &time_info);
 #else
         localtime_r(&t, &time_info);

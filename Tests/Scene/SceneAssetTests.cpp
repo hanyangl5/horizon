@@ -219,7 +219,7 @@ TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
             EXPECT_EQ(names.count, 2u);
             hz::WorldArchive archive;
             ASSERT_TRUE(archive.capture(world));
-            hz::unique_ptr<hz::World> restored;
+            hz::UniquePtr<hz::World> restored;
             ASSERT_TRUE(archive.instantiate(types, restored));
             const hz::Entity restoredRoot = restored->getEntity(world.getEntityGuid(root));
             const hz::Name*  pName = (const hz::Name*)restored->getComponent(restoredRoot, hz::SceneTypes::name);

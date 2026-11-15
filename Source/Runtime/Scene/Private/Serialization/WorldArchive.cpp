@@ -69,7 +69,7 @@ WorldArchive::~WorldArchive() { tf_delete(pData); }
 Guid WorldArchive::getID() const { return pData ? pData->id : Guid{}; }
 bool WorldArchive::parse(Span<char> json)
 {
-    unique_ptr<WorldArchiveData> candidate = make_unique<WorldArchiveData>();
+    UniquePtr<WorldArchiveData> candidate = MakeUnique<WorldArchiveData>();
     candidate->pRoot = parseWorldJson(json);
     const cJSON* pRoot = candidate->pRoot;
     const char*  pFormat = stringField(pRoot, "format");
@@ -89,7 +89,7 @@ bool WorldArchive::parse(Span<char> json)
     memcpy(candidate->text.data(), json.pData, count);
     candidate->text[count] = 0;
     tf_delete(pData);
-    pData = candidate.release();
+    pData = candidate.Release();
     return true;
 }
 bool WorldArchive::serialize(Array<char>& json) const
@@ -354,7 +354,7 @@ static bool loadComponent(const cJSON* pComponent, const TypeDesc& type, uint32_
     return readWorldProperties(type, pProperties, value.pValue) && normalizeWorldComponent(type.id, value.pValue, true) &&
            validateWorldReferences(type, value.pValue, world) && world.setComponent(entity, type.id, value.pValue);
 }
-bool WorldArchive::instantiate(const TypeRegistry& types, unique_ptr<World>& target, Span<ComponentMigration> migrations,
+bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& target, Span<ComponentMigration> migrations,
                                const IDGenerator& entityGuids) const
 {
     if (!pData || (target && target->isDeferred()))
@@ -380,7 +380,7 @@ bool WorldArchive::instantiate(const TypeRegistry& types, unique_ptr<World>& tar
             }
         }
     }
-    unique_ptr<World> staging = make_unique<World>(types, entityGuids);
+    UniquePtr<World> staging = MakeUnique<World>(types, entityGuids);
     WorldLoadPlan     plan;
     if (!plan.prepare(field(pData->pRoot, "entities"), *staging))
     {
@@ -427,7 +427,7 @@ bool WorldArchive::instantiate(const TypeRegistry& types, unique_ptr<World>& tar
         }
     }
     staging->updateTransforms();
-    target.swap(staging);
+    target.Swap(staging);
     return true;
 }
 bool WorldArchive::load(ResourceDirectory directory, const char* pFileName)

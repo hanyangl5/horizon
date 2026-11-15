@@ -524,7 +524,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
             return EXIT_FAILURE;
 
         Timer t;
-        initTimer(&t);
+        InitTimer(&t);
         if (!pApp->Init())
         {
             const char* pRendererReason;
@@ -550,7 +550,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
         if (!pApp->Load(&gReloadDescriptor))
             return EXIT_FAILURE;
 
-        LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", (double)getTimerMSec(&t, false));
+        LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", (double)GetTimerMSec(&t, false));
     }
 
     // #ifdef AUTOMATED_TESTING
@@ -560,10 +560,10 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
     bool    baseSubsystemAppDrawn = false;
     bool    quit = false;
-    int64_t lastCounter = getUSec(false);
+    int64_t lastCounter = GetUSec(false);
     while (!quit)
     {
-        int64_t counter = getUSec(false);
+        int64_t counter = GetUSec(false);
         float   deltaTime = CounterToSecondsElapsed(lastCounter, counter);
         lastCounter = counter;
 
@@ -627,7 +627,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
                     return EXIT_FAILURE;
 
                 Timer t;
-                initTimer(&t);
+                InitTimer(&t);
                 if (!pApp->Init())
                 {
                     if (pApp->unsupported)
@@ -646,7 +646,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
                 if (!pApp->Load(&gReloadDescriptor))
                     return EXIT_FAILURE;
 
-                LOGF(LogLevel::eINFO, "Application Reset %fms", getTimerMSec(&t, false) / 1000.0f);
+                LOGF(LogLevel::eINFO, "Application Reset %fms", GetTimerMSec(&t, false) / 1000.0f);
             }
 
             gResetDescriptor.type = RESET_TYPE_NONE;
@@ -656,13 +656,13 @@ int WindowsMain(int argc, char** argv, IApp* app)
         if (gReloadDescriptor.type != RELOAD_TYPE_ALL)
         {
             Timer t;
-            initTimer(&t);
+            InitTimer(&t);
 
             pApp->Unload(&gReloadDescriptor);
             if (!pApp->Load(&gReloadDescriptor))
                 return EXIT_FAILURE;
 
-            LOGF(LogLevel::eINFO, "Application Reload %fms", getTimerMSec(&t, false) / 1000.0f);
+            LOGF(LogLevel::eINFO, "Application Reload %fms", GetTimerMSec(&t, false) / 1000.0f);
             gReloadDescriptor.type = RELOAD_TYPE_ALL;
             continue;
         }

@@ -157,7 +157,7 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, const
 #if defined(_OPENMP)
         options.flags = DirectX::TEX_COMPRESS_PARALLEL;
 #endif
-        const int64_t start = getUSec(true);
+        const int64_t start = GetUSec(true);
         LOGF(eINFO, "Compress '%s': %zux%zu, BC7, %zu mip levels (%s)", pName, pInput->GetMetadata().width, pInput->GetMetadata().height,
              pInput->GetImageCount(),
              pDevice                                          ? "GPU"
@@ -186,7 +186,7 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t size, bool srgb, const
                                                compressed, progress);
         if (SUCCEEDED(result))
         {
-            LOGF(eINFO, "Compressed '%s' in %.2f seconds", pName, (getUSec(true) - start) / 1000000.0);
+            LOGF(eINFO, "Compressed '%s' in %.2f seconds", pName, (GetUSec(true) - start) / 1000000.0);
         }
     }
     if (SUCCEEDED(result))

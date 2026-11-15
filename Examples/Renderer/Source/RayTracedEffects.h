@@ -50,7 +50,7 @@ public:
 
 private:
     hz::RenderContext&                Context;
-    hz::unique_ptr<RayTracingScene>   RayScene;
+    hz::UniquePtr<RayTracingScene>   RayScene;
     hz::GPUPipeline                   ShadowPipeline;
     hz::GPUPipeline                   TemporalPipeline;
     hz::GPUPipeline                   SpatialPipeline;

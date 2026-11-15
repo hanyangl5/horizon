@@ -166,7 +166,7 @@ const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz:
     Constants.oitOpacityBoost = OpacityBoost;
     Constants.oitShowHeatmap = ShowHeatmap ? 1u : 0u;
     Constants.oitOutputIndex = Color.getUavIndex();
-    Constants.oitTime = float(double(getUSec(true)) * 1e-6);
+    Constants.oitTime = float(double(GetUSec(true)) * 1e-6);
     Commands.setPipeline(ResolvePipeline);
     Commands.setRootConstants(Constants);
     Commands.dispatch((Width + 7) / 8, (Height + 7) / 8, 1,

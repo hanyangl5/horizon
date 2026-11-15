@@ -134,7 +134,7 @@ static void CallbackIOServiceFunc(void* context, io_iterator_t portIterator)
        IOObjectRelease(entry);
 }
 #elif defined(__linux__)
-// mirror of getSystemTime in LinuxTime.c to get around cross compile issues
+// mirror of GetTickCountMs in LinuxTime.c to get around cross compile issues
 uint32_t getHIDTime()
 {
     long            ms;    // Milliseconds
@@ -264,7 +264,7 @@ static void InitSystemNotificationReceiver(void* window)
 #if defined(__linux__)
         initHIDTimer(&gForceRecheckTimer);
 #else
-        initTimer(&gForceRecheckTimer);
+        InitTimer(&gForceRecheckTimer);
 #endif
     }
 }
@@ -300,7 +300,7 @@ static bool CheckForDeviceInstallation(void const* message)
 #if defined(__linux__)
         uint32_t currentTime = getHIDTimerMSec(&gForceRecheckTimer, false);
 #else
-        uint32_t currentTime = getTimerMSec(&gForceRecheckTimer, false);
+        uint32_t currentTime = GetTimerMSec(&gForceRecheckTimer, false);
 #endif
 
         // update every 4 seconds
@@ -374,7 +374,7 @@ int HIDInit(void* window, gainput::InputManager* man)
 	HIDInitControllerTracking();
 	InitSystemNotificationReceiver(window);
 
-	initTimer(&gHIDTimer);
+	InitTimer(&gHIDTimer);
 
 	gHIDInitialized = true;
 	gDevicesChanged = true;
@@ -865,7 +865,7 @@ void HIDUpdate(uint8_t devID, gainput::InputDeltaState * state)
 	con->Update(con, state);
 
 	if (con->rumbleEndTime &&
-		con->rumbleEndTime <= getTimerMSec(&gHIDTimer, false))
+		con->rumbleEndTime <= GetTimerMSec(&gHIDTimer, false))
 	{
 		con->DoRumble(con, 0, 0);
 		con->rumbleEndTime = 0;
@@ -917,7 +917,7 @@ void HIDDoRumble(uint8_t devID, float leftFlt, float rightFlt, uint32_t duration
         return;
 
     if (durationMS)
-        con->rumbleEndTime = getTimerMSec(&gHIDTimer, false) + durationMS;
+        con->rumbleEndTime = GetTimerMSec(&gHIDTimer, false) + durationMS;
 
     if (leftFlt < 0)
         leftFlt = 0;
@@ -953,7 +953,7 @@ static void HIDUpdateDevices(gainput::InputDeltaState * state)
             conIt->Update(conIt, state);
 
             if (conIt->rumbleEndTime &&
-                conIt->rumbleEndTime <= getTimerMSec(&gHIDTimer, false))
+                conIt->rumbleEndTime <= GetTimerMSec(&gHIDTimer, false))
             {
                 conIt->DoRumble(conIt, 0, 0);
                 conIt->rumbleEndTime = 0;
@@ -974,5 +974,5 @@ void HIDPromptForDeviceStateReports(gainput::InputDeltaState * state)
 
 uint64_t HIDGetTime()
 {
-	return getTimerMSec(&gHIDTimer, false);
+	return GetTimerMSec(&gHIDTimer, false);
 }

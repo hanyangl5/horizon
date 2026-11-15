@@ -361,7 +361,7 @@ bool threadSystemWaitIdleTimeout(ThreadSystem thandle, uint32_t timeout_ms)
         return true;
 
     Timer timer;
-    initTimer(&timer);
+    InitTimer(&timer);
 
     bool idle = false;
     acquireMutex(&t->mutex);
@@ -373,7 +373,7 @@ bool threadSystemWaitIdleTimeout(ThreadSystem thandle, uint32_t timeout_ms)
 
         if (timeout_ms != UINT32_MAX)
         {
-            uint32_t ms = getTimerMSec(&timer, false);
+            uint32_t ms = GetTimerMSec(&timer, false);
             if (ms > timeout_ms)
                 break;
             waitConditionVariable(&t->conditionIsIdle, &t->mutex, timeout_ms - ms);

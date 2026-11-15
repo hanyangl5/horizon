@@ -84,7 +84,7 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, uint32_t index)
         return;
 
     uint64_t       elapsedTime = 0;
-    const uint32_t historyIndex = pRoot->historyIndex;
+    const uint32_t HistoryIndex = pRoot->HistoryIndex;
 
     const uint32_t id = pRoot->index;
     QueryData      timestamp = {};
@@ -105,9 +105,9 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, uint32_t index)
         pRoot->gpuMinTime = min(pRoot->gpuMinTime, elapsedTime);
         pRoot->gpuMaxTime = max(pRoot->gpuMaxTime, elapsedTime);
     }
-    pRoot->gpuHistory[historyIndex] = elapsedTime;
+    pRoot->gpuHistory[HistoryIndex] = elapsedTime;
 
-    pRoot->historyIndex = (historyIndex + 1) % GpuTimer::LENGTH_OF_HISTORY;
+    pRoot->HistoryIndex = (HistoryIndex + 1) % GpuTimer::LENGTH_OF_HISTORY;
 
     for (uint32_t i = index + 1; i < pGpuProfiler->currentPoolIndex; ++i)
     {
@@ -204,7 +204,7 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
         strncpy(node->name, pName, sizeof node->name - 1);
         node->name[sizeof node->name - 1] = 0;
         node->hash = nameHash;
-        node->historyIndex = 0;
+        node->HistoryIndex = 0;
         node->gpuMaxTime = 0;
         node->gpuMinTime = (uint64_t)-1;
         node->startGpuTime = isRoot ? 0 : pGpuProfiler->pCurrentNode->startGpuTime;

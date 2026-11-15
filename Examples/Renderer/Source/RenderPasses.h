@@ -105,14 +105,14 @@ private:
     hz::AssetManager&  Assets;
     hz::RenderCameraID CameraId;
 
-    hz::unique_ptr<GBuffer>          GBufferTargets;
-    hz::unique_ptr<DeferredLighting> Lighting;
-    hz::unique_ptr<PostEffects>      PostProcessing;
-    hz::unique_ptr<ScreenSpaceAO>    SSAO;
-    hz::unique_ptr<EnvironmentPass>  Environment;
-    hz::unique_ptr<ShadowMap>        Shadows;
-    hz::unique_ptr<Transparency>     Transparency;
-    hz::unique_ptr<RayTracedEffects> RayTracing;
+    hz::UniquePtr<GBuffer>          GBufferTargets;
+    hz::UniquePtr<DeferredLighting> Lighting;
+    hz::UniquePtr<PostEffects>      PostProcessing;
+    hz::UniquePtr<ScreenSpaceAO>    SSAO;
+    hz::UniquePtr<EnvironmentPass>  Environment;
+    hz::UniquePtr<ShadowMap>        Shadows;
+    hz::UniquePtr<Transparency>     Transparency;
+    hz::UniquePtr<RayTracedEffects> RayTracing;
     hz::GPUSampler                   LinearSampler;
     GpuDrawList                      Draws;
     float                            DeltaSeconds = 1.0f / 60.0f;

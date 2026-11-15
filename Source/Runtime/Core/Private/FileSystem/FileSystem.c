@@ -1668,11 +1668,11 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     if (!desc->disableHashTable && !archive->hashTable)
     {
         Timer timer;
-        initTimer(&timer);
+        InitTimer(&timer);
 
         archive->hashTable = bunyArHashTableConstruct(archive->nodeCount, archive->nodes, archive->nodeNames);
 
-        uint32_t msec = getTimerMSec(&timer, false);
+        uint32_t msec = GetTimerMSec(&timer, false);
 
         if (msec)
         {

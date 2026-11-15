@@ -10,7 +10,7 @@ namespace hz
 template<typename T>
 class Array;
 template<typename T>
-class unique_ptr;
+class UniquePtr;
 class World;
 class WorldArchiveData;
 
@@ -40,7 +40,7 @@ public:
     // Captures persistent entities only; an existing archive ID is retained unless explicitly replaced.
     bool capture(World& world, Guid id = {});
     // Replaces target only after complete validation. Destroy its queries/scopes before calling.
-    bool instantiate(const TypeRegistry& types, unique_ptr<World>& target, Span<ComponentMigration> migrations = {},
+    bool instantiate(const TypeRegistry& types, UniquePtr<World>& target, Span<ComponentMigration> migrations = {},
                      const IDGenerator& entityGuids = {}) const;
 
 private:

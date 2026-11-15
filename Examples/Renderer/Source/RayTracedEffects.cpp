@@ -53,7 +53,7 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
     {
         return;
     }
-    RayScene = hz::make_unique<RayTracingScene>(Context);
+    RayScene = hz::MakeUnique<RayTracingScene>(Context);
     Sampler = Context.createSampler(
         { .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE, .addressW = ADDRESS_MODE_CLAMP_TO_EDGE });
     MaterialSampler = Context.createSampler();
