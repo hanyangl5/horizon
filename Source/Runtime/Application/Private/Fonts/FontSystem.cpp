@@ -214,8 +214,8 @@ bool platformInitFontSystem()
 {
 #ifdef ENABLE_FORGE_FONTS
     float          dpiScale[2] = {};
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, dpiScale);
+    const uint32_t monitorIdx = GetActiveMonitorIndex();
+    GetMonitorDpiScale(monitorIdx, dpiScale);
     gFontstash.dpiScale.x = dpiScale[0];
     gFontstash.dpiScale.y = dpiScale[1];
 

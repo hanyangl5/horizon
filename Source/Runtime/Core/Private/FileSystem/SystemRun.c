@@ -32,7 +32,7 @@
 #include "Core/IFileSystem.h"
 #include "Core/ILog.h"
 
-int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile)
+int SystemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile)
 {
     UNREF_PARAM(command);
     UNREF_PARAM(arguments);

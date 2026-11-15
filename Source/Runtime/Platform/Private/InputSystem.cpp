@@ -1761,7 +1761,7 @@ struct InputSystemImpl: public gainput::InputListener
 
         if (enable != inputCaptured)
         {
-            captureCursor(pWindow, enable);
+            CaptureCursor(pWindow, enable);
             inputCaptured = enable;
 
 #if !defined(TARGET_IOS) && defined(__APPLE__)
@@ -3009,7 +3009,7 @@ bool initInputSystem(InputSystemDesc* pDesc)
 
     pInputSystem = MemNew(InputSystemImpl);
 
-    setCustomMessageProcessor(InputSystemHandleMessage);
+    SetCustomMessageProcessor(InputSystemHandleMessage);
 
     bool success = pInputSystem->Init(pDesc->pWindow);
 
@@ -3041,7 +3041,7 @@ void exitInputSystem()
     exitVirtualJoystick(&gVirtualJoystick);
 #endif
 
-    setCustomMessageProcessor(nullptr);
+    SetCustomMessageProcessor(nullptr);
 
     pInputSystem->Exit();
     MemDelete(pInputSystem);

@@ -322,8 +322,8 @@ static void SetDefaultStyle()
         ImLerp(style.Colors[ImGuiCol_HeaderActive], style.Colors[ImGuiCol_TitleBgActive], 0.80f), style.Colors[ImGuiCol_TitleBg], 0.40f);
     style.Colors[ImGuiCol_DockingPreview] = style.Colors[ImGuiCol_HeaderActive] * ImVec4(1.0f, 1.0f, 1.0f, 0.7f);
     float          dpiScale[2];
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, dpiScale);
+    const uint32_t monitorIdx = GetActiveMonitorIndex();
+    GetMonitorDpiScale(monitorIdx, dpiScale);
     style.ScaleAllSizes(min(dpiScale[0], dpiScale[1]));
 }
 
@@ -2530,8 +2530,8 @@ bool platformInitUserInterface()
     pAppUI->active = true;
     memset(pAppUI->postUpdateKeyDownStates, 0, sizeof(pAppUI->postUpdateKeyDownStates));
 
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, pAppUI->dpiScale);
+    const uint32_t monitorIdx = GetActiveMonitorIndex();
+    GetMonitorDpiScale(monitorIdx, pAppUI->dpiScale);
 
     //// init UI (input)
     ImGui::SetAllocatorFunctions(alloc_func, dealloc_func);

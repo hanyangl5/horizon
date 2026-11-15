@@ -416,7 +416,7 @@ struct LiveRendererHarness
             .overrideDefaultPosition = true,
         };
 
-        openWindow(appName, &mWindow);
+        OpenWindow(appName, &mWindow);
         mWindowOpened = mWindow.handle.window != nullptr;
         if (!mWindowOpened)
         {
@@ -478,7 +478,7 @@ struct LiveRendererHarness
 
         if (mWindowOpened)
         {
-            closeWindow(&mWindow);
+            ClosePlatformWindow(&mWindow);
             mWindowOpened = false;
         }
 

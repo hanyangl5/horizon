@@ -410,7 +410,7 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
         .noresizeFrame = true,
         .overrideDefaultPosition = true,
     };
-    openWindow("RenderContextResizeTest", &window);
+    OpenWindow("RenderContextResizeTest", &window);
     ASSERT_NE(window.handle.window, nullptr);
 
     const hz::ContextDesc desc = {
@@ -448,7 +448,7 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
         context.wait(presentSubmit);
     }
 
-    closeWindow(&window);
+    ClosePlatformWindow(&window);
     exitWindowClass();
 #else
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";

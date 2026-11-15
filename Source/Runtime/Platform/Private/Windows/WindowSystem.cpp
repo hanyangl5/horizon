@@ -86,19 +86,19 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
 void wndSetWindowed(void* UserData)
 {
     UNREF_PARAM(UserData);
-    setWindowed(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
+    SetWindowed(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
 }
 
 void wndSetFullscreen(void* UserData)
 {
     UNREF_PARAM(UserData);
-    setFullscreen(pWindowRef);
+    SetFullscreen(pWindowRef);
 }
 
 void wndSetBorderless(void* UserData)
 {
     UNREF_PARAM(UserData);
-    setBorderless(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
+    SetBorderless(pWindowRef, getRectWidth(&pWindowRef->clientRect), getRectHeight(&pWindowRef->clientRect));
 }
 
 void wndMaximizeWindow(void* UserData)
@@ -106,7 +106,7 @@ void wndMaximizeWindow(void* UserData)
     UNREF_PARAM(UserData);
     WindowDesc* pWindow = pWindowRef;
 
-    maximizeWindow(pWindow);
+    MaximizeWindow(pWindow);
 }
 
 void wndMinimizeWindow(void* UserData)
@@ -119,28 +119,28 @@ void wndHideWindow()
 {
     WindowDesc* pWindow = pWindowRef;
 
-    hideWindow(pWindow);
+    HideWindow(pWindow);
 }
 
 void wndShowWindow()
 {
     WindowDesc* pWindow = pWindowRef;
 
-    showWindow(pWindow);
+    MakeWindowVisible(pWindow);
 }
 
 void wndUpdateResolution(void* UserData)
 {
     UNREF_PARAM(UserData);
-    uint32_t monitorCount = getMonitorCount();
+    uint32_t monitorCount = GetMonitorCount();
     for (uint32_t i = 0; i < monitorCount; ++i)
     {
         if (pWindowRef->pCurRes[i] != pWindowRef->pLastRes[i])
         {
-            MonitorDesc* monitor = getMonitor(i);
+            MonitorDesc* monitor = GetMonitor(i);
 
             int32_t resIndex = pWindowRef->pCurRes[i];
-            setResolution(monitor, &monitor->resolutions[resIndex]);
+            SetResolution(monitor, &monitor->resolutions[resIndex]);
 
             pWindowRef->pLastRes[i] = pWindowRef->pCurRes[i];
         }
@@ -155,7 +155,7 @@ void wndMoveWindow(void* UserData)
     int clientWidthStart = (getRectWidth(&pWindow->windowedRect) - getRectWidth(&pWindow->clientRect)) >> 1,
         clientHeightStart = getRectHeight(&pWindow->windowedRect) - getRectHeight(&pWindow->clientRect) - clientWidthStart;
     RectDesc rectDesc{ pWindowRef->wndX, pWindowRef->wndY, pWindowRef->wndX + pWindowRef->wndW, pWindowRef->wndY + pWindowRef->wndH };
-    setWindowRect(pWindow, &rectDesc);
+    SetWindowRect(pWindow, &rectDesc);
     LOGF(LogLevel::Info, "MoveWindow() Position check: %s",
          wndValidateWindowPos(pWindowRef->wndX + clientWidthStart, pWindowRef->wndY + clientHeightStart) ? "SUCCESS" : "FAIL");
     LOGF(LogLevel::Info, "MoveWindow() Size check: %s", wndValidateWindowSize(pWindowRef->wndW, pWindowRef->wndH) ? "SUCCESS" : "FAIL");
@@ -168,9 +168,9 @@ void wndSetRecommendedWindowSize(void* UserData)
     wndSetWindowed(UserData);
 
     RectDesc rect;
-    getRecommendedWindowRect(pWindowRef, &rect);
+    GetRecommendedWindowRect(pWindowRef, &rect);
 
-    setWindowRect(pWindow, &rect);
+    SetWindowRect(pWindow, &rect);
 
     pWindowRef->wndX = rect.left;
     pWindowRef->wndY = rect.top;
@@ -181,13 +181,13 @@ void wndSetRecommendedWindowSize(void* UserData)
 void wndHideCursor()
 {
     pWindowRef->cursorHidden = true;
-    hideCursor();
+    HideMouseCursor();
 }
 
 void wndShowCursor()
 {
     pWindowRef->cursorHidden = false;
-    showCursor();
+    ShowMouseCursor();
 }
 
 void wndUpdateCaptureCursor(void* UserData)
@@ -264,11 +264,11 @@ void platformExitWindowSystem()
 
 void platformUpdateWindowSystem()
 {
-    pWindowRef->cursorInsideWindow = isCursorInsideTrackingArea();
+    pWindowRef->cursorInsideWindow = IsCursorInsideTrackingArea();
 
     if (pWindowRef->minimizeRequested)
     {
-        minimizeWindow(pWindowRef);
+        MinimizeWindow(pWindowRef);
         pWindowRef->minimizeRequested = false;
     }
 
@@ -308,6 +308,6 @@ void platformUpdateWindowSystem()
     bformat(&pWindowRef->pForceLowDPILabel, "ForceLowDPI: %s", pWindowRef->forceLowDPI ? "True" : "False");
     bdestroy(&pWindowRef->pWindowModeLabel);
     bformat(&pWindowRef->pWindowModeLabel, "WindowMode: %s",
-            pWindowRef->windowMode == WM_BORDERLESS ? "Borderless" : (pWindowRef->windowMode == WM_FULLSCREEN ? "Fullscreen" : "Windowed"));
+            pWindowRef->windowMode == WindowModeBorderless ? "Borderless" : (pWindowRef->windowMode == WindowModeFullscreen ? "Fullscreen" : "Windowed"));
 #endif
 }

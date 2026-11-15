@@ -67,7 +67,7 @@
 static IApp*       pApp = nullptr;
 static WindowDesc* gWindowDesc = nullptr;
 static bool        gShowPlatformUI = true;
-static ResetDesc   gResetDescriptor = { RESET_TYPE_NONE };
+static ResetDesc   gResetDescriptor = { ResetTypeNone };
 static ReloadDesc  gReloadDescriptor = { RELOAD_TYPE_ALL };
 /// CPU
 static CpuInfo     gCpu;
@@ -103,19 +103,19 @@ extern "C" HWND* gLogWindowHandle;
 
 static inline float CounterToSecondsElapsed(int64_t start, int64_t end) { return (float)(end - start) / (float)1e6; }
 
-ThermalStatus getThermalStatus() { return THERMAL_STATUS_NOT_SUPPORTED; }
+ThermalStatus GetThermalStatus() { return ThermalStatusNotSupported; }
 
 //------------------------------------------------------------------------
 // OPERATING SYSTEM INTERFACE FUNCTIONS
 //------------------------------------------------------------------------
 
-void requestShutdown() { PostQuitMessage(0); }
+void RequestShutdown() { PostQuitMessage(0); }
 
-void requestReset(const ResetDesc* pResetDesc) { gResetDescriptor = *pResetDesc; }
+void RequestReset(const ResetDesc* pResetDesc) { gResetDescriptor = *pResetDesc; }
 
-void requestReload(const ReloadDesc* pReloadDesc) { gReloadDescriptor = *pReloadDesc; }
+void RequestReload(const ReloadDesc* pReloadDesc) { gReloadDescriptor = *pReloadDesc; }
 
-void errorMessagePopup(const char* title, const char* msg, WindowHandle* handle, errorMessagePopupCallbackFn callback)
+void ErrorMessagePopup(const char* title, const char* msg, WindowHandle* handle, errorMessagePopupCallbackFn callback)
 {
     UNREF_PARAM(handle);
 #if defined(AUTOMATED_TESTING)
@@ -131,11 +131,11 @@ void errorMessagePopup(const char* title, const char* msg, WindowHandle* handle,
 }
 
 CustomMessageProcessor sCustomProc = nullptr;
-void                   setCustomMessageProcessor(CustomMessageProcessor proc) { sCustomProc = proc; }
+void                   SetCustomMessageProcessor(CustomMessageProcessor proc) { sCustomProc = proc; }
 
 CpuInfo* getCpuInfo() { return &gCpu; }
 
-OSInfo* getOsInfo() { return &gOsInfo; }
+OSInfo* GetOsInfo() { return &gOsInfo; }
 
 void getOsVersion(ULONG& majorVersion, ULONG& minorVersion, ULONG& buildNumber)
 {
@@ -297,8 +297,8 @@ void setupPlatformUI(const IApp::Settings* pSettings)
     pSelectApUIWidget->pOnEdited = [](void* UserData)
     {
         UNREF_PARAM(UserData);
-        ResetDesc resetDescriptor{ RESET_TYPE_API_SWITCH };
-        requestReset(&resetDescriptor);
+        ResetDesc resetDescriptor{ ResetTypeApiSwitch };
+        RequestReset(&resetDescriptor);
     };
     UNREF_PARAM(pSelectApUIWidget);
 
@@ -315,8 +315,8 @@ void setupPlatformUI(const IApp::Settings* pSettings)
     pSelectGraphicCardWidget->pOnEdited = [](void* UserData)
     {
         UNREF_PARAM(UserData);
-        ResetDesc resetDescriptor{ RESET_TYPE_GRAPHIC_CARD_SWITCH };
-        requestReset(&resetDescriptor);
+        ResetDesc resetDescriptor{ ResetTypeGraphicCardSwitch };
+        RequestReset(&resetDescriptor);
     };
     UNREF_PARAM(pSelectGraphicCardWidget);
 
@@ -446,12 +446,12 @@ int WindowsMain(int argc, char** argv, IApp* app)
     {
         RectDesc rect = {};
 
-        getRecommendedResolution(&rect);
+        GetRecommendedResolution(&rect);
         pSettings->width = getRectWidth(&rect);
         pSettings->height = getRectHeight(&rect);
     }
 
-    MonitorDesc* monitor = getMonitor(pSettings->monitorIndex);
+    MonitorDesc* monitor = GetMonitor(pSettings->monitorIndex);
     ASSERT(monitor != nullptr);
 
     gWindow->clientRect = { (int)pSettings->windowX + monitor->monitorRect.left, (int)pSettings->windowY + monitor->monitorRect.top,
@@ -468,7 +468,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
     gWindow->cursorCaptured = false;
 
     if (!pSettings->externalWindow)
-        openWindow(pApp->GetName(), gWindow);
+        OpenWindow(pApp->GetName(), gWindow);
 
     pSettings->width = gWindow->fullScreen ? getRectWidth(&gWindow->fullscreenRect) : getRectWidth(&gWindow->clientRect);
     pSettings->height = gWindow->fullScreen ? getRectHeight(&gWindow->fullscreenRect) : getRectHeight(&gWindow->clientRect);
@@ -535,7 +535,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
             if (pApp->unsupported)
             {
-                errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
+                ErrorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
                                   &pApp->pWindow->handle, NULL);
                 ExitLog();
                 return 0;
@@ -593,18 +593,18 @@ int WindowsMain(int argc, char** argv, IApp* app)
         }
         baseSubsystemAppDrawn = false;
 
-        if (gResetDescriptor.type != RESET_TYPE_NONE)
+        if (gResetDescriptor.type != ResetTypeNone)
         {
-            if (gResetDescriptor.type & RESET_TYPE_DEVICE_LOST)
+            if (gResetDescriptor.type & ResetTypeDeviceLost)
             {
-                errorMessagePopup(
+                ErrorMessagePopup(
                     "Graphics Device Lost",
                     "Connection to the graphics device has been lost.\nPlease verify the integrity of your graphics drivers.\nCheck the "
                     "logs for further details.",
                     &pApp->pWindow->handle, NULL);
             }
 
-            if (gResetDescriptor.type & RESET_TYPE_GRAPHIC_CARD_SWITCH)
+            if (gResetDescriptor.type & ResetTypeGraphicCardSwitch)
             {
                 ASSERT(gPlatformParameters.selectedGpuIndex < gPlatformParameters.availableGpuCount);
                 gPlatformParameters.preferedGpuId = gPlatformParameters.pAvailableGpuIds[gPlatformParameters.selectedGpuIndex];
@@ -617,8 +617,8 @@ int WindowsMain(int argc, char** argv, IApp* app)
             gPlatformParameters.selectedRendererApi = (RendererApi)gSelectedApiIndex;
             pSettings->initialized = false;
 
-            closeWindow(app->pWindow);
-            openWindow(app->GetName(), app->pWindow);
+            ClosePlatformWindow(app->pWindow);
+            OpenWindow(app->GetName(), app->pWindow);
 
             exitBaseSubsystems();
 
@@ -632,7 +632,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
                 {
                     if (pApp->unsupported)
                     {
-                        errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
+                        ErrorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
                                           &pApp->pWindow->handle, NULL);
                         ExitLog();
                         return 0;
@@ -649,7 +649,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
                 LOGF(LogLevel::Info, "Application Reset %fms", GetTimerMSec(&t, false) / 1000.0f);
             }
 
-            gResetDescriptor.type = RESET_TYPE_NONE;
+            gResetDescriptor.type = ResetTypeNone;
             continue;
         }
 
