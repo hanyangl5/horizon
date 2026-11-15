@@ -126,11 +126,11 @@ void GBuffer::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, con
     commands.endGpuTimestamp();
 }
 
-static void executeShadows(FrameContext& frame, void* pUserData)
+static void ExecuteShadows(FrameContext& frame, void* pUserData)
 {
     ShadowMap& shadows = *(ShadowMap*)pUserData;
-    shadows.execute(frame.commands, frame.view, frame.draws);
-    frame.environmentIntensity = shadows.data.environmentIntensity;
+    shadows.Execute(frame.commands, frame.view, frame.draws);
+    frame.environmentIntensity = shadows.Data.environmentIntensity;
 }
 
 static void executeGBuffer(FrameContext& frame, void* pUserData)
@@ -207,7 +207,7 @@ RenderPasses::RenderPasses(const RenderPassesDesc& desc):
     postprocessing = hz::make_unique<PostEffects>(context);
     transparency = hz::make_unique<Transparency>(context);
     rayTracing = hz::make_unique<RayTracedEffects>(context);
-    addPass({ .pName = "Shadows", .pExecute = executeShadows, .pUserData = shadows.get() });
+    addPass({ .pName = "Shadows", .pExecute = ExecuteShadows, .pUserData = shadows.get() });
     addPass({ .pName = "GBuffer", .pExecute = executeGBuffer, .pUserData = gbuffer.get() });
     addPass({ .pName = "SSAO", .pExecute = executeScreenSpaceAO, .pUserData = ssao.get(), .pEnabled = &enableScreenSpaceAO });
     addPass({ .pName = "Ray Tracing", .pExecute = executeRayTracing, .pUserData = rayTracing.get() });
@@ -306,9 +306,9 @@ void RenderPasses::execute()
     gpuScene.upload(commands);
     draws.prepare(commands, frame, view);
     // Frame shape the passes depend on; the shadow pass publishes its intensity once it ran.
-    shadows->data.environmentMipCount = environment->getPrefilteredMipCount();
-    shadows->data.rtShadowEnabled = rayTracing->isSupported() && rayTracing->settings.shadows ? 1u : 0u;
-    shadows->data.rtAOEnabled = rayTracing->isSupported() && rayTracing->settings.ao ? 1u : 0u;
+    shadows->Data.environmentMipCount = environment->getPrefilteredMipCount();
+    shadows->Data.rtShadowEnabled = rayTracing->isSupported() && rayTracing->settings.shadows ? 1u : 0u;
+    shadows->Data.rtAOEnabled = rayTracing->isSupported() && rayTracing->settings.ao ? 1u : 0u;
     const hz::GPUTexture& backbuffer = context.getCurrentBackbuffer();
     FrameContext          frameContext = { .commands = commands,
                                            .draws = draws,
@@ -316,11 +316,11 @@ void RenderPasses::execute()
                                            .view = view,
                                            .linearSampler = linearSampler,
                                            .deltaSeconds = deltaSeconds,
-                                           .rayTracedAO = shadows->data.rtAOEnabled != 0,
+                                           .rayTracedAO = shadows->Data.rtAOEnabled != 0,
                                            .pBackbuffer = &backbuffer,
-                                           .resources = { .LightingFrame = &shadows->getLightingFrame(frameIndex),
-                                                          .ShadowMap = &shadows->getTexture(),
-                                                          .ShadowSampler = &shadows->getSampler(),
+                                           .resources = { .LightingFrame = &shadows->GetLightingFrame(frameIndex),
+                                                          .ShadowMap = &shadows->GetTexture(),
+                                                          .ShadowSampler = &shadows->GetSampler(),
                                                           .Environment = &environment->getPrefiltered(),
                                                           .Irradiance = &environment->getIrradiance(),
                                                           .BRDFLut = &environment->getBrdfLut(),
