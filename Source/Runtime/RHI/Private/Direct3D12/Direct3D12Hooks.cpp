@@ -112,7 +112,7 @@ void hook_remove_pipeline(Pipeline* pPipeline) { SAFE_RELEASE(pPipeline->dx.pPip
 HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE*,
                                   D3D12_RESOURCE_STATES state, uint32_t flags, Buffer* pBuffer)
 {
-    if (!(flags & BUFFER_CREATION_FLAG_MARKER))
+    if (!(flags & BufferCreationFlagMarker))
     {
         return E_NOINTERFACE;
     }
@@ -248,15 +248,15 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
 
 hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
 {
-    if (COLOR_SPACE_SDR_LINEAR == colorSpace)
+    if (ColorSpaceSdrLinear == colorSpace)
         return hz::Format::B8G8R8A8_UNORM;
-    if (COLOR_SPACE_SDR_SRGB == colorSpace)
+    if (ColorSpaceSdrSrgb == colorSpace)
         return hz::Format::B8G8R8A8_SRGB;
 
     hz::Format format = hz::Format::UNDEFINED;
-    if (COLOR_SPACE_P2020 == colorSpace)
+    if (ColorSpaceP2020 == colorSpace)
         format = hz::Format::R10G10B10A2_UNORM;
-    if (COLOR_SPACE_EXTENDED_SRGB == colorSpace)
+    if (ColorSpaceExtendedSrgb == colorSpace)
         format = hz::Format::R16G16B16A16_SFLOAT;
 
     DXGI_OUTPUT_DESC1 desc1 = {};

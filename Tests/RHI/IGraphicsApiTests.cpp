@@ -167,7 +167,7 @@ ShaderSrcDesc makeShaderSourceDesc(ShaderStage stages, const char* source, const
         .stages = stages,
     };
 
-    if (stages & SHADER_STAGE_VERT)
+    if (stages & ShaderStageVert)
     {
         desc.vert.pName = "InlineVert";
         desc.vert.pByteCode = (char*)source;
@@ -175,7 +175,7 @@ ShaderSrcDesc makeShaderSourceDesc(ShaderStage stages, const char* source, const
         desc.vert.pEntryPoint = entry0;
     }
 
-    if (stages & SHADER_STAGE_FRAG)
+    if (stages & ShaderStageFrag)
     {
         desc.frag.pName = "InlineFrag";
         desc.frag.pByteCode = (char*)source;
@@ -183,7 +183,7 @@ ShaderSrcDesc makeShaderSourceDesc(ShaderStage stages, const char* source, const
         desc.frag.pEntryPoint = entry1 ? entry1 : entry0;
     }
 
-    if (stages & SHADER_STAGE_COMP)
+    if (stages & ShaderStageComp)
     {
         desc.comp.pName = "InlineComp";
         desc.comp.pByteCode = (char*)source;
@@ -200,7 +200,7 @@ BinaryShaderDesc makeBinaryShaderDescFromSourceShader(const Shader* pShader, Sha
         .stages = stage,
     };
 
-    if (stage == SHADER_STAGE_COMP)
+    if (stage == ShaderStageComp)
     {
         desc.comp.pName = "BinaryComp";
         desc.comp.pByteCode = pShader->dx.pShaderBlobs[0]->GetBufferPointer();
@@ -269,7 +269,7 @@ struct LiveRendererHarness
         }
 
         QueueDesc queueDesc = {
-            .type = QUEUE_TYPE_GRAPHICS,
+            .type = QueueTypeGraphics,
             .flag = QUEUE_FLAG_NONE,
             .priority = QUEUE_PRIORITY_NORMAL,
             .pName = "IGraphicsApiTest.Queue",
@@ -433,7 +433,7 @@ struct LiveRendererHarness
             .width = width,
             .height = height,
             .enableVsync = false,
-            .colorSpace = COLOR_SPACE_SDR_SRGB,
+            .colorSpace = ColorSpaceSdrSrgb,
         };
         swapChainDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapChainDesc, swapChainDesc.colorSpace);
 
@@ -673,15 +673,15 @@ TEST_F(RHIIGraphicsApiTest, RendererInitializationErrorHelpersRoundTripState)
 // Verifies that flag operators and indirect argument index helpers behave as expected for the public API surface.
 TEST_F(RHIIGraphicsApiTest, HeaderHelpersPreserveExpectedFlagBehavior)
 {
-    ResourceState combinedState = RESOURCE_STATE_COPY_DEST | RESOURCE_STATE_SHADER_RESOURCE;
-    EXPECT_EQ(combinedState & RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_COPY_DEST);
-    EXPECT_EQ(combinedState & RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    EXPECT_EQ(combinedState & RESOURCE_STATE_PRESENT, RESOURCE_STATE_UNDEFINED);
+    ResourceState combinedState = ResourceStateCopyDest | ResourceStateShaderResource;
+    EXPECT_EQ(combinedState & ResourceStateCopyDest, ResourceStateCopyDest);
+    EXPECT_EQ(combinedState & ResourceStatePixelShaderResource, ResourceStatePixelShaderResource);
+    EXPECT_EQ(combinedState & ResourceStatePresent, ResourceStateUndefined);
 
-    DescriptorType descriptorMask = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
-    EXPECT_EQ(descriptorMask & DESCRIPTOR_TYPE_TEXTURE, DESCRIPTOR_TYPE_TEXTURE);
-    EXPECT_EQ(descriptorMask & DESCRIPTOR_TYPE_RW_TEXTURE, DESCRIPTOR_TYPE_RW_TEXTURE);
-    EXPECT_EQ(descriptorMask & DESCRIPTOR_TYPE_BUFFER, DESCRIPTOR_TYPE_UNDEFINED);
+    DescriptorType descriptorMask = DescriptorTypeTexture | DescriptorTypeRwTexture;
+    EXPECT_EQ(descriptorMask & DescriptorTypeTexture, DescriptorTypeTexture);
+    EXPECT_EQ(descriptorMask & DescriptorTypeRwTexture, DescriptorTypeRwTexture);
+    EXPECT_EQ(descriptorMask & DescriptorTypeBuffer, DescriptorTypeUndefined);
 
     QueueFlag queueFlags = QUEUE_FLAG_DISABLE_GPU_TIMEOUT | QUEUE_FLAG_INIT_MICROPROFILE;
     EXPECT_EQ(queueFlags & QUEUE_FLAG_DISABLE_GPU_TIMEOUT, QUEUE_FLAG_DISABLE_GPU_TIMEOUT);
@@ -771,7 +771,7 @@ struct ComputeCommandSetup
 
 bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& cleanup, LifecycleShaderBundle* pOut)
 {
-    ShaderSrcDesc shaderSourceDesc = makeShaderSourceDesc(SHADER_STAGE_COMP, kLifecycleComputeShader, "CSMain");
+    ShaderSrcDesc shaderSourceDesc = makeShaderSourceDesc(ShaderStageComp, kLifecycleComputeShader, "CSMain");
     addShaderSource(harness.pRenderer, &shaderSourceDesc, &pOut->pSourceShader);
     if (!pOut->pSourceShader)
     {
@@ -788,7 +788,7 @@ bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& 
             }
         });
 
-    BinaryShaderDesc binaryShaderDesc = makeBinaryShaderDescFromSourceShader(pOut->pSourceShader, SHADER_STAGE_COMP, "CSMain");
+    BinaryShaderDesc binaryShaderDesc = makeBinaryShaderDescFromSourceShader(pOut->pSourceShader, ShaderStageComp, "CSMain");
     addShaderBinary(harness.pRenderer, &binaryShaderDesc, &pOut->pBinaryShader);
     if (!pOut->pBinaryShader)
     {
@@ -843,9 +843,9 @@ bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& 
         .elementCount = 4,
         .structStride = sizeof(uint32_t),
         .pName = "LifecyclePlacedBuffer",
-        .memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-        .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
+        .memoryUsage = MemoryUsageGpuOnly,
+        .startState = ResourceStateUnorderedAccess,
+        .descriptors = DescriptorTypeRwBuffer,
     };
     getBufferSizeAlign(harness.pRenderer, &placedBufferDesc, &pOut->sizeAlign);
 
@@ -956,7 +956,7 @@ bool createRenderTarget(LiveRendererHarness& harness, DeferredCleanup& cleanup, 
         .mipLevels = 1,
         .sampleCount = SAMPLE_COUNT_1,
         .format = hz::Format::R8G8B8A8_UNORM,
-        .startState = RESOURCE_STATE_RENDER_TARGET,
+        .startState = ResourceStateRenderTarget,
         .pName = name,
     };
     addRenderTarget(harness.pRenderer, &renderTargetDesc, ppRenderTarget);
@@ -997,8 +997,8 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
     BufferDesc textureReadbackDesc = {
         .Size = pOut->totalTextureBytes,
         .pName = "CommandTextureReadback",
-        .memoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-        .startState = RESOURCE_STATE_COPY_DEST,
+        .memoryUsage = MemoryUsageGpuToCpu,
+        .startState = ResourceStateCopyDest,
     };
     addBuffer(harness.pRenderer, &textureReadbackDesc, &pOut->pReadbackBuffer);
     if (!pOut->pReadbackBuffer)
@@ -1016,7 +1016,7 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
             }
         });
 
-    ShaderSrcDesc graphicsShaderDesc = makeShaderSourceDesc(SHADER_STAGE_VERT | SHADER_STAGE_FRAG, kGraphicsShader, "VSMain", "PSMain");
+    ShaderSrcDesc graphicsShaderDesc = makeShaderSourceDesc(ShaderStageVert | ShaderStageFrag, kGraphicsShader, "VSMain", "PSMain");
     addShaderSource(harness.pRenderer, &graphicsShaderDesc, &pOut->pShader);
     if (!pOut->pShader)
     {
@@ -1064,10 +1064,10 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
     BufferDesc vertexBufferDesc = {
         .Size = sizeof(float) * 2 * 3,
         .pName = "GraphicsVertexBuffer",
-        .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
-        .startState = RESOURCE_STATE_GENERIC_READ,
-        .descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER,
+        .memoryUsage = MemoryUsageCpuToGpu,
+        .flags = BufferCreationFlagPersistentMapBit,
+        .startState = ResourceStateGenericRead,
+        .descriptors = DescriptorTypeVertexBuffer,
     };
     addBuffer(harness.pRenderer, &vertexBufferDesc, &pOut->pVertexBuffer);
     if (!pOut->pVertexBuffer)
@@ -1091,10 +1091,10 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& clea
     BufferDesc indexBufferDesc = {
         .Size = sizeof(uint16_t) * 3,
         .pName = "GraphicsIndexBuffer",
-        .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
-        .startState = RESOURCE_STATE_GENERIC_READ,
-        .descriptors = DESCRIPTOR_TYPE_INDEX_BUFFER,
+        .memoryUsage = MemoryUsageCpuToGpu,
+        .flags = BufferCreationFlagPersistentMapBit,
+        .startState = ResourceStateGenericRead,
+        .descriptors = DescriptorTypeIndexBuffer,
     };
     addBuffer(harness.pRenderer, &indexBufferDesc, &pOut->pIndexBuffer);
     if (!pOut->pIndexBuffer)
@@ -1182,8 +1182,8 @@ PixelValue executeDrawAndReadPixel(LiveRendererHarness& harness, const GraphicsD
         .renderTargets = {
             {
                 .pRenderTarget = setup.pRenderTarget,
-                .loadAction = LOAD_ACTION_CLEAR,
-                .storeAction = STORE_ACTION_STORE,
+                .loadAction = LoadActionClear,
+                .storeAction = StoreActionStore,
                 .clearValue = { .a = 1.0f },
                 .overrideClearValue = true,
             },
@@ -1210,19 +1210,19 @@ PixelValue executeDrawAndReadPixel(LiveRendererHarness& harness, const GraphicsD
         cmdDrawInstanced(harness.pCmd, 3, 0, 1, 0);
         break;
     case DrawCallKind::DrawIndexed:
-        cmdBindIndexBuffer(harness.pCmd, setup.pIndexBuffer, INDEX_TYPE_UINT16, 0);
+        cmdBindIndexBuffer(harness.pCmd, setup.pIndexBuffer, IndexTypeUInt16, 0);
         cmdDrawIndexed(harness.pCmd, 3, 0, 0);
         break;
     case DrawCallKind::DrawIndexedInstanced:
-        cmdBindIndexBuffer(harness.pCmd, setup.pIndexBuffer, INDEX_TYPE_UINT16, 0);
+        cmdBindIndexBuffer(harness.pCmd, setup.pIndexBuffer, IndexTypeUInt16, 0);
         cmdDrawIndexedInstanced(harness.pCmd, 3, 0, 1, 0, 0);
         break;
     }
 
     RenderTargetBarrier renderTargetBarrier = {
         .pRenderTarget = setup.pRenderTarget,
-        .currentState = RESOURCE_STATE_RENDER_TARGET,
-        .newState = RESOURCE_STATE_COPY_SOURCE,
+        .currentState = ResourceStateRenderTarget,
+        .newState = ResourceStateCopySource,
     };
     cmdResourceBarrier(harness.pCmd, 0, nullptr, 0, nullptr, 1, &renderTargetBarrier);
 
@@ -1254,7 +1254,7 @@ PixelValue executeDrawAndReadPixel(LiveRendererHarness& harness, const GraphicsD
 
 bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cleanup, ComputeCommandSetup* pOut)
 {
-    ShaderSrcDesc computeShaderDesc = makeShaderSourceDesc(SHADER_STAGE_COMP, kCommandComputeShader, "CSMain");
+    ShaderSrcDesc computeShaderDesc = makeShaderSourceDesc(ShaderStageComp, kCommandComputeShader, "CSMain");
     addShaderSource(harness.pRenderer, &computeShaderDesc, &pOut->pShader);
     if (!pOut->pShader)
     {
@@ -1304,9 +1304,9 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
         .elementCount = 2,
         .structStride = sizeof(uint32_t),
         .pName = "ComputeOutputBuffer",
-        .memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-        .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
+        .memoryUsage = MemoryUsageGpuOnly,
+        .startState = ResourceStateUnorderedAccess,
+        .descriptors = DescriptorTypeRwBuffer,
     };
     addBuffer(harness.pRenderer, &computeOutputDesc, &pOut->pOutputBuffer);
     if (!pOut->pOutputBuffer)
@@ -1327,10 +1327,10 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
     BufferDesc computeRootCbvDesc = {
         .Size = 256,
         .pName = "ComputeRootCbvBuffer",
-        .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
-        .startState = RESOURCE_STATE_GENERIC_READ,
-        .descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .memoryUsage = MemoryUsageCpuToGpu,
+        .flags = BufferCreationFlagPersistentMapBit,
+        .startState = ResourceStateGenericRead,
+        .descriptors = DescriptorTypeUniformBuffer,
     };
     addBuffer(harness.pRenderer, &computeRootCbvDesc, &pOut->pRootCbvBuffer);
     if (!pOut->pRootCbvBuffer)
@@ -1354,8 +1354,8 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
     BufferDesc computeReadbackDesc = {
         .Size = sizeof(uint32_t) * 2,
         .pName = "ComputeReadbackBuffer",
-        .memoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-        .startState = RESOURCE_STATE_COPY_DEST,
+        .memoryUsage = MemoryUsageGpuToCpu,
+        .startState = ResourceStateCopyDest,
     };
     addBuffer(harness.pRenderer, &computeReadbackDesc, &pOut->pReadbackBuffer);
     if (!pOut->pReadbackBuffer)
@@ -1376,10 +1376,10 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& cl
     BufferDesc indirectBufferDesc = {
         .Size = sizeof(DispatchCommandData),
         .pName = "DispatchIndirectBuffer",
-        .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
-        .startState = RESOURCE_STATE_GENERIC_READ,
-        .descriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER,
+        .memoryUsage = MemoryUsageCpuToGpu,
+        .flags = BufferCreationFlagPersistentMapBit,
+        .startState = ResourceStateGenericRead,
+        .descriptors = DescriptorTypeIndirectBuffer,
     };
     addBuffer(harness.pRenderer, &indirectBufferDesc, &pOut->pIndirectBuffer);
     if (!pOut->pIndirectBuffer)
@@ -1482,8 +1482,8 @@ void executeComputeAndReadBack(LiveRendererHarness& harness, const ComputeComman
 
     BufferBarrier computeBarrier = {
         .pBuffer = setup.pOutputBuffer,
-        .currentState = RESOURCE_STATE_UNORDERED_ACCESS,
-        .newState = RESOURCE_STATE_COPY_SOURCE,
+        .currentState = ResourceStateUnorderedAccess,
+        .newState = ResourceStateCopySource,
     };
     cmdResourceBarrier(harness.pCmd, 1, &computeBarrier, 0, nullptr, 0, nullptr);
     cmdUpdateBuffer(harness.pCmd, setup.pReadbackBuffer, 0, setup.pOutputBuffer, 0, sizeof(uint32_t) * 2);
@@ -1533,9 +1533,9 @@ bool createMarkerBuffer(LiveRendererHarness& harness, DeferredCleanup& cleanup, 
     BufferDesc markerBufferDesc = {
         .Size = sizeof(uint32_t),
         .pName = "GpuMarkerBuffer",
-        .memoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-        .flags = BUFFER_CREATION_FLAG_MARKER,
-        .startState = RESOURCE_STATE_COPY_DEST,
+        .memoryUsage = MemoryUsageGpuToCpu,
+        .flags = BufferCreationFlagMarker,
+        .startState = ResourceStateCopyDest,
     };
     addBuffer(harness.pRenderer, &markerBufferDesc, ppMarkerBuffer);
     if (!*ppMarkerBuffer)
@@ -1578,9 +1578,9 @@ TEST_F(RHIIGraphicsApiTest, QueueAndSyncApisSubmitAndSignalCorrectly)
     ASSERT_TRUE(harness.addPrimaryCmdOnly());
     ASSERT_TRUE(harness.addExtraCmdsOnly(2));
 
-    FenceStatus fenceStatus = FENCE_STATUS_COMPLETE;
+    FenceStatus fenceStatus = FenceStatusComplete;
     getFenceStatus(harness.pRenderer, harness.pFence, &fenceStatus);
-    EXPECT_EQ(fenceStatus, FENCE_STATUS_NOTSUBMITTED);
+    EXPECT_EQ(fenceStatus, FenceStatusNotSubmitted);
 
     resetCmdPool(harness.pRenderer, harness.pCmdPool);
     beginCmd(harness.ppExtraCmds[0]);
@@ -1589,7 +1589,7 @@ TEST_F(RHIIGraphicsApiTest, QueueAndSyncApisSubmitAndSignalCorrectly)
     Semaphore* signalSemaphores[] = { harness.pSemaphore };
     harness.submitAndWait(harness.ppExtraCmds[0], harness.pFence, 0, nullptr, 1, signalSemaphores);
     getFenceStatus(harness.pRenderer, harness.pFence, &fenceStatus);
-    EXPECT_EQ(fenceStatus, FENCE_STATUS_COMPLETE);
+    EXPECT_EQ(fenceStatus, FenceStatusComplete);
 
     Fence* pWaitFence = nullptr;
     addFence(harness.pRenderer, &pWaitFence);
@@ -1607,7 +1607,7 @@ TEST_F(RHIIGraphicsApiTest, QueueAndSyncApisSubmitAndSignalCorrectly)
         });
 
     getFenceStatus(harness.pRenderer, pWaitFence, &fenceStatus);
-    EXPECT_EQ(fenceStatus, FENCE_STATUS_NOTSUBMITTED);
+    EXPECT_EQ(fenceStatus, FenceStatusNotSubmitted);
 
     resetCmdPool(harness.pRenderer, harness.pCmdPool);
     beginCmd(harness.ppExtraCmds[1]);
@@ -1615,7 +1615,7 @@ TEST_F(RHIIGraphicsApiTest, QueueAndSyncApisSubmitAndSignalCorrectly)
     Semaphore* waitSemaphores[] = { harness.pSemaphore };
     harness.submitAndWait(harness.ppExtraCmds[1], pWaitFence, 1, waitSemaphores);
     getFenceStatus(harness.pRenderer, pWaitFence, &fenceStatus);
-    EXPECT_EQ(fenceStatus, FENCE_STATUS_COMPLETE);
+    EXPECT_EQ(fenceStatus, FenceStatusComplete);
 }
 
 // Verifies that swapchain APIs acquire images, present them, and toggle vsync on a live window.
@@ -1664,9 +1664,9 @@ TEST_F(RHIIGraphicsApiTest, SamplerApiCreatesExpectedDescriptor)
         .minFilter = FILTER_LINEAR,
         .magFilter = FILTER_LINEAR,
         .mipMapMode = MIPMAP_MODE_LINEAR,
-        .addressU = ADDRESS_MODE_CLAMP_TO_EDGE,
-        .addressV = ADDRESS_MODE_CLAMP_TO_EDGE,
-        .addressW = ADDRESS_MODE_REPEAT,
+        .addressU = AddressModeClampToEdge,
+        .addressV = AddressModeClampToEdge,
+        .addressW = AddressModeRepeat,
         .maxAnisotropy = 1.0f,
         .compareFunc = CMP_NEVER,
     };
@@ -1701,8 +1701,8 @@ TEST_F(RHIIGraphicsApiTest, ShaderApisCreateSourceAndBinaryShaders)
 
     ASSERT_NE(shaderBundle.pSourceShader->pReflection, nullptr);
     ASSERT_NE(shaderBundle.pBinaryShader->pReflection, nullptr);
-    EXPECT_EQ(shaderBundle.pSourceShader->stages, SHADER_STAGE_COMP);
-    EXPECT_EQ(shaderBundle.pBinaryShader->stages, SHADER_STAGE_COMP);
+    EXPECT_EQ(shaderBundle.pSourceShader->stages, ShaderStageComp);
+    EXPECT_EQ(shaderBundle.pBinaryShader->stages, ShaderStageComp);
 }
 
 // Bindless shaders retain root constants while resources use persistent heap indices.
@@ -1985,8 +1985,8 @@ TEST_F(RHIIGraphicsApiTest, MarkerAndBufferCopyApisWriteExpectedResults)
 
     BufferBarrier computeBarrier = {
         .pBuffer = computeSetup.pOutputBuffer,
-        .currentState = RESOURCE_STATE_UNORDERED_ACCESS,
-        .newState = RESOURCE_STATE_COPY_SOURCE,
+        .currentState = ResourceStateUnorderedAccess,
+        .newState = ResourceStateCopySource,
     };
     cmdResourceBarrier(harness.pCmd, 1, &computeBarrier, 0, nullptr, 0, nullptr);
     cmdUpdateBuffer(harness.pCmd, computeSetup.pReadbackBuffer, 0, computeSetup.pOutputBuffer, 0, sizeof(uint32_t) * 2);

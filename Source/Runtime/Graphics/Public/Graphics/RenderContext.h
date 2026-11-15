@@ -36,10 +36,10 @@ struct BufferDesc
     const char*         pName = nullptr;
     const void*         pInitialData = nullptr;
     uint64_t            initialDataSize = 0;
-    ResourceMemoryUsage usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
-    ResourceState       startState = RESOURCE_STATE_UNDEFINED;
-    DescriptorType      descriptors = DESCRIPTOR_TYPE_UNDEFINED;
-    BufferCreationFlags flags = BUFFER_CREATION_FLAG_NONE;
+    ResourceMemoryUsage usage = MemoryUsageUnknown;
+    ResourceState       startState = ResourceStateUndefined;
+    DescriptorType      descriptors = DescriptorTypeUndefined;
+    BufferCreationFlags flags = BufferCreationFlagNone;
 };
 
 struct TextureDesc
@@ -51,9 +51,9 @@ struct TextureDesc
     uint32_t             mipLevels = 1;
     SampleCount          sampleCount = SAMPLE_COUNT_1;
     hz::Format           format = hz::Format::UNDEFINED;
-    ResourceState        startState = RESOURCE_STATE_UNDEFINED;
-    DescriptorType       descriptors = DESCRIPTOR_TYPE_UNDEFINED;
-    TextureCreationFlags flags = TEXTURE_CREATION_FLAG_NONE;
+    ResourceState        startState = ResourceStateUndefined;
+    DescriptorType       descriptors = DescriptorTypeUndefined;
+    TextureCreationFlags flags = TextureCreationFlagNone;
     bool                 renderTarget = false;
     const char*          pName = nullptr;
 };
@@ -63,9 +63,9 @@ struct SamplerDesc
     FilterType  minFilter = FILTER_LINEAR;
     FilterType  magFilter = FILTER_LINEAR;
     MipMapMode  mipMapMode = MIPMAP_MODE_LINEAR;
-    AddressMode addressU = ADDRESS_MODE_REPEAT;
-    AddressMode addressV = ADDRESS_MODE_REPEAT;
-    AddressMode addressW = ADDRESS_MODE_REPEAT;
+    AddressMode addressU = AddressModeRepeat;
+    AddressMode addressV = AddressModeRepeat;
+    AddressMode addressW = AddressModeRepeat;
     float       mipLodBias = 0.0f;
     bool        setLodRange = false;
     float       minLod = 0.0f;
@@ -76,7 +76,7 @@ struct SamplerDesc
 
 struct ShaderStageDesc
 {
-    ShaderStage stage = SHADER_STAGE_NONE;
+    ShaderStage stage = ShaderStageNone;
     const void* pSource = nullptr;
     uint32_t    sourceSize = 0;
     const char* pEntryPoint = "main";
@@ -200,9 +200,9 @@ private:
     RenderContext*        pContext = nullptr;
     Buffer*               pBuffer = nullptr;
     uint64_t              Size = 0;
-    ResourceMemoryUsage   usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
-    DescriptorType        descriptors = DESCRIPTOR_TYPE_UNDEFINED;
-    mutable ResourceState state = RESOURCE_STATE_UNDEFINED;
+    ResourceMemoryUsage   usage = MemoryUsageUnknown;
+    DescriptorType        descriptors = DescriptorTypeUndefined;
+    mutable ResourceState state = ResourceStateUndefined;
     friend struct SceneResourceAccess;
     friend class CommandList;
     friend class RenderContext;
@@ -234,7 +234,7 @@ private:
     RenderContext*        pContext = nullptr;
     Texture*              pTexture = nullptr;
     RenderTarget*         pRenderTarget = nullptr;
-    mutable ResourceState state = RESOURCE_STATE_UNDEFINED;
+    mutable ResourceState state = ResourceStateUndefined;
     bool                  owned = false;
     friend struct SceneResourceAccess;
     friend class CommandList;
@@ -531,7 +531,7 @@ public:
     // Destroys parked targets, for example when the render Size changes and their descriptors no longer
     // match. Call after waiting for the GPU; targets still in use are kept.
     void        purgeTransients();
-    GPUTexture               loadTexture(ResourceDirectory, const char* pFileName, TextureCreationFlags = TEXTURE_CREATION_FLAG_NONE);
+    GPUTexture               loadTexture(ResourceDirectory, const char* pFileName, TextureCreationFlags = TextureCreationFlagNone);
     GPUSampler  createSampler(const SamplerDesc& = {});
     GPUPipeline createGraphicsPipeline(const GraphicsPipelineDesc&);
     GPUPipeline createComputePipeline(const ComputePipelineDesc&);

@@ -64,8 +64,8 @@ ShaderVariable makeVariable(const char* name, uint32_t parentIndex, uint32_t off
 TEST(RHIShaderReflectionTest, PipelineReflectionCombinesStagesAndDeduplicatesBindings)
 {
     ShaderResource vertexResources[] = {
-        makeResource(DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 0, SHADER_STAGE_VERT, "FrameData"),
-        makeResource(DESCRIPTOR_TYPE_TEXTURE, 1, 3, SHADER_STAGE_VERT, "SceneTexture"),
+        makeResource(DescriptorTypeUniformBuffer, 0, 0, ShaderStageVert, "FrameData"),
+        makeResource(DescriptorTypeTexture, 1, 3, ShaderStageVert, "SceneTexture"),
     };
     ShaderVariable vertexVariables[] = {
         makeVariable("ViewProj", 0, 0, 64),
@@ -73,9 +73,9 @@ TEST(RHIShaderReflectionTest, PipelineReflectionCombinesStagesAndDeduplicatesBin
     };
 
     ShaderResource fragmentResources[] = {
-        makeResource(DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 0, SHADER_STAGE_FRAG, "FrameData"),
-        makeResource(DESCRIPTOR_TYPE_TEXTURE, 1, 3, SHADER_STAGE_FRAG, "SceneTexture"),
-        makeResource(DESCRIPTOR_TYPE_RW_BUFFER, 2, 1, SHADER_STAGE_FRAG, "OutputBuffer"),
+        makeResource(DescriptorTypeUniformBuffer, 0, 0, ShaderStageFrag, "FrameData"),
+        makeResource(DescriptorTypeTexture, 1, 3, ShaderStageFrag, "SceneTexture"),
+        makeResource(DescriptorTypeRwBuffer, 2, 1, ShaderStageFrag, "OutputBuffer"),
     };
     ShaderVariable fragmentVariables[] = {
         makeVariable("ViewProj", 0, 0, 64),
@@ -86,14 +86,14 @@ TEST(RHIShaderReflectionTest, PipelineReflectionCombinesStagesAndDeduplicatesBin
         {
             .pShaderResources = vertexResources,
             .pVariables = vertexVariables,
-            .shaderStage = SHADER_STAGE_VERT,
+            .shaderStage = ShaderStageVert,
             .shaderResourceCount = TF_ARRAY_COUNT(vertexResources),
             .variableCount = TF_ARRAY_COUNT(vertexVariables),
         },
         {
             .pShaderResources = fragmentResources,
             .pVariables = fragmentVariables,
-            .shaderStage = SHADER_STAGE_FRAG,
+            .shaderStage = ShaderStageFrag,
             .shaderResourceCount = TF_ARRAY_COUNT(fragmentResources),
             .variableCount = TF_ARRAY_COUNT(fragmentVariables),
         },
@@ -103,7 +103,7 @@ TEST(RHIShaderReflectionTest, PipelineReflectionCombinesStagesAndDeduplicatesBin
     createPipelineReflection(stages, TF_ARRAY_COUNT(stages), &pipeline);
 
     ASSERT_EQ(pipeline.stageReflectionCount, 2u);
-    EXPECT_EQ(pipeline.shaderStages, SHADER_STAGE_VERT | SHADER_STAGE_FRAG);
+    EXPECT_EQ(pipeline.shaderStages, ShaderStageVert | ShaderStageFrag);
     EXPECT_EQ(pipeline.vertexStageIndex, 0u);
     EXPECT_EQ(pipeline.pixelStageIndex, 1u);
     EXPECT_EQ(pipeline.hullStageIndex, UINT32_MAX);
@@ -118,9 +118,9 @@ TEST(RHIShaderReflectionTest, PipelineReflectionCombinesStagesAndDeduplicatesBin
     ASSERT_NE(sceneTextureIndex, UINT32_MAX);
     ASSERT_NE(outputBufferIndex, UINT32_MAX);
 
-    EXPECT_EQ(pipeline.pShaderResources[frameDataIndex].used_stages, SHADER_STAGE_VERT | SHADER_STAGE_FRAG);
-    EXPECT_EQ(pipeline.pShaderResources[sceneTextureIndex].used_stages, SHADER_STAGE_VERT | SHADER_STAGE_FRAG);
-    EXPECT_EQ(pipeline.pShaderResources[outputBufferIndex].used_stages, SHADER_STAGE_FRAG);
+    EXPECT_EQ(pipeline.pShaderResources[frameDataIndex].used_stages, ShaderStageVert | ShaderStageFrag);
+    EXPECT_EQ(pipeline.pShaderResources[sceneTextureIndex].used_stages, ShaderStageVert | ShaderStageFrag);
+    EXPECT_EQ(pipeline.pShaderResources[outputBufferIndex].used_stages, ShaderStageFrag);
 
     ASSERT_EQ(pipeline.variableCount, 3u);
     const uint32_t viewProjIndex = findVariableIndexByName(pipeline, "ViewProj");

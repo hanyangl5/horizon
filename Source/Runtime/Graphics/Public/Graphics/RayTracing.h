@@ -23,7 +23,7 @@ struct AccelerationStructureGeometry
     uint32_t         vertexStride = 12;
     uint32_t         indexCount = 0;
     Format           vertexFormat = Format::R32G32B32_SFLOAT;
-    IndexType        indexType = INDEX_TYPE_UINT32;
+    IndexType        indexType = IndexTypeUInt32;
     bool             opaque = true;
 };
 

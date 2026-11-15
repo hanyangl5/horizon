@@ -30,8 +30,8 @@ static_assert(sizeof(DeferredLightingConstants) == 15 * sizeof(uint32_t));
 
 DeferredLighting::DeferredLighting(hz::RenderContext& Context): Context(Context)
 {
-    Pipeline = Context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
-                                                                           { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
+    Pipeline = Context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
+                                                                           { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                                                                .pFileName = "DeferredLighting.slang" },
                                                 .colorTargets = { { .format = hz::Format::R32G32B32A32_SFLOAT } },
                                                 .pName = "Renderer.DeferredLighting" });
@@ -42,9 +42,9 @@ void DeferredLighting::Resize(uint32_t Width, uint32_t Height)
     Color = Context.createTexture({ .width = Width,
                                     .height = Height,
                                     .format = hz::Format::R32G32B32A32_SFLOAT,
-                                    .startState = RESOURCE_STATE_RENDER_TARGET,
-                                    .descriptors = DESCRIPTOR_TYPE_TEXTURE,
-                                    .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                    .startState = ResourceStateRenderTarget,
+                                    .descriptors = DescriptorTypeTexture,
+                                    .flags = TextureCreationFlagForce2D,
                                     .renderTarget = true,
                                     .pName = "Renderer.DeferredLighting.Color" });
     ASSERT(Color.isValid());
@@ -78,7 +78,7 @@ const hz::GPUTexture& DeferredLighting::Execute(hz::CommandList& Commands, const
     // Keep graphics state active during GBV attachment-transition checks after DXR.
     Commands.setPipeline(Pipeline);
     Commands.beginRendering(
-        { .colorAttachments = { { .pTexture = &Color, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
+        { .colorAttachments = { { .pTexture = &Color, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
         Dependencies.get());
     Commands.setViewport(0, 0, (float)Color.getWidth(), (float)Color.getHeight());
     Commands.setScissor(0, 0, Color.getWidth(), Color.getHeight());

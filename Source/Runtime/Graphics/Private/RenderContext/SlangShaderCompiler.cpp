@@ -20,7 +20,7 @@ constexpr uint32_t kShaderCacheVersion = 1;
 constexpr uint32_t kShaderCacheMagic = 0x43535A48; // 'HZSC'
 
 // Cacheable stages, in record order.
-constexpr ShaderStage kCachedStages[] = { SHADER_STAGE_VERT, SHADER_STAGE_FRAG, SHADER_STAGE_COMP };
+constexpr ShaderStage kCachedStages[] = { ShaderStageVert, ShaderStageFrag, ShaderStageComp };
 constexpr SlangStage  kSlangStages[] = { SLANG_STAGE_VERTEX, SLANG_STAGE_FRAGMENT, SLANG_STAGE_COMPUTE };
 constexpr uint32_t    kCachedStageCount = sizeof(kCachedStages) / sizeof(kCachedStages[0]);
 

@@ -405,7 +405,7 @@ public:
             tableGarbage += meshes[index].submeshCount + meshes[index].vertexStreamCount;
             meshes[index] = { .id = { .index = index, .generation = asset.generation },
                               .indexSrv = mesh.getIndexBuffer().getSrvIndex(),
-                              .indexStride = mesh.getIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u,
+                              .indexStride = mesh.getIndexType() == IndexTypeUInt16 ? 2u : 4u,
                               .vertexStreamOffset = vertexStreams.Size(),
                               .vertexStreamCount = mesh.getVertexBufferCount(),
                               .submeshOffset = submeshes.Size(),

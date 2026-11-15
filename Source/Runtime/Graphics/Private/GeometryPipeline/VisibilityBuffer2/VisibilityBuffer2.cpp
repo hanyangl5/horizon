@@ -230,8 +230,8 @@
 //    cmdBindDescriptorSet(pCmd, pDesc->mBuffersIndex, pDesc->pDescriptorSetClearBuffers);
 //    cmdDispatch(pCmd, 1, 1, 1);
 //    bufferIndex = 0;
-//    barrier[bufferIndex++] = { pVisibilityBuffer->ppBinBuffer[pDesc->mBuffersIndex], RESOURCE_STATE_UNORDERED_ACCESS,
-//                               RESOURCE_STATE_UNORDERED_ACCESS };
+//    barrier[bufferIndex++] = { pVisibilityBuffer->ppBinBuffer[pDesc->mBuffersIndex], ResourceStateUnorderedAccess,
+//                               ResourceStateUnorderedAccess };
 //    cmdResourceBarrier(pCmd, bufferIndex, barrier, 0, nullptr, 0, nullptr);
 //    cmdEndGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken);
 //
@@ -431,11 +431,11 @@
 // static BufferLoadDesc MainVertexBufferLoadDesc(PreSkinACVertexBuffersDesc* pDesc, uint32_t structStride)
 //{
 //    BufferLoadDesc vertexBufferDesc = {};
-//    vertexBufferDesc.desc.descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | (DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW);
+//    vertexBufferDesc.desc.descriptors = DescriptorTypeVertexBuffer | (DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw);
 //    vertexBufferDesc.desc.Size =
 //        (pDesc->mMaxStaticVertexCount + pDesc->mMaxPreSkinnedVertexCountPerFrame * pDesc->mNumBuffers) * structStride;
 //    vertexBufferDesc.desc.elementCount = (uint32_t)(vertexBufferDesc.desc.Size / sizeof(uint32_t));
-//    vertexBufferDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+//    vertexBufferDesc.desc.memoryUsage = MemoryUsageGpuOnly;
 //    vertexBufferDesc.desc.structStride = structStride;
 //    return vertexBufferDesc;
 //}
@@ -457,9 +457,9 @@
 //    preSkinnedVertexPlacement.offset = heapOffset;
 //
 //    BufferLoadDesc bufferDesc = {};
-//    bufferDesc.desc.descriptors = DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW;
-//    bufferDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-//    bufferDesc.desc.startState = RESOURCE_STATE_UNORDERED_ACCESS;
+//    bufferDesc.desc.descriptors = DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw;
+//    bufferDesc.desc.memoryUsage = MemoryUsageGpuOnly;
+//    bufferDesc.desc.startState = ResourceStateUnorderedAccess;
 //    bufferDesc.desc.elementCount = (uint32_t)(vbSize / sizeof(uint32_t));
 //    bufferDesc.desc.Size = vbSize;
 //    bufferDesc.desc.structStride = attrStride;
@@ -526,8 +526,8 @@
 //        sizeAligns[1].Size;
 //
 //        ResourceHeapDesc desc = {};
-//        desc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-//        desc.descriptors = DESCRIPTOR_TYPE_BUFFER | (DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW);
+//        desc.memoryUsage = MemoryUsageGpuOnly;
+//        desc.descriptors = DescriptorTypeBuffer | (DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw);
 //        desc.flags = RESOURCE_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
 //
 //        desc.alignment = sizeAligns[0].alignment; // Align it to the alignment of the first vertex buffer
@@ -558,8 +558,8 @@
 //        BufferLoadDesc desc = {};
 //        desc.Data = &offsets[i];
 //        desc.ppBuffer = &pBuffers->pShaderOffsets[i];
-//        desc.desc.descriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-//        desc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+//        desc.desc.descriptors = DescriptorTypeBuffer | DescriptorTypeUniformBuffer;
+//        desc.desc.memoryUsage = MemoryUsageGpuOnly;
 //        desc.desc.elementCount = 1;
 //        desc.desc.structStride = sizeof(PreSkinBufferOffsets);
 //        desc.desc.Size = desc.desc.elementCount * desc.desc.structStride;
@@ -628,12 +628,12 @@
 //    pVisibilityBuffer->ppBinBuffer = (Buffer**)MemAllocate(sizeof(Buffer*) * pDesc->mNumBuffers);
 //
 //    BufferLoadDesc filterIbDesc = {};
-//    filterIbDesc.desc.descriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
-//    filterIbDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+//    filterIbDesc.desc.descriptors = DescriptorTypeBuffer | DescriptorTypeRwBuffer;
+//    filterIbDesc.desc.memoryUsage = MemoryUsageGpuOnly;
 //    filterIbDesc.desc.elementCount = pDesc->indexCount * 2;
 //    filterIbDesc.desc.structStride = sizeof(uint32_t);
 //    filterIbDesc.desc.Size = filterIbDesc.desc.elementCount * filterIbDesc.desc.structStride;
-//    filterIbDesc.desc.startState = RESOURCE_STATE_UNORDERED_ACCESS;
+//    filterIbDesc.desc.startState = ResourceStateUnorderedAccess;
 //    filterIbDesc.desc.pName = "Bin Buffer";
 //    filterIbDesc.Data = NULL;
 //

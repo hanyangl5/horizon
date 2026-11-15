@@ -110,18 +110,18 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
     // Add a staging buffer.
     Buffer*    buffer = 0;
     BufferDesc bufferDesc = {};
-    bufferDesc.descriptors = DESCRIPTOR_TYPE_BUFFER;
-    bufferDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
+    bufferDesc.descriptors = DescriptorTypeBuffer;
+    bufferDesc.memoryUsage = MemoryUsageGpuToCpu;
     bufferDesc.Size = padded_size;
-    bufferDesc.flags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    bufferDesc.startState = RESOURCE_STATE_COPY_DEST;
+    bufferDesc.flags = BufferCreationFlagNoDescriptorViewCreation | BufferCreationFlagPersistentMapBit;
+    bufferDesc.startState = ResourceStateCopyDest;
     bufferDesc.format = pRenderTarget->format;
     addBuffer(pRenderer, &bufferDesc, &buffer);
 
     beginCmd(pCmd);
 
     // Transition layout to copy data out.
-    RenderTargetBarrier srcBarrier = { pRenderTarget, currentResourceState, RESOURCE_STATE_COPY_SOURCE };
+    RenderTargetBarrier srcBarrier = { pRenderTarget, currentResourceState, ResourceStateCopySource };
     cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
 
     uint32_t subresource = 0;
@@ -140,7 +140,7 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
     pCmd->dx.pCmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
 
     // Transition layout to original state.
-    srcBarrier = { pRenderTarget, RESOURCE_STATE_COPY_SOURCE, currentResourceState };
+    srcBarrier = { pRenderTarget, ResourceStateCopySource, currentResourceState };
     cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
 
     endCmd(pCmd);
@@ -217,15 +217,15 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     resetCmdPool(pRendererRef, pCmdPool);
 
     // Generate image data buffer.
-    mapRenderTarget(pRendererRef, pCmdPool->pQueue, gCmd, pRenderTarget, RESOURCE_STATE_PRESENT, alloc);
+    mapRenderTarget(pRendererRef, pCmdPool->pQueue, gCmd, pRenderTarget, ResourceStatePresent, alloc);
 
     char screenshotFileName[FS_MAX_PATH] = {};
     strcat(screenshotFileName, gScreenshotName);
-    strcat(screenshotFileName, (COLOR_SPACE_SDR_SRGB < pSwapChain->colorSpace) ? ".hdr" : ".png");
+    strcat(screenshotFileName, (ColorSpaceSdrSrgb < pSwapChain->colorSpace) ? ".hdr" : ".png");
     void* pEncoded = nullptr;
     int   encodedSize = 0;
 
-    if (COLOR_SPACE_SDR_SRGB < pSwapChain->colorSpace)
+    if (ColorSpaceSdrSrgb < pSwapChain->colorSpace)
     {
         // decode pixels
         ASSERT(TinyImageFormat_CanDecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->format));

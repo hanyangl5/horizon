@@ -130,7 +130,7 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
 #ifndef __ANDROID__
         waitQueueIdle(pCmd->pQueue);
 #endif
-        TextureUpdateDesc updateDesc = { gFontstash.pAtlasTexture, 0, 1, 0, 1, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+        TextureUpdateDesc updateDesc = { gFontstash.pAtlasTexture, 0, 1, 0, 1, ResourceStatePixelShaderResource };
         beginUpdateResource(&updateDesc);
         TextureSubresourceUpdate subresource = updateDesc.getSubresourceUpdateDesc(0, 0);
         for (uint32_t r = 0; r < subresource.rowCount; ++r)
@@ -271,12 +271,12 @@ bool initFontSystem(FontSystemDesc* pDesc)
     TextureDesc desc = {};
     desc.arraySize = 1;
     desc.depth = 1;
-    desc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
+    desc.descriptors = DescriptorTypeTexture;
     desc.format = hz::Format::R8_UNORM;
     desc.height = gFontstash.height;
     desc.mipLevels = 1;
     desc.sampleCount = SAMPLE_COUNT_1;
-    desc.startState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    desc.startState = ResourceStatePixelShaderResource;
     desc.width = gFontstash.width;
     desc.pName = "Fontstash Texture";
     TextureLoadDesc loadDesc = {};
@@ -290,23 +290,23 @@ bool initFontSystem(FontSystemDesc* pDesc)
     SamplerDesc samplerDesc = { FILTER_LINEAR,
                                 FILTER_LINEAR,
                                 MIPMAP_MODE_NEAREST,
-                                ADDRESS_MODE_CLAMP_TO_EDGE,
-                                ADDRESS_MODE_CLAMP_TO_EDGE,
-                                ADDRESS_MODE_CLAMP_TO_EDGE };
+                                AddressModeClampToEdge,
+                                AddressModeClampToEdge,
+                                AddressModeClampToEdge };
     addSampler(gFontstash.pRenderer, &samplerDesc, &gFontstash.pDefaultSampler);
 
     const BufferDesc uniformDesc = { .Size = 65536,
                                      .elementCount = 65536 / 4,
-                                     .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
-                                     .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW };
+                                     .memoryUsage = MemoryUsageCpuToGpu,
+                                     .flags = BufferCreationFlagPersistentMapBit,
+                                     .descriptors = DescriptorTypeBufferRaw };
     addGPURingBuffer(gFontstash.pRenderer, &uniformDesc, &gFontstash.uniformRingBuffer);
 
     BufferDesc vbDesc = {};
-    vbDesc.descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-    vbDesc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    vbDesc.descriptors = DescriptorTypeVertexBuffer;
+    vbDesc.memoryUsage = MemoryUsageCpuToGpu;
     vbDesc.Size = pDesc->fontstashRingSizeBytes;
-    vbDesc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    vbDesc.flags = BufferCreationFlagPersistentMapBit;
     addGPURingBuffer(gFontstash.pRenderer, &vbDesc, &gFontstash.meshRingBuffer);
     /************************************************************************/
     /************************************************************************/

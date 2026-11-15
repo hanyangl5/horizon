@@ -158,7 +158,7 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     loadDesc.pFileName = pDesc->pJoystickTexture;
     loadDesc.ppTexture = &gVirtualJoystick->pTexture;
     // Textures representing color should be stored in SRGB or HDR format
-    loadDesc.creationFlag = TEXTURE_CREATION_FLAG_SRGB;
+    loadDesc.creationFlag = TextureCreationFlagSrgb;
     addResource(&loadDesc, &token);
     waitForToken(&token);
 
@@ -175,17 +175,17 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     SamplerDesc samplerDesc = { FILTER_LINEAR,
                                 FILTER_LINEAR,
                                 MIPMAP_MODE_NEAREST,
-                                ADDRESS_MODE_CLAMP_TO_EDGE,
-                                ADDRESS_MODE_CLAMP_TO_EDGE,
-                                ADDRESS_MODE_CLAMP_TO_EDGE };
+                                AddressModeClampToEdge,
+                                AddressModeClampToEdge,
+                                AddressModeClampToEdge };
     addSampler(pRenderer, &samplerDesc, &gVirtualJoystick->pSampler);
     /************************************************************************/
     // Resources
     /************************************************************************/
     BufferLoadDesc vbDesc = {};
-    vbDesc.desc.descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-    vbDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    vbDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    vbDesc.desc.descriptors = DescriptorTypeVertexBuffer;
+    vbDesc.desc.memoryUsage = MemoryUsageCpuToGpu;
+    vbDesc.desc.flags = BufferCreationFlagPersistentMapBit;
     vbDesc.desc.Size = 128 * 4 * sizeof(float4);
     vbDesc.ppBuffer = &gVirtualJoystick->pMeshBuffer;
     addResource(&vbDesc, NULL);

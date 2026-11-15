@@ -75,10 +75,10 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 
     // Initialize all the buffer that will be used for each batch per each frame index
     BufferLoadDesc ubDesc = {};
-    ubDesc.desc.descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ubDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    ubDesc.desc.descriptors = DescriptorTypeUniformBuffer;
+    ubDesc.desc.memoryUsage = MemoryUsageCpuToGpu;
     ubDesc.desc.Size = sizeof(UniformSkeletonBlock);
-    ubDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | skeletonRenderDesc.creationFlag;
+    ubDesc.desc.flags = BufferCreationFlagPersistentMapBit | skeletonRenderDesc.creationFlag;
     ubDesc.Data = NULL;
 
     for (uint32_t i = 0; i < frameCount; ++i)

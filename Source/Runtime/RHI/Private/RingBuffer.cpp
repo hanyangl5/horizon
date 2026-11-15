@@ -54,14 +54,14 @@ void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBuffer
     pRingBuffer->maxBufferSize = maxUniformBufferSize;
 
     BufferDesc ubDesc = {};
-    ubDesc.descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ubDesc.descriptors = DescriptorTypeUniformBuffer;
     ubDesc.memoryUsage = memoryUsage;
     ubDesc.flags =
-        (ubDesc.memoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY ? BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT : BUFFER_CREATION_FLAG_NONE) |
-        BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
+        (ubDesc.memoryUsage != MemoryUsageGpuOnly ? BufferCreationFlagPersistentMapBit : BufferCreationFlagNone) |
+        BufferCreationFlagNoDescriptorViewCreation;
 
     if (ownMemory)
-        ubDesc.flags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+        ubDesc.flags |= BufferCreationFlagOwnMemoryBit;
     ubDesc.Size = maxUniformBufferSize;
     ubDesc.pName = "UniformGPURingBuffer";
     BufferLoadDesc loadDesc = {};

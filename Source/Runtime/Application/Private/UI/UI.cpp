@@ -525,12 +525,12 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
     TextureDesc     textureDesc = {};
     textureDesc.arraySize = 1;
     textureDesc.depth = 1;
-    textureDesc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
+    textureDesc.descriptors = DescriptorTypeTexture;
     textureDesc.format = hz::Format::R8G8B8A8_UNORM;
     textureDesc.height = height;
     textureDesc.mipLevels = 1;
     textureDesc.sampleCount = SAMPLE_COUNT_1;
-    textureDesc.startState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    textureDesc.startState = ResourceStatePixelShaderResource;
     textureDesc.width = width;
     textureDesc.pName = "ImGui Font Texture";
     loadDesc.pDesc = &textureDesc;
@@ -538,7 +538,7 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
     addResource(&loadDesc, &token);
     waitForToken(&token);
 
-    TextureUpdateDesc updateDesc = { pTexture, 0, 1, 0, 1, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+    TextureUpdateDesc updateDesc = { pTexture, 0, 1, 0, 1, ResourceStatePixelShaderResource };
     beginUpdateResource(&updateDesc);
     TextureSubresourceUpdate subresource = updateDesc.getSubresourceUpdateDesc(0, 0);
     for (uint32_t r = 0; r < subresource.rowCount; ++r)
@@ -2880,7 +2880,7 @@ static void cmdPrepareRenderingForUI(Cmd* pCmd, const float2& displayPos, const 
     cmdSetScissor(pCmd, (uint32_t)displayPos.x, (uint32_t)displayPos.y, (uint32_t)displaySize.x, (uint32_t)displaySize.y);
 
     cmdBindPipeline(pCmd, pPipeline);
-    cmdBindIndexBuffer(pCmd, pUserInterface->pIndexBuffer, sizeof(ImDrawIdx) == sizeof(uint16_t) ? INDEX_TYPE_UINT16 : INDEX_TYPE_UINT32,
+    cmdBindIndexBuffer(pCmd, pUserInterface->pIndexBuffer, sizeof(ImDrawIdx) == sizeof(uint16_t) ? IndexTypeUInt16 : IndexTypeUInt32,
                        iOffset);
     cmdBindVertexBuffer(pCmd, 1, &pUserInterface->pVertexBuffer, &vertexStride, &vOffset);
 }
@@ -2968,31 +2968,31 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     SamplerDesc samplerDesc = { FILTER_LINEAR,
                                 FILTER_LINEAR,
                                 MIPMAP_MODE_NEAREST,
-                                ADDRESS_MODE_CLAMP_TO_EDGE,
-                                ADDRESS_MODE_CLAMP_TO_EDGE,
-                                ADDRESS_MODE_CLAMP_TO_EDGE };
+                                AddressModeClampToEdge,
+                                AddressModeClampToEdge,
+                                AddressModeClampToEdge };
     addSampler(pUserInterface->pRenderer, &samplerDesc, &pUserInterface->pDefaultSampler);
 
     BufferLoadDesc vbDesc = {};
-    vbDesc.desc.descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-    vbDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    vbDesc.desc.descriptors = DescriptorTypeVertexBuffer;
+    vbDesc.desc.memoryUsage = MemoryUsageCpuToGpu;
     vbDesc.desc.Size = VERTEX_BUFFER_SIZE * pDesc->frameCount;
-    vbDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    vbDesc.desc.flags = BufferCreationFlagPersistentMapBit;
     vbDesc.desc.pName = "UI Vertex Buffer";
     vbDesc.ppBuffer = &pUserInterface->pVertexBuffer;
     addResource(&vbDesc, NULL);
 
     BufferLoadDesc ibDesc = vbDesc;
-    ibDesc.desc.descriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
+    ibDesc.desc.descriptors = DescriptorTypeIndexBuffer;
     ibDesc.desc.Size = INDEX_BUFFER_SIZE * pDesc->frameCount;
     vbDesc.desc.pName = "UI Index Buffer";
     ibDesc.ppBuffer = &pUserInterface->pIndexBuffer;
     addResource(&ibDesc, NULL);
 
     BufferLoadDesc ubDesc = {};
-    ubDesc.desc.descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ubDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    ubDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    ubDesc.desc.descriptors = DescriptorTypeUniformBuffer;
+    ubDesc.desc.memoryUsage = MemoryUsageCpuToGpu;
+    ubDesc.desc.flags = BufferCreationFlagPersistentMapBit;
     ubDesc.desc.Size = sizeof(Matrix4);
     vbDesc.desc.pName = "UI Uniform Buffer";
     for (uint32_t i = 0; i < pDesc->frameCount; ++i)

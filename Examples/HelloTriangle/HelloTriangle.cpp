@@ -72,7 +72,7 @@ public:
             .height = 0,
             .imageCount = 3,
             .colorFormat = kSurfaceFormat,
-            .colorSpace = COLOR_SPACE_SDR_SRGB,
+            .colorSpace = ColorSpaceSdrSrgb,
             .enableVSync = settings.vSyncEnabled,
             .enableGpuValidation = true,
             .enableGpuProfiler = true,
@@ -123,8 +123,8 @@ public:
         commands.beginRendering({
             .colorAttachments = { {
                 .pTexture = &backbuffer,
-                .loadAction = LOAD_ACTION_CLEAR,
-                .storeAction = STORE_ACTION_STORE,
+                .loadAction = LoadActionClear,
+                .storeAction = StoreActionStore,
                 .clearValue = { .r = 0.05f, .g = 0.06f, .b = 0.08f, .a = 1.0f },
             } },
         });
@@ -150,9 +150,9 @@ private:
             .pName = "HelloTriangle.VertexBuffer",
             .pInitialData = kTriangleVertices,
             .initialDataSize = sizeof(kTriangleVertices),
-            .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-            .startState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
-            .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_VERTEX_BUFFER,
+            .usage = MemoryUsageGpuOnly,
+            .startState = ResourceStateVertexAndConstantBuffer,
+            .descriptors = DescriptorTypeBufferRaw | DescriptorTypeVertexBuffer,
         });
         ASSERT(resources->vertexBuffer.isValid());
 
@@ -160,14 +160,14 @@ private:
             .shaderDesc = {
             .stages = {
                 {
-                    .stage = SHADER_STAGE_VERT,
+                    .stage = ShaderStageVert,
                     .pSource = kHelloTriangleShader,
                     .sourceSize = (uint32_t)(sizeof(kHelloTriangleShader) - 1),
                     .pEntryPoint = "VSMain",
                     .pName = "HelloTriangleVS",
                 },
                 {
-                    .stage = SHADER_STAGE_FRAG,
+                    .stage = ShaderStageFrag,
                     .pSource = kHelloTriangleShader,
                     .sourceSize = (uint32_t)(sizeof(kHelloTriangleShader) - 1),
                     .pEntryPoint = "PSMain",

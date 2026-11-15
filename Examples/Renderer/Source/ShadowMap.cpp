@@ -16,8 +16,8 @@ static float QuantizeShadowExtent(float Extent)
 
 ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(Context), Resolution(Resolution)
 {
-    Pipeline = Context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
-                                                                           { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSShadow" } },
+    Pipeline = Context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
+                                                                           { .stage = ShaderStageFrag, .pEntryPoint = "PSShadow" } },
                                                                .pFileName = "ShadowMap.slang" },
                                                 .rasterizer = { .cullMode = CULL_MODE_NONE,
                                                                 .depthBias = 1,
@@ -31,12 +31,12 @@ ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(C
     Depth = Context.createTexture({ .width = Resolution,
                                     .height = Resolution,
                                     .format = hz::Format::D16_UNORM,
-                                    .startState = RESOURCE_STATE_DEPTH_WRITE,
-                                    .descriptors = DESCRIPTOR_TYPE_TEXTURE,
+                                    .startState = ResourceStateDepthWrite,
+                                    .descriptors = DescriptorTypeTexture,
                                     .renderTarget = true,
                                     .pName = "Renderer.ShadowMap" });
     Sampler = Context.createSampler(
-        { .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE, .compareFunc = CMP_LEQUAL });
+        { .addressU = AddressModeClampToEdge, .addressV = AddressModeClampToEdge, .compareFunc = CMP_LEQUAL });
     SurfaceSampler = Context.createSampler();
     for (uint32_t Index = 0; Index < ShadowFrames.Size(); ++Index)
     {
@@ -44,18 +44,18 @@ ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(C
                                                      .elementCount = 1,
                                                      .structStride = 208,
                                                      .pName = "Renderer.ShadowCamera",
-                                                     .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                                     .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                                     .descriptors = DESCRIPTOR_TYPE_BUFFER,
-                                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                     .usage = MemoryUsageCpuToGpu,
+                                                     .startState = ResourceStateShaderResource,
+                                                     .descriptors = DescriptorTypeBuffer,
+                                                     .flags = BufferCreationFlagPersistentMapBit });
         LightingFrames[Index] = Context.createBuffer({ .Size = sizeof(LightingFrameData),
                                                        .elementCount = 1,
                                                        .structStride = sizeof(LightingFrameData),
                                                        .pName = "Renderer.LightingFrame",
-                                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                                       .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                                       .descriptors = DESCRIPTOR_TYPE_BUFFER,
-                                                       .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                       .usage = MemoryUsageCpuToGpu,
+                                                       .startState = ResourceStateShaderResource,
+                                                       .descriptors = DescriptorTypeBuffer,
+                                                       .flags = BufferCreationFlagPersistentMapBit });
     }
     ASSERT(Pipeline.isValid() && Depth.isValid() && Sampler.isValid());
 }
@@ -156,8 +156,8 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     ++Data.frameIndex;
     Commands.beginGpuTimestamp("Shadow Map");
     Commands.beginRendering({ .depthAttachment = { .pTexture = &Depth,
-                                                   .loadAction = LOAD_ACTION_CLEAR,
-                                                   .storeAction = STORE_ACTION_STORE,
+                                                   .loadAction = LoadActionClear,
+                                                   .storeAction = StoreActionStore,
                                                    .clearValue = { .depth = 1 } } },
                             Draws.GetDependencies(ShadowFrames[Backing], View, &Draws.GetShadowCommands(Backing)));
     Commands.setPipeline(Pipeline);

@@ -322,7 +322,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         pOut->mDesc.arraySize = max(1U, TinyKtx_ArraySlices(tinyKTXCtx));
         pOut->mDesc.mipLevels = max(1U, TinyKtx_NumberOfMipmaps(tinyKTXCtx));
         pOut->mDesc.format = (hz::Format)TinyImageFormat_FromTinyKtxFormat(TinyKtx_GetFormat(tinyKTXCtx));
-        pOut->mDesc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
+        pOut->mDesc.descriptors = DescriptorTypeTexture;
         pOut->mDesc.sampleCount = SAMPLE_COUNT_1;
 
         if (pOut->mDesc.format == hz::Format::UNDEFINED)
@@ -334,7 +334,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         if (TinyKtx_IsCubemap(tinyKTXCtx))
         {
             pOut->mDesc.arraySize *= 6;
-            pOut->mDesc.descriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
+            pOut->mDesc.descriptors |= DescriptorTypeTextureCube;
         }
 
         pOut->isCompressed = TinyImageFormat_IsCompressed((TinyImageFormat)pOut->mDesc.format);
@@ -365,7 +365,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         pOut->mDesc.arraySize = max(1U, TinyDDS_ArraySlices(tinyDDSCtx));
         pOut->mDesc.mipLevels = max(1U, TinyDDS_NumberOfMipmaps(tinyDDSCtx));
         pOut->mDesc.format = (hz::Format)TinyImageFormat_FromTinyDDSFormat(TinyDDS_GetFormat(tinyDDSCtx));
-        pOut->mDesc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
+        pOut->mDesc.descriptors = DescriptorTypeTexture;
         pOut->mDesc.sampleCount = SAMPLE_COUNT_1;
 
         if (pOut->mDesc.format == hz::Format::UNDEFINED)
@@ -377,7 +377,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         if (TinyDDS_IsCubemap(tinyDDSCtx))
         {
             pOut->mDesc.arraySize *= 6;
-            pOut->mDesc.descriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
+            pOut->mDesc.descriptors |= DescriptorTypeTextureCube;
         }
 
         pOut->isCompressed = TinyImageFormat_IsCompressed((TinyImageFormat)pOut->mDesc.format);
@@ -489,7 +489,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
 
             pOut->mDesc.mipLevels = 1;
             pOut->mDesc.arraySize = 1;
-            pOut->mDesc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
+            pOut->mDesc.descriptors = DescriptorTypeTexture;
             pOut->mDesc.format = textureFormat;
         }
 
@@ -1253,7 +1253,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         }
 
         // Write .ktx file
-        const bool     isCubemap = (inputTextureData.mDesc.descriptors & DESCRIPTOR_TYPE_TEXTURE_CUBE) == DESCRIPTOR_TYPE_TEXTURE_CUBE;
+        const bool     isCubemap = (inputTextureData.mDesc.descriptors & DescriptorTypeTextureCube) == DescriptorTypeTextureCube;
         // Array Size in the disk image needs to be 1 since we'll already multiply it by 6 when loading the texture in runtime
         const uint32_t arraySize = isCubemap ? inputTextureData.mDesc.arraySize / 6 : inputTextureData.mDesc.arraySize;
         if (copyTextureParams.mContainer == CONTAINER_KTX)

@@ -207,7 +207,7 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
                 ASSERT(pGeom->pIndexBuffer);
                 pGeomD3D12->Triangles.IndexBuffer = pGeom->pIndexBuffer->dx.gpuAddress + pGeom->indexOffset;
                 pGeomD3D12->Triangles.IndexCount = pGeom->indexCount;
-                pGeomD3D12->Triangles.IndexFormat = (pGeom->indexType == INDEX_TYPE_UINT16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
+                pGeomD3D12->Triangles.IndexFormat = (pGeom->indexType == IndexTypeUInt16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
             }
 
             ASSERT(pGeom->pVertexBuffer);
@@ -266,14 +266,14 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
         // Allocate Acceleration Structure Buffer
         /************************************************************************/
         BufferDesc bufferDesc = {};
-        bufferDesc.descriptors = DESCRIPTOR_TYPE_RW_BUFFER;
-        bufferDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        bufferDesc.flags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
+        bufferDesc.descriptors = DescriptorTypeRwBuffer;
+        bufferDesc.memoryUsage = MemoryUsageGpuOnly;
+        bufferDesc.flags = BufferCreationFlagOwnMemoryBit | BufferCreationFlagNoDescriptorViewCreation;
         bufferDesc.structStride = 0;
         bufferDesc.firstElement = 0;
         bufferDesc.elementCount = (uint32_t)(info.ResultDataMaxSizeInBytes / sizeof(UINT32));
         bufferDesc.Size = info.ResultDataMaxSizeInBytes;
-        bufferDesc.startState = RESOURCE_STATE_ACCELERATION_STRUCTURE_WRITE;
+        bufferDesc.startState = ResourceStateAccelerationStructureWrite;
         addBuffer(pRaytracing->pRenderer, &bufferDesc, &pAS->pASBuffer);
         /************************************************************************/
         // Store the scratch buffer Size so user can create the scratch buffer accordingly
@@ -319,8 +319,8 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
         }
 
         BufferDesc instanceDesc = {};
-        instanceDesc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-        instanceDesc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+        instanceDesc.memoryUsage = MemoryUsageCpuToGpu;
+        instanceDesc.flags = BufferCreationFlagPersistentMapBit;
         instanceDesc.Size = arrlenu(instanceDescs) * sizeof(instanceDescs[0]);
         addBuffer(pRaytracing->pRenderer, &instanceDesc, &pAS->pInstanceDescBuffer);
         if (arrlen(instanceDescs))
@@ -332,14 +332,14 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
         // Allocate Acceleration Structure Buffer
         /************************************************************************/
         BufferDesc bufferDesc = {};
-        bufferDesc.descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW | DESCRIPTOR_TYPE_BUFFER_RAW;
-        bufferDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-        bufferDesc.flags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+        bufferDesc.descriptors = DescriptorTypeRwBufferRaw | DescriptorTypeBufferRaw;
+        bufferDesc.memoryUsage = MemoryUsageGpuOnly;
+        bufferDesc.flags = BufferCreationFlagOwnMemoryBit;
         bufferDesc.structStride = 0;
         bufferDesc.firstElement = 0;
         bufferDesc.elementCount = (uint32_t)(info.ResultDataMaxSizeInBytes / sizeof(UINT32));
         bufferDesc.Size = info.ResultDataMaxSizeInBytes;
-        bufferDesc.startState = RESOURCE_STATE_ACCELERATION_STRUCTURE_WRITE;
+        bufferDesc.startState = ResourceStateAccelerationStructureWrite;
         addBuffer(pRaytracing->pRenderer, &bufferDesc, &pAS->pASBuffer);
 
         extern void AddSrv(Renderer*, DescriptorHeap*, ID3D12Resource*, const D3D12_SHADER_RESOURCE_VIEW_DESC*, DxDescriptorID*);
@@ -360,10 +360,10 @@ void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationS
 
     // Create scratch buffer
     BufferDesc scratchBufferDesc = {};
-    scratchBufferDesc.descriptors = DESCRIPTOR_TYPE_RW_BUFFER;
-    scratchBufferDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-    scratchBufferDesc.startState = RESOURCE_STATE_UNORDERED_ACCESS;
-    scratchBufferDesc.flags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
+    scratchBufferDesc.descriptors = DescriptorTypeRwBuffer;
+    scratchBufferDesc.memoryUsage = MemoryUsageGpuOnly;
+    scratchBufferDesc.startState = ResourceStateUnorderedAccess;
+    scratchBufferDesc.flags = BufferCreationFlagNoDescriptorViewCreation;
     scratchBufferDesc.Size = scratchBufferSize;
     addBuffer(pRaytracing->pRenderer, &scratchBufferDesc, &pAS->pScratchBuffer);
 
@@ -455,7 +455,7 @@ void d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Ray
 
     if (pDesc->issueRWBarrier)
     {
-        BufferBarrier barrier = { as->pASBuffer, RESOURCE_STATE_ACCELERATION_STRUCTURE_WRITE, RESOURCE_STATE_ACCELERATION_STRUCTURE_READ };
+        BufferBarrier barrier = { as->pASBuffer, ResourceStateAccelerationStructureWrite, ResourceStateAccelerationStructureRead };
         cmdResourceBarrier(pCmd, 1, &barrier, 0, NULL, 0, NULL);
     }
 
@@ -581,8 +581,8 @@ static bool createRayShaderTable(Raytracing* raytracing, RaytracingPipeline* pip
     const uint64_t   hitOffset = (missOffset + missCount * stride + 63) & ~UINT64_C(63);
     const BufferDesc desc = { .Size = (hitOffset + groupCount * stride + 63) & ~UINT64_C(63),
                               .pName = "Ray tracing shader table",
-                              .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                              .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT };
+                              .memoryUsage = MemoryUsageCpuToGpu,
+                              .flags = BufferCreationFlagPersistentMapBit };
     addBuffer(raytracing->pRenderer, &desc, &pipeline->pShaderTable);
     ASSERT(pipeline->pShaderTable);
     uint8_t* bytes = (uint8_t*)pipeline->pShaderTable->pCpuMappedAddress;

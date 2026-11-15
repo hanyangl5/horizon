@@ -7,11 +7,11 @@
 GpuDrawList::GpuDrawList(hz::RenderContext& Context): Context(Context)
 {
     Pipeline = Context.createComputePipeline(
-        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain", .pName = "Renderer.FrustumCull" } },
+        { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain", .pName = "Renderer.FrustumCull" } },
                           .pFileName = "FrustumCulling.slang" },
           .pName = "Renderer.FrustumCull" });
     ClearPipeline =
-        Context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "ClearStatistics" } },
+        Context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearStatistics" } },
                                                         .pFileName = "FrustumCulling.slang" },
                                         .pName = "Renderer.ClearCullingStatistics" });
     ASSERT(Pipeline.isValid() && ClearPipeline.isValid());
@@ -131,25 +131,25 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
         CurrentFrame.DrawData = Context.createBuffer({ .Size = uint64_t(CurrentFrame.Capacity) * sizeof(GpuDrawData),
                                                        .elementCount = CurrentFrame.Capacity * (uint32_t)(sizeof(GpuDrawData) / 4),
                                                        .pName = "Renderer.DrawData",
-                                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                                       .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                                       .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
-                                                       .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                       .usage = MemoryUsageCpuToGpu,
+                                                       .startState = ResourceStateShaderResource,
+                                                       .descriptors = DescriptorTypeBufferRaw,
+                                                       .flags = BufferCreationFlagPersistentMapBit });
         const hz::BufferDesc Arguments = { .Size = uint64_t(CurrentFrame.Capacity) * 20,
                                            .elementCount = CurrentFrame.Capacity * 5,
                                            .pName = "Renderer.IndirectDraws",
-                                           .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                           .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                           .descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW | DESCRIPTOR_TYPE_INDIRECT_BUFFER };
+                                           .usage = MemoryUsageGpuOnly,
+                                           .startState = ResourceStateUnorderedAccess,
+                                           .descriptors = DescriptorTypeRwBufferRaw | DescriptorTypeIndirectBuffer };
         CurrentFrame.Opaque = Context.createBuffer(Arguments);
         CurrentFrame.Transparent = Context.createBuffer(Arguments);
         CurrentFrame.Shadow = Context.createBuffer(Arguments);
         CurrentFrame.Statistics = Context.createBuffer({ .Size = 16,
                                                          .elementCount = 4,
                                                          .pName = "Renderer.CullingStatistics",
-                                                         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                         .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                         .descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW });
+                                                         .usage = MemoryUsageGpuOnly,
+                                                         .startState = ResourceStateUnorderedAccess,
+                                                         .descriptors = DescriptorTypeRwBufferRaw });
         ASSERT(CurrentFrame.DrawData.isValid() && CurrentFrame.Opaque.isValid() && CurrentFrame.Transparent.isValid() &&
                CurrentFrame.Statistics.isValid());
     }

@@ -30,7 +30,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
                 .pVertexBuffer = &Vertices,
                 .pIndexBuffer = &Mesh->getIndexBuffer(),
                 .vertexOffset = VertexOffset,
-                .indexOffset = uint64_t(Submesh.startIndex) * (Mesh->getIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u),
+                .indexOffset = uint64_t(Submesh.startIndex) * (Mesh->getIndexType() == IndexTypeUInt16 ? 2u : 4u),
                 .vertexCount = uint32_t((Vertices.getSize() - VertexOffset) / Stride),
                 .vertexStride = Stride,
                 .indexCount = Submesh.indexCount,

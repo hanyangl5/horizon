@@ -55,27 +55,27 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
     }
     RayScene = hz::MakeUnique<RayTracingScene>(Context);
     Sampler = Context.createSampler(
-        { .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE, .addressW = ADDRESS_MODE_CLAMP_TO_EDGE });
+        { .addressU = AddressModeClampToEdge, .addressV = AddressModeClampToEdge, .addressW = AddressModeClampToEdge });
     MaterialSampler = Context.createSampler();
     ShadowPipeline = Context.createComputePipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } }, .pFileName = "RTShadowAO.slang" },
+        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "RTShadowAO.slang" },
         .pName = "Renderer.RT.ShadowAO",
     });
     TemporalPipeline = Context.createComputePipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } },
+        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } },
                         .pFileName = "rt_denoise_temporal.comp.slang" },
         .pName = "Renderer.RT.Temporal",
     });
     SpatialPipeline = Context.createComputePipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_spatial.comp.slang" },
+        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_spatial.comp.slang" },
         .pName = "Renderer.RT.Spatial",
     });
     AtrousPipeline = Context.createComputePipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_atrous.comp.slang" },
+        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_atrous.comp.slang" },
         .pName = "Renderer.RT.Atrous",
     });
     DepthCopyPipeline = Context.createComputePipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSCopyDepth" } }, .pFileName = "RTDenoise.slang" },
+        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSCopyDepth" } }, .pFileName = "RTDenoise.slang" },
         .pName = "Renderer.RT.DepthHistory",
     });
     ReflectionPipeline = Context.createRayTracingPipeline({
@@ -102,13 +102,13 @@ void RayTracedEffects::Resize(uint32_t Width, uint32_t Height)
     ASSERT(Width && Height);
     this->Width = Width;
     this->Height = Height;
-    const DescriptorType Views = DescriptorType(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
+    const DescriptorType Views = DescriptorType(DescriptorTypeTexture | DescriptorTypeRwTexture);
     hz::TextureDesc      Desc = { .width = Width,
                                   .height = Height,
                                   .format = hz::Format::R8G8_UNORM,
-                                  .startState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                  .startState = ResourceStateUnorderedAccess,
                                   .descriptors = Views,
-                                  .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                  .flags = TextureCreationFlagForce2D,
                                   .pName = "Renderer.RT.ShadowAO" };
     Result = Context.createTexture(Desc);
     Desc.pName = "Renderer.RT.DenoiseScratch";

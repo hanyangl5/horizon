@@ -623,7 +623,7 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
             output[0] = uint4(round(source.Load(int3(0,0,0)) * 255.0));
         }
     )hlsl";
-    hz::GPUPipeline pipeline = context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
+    hz::GPUPipeline pipeline = context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
                                                                                              .pSource = shader,
                                                                                              .sourceSize = sizeof(shader) - 1,
                                                                                              .pEntryPoint = "CSMain" } } },
@@ -632,13 +632,13 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
     hz::GPUBuffer    output = context.createBuffer({ .Size = 16,
                                                      .elementCount = 1,
                                                      .structStride = 16,
-                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                     .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                     .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+                                                     .usage = MemoryUsageGpuOnly,
+                                                     .startState = ResourceStateUnorderedAccess,
+                                                     .descriptors = DescriptorTypeRwBuffer });
     hz::GPUBuffer    readback = context.createBuffer({ .Size = 16,
-                                                       .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                       .startState = RESOURCE_STATE_COPY_DEST,
-                                                       .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                       .usage = MemoryUsageGpuToCpu,
+                                                       .startState = ResourceStateCopyDest,
+                                                       .flags = BufferCreationFlagPersistentMapBit });
     hz::CommandList& commands = context.acquireCommandList();
     commands.setPipeline(pipeline);
     commands.setRootConstant({ texture.getSrvIndex(), output.getUavIndex() });
@@ -668,8 +668,8 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "RendererMotionTest", .enableGpuValidation = true });
     hz::GPUPipeline   pipeline = context.createGraphicsPipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
-                                    { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
+        .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
+                                    { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                         .sourceDirectory = DirectoryOtherFiles,
                         .pFileName = "Geometry.slang" },
         .colorTargets = { { .format = hz::Format::R8G8B8A8_UNORM },
@@ -704,9 +704,9 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
                                       .structStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                      .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                      .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
+                                      .usage = MemoryUsageCpuToGpu,
+                                      .startState = ResourceStateShaderResource,
+                                      .descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw });
     };
     hz::GPUBuffer  frame = input(&frameData, sizeof(frameData), sizeof(frameData));
     hz::GPUBuffer  instances = input(&instance, sizeof(instance)), materials = input(&material, sizeof(material));
@@ -718,8 +718,8 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
         target = context.createTexture({ .width = 64,
                                          .height = 64,
                                          .format = hz::Format::R8G8B8A8_UNORM,
-                                         .startState = RESOURCE_STATE_RENDER_TARGET,
-                                         .descriptors = DESCRIPTOR_TYPE_TEXTURE,
+                                         .startState = ResourceStateRenderTarget,
+                                         .descriptors = DescriptorTypeTexture,
                                          .renderTarget = true });
     const char      readPixel[] = R"hlsl(
         cbuffer RootConstant0 { uint textureIndex; uint outputIndex; };
@@ -732,24 +732,24 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     hz::GPUPipeline reader = context.createComputePipeline(
         { .shaderDesc = {
               .stages = {
-                  { .stage = SHADER_STAGE_COMP, .pSource = readPixel, .sourceSize = sizeof(readPixel) - 1, .pEntryPoint = "CSMain" } } } });
+                  { .stage = ShaderStageComp, .pSource = readPixel, .sourceSize = sizeof(readPixel) - 1, .pEntryPoint = "CSMain" } } } });
     hz::GPUBuffer output = context.createBuffer({ .Size = 16,
                                                   .elementCount = 1,
                                                   .structStride = 16,
-                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                  .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                  .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+                                                  .usage = MemoryUsageGpuOnly,
+                                                  .startState = ResourceStateUnorderedAccess,
+                                                  .descriptors = DescriptorTypeRwBuffer });
     hz::GPUBuffer readback = context.createBuffer({ .Size = 16,
-                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                    .startState = RESOURCE_STATE_COPY_DEST,
-                                                    .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                    .usage = MemoryUsageGpuToCpu,
+                                                    .startState = ResourceStateCopyDest,
+                                                    .flags = BufferCreationFlagPersistentMapBit });
     ASSERT_TRUE(reader.isValid() && sampler.isValid());
     hz::CommandList& commands = context.acquireCommandList();
     commands.beginRendering({ .colorAttachments = {
-        { .pTexture = &targets[0], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
-        { .pTexture = &targets[1], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
-        { .pTexture = &targets[2], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
-        { .pTexture = &targets[3], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
+        { .pTexture = &targets[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
+        { .pTexture = &targets[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
+        { .pTexture = &targets[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
+        { .pTexture = &targets[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
     } }, { .buffers = { &frame, &instances, &materials, &vertices, &normal, &uv } });
     commands.setViewport(0, 0, 64, 64);
     commands.setScissor(0, 0, 64, 64);
@@ -780,11 +780,11 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "RendererCullingTest", .enableGpuValidation = true });
     hz::GPUPipeline   pipeline =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } },
+        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } },
                                                         .sourceDirectory = DirectoryOtherFiles,
                                                         .pFileName = "FrustumCulling.slang" } });
     hz::GPUPipeline Clear =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "ClearStatistics" } },
+        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearStatistics" } },
                                                         .sourceDirectory = DirectoryOtherFiles,
                                                         .pFileName = "FrustumCulling.slang" } });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
@@ -819,10 +819,10 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
                                       .structStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                      .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                      .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW,
-                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                      .usage = MemoryUsageCpuToGpu,
+                                      .startState = ResourceStateShaderResource,
+                                      .descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw,
+                                      .flags = BufferCreationFlagPersistentMapBit });
     };
     hz::GPUBuffer frame = input(&camera, sizeof(camera), sizeof(camera));
     hz::GPUBuffer instanceBuffer = input(instances, sizeof(instances));
@@ -832,19 +832,19 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
     {
         buffer = context.createBuffer({ .Size = 100,
                                         .elementCount = 25,
-                                        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                        .descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW });
+                                        .usage = MemoryUsageGpuOnly,
+                                        .startState = ResourceStateUnorderedAccess,
+                                        .descriptors = DescriptorTypeRwBufferRaw });
     }
     hz::GPUBuffer  statistics = context.createBuffer({ .Size = 16,
                                                        .elementCount = 4,
-                                                       .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                       .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                       .descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW });
+                                                       .usage = MemoryUsageGpuOnly,
+                                                       .startState = ResourceStateUnorderedAccess,
+                                                       .descriptors = DescriptorTypeRwBufferRaw });
     hz::GPUBuffer  readback = context.createBuffer({ .Size = 316,
-                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                     .startState = RESOURCE_STATE_COPY_DEST,
-                                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                     .usage = MemoryUsageGpuToCpu,
+                                                     .startState = ResourceStateCopyDest,
+                                                     .flags = BufferCreationFlagPersistentMapBit });
     // With a 90-degree frustum, the first camera sees centers (3,0,-2) and (4,0,-2), while (12,0,-2) is outside right.
     // Moving to (9,0,2) and looking diagonally toward +X/-Z makes that outside box visible and leaves both old boxes behind.
     const float    perspectiveBounds[5][6] = { { 2.75f, -.25f, -2.25f, 3.25f, .25f, -1.75f },
@@ -991,7 +991,7 @@ protected:
         EXPECT_EQ(WriteToStream(&stream, text, strlen(text)), strlen(text));
         CloseStream(&stream);
     }
-    void writeGeometry(IndexType indexType = INDEX_TYPE_UINT16, bool rendererLayout = false)
+    void writeGeometry(IndexType indexType = IndexTypeUInt16, bool rendererLayout = false)
     {
         Geometry geometry = {};
         geometry.drawArgCount = 1;
@@ -1011,8 +1011,8 @@ protected:
         const uint32_t normals[] = { 0x80008000, 0x80008000, 0x80008000 }, uvs[] = { 0, 0, 0 };
         const uint16_t indices16[] = { 0, 1, 2 };
         const uint32_t indices32[] = { 0, 1, 2 };
-        const void*    pIndices = indexType == INDEX_TYPE_UINT16 ? (const void*)indices16 : indices32;
-        const uint32_t indexBytes = indexType == INDEX_TYPE_UINT16 ? sizeof(indices16) : sizeof(indices32);
+        const void*    pIndices = indexType == IndexTypeUInt16 ? (const void*)indices16 : indices32;
+        const uint32_t indexBytes = indexType == IndexTypeUInt16 ? sizeof(indices16) : sizeof(indices32);
         const float    positions[] = { -1, 2, 3, 4, -5, 6, 0, 1, -2 };
         const uint32_t geometrySize = sizeof(geometry) + sizeof(draw);
         const uint32_t dataSize = sizeof(data);
@@ -1065,7 +1065,7 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     EXPECT_EQ(&pFirst->getVertexBuffer(0), &pSecond->getVertexBuffer(0));
     EXPECT_EQ(pFirst->getVertexBufferCount(), 1u);
     EXPECT_EQ(pFirst->getVertexStride(0), 12u);
-    EXPECT_EQ(pFirst->getIndexType(), INDEX_TYPE_UINT16);
+    EXPECT_EQ(pFirst->getIndexType(), IndexTypeUInt16);
     EXPECT_EQ(pFirst->getDraw(0).indexCount, 3u);
     const hz::MeshBounds& bounds = pFirst->getBounds(0);
     EXPECT_FLOAT_EQ(bounds.minimum[0], -1);
@@ -1079,9 +1079,9 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     EXPECT_FLOAT_EQ(pMaterial->getDescription().roughnessFactor, 0.8f);
     ASSERT_NE(assetManager.getTexture(assetManager.find(pMaterial->getDescription().baseColorTexture)), nullptr);
     hz::GPUBuffer    readback = context.createBuffer({ .Size = 36,
-                                                       .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                       .startState = RESOURCE_STATE_COPY_DEST,
-                                                       .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                       .usage = MemoryUsageGpuToCpu,
+                                                       .startState = ResourceStateCopyDest,
+                                                       .flags = BufferCreationFlagPersistentMapBit });
     hz::CommandList& commands = context.acquireCommandList();
     commands.copyBuffer(readback, 0, pFirst->getVertexBuffer(0), 0, 36);
     assetManager.release(root);
@@ -1110,7 +1110,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     text.insert(materialEnd, "," + blend);
     writeTexture();
     writeScene(text.c_str());
-    writeGeometry(INDEX_TYPE_UINT16, true);
+    writeGeometry(IndexTypeUInt16, true);
     hz::SceneAsset asset;
     ASSERT_TRUE(asset.parse({ text.data(), (uint32_t)text.size() }));
     hz::AssetCatalog catalog;
@@ -1187,7 +1187,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     hz::GPUPipeline trace = context.createComputePipeline(
         { .shaderDesc = {
               .stages = {
-                  { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "CSMain" } } } });
+                  { .stage = ShaderStageComp, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "CSMain" } } } });
     ASSERT_TRUE(trace.isValid());
 
     struct FrameData
@@ -1199,19 +1199,19 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
                                                  .elementCount = sizeof(camera) / 4,
                                                  .pInitialData = &camera,
                                                  .initialDataSize = sizeof(camera),
-                                                 .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                                 .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                                 .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
+                                                 .usage = MemoryUsageCpuToGpu,
+                                                 .startState = ResourceStateShaderResource,
+                                                 .descriptors = DescriptorTypeBufferRaw });
     hz::GPUBuffer output = context.createBuffer({ .Size = 16,
                                                   .elementCount = 4,
                                                   .structStride = 4,
-                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                  .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                  .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+                                                  .usage = MemoryUsageGpuOnly,
+                                                  .startState = ResourceStateUnorderedAccess,
+                                                  .descriptors = DescriptorTypeRwBuffer });
     hz::GPUBuffer readback = context.createBuffer({ .Size = 96,
-                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                    .startState = RESOURCE_STATE_COPY_DEST,
-                                                    .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                    .usage = MemoryUsageGpuToCpu,
+                                                    .startState = ResourceStateCopyDest,
+                                                    .flags = BufferCreationFlagPersistentMapBit });
 
     for (uint32_t pass = 0; pass < 4; ++pass)
     {
@@ -1287,7 +1287,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
 {
     writeTexture();
     writeScene();
-    writeGeometry(INDEX_TYPE_UINT32);
+    writeGeometry(IndexTypeUInt32);
     hz::SceneAsset asset;
     ASSERT_TRUE(asset.parse(kTypedScene));
     hz::AssetCatalog catalog;
@@ -1301,7 +1301,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     ASSERT_EQ(assetManager.getState(Handle), hz::AssetState::Ready);
     const hz::MeshAsset* mesh = assetManager.getMesh(Handle);
     ASSERT_NE(mesh, nullptr);
-    EXPECT_EQ(mesh->getIndexType(), INDEX_TYPE_UINT32);
+    EXPECT_EQ(mesh->getIndexType(), IndexTypeUInt32);
     const hz::MeshBounds& bounds = mesh->getBounds(0);
     const float           minimum[] = { -1, -5, -2 }, maximum[] = { 4, 2, 6 };
     for (uint32_t axis = 0; axis < 3; ++axis)
@@ -1313,9 +1313,9 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     ASSERT_NE(gpuMesh, nullptr);
     EXPECT_EQ(gpuMesh->indexStride, 4u);
     hz::GPUBuffer    readback = context.createBuffer({ .Size = 48,
-                                                       .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                       .startState = RESOURCE_STATE_COPY_DEST,
-                                                       .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                       .usage = MemoryUsageGpuToCpu,
+                                                       .startState = ResourceStateCopyDest,
+                                                       .flags = BufferCreationFlagPersistentMapBit });
     hz::CommandList& commands = context.acquireCommandList();
     commands.copyBuffer(readback, 0, mesh->getIndexBuffer(), 0, 12);
     commands.copyBuffer(readback, 12, mesh->getVertexBuffer(0), 0, 36);
@@ -2162,9 +2162,9 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
 
     hz::GpuScene              gpu(scene, assetManager, context);
     hz::GPUBuffer             readback = context.createBuffer({ .Size = 1024,
-                                                                .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                                .startState = RESOURCE_STATE_COPY_DEST,
-                                                                .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                                .usage = MemoryUsageGpuToCpu,
+                                                                .startState = ResourceStateCopyDest,
+                                                                .flags = BufferCreationFlagPersistentMapBit });
     const uint8_t*            pBytes = (const uint8_t*)readback.get()->pCpuMappedAddress;
     const hz::RenderInstance& copiedInstance = *(const hz::RenderInstance*)pBytes;
     const hz::GpuMeshData&    copiedMesh = *(const hz::GpuMeshData*)(pBytes + 256);
@@ -2353,9 +2353,9 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     hz::GpuScene gpu(scene, assetManager, context);
     gpu.Reserve(1, 1, 1, 1);
     hz::GPUBuffer           readback = context.createBuffer({ .Size = 1024,
-                                                              .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                              .startState = RESOURCE_STATE_COPY_DEST,
-                                                              .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                              .usage = MemoryUsageGpuToCpu,
+                                                              .startState = ResourceStateCopyDest,
+                                                              .flags = BufferCreationFlagPersistentMapBit });
     const uint8_t*          pBytes = (const uint8_t*)readback.get()->pCpuMappedAddress;
     const hz::RenderCamera& copiedCamera = *(const hz::RenderCamera*)pBytes;
     const hz::RenderLight&  copiedLight = *(const hz::RenderLight*)(pBytes + 512);
@@ -2500,9 +2500,9 @@ TEST_F(AssetManagerTest, GpuSceneUploadsSparseChangesForOneHundredThousandEntiti
     hz::GpuScene gpu(scene, assetManager, context);
     gpu.Reserve(kEntityCount, kEntityCount);
     hz::GPUBuffer             readback = context.createBuffer({ .Size = sizeof(hz::RenderInstance),
-                                                                .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                                .startState = RESOURCE_STATE_COPY_DEST,
-                                                                .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                                .usage = MemoryUsageGpuToCpu,
+                                                                .startState = ResourceStateCopyDest,
+                                                                .flags = BufferCreationFlagPersistentMapBit });
     const hz::RenderInstance& copied = *(const hz::RenderInstance*)readback.get()->pCpuMappedAddress;
     const int64_t             fullStart = GetUSec(true);
     renderGpuSceneFrame(context, gpu, readback, {});
@@ -2595,9 +2595,9 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     ASSERT_TRUE(assetManager.release(source));
     hz::UniquePtr<hz::GpuScene> gpu = hz::MakeUnique<hz::GpuScene>(*scene, assetManager, context);
     hz::GPUBuffer                readback = context.createBuffer({ .Size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData) + 36,
-                                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                                   .startState = RESOURCE_STATE_COPY_DEST,
-                                                                   .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                                   .usage = MemoryUsageGpuToCpu,
+                                                                   .startState = ResourceStateCopyDest,
+                                                                   .flags = BufferCreationFlagPersistentMapBit });
     const hz::AssetHandle        oldMesh = assetManager.find(renderer.mesh);
     for (uint32_t pass = 0; pass < 2; ++pass)
     {
@@ -2765,7 +2765,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
 {
     writeTexture();
     writeScene();
-    writeGeometry(INDEX_TYPE_UINT16);
+    writeGeometry(IndexTypeUInt16);
     hz::SceneAsset asset;
     ASSERT_TRUE(asset.parse(kTypedScene));
     hz::AssetCatalog catalog;
@@ -2779,15 +2779,15 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     ASSERT_EQ(assetManager.getState(Handle), hz::AssetState::Ready);
     const hz::MeshAsset* mesh = assetManager.getMesh(Handle);
     ASSERT_NE(mesh, nullptr);
-    ASSERT_EQ(mesh->getIndexType(), INDEX_TYPE_UINT16);
+    ASSERT_EQ(mesh->getIndexType(), IndexTypeUInt16);
     // Three indices consume six bytes; RAW loads require a second complete DWORD.
     ASSERT_EQ(mesh->getIndexBuffer().getSize(), 8u);
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::GPUPipeline pipeline = context.createGraphicsPipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
-                                    { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
+        .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
+                                    { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                         .sourceDirectory = DirectoryOtherFiles,
                         .pFileName = "Geometry.slang" },
         .colorTargets = { { .format = hz::Format::R8G8B8A8_UNORM },
@@ -2821,9 +2821,9 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
                                       .structStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                      .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                      .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
+                                      .usage = MemoryUsageCpuToGpu,
+                                      .startState = ResourceStateShaderResource,
+                                      .descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw });
     };
     hz::GPUBuffer frame = input(&frameData, sizeof(frameData), sizeof(frameData));
     hz::GPUBuffer instanceBuffer = input(instances, sizeof(instances)), materialBuffer = input(materials, sizeof(materials));
@@ -2860,9 +2860,9 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     hz::GPUBuffer     indirect = context.createBuffer({ .Size = sizeof(arguments),
                                                         .pInitialData = arguments,
                                                         .initialDataSize = sizeof(arguments),
-                                                        .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                                        .startState = RESOURCE_STATE_INDIRECT_ARGUMENT,
-                                                        .descriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER });
+                                                        .usage = MemoryUsageCpuToGpu,
+                                                        .startState = ResourceStateIndirectArgument,
+                                                        .descriptors = DescriptorTypeIndirectBuffer });
     hz::GPUSampler    sampler = context.createSampler();
     hz::GPUTexture    targets[4];
     for (hz::GPUTexture& target : targets)
@@ -2870,8 +2870,8 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
         target = context.createTexture({ .width = 64,
                                          .height = 64,
                                          .format = hz::Format::R8G8B8A8_UNORM,
-                                         .startState = RESOURCE_STATE_RENDER_TARGET,
-                                         .descriptors = DESCRIPTOR_TYPE_TEXTURE,
+                                         .startState = ResourceStateRenderTarget,
+                                         .descriptors = DescriptorTypeTexture,
                                          .renderTarget = true });
     }
     const char      readPixel[] = R"hlsl(
@@ -2886,23 +2886,23 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     hz::GPUPipeline reader = context.createComputePipeline(
         { .shaderDesc = {
               .stages = {
-                  { .stage = SHADER_STAGE_COMP, .pSource = readPixel, .sourceSize = sizeof(readPixel) - 1, .pEntryPoint = "CSMain" } } } });
+                  { .stage = ShaderStageComp, .pSource = readPixel, .sourceSize = sizeof(readPixel) - 1, .pEntryPoint = "CSMain" } } } });
     hz::GPUBuffer    output = context.createBuffer({ .Size = 32,
                                                      .elementCount = 2,
                                                      .structStride = 16,
-                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                     .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                     .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+                                                     .usage = MemoryUsageGpuOnly,
+                                                     .startState = ResourceStateUnorderedAccess,
+                                                     .descriptors = DescriptorTypeRwBuffer });
     hz::GPUBuffer    readback = context.createBuffer({ .Size = 32,
-                                                       .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                       .startState = RESOURCE_STATE_COPY_DEST,
-                                                       .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                       .usage = MemoryUsageGpuToCpu,
+                                                       .startState = ResourceStateCopyDest,
+                                                       .flags = BufferCreationFlagPersistentMapBit });
     hz::CommandList& commands = context.acquireCommandList();
     commands.beginRendering({ .colorAttachments = {
-        { .pTexture = &targets[0], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
-        { .pTexture = &targets[1], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
-        { .pTexture = &targets[2], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
-        { .pTexture = &targets[3], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
+        { .pTexture = &targets[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
+        { .pTexture = &targets[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
+        { .pTexture = &targets[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
+        { .pTexture = &targets[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
     } }, { .buffers = { &frame, &instanceBuffer, &materialBuffer, &vertices, &normal, &uv, &draws, &mesh->getIndexBuffer() } });
     commands.setViewport(0, 0, 64, 64);
     commands.setScissor(0, 0, 64, 64);
@@ -2979,7 +2979,7 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
             output[id.x] += 1000;
         }
     )hlsl";
-    hz::GPUPipeline increment = context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
+    hz::GPUPipeline increment = context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
                                                                                               .pSource = incrementSource,
                                                                                               .sourceSize = sizeof(incrementSource) - 1,
                                                                                               .pEntryPoint = "CSMain" } } } });
@@ -2990,16 +2990,16 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
                                                                               .elementCount = 9,
                                                                               .pInitialData = positions,
                                                                               .initialDataSize = sizeof(positions),
-                                                                              .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                                                              .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                                                              .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
+                                                                              .usage = MemoryUsageCpuToGpu,
+                                                                              .startState = ResourceStateShaderResource,
+                                                                              .descriptors = DescriptorTypeBufferRaw });
     hz::GPUBuffer                           indexBuffer = context.createBuffer({ .Size = sizeof(indices),
                                                                                  .elementCount = 3,
                                                                                  .pInitialData = indices,
                                                                                  .initialDataSize = sizeof(indices),
-                                                                                 .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                                                                 .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                                                                 .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
+                                                                                 .usage = MemoryUsageCpuToGpu,
+                                                                                 .startState = ResourceStateShaderResource,
+                                                                                 .descriptors = DescriptorTypeBufferRaw });
     const hz::AccelerationStructureGeometry geometry = { .pVertexBuffer = &vertices,
                                                          .pIndexBuffer = &indexBuffer,
                                                          .vertexCount = 3,
@@ -3019,13 +3019,13 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
     hz::GPUBuffer output = context.createBuffer({ .Size = 8,
                                                   .elementCount = 2,
                                                   .structStride = 4,
-                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                  .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                  .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+                                                  .usage = MemoryUsageGpuOnly,
+                                                  .startState = ResourceStateUnorderedAccess,
+                                                  .descriptors = DescriptorTypeRwBuffer });
     hz::GPUBuffer readback = context.createBuffer({ .Size = 40,
-                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                    .startState = RESOURCE_STATE_COPY_DEST,
-                                                    .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                    .usage = MemoryUsageGpuToCpu,
+                                                    .startState = ResourceStateCopyDest,
+                                                    .flags = BufferCreationFlagPersistentMapBit });
     const auto    validateDevice = [&](const char* phase)
     {
         ID3D12Device* device = nullptr;
@@ -3173,7 +3173,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     hz::GPUPipeline reader =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
+        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
@@ -3185,19 +3185,19 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
                                       .structStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                      .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                      .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW,
-                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                      .usage = MemoryUsageCpuToGpu,
+                                      .startState = ResourceStateShaderResource,
+                                      .descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw,
+                                      .flags = BufferCreationFlagPersistentMapBit });
     };
     const auto image = [&](hz::Format format, bool target)
     {
         return context.createTexture({ .width = 1,
                                        .height = 1,
                                        .format = format,
-                                       .startState = target ? RESOURCE_STATE_RENDER_TARGET : RESOURCE_STATE_UNORDERED_ACCESS,
-                                       .descriptors = DescriptorType(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
-                                       .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                       .startState = target ? ResourceStateRenderTarget : ResourceStateUnorderedAccess,
+                                       .descriptors = DescriptorType(DescriptorTypeTexture | DescriptorTypeRwTexture),
+                                       .flags = TextureCreationFlagForce2D,
                                        .renderTarget = target });
     };
     hz::GPUTexture normal = image(hz::Format::R32G32B32A32_SFLOAT, true), depth = image(hz::Format::R32_SFLOAT, true);
@@ -3252,7 +3252,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
                                                    .indexOffset = sizeof(uint16_t),
                                                    .vertexCount = 3,
                                                    .indexCount = 3,
-                                                   .indexType = INDEX_TYPE_UINT16 };
+                                                   .indexType = IndexTypeUInt16 };
     hz::GPUAccelerationStructure      opaque = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
     geometry.opaque = false;
     hz::GPUAccelerationStructure      masked = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
@@ -3280,13 +3280,13 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     hz::GPUBuffer output = context.createBuffer({ .Size = 16,
                                                   .elementCount = 1,
                                                   .structStride = 16,
-                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                  .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                  .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+                                                  .usage = MemoryUsageGpuOnly,
+                                                  .startState = ResourceStateUnorderedAccess,
+                                                  .descriptors = DescriptorTypeRwBuffer });
     hz::GPUBuffer readback = context.createBuffer({ .Size = 16,
-                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                    .startState = RESOURCE_STATE_COPY_DEST,
-                                                    .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                    .usage = MemoryUsageGpuToCpu,
+                                                    .startState = ResourceStateCopyDest,
+                                                    .flags = BufferCreationFlagPersistentMapBit });
     struct ReflectionConstants
     {
         uint32_t frame, lighting, draws, materials, textures, sampler, tlas, normal, depth, output, noise;
@@ -3350,8 +3350,8 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
         const auto Clear = [&](const hz::GPUTexture& texture, ClearValue value)
         {
             commands.beginRendering({ .colorAttachments = { { .pTexture = &texture,
-                                                              .loadAction = LOAD_ACTION_CLEAR,
-                                                              .storeAction = STORE_ACTION_STORE,
+                                                              .loadAction = LoadActionClear,
+                                                              .storeAction = StoreActionStore,
                                                               .clearValue = value } } });
             commands.endRendering();
         };
@@ -3435,12 +3435,12 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::GPUPipeline shadow =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } },
+        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } },
                                                         .sourceDirectory = DirectoryOtherFiles,
                                                         .pFileName = "RTShadowAO.slang" } });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     hz::GPUPipeline reader =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
+        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
@@ -3452,18 +3452,18 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
                                       .structStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                      .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                      .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
+                                      .usage = MemoryUsageCpuToGpu,
+                                      .startState = ResourceStateShaderResource,
+                                      .descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw });
     };
     const auto image = [&](hz::Format format, bool target)
     {
         return context.createTexture({ .width = 1,
                                        .height = 1,
                                        .format = format,
-                                       .startState = target ? RESOURCE_STATE_RENDER_TARGET : RESOURCE_STATE_UNORDERED_ACCESS,
-                                       .descriptors = DescriptorType(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
-                                       .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                       .startState = target ? ResourceStateRenderTarget : ResourceStateUnorderedAccess,
+                                       .descriptors = DescriptorType(DescriptorTypeTexture | DescriptorTypeRwTexture),
+                                       .flags = TextureCreationFlagForce2D,
                                        .renderTarget = target });
     };
     hz::GPUTexture normal = image(hz::Format::R32G32B32A32_SFLOAT, true), depth = image(hz::Format::R32_SFLOAT, true);
@@ -3511,7 +3511,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
                                                    .pIndexBuffer = &indexBuffer,
                                                    .vertexCount = 3,
                                                    .indexCount = 3,
-                                                   .indexType = INDEX_TYPE_UINT16 };
+                                                   .indexType = IndexTypeUInt16 };
     hz::GPUAccelerationStructure      opaque = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
     geometry.opaque = false;
     hz::GPUAccelerationStructure            masked = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
@@ -3527,13 +3527,13 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     hz::GPUBuffer output = context.createBuffer({ .Size = 16,
                                                   .elementCount = 1,
                                                   .structStride = 16,
-                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                  .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                  .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+                                                  .usage = MemoryUsageGpuOnly,
+                                                  .startState = ResourceStateUnorderedAccess,
+                                                  .descriptors = DescriptorTypeRwBuffer });
     hz::GPUBuffer readback = context.createBuffer({ .Size = 16,
-                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                    .startState = RESOURCE_STATE_COPY_DEST,
-                                                    .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                    .usage = MemoryUsageGpuToCpu,
+                                                    .startState = ResourceStateCopyDest,
+                                                    .flags = BufferCreationFlagPersistentMapBit });
     struct ShadowConstants
     {
         uint32_t frame, lighting, draws, materials, textures, sampler, top, normal, depth, output, noise;
@@ -3570,8 +3570,8 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         const auto Clear = [&](const hz::GPUTexture& texture, ClearValue value)
         {
             commands.beginRendering({ .colorAttachments = { { .pTexture = &texture,
-                                                              .loadAction = LOAD_ACTION_CLEAR,
-                                                              .storeAction = STORE_ACTION_STORE,
+                                                              .loadAction = LoadActionClear,
+                                                              .storeAction = StoreActionStore,
                                                               .clearValue = value } } });
             commands.endRendering();
         };
@@ -3600,8 +3600,8 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     // Reuse the same scene to exercise the production raster shadow alpha test as well.
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::GPUPipeline raster =
-        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
-                                                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSShadow" } },
+        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
+                                                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSShadow" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "ShadowMap.slang" },
                                          .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
@@ -3615,15 +3615,15 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     hz::GPUBuffer            indirect = context.createBuffer({ .Size = sizeof(arguments),
                                                                .pInitialData = arguments,
                                                                .initialDataSize = sizeof(arguments),
-                                                               .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                               .startState = RESOURCE_STATE_INDIRECT_ARGUMENT,
-                                                               .descriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER });
+                                                               .usage = MemoryUsageGpuOnly,
+                                                               .startState = ResourceStateIndirectArgument,
+                                                               .descriptors = DescriptorTypeIndirectBuffer });
     hz::GPUTexture           shadowDepth = context.createTexture({ .width = 1,
                                                                    .height = 1,
                                                                    .format = hz::Format::D16_UNORM,
-                                                                   .startState = RESOURCE_STATE_DEPTH_WRITE,
-                                                                   .descriptors = DESCRIPTOR_TYPE_TEXTURE,
-                                                                   .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                                                   .startState = ResourceStateDepthWrite,
+                                                                   .descriptors = DescriptorTypeTexture,
+                                                                   .flags = TextureCreationFlagForce2D,
                                                                    .renderTarget = true });
     ASSERT_TRUE(instanceBuffer.isValid() && indirect.isValid() && shadowDepth.isValid());
     for (uint32_t scenario = 0; scenario < 3; ++scenario)
@@ -3631,15 +3631,15 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         SCOPED_TRACE(scenario);
         hz::CommandList& commands = context.acquireCommandList();
         commands.beginRendering({ .colorAttachments = { { .pTexture = &alpha,
-                                                          .loadAction = LOAD_ACTION_CLEAR,
-                                                          .storeAction = STORE_ACTION_STORE,
+                                                          .loadAction = LoadActionClear,
+                                                          .storeAction = StoreActionStore,
                                                           .clearValue = { .a = scenario == 2 ? 0.75f : 0.25f } } } });
         commands.endRendering();
         commands.setPipeline(raster);
         commands.beginRendering(
             { .depthAttachment = { .pTexture = &shadowDepth,
-                                   .loadAction = LOAD_ACTION_CLEAR,
-                                   .storeAction = STORE_ACTION_STORE,
+                                   .loadAction = LoadActionClear,
+                                   .storeAction = StoreActionStore,
                                    .clearValue = { .depth = 1 } } },
             { .sampledTextures = { &alpha },
               .buffers = { &frame, &instanceBuffer, &materialBuffer, &textureBuffer, &drawBuffer, &vertices, &indexBuffer, &uv },
@@ -3669,22 +3669,22 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "CookbookPpllTest", .enableGpuValidation = true });
     hz::GPUPipeline   gather =
-        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
-                                                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSTransparent" } },
+        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
+                                                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSTransparent" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "Transparency.slang" },
                                          .depth = { .depthTest = true, .depthWrite = false, .depthFunc = CMP_LEQUAL },
                                          .depthStencilFormat = hz::Format::D32_SFLOAT });
     const auto compute = [&](const char* entry)
     {
-        return context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = entry } },
+        return context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = entry } },
                                                                .sourceDirectory = DirectoryOtherFiles,
                                                                .pFileName = "Transparency.slang" } });
     };
     hz::GPUPipeline Clear = compute("ClearMain"), resolve = compute("ResolveMain");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     hz::GPUPipeline reader =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
+        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
@@ -3696,9 +3696,9 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                       .structStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                      .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                      .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
+                                      .usage = MemoryUsageCpuToGpu,
+                                      .startState = ResourceStateShaderResource,
+                                      .descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw });
     };
     struct FrameData
     {
@@ -3729,30 +3729,30 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         return context.createTexture({ .width = 8,
                                        .height = 8,
                                        .format = format,
-                                       .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                       .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
+                                       .startState = ResourceStateUnorderedAccess,
+                                       .descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
                                        .renderTarget = target });
     };
     hz::GPUTexture heads = image(hz::Format::R32_UINT, false), result = image(hz::Format::R32G32B32A32_SFLOAT, false);
     hz::GPUTexture opaque = image(hz::Format::R32G32B32A32_SFLOAT, true);
     hz::GPUTexture depth = context.createTexture(
-        { .width = 8, .height = 8, .format = hz::Format::D32_SFLOAT, .startState = RESOURCE_STATE_DEPTH_WRITE, .renderTarget = true });
+        { .width = 8, .height = 8, .format = hz::Format::D32_SFLOAT, .startState = ResourceStateDepthWrite, .renderTarget = true });
     hz::GPUBuffer counters =
         context.createBuffer({ .Size = 16,
                                .elementCount = 4,
-                               .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                               .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                               .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) });
+                               .usage = MemoryUsageGpuOnly,
+                               .startState = ResourceStateUnorderedAccess,
+                               .descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
     hz::GPUBuffer pixels = context.createBuffer({ .Size = 64 * 16,
                                                   .elementCount = 64,
                                                   .structStride = 16,
-                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                  .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                  .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+                                                  .usage = MemoryUsageGpuOnly,
+                                                  .startState = ResourceStateUnorderedAccess,
+                                                  .descriptors = DescriptorTypeRwBuffer });
     hz::GPUBuffer readback = context.createBuffer({ .Size = 64 * 16 + 16,
-                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                    .startState = RESOURCE_STATE_COPY_DEST,
-                                                    .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                    .usage = MemoryUsageGpuToCpu,
+                                                    .startState = ResourceStateCopyDest,
+                                                    .flags = BufferCreationFlagPersistentMapBit });
     for (uint32_t scenario = 0; scenario < 4; ++scenario)
     {
         SCOPED_TRACE(scenario);
@@ -3760,13 +3760,13 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         hz::GPUBuffer  nodes =
             context.createBuffer({ .Size = Capacity * 16,
                                    .elementCount = Capacity * 4,
-                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                   .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) });
+                                   .usage = MemoryUsageGpuOnly,
+                                   .startState = ResourceStateUnorderedAccess,
+                                   .descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
         hz::CommandList& commands = context.acquireCommandList();
         commands.beginRendering({ .colorAttachments = { { .pTexture = &opaque,
-                                                          .loadAction = LOAD_ACTION_CLEAR,
-                                                          .storeAction = STORE_ACTION_STORE,
+                                                          .loadAction = LoadActionClear,
+                                                          .storeAction = StoreActionStore,
                                                           .clearValue = { .b = 1, .a = 1 } } } });
         commands.endRendering();
         uint32_t constants[28];
@@ -3790,8 +3790,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         commands.setRootConstant(constants);
         commands.dispatch(1, 1, 1, { .storageTextures = { &heads }, .storageBuffers = { &counters } });
         commands.beginRendering({ .depthAttachment = { .pTexture = &depth,
-                                                       .loadAction = LOAD_ACTION_CLEAR,
-                                                       .storeAction = STORE_ACTION_STORE,
+                                                       .loadAction = LoadActionClear,
+                                                       .storeAction = StoreActionStore,
                                                        .clearValue = { .depth = scenario == 2 ? 0.5f : 1.0f } } },
                                 { .storageTextures = { &heads },
                                   .buffers = { &frame, &light, &instanceBuffer, &materialBuffer, &vertices, &normal, &uv },
@@ -3859,7 +3859,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::RenderContext context({ .pAppName = "CookbookPostTest", .enableGpuValidation = true });
     const auto        compute = [&](const char* file, const char* entry)
     {
-        return context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = entry } },
+        return context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = entry } },
                                                                .sourceDirectory = DirectoryOtherFiles,
                                                                .pFileName = file } });
     };
@@ -3869,14 +3869,14 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::GPUPipeline downsample = compute("PostBloomDownsample.slang", "CSMain");
     hz::GPUPipeline upsample = compute("PostBloomUpsample.slang", "CSMain");
     hz::GPUPipeline tone =
-        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
-                                                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
+        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
+                                                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "PostToneMap.slang" },
                                          .colorTargets = { { .format = hz::Format::R32G32B32A32_SFLOAT } } });
     hz::GPUPipeline deferred =
-        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
-                                                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
+        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
+                                                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "DeferredLighting.slang" },
                                          .colorTargets = { { .format = hz::Format::R32G32B32A32_SFLOAT } } });
@@ -3900,7 +3900,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     {
         return context.createComputePipeline(
             { .shaderDesc = {
-                  .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = Size, .pEntryPoint = entry } } } });
+                  .stages = { { .stage = ShaderStageComp, .pSource = source, .sourceSize = Size, .pEntryPoint = entry } } } });
     };
 
     hz::GPUPipeline seedLogs = helper(seedSource, sizeof(seedSource) - 1, "CSLogGrid");
@@ -3914,9 +3914,9 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         return context.createTexture({ .width = width,
                                        .height = height,
                                        .format = format,
-                                       .startState = RESOURCE_STATE_RENDER_TARGET,
-                                       .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
-                                       .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                       .startState = ResourceStateRenderTarget,
+                                       .descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
+                                       .flags = TextureCreationFlagForce2D,
                                        .renderTarget = true });
     };
     constexpr hz::Format rgba = hz::Format::R32G32B32A32_SFLOAT, scalar = hz::Format::R32_SFLOAT;
@@ -3925,17 +3925,17 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::GPUTexture       reduced = image(1, 1, scalar), previous = image(1, 1, scalar), adapted = image(1, 1, scalar);
     hz::GPUTexture       impulse = image(9, 9, rgba), blurred = image(9, 9, rgba);
     hz::GPUSampler       sampler = context.createSampler(
-        { .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE, .addressW = ADDRESS_MODE_CLAMP_TO_EDGE });
+        { .addressU = AddressModeClampToEdge, .addressV = AddressModeClampToEdge, .addressW = AddressModeClampToEdge });
     hz::GPUBuffer  output = context.createBuffer({ .Size = 256 * 16,
                                                    .elementCount = 256,
                                                    .structStride = 16,
-                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                   .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+                                                   .usage = MemoryUsageGpuOnly,
+                                                   .startState = ResourceStateUnorderedAccess,
+                                                   .descriptors = DescriptorTypeRwBuffer });
     hz::GPUBuffer  readback = context.createBuffer({ .Size = 256 * 16,
-                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                     .startState = RESOURCE_STATE_COPY_DEST,
-                                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                     .usage = MemoryUsageGpuToCpu,
+                                                     .startState = ResourceStateCopyDest,
+                                                     .flags = BufferCreationFlagPersistentMapBit });
 
     hz::GPUTexture peakSource = image(2, 2, rgba), peakBright = image(1, 1, rgba);
     hz::GPUTexture peakNormal = image(1, 1, rgba), peakBase = image(1, 1, rgba);
@@ -3955,17 +3955,17 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                       .structStride = Size,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                      .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                      .descriptors = DESCRIPTOR_TYPE_BUFFER });
+                                      .usage = MemoryUsageCpuToGpu,
+                                      .startState = ResourceStateShaderResource,
+                                      .descriptors = DescriptorTypeBuffer });
     };
     hz::GPUBuffer    peakFrame = upload(&peakCamera, sizeof(peakCamera)), peakLighting = upload(&peakLight, sizeof(peakLight));
     hz::CommandList& commands = context.acquireCommandList();
     const auto       Clear = [&](const hz::GPUTexture& texture, float value)
     {
         commands.beginRendering({ .colorAttachments = { { .pTexture = &texture,
-                                                          .loadAction = LOAD_ACTION_CLEAR,
-                                                          .storeAction = STORE_ACTION_STORE,
+                                                          .loadAction = LoadActionClear,
+                                                          .storeAction = StoreActionStore,
                                                           .clearValue = { .r = value, .g = value, .b = value, .a = 1 } } } });
         commands.endRendering();
     };
@@ -3990,7 +3990,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     for (uint32_t mode = 0; mode < 4; ++mode)
     {
         commands.beginRendering(
-            { .colorAttachments = { { .pTexture = &mapped, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
+            { .colorAttachments = { { .pTexture = &mapped, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
             { .sampledTextures = { &source, &average, &black } });
         commands.setViewport(0, 0, 1, 1);
         commands.setScissor(0, 0, 1, 1);
@@ -4012,17 +4012,17 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     read(logOutput, 8);
     // Real deferred shader: N=V=L, white dielectric, roughness=.2, quantized Specular=8/16. No environment, shadow or AO.
     commands.beginRendering({ .colorAttachments = { { .pTexture = &peakNormal,
-                                                      .loadAction = LOAD_ACTION_CLEAR,
-                                                      .storeAction = STORE_ACTION_STORE,
+                                                      .loadAction = LoadActionClear,
+                                                      .storeAction = StoreActionStore,
                                                       .clearValue = { .r = .5f, .g = .5f, .b = 51.0f / 1023.0f, .a = 2.0f / 3.0f } },
                                                     { .pTexture = &peakBase,
-                                                      .loadAction = LOAD_ACTION_CLEAR,
-                                                      .storeAction = STORE_ACTION_STORE,
+                                                      .loadAction = LoadActionClear,
+                                                      .storeAction = StoreActionStore,
                                                       .clearValue = { .r = 1, .g = 1, .b = 1, .a = 0 } } } });
     commands.endRendering();
     commands.setPipeline(deferred);
     commands.beginRendering(
-        { .colorAttachments = { { .pTexture = &mapped, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
+        { .colorAttachments = { { .pTexture = &mapped, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
         { .sampledTextures = { &black, &average, &peakNormal, &peakBase }, .buffers = { &peakFrame, &peakLighting } });
     commands.setViewport(0, 0, 1, 1);
     commands.setScissor(0, 0, 1, 1);
@@ -4096,7 +4096,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         toneConstants.outputMode = mode;
         commands.setPipeline(tone);
         commands.beginRendering(
-            { .colorAttachments = { { .pTexture = &mapped, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
+            { .colorAttachments = { { .pTexture = &mapped, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
             { .sampledTextures = { &source, &average, &black } });
         commands.setViewport(0, 0, 1, 1);
         commands.setScissor(0, 0, 1, 1);
@@ -4206,8 +4206,8 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     ASSERT_EQ(normalMap.getFormat(), hz::Format::DXBC5_UNORM);
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::GPUPipeline geometry =
-        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
-                                                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
+        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
+                                                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "Geometry.slang" },
                                          .colorTargets = { { .format = hz::Format::R8G8B8A8_UNORM },
@@ -4216,7 +4216,7 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
                                                            { .format = hz::Format::R8G8B8A8_UNORM } } });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     hz::GPUPipeline reader =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
+        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
@@ -4228,19 +4228,19 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
                                       .structStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                      .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                      .descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW,
-                                      .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                      .usage = MemoryUsageCpuToGpu,
+                                      .startState = ResourceStateShaderResource,
+                                      .descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw,
+                                      .flags = BufferCreationFlagPersistentMapBit });
     };
     const auto image = [&](hz::Format format)
     {
         return context.createTexture({ .width = 4,
                                        .height = 4,
                                        .format = format,
-                                       .startState = RESOURCE_STATE_RENDER_TARGET,
-                                       .descriptors = DESCRIPTOR_TYPE_TEXTURE,
-                                       .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                       .startState = ResourceStateRenderTarget,
+                                       .descriptors = DescriptorTypeTexture,
+                                       .flags = TextureCreationFlagForce2D,
                                        .renderTarget = true });
     };
     hz::GPUTexture alpha = image(hz::Format::R32G32B32A32_SFLOAT), targets[4];
@@ -4274,13 +4274,13 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     hz::GPUBuffer  output = context.createBuffer({ .Size = 16 * 16,
                                                    .elementCount = 16,
                                                    .structStride = 16,
-                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                   .descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+                                                   .usage = MemoryUsageGpuOnly,
+                                                   .startState = ResourceStateUnorderedAccess,
+                                                   .descriptors = DescriptorTypeRwBuffer });
     hz::GPUBuffer  readback = context.createBuffer({ .Size = 2 * 16 * 16,
-                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-                                                     .startState = RESOURCE_STATE_COPY_DEST,
-                                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                     .usage = MemoryUsageGpuToCpu,
+                                                     .startState = ResourceStateCopyDest,
+                                                     .flags = BufferCreationFlagPersistentMapBit });
     struct Case
     {
         uint32_t mode;
@@ -4297,16 +4297,16 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
         ASSERT_TRUE(context.updateBuffer(uv, 0, scenario.distant ? farUV : nearUV, sizeof(nearUV)));
         hz::CommandList& commands = context.acquireCommandList();
         commands.beginRendering({ .colorAttachments = { { .pTexture = &alpha,
-                                                          .loadAction = LOAD_ACTION_CLEAR,
-                                                          .storeAction = STORE_ACTION_STORE,
+                                                          .loadAction = LoadActionClear,
+                                                          .storeAction = StoreActionStore,
                                                           .clearValue = { .r = 1, .g = 1, .b = 1, .a = scenario.alpha } } } });
         commands.endRendering();
         commands.setPipeline(geometry);
         commands.beginRendering(
-            { .colorAttachments = { { .pTexture = &targets[0], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
-                                    { .pTexture = &targets[1], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
-                                    { .pTexture = &targets[2], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
-                                    { .pTexture = &targets[3], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE } } },
+            { .colorAttachments = { { .pTexture = &targets[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
+                                    { .pTexture = &targets[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
+                                    { .pTexture = &targets[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
+                                    { .pTexture = &targets[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore } } },
             { .sampledTextures = { &alpha, &normalMap },
               .buffers = { &frame, &instances, &materials, &textures, &vertices, &normal, &uv } });
         commands.setViewport(0, 0, 4, 4);
@@ -4359,7 +4359,7 @@ TEST_F(SceneAssetLoaderTest, RendererScreenSpaceAOShadersCompile)
     for (const char* entry : { "CSMain", "BlurMain" })
     {
         const hz::GPUPipeline pipeline = context.createComputePipeline(
-            { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = entry } },
+            { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = entry } },
                               .sourceDirectory = DirectoryOtherFiles,
                               .pFileName = "ScreenSpaceAO.slang" } });
         EXPECT_TRUE(pipeline.isValid()) << entry;

@@ -77,7 +77,7 @@ public:
         TextureLoadDesc desc = {
             .ppTexture = &data.pUpload,
             .pFileName = data.entry.location.pPath,
-            .creationFlag = (TextureCreationFlags)(TEXTURE_CREATION_FLAG_FORCE_2D | (data.entry.srgb ? TEXTURE_CREATION_FLAG_SRGB : 0)),
+            .creationFlag = (TextureCreationFlags)(TextureCreationFlagForce2D | (data.entry.srgb ? TextureCreationFlagSrgb : 0)),
             .container = stricmp(pExtension, ".ktx") ? TEXTURE_CONTAINER_DDS : TEXTURE_CONTAINER_KTX,
             .resourceDirectory = data.entry.location.root == AssetPathRoot::Cooked ? loader.cookedDirectory : loader.sourceDirectory,
             .pSuccess = &data.uploadSucceeded,

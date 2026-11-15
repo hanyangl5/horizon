@@ -9,8 +9,8 @@
 EnvironmentPass::EnvironmentPass(hz::RenderContext& Context, hz::Format ColorFormat, hz::Format DepthFormat): Context(Context)
 {
     Pipeline = Context.createGraphicsPipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
-                                    { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
+        .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
+                                    { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                         .pFileName = "Skybox.slang" },
         .depth = { .depthTest = true, .depthWrite = false, .depthFunc = CMP_LEQUAL },
         .colorTargets = { { .format = ColorFormat } },
@@ -18,7 +18,7 @@ EnvironmentPass::EnvironmentPass(hz::RenderContext& Context, hz::Format ColorFor
         .pName = "Renderer.Skybox",
     });
     Sampler = Context.createSampler(
-        { .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE, .addressW = ADDRESS_MODE_CLAMP_TO_EDGE });
+        { .addressU = AddressModeClampToEdge, .addressV = AddressModeClampToEdge, .addressW = AddressModeClampToEdge });
     ASSERT(Pipeline.isValid() && Sampler.isValid());
 }
 
@@ -88,8 +88,8 @@ void EnvironmentPass::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fr
                                         .intensity = Intensity };
     Commands.beginGpuTimestamp("Skybox");
     Commands.beginRendering(
-        { .colorAttachments = { { .pTexture = &Color, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } },
-          .depthAttachment = { .pTexture = &Depth, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } },
+        { .colorAttachments = { { .pTexture = &Color, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
+          .depthAttachment = { .pTexture = &Depth, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
         Dependencies.get());
     Commands.setViewport(0, 0, (float)Context.getWidth(), (float)Context.getHeight());
     Commands.setScissor(0, 0, Context.getWidth(), Context.getHeight());

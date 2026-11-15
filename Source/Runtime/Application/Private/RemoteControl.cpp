@@ -958,8 +958,8 @@
 //         desc.arraySize = 1;
 //         desc.mipLevels = 1;
 //         desc.format = (TinyImageFormat)textureData->format;
-//         desc.startState = RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-//         desc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
+//         desc.startState = ResourceStateNonPixelShaderResource | ResourceStatePixelShaderResource;
+//         desc.descriptors = DescriptorTypeTexture;
 //         desc.sampleCount = SAMPLE_COUNT_1;
 //         loadDesc.pDesc = &desc;
 //         loadDesc.ppTexture = &texture;
@@ -968,7 +968,7 @@
 //         waitForToken(&token);
 
 //         TextureUpdateDesc updateDesc = { texture };
-//         updateDesc.currentState = RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+//         updateDesc.currentState = ResourceStateNonPixelShaderResource | ResourceStatePixelShaderResource;
 //         beginUpdateResource(&updateDesc);
 //         TextureSubresourceUpdate subresource = updateDesc.getSubresourceUpdateDesc(0, 0);
 //         memcpy(subresource.pMappedData, ((unsigned char*)textureData) + sizeof(RemoteCommandUserInterfaceTexture),

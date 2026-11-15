@@ -93,9 +93,9 @@ enum RendererApi : uint32_t
 
 enum QueueType : uint32_t
 {
-    QUEUE_TYPE_GRAPHICS = 0,
-    QUEUE_TYPE_TRANSFER,
-    QUEUE_TYPE_COMPUTE,
+    QueueTypeGraphics = 0,
+    QueueTypeTransfer,
+    QueueTypeCompute,
     MAX_QUEUE_TYPE
 };
 
@@ -118,23 +118,23 @@ enum QueuePriority : uint32_t
 
 enum LoadActionType : uint32_t
 {
-    LOAD_ACTION_DONTCARE,
-    LOAD_ACTION_LOAD,
-    LOAD_ACTION_CLEAR,
+    LoadActionDontCare,
+    LoadActionLoad,
+    LoadActionClear,
     MAX_LOAD_ACTION
 };
 
 enum StoreActionType : uint32_t
 {
     // Store is the most common use case so keep that as default
-    STORE_ACTION_STORE,
-    STORE_ACTION_DONTCARE,
-    STORE_ACTION_NONE,
+    StoreActionStore,
+    StoreActionDontCare,
+    StoreActionNone,
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
     // Resolve into pResolveAttachment and also store the MSAA attachment (rare - maybe used for debug)
-    STORE_ACTION_RESOLVE_STORE,
+    StoreActionResolveStore,
     // Resolve into pResolveAttachment and discard MSAA attachment (most common use case for resolve)
-    STORE_ACTION_RESOLVE_DONTCARE,
+    StoreActionResolveDontcare,
 #endif
     MAX_STORE_ACTION
 };
@@ -143,27 +143,27 @@ typedef void (*LogFn)(LogLevel, const char*, const char*);
 
 enum ResourceState : uint32_t
 {
-    RESOURCE_STATE_UNDEFINED = 0,
-    RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER = 0x1,
-    RESOURCE_STATE_INDEX_BUFFER = 0x2,
-    RESOURCE_STATE_RENDER_TARGET = 0x4,
-    RESOURCE_STATE_UNORDERED_ACCESS = 0x8,
-    RESOURCE_STATE_DEPTH_WRITE = 0x10,
-    RESOURCE_STATE_DEPTH_READ = 0x20,
-    RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE = 0x40,
-    RESOURCE_STATE_PIXEL_SHADER_RESOURCE = 0x80,
-    RESOURCE_STATE_SHADER_RESOURCE = 0x40 | 0x80,
-    RESOURCE_STATE_STREAM_OUT = 0x100,
-    RESOURCE_STATE_INDIRECT_ARGUMENT = 0x200,
-    RESOURCE_STATE_COPY_DEST = 0x400,
-    RESOURCE_STATE_COPY_SOURCE = 0x800,
-    RESOURCE_STATE_GENERIC_READ = (((((0x1 | 0x2) | 0x40) | 0x80) | 0x200) | 0x800),
-    RESOURCE_STATE_PRESENT = 0x1000,
-    RESOURCE_STATE_COMMON = 0x2000,
-    RESOURCE_STATE_ACCELERATION_STRUCTURE_READ = 0x4000,
-    RESOURCE_STATE_ACCELERATION_STRUCTURE_WRITE = 0x8000,
+    ResourceStateUndefined = 0,
+    ResourceStateVertexAndConstantBuffer = 0x1,
+    ResourceStateIndexBuffer = 0x2,
+    ResourceStateRenderTarget = 0x4,
+    ResourceStateUnorderedAccess = 0x8,
+    ResourceStateDepthWrite = 0x10,
+    ResourceStateDepthRead = 0x20,
+    ResourceStateNonPixelShaderResource = 0x40,
+    ResourceStatePixelShaderResource = 0x80,
+    ResourceStateShaderResource = 0x40 | 0x80,
+    ResourceStateStreamOut = 0x100,
+    ResourceStateIndirectArgument = 0x200,
+    ResourceStateCopyDest = 0x400,
+    ResourceStateCopySource = 0x800,
+    ResourceStateGenericRead = (((((0x1 | 0x2) | 0x40) | 0x80) | 0x200) | 0x800),
+    ResourceStatePresent = 0x1000,
+    ResourceStateCommon = 0x2000,
+    ResourceStateAccelerationStructureRead = 0x4000,
+    ResourceStateAccelerationStructureWrite = 0x8000,
 #if defined(QUEST_VR)
-    RESOURCE_STATE_SHADING_RATE_SOURCE = 0x10000,
+    ResourceStateShadingRateSource = 0x10000,
 #endif
 };
 MAKE_ENUM_FLAG(uint32_t, ResourceState)
@@ -172,19 +172,19 @@ MAKE_ENUM_FLAG(uint32_t, ResourceState)
 enum ResourceMemoryUsage : uint32_t
 {
     /// No intended memory usage specified.
-    RESOURCE_MEMORY_USAGE_UNKNOWN = 0,
+    MemoryUsageUnknown = 0,
     /// Memory will be used on device only, no need to be mapped on host.
-    RESOURCE_MEMORY_USAGE_GPU_ONLY = 1,
+    MemoryUsageGpuOnly = 1,
     /// Memory will be mapped on host. Could be used for transfer to device.
-    RESOURCE_MEMORY_USAGE_CPU_ONLY = 2,
+    MemoryUsageCpuOnly = 2,
     /// Memory will be used for frequent (dynamic) updates from host and reads on device.
-    RESOURCE_MEMORY_USAGE_CPU_TO_GPU = 3,
+    MemoryUsageCpuToGpu = 3,
     /// Memory will be used for writing on device and readback on host.
-    RESOURCE_MEMORY_USAGE_GPU_TO_CPU = 4,
+    MemoryUsageGpuToCpu = 4,
     /// CPU-visible GPU-local upload memory. On D3D12 this maps to GPU_UPLOAD heaps when ReBAR is supported.
-    RESOURCE_MEMORY_USAGE_GPU_UPLOAD = 5,
-    RESOURCE_MEMORY_USAGE_COUNT,
-    RESOURCE_MEMORY_USAGE_MAX_ENUM = 0x7FFFFFFF
+    MemoryUsageGpuUpload = 5,
+    MemoryUsageCount,
+    MemoryUsageMaxEnum = 0x7FFFFFFF
 };
 
 struct PlatformParameters
@@ -271,37 +271,37 @@ enum IndirectArgumentType : uint32_t
 
 enum DescriptorType : uint32_t
 {
-    DESCRIPTOR_TYPE_UNDEFINED = 0,
-    DESCRIPTOR_TYPE_SAMPLER = 0x01,
+    DescriptorTypeUndefined = 0,
+    DescriptorTypeSampler = 0x01,
     // SRV Read only texture
-    DESCRIPTOR_TYPE_TEXTURE = (DESCRIPTOR_TYPE_SAMPLER << 1),
+    DescriptorTypeTexture = (DescriptorTypeSampler << 1),
     /// UAV Texture
-    DESCRIPTOR_TYPE_RW_TEXTURE = (DESCRIPTOR_TYPE_TEXTURE << 1),
+    DescriptorTypeRwTexture = (DescriptorTypeTexture << 1),
     // SRV Read only buffer
-    DESCRIPTOR_TYPE_BUFFER = (DESCRIPTOR_TYPE_RW_TEXTURE << 1),
-    DESCRIPTOR_TYPE_BUFFER_RAW = (DESCRIPTOR_TYPE_BUFFER | (DESCRIPTOR_TYPE_BUFFER << 1)),
+    DescriptorTypeBuffer = (DescriptorTypeRwTexture << 1),
+    DescriptorTypeBufferRaw = (DescriptorTypeBuffer | (DescriptorTypeBuffer << 1)),
     /// UAV Buffer
-    DESCRIPTOR_TYPE_RW_BUFFER = (DESCRIPTOR_TYPE_BUFFER << 2),
-    DESCRIPTOR_TYPE_RW_BUFFER_RAW = (DESCRIPTOR_TYPE_RW_BUFFER | (DESCRIPTOR_TYPE_RW_BUFFER << 1)),
+    DescriptorTypeRwBuffer = (DescriptorTypeBuffer << 2),
+    DescriptorTypeRwBufferRaw = (DescriptorTypeRwBuffer | (DescriptorTypeRwBuffer << 1)),
     /// Uniform buffer
-    DESCRIPTOR_TYPE_UNIFORM_BUFFER = (DESCRIPTOR_TYPE_RW_BUFFER << 2),
+    DescriptorTypeUniformBuffer = (DescriptorTypeRwBuffer << 2),
     /// Push constant / Root constant
-    DESCRIPTOR_TYPE_ROOT_CONSTANT = (DESCRIPTOR_TYPE_UNIFORM_BUFFER << 1),
+    DescriptorTypeRootConstant = (DescriptorTypeUniformBuffer << 1),
     /// IA
-    DESCRIPTOR_TYPE_VERTEX_BUFFER = (DESCRIPTOR_TYPE_ROOT_CONSTANT << 1),
-    DESCRIPTOR_TYPE_INDEX_BUFFER = (DESCRIPTOR_TYPE_VERTEX_BUFFER << 1),
-    DESCRIPTOR_TYPE_INDIRECT_BUFFER = (DESCRIPTOR_TYPE_INDEX_BUFFER << 1),
+    DescriptorTypeVertexBuffer = (DescriptorTypeRootConstant << 1),
+    DescriptorTypeIndexBuffer = (DescriptorTypeVertexBuffer << 1),
+    DescriptorTypeIndirectBuffer = (DescriptorTypeIndexBuffer << 1),
     /// Cubemap SRV
-    DESCRIPTOR_TYPE_TEXTURE_CUBE = (DESCRIPTOR_TYPE_TEXTURE | (DESCRIPTOR_TYPE_INDIRECT_BUFFER << 1)),
+    DescriptorTypeTextureCube = (DescriptorTypeTexture | (DescriptorTypeIndirectBuffer << 1)),
     /// RTV / DSV per mip slice
-    DESCRIPTOR_TYPE_RENDER_TARGET_MIP_SLICES = (DESCRIPTOR_TYPE_INDIRECT_BUFFER << 2),
+    DescriptorTypeRenderTargetMipSlices = (DescriptorTypeIndirectBuffer << 2),
     /// RTV / DSV per array slice
-    DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES = (DESCRIPTOR_TYPE_RENDER_TARGET_MIP_SLICES << 1),
+    DescriptorTypeRenderTargetArraySlices = (DescriptorTypeRenderTargetMipSlices << 1),
     /// RTV / DSV per depth slice
-    DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES = (DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES << 1),
-    DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER = (DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES << 1),
+    DescriptorTypeRenderTargetDepthSlices = (DescriptorTypeRenderTargetArraySlices << 1),
+    DescriptorTypeIndirectCommandBuffer = (DescriptorTypeRenderTargetDepthSlices << 1),
     /// Raytracing acceleration structure
-    DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE = (DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER << 1),
+    DescriptorTypeAccelerationStructure = (DescriptorTypeIndirectCommandBuffer << 1),
 };
 MAKE_ENUM_FLAG(uint32_t, DescriptorType)
 
@@ -317,30 +317,30 @@ enum SampleCount : uint32_t
 
 enum ShaderStage : uint32_t
 {
-    SHADER_STAGE_NONE = 0,
-    SHADER_STAGE_VERT = 0X00000001,
-    SHADER_STAGE_TESC = 0X00000002,
-    SHADER_STAGE_TESE = 0X00000004,
-    SHADER_STAGE_GEOM = 0X00000008,
-    SHADER_STAGE_FRAG = 0X00000010,
-    SHADER_STAGE_COMP = 0X00000020,
-    SHADER_STAGE_ALL_GRAPHICS = ((uint32_t)SHADER_STAGE_VERT | (uint32_t)SHADER_STAGE_TESC | (uint32_t)SHADER_STAGE_TESE |
-                                 (uint32_t)SHADER_STAGE_GEOM | (uint32_t)SHADER_STAGE_FRAG),
-    SHADER_STAGE_HULL = SHADER_STAGE_TESC,
-    SHADER_STAGE_DOMN = SHADER_STAGE_TESE,
-    SHADER_STAGE_COUNT = 6,
+    ShaderStageNone = 0,
+    ShaderStageVert = 0X00000001,
+    ShaderStageTesc = 0X00000002,
+    ShaderStageTese = 0X00000004,
+    ShaderStageGeom = 0X00000008,
+    ShaderStageFrag = 0X00000010,
+    ShaderStageComp = 0X00000020,
+    ShaderStageAllGraphics = ((uint32_t)ShaderStageVert | (uint32_t)ShaderStageTesc | (uint32_t)ShaderStageTese |
+                                 (uint32_t)ShaderStageGeom | (uint32_t)ShaderStageFrag),
+    ShaderStageHull = ShaderStageTesc,
+    ShaderStageDomn = ShaderStageTese,
+    ShaderStageCount = 6,
 };
 
 enum ShaderStageIndex : uint32_t
 {
-    SHADER_STAGE_INDEX_VERT = 0,
-    SHADER_STAGE_INDEX_TESC,
-    SHADER_STAGE_INDEX_TESE,
-    SHADER_STAGE_INDEX_GEOM,
-    SHADER_STAGE_INDEX_FRAG,
-    SHADER_STAGE_INDEX_COMP,
-    SHADER_STAGE_INDEX_HULL = SHADER_STAGE_INDEX_TESC,
-    SHADER_STAGE_INDEX_DOMN = SHADER_STAGE_INDEX_TESE,
+    ShaderStageIndexVert = 0,
+    ShaderStageIndexTesc,
+    ShaderStageIndexTese,
+    ShaderStageIndexGeom,
+    ShaderStageIndexFrag,
+    ShaderStageIndexComp,
+    ShaderStageIndexHull = ShaderStageIndexTesc,
+    ShaderStageIndexDomn = ShaderStageIndexTese,
 };
 MAKE_ENUM_FLAG(uint32_t, ShaderStage)
 
@@ -361,8 +361,8 @@ enum PrimitiveTopology : uint32_t
 
 enum IndexType : uint32_t
 {
-    INDEX_TYPE_UINT32 = 0,
-    INDEX_TYPE_UINT16,
+    IndexTypeUInt32 = 0,
+    IndexTypeUInt16,
 };
 
 enum ShaderSemantic : uint32_t
@@ -511,10 +511,10 @@ enum FilterType : uint32_t
 
 enum AddressMode : uint32_t
 {
-    ADDRESS_MODE_MIRROR,
-    ADDRESS_MODE_REPEAT,
-    ADDRESS_MODE_CLAMP_TO_EDGE,
-    ADDRESS_MODE_CLAMP_TO_BORDER
+    AddressModeMirror,
+    AddressModeRepeat,
+    AddressModeClampToEdge,
+    AddressModeClampToBorder
 };
 
 enum MipMapMode : uint32_t
@@ -542,20 +542,20 @@ typedef union ClearValue
 enum BufferCreationFlags : uint32_t
 {
     /// Default flag (Buffer will use aliased memory, buffer will not be cpu accessible until mapBuffer is called)
-    BUFFER_CREATION_FLAG_NONE = 0x0,
+    BufferCreationFlagNone = 0x0,
     /// Buffer will allocate its own memory (COMMITTED resource)
-    BUFFER_CREATION_FLAG_OWN_MEMORY_BIT = 0x1,
+    BufferCreationFlagOwnMemoryBit = 0x1,
     /// Buffer will be persistently mapped
-    BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT = 0x2,
+    BufferCreationFlagPersistentMapBit = 0x2,
     /// Use ESRAM to store this buffer
-    BUFFER_CREATION_FLAG_ESRAM = 0x4,
+    BufferCreationFlagEsram = 0x4,
     /// Flag to specify not to allocate descriptors for the resource
-    BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION = 0x8,
+    BufferCreationFlagNoDescriptorViewCreation = 0x8,
 
-    BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT = 0x10,
-    BUFFER_CREATION_FLAG_SHADER_DEVICE_ADDRESS = 0x20,
-    BUFFER_CREATION_FLAG_SHADER_BINDING_TABLE = 0x40,
-    BUFFER_CREATION_FLAG_MARKER = 0x80,
+    BufferCreationFlagAccelerationStructureBuildInput = 0x10,
+    BufferCreationFlagShaderDeviceAddress = 0x20,
+    BufferCreationFlagShaderBindingTable = 0x40,
+    BufferCreationFlagMarker = 0x80,
 
 };
 MAKE_ENUM_FLAG(uint32_t, BufferCreationFlags)
@@ -563,54 +563,54 @@ MAKE_ENUM_FLAG(uint32_t, BufferCreationFlags)
 enum TextureCreationFlags : uint32_t
 {
     /// Default flag (Texture will use default allocation strategy decided by the api specific allocator)
-    TEXTURE_CREATION_FLAG_NONE = 0,
+    TextureCreationFlagNone = 0,
     /// Texture will allocate its own memory (COMMITTED resource)
-    TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT = 0x01,
+    TextureCreationFlagOwnMemoryBit = 0x01,
     /// Texture will be allocated in memory which can be shared among multiple processes
-    TEXTURE_CREATION_FLAG_EXPORT_BIT = 0x02,
+    TextureCreationFlagExportBit = 0x02,
     /// Texture will be allocated in memory which can be shared among multiple gpus
-    TEXTURE_CREATION_FLAG_EXPORT_ADAPTER_BIT = 0x04,
+    TextureCreationFlagExportAdapterBit = 0x04,
     /// Texture will be imported from a Handle created in another process
-    TEXTURE_CREATION_FLAG_IMPORT_BIT = 0x08,
+    TextureCreationFlagImportBit = 0x08,
     /// Use ESRAM to store this texture
-    TEXTURE_CREATION_FLAG_ESRAM = 0x10,
+    TextureCreationFlagEsram = 0x10,
     /// Use on-tile memory to store this texture
-    TEXTURE_CREATION_FLAG_ON_TILE = 0x20,
+    TextureCreationFlagOnTile = 0x20,
     /// Prevent compression meta data from generating (XBox)
-    TEXTURE_CREATION_FLAG_NO_COMPRESSION = 0x40,
+    TextureCreationFlagNoCompression = 0x40,
     /// Force 2D instead of automatically determining dimension based on width, height, depth
-    TEXTURE_CREATION_FLAG_FORCE_2D = 0x80,
+    TextureCreationFlagForce2D = 0x80,
     /// Force 3D instead of automatically determining dimension based on width, height, depth
-    TEXTURE_CREATION_FLAG_FORCE_3D = 0x100,
+    TextureCreationFlagForce3D = 0x100,
     /// Display target
-    TEXTURE_CREATION_FLAG_ALLOW_DISPLAY_TARGET = 0x200,
+    TextureCreationFlagAllowDisplayTarget = 0x200,
     /// Create an sRGB texture.
-    TEXTURE_CREATION_FLAG_SRGB = 0x400,
+    TextureCreationFlagSrgb = 0x400,
     /// Create a normal map texture
-    TEXTURE_CREATION_FLAG_NORMAL_MAP = 0x800,
+    TextureCreationFlagNormalMap = 0x800,
     /// Fast Clear
-    TEXTURE_CREATION_FLAG_FAST_CLEAR = 0x1000,
+    TextureCreationFlagFastClear = 0x1000,
     /// Fragment mask
-    TEXTURE_CREATION_FLAG_FRAG_MASK = 0x2000,
+    TextureCreationFlagFragMask = 0x2000,
     /// Doubles the amount of array layers of the texture when rendering VR. Also forces the texture to be a 2D Array texture.
-    TEXTURE_CREATION_FLAG_VR_MULTIVIEW = 0x4000,
+    TextureCreationFlagVrMultiview = 0x4000,
     /// Binds the FFR fragment density if this texture is used as a render target.
-    TEXTURE_CREATION_FLAG_VR_FOVEATED_RENDERING = 0x8000,
+    TextureCreationFlagVrFoveatedRendering = 0x8000,
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
     /// Creates resolve attachment for auto resolve (MSAA on tiled architecture - Resolve can be done on tile through render pass)
-    TEXTURE_CREATION_FLAG_CREATE_RESOLVE_ATTACHMENT = 0x10000,
+    TextureCreationFlagCreateResolveAttachment = 0x10000,
 #endif
-    TEXTURE_CREATION_FLAG_SAMPLE_LOCATIONS_COMPATIBLE = 0x20000
+    TextureCreationFlagSampleLocationsCompatible = 0x20000
 };
 MAKE_ENUM_FLAG(uint32_t, TextureCreationFlags)
 
 // Used for swapchain
 enum ColorSpace : uint32_t
 {
-    COLOR_SPACE_SDR_LINEAR = 0x0,
-    COLOR_SPACE_SDR_SRGB,
-    COLOR_SPACE_P2020,         // BT2020 color space with PQ EOTF
-    COLOR_SPACE_EXTENDED_SRGB, // Extended sRGB with linear EOTF
+    ColorSpaceSdrLinear = 0x0,
+    ColorSpaceSdrSrgb,
+    ColorSpaceP2020,         // BT2020 color space with PQ EOTF
+    ColorSpaceExtendedSrgb, // Extended sRGB with linear EOTF
 };
 
 struct HDRMetadata
@@ -1033,19 +1033,19 @@ static_assert(sizeof(Sampler) == 8 * sizeof(uint64_t));
 
 inline uint32_t getBufferSrvIndex(const Buffer* pBuffer)
 {
-    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->descriptors & DESCRIPTOR_TYPE_BUFFER));
+    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->descriptors & DescriptorTypeBuffer));
     return (uint32_t)pBuffer->dx.gpuDescriptors + pBuffer->dx.srvDescriptorOffset;
 }
 
 inline uint32_t getBufferUavIndex(const Buffer* pBuffer)
 {
-    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->descriptors & DESCRIPTOR_TYPE_RW_BUFFER));
+    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->descriptors & DescriptorTypeRwBuffer));
     return (uint32_t)pBuffer->dx.gpuDescriptors + pBuffer->dx.uavDescriptorOffset;
 }
 
 inline uint32_t getBufferCbvIndex(const Buffer* pBuffer)
 {
-    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->descriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER));
+    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->descriptors & DescriptorTypeUniformBuffer));
     return (uint32_t)pBuffer->dx.gpuDescriptors;
 }
 
@@ -1184,9 +1184,9 @@ static_assert(sizeof(Cmd) <= 64 * sizeof(uint64_t));
 
 enum FenceStatus : uint32_t
 {
-    FENCE_STATUS_COMPLETE = 0,
-    FENCE_STATUS_INCOMPLETE,
-    FENCE_STATUS_NOTSUBMITTED,
+    FenceStatusComplete = 0,
+    FenceStatusIncomplete,
+    FenceStatusNotSubmitted,
 };
 
 struct Fence
@@ -1495,7 +1495,7 @@ struct ShaderStats
 
 struct PipelineStats
 {
-    ShaderStats stats[SHADER_STAGE_COUNT];
+    ShaderStats stats[ShaderStageCount];
 };
 #endif
 

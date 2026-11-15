@@ -172,7 +172,7 @@ GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
     pipeline = context.createComputePipeline({
         .shaderDesc = {
             .stages = {
-                { .stage = SHADER_STAGE_COMP,
+                { .stage = ShaderStageComp,
                   .pSource = kGeometryBuildShader,
                   .sourceSize = (uint32_t)(sizeof(kGeometryBuildShader) - 1),
                   .pEntryPoint = "CSMain",
@@ -188,18 +188,18 @@ GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
         .elementCount = kGeneratedVertexCount,
         .structStride = sizeof(Vertex),
         .pName = "DeferredShading.GeneratedVertices",
-        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-        .descriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_VERTEX_BUFFER,
+        .usage = MemoryUsageGpuOnly,
+        .startState = ResourceStateUnorderedAccess,
+        .descriptors = DescriptorTypeBuffer | DescriptorTypeRwBuffer | DescriptorTypeVertexBuffer,
     });
     indices = context.createBuffer({
         .Size = sizeof(uint32_t) * kGeneratedIndexCount,
         .elementCount = kGeneratedIndexCount,
         .structStride = sizeof(uint32_t),
         .pName = "DeferredShading.GeneratedIndices",
-        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-        .descriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDEX_BUFFER,
+        .usage = MemoryUsageGpuOnly,
+        .startState = ResourceStateUnorderedAccess,
+        .descriptors = DescriptorTypeBuffer | DescriptorTypeRwBuffer | DescriptorTypeIndexBuffer,
     });
     ASSERT(vertices.isValid() && indices.isValid());
 }
@@ -275,10 +275,10 @@ GBufferPass::GBufferPass(hz::RenderContext& context)
     pipeline = context.createGraphicsPipeline({
         .shaderDesc = {
         .stages = {
-            { .stage = SHADER_STAGE_VERT, .pSource = kGBufferShader,
+            { .stage = ShaderStageVert, .pSource = kGBufferShader,
               .sourceSize = (uint32_t)(sizeof(kGBufferShader) - 1), .pEntryPoint = "VSMain",
               .pName = "DeferredShadingGBufferVS" },
-            { .stage = SHADER_STAGE_FRAG, .pSource = kGBufferShader,
+            { .stage = ShaderStageFrag, .pSource = kGBufferShader,
               .sourceSize = (uint32_t)(sizeof(kGBufferShader) - 1), .pEntryPoint = "PSMain",
               .pName = "DeferredShadingGBufferPS" },
         },
@@ -310,8 +310,8 @@ bool GBufferPass::resize(hz::RenderContext& context, uint32_t width, uint32_t he
         .width = width,
         .height = height,
         .format = hz::Format::R8G8B8A8_UNORM,
-        .startState = RESOURCE_STATE_RENDER_TARGET,
-        .descriptors = DESCRIPTOR_TYPE_TEXTURE,
+        .startState = ResourceStateRenderTarget,
+        .descriptors = DescriptorTypeTexture,
         .renderTarget = true,
         .pName = "GBuffer.Albedo",
     };
@@ -320,7 +320,7 @@ bool GBufferPass::resize(hz::RenderContext& context, uint32_t width, uint32_t he
     normalDesc.pName = "GBuffer.Normal";
     hz::TextureDesc depthDesc = albedoDesc;
     depthDesc.format = hz::Format::D32_SFLOAT;
-    depthDesc.startState = RESOURCE_STATE_DEPTH_WRITE;
+    depthDesc.startState = ResourceStateDepthWrite;
     depthDesc.pName = "GBuffer.Depth";
 
     albedo = context.createTexture(albedoDesc);
@@ -342,12 +342,12 @@ void GBufferPass::execute(hz::CommandList& commands, const hz::GPUBuffer& vertic
     commands.beginRendering(
         {
             .colorAttachments =  {
-                { .pTexture = &albedo, .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = black },
-                { .pTexture = &normal, .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = normalClear },
+                { .pTexture = &albedo, .loadAction = LoadActionClear, .storeAction = StoreActionStore, .clearValue = black },
+                { .pTexture = &normal, .loadAction = LoadActionClear, .storeAction = StoreActionStore, .clearValue = normalClear },
             } ,
             .depthAttachment = { .pTexture = &depth,
-                                 .loadAction = LOAD_ACTION_CLEAR,
-                                 .storeAction = STORE_ACTION_STORE,
+                                 .loadAction = LoadActionClear,
+                                 .storeAction = StoreActionStore,
                                  .clearValue = depthClear },
         },
         { .buffers = buffers });
@@ -355,7 +355,7 @@ void GBufferPass::execute(hz::CommandList& commands, const hz::GPUBuffer& vertic
     commands.setScissor(0, 0, width, height);
     commands.setPipeline(pipeline);
     commands.setVertexBuffer(0, vertices, 0, sizeof(Vertex));
-    commands.setIndexBuffer(indices, 0, INDEX_TYPE_UINT32);
+    commands.setIndexBuffer(indices, 0, IndexTypeUInt32);
     commands.setRootConstant({ sceneUniforms[0]->getSrvIndex() });
     commands.drawIndexed(kCubeIndexCount);
     commands.setRootConstant({ sceneUniforms[1]->getSrvIndex() });
@@ -409,10 +409,10 @@ LightingPass::LightingPass(hz::RenderContext& context, hz::Format surfaceFormat)
     pipeline = context.createGraphicsPipeline({
         .shaderDesc = {
         .stages = {
-            { .stage = SHADER_STAGE_VERT, .pSource = kLightingShader,
+            { .stage = ShaderStageVert, .pSource = kLightingShader,
               .sourceSize = (uint32_t)(sizeof(kLightingShader) - 1), .pEntryPoint = "VSMain",
               .pName = "DeferredShadingLightingVS" },
-            { .stage = SHADER_STAGE_FRAG, .pSource = kLightingShader,
+            { .stage = ShaderStageFrag, .pSource = kLightingShader,
               .sourceSize = (uint32_t)(sizeof(kLightingShader) - 1), .pEntryPoint = "PSMain",
               .pName = "DeferredShadingLightingPS" },
         },
@@ -433,8 +433,8 @@ void LightingPass::execute(hz::CommandList& commands, const hz::GPUTexture& back
         {
             .colorAttachments = { {
                 .pTexture = &backbuffer,
-                .loadAction = LOAD_ACTION_CLEAR,
-                .storeAction = STORE_ACTION_STORE,
+                .loadAction = LoadActionClear,
+                .storeAction = StoreActionStore,
                 .clearValue = Clear,
             } },
         },
@@ -472,7 +472,7 @@ public:
             .height = 0,
             .imageCount = 2,
             .colorFormat = kSurfaceFormat,
-            .colorSpace = COLOR_SPACE_SDR_SRGB,
+            .colorSpace = ColorSpaceSdrSrgb,
             .enableVSync = settings.vSyncEnabled,
             .enableGpuValidation = true,
             .enableGpuProfiler = true,
@@ -554,9 +554,9 @@ private:
                 .elementCount = 1,
                 .structStride = sizeof(SceneUniforms),
                 .pName = object == 0 ? "DeferredShading.CubeUniforms" : "DeferredShading.FloorUniforms",
-                .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                .descriptors = DESCRIPTOR_TYPE_BUFFER,
+                .usage = MemoryUsageGpuOnly,
+                .startState = ResourceStateShaderResource,
+                .descriptors = DescriptorTypeBuffer,
             });
             ASSERT(sceneUniformBuffers[object].isValid());
         }

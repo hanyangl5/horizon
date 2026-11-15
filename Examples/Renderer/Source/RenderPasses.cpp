@@ -41,8 +41,8 @@ GBuffer::GBuffer(hz::RenderContext& Context): Context(Context)
     Pipeline = Context.createGraphicsPipeline({
     .shaderDesc = {
         .stages = {
-            { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect", .pName = "Renderer.GeometryVS" },
-            { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain", .pName = "Renderer.GeometryPS" },
+            { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect", .pName = "Renderer.GeometryVS" },
+            { .stage = ShaderStageFrag, .pEntryPoint = "PSMain", .pName = "Renderer.GeometryPS" },
         },
         .pFileName = "Geometry.slang",
     },
@@ -69,9 +69,9 @@ void GBuffer::Resize(uint32_t Width, uint32_t Height)
     hz::TextureDesc TargetDesc = {
         .width = Width,
         .height = Height,
-        .startState = RESOURCE_STATE_RENDER_TARGET,
-        .descriptors = DESCRIPTOR_TYPE_TEXTURE,
-        .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+        .startState = ResourceStateRenderTarget,
+        .descriptors = DescriptorTypeTexture,
+        .flags = TextureCreationFlagForce2D,
         .renderTarget = true,
     };
     for (uint32_t Index = 0; Index < TextureCount; ++Index)
@@ -82,7 +82,7 @@ void GBuffer::Resize(uint32_t Width, uint32_t Height)
     }
 
     TargetDesc.format = DepthFormat;
-    TargetDesc.startState = RESOURCE_STATE_DEPTH_WRITE;
+    TargetDesc.startState = ResourceStateDepthWrite;
     TargetDesc.pName = "Renderer.Depth";
     Depth = Context.createTexture(TargetDesc);
 }
@@ -95,14 +95,14 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const Sc
     Cmd.beginGpuTimestamp("Geometry");
     Cmd.beginRendering({
         .colorAttachments =  {
-            { .pTexture = &Textures[0], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = Black },
-            { .pTexture = &Textures[1], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = Black },
-            { .pTexture = &Textures[2], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = Black },
-            { .pTexture = &Textures[3], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .clearValue = Black },
+            { .pTexture = &Textures[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .clearValue = Black },
+            { .pTexture = &Textures[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .clearValue = Black },
+            { .pTexture = &Textures[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .clearValue = Black },
+            { .pTexture = &Textures[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .clearValue = Black },
         } ,
         .depthAttachment = { .pTexture = &Depth,
-                             .loadAction = LOAD_ACTION_CLEAR,
-                             .storeAction = STORE_ACTION_STORE,
+                             .loadAction = LoadActionClear,
+                             .storeAction = StoreActionStore,
                              .clearValue = { .depth = 1.0f } },
     }, Draws.GetDependencies(Frame, View, &Draws.GetCommands(View.FrameIndex)));
     Cmd.setViewport(0, 0, (float)Width, (float)Height);
@@ -215,7 +215,7 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     AddPass({ .Name = "Transparency", .Execute = ExecuteTransparency, .UserData = Transparency.Get(), .Enabled = &EnableTransparency });
     AddPass({ .Name = "Post", .Execute = ExecutePost, .UserData = PostProcessing.Get() });
 
-    LinearSampler = Context.createSampler({ .addressU = ADDRESS_MODE_CLAMP_TO_EDGE, .addressV = ADDRESS_MODE_CLAMP_TO_EDGE });
+    LinearSampler = Context.createSampler({ .addressU = AddressModeClampToEdge, .addressV = AddressModeClampToEdge });
     for (FrameConstantBuffer& ConstantBuffer : FrameConstants)
     {
         hz::GPUBuffer& Buffer = ConstantBuffer.Buffer;
@@ -223,10 +223,10 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
                                         .elementCount = 1,
                                         .structStride = sizeof(FrameData),
                                         .pName = "Renderer.Frame",
-                                        .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                        .startState = RESOURCE_STATE_SHADER_RESOURCE,
-                                        .descriptors = DESCRIPTOR_TYPE_BUFFER,
-                                        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                        .usage = MemoryUsageCpuToGpu,
+                                        .startState = ResourceStateShaderResource,
+                                        .descriptors = DescriptorTypeBuffer,
+                                        .flags = BufferCreationFlagPersistentMapBit });
         ASSERT(Buffer.isValid());
     }
 }

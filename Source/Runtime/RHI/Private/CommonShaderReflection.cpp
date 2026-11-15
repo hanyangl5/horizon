@@ -133,23 +133,23 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
         ShaderReflection* pSrcRef = pReflection + i;
         pOutReflection->stageReflections[i] = *pSrcRef;
 
-        if (pSrcRef->shaderStage == SHADER_STAGE_VERT)
+        if (pSrcRef->shaderStage == ShaderStageVert)
         {
             vertexStageIndex = i;
         }
-        else if (pSrcRef->shaderStage == SHADER_STAGE_HULL)
+        else if (pSrcRef->shaderStage == ShaderStageHull)
         {
             hullStageIndex = i;
         }
-        else if (pSrcRef->shaderStage == SHADER_STAGE_DOMN)
+        else if (pSrcRef->shaderStage == ShaderStageDomn)
         {
             domainStageIndex = i;
         }
-        else if (pSrcRef->shaderStage == SHADER_STAGE_GEOM)
+        else if (pSrcRef->shaderStage == ShaderStageGeom)
         {
             geometryStageIndex = i;
         }
-        else if (pSrcRef->shaderStage == SHADER_STAGE_FRAG)
+        else if (pSrcRef->shaderStage == ShaderStageFrag)
         {
             pixelStageIndex = i;
         }

@@ -23,12 +23,12 @@ struct ScreenSpaceAOConstants
 ScreenSpaceAO::ScreenSpaceAO(hz::RenderContext& Context): Context(Context)
 {
     AOPipeline = Context.createComputePipeline(
-        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "ScreenSpaceAO.slang" },
+        { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } }, .pFileName = "ScreenSpaceAO.slang" },
           .pName = "Renderer.SSAO" });
     BlurPipeline = Context.createComputePipeline(
-        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "BlurMain" } }, .pFileName = "ScreenSpaceAO.slang" },
+        { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "BlurMain" } }, .pFileName = "ScreenSpaceAO.slang" },
           .pName = "Renderer.SSAO.Blur" });
-    RotationSampler = Context.createSampler({ .addressU = ADDRESS_MODE_REPEAT, .addressV = ADDRESS_MODE_REPEAT });
+    RotationSampler = Context.createSampler({ .addressU = AddressModeRepeat, .addressV = AddressModeRepeat });
     ASSERT(AOPipeline.isValid() && BlurPipeline.isValid() && RotationSampler.isValid());
 }
 
@@ -50,9 +50,9 @@ bool ScreenSpaceAO::Resize(uint32_t NewWidth, uint32_t NewHeight)
     const hz::TextureDesc Desc = { .width = Width,
                                    .height = Height,
                                    .format = hz::Format::R8G8B8A8_UNORM,
-                                   .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                   .descriptors = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
-                                   .flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                   .startState = ResourceStateUnorderedAccess,
+                                   .descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
+                                   .flags = TextureCreationFlagForce2D,
                                    .pName = "Renderer.SSAO" };
     Occlusion = Context.createTexture(Desc);
     for (hz::GPUTexture& Texture : Blur)

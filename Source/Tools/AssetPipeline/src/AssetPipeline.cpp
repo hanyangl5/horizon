@@ -1705,7 +1705,7 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
     uint32_t newVertCount = 0;
 
     // generating remap & new vertex/index sets
-    if (indexType == INDEX_TYPE_UINT16)
+    if (indexType == IndexTypeUInt16)
     {
         newVertCount = (uint32_t)meshopt_generateVertexRemapMulti(remap, (uint16_t*)geomData->pShadow->pIndices + indexOffset, indexCount,
                                                                   *vertexCount, streams, validStreamCount);
@@ -1734,7 +1734,7 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
     // optimize
     // do we need to optmize per primitive ?
     /// optmizations like overdraw clearly can alter across primitives. but can vertex cache & vertex fetch do it ?
-    if (indexType == INDEX_TYPE_UINT16)
+    if (indexType == IndexTypeUInt16)
     {
         if (optimizationFlags & MESH_OPTIMIZATION_FLAG_VERTEXCACHE)
         {
@@ -2186,7 +2186,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         }
 
         geom->drawArgCount = drawCount;
-        geom->indexType = (sizeof(uint16_t) == indexStride) ? INDEX_TYPE_UINT16 : INDEX_TYPE_UINT32;
+        geom->indexType = (sizeof(uint16_t) == indexStride) ? IndexTypeUInt16 : IndexTypeUInt32;
         geomData->jointCount = jointCount;
 
         indexCount = 0;
