@@ -17,17 +17,17 @@
 
 #include "RenderPasses.h"
 
-constexpr const char* kSceneDirectory = "Assets/Bistro";
-constexpr const char* kSceneSource = "BistroExterior.gltf";
-constexpr bool        kEnableHDR = true;
+constexpr const char* SceneDirectory = "Assets/Bistro";
+constexpr const char* SceneSource = "BistroExterior.gltf";
+constexpr bool        EnableHDR = true;
 // GPU-based validation slows GPU work several times over, so only Debug builds enable it by default.
 #if defined(_DEBUG)
-constexpr bool kEnableGpuValidation = true;
+constexpr bool EnableGpuValidation = true;
 #else
-constexpr bool kEnableGpuValidation = false;
+constexpr bool EnableGpuValidation = false;
 #endif
 
-const VertexLayout kSceneVertexLayout = {
+const VertexLayout SceneVertexLayout = {
     .bindings = { { .stride = 12 }, { .stride = 4 }, { .stride = 4 } },
     .attribs = {
         { .semantic = SEMANTIC_POSITION, .format = hz::Format::R32G32B32_SFLOAT, .binding = 0, .location = 0 },
@@ -50,284 +50,284 @@ public:
 
     bool Init() override
     {
-        configureResourceDirectories();
-        beginSceneCook();
-        int64_t start = getUSec(true);
-        initRenderContext();
-        LOGF(eINFO, "Startup: RenderContext %.1f ms", (getUSec(true) - start) / 1000.0);
-        if (!finishSceneCook())
+        ConfigureResourceDirectories();
+        BeginSceneCook();
+        int64_t Start = getUSec(true);
+        InitRenderContext();
+        LOGF(eINFO, "Startup: RenderContext %.1f ms", (getUSec(true) - Start) / 1000.0);
+        if (!FinishSceneCook())
         {
             Exit();
             return false;
         }
-        start = getUSec(true);
-        if (!initSceneAsset())
+        Start = getUSec(true);
+        if (!InitSceneAsset())
         {
             Exit();
             return false;
         }
-        LOGF(eINFO, "Startup: scene load/instantiate %.1f ms", (getUSec(true) - start) / 1000.0);
-        initCamera();
-        start = getUSec(true);
-        const bool ready = initRenderPasses();
-        LOGF(eINFO, "Startup: render pass shaders and pipelines %.1f ms", (getUSec(true) - start) / 1000.0);
-        if (ready)
+        LOGF(eINFO, "Startup: scene load/instantiate %.1f ms", (getUSec(true) - Start) / 1000.0);
+        InitCamera();
+        Start = getUSec(true);
+        const bool Ready = InitRenderPasses();
+        LOGF(eINFO, "Startup: render pass shaders and pipelines %.1f ms", (getUSec(true) - Start) / 1000.0);
+        if (Ready)
         {
             // Persist the driver PSOs built here so the next start only validates them.
-            pContext->savePipelineCache();
+            Context->savePipelineCache();
         }
-        return ready;
+        return Ready;
     }
 
 private:
-    void configureResourceDirectories()
+    void ConfigureResourceDirectories()
     {
         fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_MESHES, "RendererAssets");
         fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_OTHER_FILES, "RendererAssets");
-        fsSetPathForResourceDir(pSystemFileIO, RM_PROJECT, RD_TEXTURES, kSceneDirectory);
+        fsSetPathForResourceDir(pSystemFileIO, RM_PROJECT, RD_TEXTURES, SceneDirectory);
         fsSetPathForResourceDir(pSystemFileIO, RM_PROJECT, RD_SHADER_SOURCES, "Examples/Renderer/Shaders");
         // Compiled DXIL survives restarts here so a warm start skips the Slang front end.
         fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_SHADER_BINARIES, "ShaderCache");
         fsCreateDirectory(RD_SHADER_BINARIES, "", true);
     }
 
-    void initRenderContext()
+    void InitRenderContext()
     {
-        const hz::ContextDesc desc = {
+        const hz::ContextDesc Desc = {
             .pAppName = GetName(),
             .windowHandle = pWindow->handle,
             .imageCount = 3,
-            .enableHDR = kEnableHDR,
+            .enableHDR = EnableHDR,
             .enableVSync = settings.vSyncEnabled,
-            .enableGpuValidation = kEnableGpuValidation,
+            .enableGpuValidation = EnableGpuValidation,
             .enableGpuProfiler = true,
             .enablePipelineCache = true,
         };
-        pContext = hz::make_unique<hz::RenderContext>(desc);
+        Context = hz::make_unique<hz::RenderContext>(Desc);
     }
 
-    bool initSceneAsset()
+    bool InitSceneAsset()
     {
-        char catalogFile[FS_MAX_PATH], sceneFile[FS_MAX_PATH];
-        fsReplacePathExtension(kSceneSource, "assetcatalog.json", catalogFile);
-        fsReplacePathExtension(kSceneSource, "sceneasset.json", sceneFile);
-        if (!catalog.load(RD_OTHER_FILES, catalogFile))
+        char CatalogFile[FS_MAX_PATH], SceneFile[FS_MAX_PATH];
+        fsReplacePathExtension(SceneSource, "assetcatalog.json", CatalogFile);
+        fsReplacePathExtension(SceneSource, "sceneasset.json", SceneFile);
+        if (!Catalog.load(RD_OTHER_FILES, CatalogFile))
         {
             return false;
         }
-        const hz::AssetCatalogEntry* entry = catalog.findScene(sceneFile);
-        if (!entry)
+        const hz::AssetCatalogEntry* Entry = Catalog.findScene(SceneFile);
+        if (!Entry)
         {
-            LOGF(eERROR, "Catalog contains no SceneAsset '%s'", sceneFile);
+            LOGF(eERROR, "Catalog contains no SceneAsset '%s'", SceneFile);
             return false;
         }
-        pLoaders = hz::make_unique<hz::AssetLoaders>(
-            *pContext, hz::AssetLoadersDesc{ .vertexLayout = kSceneVertexLayout, .cookedDirectory = RD_OTHER_FILES });
-        pAssetManager = hz::make_unique<hz::AssetManager>(catalog, pContext.get());
-        pLoaders->registerLoaders(*pAssetManager);
-        const hz::AssetHandle handle = pAssetManager->request(entry->id);
-        if (!handle.isValid())
+        Loaders = hz::make_unique<hz::AssetLoaders>(
+            *Context, hz::AssetLoadersDesc{ .vertexLayout = SceneVertexLayout, .cookedDirectory = RD_OTHER_FILES });
+        AssetManager = hz::make_unique<hz::AssetManager>(Catalog, Context.get());
+        Loaders->registerLoaders(*AssetManager);
+        const hz::AssetHandle Handle = AssetManager->request(Entry->id);
+        if (!Handle.isValid())
         {
             return false;
         }
-        while (pAssetManager->getState(handle) != hz::AssetState::Ready && pAssetManager->getState(handle) != hz::AssetState::Failed)
+        while (AssetManager->getState(Handle) != hz::AssetState::Ready && AssetManager->getState(Handle) != hz::AssetState::Failed)
         {
-            pAssetManager->update();
+            AssetManager->update();
             threadSleep(1);
         }
-        const hz::SceneAsset* asset = pAssetManager->getScene(handle);
-        if (!asset)
+        const hz::SceneAsset* Asset = AssetManager->getScene(Handle);
+        if (!Asset)
         {
-            LOGF(eERROR, "SceneAsset '%s' failed to load (error %u)", sceneFile, (uint32_t)pAssetManager->getError(handle));
+            LOGF(eERROR, "SceneAsset '%s' failed to load (error %u)", SceneFile, (uint32_t)AssetManager->getError(Handle));
             return false;
         }
-        pTypes = hz::make_unique<hz::TypeRegistry>();
-        const bool registered = pTypes->registerBuiltins();
-        ASSERT(registered);
-        pWorld = hz::make_unique<hz::World>(*pTypes);
-        if (!asset->instantiate(*pWorld).isValid())
+        Types = hz::make_unique<hz::TypeRegistry>();
+        const bool Registered = Types->registerBuiltins();
+        ASSERT(Registered);
+        World = hz::make_unique<hz::World>(*Types);
+        if (!Asset->instantiate(*World).isValid())
         {
-            LOGF(eERROR, "Cannot instantiate SceneAsset '%s'", sceneFile);
+            LOGF(eERROR, "Cannot instantiate SceneAsset '%s'", SceneFile);
             return false;
         }
-        pScene = hz::make_unique<hz::RenderScene>(*pWorld, *pAssetManager);
-        pScene->reserve(asset->getNodes().count, asset->getNodes().count, 1, 1);
-        pScene->update();
+        Scene = hz::make_unique<hz::RenderScene>(*World, *AssetManager);
+        Scene->reserve(Asset->getNodes().count, Asset->getNodes().count, 1, 1);
+        Scene->update();
         LOGF(eINFO, "World ready: %u render primitives, %u instances, %u mesh batches, %u materials, %u textures",
-             pScene->getActivePrimitives().count, pScene->getActiveInstances().count, pScene->getActiveMeshBatches().count,
-             asset->getMaterials().count, asset->getTextures().count);
-        pAssetManager->release(handle);
+             Scene->getActivePrimitives().count, Scene->getActiveInstances().count, Scene->getActiveMeshBatches().count,
+             Asset->getMaterials().count, Asset->getTextures().count);
+        AssetManager->release(Handle);
         return true;
     }
 
-    bool initRenderPasses()
+    bool InitRenderPasses()
     {
-        const RenderPassesDesc desc = {
-            .Context = pContext.get(),
-            .Scene = pScene.get(),
-            .AssetManager = pAssetManager.get(),
-            .Camera = pScene->findCamera(cameraEntity),
+        const RenderPassesDesc Desc = {
+            .Context = Context.get(),
+            .Scene = Scene.get(),
+            .AssetManager = AssetManager.get(),
+            .Camera = Scene->findCamera(CameraEntity),
         };
-        pRenderPasses = hz::make_unique<RenderPasses>(desc);
-        ASSERT(pRenderPasses);
+        Passes = hz::make_unique<RenderPasses>(Desc);
+        ASSERT(Passes);
         return true;
     }
 
 public:
     void Exit() override
     {
-        pCamera = nullptr;
-        if (pContext && pContext->isValid())
+        Camera = nullptr;
+        if (Context && Context->isValid())
         {
-            pContext->waitIdle();
+            Context->waitIdle();
         }
-        pRenderPasses = nullptr;
-        pScene = nullptr;
-        pWorld = nullptr;
-        pTypes = nullptr;
-        if (pAssetManager)
+        Passes = nullptr;
+        Scene = nullptr;
+        World = nullptr;
+        Types = nullptr;
+        if (AssetManager)
         {
-            pAssetManager->shutdown();
+            AssetManager->shutdown();
         }
-        pAssetManager = nullptr;
-        pLoaders = nullptr;
-        catalog.clear();
-        cameraEntity = {};
-        pContext = nullptr;
+        AssetManager = nullptr;
+        Loaders = nullptr;
+        Catalog.clear();
+        CameraEntity = {};
+        Context = nullptr;
     }
 
-    bool Load(ReloadDesc* reload) override
+    bool Load(ReloadDesc* Reload) override
     {
-        if (!(reload->type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
+        if (!(Reload->type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
         {
             return true;
         }
-        const uint32_t width = (uint32_t)settings.width, height = (uint32_t)settings.height;
-        if (!pContext->resize(width, height))
+        const uint32_t Width = (uint32_t)settings.width, Height = (uint32_t)settings.height;
+        if (!Context->resize(Width, Height))
         {
-            LOGF(eERROR, "Failed to resize RenderContext to %ux%u", width, height);
+            LOGF(eERROR, "Failed to resize RenderContext to %ux%u", Width, Height);
             return false;
         }
-        const int64_t start = getUSec(true);
-        const bool    ready = pRenderPasses->Resize(width, height);
-        LOGF(eINFO, "Startup/resize: targets and environment %.1f ms", (getUSec(true) - start) / 1000.0);
-        return ready;
+        const int64_t Start = getUSec(true);
+        const bool    Ready = Passes->Resize(Width, Height);
+        LOGF(eINFO, "Startup/resize: targets and environment %.1f ms", (getUSec(true) - Start) / 1000.0);
+        return Ready;
     }
-    void Unload(ReloadDesc*) override { pContext->waitIdle(); }
-    void Update(float deltaTime) override
+    void Unload(ReloadDesc*) override { Context->waitIdle(); }
+    void Update(float DeltaTime) override
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Renderer::Update");
-        pCamera->update(deltaTime, (uint32_t)settings.width, (uint32_t)settings.height, settings.focused);
-        const Matrix4         pose = pCamera->getWorldMatrix();
-        const bool            updated = pWorld->setComponent(cameraEntity, hz::SceneTypes::localMatrix, &pose);
-        ASSERT(updated);
-        pAssetManager->update();
-        pRenderPasses->Update(deltaTime);
+        Camera->update(DeltaTime, (uint32_t)settings.width, (uint32_t)settings.height, settings.focused);
+        const Matrix4 Pose = Camera->getWorldMatrix();
+        const bool    Updated = World->setComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose);
+        ASSERT(Updated);
+        AssetManager->update();
+        Passes->Update(DeltaTime);
     }
     const char* GetName() override { return "Renderer"; }
 
-    void Draw() override { pRenderPasses->Execute(); }
+    void Draw() override { Passes->Execute(); }
 
 private:
     // The glTF cook check only touches files, so it runs while the device is created.
-    void beginSceneCook()
+    void BeginSceneCook()
     {
-        ThreadDesc threadDesc = { .pFunc = sceneCookTask, .pData = this, .threadName = "SceneCook" };
-        if (!initThread(&threadDesc, &cookThread))
-            cookThread = nullptr;
+        ThreadDesc Thread = { .pFunc = SceneCookTask, .pData = this, .threadName = "SceneCook" };
+        if (!initThread(&Thread, &CookThread))
+            CookThread = nullptr;
     }
 
-    bool finishSceneCook()
+    bool FinishSceneCook()
     {
-        if (cookThread)
+        if (CookThread)
         {
-            joinThread(cookThread);
-            cookThread = nullptr;
+            joinThread(CookThread);
+            CookThread = nullptr;
         }
         else
         {
-            sceneCookTask(this);
+            SceneCookTask(this);
         }
-        if (!cookSucceeded)
-            LOGF(eERROR, "Failed to cook scene '%s'", kSceneSource);
-        return cookSucceeded;
+        if (!CookSucceeded)
+            LOGF(eERROR, "Failed to cook scene '%s'", SceneSource);
+        return CookSucceeded;
     }
 
-    static void sceneCookTask(void* pData)
+    static void SceneCookTask(void* Data)
     {
-        RendererApp* pApp = (RendererApp*)pData;
+        RendererApp* App = (RendererApp*)Data;
         // Only builds that link the AssetPipeline tool can cook; shipping builds receive cooked assets instead.
 #if defined(HORIZON_RENDERER_ASSET_COOKING)
-        pApp->cookSucceeded = ensureSceneGltfCooked(RD_TEXTURES, kSceneSource, RD_OTHER_FILES);
+        App->CookSucceeded = ensureSceneGltfCooked(RD_TEXTURES, SceneSource, RD_OTHER_FILES);
 #else
-        pApp->cookSucceeded = true;
+        App->CookSucceeded = true;
 #endif
     }
 
-    void initCamera()
+    void InitCamera()
     {
-        hz::RenderBounds bounds;
-        bool             hasBounds = false;
-        for (uint32_t index : pScene->getActiveInstances())
+        hz::RenderBounds Bounds;
+        bool             HasBounds = false;
+        for (uint32_t Index : Scene->getActiveInstances())
         {
-            const hz::RenderInstance& instance = pScene->getInstances().pData[index];
-            if (!pScene->getPrimitive(instance.primitive)->instanceCount)
+            const hz::RenderInstance& Instance = Scene->getInstances().pData[Index];
+            if (!Scene->getPrimitive(Instance.primitive)->instanceCount)
             {
                 continue;
             }
-            if (!hasBounds)
+            if (!HasBounds)
             {
-                bounds = instance.bounds;
+                Bounds = Instance.bounds;
             }
             else
             {
-                for (uint32_t axis = 0; axis < 3; ++axis)
+                for (uint32_t Axis = 0; Axis < 3; ++Axis)
                 {
-                    bounds.minimum[axis] = fminf(bounds.minimum[axis], instance.bounds.minimum[axis]);
-                    bounds.maximum[axis] = fmaxf(bounds.maximum[axis], instance.bounds.maximum[axis]);
+                    Bounds.minimum[Axis] = fminf(Bounds.minimum[Axis], Instance.bounds.minimum[Axis]);
+                    Bounds.maximum[Axis] = fmaxf(Bounds.maximum[Axis], Instance.bounds.maximum[Axis]);
                 }
             }
-            hasBounds = true;
+            HasBounds = true;
         }
-        const float                    cx = (bounds.minimum[0] + bounds.maximum[0]) * 0.5f;
-        const float                    cz = (bounds.minimum[2] + bounds.maximum[2]) * 0.5f;
-        const FreeCameraControllerDesc desc = {
+        const float                    CenterX = (Bounds.minimum[0] + Bounds.maximum[0]) * 0.5f;
+        const float                    CenterZ = (Bounds.minimum[2] + Bounds.maximum[2]) * 0.5f;
+        const FreeCameraControllerDesc Desc = {
             .pWindow = pWindow,
             .position = Vector3(-25, 8, -9),
-            .lookAt = Vector3(cx, bounds.minimum[1] + 4.0f, cz),
+            .lookAt = Vector3(CenterX, Bounds.minimum[1] + 4.0f, CenterZ),
             .motion = { .maxSpeed = 8.0f, .acceleration = 40.0f, .braking = 60.0f },
             .boostMultiplier = 4.0f,
         };
-        pCamera = hz::make_unique<FreeCameraController>(desc);
-        cameraEntity = pWorld->createPersistentEntity();
-        const hz::Camera      camera = { .verticalFov = PI / 3.0f };
-        const Matrix4         pose = pCamera->getWorldMatrix();
+        Camera = hz::make_unique<FreeCameraController>(Desc);
+        CameraEntity = World->createPersistentEntity();
+        const hz::Camera      CameraData = { .verticalFov = PI / 3.0f };
+        const Matrix4         Pose = Camera->getWorldMatrix();
         // Cookbook theta=90, phi=-26; both scene imports preserve the same Y-up basis.
-        const float           sunAngle = 26.0f * PI / 180.0f;
-        const Vector3         z(-sinf(sunAngle), cosf(sunAngle), 0);
-        const Vector3         x = normalize(cross(Vector3(0, 1, 0), z));
-        const hz::Light       sun = { .type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 1000 };
-        const Matrix4         sunPose = Matrix4(Vector4(x, 0), Vector4(cross(z, x), 0), Vector4(z, 0), Vector4(0, 0, 0, 1));
-        const hz::Entity      sunEntity = pWorld->createPersistentEntity();
-        const bool            created = pWorld->setComponent(cameraEntity, hz::SceneTypes::camera, &camera) &&
-                             pWorld->setComponent(cameraEntity, hz::SceneTypes::localMatrix, &pose) &&
-                             pWorld->setComponent(sunEntity, hz::SceneTypes::light, &sun) &&
-                             pWorld->setComponent(sunEntity, hz::SceneTypes::localMatrix, &sunPose);
-        ASSERT(created);
-        pScene->update();
+        const float           SunAngle = 26.0f * PI / 180.0f;
+        const Vector3         Z(-sinf(SunAngle), cosf(SunAngle), 0);
+        const Vector3         X = normalize(cross(Vector3(0, 1, 0), Z));
+        const hz::Light       Sun = { .type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 1000 };
+        const Matrix4         SunPose = Matrix4(Vector4(X, 0), Vector4(cross(Z, X), 0), Vector4(Z, 0), Vector4(0, 0, 0, 1));
+        const hz::Entity      SunEntity = World->createPersistentEntity();
+        const bool            Created = World->setComponent(CameraEntity, hz::SceneTypes::camera, &CameraData) &&
+                             World->setComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose) &&
+                             World->setComponent(SunEntity, hz::SceneTypes::light, &Sun) &&
+                             World->setComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
+        ASSERT(Created);
+        Scene->update();
         LOGF(eINFO, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R reset, Esc release mouse");
     }
 
-    hz::unique_ptr<FreeCameraController> pCamera;
-    hz::unique_ptr<hz::RenderContext>    pContext;
-    hz::AssetCatalog                     catalog;
-    hz::unique_ptr<hz::AssetLoaders>     pLoaders;
-    hz::unique_ptr<hz::AssetManager>     pAssetManager;
-    hz::unique_ptr<hz::TypeRegistry>     pTypes;
-    hz::unique_ptr<hz::World>            pWorld;
-    hz::unique_ptr<hz::RenderScene>      pScene;
-    hz::unique_ptr<RenderPasses>         pRenderPasses;
-    hz::Entity                           cameraEntity;
-    ThreadHandle                         cookThread = nullptr;
-    bool                                 cookSucceeded = false;
+    hz::unique_ptr<FreeCameraController> Camera;
+    hz::unique_ptr<hz::RenderContext>    Context;
+    hz::AssetCatalog                     Catalog;
+    hz::unique_ptr<hz::AssetLoaders>     Loaders;
+    hz::unique_ptr<hz::AssetManager>     AssetManager;
+    hz::unique_ptr<hz::TypeRegistry>     Types;
+    hz::unique_ptr<hz::World>            World;
+    hz::unique_ptr<hz::RenderScene>      Scene;
+    hz::unique_ptr<RenderPasses>         Passes;
+    hz::Entity                           CameraEntity;
+    ThreadHandle                         CookThread = nullptr;
+    bool                                 CookSucceeded = false;
 };
