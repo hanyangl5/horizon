@@ -454,3 +454,24 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
 #endif
 }
+
+TEST(DependencyListTest, SkipsOptionalResourcesAndReportsIndices)
+{
+    hz::GPUTexture     texture;
+    hz::GPUBuffer      buffer;
+    hz::DependencyList dependencies;
+    // Null and uninitialized handles are optional: they report the invalid index and add no barrier.
+    EXPECT_EQ(dependencies.sample(nullptr), UINT32_MAX);
+    EXPECT_EQ(dependencies.sample(&texture), UINT32_MAX);
+    EXPECT_EQ(dependencies.store(nullptr), UINT32_MAX);
+    EXPECT_EQ(dependencies.store(&texture), UINT32_MAX);
+    EXPECT_EQ(dependencies.read(buffer), UINT32_MAX);
+    EXPECT_EQ(dependencies.write(buffer), UINT32_MAX);
+    dependencies.indirect(buffer);
+    const hz::Dependencies recorded = dependencies.get();
+    EXPECT_EQ(recorded.sampledTextures.count, 0u);
+    EXPECT_EQ(recorded.storageTextures.count, 0u);
+    EXPECT_EQ(recorded.buffers.count, 0u);
+    EXPECT_EQ(recorded.storageBuffers.count, 0u);
+    EXPECT_EQ(recorded.indirectBuffers.count, 0u);
+}

@@ -3,11 +3,13 @@
 
 #include <math.h>
 
+// Mirrors the RootConstant0 block of PostMetering.slang.
 struct PostMeteringConstants
 {
-    uint32_t sceneColor;
-    uint32_t luminanceOutput;
+    uint32_t sceneColorIndex;
+    uint32_t luminanceOutputIndex;
 };
+static_assert(sizeof(PostMeteringConstants) == 2 * sizeof(uint32_t));
 
 struct PostBloomDownsampleConstants
 {
@@ -28,13 +30,15 @@ struct PostBloomUpsampleConstants
     uint32_t sampler;
 };
 
-struct PostMeterConstants
+// Mirrors the RootConstant0 block that every PostLuminance.slang entry point shares.
+struct PostLuminanceConstants
 {
-    uint32_t input;
-    uint32_t output;
-    uint32_t previous;
-    float    adaptationTime;
+    uint32_t inputIndex;
+    uint32_t outputIndex;
+    uint32_t previousIndex = 0;
+    float    adaptationTime = 0.0f;
 };
+static_assert(sizeof(PostLuminanceConstants) == 3 * sizeof(uint32_t) + sizeof(float));
 
 struct PostToneConstants
 {
@@ -195,23 +199,29 @@ void PostEffects::execute(hz::CommandList& commands, const hz::GPUTexture& scene
     commands.beginGpuTimestamp("HDR");
     if (!exposureInitialized)
     {
+        hz::DependencyList initializeDependencies;
+        const PostLuminanceConstants initialize = { .inputIndex = initializeDependencies.store(&adaptedLuminance[0]),
+                                                     .outputIndex = initializeDependencies.store(&adaptedLuminance[1]) };
         commands.setPipeline(initializePipeline);
-        commands.setRootConstant({ adaptedLuminance[0].getUavIndex(), adaptedLuminance[1].getUavIndex(), 0, 0 });
-        commands.dispatch(1, 1, 1, { .storageTextures = { &adaptedLuminance[0], &adaptedLuminance[1] } });
+        commands.setRootConstants(initialize);
+        commands.dispatch(1, 1, 1, initializeDependencies.get());
         exposureInitialized = true;
     }
-    const PostMeteringConstants metering = { .sceneColor = sceneColor.getSrvIndex(), .luminanceOutput = luminance[0].getUavIndex() };
+    hz::DependencyList         meteringDependencies;
+    const PostMeteringConstants metering = { .sceneColorIndex = meteringDependencies.sample(&sceneColor),
+                                             .luminanceOutputIndex = meteringDependencies.store(&luminance[0]) };
     commands.setPipeline(meteringPipeline);
     commands.setRootConstants(metering);
-    commands.dispatch(meteringSize / 16, meteringSize / 16, 1,
-                      { .sampledTextures = { &sceneColor }, .storageTextures = { &luminance[0] } });
+    commands.dispatch(meteringSize / 16, meteringSize / 16, 1, meteringDependencies.get());
     commands.setPipeline(reducePipeline);
     for (uint32_t level = 1; level < luminanceLevels; ++level)
     {
         const uint32_t size = meteringSize >> level;
-        commands.setRootConstant({ luminance[level - 1].getSrvIndex(), luminance[level].getUavIndex(), 0, 0 });
-        commands.dispatch((size + 15) / 16, (size + 15) / 16, 1,
-                          { .sampledTextures = { &luminance[level - 1] }, .storageTextures = { &luminance[level] } });
+        hz::DependencyList reduceDependencies;
+        const PostLuminanceConstants reduce = { .inputIndex = reduceDependencies.sample(&luminance[level - 1]),
+                                                .outputIndex = reduceDependencies.store(&luminance[level]) };
+        commands.setRootConstants(reduce);
+        commands.dispatch((size + 15) / 16, (size + 15) / 16, 1, reduceDependencies.get());
     }
     acquireBloomChain();
 
@@ -276,26 +286,26 @@ void PostEffects::runBloom(hz::CommandList& commands, const hz::GPUTexture& scen
 
 void PostEffects::runAdaptation(hz::CommandList& commands, float deltaSeconds)
 {
-    const PostMeterConstants constants = {
-        .input = luminance[luminanceLevels - 1].getSrvIndex(),
-        .output = adaptedLuminance[adaptedIndex ^ 1].getUavIndex(),
-        .previous = adaptedLuminance[adaptedIndex].getSrvIndex(),
+    hz::DependencyList           dependencies;
+    const PostLuminanceConstants constants = {
+        .inputIndex = dependencies.sample(&luminance[luminanceLevels - 1]),
+        .outputIndex = dependencies.store(&adaptedLuminance[adaptedIndex ^ 1]),
+        .previousIndex = dependencies.sample(&adaptedLuminance[adaptedIndex]),
         .adaptationTime = fmaxf(deltaSeconds, 0.0f) * fmaxf(settings.adaptationSpeed, 0.0f),
     };
     commands.setPipeline(adaptationPipeline);
     commands.setRootConstants(constants);
-    commands.dispatch(1, 1, 1,
-                      { .sampledTextures = { &luminance[luminanceLevels - 1], &adaptedLuminance[adaptedIndex] },
-                        .storageTextures = { &adaptedLuminance[adaptedIndex ^ 1] } });
+    commands.dispatch(1, 1, 1, dependencies.get());
 }
 
 void PostEffects::toneMap(hz::CommandList& commands, const hz::GPUTexture& sceneColor, const hz::GPUTexture& renderTarget)
 {
     const bool srgbTarget = context.getColorFormat() == hz::Format::R8G8B8A8_SRGB || context.getColorFormat() == hz::Format::B8G8R8A8_SRGB;
+    hz::DependencyList     dependencies;
     const PostToneConstants constants = {
-        .sceneColor = sceneColor.getSrvIndex(),
-        .adaptedLuminance = adaptedLuminance[adaptedIndex].getSrvIndex(),
-        .bloom = bloomUp[0]->getSrvIndex(),
+        .sceneColor = dependencies.sample(&sceneColor),
+        .adaptedLuminance = dependencies.sample(&adaptedLuminance[adaptedIndex]),
+        .bloom = dependencies.sample(bloomUp[0]),
         .sampler = sampler.getIndex(),
         .toneMapping = (uint32_t)settings.toneMapping,
         .exposure = settings.exposure,
@@ -316,7 +326,7 @@ void PostEffects::toneMap(hz::CommandList& commands, const hz::GPUTexture& scene
     };
     commands.beginRendering(
         { .colorAttachments = { { .pTexture = &renderTarget, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
-        { .sampledTextures = { &sceneColor, &adaptedLuminance[adaptedIndex], bloomUp[0] } });
+        dependencies.get());
     commands.setViewport(0, 0, (float)width, (float)height);
     commands.setScissor(0, 0, width, height);
     commands.setPipeline(toneMapPipeline);

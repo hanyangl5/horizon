@@ -69,10 +69,11 @@ const hz::GPUTexture& ScreenSpaceAO::execute(hz::CommandList& commands, const hz
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ScreenSpaceAO::execute");
     ASSERT(width && height && frame.isValid() && depth.isValid() && sampler.isValid());
     // The Cookbook kernel and bilateral blur use depth; the deferred pass multiplies the result into indirect light.
-    const ScreenSpaceAOConstants constants = { .frameIndex = frame.getSrvIndex(),
-                                               .depthIndex = depth.getSrvIndex(),
-                                               .rotationsIndex = rotations.getSrvIndex(),
-                                               .outputIndex = occlusion.getUavIndex(),
+    hz::DependencyList        dependencies;
+    const ScreenSpaceAOConstants constants = { .frameIndex = dependencies.read(frame),
+                                               .depthIndex = dependencies.sample(&depth),
+                                               .rotationsIndex = dependencies.sample(&rotations),
+                                               .outputIndex = dependencies.store(&occlusion),
                                                .samplerIndex = sampler.getIndex(),
                                                .rotationSamplerIndex = rotationSampler.getIndex(),
                                                .radius = settings.radius,
@@ -81,8 +82,7 @@ const hz::GPUTexture& ScreenSpaceAO::execute(hz::CommandList& commands, const hz
     commands.beginGpuTimestamp("SSAO");
     commands.setPipeline(aoPipeline);
     commands.setRootConstants(constants);
-    commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
-                      { .sampledTextures = { &depth, &rotations }, .storageTextures = { &occlusion }, .buffers = { &frame } });
+    commands.dispatch((width + 15) / 16, (height + 15) / 16, 1, dependencies.get());
     const hz::GPUTexture* source = &occlusion;
     blurred = false;
     commands.setPipeline(blurPipeline);
@@ -91,15 +91,15 @@ const hz::GPUTexture& ScreenSpaceAO::execute(hz::CommandList& commands, const hz
         for (uint32_t axis = 0; axis < 2; ++axis)
         {
             hz::GPUTexture&              target = blur[axis];
-            const ScreenSpaceAOConstants blurConstants = { .depthIndex = depth.getSrvIndex(),
-                                                           .sourceIndex = source->getSrvIndex(),
-                                                           .outputIndex = target.getUavIndex(),
+            hz::DependencyList           blurDependencies;
+            const ScreenSpaceAOConstants blurConstants = { .depthIndex = blurDependencies.sample(&depth),
+                                                           .sourceIndex = blurDependencies.sample(source),
+                                                           .outputIndex = blurDependencies.store(&target),
                                                            .samplerIndex = sampler.getIndex(),
                                                            .horizontal = axis == 0,
                                                            .depthThreshold = settings.depthThreshold };
             commands.setRootConstants(blurConstants);
-            commands.dispatch((width + 15) / 16, (height + 15) / 16, 1,
-                              { .sampledTextures = { &depth, source }, .storageTextures = { &target } });
+            commands.dispatch((width + 15) / 16, (height + 15) / 16, 1, blurDependencies.get());
             source = &target;
             blurred = true;
         }

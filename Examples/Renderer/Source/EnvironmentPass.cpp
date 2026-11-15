@@ -66,29 +66,34 @@ bool EnvironmentPass::isValid() const
     return pipeline.isValid() && sampler.isValid() && prefiltered.isValid() && irradiance.isValid() && brdfLut.isValid();
 }
 
+// Mirrors the RootConstant0 block of Skybox.slang field for field.
+struct SkyboxConstants
+{
+    uint32_t frameIndex;
+    uint32_t environmentIndex;
+    uint32_t samplerIndex;
+    float    intensity;
+};
+static_assert(sizeof(SkyboxConstants) == 3 * sizeof(uint32_t) + sizeof(float));
+
 void EnvironmentPass::execute(hz::CommandList& commands, const hz::GPUBuffer& frame, const hz::GPUTexture& color,
                               const hz::GPUTexture& depth, float intensity) const
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("EnvironmentPass::execute");
     ASSERT(isValid());
+    hz::DependencyList    dependencies;
+    const SkyboxConstants constants = { .frameIndex = dependencies.read(frame),
+                                        .environmentIndex = dependencies.sample(&prefiltered),
+                                        .samplerIndex = sampler.getIndex(),
+                                        .intensity = intensity };
     commands.beginGpuTimestamp("Skybox");
     commands.beginRendering(
         { .colorAttachments = { { .pTexture = &color, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } },
           .depthAttachment = { .pTexture = &depth, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } },
-        { .sampledTextures = { &prefiltered }, .buffers = { &frame } });
+        dependencies.get());
     commands.setViewport(0, 0, (float)context.getWidth(), (float)context.getHeight());
     commands.setScissor(0, 0, context.getWidth(), context.getHeight());
     commands.setPipeline(pipeline);
-    const struct
-    {
-        uint32_t frame;
-        uint32_t prefiltered;
-        uint32_t sampler;
-        float    intensity;
-    } constants = { .frame = frame.getSrvIndex(),
-                    .prefiltered = prefiltered.getSrvIndex(),
-                    .sampler = sampler.getIndex(),
-                    .intensity = intensity };
     commands.setRootConstants(constants);
     commands.draw(36);
     commands.endRendering();
