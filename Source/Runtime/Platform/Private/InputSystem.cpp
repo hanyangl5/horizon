@@ -1789,7 +1789,7 @@ struct InputSystemImpl: public gainput::InputListener
             return;
 
         GainputView* view = (__bridge GainputView*)(pGainputView);
-        [view setVirtualKeyboard:type];
+        [view SetVirtualKeyboard:type];
 #elif defined(__ANDROID__)
         if ((type > 0) != virtualKeyboardActive)
         {
@@ -2922,7 +2922,7 @@ struct InputSystemImpl: public gainput::InputListener
         pDevicePad->SetLEDColor(r, g, b);
     }
 
-    void setOnDeviceChangeCallBack(void (*onDeviceChnageCallBack)(const char* name, bool added, int))
+    void SetOnDeviceChangeCallback(void (*onDeviceChnageCallBack)(const char* name, bool added, int))
     {
         onDeviceChangeCallBack = onDeviceChnageCallBack;
 
@@ -3000,7 +3000,7 @@ int32_t InputSystemHandleMessage(WindowDesc* pWindow, void* msg)
     return 0;
 }
 
-bool initInputSystem(InputSystemDesc* pDesc)
+bool InitInputSystem(InputSystemDesc* pDesc)
 {
 #ifdef ENABLE_FORGE_INPUT
 
@@ -3024,7 +3024,7 @@ bool initInputSystem(InputSystemDesc* pDesc)
     }
 #endif
 
-    addDefaultActionMappings();
+    AddDefaultActionMappings();
 
     return success;
 #else
@@ -3032,7 +3032,7 @@ bool initInputSystem(InputSystemDesc* pDesc)
 #endif
 }
 
-void exitInputSystem()
+void ExitInputSystem()
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
@@ -3049,7 +3049,7 @@ void exitInputSystem()
 #endif
 }
 
-void updateInputSystem(float deltaTime, uint32_t width, uint32_t height)
+void UpdateInputSystem(float deltaTime, uint32_t width, uint32_t height)
 {
     UNREF_PARAM(deltaTime);
     UNREF_PARAM(width);
@@ -3062,7 +3062,7 @@ void updateInputSystem(float deltaTime, uint32_t width, uint32_t height)
 #endif
 }
 
-void addInputAction(const InputActionDesc* pDesc, const InputActionMappingDeviceTarget actionMappingTarget)
+void AddInputAction(const InputActionDesc* pDesc, const InputActionMappingDeviceTarget actionMappingTarget)
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
@@ -3070,7 +3070,7 @@ void addInputAction(const InputActionDesc* pDesc, const InputActionMappingDevice
 #endif
 }
 
-void removeInputAction(const InputActionDesc* pDesc, const InputActionMappingDeviceTarget actionMappingTarget)
+void RemoveInputAction(const InputActionDesc* pDesc, const InputActionMappingDeviceTarget actionMappingTarget)
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
@@ -3078,7 +3078,7 @@ void removeInputAction(const InputActionDesc* pDesc, const InputActionMappingDev
 #endif
 }
 
-void setGlobalInputAction(const GlobalInputActionDesc* pDesc)
+void SetGlobalInputAction(const GlobalInputActionDesc* pDesc)
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
@@ -3086,7 +3086,7 @@ void setGlobalInputAction(const GlobalInputActionDesc* pDesc)
 #endif
 }
 
-void addActionMappings(ActionMappingDesc* const actionMappings, const uint32_t numActions,
+void AddActionMappings(ActionMappingDesc* const actionMappings, const uint32_t numActions,
                        const InputActionMappingDeviceTarget actionMappingTarget)
 {
 #ifdef ENABLE_FORGE_INPUT
@@ -3095,7 +3095,7 @@ void addActionMappings(ActionMappingDesc* const actionMappings, const uint32_t n
 #endif
 }
 
-void removeActionMappings(const InputActionMappingDeviceTarget actionMappingTarget)
+void RemoveActionMappings(const InputActionMappingDeviceTarget actionMappingTarget)
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
@@ -3103,7 +3103,7 @@ void removeActionMappings(const InputActionMappingDeviceTarget actionMappingTarg
 #endif
 }
 
-void addDefaultActionMappings()
+void AddDefaultActionMappings()
 {
     ActionMappingDesc actionMappingsArr[] = {
         // Camera actions
@@ -3427,10 +3427,10 @@ void addDefaultActionMappings()
           { GamepadButton::GAMEPAD_BUTTON_R2 } }
     };
 
-    addActionMappings(actionMappingsArr, TF_ARRAY_COUNT(actionMappingsArr), INPUT_ACTION_MAPPING_TARGET_ALL);
+    AddActionMappings(actionMappingsArr, TF_ARRAY_COUNT(actionMappingsArr), INPUT_ACTION_MAPPING_TARGET_ALL);
 }
 
-bool setEnableCaptureInput(bool enable)
+bool SetEnableCaptureInput(bool enable)
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
@@ -3441,7 +3441,7 @@ bool setEnableCaptureInput(bool enable)
 #endif
 }
 
-void setVirtualKeyboard(uint32_t type)
+void SetVirtualKeyboard(uint32_t type)
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
@@ -3450,7 +3450,7 @@ void setVirtualKeyboard(uint32_t type)
 #endif
 }
 
-void setDeadZone(unsigned gamePadIndex, float deadZoneSize)
+void SetDeadZone(unsigned gamePadIndex, float deadZoneSize)
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
@@ -3459,7 +3459,7 @@ void setDeadZone(unsigned gamePadIndex, float deadZoneSize)
 #endif
 }
 
-const char* getGamePadName(int gamePadIndex)
+const char* GetGamePadName(int gamePadIndex)
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
@@ -3470,7 +3470,7 @@ const char* getGamePadName(int gamePadIndex)
 #endif
 }
 
-bool gamePadConnected(int gamePadIndex)
+bool IsGamePadConnected(int gamePadIndex)
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
@@ -3481,7 +3481,7 @@ bool gamePadConnected(int gamePadIndex)
 #endif
 }
 
-bool setRumbleEffect(int gamePadIndex, float left_motor, float right_motor, uint32_t duration_ms)
+bool SetRumbleEffect(int gamePadIndex, float left_motor, float right_motor, uint32_t duration_ms)
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
@@ -3501,7 +3501,7 @@ bool setRumbleEffect(int gamePadIndex, float left_motor, float right_motor, uint
 #endif
 }
 
-void setLEDColor(int gamePadIndex, uint8_t r, uint8_t g, uint8_t b)
+void SetLedColor(int gamePadIndex, uint8_t r, uint8_t g, uint8_t b)
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
@@ -3510,10 +3510,10 @@ void setLEDColor(int gamePadIndex, uint8_t r, uint8_t g, uint8_t b)
 #endif
 }
 
-void setOnDeviceChangeCallBack(void (*onDeviceChnageCallBack)(const char* name, bool added, int gamepadIndex))
+void SetOnDeviceChangeCallback(void (*onDeviceChnageCallBack)(const char* name, bool added, int gamepadIndex))
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
-    pInputSystem->setOnDeviceChangeCallBack(onDeviceChnageCallBack);
+    pInputSystem->SetOnDeviceChangeCallback(onDeviceChnageCallBack);
 #endif
 }

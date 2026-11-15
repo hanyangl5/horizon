@@ -2639,7 +2639,7 @@ void platformUpdateUserInterface(float deltaTime)
     {
         bool anyGamepadConnected = false;
         for (uint32_t i = 0; i < MAX_INPUT_GAMEPADS; ++i)
-            anyGamepadConnected |= gamePadConnected(i);
+            anyGamepadConnected |= IsGamePadConnected(i);
 
         if (anyGamepadConnected)
             io.BackendFlags |= ImGuiBackendFlags_HasGamepad;

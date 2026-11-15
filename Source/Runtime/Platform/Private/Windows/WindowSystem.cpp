@@ -194,7 +194,7 @@ void wndUpdateCaptureCursor(void* UserData)
 {
     UNREF_PARAM(UserData);
 #ifdef ENABLE_FORGE_INPUT
-    setEnableCaptureInput(pWindowRef->cursorCaptureRequested);
+    SetEnableCaptureInput(pWindowRef->cursorCaptureRequested);
 #endif
 }
 

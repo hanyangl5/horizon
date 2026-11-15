@@ -44,7 +44,7 @@ bool FreeCameraController::onInput(InputActionContext* pInput)
         break;
     case Capture:
         pController->captured = !ended && pInput->boolValue;
-        setEnableCaptureInput(pController->captured);
+        SetEnableCaptureInput(pController->captured);
         break;
     case Boost:
         pController->boost = !ended && pInput->boolValue;
@@ -60,7 +60,7 @@ bool FreeCameraController::onInput(InputActionContext* pInput)
         if (pInput->boolValue)
         {
             pController->captured = false;
-            setEnableCaptureInput(false);
+            SetEnableCaptureInput(false);
         }
         break;
     }
@@ -76,7 +76,7 @@ FreeCameraController::FreeCameraController(const FreeCameraControllerDesc& desc)
     ASSERT(pCamera);
 
     InputSystemDesc inputDesc = { .pWindow = desc.pWindow };
-    const bool      inputInitialized = initInputSystem(&inputDesc);
+    const bool      inputInitialized = InitInputSystem(&inputDesc);
     ASSERT(inputInitialized);
 
     ActionMappingDesc mappings[] = {
@@ -104,30 +104,30 @@ FreeCameraController::FreeCameraController(const FreeCameraControllerDesc& desc)
           .actionId = Release,
           .deviceButtons = { KEYBOARD_BUTTON_ESCAPE } },
     };
-    addActionMappings(mappings, TF_ARRAY_COUNT(mappings), INPUT_ACTION_MAPPING_TARGET_ALL);
+    AddActionMappings(mappings, TF_ARRAY_COUNT(mappings), INPUT_ACTION_MAPPING_TARGET_ALL);
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(mappings); ++i)
     {
         const InputActionDesc action = { .actionId = mappings[i].actionId, .pFunction = onInput, .UserData = this };
-        addInputAction(&action);
+        AddInputAction(&action);
     }
 }
 
 FreeCameraController::~FreeCameraController()
 {
-    setEnableCaptureInput(false);
-    exitInputSystem();
+    SetEnableCaptureInput(false);
+    ExitInputSystem();
     exitCameraController(pCamera);
 }
 
 void FreeCameraController::update(float deltaTime, uint32_t width, uint32_t height, bool focused)
 {
     look = float2(0.0f);
-    updateInputSystem(deltaTime, width, height);
+    UpdateInputSystem(deltaTime, width, height);
     if (!focused)
     {
         captured = false;
         boost = false;
-        setEnableCaptureInput(false);
+        SetEnableCaptureInput(false);
         stop();
     }
 

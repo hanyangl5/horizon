@@ -425,7 +425,7 @@ typedef struct ActionMappingDesc
     InputActionMappingType actionMappingType = INPUT_ACTION_MAPPING_NORMAL;
 
     // Type of device this action targets
-    // NOTE: cannot be INPUT_ACTION_MAPPING_TARGET_ALL.  This will cause an assertion in addActionMappings(...).
+    // NOTE: cannot be INPUT_ACTION_MAPPING_TARGET_ALL.  This will cause an assertion in AddActionMappings(...).
     InputActionMappingDeviceTarget actionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_CONTROLLER;
 
     // A unique ID associated with the action.
@@ -719,20 +719,20 @@ typedef struct InputSystemDesc
     const char* pJoystickTexture = NULL; // Keep this variable NULL to not show any joysticks on touch devices
 } InputSystemDesc;
 
-FORGE_API bool initInputSystem(InputSystemDesc* pDesc);
-FORGE_API void exitInputSystem();
-FORGE_API void updateInputSystem(float deltaTime, uint32_t width, uint32_t height);
+FORGE_API bool InitInputSystem(InputSystemDesc* pDesc);
+FORGE_API void ExitInputSystem();
+FORGE_API void UpdateInputSystem(float deltaTime, uint32_t width, uint32_t height);
 
 // Input action (callbacks) functionalities //////////////////
 /* Adds a new action (callback) for a specific (or all) device target(s)
  * If INPUT_ACTION_MAPPING_TARGET_ALL is specified, an action will be mapped for all device targets
  * that have the action ID specified in pDesc.
  */
-FORGE_API void addInputAction(const InputActionDesc*               pDesc,
+FORGE_API void AddInputAction(const InputActionDesc*               pDesc,
                               const InputActionMappingDeviceTarget actionMappingTarget = INPUT_ACTION_MAPPING_TARGET_ALL);
-FORGE_API void removeInputAction(const InputActionDesc*               pDesc,
+FORGE_API void RemoveInputAction(const InputActionDesc*               pDesc,
                                  const InputActionMappingDeviceTarget actionMappingTarget = INPUT_ACTION_MAPPING_TARGET_ALL);
-FORGE_API void setGlobalInputAction(const GlobalInputActionDesc* pDesc);
+FORGE_API void SetGlobalInputAction(const GlobalInputActionDesc* pDesc);
 //////////////////////////////////////////////////////////////
 
 // Input action mappings functionalities /////////////////////
@@ -740,32 +740,32 @@ FORGE_API void setGlobalInputAction(const GlobalInputActionDesc* pDesc);
  * Takes in an array of ActionMappingDesc
  * Note: this will Clear all current action mappings, including any callbacks.
  */
-FORGE_API void addActionMappings(ActionMappingDesc* const actionMappings, const uint32_t numActions,
+FORGE_API void AddActionMappings(ActionMappingDesc* const actionMappings, const uint32_t numActions,
                                  const InputActionMappingDeviceTarget actionMappingTarget);
 
 /* Removes currently active action mappings
  * Note: this will Clear any callbacks that were added for any action mapping being cleared.
  */
-FORGE_API void removeActionMappings(const InputActionMappingDeviceTarget actionMappingTarget);
+FORGE_API void RemoveActionMappings(const InputActionMappingDeviceTarget actionMappingTarget);
 
 /* Adds default TF action mappings
  * Note: this will Clear all current action mappings, including any callbacks.
  */
-FORGE_API void addDefaultActionMappings();
+FORGE_API void AddDefaultActionMappings();
 //////////////////////////////////////////////////////////////
 
-FORGE_API bool setEnableCaptureInput(bool enable);
+FORGE_API bool SetEnableCaptureInput(bool enable);
 
 /// Used to enable/disable text input for non-keyboard setups (virtual keyboards for console/mobile, ...)
-FORGE_API void setVirtualKeyboard(uint32_t type);
+FORGE_API void SetVirtualKeyboard(uint32_t type);
 
-FORGE_API void setDeadZone(unsigned int controllerIndex, float deadZoneSize);
-FORGE_API void setLEDColor(int gamePadIndex, uint8_t r, uint8_t g, uint8_t b);
+FORGE_API void SetDeadZone(unsigned int controllerIndex, float deadZoneSize);
+FORGE_API void SetLedColor(int gamePadIndex, uint8_t r, uint8_t g, uint8_t b);
 
 // if gamepad index == BUILTIN_DEVICE_HAPTICS it will try to set rumble on the actual device
 // in the case of iOS and iphones that would mean the actual phone vibrates
-FORGE_API bool setRumbleEffect(int gamePadIndex, float left_motor, float right_motor, uint32_t duration_ms);
+FORGE_API bool SetRumbleEffect(int gamePadIndex, float left_motor, float right_motor, uint32_t duration_ms);
 
-FORGE_API const char* getGamePadName(int gamePadIndex);
-FORGE_API bool        gamePadConnected(int gamePadIndex);
-FORGE_API void        setOnDeviceChangeCallBack(void (*onDeviceChnageCallBack)(const char* name, bool added, int gamePadIndex));
+FORGE_API const char* GetGamePadName(int gamePadIndex);
+FORGE_API bool        IsGamePadConnected(int gamePadIndex);
+FORGE_API void        SetOnDeviceChangeCallback(void (*onDeviceChnageCallBack)(const char* name, bool added, int gamePadIndex));
