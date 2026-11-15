@@ -68,7 +68,7 @@
 #define VIEW_CAMERA           1
 #endif
 
-// This value defines the amount of threads per group that will be used to clear the
+// This value defines the amount of threads per group that will be used to Clear the
 // indirect draw buffers.
 #define CLEAR_THREAD_COUNT     256
 

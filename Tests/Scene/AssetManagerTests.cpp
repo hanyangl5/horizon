@@ -508,7 +508,7 @@ TEST_F(SceneAssetLoaderTest, DecodesSceneAsynchronouslyAndPublishesTypedPayload)
     ASSERT_TRUE(OpenStreamFromPath(RD_OTHER_FILES, "scene.assetcatalog.json", FM_WRITE, &stream));
     EXPECT_EQ(WriteToStream(&stream, index.data(), index.size() - 1), index.size() - 1);
     CloseStream(&stream);
-    catalog.clear();
+    catalog.Clear();
     ASSERT_TRUE(catalog.load(RD_OTHER_FILES, "scene.assetcatalog.json"));
     hz::SceneAssetLoader loader(RD_OTHER_FILES);
     hz::AssetManager     assetManager(catalog);
@@ -783,12 +783,12 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
         context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } },
                                                         .sourceDirectory = RD_OTHER_FILES,
                                                         .pFileName = "FrustumCulling.slang" } });
-    hz::GPUPipeline clear =
+    hz::GPUPipeline Clear =
         context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "ClearStatistics" } },
                                                         .sourceDirectory = RD_OTHER_FILES,
                                                         .pFileName = "FrustumCulling.slang" } });
     SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
-    ASSERT_TRUE(pipeline.isValid() && clear.isValid());
+    ASSERT_TRUE(pipeline.isValid() && Clear.isValid());
     struct FrameData
     {
         Matrix4 current;
@@ -876,7 +876,7 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
         {
             SCOPED_TRACE(culling);
             hz::CommandList& commands = context.acquireCommandList();
-            commands.setPipeline(clear);
+            commands.setPipeline(Clear);
             commands.setRootConstant({ statistics.getUavIndex() }, 5);
             commands.dispatch(1, 1, 1, { .storageBuffers = { &statistics } });
             commands.setPipeline(pipeline);
@@ -1150,7 +1150,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
         hz::MeshRenderer renderer = { .mesh = asset.getMeshes().pData[i == 3 ? 1 : 0].id };
         if (i == 1)
         {
-            renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000001), .material = asset.getMaterials().pData[1].id });
+            renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = asset.getMaterials().pData[1].id });
         }
         const Matrix4 transform = Matrix4::translation(Vector3(offsets[i], 0, 0));
         ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::meshRenderer, &renderer));
@@ -1423,7 +1423,7 @@ TEST_F(AssetManagerTest, WorldBindingsSwapMeshesWithoutRetiringSharedAssets)
     bindings.update();
     EXPECT_TRUE(bindings.get(replacement)->mesh.isValid());
     EXPECT_NE(bindings.get(replacement)->mesh, meshB);
-    bindings.clear();
+    bindings.Clear();
     EXPECT_EQ(bindings.getCount(), 0u);
     EXPECT_EQ(assetManager.getState(meshA), hz::AssetState::Retiring);
 }
@@ -1516,7 +1516,7 @@ TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocatin
         const hz::LocalTransform transform;
         ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
         ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
-        entities.pushBack(entity);
+        entities.PushBack(entity);
     }
     scene.update();
     assetManager.update();
@@ -1607,7 +1607,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     ASSERT_TRUE(types.registerBuiltins());
     hz::World       world(types);
     hz::RenderScene scene(world, assetManager);
-    scene.reserve(0, 0, 9, 9);
+    scene.Reserve(0, 0, 9, 9);
     const hz::Entity parent = world.createEntity();
     Matrix4          parentMatrix = Matrix4::translation(Vector3(10, 20, 30)) * Matrix4::scale(Vector3(2, 3, 4));
     parentMatrix.setElem(1, 0, 0.5f);
@@ -1829,7 +1829,7 @@ TEST_F(AssetManagerTest, WorldBindingsKeepFailedRequestsIdleUntilRebuilt)
         EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
     EXPECT_EQ(assetManager.getCount(), 0u);
-    bindings.clear();
+    bindings.Clear();
     bindings.update();
     EXPECT_EQ(bindings.get(entity)->state, hz::AssetBindingState::Pending);
     EXPECT_TRUE(bindings.get(entity)->mesh.isValid());
@@ -1872,7 +1872,7 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     const hz::Entity a = world.createEntity(), b = world.createEntity();
     hz::MeshRenderer renderer = { .mesh = scene.getMeshes().pData[0].id };
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
-    renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000003), .material = alternate });
+    renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000003), .material = alternate });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
@@ -1905,7 +1905,7 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     // An open command list may reference any ready payload, so released payloads stay alive until it completes.
     hz::CommandList& pending = context.acquireCommandList();
     // Reverse authoring order; resolution follows stable SubmeshID, not override array position.
-    renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000001), .material = alternate });
+    renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = alternate });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
     ASSERT_EQ(bindings.get(a)->state, hz::AssetBindingState::Ready);
@@ -1928,8 +1928,8 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
     EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Failed);
-    renderer.overrides.clear();
-    renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000001), .material = scene.getTextures().pData[0].id });
+    renderer.overrides.Clear();
+    renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = scene.getTextures().pData[0].id });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
     EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Failed);
@@ -2013,7 +2013,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     hz::Array<hz::RenderMeshBatchID> meshBatchIDs;
     for (uint32_t index : scene.getActiveMeshBatches())
         if (scene.getMeshBatches().pData[index].primitive == primitive)
-            meshBatchIDs.pushBack(scene.getMeshBatches().pData[index].id);
+            meshBatchIDs.PushBack(scene.getMeshBatches().pData[index].id);
     ASSERT_EQ(meshBatchIDs.size(), 2u);
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[0])->submesh, UINT64_C(0x8000000000000001));
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1])->submesh, UINT64_C(0x8000000000000003));
@@ -2050,7 +2050,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->previous.getElem(3, 0), 11);
     EXPECT_EQ(scene.getChanges().instances.ranges.count, 0u);
 
-    renderer.overrides.pushBack({ .submesh = UINT64_C(0x8000000000000003), .material = alternate });
+    renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000003), .material = alternate });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     EXPECT_EQ(scene.getPrimitive(primitive)->instanceCount, 0u);
@@ -2065,7 +2065,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1])->material,
               (hz::GpuMaterialID{ .index = alternateHandle.index, .generation = alternateHandle.generation }));
     EXPECT_EQ(scene.getChanges().meshBatches.created.count, 0u);
-    renderer.overrides.clear();
+    renderer.overrides.Clear();
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1])->material, original);
@@ -2351,7 +2351,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     EXPECT_EQ(scene.getLight(lightID)->primitive, scene.findPrimitive(entity));
 
     hz::GpuScene gpu(scene, assetManager, context);
-    gpu.reserve(1, 1, 1, 1);
+    gpu.Reserve(1, 1, 1, 1);
     hz::GPUBuffer           readback = context.createBuffer({ .size = 1024,
                                                               .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                               .startState = RESOURCE_STATE_COPY_DEST,
@@ -2488,17 +2488,17 @@ TEST_F(AssetManagerTest, GpuSceneUploadsSparseChangesForOneHundredThousandEntiti
     constexpr uint32_t     kStride = 100;
     const hz::MeshRenderer renderer = { .mesh = assetID(1) };
     hz::Array<hz::Entity>  entities;
-    entities.reserve(kEntityCount);
+    entities.Reserve(kEntityCount);
     for (uint32_t i = 0; i < kEntityCount; ++i)
     {
         const hz::Entity         entity = world.createEntity();
         const hz::LocalTransform transform = { .translation = Vector3((float)i, 0, 0) };
         ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
         ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
-        entities.pushBack(entity);
+        entities.PushBack(entity);
     }
     hz::GpuScene gpu(scene, assetManager, context);
-    gpu.reserve(kEntityCount, kEntityCount);
+    gpu.Reserve(kEntityCount, kEntityCount);
     hz::GPUBuffer             readback = context.createBuffer({ .size = sizeof(hz::RenderInstance),
                                                                 .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                                 .startState = RESOURCE_STATE_COPY_DEST,
@@ -2580,7 +2580,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     const hz::Name name = { "Edited" };
     ASSERT_TRUE(world->setComponent(first, hz::SceneTypes::name, &name));
     hz::MeshRenderer renderer = { .mesh = assets.getMeshes().pData[0].id };
-    renderer.overrides.pushBack(
+    renderer.overrides.PushBack(
         { .submesh = assets.getMeshes().pData[0].submeshes.pData[0].id, .material = assets.getMaterials().pData[0].id });
     ASSERT_TRUE(world->setComponent(first, hz::SceneTypes::meshRenderer, &renderer));
     const hz::Guid   rootID = world->getEntityGuid(root), firstID = world->getEntityGuid(first), secondID = world->getEntityGuid(second);
@@ -3347,7 +3347,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
             commands.buildAccelerationStructure(maskedTop);
             commands.buildAccelerationStructure(maskedOnly);
         }
-        const auto clear = [&](const hz::GPUTexture& texture, ClearValue value)
+        const auto Clear = [&](const hz::GPUTexture& texture, ClearValue value)
         {
             commands.beginRendering({ .colorAttachments = { { .pTexture = &texture,
                                                               .loadAction = LOAD_ACTION_CLEAR,
@@ -3355,9 +3355,9 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
                                                               .clearValue = value } } });
             commands.endRendering();
         };
-        clear(normal, { .r = 0.5f, .g = 0.5f, .a = 1 });
-        clear(depth, { .r = 0.2f });
-        clear(alpha, { .r = 1, .g = 1, .b = 1, .a = test.textureAlpha });
+        Clear(normal, { .r = 0.5f, .g = 0.5f, .a = 1 });
+        Clear(depth, { .r = 0.2f });
+        Clear(alpha, { .r = 1, .g = 1, .b = 1, .a = test.textureAlpha });
         constants.tlas = test.opaque ? opaqueTop.getSrvIndex() : test.background ? maskedTop.getSrvIndex() : maskedOnly.getSrvIndex();
         commands.setPipeline(reflection);
         commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
@@ -3567,7 +3567,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
             commands.buildAccelerationStructure(opaqueTop);
             commands.buildAccelerationStructure(maskedTop);
         }
-        const auto clear = [&](const hz::GPUTexture& texture, ClearValue value)
+        const auto Clear = [&](const hz::GPUTexture& texture, ClearValue value)
         {
             commands.beginRendering({ .colorAttachments = { { .pTexture = &texture,
                                                               .loadAction = LOAD_ACTION_CLEAR,
@@ -3575,10 +3575,10 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
                                                               .clearValue = value } } });
             commands.endRendering();
         };
-        clear(normal, { .r = 0.5f, .g = 0.5f, .a = 1 }); // Octahedral +Z.
-        clear(depth, { .r = 0.2f });
-        clear(noise, { .r = 0.5f, .g = 0.5f });
-        clear(alpha, { .a = scenario == 2 ? 0.75f : 0.25f });
+        Clear(normal, { .r = 0.5f, .g = 0.5f, .a = 1 }); // Octahedral +Z.
+        Clear(depth, { .r = 0.2f });
+        Clear(noise, { .r = 0.5f, .g = 0.5f });
+        Clear(alpha, { .a = scenario == 2 ? 0.75f : 0.25f });
         constants.top = scenario ? maskedTop.getSrvIndex() : opaqueTop.getSrvIndex();
         commands.setPipeline(shadow);
         commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
@@ -3681,14 +3681,14 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                                                .sourceDirectory = RD_OTHER_FILES,
                                                                .pFileName = "Transparency.slang" } });
     };
-    hz::GPUPipeline clear = compute("ClearMain"), resolve = compute("ResolveMain");
+    hz::GPUPipeline Clear = compute("ClearMain"), resolve = compute("ResolveMain");
     SetResourceDirectoryPath(&fileSystem, RM_PROJECT, RD_OTHER_FILES, directory.string().c_str());
     hz::GPUPipeline reader =
         context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
-    ASSERT_TRUE(gather.isValid() && clear.isValid() && resolve.isValid() && reader.isValid());
+    ASSERT_TRUE(gather.isValid() && Clear.isValid() && resolve.isValid() && reader.isValid());
     const auto input = [&](const void* data, uint32_t size, uint32_t stride = 0)
     {
         return context.createBuffer({ .size = size,
@@ -3786,7 +3786,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         constants[14] = nodes.getUavIndex();
         constants[15] = capacity;
         constants[16] = light.getSrvIndex();
-        commands.setPipeline(clear);
+        commands.setPipeline(Clear);
         commands.setRootConstant(constants);
         commands.dispatch(1, 1, 1, { .storageTextures = { &heads }, .storageBuffers = { &counters } });
         commands.beginRendering({ .depthAttachment = { .pTexture = &depth,
@@ -3961,7 +3961,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     };
     hz::GPUBuffer    peakFrame = upload(&peakCamera, sizeof(peakCamera)), peakLighting = upload(&peakLight, sizeof(peakLight));
     hz::CommandList& commands = context.acquireCommandList();
-    const auto       clear = [&](const hz::GPUTexture& texture, float value)
+    const auto       Clear = [&](const hz::GPUTexture& texture, float value)
     {
         commands.beginRendering({ .colorAttachments = { { .pTexture = &texture,
                                                           .loadAction = LOAD_ACTION_CLEAR,
@@ -3969,9 +3969,9 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                                           .clearValue = { .r = value, .g = value, .b = value, .a = 1 } } } });
         commands.endRendering();
     };
-    clear(source, 1.2f);
-    clear(black, 0);
-    clear(average, 0.18f);
+    Clear(source, 1.2f);
+    Clear(black, 0);
+    Clear(average, 0.18f);
     const auto read = [&](const hz::GPUTexture& texture, uint32_t offset)
     {
         commands.setPipeline(reader);
@@ -4075,8 +4075,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     };
     // Bloom chain: the 2x2 box keeps a constant, and the tent upsample adds it back on top of its own level.
     hz::GPUTexture bloomSmall = image(4, 4, rgba), bloomWide = image(9, 9, rgba);
-    clear(impulse, 2.0f);
-    clear(bloomWide, 1.0f);
+    Clear(impulse, 2.0f);
+    Clear(bloomWide, 1.0f);
     const DownsampleConstants boxConstants = { impulse.getSrvIndex(), bloomSmall.getUavIndex(), sampler.getIndex(),
                                                average.getSrvIndex(), 0, 0, 1 };
     commands.setPipeline(downsample);

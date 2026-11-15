@@ -588,7 +588,7 @@ enum TextureCreationFlags : uint32_t
     TEXTURE_CREATION_FLAG_SRGB = 0x400,
     /// Create a normal map texture
     TEXTURE_CREATION_FLAG_NORMAL_MAP = 0x800,
-    /// Fast clear
+    /// Fast Clear
     TEXTURE_CREATION_FLAG_FAST_CLEAR = 0x1000,
     /// Fragment mask
     TEXTURE_CREATION_FLAG_FRAG_MASK = 0x2000,
@@ -872,7 +872,7 @@ struct TextureDesc
 {
     /// Optional placement (addTexture will place/bind buffer in this memory instead of allocating space)
     ResourcePlacement*   pPlacement;
-    /// Optimized clear value (recommended to use this same value when clearing the rendertarget)
+    /// Optimized Clear value (recommended to use this same value when clearing the rendertarget)
     ClearValue           clearValue;
     /// Pointer to native texture handle if the texture does not own underlying resource
     const void*          pNativeHandle;
@@ -958,7 +958,7 @@ struct RenderTargetDesc
     hz::Format           format;
     /// What state will the texture get created in
     ResourceState        startState;
-    /// Optimized clear value (recommended to use this same value when clearing the rendertarget)
+    /// Optimized Clear value (recommended to use this same value when clearing the rendertarget)
     ClearValue           clearValue;
     /// The image quality level. The higher the quality, the lower the performance. The valid range is between zero and the value
     /// appropriate for sampleCount
@@ -1461,7 +1461,7 @@ MAKE_ENUM_FLAG(uint32_t, PipelineCacheFlags);
 
 struct PipelineCacheDesc
 {
-    /// Initial pipeline cache data (can be NULL which means empty pipeline cache)
+    /// Initial pipeline cache data (can be NULL which means Empty pipeline cache)
     void*              pData;
     /// Initial pipeline cache size
     size_t             size;
@@ -1620,7 +1620,7 @@ struct GPUVendorPreset
     uint32_t       revisionId; // Optional as not all gpu's have that. Default is : 0x00
     GPUPresetLevel presetLevel;
     char           vendorName[MAX_GPU_VENDOR_STRING_LENGTH];
-    char           gpuName[MAX_GPU_VENDOR_STRING_LENGTH]; // If GPU Name is missing then value will be empty string
+    char           gpuName[MAX_GPU_VENDOR_STRING_LENGTH]; // If GPU Name is missing then value will be Empty string
     char           gpuDriverVersion[MAX_GPU_VENDOR_STRING_LENGTH];
     char           gpuDriverDate[MAX_GPU_VENDOR_STRING_LENGTH];
     uint32_t       rtCoresCount;
@@ -1959,7 +1959,7 @@ struct BindRenderTargetsDesc
     uint32_t             renderTargetCount;
     BindRenderTargetDesc renderTargets[MAX_RENDER_TARGET_ATTACHMENTS];
     BindDepthTargetDesc  depthStencil;
-    // Explicit viewport for empty render pass
+    // Explicit viewport for Empty render pass
     uint32_t             extent[2];
 };
 

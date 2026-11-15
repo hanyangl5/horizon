@@ -40,7 +40,7 @@ Entity World::createPersistentEntity(const Guid& id)
     hmputs(pImpl->pEntityGuids, entry);
     if (isDeferred())
     {
-        pImpl->pendingGuids.pushBack(id);
+        pImpl->pendingGuids.PushBack(id);
     }
     return entity;
 }
@@ -87,6 +87,6 @@ void WorldImpl::finishGuidChanges()
             hmdel(pEntityGuids, id);
         }
     }
-    pendingGuids.clear();
+    pendingGuids.Clear();
 }
 } // namespace hz

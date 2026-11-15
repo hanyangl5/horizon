@@ -11,7 +11,7 @@ struct FixedArray
     T values[N];
 
     constexpr uint32_t size() const { return N; }
-    constexpr bool     empty() const { return false; }
+    constexpr bool     Empty() const { return false; }
     constexpr T*       data() { return values; }
     constexpr const T* data() const { return values; }
     constexpr T*       begin() { return values; }
@@ -35,7 +35,7 @@ template<typename T>
 struct FixedArray<T, 0>
 {
     constexpr uint32_t size() const { return 0; }
-    constexpr bool     empty() const { return true; }
+    constexpr bool     Empty() const { return true; }
     constexpr T*       data() { return nullptr; }
     constexpr const T* data() const { return nullptr; }
     constexpr T*       begin() { return nullptr; }

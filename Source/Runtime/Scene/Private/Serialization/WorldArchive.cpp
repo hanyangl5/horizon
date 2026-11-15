@@ -119,9 +119,9 @@ bool WorldArchive::capture(World& world, Guid id)
     Array<Guid> guids;
     for (ptrdiff_t i = 0; i < hmlen(world.pImpl->pEntityGuids); ++i)
     {
-        guids.pushBack(world.pImpl->pEntityGuids[i].key);
+        guids.PushBack(world.pImpl->pEntityGuids[i].key);
     }
-    if (!guids.empty())
+    if (!guids.Empty())
     {
         qsort(guids.data(), guids.size(), sizeof(Guid), compareGuids);
     }
@@ -130,10 +130,10 @@ bool WorldArchive::capture(World& world, Guid id)
     {
         if (world.pImpl->pTypes[i].key != SceneTypes::entityIdentity && world.pImpl->pTypes[i].key != SceneTypes::name)
         {
-            types.pushBack(world.pImpl->pTypes[i].pType);
+            types.PushBack(world.pImpl->pTypes[i].pType);
         }
     }
-    if (!types.empty())
+    if (!types.Empty())
     {
         qsort(types.data(), types.size(), sizeof(types[0]), compareTypes);
     }
@@ -259,7 +259,7 @@ public:
             }
             const WorldNodeIndex index = { .key = node.id, .value = nodes.size() };
             hmputs(pIndices, index);
-            nodes.pushBack(node);
+            nodes.PushBack(node);
         }
         for (WorldLoadNode& node : nodes)
         {
@@ -281,18 +281,18 @@ public:
             while (current != UINT32_MAX && !nodes[current].visit)
             {
                 nodes[current].visit = 1;
-                path.pushBack(current);
+                path.PushBack(current);
                 current = nodes[current].parentIndex;
             }
             if (current != UINT32_MAX && nodes[current].visit == 1)
             {
                 return false;
             }
-            while (!path.empty())
+            while (!path.Empty())
             {
                 nodes[path[path.size() - 1]].visit = 2;
-                order.pushBack(path[path.size() - 1]);
-                path.popBack();
+                order.PushBack(path[path.size() - 1]);
+                path.PopBack();
             }
         }
         return true;
@@ -390,7 +390,7 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
     Array<TypeID> present;
     for (const WorldLoadNode& node : plan.nodes)
     {
-        present.clear();
+        present.Clear();
         for (const cJSON* pComponent = field(node.pEntityJson, "components")->child; pComponent; pComponent = pComponent->next)
         {
             TypeID   id = 0;
@@ -407,7 +407,7 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
                     return false;
                 }
             }
-            present.pushBack(id);
+            present.PushBack(id);
             const TypeDesc* pType = types.getType(id);
             if (!pType || id == SceneTypes::entityIdentity || id == SceneTypes::name ||
                 !loadComponent(pComponent, *pType, version, migrations, *staging, node.entity))

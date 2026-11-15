@@ -41,11 +41,11 @@ public:
 
     // Call outside World query/defer scopes. The caller advances asset manager loading with AssetManager::update().
     void                    update();
-    // Views expire at the next update/clear. Pending and failed bindings must not be rendered.
+    // Views expire at the next update/Clear. Pending and failed bindings must not be rendered.
     const MeshAssetBinding* get(Entity entity) const;
     uint32_t                getCount() const;
     // Releases all leases; the next update rebuilds bindings, including previously failed requests.
-    void                    clear();
+    void                    Clear();
 
 private:
     WorldAssetBindingsData* pData = nullptr;

@@ -64,7 +64,7 @@ public:
     // Persistent entities. Explicit IDs must be nonzero and unique within this World.
     Entity createPersistentEntity();
     Entity createPersistentEntity(const Guid& id);
-    // Pending creations reserve their IDs immediately but become visible to lookup at defer commit.
+    // Pending creations Reserve their IDs immediately but become visible to lookup at defer commit.
     Entity getEntity(const Guid& id) const;
     Guid   getEntityGuid(Entity entity) const;
     // Leaf deletion can be deferred; deleting a parent preserves its children and requires a committed World.
@@ -117,7 +117,7 @@ private:
 class WorldQuery
 {
 public:
-    // Matches entities that own all listed components. An empty list matches all World entities.
+    // Matches entities that own all listed components. An Empty list matches all World entities.
     WorldQuery(World& world, Span<TypeID> types);
     ~WorldQuery();
     WorldQuery(const WorldQuery&) = delete;

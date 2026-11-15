@@ -105,7 +105,7 @@ TEST_F(SceneWorldTest, OwningComponentsSurviveTableMovesAndRowRemoval)
         entities[i] = world.createEntity();
         hz::MeshRenderer mesh;
         mesh.mesh.low = i + 1;
-        mesh.overrides.pushBack({ .submesh = i + 1, .material = { .low = i + 100 } });
+        mesh.overrides.PushBack({ .submesh = i + 1, .material = { .low = i + 100 } });
         ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::meshRenderer, &mesh));
         ASSERT_TRUE(world.addComponent(entities[i], hz::SceneTypes::name));
         ASSERT_TRUE(world.addComponent(entities[i], hz::SceneTypes::localTransform));
@@ -132,7 +132,7 @@ TEST_F(SceneWorldTest, CopiesOwningComponentFromStorageWhileGrowingItsTable)
     hz::World        world(types);
     hz::Entity       source = world.createEntity();
     hz::MeshRenderer mesh = { .mesh = { .low = 17 } };
-    mesh.overrides.pushBack({ .submesh = 7, .material = { .low = 42 } });
+    mesh.overrides.PushBack({ .submesh = 7, .material = { .low = 42 } });
     ASSERT_TRUE(world.setComponent(source, hz::SceneTypes::meshRenderer, &mesh));
     for (uint32_t i = 0; i < 1000; ++i)
     {
@@ -169,7 +169,7 @@ TEST_F(SceneWorldTest, NestedDeferredScopesDelayStructureAndOwnQueuedValues)
         {
             hz::DeferredChanges nested = world.defer();
             hz::MeshRenderer    mesh;
-            mesh.overrides.pushBack({ .submesh = 7, .material = { .low = 29 } });
+            mesh.overrides.PushBack({ .submesh = 7, .material = { .low = 29 } });
             ASSERT_TRUE(world.setComponent(created, hz::SceneTypes::meshRenderer, &mesh));
             const hz::Camera camera = { .farPlane = 250.0f };
             ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &camera));
@@ -281,7 +281,7 @@ TEST_F(SceneWorldTest, DeferredDeleteDiscardsOwningValuesAndWorldsStayIndependen
     {
         hz::DeferredChanges changes = first.defer();
         hz::MeshRenderer    mesh;
-        mesh.overrides.pushBack({ .submesh = 1 });
+        mesh.overrides.PushBack({ .submesh = 1 });
         const hz::Entity created = first.createEntity();
         ASSERT_TRUE(first.setComponent(created, hz::SceneTypes::meshRenderer, &mesh));
         ASSERT_TRUE(first.destroyEntity(created));
@@ -366,8 +366,8 @@ TEST_F(SceneWorldTest, GuidGenerationIsInjectableAndIdentitiesAreScopedToEachWor
     EXPECT_EQ(second.getEntity(id), b);
 
     hz::TypeRegistry emptyTypes;
-    hz::World        empty(emptyTypes);
-    EXPECT_FALSE(empty.createPersistentEntity(id).isValid());
+    hz::World        Empty(emptyTypes);
+    EXPECT_FALSE(Empty.createPersistentEntity(id).isValid());
 }
 
 TEST_F(SceneWorldTest, DeferredPersistentEntitiesReserveGuidsAndReleaseCancelledCreations)

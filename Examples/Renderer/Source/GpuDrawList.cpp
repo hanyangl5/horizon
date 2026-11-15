@@ -46,8 +46,8 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
         }
         MaterialRevision = Tables.revision;
     }
-    DrawData.clear();
-    GeometryIndices.clear();
+    DrawData.Clear();
+    GeometryIndices.Clear();
     uint32_t   GeometryCount = 0;
     bool       GeometryChanged = false;
     const auto MarkGeometryChanged = [&]
@@ -91,7 +91,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
                 }
                 if (GeometryIndex == Geometries.size())
                 {
-                    Geometries.pushBack({ .Mesh = Draw.mesh, .Opaque = Opaque });
+                    Geometries.PushBack({ .Mesh = Draw.mesh, .Opaque = Opaque });
                 }
                 std::swap(Geometries[GeometryIndex], Geometries[GeometryCount]);
                 GeometryIndex = GeometryCount++;
@@ -99,8 +99,8 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
         }
         for (uint32_t Index = 0; Index < Primitive.instanceCount; ++Index)
         {
-            GeometryIndices.pushBack(GeometryIndex);
-            DrawData.pushBack({ .instance = View.Scene.getInstanceIndices().pData[Primitive.instanceOffset + Index],
+            GeometryIndices.PushBack(GeometryIndex);
+            DrawData.PushBack({ .instance = View.Scene.getInstanceIndices().pData[Primitive.instanceOffset + Index],
                                 .material = Draw.material.index,
                                 .materialId = MaterialIds[Draw.material.index],
                                 .alphaMode = Material->alphaMode,
@@ -184,22 +184,22 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
 hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const SceneView& View,
                                              const hz::GPUBuffer* Indirect) const
 {
-    Buffers.clear();
-    Textures.clear();
-    Buffers.pushBack(&Frame);
-    Buffers.pushBack(&GetDrawData(View.FrameIndex));
+    Buffers.Clear();
+    Textures.Clear();
+    Buffers.PushBack(&Frame);
+    Buffers.PushBack(&GetDrawData(View.FrameIndex));
     const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
     if (Gpu.instances.isValid())
     {
-        Buffers.pushBack(&Gpu.instances);
+        Buffers.PushBack(&Gpu.instances);
     }
     if (Gpu.materials.isValid())
     {
-        Buffers.pushBack(&Gpu.materials);
+        Buffers.PushBack(&Gpu.materials);
     }
     if (Gpu.textures.isValid())
     {
-        Buffers.pushBack(&Gpu.textures);
+        Buffers.PushBack(&Gpu.textures);
     }
     const hz::GpuAssetTables& Tables = View.GpuScene.getAssetTables();
     const hz::GPUBuffer*      Previous = nullptr;
@@ -216,17 +216,17 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
             continue;
         }
         Previous = &Mesh->getIndexBuffer();
-        Buffers.pushBack(Previous);
+        Buffers.PushBack(Previous);
         for (uint32_t Index = 0; Index < Mesh->getVertexBufferCount(); ++Index)
         {
-            Buffers.pushBack(&Mesh->getVertexBuffer(Index));
+            Buffers.PushBack(&Mesh->getVertexBuffer(Index));
         }
     }
     for (const hz::GpuTextureData& TextureData : Tables.textures)
     {
         if (TextureData.id.isValid())
         {
-            Textures.pushBack(
+            Textures.PushBack(
                 &View.Assets.getTexture({ .index = TextureData.id.index, .generation = TextureData.id.generation })->getTexture());
         }
     }

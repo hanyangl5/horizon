@@ -147,7 +147,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
         for (const AccelerationStructureGeometry& geometry : input.geometries)
         {
             ASSERT(geometry.pVertexBuffer && geometry.pVertexBuffer->isValid() && geometry.vertexCount);
-            geometries.pushBack({ .pVertexBuffer = geometry.pVertexBuffer->pBuffer,
+            geometries.PushBack({ .pVertexBuffer = geometry.pVertexBuffer->pBuffer,
                                   .pIndexBuffer = geometry.pIndexBuffer ? geometry.pIndexBuffer->pBuffer : nullptr,
                                   .vertexOffset = geometry.vertexOffset,
                                   .vertexCount = geometry.vertexCount,
@@ -158,10 +158,10 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
                                   .indexType = geometry.indexType,
                                   .flags = geometry.opaque ? ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE
                                                            : ACCELERATION_STRUCTURE_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION });
-            data->inputs.pushBack(geometry.pVertexBuffer);
+            data->inputs.PushBack(geometry.pVertexBuffer);
             if (geometry.pIndexBuffer)
             {
-                data->inputs.pushBack(geometry.pIndexBuffer);
+                data->inputs.PushBack(geometry.pIndexBuffer);
             }
         }
         desc.bottom = { .descCount = geometries.size(), .pGeometryDescs = geometries.data() };
@@ -185,7 +185,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
                                                            .instanceContributionToHitGroupIndex = instance.hitGroupOffset,
                                                            .flags = instance.flags };
             memcpy(native.transform, instance.transform, sizeof(native.transform));
-            instances.pushBack(native);
+            instances.PushBack(native);
         }
         ASSERT(!input.instances.count || input.instanceCount <= input.instances.count);
         desc.top = { .descCount = data->capacity, .pInstanceDescs = instances.data() };
@@ -303,7 +303,7 @@ static void addRayEntry(Array<RayEntry>& entries, const char* name, SlangStage s
             return;
         }
     }
-    entries.pushBack({ .name = name, .stage = stage });
+    entries.PushBack({ .name = name, .stage = stage });
 }
 static bool raySlangResult(SlangResult result, const Slang::ComPtr<ISlangBlob>& diagnostics)
 {
@@ -384,12 +384,12 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
         addRayEntry(entries, group.pClosestHit, SLANG_STAGE_CLOSEST_HIT);
         addRayEntry(entries, group.pAnyHit, SLANG_STAGE_ANY_HIT);
         addRayEntry(entries, group.pIntersection, SLANG_STAGE_INTERSECTION);
-        groups.pushBack(
+        groups.PushBack(
             { .pName = group.pName, .pClosestHit = group.pClosestHit, .pAnyHit = group.pAnyHit, .pIntersection = group.pIntersection });
     }
     Array<Slang::ComPtr<slang::IEntryPoint>> entryPoints(entries.size());
     Array<slang::IComponentType*>            components;
-    components.pushBack(module);
+    components.PushBack(module);
     for (uint32_t i = 0; i < entries.size(); ++i)
     {
         if (!raySlangResult(
@@ -398,7 +398,7 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
         {
             return {};
         }
-        components.pushBack(entryPoints[i].get());
+        components.PushBack(entryPoints[i].get());
     }
     Slang::ComPtr<slang::IComponentType> program, linked;
     Slang::ComPtr<ISlangBlob>            library;

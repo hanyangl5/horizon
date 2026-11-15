@@ -17,7 +17,7 @@ public:
     explicit Array(Span<T> values)
     {
         ASSERT(values.pData || !values.count);
-        reserve(values.count);
+        Reserve(values.count);
         for (uint32_t i = 0; i < values.count; ++i)
             ::new ((void*)(pData + i)) T(values.pData[i]);
         stbds_arrsetlen(pData, values.count);
@@ -50,7 +50,7 @@ public:
 
     uint32_t size() const { return (uint32_t)stbds_arrlenu(pData); }
     uint32_t capacity() const { return (uint32_t)stbds_arrcap(pData); }
-    bool     empty() const { return size() == 0; }
+    bool     Empty() const { return size() == 0; }
 
     T*       data() { return pData; }
     const T* data() const { return pData; }
@@ -70,7 +70,7 @@ public:
         return pData[index];
     }
 
-    void reserve(uint32_t count)
+    void Reserve(uint32_t count)
     {
         if (count <= capacity())
             return;
@@ -93,21 +93,21 @@ public:
     void resize(uint32_t count)
     {
         const uint32_t oldCount = size();
-        destroyFrom(count);
-        reserve(count);
+        DestroyFrom(count);
+        Reserve(count);
         for (uint32_t i = oldCount; i < count; ++i)
             ::new ((void*)(pData + i)) T{};
         stbds_arrsetlen(pData, count);
     }
     template<typename... Args>
-    T& emplaceBack(Args&&... args)
+    T& EmplaceBack(Args&&... args)
     {
         const uint32_t count = size();
         if (count == capacity())
         {
             // Arguments may refer to elements invalidated by growth.
             T value(std::forward<Args>(args)...);
-            reserve(count + 1);
+            Reserve(count + 1);
             relocate(pData + count, value);
         }
         else
@@ -115,22 +115,22 @@ public:
         stbds_arrsetlen(pData, count + 1);
         return pData[count];
     }
-    void pushBack(const T& value) { emplaceBack(value); }
-    void pushBack(T&& value) { emplaceBack(std::move(value)); }
-    void popBack()
+    void PushBack(const T& value) { EmplaceBack(value); }
+    void PushBack(T&& value) { EmplaceBack(std::move(value)); }
+    void PopBack()
     {
-        ASSERT(!empty());
-        destroyFrom(size() - 1);
+        ASSERT(!Empty());
+        DestroyFrom(size() - 1);
         stbds_arrsetlen(pData, size() - 1);
     }
-    void clear()
+    void Clear()
     {
-        destroyFrom(0);
+        DestroyFrom(0);
         stbds_arrsetlen(pData, 0);
     }
     void reset()
     {
-        clear();
+        Clear();
         stbds_arrfree(pData);
     }
 
@@ -142,7 +142,7 @@ private:
         else
             ::new ((void*)pDestination) T(source);
     }
-    void destroyFrom(uint32_t first)
+    void DestroyFrom(uint32_t first)
     {
         if constexpr (!__is_trivially_destructible(T))
         {

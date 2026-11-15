@@ -125,10 +125,10 @@ public:
         const RenderEntityIndex* pIndex = hmgetp_null(data.pLightIndices, entity);
         if (!pIndex)
         {
-            RenderLightEntity& lightEntity = data.lightEntities.emplaceBack();
+            RenderLightEntity& lightEntity = data.lightEntities.EmplaceBack();
             lightEntity.entity = entity;
             lightEntity.id = data.lights.add();
-            data.textureReleases.reserve(data.lightEntities.size());
+            data.textureReleases.Reserve(data.lightEntities.size());
             const RenderEntityIndex index = { .key = entity, .value = data.lightEntities.size() - 1 };
             hmputs(data.pLightIndices, index);
             pIndex = hmgetp_null(data.pLightIndices, entity);
@@ -141,7 +141,7 @@ public:
         {
             if (lightEntity.texture.isValid())
             {
-                data.textureReleases.pushBack(lightEntity.texture);
+                data.textureReleases.PushBack(lightEntity.texture);
             }
             lightEntity.textureID = textureID;
             lightEntity.texture = {};
@@ -162,11 +162,11 @@ public:
             if (!entity.seen)
             {
                 if (entity.texture.isValid())
-                    textureReleases.pushBack(entity.texture);
+                    textureReleases.PushBack(entity.texture);
                 lights.remove(entity.id);
                 hmdel(pLightIndices, entity.entity);
                 lightEntities[i] = lightEntities[lightEntities.size() - 1];
-                lightEntities.popBack();
+                lightEntities.PopBack();
                 if (i < lightEntities.size())
                     hmgetp_null(pLightIndices, lightEntities[i].entity)->value = i;
                 continue;
@@ -220,7 +220,7 @@ public:
         }
         for (AssetHandle handle : textureReleases)
             assetManager.release(handle);
-        textureReleases.clear();
+        textureReleases.Clear();
     }
     static bool extractCamera(Entity entity, Span<const void*> fields, void* pUser)
     {
@@ -228,7 +228,7 @@ public:
         const RenderEntityIndex* pIndex = hmgetp_null(data.pCameraIndices, entity);
         if (!pIndex)
         {
-            RenderCameraEntity& cameraEntity = data.cameraEntities.emplaceBack();
+            RenderCameraEntity& cameraEntity = data.cameraEntities.EmplaceBack();
             cameraEntity.entity = entity;
             cameraEntity.id = data.cameras.add();
             const RenderEntityIndex index = { .key = entity, .value = data.cameraEntities.size() - 1 };
@@ -269,7 +269,7 @@ public:
             cameras.remove(entity.id);
             hmdel(pCameraIndices, entity.entity);
             cameraEntities[i] = cameraEntities[cameraEntities.size() - 1];
-            cameraEntities.popBack();
+            cameraEntities.PopBack();
             if (i < cameraEntities.size())
                 hmgetp_null(pCameraIndices, cameraEntities[i].entity)->value = i;
         }
@@ -281,21 +281,21 @@ public:
         {
             meshBatches.remove(meshBatch);
         }
-        entity.meshBatches.clear();
+        entity.meshBatches.Clear();
     }
     void setInstanceIndex(uint32_t index, uint32_t value)
     {
         if (instanceIndices.size() <= index)
         {
-            indicesDirty.reserve(index + 1);
-            indicesRanges.reserve(index + 1);
-            indicesPending.reserve(index + 1);
+            indicesDirty.Reserve(index + 1);
+            indicesRanges.Reserve(index + 1);
+            indicesPending.Reserve(index + 1);
         }
         while (instanceIndices.size() <= index)
         {
             markIndex(instanceIndices.size());
-            instanceIndices.pushBack(UINT32_MAX);
-            indicesPendingFlags.pushBack(true);
+            instanceIndices.PushBack(UINT32_MAX);
+            indicesPendingFlags.PushBack(true);
         }
         if (instanceIndices[index] != value)
         {
@@ -305,14 +305,14 @@ public:
     }
     void markIndex(uint32_t index)
     {
-        indicesDirty.pushBack(index);
+        indicesDirty.PushBack(index);
         if (index >= indicesPendingFlags.size() || !indicesPendingFlags[index])
         {
             if (index < indicesPendingFlags.size())
             {
                 indicesPendingFlags[index] = true;
             }
-            indicesPending.pushBack(index);
+            indicesPending.PushBack(index);
         }
     }
     void markHistory(uint32_t instance)
@@ -321,12 +321,12 @@ public:
         if (!history.pending)
         {
             history.pending = true;
-            historyPending.pushBack(instance);
+            historyPending.PushBack(instance);
         }
     }
     RenderEntity& add(Entity entity)
     {
-        RenderEntity& renderEntity = entities.emplaceBack();
+        RenderEntity& renderEntity = entities.EmplaceBack();
         renderEntity.entity = entity;
         renderEntity.primitive = primitives.add();
         renderEntity.instance = instances.add();
@@ -334,7 +334,7 @@ public:
         instances.values[renderEntity.instance.index].primitive = renderEntity.primitive;
         if (instanceHistory.size() <= renderEntity.instance.index)
         {
-            historyPending.reserve(renderEntity.instance.index + 1);
+            historyPending.Reserve(renderEntity.instance.index + 1);
             instanceHistory.resize(renderEntity.instance.index + 1);
         }
         instanceHistory[renderEntity.instance.index].valid = false;
@@ -347,7 +347,7 @@ public:
     void buildMeshBatches(RenderEntity& entity, const MeshAssetBinding& binding, const MeshAsset& mesh)
     {
         removeMeshBatches(entity);
-        entity.meshBatches.reserve(binding.materials.count);
+        entity.meshBatches.Reserve(binding.materials.count);
         entity.localBounds = binding.materials.count ? mesh.getBounds(0) : MeshBounds{};
         for (uint32_t i = 0; i < binding.materials.count; ++i)
         {
@@ -358,7 +358,7 @@ public:
             meshBatch.submesh = material.submesh;
             meshBatch.mesh = { .mesh = primitives.values[entity.primitive.index].mesh, .submeshIndex = i };
             meshBatch.material = { .index = material.handle.index, .generation = material.handle.generation };
-            entity.meshBatches.pushBack(id);
+            entity.meshBatches.PushBack(id);
             const MeshBounds& bounds = mesh.getBounds(i);
             for (uint32_t axis = 0; axis < 3; ++axis)
             {
@@ -394,7 +394,7 @@ public:
             primitives.markDirty(entity.primitive.index);
             setInstanceIndex(entity.primitive.index, ready ? entity.instance.index : UINT32_MAX);
         }
-        if (ready && entity.meshBatches.empty())
+        if (ready && entity.meshBatches.Empty())
         {
             buildMeshBatches(entity, *pBinding, *pMesh);
         }
@@ -466,7 +466,7 @@ public:
         meshBatches.beginUpdate();
         lights.beginUpdate();
         cameras.beginUpdate();
-        indicesDirty.clear();
+        indicesDirty.Clear();
         for (RenderEntity& entity : entities)
             entity.seen = false;
         for (RenderLightEntity& entity : lightEntities)
@@ -498,7 +498,7 @@ public:
             hmdel(pIndices, entity.entity);
             if (i + 1 < entities.size())
                 entities[i] = entities[entities.size() - 1];
-            entities.popBack();
+            entities.PopBack();
             if (i < entities.size())
                 hmgetp_null(pIndices, entities[i].entity)->value = i;
         }
@@ -512,7 +512,7 @@ public:
         cameras.finishUpdate();
         mergeRenderRanges(indicesDirty, indicesRanges);
         if (primitives.getChanges().ranges.count || instances.getChanges().ranges.count || meshBatches.getChanges().ranges.count ||
-            lights.getChanges().ranges.count || cameras.getChanges().ranges.count || !indicesRanges.empty())
+            lights.getChanges().ranges.count || cameras.getChanges().ranges.count || !indicesRanges.Empty())
         {
             ++revision;
         }
@@ -548,7 +548,7 @@ public:
         {
             indicesPendingFlags[index] = false;
         }
-        indicesPending.clear();
+        indicesPending.Clear();
     }
     void commitHistory()
     {
@@ -567,7 +567,7 @@ public:
             history.submitted = instance.current;
             history.valid = true;
         }
-        historyPending.clear();
+        historyPending.Clear();
         for (RenderCameraEntity& entity : cameraEntities)
         {
             if (entity.historyReset)
@@ -629,28 +629,28 @@ public:
 
 RenderScene::RenderScene(World& world, AssetManager& assetManager): pData(MemNew(RenderSceneData, world, assetManager)) {}
 RenderScene::~RenderScene() { MemDelete(pData); }
-void RenderScene::reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount, uint32_t cameraCount)
+void RenderScene::Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount, uint32_t cameraCount)
 {
-    pData->primitives.reserve(primitiveCount);
-    pData->instances.reserve(primitiveCount);
-    pData->meshBatches.reserve(meshBatchCount);
-    pData->entities.reserve(primitiveCount);
-    pData->instanceIndices.reserve(primitiveCount);
-    pData->indicesDirty.reserve(primitiveCount);
-    pData->indicesRanges.reserve(primitiveCount);
-    pData->indicesPending.reserve(primitiveCount);
-    pData->indicesPendingFlags.reserve(primitiveCount);
-    pData->instanceHistory.reserve(primitiveCount);
-    pData->historyPending.reserve(primitiveCount);
+    pData->primitives.Reserve(primitiveCount);
+    pData->instances.Reserve(primitiveCount);
+    pData->meshBatches.Reserve(meshBatchCount);
+    pData->entities.Reserve(primitiveCount);
+    pData->instanceIndices.Reserve(primitiveCount);
+    pData->indicesDirty.Reserve(primitiveCount);
+    pData->indicesRanges.Reserve(primitiveCount);
+    pData->indicesPending.Reserve(primitiveCount);
+    pData->indicesPendingFlags.Reserve(primitiveCount);
+    pData->instanceHistory.Reserve(primitiveCount);
+    pData->historyPending.Reserve(primitiveCount);
     for (Array<RenderRange>& ranges : pData->uploadRanges)
     {
-        ranges.reserve(primitiveCount > meshBatchCount ? primitiveCount : meshBatchCount);
+        ranges.Reserve(primitiveCount > meshBatchCount ? primitiveCount : meshBatchCount);
     }
-    pData->lights.reserve(lightCount);
-    pData->cameras.reserve(cameraCount);
-    pData->lightEntities.reserve(lightCount);
-    pData->cameraEntities.reserve(cameraCount);
-    pData->textureReleases.reserve(lightCount);
+    pData->lights.Reserve(lightCount);
+    pData->cameras.Reserve(cameraCount);
+    pData->lightEntities.Reserve(lightCount);
+    pData->cameraEntities.Reserve(cameraCount);
+    pData->textureReleases.Reserve(lightCount);
 }
 void               RenderScene::update() { pData->update(); }
 uint64_t           RenderScene::getRevision() const { return pData->revision; }

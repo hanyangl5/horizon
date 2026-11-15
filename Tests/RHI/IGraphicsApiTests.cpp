@@ -1760,7 +1760,7 @@ TEST_F(RHIIGraphicsApiTest, PipelineCacheAndPipelineApisCreateUsableComputePipel
     {
         std::vector<uint8_t> pipelineCacheBytes(serializedPipelineCacheSize);
         getPipelineCacheData(harness.pRenderer, pipelineBundle.pPipelineCache, &serializedPipelineCacheSize, pipelineCacheBytes.data());
-        EXPECT_FALSE(pipelineCacheBytes.empty());
+        EXPECT_FALSE(pipelineCacheBytes.Empty());
     }
 
     ASSERT_NE(pipelineBundle.pPipeline->dx.pPipelineState, nullptr);

@@ -332,7 +332,7 @@ void parseGPUDataFile()
     while (bufferedGetLine(currentLineStr, &fileCursor, gGpuDataFileEnd))
     {
         char*       lineCursor = currentLineStr;
-        // skip spaces, empty line and comments
+        // skip spaces, Empty line and comments
         size_t      ruleLength = strcspn(lineCursor, "#");
         const char* pLineEnd = lineCursor + ruleLength;
         while (currentLineStr != pLineEnd && isspace(*lineCursor))
@@ -477,7 +477,7 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
     while (bufferedGetLine(currentLineStr, &fileCursor, fileEnd))
     {
         char*       lineCursor = currentLineStr;
-        // skip spaces, empty line and comments
+        // skip spaces, Empty line and comments
         size_t      ruleLength = strcspn(lineCursor, "#");
         const char* pLineEnd = lineCursor + ruleLength;
         while (currentLineStr != pLineEnd && isspace(*lineCursor))
@@ -1378,7 +1378,7 @@ bool contains(char* str, const char* substr) { return strstr(str, substr) != nul
 
 void tokenizeLine(const char* pLine, const char* pLineEnd, uint32_t numTokens, char** pTokens)
 {
-    //  initialize all tokens to empty string
+    //  initialize all tokens to Empty string
     for (uint32_t i = 0; i < numTokens; ++i)
         pTokens[i][0] = '\0';
 

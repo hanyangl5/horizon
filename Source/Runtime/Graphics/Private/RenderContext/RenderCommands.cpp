@@ -28,7 +28,7 @@ void hz::CommandList::reset(Cmd* cmd, uint64_t profilerToken)
     vertexBufferCount = 0;
 }
 
-void hz::CommandList::clear()
+void hz::CommandList::Clear()
 {
     pCmd = nullptr;
     pCurrentRootSignature = nullptr;

@@ -3068,7 +3068,7 @@ void exitUserInterface()
     arrfree(pUserInterface->pCachedFontsArr);
     hmfree(pUserInterface->pTextureHashmap);
 
-    // Resources can no longer be used. Force ImGui to clear all use:
+    // Resources can no longer be used. Force ImGui to Clear all use:
     {
         ImGui::SetCurrentContext(pUserInterface->context);
         uiNewFrame();

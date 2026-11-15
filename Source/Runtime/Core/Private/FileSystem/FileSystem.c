@@ -288,7 +288,7 @@ FORGE_API size_t NormalizePathContinue(const char* nextPath, char separator, con
         return (size_t)(end - beg);
     }
 
-    // If input wasn't empty strings, write "."
+    // If input wasn't Empty strings, write "."
     if (!size && (notEmptyAtStart || *nextPath))
     {
         *cur = '.';
@@ -309,7 +309,7 @@ FORGE_API bool MergeDirAndFileName(const char* prePath, const char* postPath, ch
     size_t outputLength = NormalizePathContinue(prePath, separator, output, output, output + outputSize);
 
     if (                                         // put separator between paths, if conditions are met:
-        outputLength &&                          // if path isn't empty
+        outputLength &&                          // if path isn't Empty
         output[outputLength - 1] != separator && // if separator is missing
         !isDirectorySeparator(*postPath))        // if separator is missing in postpath
     {

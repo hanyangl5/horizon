@@ -2027,7 +2027,7 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
     DXGI_ADAPTER_DESC adapterDesc;
     pGpuDesc->pGpu->GetDesc(&adapterDesc);
 
-    // set default driver version as empty string
+    // set default driver version as Empty string
     gpuSettings.gpuVendorPreset.gpuDriverVersion[0] = '\0';
     if (gpuVendorEquals(adapterDesc.VendorId, "nvidia"))
     {

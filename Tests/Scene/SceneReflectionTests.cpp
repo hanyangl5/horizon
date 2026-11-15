@@ -210,7 +210,7 @@ TEST_F(SceneReflectionTest, OwningComponentCopyAndMoveManageArrayLifetime)
     type->construct(originalStorage);
     hz::MeshRenderer* original = (hz::MeshRenderer*)originalStorage;
     original->mesh = { .high = 11, .low = 22 };
-    original->overrides.pushBack({ .submesh = 17, .material = { .high = 33, .low = 44 } });
+    original->overrides.PushBack({ .submesh = 17, .material = { .high = 33, .low = 44 } });
     type->copyConstruct(copyStorage, originalStorage);
     hz::MeshRenderer* copy = (hz::MeshRenderer*)copyStorage;
     EXPECT_EQ(copy->mesh, original->mesh);
@@ -221,7 +221,7 @@ TEST_F(SceneReflectionTest, OwningComponentCopyAndMoveManageArrayLifetime)
     EXPECT_EQ(original->overrides[0].submesh, 17u);
     const hz::MaterialOverride* data = copy->overrides.data();
     type->moveConstruct(movedStorage, copyStorage);
-    EXPECT_TRUE(copy->overrides.empty());
+    EXPECT_TRUE(copy->overrides.Empty());
     const hz::MeshRenderer* moved = (const hz::MeshRenderer*)movedStorage;
     EXPECT_EQ(moved->overrides.data(), data);
     EXPECT_EQ(moved->overrides[0].submesh, 19u);

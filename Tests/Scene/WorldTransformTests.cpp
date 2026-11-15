@@ -181,7 +181,7 @@ TEST_F(SceneTransformTest, DeepHierarchyUsesIterativeTraversalAndCleanUpdatesDoN
     for (uint32_t i = 0; i < 2048; ++i)
     {
         const hz::Entity entity = world.createEntity();
-        entities.pushBack(entity);
+        entities.PushBack(entity);
         setTranslation(world, entity, 1.0f);
         ASSERT_TRUE(world.setParent(entity, parent, false));
         if (!root.isValid())
@@ -242,7 +242,7 @@ TEST_F(SceneTransformTest, DeepSubtreeSupportsReparentingComponentEditsAndDeleti
     expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)count + 12.0f, 0, 0)));
     EXPECT_FALSE(world.setParent(secondParent, leaf));
     hz::MeshRenderer renderer;
-    renderer.overrides.pushBack({ .submesh = 1, .material = { .low = 42 } });
+    renderer.overrides.PushBack({ .submesh = 1, .material = { .low = 42 } });
     ASSERT_TRUE(world.setComponent(root, hz::SceneTypes::meshRenderer, &renderer));
     ASSERT_TRUE(world.addComponent(root, hz::SceneTypes::name));
     const char name[] = "DeepRoot";

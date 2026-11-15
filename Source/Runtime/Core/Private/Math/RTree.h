@@ -694,7 +694,7 @@ extern "C"
         {
             --pRTree->leafNodes; // Amount of leave nodes is reduced by one
             uint8_t  isLeftNode = treeIndex % 2;
-            // Replace empty data space with the current outer leave node
+            // Replace Empty data space with the current outer leave node
             uint32_t outerNodeIndex;
             bool     succeed = rtree_get_leave_node(pRTree, pRTree->maxElementsPerNode * pRTree->leafNodes, &outerNodeIndex);
             ASSERT(succeed);

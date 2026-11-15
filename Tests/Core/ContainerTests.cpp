@@ -32,16 +32,16 @@ protected:
 TEST_F(CoreContainerTest, ArrayPreservesElementsAndAliasedValuesAcrossGrowth)
 {
     hz::Array<uint32_t> values;
-    EXPECT_TRUE(values.empty());
+    EXPECT_TRUE(values.Empty());
     EXPECT_EQ(values.begin(), values.end());
-    values.reserve(0);
+    values.Reserve(0);
     EXPECT_EQ(values.data(), nullptr);
 
-    values.reserve(4);
+    values.Reserve(4);
     const uint32_t capacity = values.capacity();
     for (uint32_t i = 0; i < capacity; ++i)
-        values.pushBack(i + 10);
-    values.pushBack(values[0]);
+        values.PushBack(i + 10);
+    values.PushBack(values[0]);
     ASSERT_EQ(values.size(), capacity + 1);
     EXPECT_GT(values.capacity(), capacity);
     for (uint32_t i = 0; i < capacity; ++i)
@@ -51,7 +51,7 @@ TEST_F(CoreContainerTest, ArrayPreservesElementsAndAliasedValuesAcrossGrowth)
     values.resize(capacity + 4);
     EXPECT_EQ(values[capacity + 1], 0u);
     EXPECT_EQ(values[capacity + 3], 0u);
-    values.popBack();
+    values.PopBack();
     EXPECT_EQ(values.size(), capacity + 3);
     values.resize(1);
     values.resize(3);
@@ -69,11 +69,11 @@ TEST_F(CoreContainerTest, ArrayMovesStorageAndRetainsCapacityWhenCleared)
     hz::Array<int> moved(std::move(values));
     EXPECT_EQ(moved.data(), pData);
     EXPECT_EQ(values.data(), nullptr);
-    EXPECT_TRUE(values.empty());
+    EXPECT_TRUE(values.Empty());
 
     hz::Array<int> destination(12);
     destination = std::move(moved);
-    EXPECT_TRUE(moved.empty());
+    EXPECT_TRUE(moved.Empty());
     const hz::Array<int>& view = destination;
     int                   sum = 0;
     for (const int value : view)
@@ -87,16 +87,16 @@ TEST_F(CoreContainerTest, ArrayMovesStorageAndRetainsCapacityWhenCleared)
     EXPECT_NE(values.data(), destination.data());
     EXPECT_EQ(values[2], 7);
     values.reset();
-    destination.clear();
+    destination.Clear();
     EXPECT_EQ(destination.data(), pData);
     EXPECT_EQ(destination.capacity(), capacity);
-    EXPECT_TRUE(destination.empty());
-    destination.pushBack(9);
+    EXPECT_TRUE(destination.Empty());
+    destination.PushBack(9);
     EXPECT_EQ(destination[0], 9);
     destination.reset();
     EXPECT_EQ(destination.capacity(), 0u);
     EXPECT_EQ(destination.data(), nullptr);
-    values.pushBack(11);
+    values.PushBack(11);
     EXPECT_EQ(values[0], 11);
 }
 
@@ -139,10 +139,10 @@ struct NonDefaultConstructible
 
 TEST_F(CoreContainerTest, FixedArraySupportsZeroLengthAndValueCopies)
 {
-    hz::FixedArray<NonDefaultConstructible, 0> empty;
-    EXPECT_TRUE(empty.empty());
-    EXPECT_EQ(empty.data(), nullptr);
-    EXPECT_EQ(empty.begin(), empty.end());
+    hz::FixedArray<NonDefaultConstructible, 0> Empty;
+    EXPECT_TRUE(Empty.Empty());
+    EXPECT_EQ(Empty.data(), nullptr);
+    EXPECT_EQ(Empty.begin(), Empty.end());
     hz::FixedArray<int, 3> zeroed{};
     for (const int value : zeroed)
         EXPECT_EQ(value, 0);
@@ -179,11 +179,11 @@ TEST_F(CoreContainerTest, ArrayRelocatesAndDestroysAlignedMoveOnlyObjects)
 {
     EXPECT_EQ(MovableObject::liveCount, 0);
     hz::Array<MovableObject> objects;
-    objects.reserve(4);
+    objects.Reserve(4);
     const uint32_t capacity = objects.capacity();
     for (uint32_t i = 0; i < capacity; ++i)
-        objects.emplaceBack((int)i + 10);
-    objects.emplaceBack(objects[0].value);
+        objects.EmplaceBack((int)i + 10);
+    objects.EmplaceBack(objects[0].value);
     EXPECT_EQ(MovableObject::liveCount, (int)objects.size());
     EXPECT_EQ(objects[capacity].value, 10);
     for (uint32_t i = 0; i < capacity; ++i)
@@ -191,12 +191,12 @@ TEST_F(CoreContainerTest, ArrayRelocatesAndDestroysAlignedMoveOnlyObjects)
     EXPECT_EQ((uintptr_t)objects.data() % alignof(MovableObject), 0u);
     objects.resize(2);
     EXPECT_EQ(MovableObject::liveCount, 2);
-    objects.popBack();
+    objects.PopBack();
     EXPECT_EQ(MovableObject::liveCount, 1);
     MovableObject* const     pData = objects.data();
     hz::Array<MovableObject> moved(std::move(objects));
     EXPECT_EQ(moved.data(), pData);
-    EXPECT_TRUE(objects.empty());
-    moved.clear();
+    EXPECT_TRUE(objects.Empty());
+    moved.Clear();
     EXPECT_EQ(MovableObject::liveCount, 0);
 }

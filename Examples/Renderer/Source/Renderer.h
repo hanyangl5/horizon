@@ -151,7 +151,7 @@ private:
             return false;
         }
         Scene = hz::MakeUnique<hz::RenderScene>(*World, *AssetManager);
-        Scene->reserve(Asset->getNodes().count, Asset->getNodes().count, 1, 1);
+        Scene->Reserve(Asset->getNodes().count, Asset->getNodes().count, 1, 1);
         Scene->update();
         LOGF(Info, "World ready: %u render primitives, %u instances, %u mesh batches, %u materials, %u textures",
              Scene->getActivePrimitives().count, Scene->getActiveInstances().count, Scene->getActiveMeshBatches().count,
@@ -191,7 +191,7 @@ public:
         }
         AssetManager = nullptr;
         Loaders = nullptr;
-        Catalog.clear();
+        Catalog.Clear();
         CameraEntity = {};
         Context = nullptr;
     }

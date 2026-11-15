@@ -57,7 +57,7 @@ void WorldHierarchy::markTransformDirty(ecs_entity_t entity)
     if (index != UINT32_MAX && !nodes[index].dirty)
     {
         nodes[index].dirty = true;
-        dirtyRoots.pushBack(index);
+        dirtyRoots.PushBack(index);
     }
 }
 
@@ -79,7 +79,7 @@ bool WorldHierarchy::prepareLocalChange(ecs_entity_t entity, TypeID type, bool a
     if (ecs_is_deferred(world.pWorld) && next != mask)
     {
         if (!pPending)
-            pendingLocals.pushBack(entity);
+            pendingLocals.PushBack(entity);
         const LocalState state = { .key = entity, .value = next };
         hmputs(pPendingLocals, state);
     }
@@ -91,7 +91,7 @@ void WorldHierarchy::finishDeferredChanges()
 {
     for (ecs_entity_t entity : pendingLocals)
         hmdel(pPendingLocals, entity);
-    pendingLocals.clear();
+    pendingLocals.Clear();
 }
 
 Matrix4 WorldHierarchy::localMatrix(ecs_entity_t entity) const
@@ -105,7 +105,7 @@ Matrix4 WorldHierarchy::localMatrix(ecs_entity_t entity) const
 
 void WorldHierarchy::rebuild()
 {
-    buildNodes.clear();
+    buildNodes.Clear();
     for (const Node& node : nodes)
         hmdel(pBuildIndices, node.entity);
     ecs_iter_t it = ecs_query_iter(world.pWorld, pEntities);
@@ -115,7 +115,7 @@ void WorldHierarchy::rebuild()
         {
             const Index mapping = { .key = it.entities[row], .value = buildNodes.size() };
             hmputs(pBuildIndices, mapping);
-            buildNodes.pushBack({ .entity = it.entities[row] });
+            buildNodes.PushBack({ .entity = it.entities[row] });
         }
     }
     uint32_t firstRoot = UINT32_MAX;
@@ -130,9 +130,9 @@ void WorldHierarchy::rebuild()
         first = i;
     }
 
-    scratch.clear();
-    scratch.reserve(buildNodes.size());
-    stack.clear();
+    scratch.Clear();
+    scratch.Reserve(buildNodes.size());
+    stack.Clear();
     uint32_t current = firstRoot;
     while (current != UINT32_MAX)
     {
@@ -144,19 +144,19 @@ void WorldHierarchy::rebuild()
         node.parent = entry.parent == UINT32_MAX ? UINT32_MAX : buildNodes[entry.parent].output;
         node.dirty = true;
         node.historyDirty = false;
-        scratch.pushBack(node);
-        stack.pushBack(current);
+        scratch.PushBack(node);
+        stack.PushBack(current);
         if (entry.firstChild != UINT32_MAX)
         {
             current = entry.firstChild;
             continue;
         }
         current = UINT32_MAX;
-        while (!stack.empty())
+        while (!stack.Empty())
         {
             const BuildNode& finished = buildNodes[stack[stack.size() - 1]];
             scratch[finished.output].subtreeEnd = scratch.size();
-            stack.popBack();
+            stack.PopBack();
             if (finished.nextSibling != UINT32_MAX)
             {
                 current = finished.nextSibling;
@@ -175,11 +175,11 @@ void WorldHierarchy::rebuild()
         const Index mapping = { .key = nodes[i].entity, .value = i };
         hmputs(pIndices, mapping);
     }
-    dirtyRoots.clear();
-    dirtyRoots.reserve(nodes.size());
-    historyDirty.clear();
+    dirtyRoots.Clear();
+    dirtyRoots.Reserve(nodes.size());
+    historyDirty.Clear();
     for (uint32_t i = 0; i < nodes.size(); i = nodes[i].subtreeEnd)
-        dirtyRoots.pushBack(i);
+        dirtyRoots.PushBack(i);
     structureDirty = false;
 }
 
@@ -189,7 +189,7 @@ void WorldHierarchy::update()
     ASSERT(!ecs_is_deferred(world.pWorld));
     if (structureDirty)
         rebuild();
-    if (dirtyRoots.empty())
+    if (dirtyRoots.Empty())
         return;
     qsort(dirtyRoots.data(), dirtyRoots.size(), sizeof(uint32_t), compareIndices);
     uint32_t processedEnd = 0;
@@ -212,17 +212,17 @@ void WorldHierarchy::update()
             if (!node.historyDirty)
             {
                 node.historyDirty = true;
-                historyDirty.pushBack(i);
+                historyDirty.PushBack(i);
             }
         }
     }
-    dirtyRoots.clear();
+    dirtyRoots.Clear();
 }
 
 const WorldTransform* WorldHierarchy::get(ecs_entity_t entity) const
 {
     world.checkThread();
-    ASSERT(!structureDirty && dirtyRoots.empty());
+    ASSERT(!structureDirty && dirtyRoots.Empty());
     const uint32_t index = find(entity);
     return index != UINT32_MAX ? &nodes[index].transform : nullptr;
 }
@@ -235,7 +235,7 @@ void WorldHierarchy::commit()
         nodes[index].transform.previous = nodes[index].transform.current;
         nodes[index].historyDirty = false;
     }
-    historyDirty.clear();
+    historyDirty.Clear();
 }
 
 void WorldHierarchy::markDirty(ecs_entity_t root)

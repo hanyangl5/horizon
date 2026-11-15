@@ -88,7 +88,7 @@ typedef struct TextureLoadDesc
     Texture** ppTexture;
     union
     {
-        /// Load empty texture
+        /// Load Empty texture
         struct
         {
             TextureDesc* pDesc;

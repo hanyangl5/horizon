@@ -214,8 +214,8 @@ cJSON* writeWorldProperties(const TypeDesc& type, const void* pValue)
     Array<const PropertyDesc*> properties;
     for (const PropertyDesc& property : type.properties)
         if (serialized(property))
-            properties.pushBack(&property);
-    if (!properties.empty())
+            properties.PushBack(&property);
+    if (!properties.Empty())
         qsort(properties.data(), properties.size(), sizeof(properties[0]), compareProperties);
     JsonValue object(cJSON_CreateObject());
     for (const PropertyDesc* pProperty : properties)
@@ -400,7 +400,7 @@ bool normalizeWorldComponent(TypeID type, void* pValue, bool sortOverrides)
     if (type == SceneTypes::meshRenderer)
     {
         Array<MaterialOverride>& overrides = ((MeshRenderer*)pValue)->overrides;
-        if (sortOverrides && !overrides.empty())
+        if (sortOverrides && !overrides.Empty())
             qsort(overrides.data(), overrides.size(), sizeof(MaterialOverride), compareMaterialOverrides);
         for (uint32_t i = 0; i < overrides.size(); ++i)
             if (!overrides[i].submesh || !overrides[i].material.isValid() || (i && overrides[i - 1].submesh >= overrides[i].submesh))

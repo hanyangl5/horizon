@@ -84,7 +84,7 @@ extern "C"
     FORGE_TOOL_API bool GetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char*** out, int* count);
 
     /// Returns and allocates array of all files inside input resourceDir + subDirectory. String also contains subDirectory
-    /// Specifying empty extension will collect all files
+    /// Specifying Empty extension will collect all files
     FORGE_TOOL_API bool GetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char*** out,
                                                 int* count);
     /************************************************************************/
@@ -119,7 +119,7 @@ extern "C"
     ///   *- double slash shrinks to single slash
     ///   *- back hardlink shrinks from "a/../b" to "b", but "../a" won't shrink
     ///
-    /// Note: "a/.." normalizes into ".", but "" is also normalized empty string
+    /// Note: "a/.." normalizes into ".", but "" is also normalized Empty string
     ///
     /// Result is true when 'path' is normalized with custom 'separator'.
     FORGE_API bool IsNormalizedPath(const char* path, char separator);

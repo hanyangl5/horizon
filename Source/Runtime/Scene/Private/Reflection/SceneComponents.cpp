@@ -53,7 +53,7 @@ static bool removeOverride(void* pArray, uint32_t index)
         return false;
     for (uint32_t i = index; i + 1 < values.size(); ++i)
         values[i] = values[i + 1];
-    values.popBack();
+    values.PopBack();
     return true;
 }
 

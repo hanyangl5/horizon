@@ -30,7 +30,7 @@ protected:
     {
         hz::Array<char> json;
         EXPECT_TRUE(archive.serialize(json));
-        return json.empty() ? "" : std::string(json.data(), json.size() - 1);
+        return json.Empty() ? "" : std::string(json.data(), json.size() - 1);
     }
     static bool parse(hz::WorldArchive& archive, const std::string& json) { return archive.parse({ json.data(), (uint32_t)json.size() }); }
     static std::string uuid(uint64_t value)
@@ -75,7 +75,7 @@ TEST_F(WorldArchiveTest, RoundTripsComponentsHierarchyAndStableOrdering)
     matrix.setElem(3, 2, 4.0f);
     ASSERT_TRUE(world.setComponent(matrixEntity, hz::SceneTypes::localMatrix, &matrix));
     hz::MeshRenderer mesh = { .mesh = { .high = 2, .low = 1 } };
-    mesh.overrides.pushBack({ .submesh = UINT64_C(18446744073709551615), .material = { .high = 2, .low = 2 } });
+    mesh.overrides.PushBack({ .submesh = UINT64_C(18446744073709551615), .material = { .high = 2, .low = 2 } });
     ASSERT_TRUE(world.setComponent(child, hz::SceneTypes::meshRenderer, &mesh));
     hz::Light light = { .type = hz::LightType::Rect, .intensity = 100.125f };
     ASSERT_TRUE(world.setComponent(child, hz::SceneTypes::light, &light));

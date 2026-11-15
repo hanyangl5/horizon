@@ -90,7 +90,7 @@ public:
         if (asset.state == AssetState::Retiring && !asset.pRequest && !asset.uploading && !asset.retirementQueued)
         {
             asset.retirementQueued = true;
-            retirements.pushBack(index);
+            retirements.PushBack(index);
         }
     }
 
@@ -117,14 +117,14 @@ public:
         }
         const AssetVisit visit = { .key = id };
         hmputs(plan.pVisits, visit);
-        plan.stack.pushBack({ .pEntry = pEntry });
+        plan.stack.PushBack({ .pEntry = pEntry });
         return AssetError::None;
     }
 
     AssetError prepare(AssetID id, AssetRequestPlan& plan)
     {
         AssetError error = visit(id, plan);
-        while (error == AssetError::None && !plan.stack.empty())
+        while (error == AssetError::None && !plan.stack.Empty())
         {
             AssetTraversal& traversal = plan.stack[plan.stack.size() - 1];
             if (traversal.nextDependency < traversal.pEntry->dependencies.count)
@@ -134,8 +134,8 @@ public:
             else
             {
                 hmgetp_null(plan.pVisits, traversal.pEntry->id)->complete = true;
-                plan.entries.pushBack(traversal.pEntry);
-                plan.stack.popBack();
+                plan.entries.PushBack(traversal.pEntry);
+                plan.stack.PopBack();
             }
         }
         return error;
@@ -144,14 +144,14 @@ public:
     void create(const AssetCatalogEntry& entry)
     {
         uint32_t index = assets.size();
-        if (!freeIndices.empty())
+        if (!freeIndices.Empty())
         {
             index = freeIndices[freeIndices.size() - 1];
-            freeIndices.popBack();
+            freeIndices.PopBack();
         }
         else
         {
-            assets.pushBack({});
+            assets.PushBack({});
         }
         ManagedAsset& asset = assets[index];
         asset.pEntry = &entry;
@@ -168,7 +168,7 @@ public:
         }
         const AssetIndex mapping = { .key = entry.id, .value = { .index = index, .generation = asset.generation } };
         hmputs(pIndices, mapping);
-        pending.pushBack(index);
+        pending.PushBack(index);
     }
 
     bool release(AssetHandle handle)
@@ -224,7 +224,7 @@ public:
                 continue;
             }
             retirements[i] = retirements[retirements.size() - 1];
-            retirements.popBack();
+            retirements.PopBack();
             ASSERT(asset.state == AssetState::Retiring && !asset.references && !asset.pRequest && !asset.uploading);
             destroyPayload(asset);
             releaseDependencies(asset);
@@ -234,7 +234,7 @@ public:
                 markTableDirty(index);
             const uint32_t generation = asset.generation + 1;
             asset = { .generation = generation ? generation : 1 };
-            freeIndices.pushBack(index);
+            freeIndices.PushBack(index);
         }
     }
 
@@ -363,7 +363,7 @@ public:
         if (asset.tableDirty)
             return;
         asset.tableDirty = true;
-        tableDirty.pushBack(index);
+        tableDirty.PushBack(index);
         ++tableRevision;
         if (asset.pEntry && asset.pEntry->type == AssetType::Texture)
         {
@@ -412,12 +412,12 @@ public:
                               .submeshCount = mesh.getDescription().submeshes.count };
             for (uint32_t stream = 0; stream < mesh.getVertexBufferCount(); ++stream)
             {
-                vertexStreams.pushBack({ .srv = mesh.getVertexBuffer(stream).getSrvIndex(), .stride = mesh.getVertexStride(stream) });
+                vertexStreams.PushBack({ .srv = mesh.getVertexBuffer(stream).getSrvIndex(), .stride = mesh.getVertexStride(stream) });
             }
             for (uint32_t draw = 0; draw < mesh.getDescription().submeshes.count; ++draw)
             {
                 const IndirectDrawIndexArguments& args = mesh.getDraw(draw);
-                submeshes.pushBack({ .indexCount = args.indexCount, .firstIndex = args.startIndex,
+                submeshes.PushBack({ .indexCount = args.indexCount, .firstIndex = args.startIndex,
                                      .vertexOffset = (int32_t)args.vertexOffset });
             }
         }
@@ -438,7 +438,7 @@ public:
                 }
                 const AssetIndex*   pIndex = hmgetp_null(pIndices, textureIDs[texture]);
                 const ManagedAsset* pTexture = pIndex ? &assets[pIndex->value.index] : nullptr;
-                // Only a released texture lease can leave this empty; keep the previous mapping instead of crashing.
+                // Only a released texture lease can leave this Empty; keep the previous mapping instead of crashing.
                 if (pTexture && pTexture->state == AssetState::Ready && pTexture->pPayload)
                     *ppTextures[texture] = ((const TextureAsset*)pTexture->pPayload)->getTexture().getSrvIndex();
             }
@@ -461,8 +461,8 @@ public:
         textures.resize(assets.size());
         if (tableGarbage > kTableGarbageLimit)
         {
-            vertexStreams.clear();
-            submeshes.clear();
+            vertexStreams.Clear();
+            submeshes.Clear();
             tableGarbage = 0;
             for (uint32_t i = 0; i < assets.size(); ++i)
             {
@@ -476,12 +476,12 @@ public:
                 if (assets[i].state == AssetState::Ready && assets[i].pPayload)
                     encodeTableEntry(i);
             }
-            tableDirty.clear();
+            tableDirty.Clear();
             return;
         }
         for (uint32_t index : tableDirty)
             encodeTableEntry(index);
-        tableDirty.clear();
+        tableDirty.Clear();
     }
 
     static constexpr uint32_t kTableGarbageLimit = 4096;
@@ -539,8 +539,8 @@ AssetHandle AssetManager::request(AssetID id, AssetError* pError)
         LOGF(Error, "Asset request '%s' rejected (error %u)", text, (uint32_t)error);
         return {};
     }
-    pData->freeIndices.reserve(pData->assets.size() + plan.entries.size());
-    pData->retirements.reserve(pData->assets.size() + plan.entries.size());
+    pData->freeIndices.Reserve(pData->assets.size() + plan.entries.size());
+    pData->retirements.Reserve(pData->assets.size() + plan.entries.size());
     for (const AssetCatalogEntry* pEntry : plan.entries)
     {
         pData->create(*pEntry);
@@ -633,7 +633,7 @@ void AssetManager::shutdown()
         return;
     }
     pData->shuttingDown = true;
-    pData->pending.clear();
+    pData->pending.Clear();
     for (ManagedAsset& asset : pData->assets)
     {
         if (!asset.pEntry)
@@ -658,7 +658,7 @@ void AssetManager::shutdown()
     {
         pData->pContext->waitIdle();
     }
-    pData->retirements.clear();
+    pData->retirements.Clear();
     for (ManagedAsset& asset : pData->assets)
     {
         if (!asset.pEntry)

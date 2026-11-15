@@ -162,7 +162,7 @@ public:
     RenderScene(const RenderScene&) = delete;
     RenderScene& operator=(const RenderScene&) = delete;
 
-    void               reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
+    void               Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
     // Runs after asset manager loading/mutation. Updates World transforms and bindings without advancing history.
     void               update();
     uint64_t           getRevision() const;

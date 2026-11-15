@@ -114,23 +114,23 @@ const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz:
     {
         const hz::GPUBuffer& Indirect = Draws.GetCommands(Backing, true);
         hz::Dependencies     Dependencies = Draws.GetDependencies(Frame, View, &Indirect);
-        Sampled.clear();
-        Buffers.clear();
+        Sampled.Clear();
+        Buffers.Clear();
         for (const hz::GPUTexture* Texture : Dependencies.sampledTextures)
         {
-            Sampled.pushBack(Texture);
+            Sampled.PushBack(Texture);
         }
         for (const hz::GPUBuffer* Buffer : Dependencies.buffers)
         {
-            Buffers.pushBack(Buffer);
+            Buffers.PushBack(Buffer);
         }
-        Buffers.pushBack(Lighting.LightingFrame);
+        Buffers.PushBack(Lighting.LightingFrame);
         const hz::GPUTexture* LightingTextures[] = { Lighting.ShadowMap, Lighting.Environment, Lighting.Irradiance, Lighting.BRDFLut };
         for (const hz::GPUTexture* Texture : LightingTextures)
         {
             if (Texture && Texture->isValid())
             {
-                Sampled.pushBack(Texture);
+                Sampled.PushBack(Texture);
             }
         }
         const hz::GPUTexture* StorageTextures[] = { &Heads };

@@ -172,7 +172,7 @@ bool SceneAssetReader::readTextures(const cJSON* pArray)
 {
     if (!cJSON_IsArray(pArray))
         return invalidField("textures");
-    data.textures.reserve((uint32_t)cJSON_GetArraySize(pArray));
+    data.textures.Reserve((uint32_t)cJSON_GetArraySize(pArray));
     for (const cJSON* pItem = pArray->child; pItem; pItem = pItem->next)
     {
         SceneAssetTexture texture;
@@ -187,7 +187,7 @@ bool SceneAssetReader::readTextures(const cJSON* pArray)
         if (!cJSON_IsBool(pCooked))
             return invalidField("cooked");
         texture.cooked = cJSON_IsTrue(pCooked);
-        data.textures.pushBack(texture);
+        data.textures.PushBack(texture);
     }
     return true;
 }
@@ -196,7 +196,7 @@ bool SceneAssetReader::readMaterials(const cJSON* pArray)
 {
     if (!cJSON_IsArray(pArray))
         return invalidField("materials");
-    data.materials.reserve((uint32_t)cJSON_GetArraySize(pArray));
+    data.materials.Reserve((uint32_t)cJSON_GetArraySize(pArray));
     for (const cJSON* pItem = pArray->child; pItem; pItem = pItem->next)
     {
         SceneAssetMaterial material;
@@ -215,7 +215,7 @@ bool SceneAssetReader::readMaterials(const cJSON* pArray)
             return invalidField("material factors/alpha mode");
         material.alphaMode = (MaterialAlphaMode)field(pItem, "alphaMode")->valueint;
         material.doubleSided = cJSON_IsTrue(field(pItem, "doubleSided"));
-        data.materials.pushBack(material);
+        data.materials.PushBack(material);
     }
     return true;
 }
@@ -231,8 +231,8 @@ bool SceneAssetReader::readMeshes(const cJSON* pArray)
             return invalidField("submeshes");
         submeshCount += (uint32_t)cJSON_GetArraySize(field(pItem, "submeshes"));
     }
-    data.submeshes.reserve(submeshCount);
-    data.meshes.reserve((uint32_t)cJSON_GetArraySize(pArray));
+    data.submeshes.Reserve(submeshCount);
+    data.meshes.Reserve((uint32_t)cJSON_GetArraySize(pArray));
     Array<SubmeshID> ids;
     for (const cJSON* pItem = pArray->child; pItem; pItem = pItem->next)
     {
@@ -241,7 +241,7 @@ bool SceneAssetReader::readMeshes(const cJSON* pArray)
             !readString(pItem, "geometry", mesh.pGeometry, true))
             return false;
         const uint32_t first = data.submeshes.size();
-        ids.clear();
+        ids.Clear();
         for (const cJSON* pSubmesh = field(pItem, "submeshes")->child; pSubmesh; pSubmesh = pSubmesh->next)
         {
             const cJSON* pID = field(pSubmesh, "id");
@@ -256,15 +256,15 @@ bool SceneAssetReader::readMeshes(const cJSON* pArray)
                 return false;
             if (!submesh.material.isValid())
                 return invalidField("submesh material");
-            data.submeshes.pushBack(submesh);
-            ids.pushBack(submesh.id);
+            data.submeshes.PushBack(submesh);
+            ids.PushBack(submesh.id);
         }
         qsort(ids.data(), ids.size(), sizeof(SubmeshID), compareSubmeshIDs);
         for (uint32_t i = 1; i < ids.size(); ++i)
             if (ids[i - 1] == ids[i])
                 return invalidField("submeshes (duplicate SubmeshID within mesh)");
         mesh.submeshes = { data.submeshes.data() + first, data.submeshes.size() - first };
-        data.meshes.pushBack(mesh);
+        data.meshes.PushBack(mesh);
     }
     return true;
 }
@@ -297,7 +297,7 @@ bool SceneAssetReader::readNodes(const cJSON* pArray)
     if (!cJSON_IsArray(pArray))
         return invalidField("nodes");
     const uint32_t count = (uint32_t)cJSON_GetArraySize(pArray);
-    data.nodes.reserve(count);
+    data.nodes.Reserve(count);
     for (const cJSON* pItem = pArray->child; pItem; pItem = pItem->next)
     {
         SceneAssetNode node;
@@ -335,7 +335,7 @@ bool SceneAssetReader::readNodes(const cJSON* pArray)
             node.transform.rotation = Quat(rotation[0], rotation[1], rotation[2], rotation[3]);
             node.transform.scale = Vector3(scale[0], scale[1], scale[2]);
         }
-        data.nodes.pushBack(node);
+        data.nodes.PushBack(node);
     }
     return validateHierarchy({ data.nodes.data(), data.nodes.size() });
 }
@@ -365,7 +365,7 @@ bool SceneAssetReader::read(Span<char> json)
         for (const cJSON* pItem = field(pRoot, pTable) ? field(pRoot, pTable)->child : nullptr; pItem; pItem = pItem->next)
             stringBytes +=
                 stringSize(pItem, "name") + stringSize(pItem, "path") + stringSize(pItem, "geometry") + stringSize(pItem, "source");
-    data.strings.reserve(stringBytes);
+    data.strings.Reserve(stringBytes);
     if (!readID(pRoot, data.id, AssetKind::Scene) || !readString(pRoot, "source", data.pSource, true) ||
         !readString(pRoot, "contentHash", data.pContentHash))
         return false;
@@ -444,7 +444,7 @@ Entity SceneAsset::instantiate(World& world, Entity parent) const
     if (!root.isValid())
         return {};
     Array<Entity> entities;
-    entities.reserve(pData->nodes.size());
+    entities.Reserve(pData->nodes.size());
     {
         DeferredChanges changes = world.defer();
         Name            name;
@@ -455,7 +455,7 @@ Entity SceneAsset::instantiate(World& world, Entity parent) const
             const Entity entity = world.createPersistentEntity();
             if (!entity.isValid())
                 break;
-            entities.pushBack(entity);
+            entities.PushBack(entity);
             copyName(name, node.pName);
             copied &= world.setComponent(entity, SceneTypes::name, &name);
             copied &= node.hasMatrix ? world.setComponent(entity, SceneTypes::localMatrix, &node.matrix)

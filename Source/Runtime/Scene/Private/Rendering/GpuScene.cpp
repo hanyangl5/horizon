@@ -146,7 +146,7 @@ public:
             GpuTable&             table = tables[i];
             const GpuTableSource& input = sources[i];
             const uint64_t        size = (uint64_t)input.count * table.stride;
-            table.regions.clear();
+            table.regions.Clear();
             if (size > table.capacity)
             {
                 table.capacity = growCapacity(table.capacity, size);
@@ -166,7 +166,7 @@ public:
             }
             if (table.full || input.whole)
             {
-                table.regions.pushBack({ .srcOffset = staged, .dstOffset = 0, .size = size });
+                table.regions.PushBack({ .srcOffset = staged, .dstOffset = 0, .size = size });
                 staged += size;
                 continue;
             }
@@ -174,7 +174,7 @@ public:
             {
                 ASSERT(range.first <= input.count && range.count <= input.count - range.first);
                 const uint64_t bytes = (uint64_t)range.count * table.stride;
-                table.regions.pushBack({ .srcOffset = staged, .dstOffset = (uint64_t)range.first * table.stride, .size = bytes });
+                table.regions.PushBack({ .srcOffset = staged, .dstOffset = (uint64_t)range.first * table.stride, .size = bytes });
                 staged += bytes;
             }
         }
@@ -227,13 +227,13 @@ GpuScene::GpuScene(RenderScene& scene, AssetManager& assetManager, RenderContext
 }
 GpuScene::~GpuScene() { MemDelete(pData); }
 
-void GpuScene::reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount, uint32_t cameraCount)
+void GpuScene::Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount, uint32_t cameraCount)
 {
     ASSERT(!pData->open);
-    pData->scene.reserve(primitiveCount, meshBatchCount, lightCount, cameraCount);
+    pData->scene.Reserve(primitiveCount, meshBatchCount, lightCount, cameraCount);
     for (GpuTable& table : pData->tables)
     {
-        table.regions.reserve(primitiveCount > meshBatchCount ? primitiveCount : meshBatchCount);
+        table.regions.Reserve(primitiveCount > meshBatchCount ? primitiveCount : meshBatchCount);
     }
 }
 
@@ -254,7 +254,7 @@ void GpuScene::upload(CommandList& commands)
     const GpuSceneFrame& frame = pData->frames[pData->current];
     for (const GpuTable& table : pData->tables)
     {
-        if (!table.regions.empty())
+        if (!table.regions.Empty())
         {
             commands.copyBufferRegions(*table.pBuffer, frame.staging, { table.regions.data(), table.regions.size() });
         }

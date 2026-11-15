@@ -68,10 +68,10 @@ class CatalogBatch
 public:
     explicit CatalogBatch(const AssetCatalogEntry& entry)
     {
-        dependencies.reserve(entry.dependencies.count);
+        dependencies.Reserve(entry.dependencies.count);
         for (AssetID id : entry.dependencies)
-            dependencies.pushBack(id);
-        entries.pushBack(entry);
+            dependencies.PushBack(id);
+        entries.PushBack(entry);
         entries[0].dependencies = finishDependencies(0);
     }
 
@@ -80,10 +80,10 @@ public:
         uint32_t dependencyCount = scene.getNodes().count + scene.getMaterials().count * 4;
         for (const SceneAssetMesh& mesh : scene.getMeshes())
             dependencyCount += mesh.submeshes.count;
-        dependencies.reserve(dependencyCount);
-        entries.reserve(1 + scene.getTextures().count + scene.getMaterials().count + scene.getMeshes().count);
+        dependencies.Reserve(dependencyCount);
+        entries.Reserve(1 + scene.getTextures().count + scene.getMaterials().count + scene.getMeshes().count);
         for (const SceneAssetTexture& texture : scene.getTextures())
-            entries.pushBack(
+            entries.PushBack(
                 { .id = texture.id,
                   .type = AssetType::Texture,
                   .pSourcePath = texture.pSource,
@@ -97,7 +97,7 @@ public:
             addDependency(material.normalTexture);
             addDependency(material.metallicRoughnessTexture);
             addDependency(material.emissiveTexture);
-            entries.pushBack({ .id = material.id,
+            entries.PushBack({ .id = material.id,
                                .type = AssetType::Material,
                                .pSourcePath = scene.getSource(),
                                .location = { .pPath = pPath, .elementIndex = index++ },
@@ -109,7 +109,7 @@ public:
             const uint32_t start = dependencies.size();
             for (const SceneAssetSubmesh& submesh : mesh.submeshes)
                 addDependency(submesh.material);
-            entries.pushBack({ .id = mesh.id,
+            entries.PushBack({ .id = mesh.id,
                                .type = AssetType::Mesh,
                                .pSourcePath = scene.getSource(),
                                .location = { .pPath = pPath, .elementIndex = index++ },
@@ -118,7 +118,7 @@ public:
         const uint32_t start = dependencies.size();
         for (const SceneAssetNode& node : scene.getNodes())
             addDependency(node.mesh);
-        entries.pushBack({ .id = scene.getID(),
+        entries.PushBack({ .id = scene.getID(),
                            .type = AssetType::Scene,
                            .pSourcePath = scene.getSource(),
                            .location = { .pPath = pPath },
@@ -131,7 +131,7 @@ private:
     void addDependency(AssetID id)
     {
         if (id.isValid())
-            dependencies.pushBack(id);
+            dependencies.PushBack(id);
     }
 
     Span<AssetID> finishDependencies(uint32_t start)
@@ -179,14 +179,14 @@ static bool validPath(const char* pPath)
         }
 }
 
-AssetCatalog::~AssetCatalog() { clear(); }
+AssetCatalog::~AssetCatalog() { Clear(); }
 AssetCatalog::AssetCatalog(AssetCatalog&& other) noexcept: pData(other.pData) { other.pData = nullptr; }
 
 AssetCatalog& AssetCatalog::operator=(AssetCatalog&& other) noexcept
 {
     if (this != &other)
     {
-        clear();
+        Clear();
         pData = other.pData;
         other.pData = nullptr;
     }
@@ -222,7 +222,7 @@ bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
             LOGF(Error, "Conflicting AssetCatalog entry from '%s'", entry.pSourcePath);
             return false;
         }
-        pData->retiredEntries.pushBack((AssetCatalogEntry*)pExisting);
+        pData->retiredEntries.PushBack((AssetCatalogEntry*)pExisting);
     }
     if (!pData)
         pData = MemNew(AssetCatalogData);
@@ -292,7 +292,7 @@ bool AssetCatalog::remove(AssetID id)
     {
         return false;
     }
-    pData->retiredEntries.pushBack(pIndex->value);
+    pData->retiredEntries.PushBack(pIndex->value);
     hmdel(pData->pIndices, id);
     return true;
 }
@@ -394,13 +394,13 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
         entry.type = (AssetType)type;
         entry.location.root = (AssetPathRoot)root;
         entry.srgb = cJSON_IsTrue(pSrgb);
-        dependencies.clear();
+        dependencies.Clear();
         for (const cJSON* pDependency = pDependencies->child; pDependency; pDependency = pDependency->next)
         {
             AssetID id;
             if (!cJSON_IsString(pDependency) || !id.parse(pDependency->valuestring) || !id.isValid())
                 return false;
-            dependencies.pushBack(id);
+            dependencies.PushBack(id);
         }
         entry.dependencies = { dependencies.data(), dependencies.size() };
         if (!catalog.add(entry))
@@ -432,7 +432,7 @@ bool AssetCatalog::parse(Span<char> json)
         pData = MemNew(AssetCatalogData);
     for (ptrdiff_t i = 0; i < hmlen(pData->pIndices); ++i)
     {
-        pData->retiredEntries.pushBack(pData->pIndices[i].value);
+        pData->retiredEntries.PushBack(pData->pIndices[i].value);
     }
     hmfree(pData->pIndices);
     if (candidate.pData)
@@ -479,13 +479,13 @@ static int compareEntries(const void* pA, const void* pB)
 bool AssetCatalog::serialize(Array<char>& json) const
 {
     Array<const AssetCatalogEntry*> entries;
-    entries.reserve(getCount());
+    entries.Reserve(getCount());
     if (pData)
         for (ptrdiff_t i = 0; i < hmlen(pData->pIndices); ++i)
         {
-            entries.pushBack(pData->pIndices[i].value);
+            entries.PushBack(pData->pIndices[i].value);
         }
-    if (!entries.empty())
+    if (!entries.Empty())
         qsort(entries.data(), entries.size(), sizeof(entries[0]), compareEntries);
     CatalogJson document;
     document.pRoot = cJSON_CreateObject();
@@ -524,7 +524,7 @@ bool AssetCatalog::serialize(Array<char>& json) const
     return true;
 }
 
-void AssetCatalog::clear()
+void AssetCatalog::Clear()
 {
     MemDelete(pData);
     pData = nullptr;

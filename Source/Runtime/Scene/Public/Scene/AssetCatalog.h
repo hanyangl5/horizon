@@ -64,12 +64,12 @@ public:
     bool                     parse(Span<char> json);
     bool                     load(ResourceDirectory directory, const char* pFileName);
     bool                     serialize(Array<char>& json) const;
-    // Entries own their metadata and stay at stable addresses until clear or owner destruction.
+    // Entries own their metadata and stay at stable addresses until Clear or owner destruction.
     const AssetCatalogEntry* find(AssetID id) const;
     // Bootstrap a Scene AssetID from its relative cooked document path.
     const AssetCatalogEntry* findScene(const char* pCookedScenePath) const;
     uint32_t                 getCount() const;
-    void                     clear();
+    void                     Clear();
 
 private:
     bool              set(const AssetCatalogEntry& entry, bool replaceExisting);

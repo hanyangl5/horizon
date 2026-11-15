@@ -267,7 +267,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #define ENABLE_SCREENSHOT
 //#define ENABLE_PROFILER
 #define ENABLE_MESHOPTIMIZER
-// Uncomment this to enable empty mounts
+// Uncomment this to enable Empty mounts
 // used for absolute paths
 //#define ENABLE_FS_EMPTY_MOUNT
 

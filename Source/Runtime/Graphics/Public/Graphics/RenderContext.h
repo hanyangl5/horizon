@@ -457,7 +457,7 @@ private:
     CommandList(const CommandList&) = delete;
     CommandList& operator=(const CommandList&) = delete;
     void         reset(Cmd*, uint64_t gpuProfilerToken);
-    void         clear();
+    void         Clear();
     void         beginGpuFrameProfile();
     void         endGpuFrameProfile();
     void         addBufferBarriers(Span<const GPUBuffer*> buffers, bool storage);

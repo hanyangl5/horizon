@@ -725,17 +725,17 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     if (pScene)
     {
         for (cgltf_size i = pScene->nodes_count; i > 0; --i)
-            stack.pushBack((uint32_t)(pScene->nodes[i - 1] - data.nodes));
+            stack.PushBack((uint32_t)(pScene->nodes[i - 1] - data.nodes));
     }
     else
         for (uint32_t i = selected.size(); i > 0; --i)
             if (!data.nodes[i - 1].parent)
-                stack.pushBack(i - 1);
+                stack.PushBack(i - 1);
     uint32_t nodeCount = 0;
-    while (!stack.empty())
+    while (!stack.Empty())
     {
         const uint32_t index = stack[stack.size() - 1];
-        stack.popBack();
+        stack.PopBack();
         if (selected[index] != UINT32_MAX)
         {
             LOGF(Error, "Scene node occurs more than once in the selected hierarchy");
@@ -758,7 +758,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
             cJSON_AddStringToObject(pNode, "mesh", text(meshes[(uint32_t)(node.mesh - data.meshes)], "id"));
         cJSON_AddItemToArray(pNodes, pNode);
         for (cgltf_size i = node.children_count; i > 0; --i)
-            stack.pushBack((uint32_t)(node.children[i - 1] - data.nodes));
+            stack.PushBack((uint32_t)(node.children[i - 1] - data.nodes));
     }
     return validate();
 }

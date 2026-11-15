@@ -430,7 +430,7 @@ void RenderContext::destroyDevice(bool waitForGpu)
             resources.pCmd = nullptr;
             resources.pCmdPool = nullptr;
             resources.submitId = 0;
-            resources.commands.clear();
+            resources.commands.Clear();
         }
         if (pImageAcquiredSemaphore)
         {
@@ -626,7 +626,7 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
 
     const SubmitHandle handle = { .id = nextSubmitId++, .commandIndex = commands.commandIndex };
     resources.submitId = handle.id;
-    commands.clear();
+    commands.Clear();
     return handle;
 }
 

@@ -19,11 +19,11 @@ public:
     bool matchesDependencies() const
     {
         Array<AssetID> dependencies;
-        dependencies.reserve(pScene->getNodes().count);
+        dependencies.Reserve(pScene->getNodes().count);
         for (const SceneAssetNode& node : pScene->getNodes())
             if (node.mesh.isValid())
-                dependencies.pushBack(node.mesh);
-        if (!dependencies.empty())
+                dependencies.PushBack(node.mesh);
+        if (!dependencies.Empty())
             qsort(dependencies.data(), dependencies.size(), sizeof(AssetID), compareIDs);
         uint32_t count = 0;
         for (uint32_t i = 0; i < dependencies.size(); ++i)

@@ -42,7 +42,7 @@ public:
     GpuScene(const GpuScene&) = delete;
     GpuScene& operator=(const GpuScene&) = delete;
 
-    void                   reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
+    void                   Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
     // Updates the scene and stages its changes. Returns false without waiting when every frame is still in GPU use.
     // Do not update the scene or reset history until endFrame or cancelFrame.
     bool                   beginFrame();

@@ -738,18 +738,18 @@ FORGE_API void setGlobalInputAction(const GlobalInputActionDesc* pDesc);
 // Input action mappings functionalities /////////////////////
 /* Adds new action mappings for a specific (or all) device target(s)
  * Takes in an array of ActionMappingDesc
- * Note: this will clear all current action mappings, including any callbacks.
+ * Note: this will Clear all current action mappings, including any callbacks.
  */
 FORGE_API void addActionMappings(ActionMappingDesc* const actionMappings, const uint32_t numActions,
                                  const InputActionMappingDeviceTarget actionMappingTarget);
 
 /* Removes currently active action mappings
- * Note: this will clear any callbacks that were added for any action mapping being cleared.
+ * Note: this will Clear any callbacks that were added for any action mapping being cleared.
  */
 FORGE_API void removeActionMappings(const InputActionMappingDeviceTarget actionMappingTarget);
 
 /* Adds default TF action mappings
- * Note: this will clear all current action mappings, including any callbacks.
+ * Note: this will Clear all current action mappings, including any callbacks.
  */
 FORGE_API void addDefaultActionMappings();
 //////////////////////////////////////////////////////////////

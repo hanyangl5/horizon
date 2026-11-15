@@ -560,7 +560,7 @@ TEST_F(SceneAssetReadTest, CatalogOwnsMetadataAcrossSceneDestructionMoveAndClear
     catalog = std::move(moved);
     EXPECT_EQ(moved.getCount(), 0u);
     EXPECT_STREQ(catalog.find(id)->location.pPath, "Scenes/scene.sceneasset.json");
-    catalog.clear();
+    catalog.Clear();
     EXPECT_EQ(catalog.getCount(), 0u);
     EXPECT_EQ(catalog.find(id), nullptr);
     EXPECT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
@@ -715,9 +715,9 @@ TEST_F(SceneAssetReadTest, CatalogReplacementRemovalAndFullReloadPreserveOldMeta
     EXPECT_EQ(catalog.find(id), nullptr);
     EXPECT_STREQ(updated->location.pPath, "new.sceneasset.json");
     EXPECT_EQ(original->dependencies.pData[0], scene.getMeshes().pData[0].id);
-    hz::AssetCatalog empty;
+    hz::AssetCatalog Empty;
     hz::Array<char>  json;
-    ASSERT_TRUE(empty.serialize(json));
+    ASSERT_TRUE(Empty.serialize(json));
     ASSERT_TRUE(catalog.parse({ json.data(), json.size() }));
     EXPECT_EQ(catalog.getCount(), 0u);
     EXPECT_STREQ(original->pSourcePath, "scene.gltf");

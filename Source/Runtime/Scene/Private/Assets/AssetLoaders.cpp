@@ -173,7 +173,7 @@ public:
     }
     static bool matchesDependencies(const AssetCatalogEntry& entry, Array<AssetID>& ids)
     {
-        if (!ids.empty())
+        if (!ids.Empty())
             qsort(ids.data(), ids.size(), sizeof(AssetID), compareIDs);
         uint32_t count = 0;
         for (uint32_t i = 0; i < ids.size(); ++i)
@@ -199,10 +199,10 @@ public:
             if (index >= scene.getMaterials().count || scene.getMaterials().pData[index].id != request.entry.id)
                 return invalid(request);
             const SceneAssetMaterial& material = scene.getMaterials().pData[index];
-            dependencies.pushBack(material.baseColorTexture);
-            dependencies.pushBack(material.normalTexture);
-            dependencies.pushBack(material.metallicRoughnessTexture);
-            dependencies.pushBack(material.emissiveTexture);
+            dependencies.PushBack(material.baseColorTexture);
+            dependencies.PushBack(material.normalTexture);
+            dependencies.PushBack(material.metallicRoughnessTexture);
+            dependencies.PushBack(material.emissiveTexture);
             if (!matchesDependencies(request.entry, dependencies))
                 return invalid(request);
             MaterialAsset* pAsset = MemNew(MaterialAsset);
@@ -214,7 +214,7 @@ public:
         if (index >= scene.getMeshes().count || scene.getMeshes().pData[index].id != request.entry.id)
             return invalid(request);
         for (const SceneAssetSubmesh& submesh : scene.getMeshes().pData[index].submeshes)
-            dependencies.pushBack(submesh.material);
+            dependencies.PushBack(submesh.material);
         if (!matchesDependencies(request.entry, dependencies))
             return invalid(request);
         MeshAsset* pAsset = MemNew(MeshAsset);

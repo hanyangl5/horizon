@@ -6631,7 +6631,7 @@ static void removeBufferChunkAllocator(BufferChunkAllocator* pBuffer)
 
     if (pBuffer->pBuffer)
     {
-        ASSERT(arrlen(pBuffer->unusedChunks) == 1 && "Expecting just one chunk since the buffer is completely empty");
+        ASSERT(arrlen(pBuffer->unusedChunks) == 1 && "Expecting just one chunk since the buffer is completely Empty");
 
         // We are checking that the unnused chunk offset is 0 because we currently assume that a BufferChunkAllocator covers the entire
         // buffer, but we could change this to allow to have several BufferChunkAllocators over the same buffer, each working on a fixed
@@ -6650,7 +6650,7 @@ static void removeBufferChunkAllocator(BufferChunkAllocator* pBuffer)
         //       We would also need to consider if we want to expose the add/removeBufferChunkAllocator interface to the user and let him
         //       allocate the BufferChunkAllocator or we want to include this splitting logic in addGeometryBuffer.
         ASSERT(pBuffer->unusedChunks && (pBuffer->unusedChunks[0].offset == 0) && (pBuffer->unusedChunks[0].size == pBuffer->size) &&
-               "Expecting just one chunk since the buffer is completely empty");
+               "Expecting just one chunk since the buffer is completely Empty");
 
         arrfree(pBuffer->unusedChunks);
     }
@@ -6869,7 +6869,7 @@ void removeGeometryBufferPart(BufferChunkAllocator* pBuffer, BufferChunk* pChunk
         if (chunkEnd == pChunk->offset) // if pChunk goes after chunk, merge both
         {
             chunk->size += pChunk->size;
-            if (i + 1 < arrlenu(pBuffer->unusedChunks)) // If there's another empty chunk after pChunk, merge that one too
+            if (i + 1 < arrlenu(pBuffer->unusedChunks)) // If there's another Empty chunk after pChunk, merge that one too
             {
                 if (partEnd == pBuffer->unusedChunks[i + 1].offset)
                 {
