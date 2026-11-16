@@ -99,8 +99,8 @@ PostEffects::PostEffects(hz::RenderContext& Context): Context(Context)
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomUpsample.slang" },
         .Name = "Renderer.HDR.BloomUpsample",
     });
-    ASSERT(Sampler.isValid() && MeteringPipeline.isValid() && ReducePipeline.isValid() && InitializePipeline.isValid() &&
-           AdaptationPipeline.isValid() && BloomDownsamplePipeline.isValid() && BloomUpsamplePipeline.isValid());
+    ASSERT(Sampler.IsValid() && MeteringPipeline.IsValid() && ReducePipeline.IsValid() && InitializePipeline.IsValid() &&
+           AdaptationPipeline.IsValid() && BloomDownsamplePipeline.IsValid() && BloomUpsamplePipeline.IsValid());
 }
 
 bool PostEffects::PrepareBloomChain()
@@ -172,7 +172,7 @@ void PostEffects::Resize(uint32_t Width, uint32_t Height)
     for (hz::GPUTexture& Texture : Luminance)
     {
         Texture = Context.createTexture(Desc);
-        Valid &= Texture.isValid();
+        Valid &= Texture.IsValid();
         Desc.Width = Desc.Width > 1 ? Desc.Width / 2 : 1;
         Desc.Height = Desc.Height > 1 ? Desc.Height / 2 : 1;
     }
@@ -182,9 +182,9 @@ void PostEffects::Resize(uint32_t Width, uint32_t Height)
     for (hz::GPUTexture& Texture : AdaptedLuminance)
     {
         Texture = Context.createTexture(Desc);
-        Valid &= Texture.isValid();
+        Valid &= Texture.IsValid();
     }
-    if (!ToneMapPipeline.isValid() || ColorFormat != Context.getColorFormat())
+    if (!ToneMapPipeline.IsValid() || ColorFormat != Context.getColorFormat())
     {
         ColorFormat = Context.getColorFormat();
         ToneMapPipeline = Context.createGraphicsPipeline({
@@ -197,14 +197,14 @@ void PostEffects::Resize(uint32_t Width, uint32_t Height)
     }
     AdaptedIndex = 0;
     ExposureInitialized = false;
-    ASSERT(Valid && ToneMapPipeline.isValid());
+    ASSERT(Valid && ToneMapPipeline.IsValid());
 }
 
 void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget,
                           float DeltaSeconds)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("PostEffects::execute");
-    ASSERT(SceneColor.isValid() && RenderTarget.isValid() && Width && Height);
+    ASSERT(SceneColor.IsValid() && RenderTarget.IsValid() && Width && Height);
     Commands.beginGpuTimestamp("HDR");
     if (!ExposureInitialized)
     {
@@ -254,10 +254,10 @@ void PostEffects::RunBloom(hz::CommandList& Commands, const hz::GPUTexture& Scen
     Commands.beginGpuTimestamp("Bloom");
     Commands.setPipeline(BloomDownsamplePipeline);
     PostBloomDownsampleConstants Downsample = {
-        .input = SceneColor.getSrvIndex(),
-        .output = BloomDown[0]->getUavIndex(),
-        .sampler = Sampler.getIndex(),
-        .adaptedLuminance = AdaptedLuminance[AdaptedIndex].getSrvIndex(),
+        .input = SceneColor.GetSrvIndex(),
+        .output = BloomDown[0]->GetUavIndex(),
+        .sampler = Sampler.GetIndex(),
+        .adaptedLuminance = AdaptedLuminance[AdaptedIndex].GetSrvIndex(),
         .threshold = 1,
         .autoExposure = Settings.ToneMapping != ToneMappingMode::None ? 1u : 0u,
         .exposure = Settings.Exposure,
@@ -269,8 +269,8 @@ void PostEffects::RunBloom(hz::CommandList& Commands, const hz::GPUTexture& Scen
     Downsample.threshold = 0;
     for (uint32_t Level = 1; Level < BloomLevels; ++Level)
     {
-        Downsample.input = BloomDown[Level - 1]->getSrvIndex();
-        Downsample.output = BloomDown[Level]->getUavIndex();
+        Downsample.input = BloomDown[Level - 1]->GetSrvIndex();
+        Downsample.output = BloomDown[Level]->GetUavIndex();
         Commands.setRootConstants(Downsample);
         const uint32_t Size = BloomLevelSize(BloomWidth, Level);
         Commands.dispatch((Size + 15) / 16, (BloomLevelSize(BloomHeight, Level) + 15) / 16, 1,
@@ -282,10 +282,10 @@ void PostEffects::RunBloom(hz::CommandList& Commands, const hz::GPUTexture& Scen
     for (uint32_t Level = BloomLevels - 1; Level > 0;)
     {
         --Level;
-        const PostBloomUpsampleConstants Upsample = { .down = BloomDown[Level]->getSrvIndex(),
-                                                      .input = Input->getSrvIndex(),
-                                                      .output = BloomUp[Level]->getUavIndex(),
-                                                      .sampler = Sampler.getIndex() };
+        const PostBloomUpsampleConstants Upsample = { .down = BloomDown[Level]->GetSrvIndex(),
+                                                      .input = Input->GetSrvIndex(),
+                                                      .output = BloomUp[Level]->GetUavIndex(),
+                                                      .sampler = Sampler.GetIndex() };
         Commands.setRootConstants(Upsample);
         const uint32_t Size = BloomLevelSize(BloomWidth, Level);
         Commands.dispatch((Size + 15) / 16, (BloomLevelSize(BloomHeight, Level) + 15) / 16, 1,
@@ -318,7 +318,7 @@ void PostEffects::ToneMap(hz::CommandList& Commands, const hz::GPUTexture& Scene
         .sceneColor = Dependencies.sample(&SceneColor),
         .adaptedLuminance = Dependencies.sample(&AdaptedLuminance[AdaptedIndex]),
         .bloom = Dependencies.sample(Bloom),
-        .sampler = Sampler.getIndex(),
+        .sampler = Sampler.GetIndex(),
         .toneMapping = (uint32_t)Settings.ToneMapping,
         .exposure = Settings.Exposure,
         .bloomStrength = Settings.EnableBloom && Bloom ? Settings.BloomStrength : 0.0f,
@@ -334,7 +334,7 @@ void PostEffects::ToneMap(hz::CommandList& Commands, const hz::GPUTexture& Scene
         .outputMode = (uint32_t)Context.getOutputMode(),
         .encodeSRGB = Context.getOutputMode() == hz::OUTPUT_MODE_SDR && !SrgbTarget ? 1u : 0u,
         .paperWhiteNits = fmaxf(Settings.PaperWhiteNits, 1.0f),
-        .peakNits = Context.isHDREnabled() ? Context.getHDRMetadata().maxContentLightLevel : 100.0f,
+        .peakNits = Context.IsHDREnabled() ? Context.getHDRMetadata().maxContentLightLevel : 100.0f,
     };
     Commands.beginRendering(
         { .colorAttachments = { { .pTexture = &RenderTarget, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },

@@ -165,9 +165,9 @@ public:
             ;
     }
 
-    void waitIdle() const { threadSystemWaitIdle(threadSystem); }
+    void WaitIdle() const { threadSystemWaitIdle(threadSystem); }
 
-    bool waitIdle(uint32_t msTimeout) const { return threadSystemWaitIdleTimeout(threadSystem, msTimeout); }
+    bool WaitIdle(uint32_t msTimeout) const { return threadSystemWaitIdleTimeout(threadSystem, msTimeout); }
 
     bool isIdle() const { return threadSystemIsIdle(threadSystem); }
 };

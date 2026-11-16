@@ -46,9 +46,9 @@ public:
             const AssetHandle previous = view.mesh;
             view.mesh = {};
             meshID = renderer.mesh;
-            if (!meshID.isValid() || !acquire(meshID, view.mesh))
+            if (!meshID.IsValid() || !acquire(meshID, view.mesh))
                 fail("Invalid or unavailable mesh asset");
-            if (previous.isValid())
+            if (previous.IsValid())
                 releases.PushBack(previous);
         }
         initialized = true;
@@ -58,7 +58,7 @@ public:
     {
         if (view.state == AssetBindingState::Failed)
             return;
-        if (!view.mesh.isValid() && !acquire(meshID, view.mesh))
+        if (!view.mesh.IsValid() && !acquire(meshID, view.mesh))
         {
             fail("Cannot acquire mesh asset");
             return;
@@ -83,7 +83,7 @@ public:
         view.state = AssetBindingState::Ready;
         for (MaterialAssetBinding& material : materials)
         {
-            if (!material.Handle.isValid() && !acquire(material.asset, material.Handle))
+            if (!material.Handle.IsValid() && !acquire(material.asset, material.Handle))
             {
                 fail("Cannot acquire material asset");
                 return;
@@ -113,12 +113,12 @@ private:
         }
         AssetError error;
         Handle = assetManager.request(id, &error);
-        return Handle.isValid() || error == AssetError::Retiring;
+        return Handle.IsValid() || error == AssetError::Retiring;
     }
 
     AssetBindingState state(AssetHandle Handle) const
     {
-        if (!Handle.isValid())
+        if (!Handle.IsValid())
             return AssetBindingState::Pending;
         switch (assetManager.getState(Handle))
         {
@@ -136,7 +136,7 @@ private:
     void releaseMaterials()
     {
         for (const MaterialAssetBinding& material : materials)
-            if (material.Handle.isValid())
+            if (material.Handle.IsValid())
                 releases.PushBack(material.Handle);
         materials.Clear();
         view.materials = {};
@@ -157,7 +157,7 @@ private:
         if (!sorted.Empty())
             qsort(sorted.GetData(), sorted.Size(), sizeof(MaterialOverride), compareMaterialOverrides);
         for (uint32_t i = 0; i < sorted.Size(); ++i)
-            if (!sorted[i].submesh || !sorted[i].material.isValid() || (i && sorted[i - 1].submesh == sorted[i].submesh))
+            if (!sorted[i].submesh || !sorted[i].material.IsValid() || (i && sorted[i - 1].submesh == sorted[i].submesh))
                 return false;
 
         Array<MaterialAssetBinding>   next;
@@ -213,7 +213,7 @@ public:
     WorldAssetBindingsData(World& world, AssetManager& assetManager):
         world(world), assetManager(assetManager), query(world, { SceneTypes::meshRenderer })
     {
-        ASSERT(query.isValid());
+        ASSERT(query.IsValid());
     }
     ~WorldAssetBindingsData()
     {

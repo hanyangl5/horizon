@@ -130,7 +130,7 @@ public:
 private:
     void addDependency(AssetID id)
     {
-        if (id.isValid())
+        if (id.IsValid())
             dependencies.PushBack(id);
     }
 
@@ -198,14 +198,14 @@ bool AssetCatalog::replace(const AssetCatalogEntry& entry) { return set(entry, t
 
 bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
 {
-    if (!entry.id.isValid() || entry.Type > AssetType::Texture || entry.location.root > AssetPathRoot::Cooked ||
+    if (!entry.id.IsValid() || entry.Type > AssetType::Texture || entry.location.root > AssetPathRoot::Cooked ||
         !validPath(entry.pSourcePath) || !validPath(entry.location.pPath) || (entry.dependencies.Count && !entry.dependencies.Data))
     {
         LOGF(Error, "Invalid AssetCatalog entry");
         return false;
     }
     for (AssetID id : entry.dependencies)
-        if (!id.isValid())
+        if (!id.IsValid())
         {
             LOGF(Error, "Invalid AssetCatalog dependency");
             return false;
@@ -232,7 +232,7 @@ bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
 
 bool AssetCatalog::addScene(const SceneAsset& scene, const char* pCookedScenePath)
 {
-    if (!scene.isValid() || !validPath(pCookedScenePath))
+    if (!scene.IsValid() || !validPath(pCookedScenePath))
     {
         LOGF(Error, "AssetCatalog requires a decoded SceneAsset and a relative cooked path");
         return false;
@@ -262,7 +262,7 @@ bool AssetCatalog::addScene(const SceneAsset& scene, const char* pCookedScenePat
 
 const AssetCatalogEntry* AssetCatalog::find(AssetID id) const
 {
-    if (!Data || !id.isValid())
+    if (!Data || !id.IsValid())
         return nullptr;
     const CatalogIndex* pIndex = hmgetp_null(Data->pIndices, id);
     return pIndex ? pIndex->value : nullptr;
@@ -398,7 +398,7 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
         for (const cJSON* pDependency = pDependencies->child; pDependency; pDependency = pDependency->next)
         {
             AssetID id;
-            if (!cJSON_IsString(pDependency) || !id.parse(pDependency->valuestring) || !id.isValid())
+            if (!cJSON_IsString(pDependency) || !id.parse(pDependency->valuestring) || !id.IsValid())
                 return false;
             dependencies.PushBack(id);
         }

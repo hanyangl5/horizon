@@ -44,9 +44,9 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         .colorSpace = ColorSpaceSdrSrgb,
     };
     hz::RenderContext context(desc);
-    EXPECT_TRUE(context.isSuspended());
-    EXPECT_EQ(context.getWidth(), 0u);
-    EXPECT_EQ(context.getHeight(), 0u);
+    EXPECT_TRUE(context.IsSuspended());
+    EXPECT_EQ(context.GetWidth(), 0u);
+    EXPECT_EQ(context.GetHeight(), 0u);
 
     const uint32_t       initial = 17;
     const hz::BufferDesc bufferDesc = {
@@ -63,10 +63,10 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
     };
     {
         hz::GPUBuffer first = context.createBuffer(bufferDesc);
-        ASSERT_TRUE(first.isValid());
+        ASSERT_TRUE(first.IsValid());
         hz::GPUBuffer second((hz::GPUBuffer&&)first);
-        EXPECT_FALSE(first.isValid());
-        EXPECT_TRUE(second.isValid());
+        EXPECT_FALSE(first.IsValid());
+        EXPECT_TRUE(second.IsValid());
     }
 
     const char                source[] = "cbuffer RootConstant0 { uint outputIndex; };"
@@ -86,18 +86,18 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
     const MemoryTrackingStats before = GetMemoryTrackingStats();
     {
         hz::GPUPipeline first = context.createComputePipeline(pipelineDesc);
-        ASSERT_TRUE(first.isValid());
+        ASSERT_TRUE(first.IsValid());
         Pipeline* const pPipeline = first.get();
         hz::GPUPipeline second(std::move(first));
-        EXPECT_FALSE(first.isValid());
+        EXPECT_FALSE(first.IsValid());
         EXPECT_EQ(second.get(), pPipeline);
 
         first = context.createComputePipeline(pipelineDesc);
         first = std::move(second);
-        EXPECT_FALSE(second.isValid());
+        EXPECT_FALSE(second.IsValid());
         EXPECT_EQ(first.get(), pPipeline);
         first = hz::GPUPipeline{};
-        EXPECT_FALSE(first.isValid());
+        EXPECT_FALSE(first.IsValid());
         const char vertexSource[] = "float4 main(uint id : SV_VertexID) : SV_Position { return float4(0, 0, 0, 1); }";
         const char fragmentSource[] = "struct Output { float4 first : SV_Target0; float4 second : SV_Target1; };"
                                       "Output main() { Output result; result.first = 1; result.second = 0.5; return result; }";
@@ -114,7 +114,7 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
             },
             .Name = "RenderContextTest.MrtPipeline",
         });
-        EXPECT_TRUE(second.isValid());
+        EXPECT_TRUE(second.IsValid());
     }
     const MemoryTrackingStats after = GetMemoryTrackingStats();
     if (before.TrackingEnabled)
@@ -144,7 +144,7 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
             .language = hz::ShaderLanguage::Slang,
         },
     });
-    ASSERT_TRUE(pipeline.isValid());
+    ASSERT_TRUE(pipeline.IsValid());
     hz::GPUBuffer    output = context.createBuffer({
         .Size = 4 * sizeof(uint32_t),
         .ElementCount = 4,
@@ -161,7 +161,7 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
     });
     hz::CommandList& commands = context.acquireCommandList();
     commands.setPipeline(pipeline);
-    commands.setRootConstant({ output.getUavIndex() });
+    commands.setRootConstant({ output.GetUavIndex() });
     commands.dispatch(1, 1, 1, { .storageBuffers = { &output } });
     commands.copyBuffer(readback, 0, output, 0, 4 * sizeof(uint32_t));
     context.wait(context.submit(commands));
@@ -197,7 +197,7 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
         },
         .colorTargets = { { .Format = hz::Format::R8G8B8A8_UNORM } },
     });
-    EXPECT_TRUE(graphics.isValid());
+    EXPECT_TRUE(graphics.IsValid());
 #else
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
 #endif
@@ -229,7 +229,7 @@ TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
         .StartState = ResourceStateCopyDest,
         .Flags = BufferCreationFlagPersistentMapBit,
     });
-    ASSERT_TRUE(staging.isValid() && target.isValid() && readback.isValid());
+    ASSERT_TRUE(staging.IsValid() && target.IsValid() && readback.IsValid());
     ASSERT_TRUE(context.updateBuffer(staging, 0, values, sizeof(values)));
 
     hz::CommandList& commands = context.acquireCommandList();
@@ -258,23 +258,23 @@ TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
         .Descriptors = DescriptorTypeBufferRaw,
     };
     hz::GPUBuffer released = context.createBuffer(rawDesc);
-    ASSERT_TRUE(released.isValid());
-    const uint32_t   releasedIndex = released.getSrvIndex();
+    ASSERT_TRUE(released.IsValid());
+    const uint32_t   releasedIndex = released.GetSrvIndex();
     hz::CommandList& pending = context.acquireCommandList();
     pending.copyBufferRegions(released, staging, regions);
-    context.deferRelease(std::move(released));
-    EXPECT_FALSE(released.isValid());
+    context.DeferRelease(std::move(released));
+    EXPECT_FALSE(released.IsValid());
     // The open command list still references the buffer, so idling the queue must not release it.
-    context.waitIdle();
+    context.WaitIdle();
     {
         const hz::GPUBuffer probe = context.createBuffer(rawDesc);
-        EXPECT_NE(probe.getSrvIndex(), releasedIndex);
+        EXPECT_NE(probe.GetSrvIndex(), releasedIndex);
     }
     context.wait(context.submit(pending));
     context.submit(context.acquireCommandList());
     const hz::GPUBuffer reused = context.createBuffer(rawDesc);
-    EXPECT_EQ(reused.getSrvIndex(), releasedIndex);
-    context.waitIdle();
+    EXPECT_EQ(reused.GetSrvIndex(), releasedIndex);
+    context.WaitIdle();
 #else
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
 #endif
@@ -318,7 +318,7 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
               .stages = { { .stage = ShaderStageComp, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Read" } },
               .language = hz::ShaderLanguage::Slang,
           } });
-    ASSERT_TRUE(write.isValid() && read.isValid());
+    ASSERT_TRUE(write.IsValid() && read.IsValid());
     const hz::TextureDesc textureDesc = {
         .Width = 2,
         .Height = 2,
@@ -364,11 +364,11 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
         .StartState = ResourceStateCopyDest,
         .Flags = BufferCreationFlagPersistentMapBit,
     });
-    EXPECT_NE(config.getCbvIndex(), config.getUavIndex());
-    EXPECT_EQ(textures[0].getUavIndex(1), textures[0].getUavIndex(0) + 1);
-    const uint32_t   indices[] = { textures[0].getUavIndex(1), textures[1].getUavIndex(1), textures[0].getSrvIndex(),
-                                   textures[1].getSrvIndex(),  sampler.getIndex(),         output.getUavIndex(),
-                                   config.getCbvIndex(),       raw.getSrvIndex() };
+    EXPECT_NE(config.GetCbvIndex(), config.GetUavIndex());
+    EXPECT_EQ(textures[0].GetUavIndex(1), textures[0].GetUavIndex(0) + 1);
+    const uint32_t   indices[] = { textures[0].GetUavIndex(1), textures[1].GetUavIndex(1), textures[0].GetSrvIndex(),
+                                   textures[1].GetSrvIndex(),  sampler.GetIndex(),         output.GetUavIndex(),
+                                   config.GetCbvIndex(),       raw.GetSrvIndex() };
     hz::CommandList& commands = context.acquireCommandList();
     commands.setPipeline(write);
     commands.setRootConstant({ indices, 4 });
@@ -387,12 +387,12 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
         EXPECT_EQ(values[i], expected[i]);
 
     hz::GPUTexture moved(std::move(textures[0]));
-    EXPECT_FALSE(textures[0].isValid());
-    EXPECT_EQ(moved.getSrvIndex(), indices[2]);
+    EXPECT_FALSE(textures[0].IsValid());
+    EXPECT_EQ(moved.GetSrvIndex(), indices[2]);
     moved = {};
     textures[0] = context.createTexture(textureDesc);
-    EXPECT_EQ(textures[0].getSrvIndex(), indices[2]);
-    EXPECT_EQ(textures[1].getSrvIndex(), indices[3]);
+    EXPECT_EQ(textures[0].GetSrvIndex(), indices[2]);
+    EXPECT_EQ(textures[1].GetSrvIndex(), indices[3]);
 #else
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
 #endif
@@ -443,8 +443,8 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
         });
         commands.endRendering();
         const hz::SubmitHandle presentSubmit = context.submit(commands, &backbuffer);
-        EXPECT_TRUE(prepareSubmit.isValid());
-        EXPECT_TRUE(presentSubmit.isValid());
+        EXPECT_TRUE(prepareSubmit.IsValid());
+        EXPECT_TRUE(presentSubmit.IsValid());
         context.wait(presentSubmit);
     }
 

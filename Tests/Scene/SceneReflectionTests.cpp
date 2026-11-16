@@ -172,20 +172,20 @@ TEST_F(SceneReflectionTest, ConstructionPreservesComponentDefaults)
     EXPECT_FLOAT_EQ((float)transform->translation.getX(), 0.0f);
     EXPECT_FLOAT_EQ((float)transform->scale.getY(), 1.0f);
     EXPECT_FLOAT_EQ((float)transform->rotation.getW(), 1.0f);
-    transformType->destroy(transformStorage);
+    transformType->Destroy(transformStorage);
 
     alignas(Matrix4) uint8_t         matrixStorage[sizeof(Matrix4)];
     const hz::TypeDesc*              matrixType = registry.getType(hz::SceneTypes::localMatrix);
     matrixType->construct(matrixStorage);
     EXPECT_FLOAT_EQ((float)((const Matrix4*)matrixStorage)->getElem(3, 3), 1.0f);
-    matrixType->destroy(matrixStorage);
+    matrixType->Destroy(matrixStorage);
 
     alignas(hz::Camera) uint8_t cameraStorage[sizeof(hz::Camera)];
     const hz::TypeDesc*         cameraType = registry.getType(hz::SceneTypes::camera);
     cameraType->construct(cameraStorage);
     EXPECT_FLOAT_EQ(((const hz::Camera*)cameraStorage)->nearPlane, 0.1f);
     EXPECT_FLOAT_EQ(((const hz::Camera*)cameraStorage)->farPlane, 1000.0f);
-    cameraType->destroy(cameraStorage);
+    cameraType->Destroy(cameraStorage);
 
     alignas(hz::Light) uint8_t lightStorage[sizeof(hz::Light)];
     const hz::TypeDesc*        lightType = registry.getType(hz::SceneTypes::light);
@@ -194,9 +194,9 @@ TEST_F(SceneReflectionTest, ConstructionPreservesComponentDefaults)
     EXPECT_EQ(light->Type, hz::LightType::Point);
     EXPECT_FLOAT_EQ(light->range, 0.0f);
     EXPECT_FLOAT_EQ(light->radius, 0.5f);
-    EXPECT_FALSE(light->texture.isValid());
+    EXPECT_FALSE(light->texture.IsValid());
     EXPECT_FALSE(light->normalize);
-    lightType->destroy(lightStorage);
+    lightType->Destroy(lightStorage);
 }
 
 TEST_F(SceneReflectionTest, OwningComponentCopyAndMoveManageArrayLifetime)
@@ -225,9 +225,9 @@ TEST_F(SceneReflectionTest, OwningComponentCopyAndMoveManageArrayLifetime)
     const hz::MeshRenderer* moved = (const hz::MeshRenderer*)movedStorage;
     EXPECT_EQ(moved->overrides.GetData(), data);
     EXPECT_EQ(moved->overrides[0].submesh, 19u);
-    Type->destroy(copyStorage);
-    Type->destroy(originalStorage);
-    Type->destroy(movedStorage);
+    Type->Destroy(copyStorage);
+    Type->Destroy(originalStorage);
+    Type->Destroy(movedStorage);
 }
 
 TEST_F(SceneReflectionTest, CollectionOperationsHandleGrowthAliasesAndRemoval)

@@ -570,7 +570,7 @@ void fntDefineFonts(const FontDesc* pDescs, uint32_t Count, uint32_t* pOutIDs)
             void*   buffer = MemAllocate(bytes);
             ReadFromStream(&fh, buffer, bytes);
 
-            // add buffer to font buffers for cleanup
+            // add buffer to font buffers for Cleanup
             arrpush(gFontstash.fontBuffers, buffer);
             ASSERT(bytes < UINT32_MAX);
             arrpush(gFontstash.fontBufferSizes, (uint32_t)bytes);

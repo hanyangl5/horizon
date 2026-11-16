@@ -138,7 +138,7 @@ void TypeDesc::construct(void* pDestination) const
         memset(pDestination, 0, Size);
 }
 
-void TypeDesc::destroy(void* pValue) const
+void TypeDesc::Destroy(void* pValue) const
 {
     ASSERT(pValue);
     if (lifecycle.pDestroy)

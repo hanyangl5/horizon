@@ -107,12 +107,12 @@ public:
         world(world), assetManager(assetManager), bindings(world, assetManager), query(world, { SceneTypes::meshRenderer }),
         lightQuery(world, { SceneTypes::light }), cameraQuery(world, { SceneTypes::camera })
     {
-        ASSERT(query.isValid() && lightQuery.isValid() && cameraQuery.isValid());
+        ASSERT(query.IsValid() && lightQuery.IsValid() && cameraQuery.IsValid());
     }
     ~RenderSceneData()
     {
         for (const RenderLightEntity& light : lightEntities)
-            if (light.texture.isValid())
+            if (light.texture.IsValid())
                 assetManager.release(light.texture);
         hmfree(pIndices);
         hmfree(pLightIndices);
@@ -139,7 +139,7 @@ public:
         const AssetID textureID = light.Type >= LightType::Rect ? light.texture : AssetID{};
         if (lightEntity.textureID != textureID)
         {
-            if (lightEntity.texture.isValid())
+            if (lightEntity.texture.IsValid())
             {
                 data.textureReleases.PushBack(lightEntity.texture);
             }
@@ -147,7 +147,7 @@ public:
             lightEntity.texture = {};
             lightEntity.error = AssetError::None;
         }
-        if (textureID.isValid() && !lightEntity.texture.isValid() &&
+        if (textureID.IsValid() && !lightEntity.texture.IsValid() &&
             (lightEntity.error == AssetError::None || lightEntity.error == AssetError::Retiring))
         {
             lightEntity.texture = data.assetManager.request(textureID, &lightEntity.error);
@@ -161,7 +161,7 @@ public:
             RenderLightEntity& entity = lightEntities[i];
             if (!entity.seen)
             {
-                if (entity.texture.isValid())
+                if (entity.texture.IsValid())
                     textureReleases.PushBack(entity.texture);
                 lights.remove(entity.id);
                 hmdel(pLightIndices, entity.entity);
@@ -198,9 +198,9 @@ public:
                 .enableColorTemperature = source.enableColorTemperature ? 1u : 0u,
                 .normalize = source.normalize ? 1u : 0u,
                 .twoSided = source.twoSided ? 1u : 0u,
-                .ready = !entity.textureID.isValid() || assetManager.getTexture(entity.texture) ? 1u : 0u,
+                .ready = !entity.textureID.IsValid() || assetManager.getTexture(entity.texture) ? 1u : 0u,
             };
-            if (entity.textureID.isValid() && next.ready)
+            if (entity.textureID.IsValid() && next.ready)
                 next.texture = { .index = entity.texture.index, .generation = entity.texture.generation };
             if (source.Type == LightType::Mesh)
             {
@@ -417,7 +417,7 @@ public:
             for (RenderMeshBatchID id : entity.meshBatches)
             {
                 RenderMeshBatch& meshBatch = meshBatches.values[id.index];
-                if (meshBatch.material.isValid())
+                if (meshBatch.material.IsValid())
                 {
                     meshBatch.material = {};
                     meshBatches.markDirty(id.index);
@@ -560,7 +560,7 @@ public:
             const RenderInstance&  instance = instances.values[index];
             const RenderPrimitive* pPrimitive = primitives.get(instance.primitive);
             // A reset since the last update renders previous == current first.
-            if (history.reset || !instance.id.isValid() || !pPrimitive || !pPrimitive->instanceCount)
+            if (history.reset || !instance.id.IsValid() || !pPrimitive || !pPrimitive->instanceCount)
             {
                 continue;
             }
@@ -584,13 +584,13 @@ public:
     {
         ASSERT(!frameLocked);
         for (RenderEntity& entity : entities)
-            if (!target.isValid() || entity.entity == target)
+            if (!target.IsValid() || entity.entity == target)
             {
                 instanceHistory[entity.instance.index].valid = false;
                 instanceHistory[entity.instance.index].reset = true;
             }
         for (RenderCameraEntity& entity : cameraEntities)
-            if (!target.isValid() || entity.entity == target)
+            if (!target.IsValid() || entity.entity == target)
             {
                 entity.historyValid = false;
                 entity.historyReset = true;

@@ -7461,7 +7461,7 @@ void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, 
 #endif
 }
 
-void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, PipelineCacheSaveDesc* pDesc)
+void SavePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, PipelineCacheSaveDesc* pDesc)
 {
 #if defined(DIRECT3D12)
 

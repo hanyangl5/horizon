@@ -93,11 +93,11 @@ public:
         ASSERT(!open);
         for (GpuTable& table : tables)
         {
-            context.deferRelease(std::move(*table.pBuffer));
+            context.DeferRelease(std::move(*table.pBuffer));
         }
         for (GpuSceneFrame& frame : frames)
         {
-            context.deferRelease(std::move(frame.staging));
+            context.DeferRelease(std::move(frame.staging));
         }
     }
 
@@ -109,7 +109,7 @@ public:
         for (uint32_t i = 0; i < frames.Size() && current == UINT32_MAX; ++i)
         {
             const uint32_t candidate = (next + i) % frames.Size();
-            if (!frames[candidate].submission.isValid() || context.isComplete(frames[candidate].submission))
+            if (!frames[candidate].submission.IsValid() || context.IsComplete(frames[candidate].submission))
             {
                 current = candidate;
             }
@@ -150,14 +150,14 @@ public:
             if (Size > table.Capacity)
             {
                 table.Capacity = growCapacity(table.Capacity, Size);
-                context.deferRelease(std::move(*table.pBuffer));
+                context.DeferRelease(std::move(*table.pBuffer));
                 *table.pBuffer = context.createBuffer({ .Size = table.Capacity,
                                                         .ElementCount = (uint32_t)(table.Capacity / 4),
                                                         .Name = table.Name,
                                                         .usage = MemoryUsageGpuOnly,
                                                         .StartState = ResourceStateShaderResource,
                                                         .Descriptors = DescriptorTypeBufferRaw });
-                ASSERT(table.pBuffer->isValid());
+                ASSERT(table.pBuffer->IsValid());
                 table.full = true;
             }
             if (!Size)
@@ -184,13 +184,13 @@ public:
             if (staged > frame.Capacity)
             {
                 frame.Capacity = growCapacity(frame.Capacity, staged);
-                context.deferRelease(std::move(frame.staging));
+                context.DeferRelease(std::move(frame.staging));
                 frame.staging = context.createBuffer({ .Size = frame.Capacity,
                                                        .Name = "GpuScene.Staging",
                                                        .usage = MemoryUsageCpuToGpu,
                                                        .StartState = ResourceStateGenericRead,
                                                        .Flags = BufferCreationFlagPersistentMapBit });
-                ASSERT(frame.staging.isValid());
+                ASSERT(frame.staging.IsValid());
             }
             for (uint32_t i = 0; i < kGpuTableCount; ++i)
             {
@@ -265,7 +265,7 @@ void GpuScene::upload(CommandList& commands)
 void GpuScene::endFrame(SubmitHandle submission)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::endFrame");
-    ASSERT(Data->open && Data->recorded && submission.isValid());
+    ASSERT(Data->open && Data->recorded && submission.IsValid());
     Data->frames[Data->current].submission = submission;
     Data->scene.setFrameLocked(false);
     Data->scene.acknowledgeUploads();

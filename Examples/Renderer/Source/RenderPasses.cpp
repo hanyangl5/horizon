@@ -59,7 +59,7 @@ GBuffer::GBuffer(hz::RenderContext& Context): Context(Context)
 });
 
     Sampler = Context.createSampler();
-    ASSERT(Pipeline.isValid() && Sampler.isValid());
+    ASSERT(Pipeline.IsValid() && Sampler.IsValid());
 }
 
 void GBuffer::Resize(uint32_t Width, uint32_t Height)
@@ -109,15 +109,15 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const Sc
     Cmd.setScissor(0, 0, Width, Height);
     Cmd.setPipeline(Pipeline);
     const GeometryBindingConstants Binding = {
-        .frameIndex = Frame.getSrvIndex(),
-        .instancesIndex = Gpu.instances.isValid() ? Gpu.instances.getSrvIndex() : UINT32_MAX,
-        .materialsIndex = Gpu.materials.isValid() ? Gpu.materials.getSrvIndex() : UINT32_MAX,
-        .texturesIndex = Gpu.textures.isValid() ? Gpu.textures.getSrvIndex() : UINT32_MAX,
-        .samplerIndex = Sampler.getIndex(),
+        .frameIndex = Frame.GetSrvIndex(),
+        .instancesIndex = Gpu.instances.IsValid() ? Gpu.instances.GetSrvIndex() : UINT32_MAX,
+        .materialsIndex = Gpu.materials.IsValid() ? Gpu.materials.GetSrvIndex() : UINT32_MAX,
+        .texturesIndex = Gpu.textures.IsValid() ? Gpu.textures.GetSrvIndex() : UINT32_MAX,
+        .samplerIndex = Sampler.GetIndex(),
     };
     Cmd.setRootConstants(Binding, GeometryBindingSlot);
 
-    Cmd.setRootConstant({ Draws.GetDrawData(View.FrameIndex).getSrvIndex() }, GeometryDrawSlot);
+    Cmd.setRootConstant({ Draws.GetDrawData(View.FrameIndex).GetSrvIndex() }, GeometryDrawSlot);
     if (Draws.GetCount(View.FrameIndex))
     {
         Cmd.drawIndirect(Draws.GetCommands(View.FrameIndex), 0, Draws.GetCount(View.FrameIndex));
@@ -197,7 +197,7 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     Context(*Desc.Context), Scene(*Desc.Scene), Assets(*Desc.AssetManager), CameraId(Desc.Camera), Draws(Context),
     GpuSceneData(Scene, Assets, Context, { .frameCount = FrameConstants.Size() })
 {
-    ASSERT(Context.isValid() && CameraId.isValid());
+    ASSERT(Context.IsValid() && CameraId.IsValid());
     GBufferTargets = hz::MakeUnique<GBuffer>(Context);
     Lighting = hz::MakeUnique<DeferredLighting>(Context);
     SSAO = hz::MakeUnique<ScreenSpaceAO>(Context);
@@ -227,7 +227,7 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
                                         .StartState = ResourceStateShaderResource,
                                         .Descriptors = DescriptorTypeBuffer,
                                         .Flags = BufferCreationFlagPersistentMapBit });
-        ASSERT(Buffer.isValid());
+        ASSERT(Buffer.IsValid());
     }
 }
 
@@ -270,7 +270,7 @@ static Matrix4 CameraViewProjection(const Matrix4& Pose, const hz::Camera& Lens,
 void RenderPasses::Execute()
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::execute");
-    if (Context.isSuspended())
+    if (Context.IsSuspended())
     {
         return;
     }
@@ -279,7 +279,7 @@ void RenderPasses::Execute()
     // Block on the oldest frame like Unreal's frame sync; returning would spin Update/Draw while every frame is in flight.
     const uint32_t     FrameIndex = NextFrame;
     FrameConstantBuffer& ConstantBuffer = FrameConstants[FrameIndex];
-    if (ConstantBuffer.Submission.isValid())
+    if (ConstantBuffer.Submission.IsValid())
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::waitForFrame");
         Context.wait(ConstantBuffer.Submission);
@@ -293,7 +293,7 @@ void RenderPasses::Execute()
     const hz::RenderCamera* Camera = Scene.getCamera(CameraId);
     ASSERT(Camera);
     const hz::RenderCamera& CameraState = *Camera;
-    const float             AspectInverse = (float)Context.getHeight() / (float)Context.getWidth();
+    const float             AspectInverse = (float)Context.GetHeight() / (float)Context.GetWidth();
     const Matrix4           Current = CameraViewProjection(CameraState.current, CameraState.lens, AspectInverse);
     const FrameData         FrameValues = { .viewProjection = Current,
                                             .previousViewProjection =

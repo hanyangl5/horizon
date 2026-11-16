@@ -10,21 +10,21 @@ struct GpuMeshID
 {
     uint32_t index = UINT32_MAX;
     uint32_t generation = 0;
-    bool     isValid() const { return index != UINT32_MAX && generation != 0; }
+    bool     IsValid() const { return index != UINT32_MAX && generation != 0; }
     bool     operator==(const GpuMeshID&) const = default;
 };
 struct GpuMaterialID
 {
     uint32_t index = UINT32_MAX;
     uint32_t generation = 0;
-    bool     isValid() const { return index != UINT32_MAX && generation != 0; }
+    bool     IsValid() const { return index != UINT32_MAX && generation != 0; }
     bool     operator==(const GpuMaterialID&) const = default;
 };
 struct GpuTextureID
 {
     uint32_t index = UINT32_MAX;
     uint32_t generation = 0;
-    bool     isValid() const { return index != UINT32_MAX && generation != 0; }
+    bool     IsValid() const { return index != UINT32_MAX && generation != 0; }
     bool     operator==(const GpuTextureID&) const = default;
 };
 struct GpuSubmeshRef
@@ -89,15 +89,15 @@ struct GpuAssetTables
 
     const GpuMeshData* getMesh(GpuMeshID id) const
     {
-        return id.isValid() && id.index < meshes.Count && meshes.Data[id.index].id == id ? meshes.Data + id.index : nullptr;
+        return id.IsValid() && id.index < meshes.Count && meshes.Data[id.index].id == id ? meshes.Data + id.index : nullptr;
     }
     const GpuMaterialData* getMaterial(GpuMaterialID id) const
     {
-        return id.isValid() && id.index < materials.Count && materials.Data[id.index].id == id ? materials.Data + id.index : nullptr;
+        return id.IsValid() && id.index < materials.Count && materials.Data[id.index].id == id ? materials.Data + id.index : nullptr;
     }
     const GpuTextureData* getTexture(GpuTextureID id) const
     {
-        return id.isValid() && id.index < textures.Count && textures.Data[id.index].id == id ? textures.Data + id.index : nullptr;
+        return id.IsValid() && id.index < textures.Count && textures.Data[id.index].id == id ? textures.Data + id.index : nullptr;
     }
 };
 } // namespace hz

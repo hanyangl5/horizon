@@ -9,7 +9,7 @@ Entity World::createPersistentEntity()
 {
     pImpl->checkThread();
     const Guid id = Guid::create(pImpl->entityGuids);
-    return id.isValid() ? createPersistentEntity(id) : Entity{};
+    return id.IsValid() ? createPersistentEntity(id) : Entity{};
 }
 
 Entity World::createPersistentEntity(const Guid& id)
@@ -20,7 +20,7 @@ Entity World::createPersistentEntity(const Guid& id)
         LOGF(Error, "Creating a persistent entity requires registered EntityIdentity support");
         return {};
     }
-    if (!id.isValid())
+    if (!id.IsValid())
     {
         LOGF(Error, "A persistent entity requires a nonzero Guid");
         return {};
@@ -48,7 +48,7 @@ Entity World::createPersistentEntity(const Guid& id)
 Entity World::getEntity(const Guid& id) const
 {
     pImpl->checkThread();
-    if (!id.isValid())
+    if (!id.IsValid())
     {
         return {};
     }

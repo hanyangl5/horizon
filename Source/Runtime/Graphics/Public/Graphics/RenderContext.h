@@ -187,16 +187,16 @@ public:
     GPUBuffer& operator=(GPUBuffer&&) noexcept;
     GPUBuffer(const GPUBuffer&) = delete;
     GPUBuffer& operator=(const GPUBuffer&) = delete;
-    bool       isValid() const { return pBuffer != nullptr; }
+    bool       IsValid() const { return pBuffer != nullptr; }
     Buffer*    get() const { return pBuffer; }
     uint64_t   getSize() const { return Size; }
-    uint32_t   getSrvIndex() const { return getBufferSrvIndex(pBuffer); }
-    uint32_t   getUavIndex() const { return getBufferUavIndex(pBuffer); }
-    uint32_t   getCbvIndex() const { return getBufferCbvIndex(pBuffer); }
+    uint32_t   GetSrvIndex() const { return getBufferSrvIndex(pBuffer); }
+    uint32_t   GetUavIndex() const { return getBufferUavIndex(pBuffer); }
+    uint32_t   GetCbvIndex() const { return getBufferCbvIndex(pBuffer); }
 
 private:
     GPUBuffer(RenderContext*, Buffer*, uint64_t, ResourceMemoryUsage, DescriptorType, ResourceState);
-    void                  destroy();
+    void                  Destroy();
     RenderContext*        pContext = nullptr;
     Buffer*               pBuffer = nullptr;
     uint64_t              Size = 0;
@@ -217,20 +217,20 @@ public:
     GPUTexture& operator=(GPUTexture&&) noexcept;
     GPUTexture(const GPUTexture&) = delete;
     GPUTexture&   operator=(const GPUTexture&) = delete;
-    bool          isValid() const { return pTexture != nullptr; }
+    bool          IsValid() const { return pTexture != nullptr; }
     Texture*      get() const { return pTexture; }
-    uint32_t      getSrvIndex() const { return getTextureSrvIndex(pTexture); }
-    uint32_t      getUavIndex(uint32_t mip = 0) const { return getTextureUavIndex(pTexture, mip); }
+    uint32_t      GetSrvIndex() const { return getTextureSrvIndex(pTexture); }
+    uint32_t      GetUavIndex(uint32_t mip = 0) const { return getTextureUavIndex(pTexture, mip); }
     RenderTarget* renderTarget() const { return pRenderTarget; }
-    uint32_t      getWidth() const;
-    uint32_t      getHeight() const;
-    uint32_t      getArraySize() const;
-    uint32_t      getMipLevels() const;
-    Format        getFormat() const;
+    uint32_t      GetWidth() const;
+    uint32_t      GetHeight() const;
+    uint32_t      GetArraySize() const;
+    uint32_t      GetMipLevels() const;
+    Format        GetFormat() const;
 
 private:
     GPUTexture(RenderContext*, Texture*, RenderTarget*, ResourceState, bool owned = true);
-    void                  destroy();
+    void                  Destroy();
     RenderContext*        pContext = nullptr;
     Texture*              pTexture = nullptr;
     RenderTarget*         pRenderTarget = nullptr;
@@ -250,13 +250,13 @@ public:
     GPUSampler& operator=(GPUSampler&&) noexcept;
     GPUSampler(const GPUSampler&) = delete;
     GPUSampler& operator=(const GPUSampler&) = delete;
-    bool        isValid() const { return pSampler != nullptr; }
+    bool        IsValid() const { return pSampler != nullptr; }
     Sampler*    get() const { return pSampler; }
-    uint32_t    getIndex() const { return getSamplerIndex(pSampler); }
+    uint32_t    GetIndex() const { return getSamplerIndex(pSampler); }
 
 private:
     GPUSampler(RenderContext*, Sampler*);
-    void           destroy();
+    void           Destroy();
     RenderContext* pContext = nullptr;
     Sampler*       pSampler = nullptr;
     friend class CommandList;
@@ -272,12 +272,12 @@ public:
     GPUShader& operator=(GPUShader&&) noexcept;
     GPUShader(const GPUShader&) = delete;
     GPUShader& operator=(const GPUShader&) = delete;
-    bool       isValid() const { return pShader != nullptr; }
+    bool       IsValid() const { return pShader != nullptr; }
     Shader*    get() const { return pShader; }
 
 private:
     GPUShader(RenderContext*, Shader*);
-    void           destroy();
+    void           Destroy();
     RenderContext* pContext = nullptr;
     Shader*        pShader = nullptr;
     friend class CommandList;
@@ -293,12 +293,12 @@ public:
     GPUPipeline& operator=(GPUPipeline&&) noexcept;
     GPUPipeline(const GPUPipeline&) = delete;
     GPUPipeline& operator=(const GPUPipeline&) = delete;
-    bool         isValid() const { return pPipeline != nullptr; }
+    bool         IsValid() const { return pPipeline != nullptr; }
     Pipeline*    get() const { return pPipeline; }
 
 private:
     GPUPipeline(RenderContext*, Pipeline*, RootSignature*, GPUShader&&, CommandSignature* = nullptr);
-    void           destroy();
+    void           Destroy();
     RenderContext* pContext = nullptr;
     Pipeline*      pPipeline = nullptr;
     RootSignature* pRootSignature = nullptr;
@@ -327,47 +327,47 @@ public:
     // Optional inputs return UINT32_MAX and are not recorded, so call sites need no branch.
     uint32_t sample(const GPUTexture* pTexture)
     {
-        if (!pTexture || !pTexture->isValid())
+        if (!pTexture || !pTexture->IsValid())
             return UINT32_MAX;
         if (sampledCount < textureCapacity)
             sampledTextures[sampledCount++] = pTexture;
         else
             ASSERT(false);
-        return pTexture->getSrvIndex();
+        return pTexture->GetSrvIndex();
     }
     uint32_t store(const GPUTexture* pTexture)
     {
-        if (!pTexture || !pTexture->isValid())
+        if (!pTexture || !pTexture->IsValid())
             return UINT32_MAX;
         if (storageCount < textureCapacity)
             storageTextures[storageCount++] = pTexture;
         else
             ASSERT(false);
-        return pTexture->getUavIndex();
+        return pTexture->GetUavIndex();
     }
     uint32_t read(const GPUBuffer& buffer)
     {
-        if (!buffer.isValid())
+        if (!buffer.IsValid())
             return UINT32_MAX;
         if (bufferCount < bufferCapacity)
             buffers[bufferCount++] = &buffer;
         else
             ASSERT(false);
-        return buffer.getSrvIndex();
+        return buffer.GetSrvIndex();
     }
     uint32_t write(const GPUBuffer& buffer)
     {
-        if (!buffer.isValid())
+        if (!buffer.IsValid())
             return UINT32_MAX;
         if (storageBufferCount < bufferCapacity)
             storageBuffers[storageBufferCount++] = &buffer;
         else
             ASSERT(false);
-        return buffer.getUavIndex();
+        return buffer.GetUavIndex();
     }
     void indirect(const GPUBuffer& buffer)
     {
-        if (!buffer.isValid())
+        if (!buffer.IsValid())
             return;
         if (indirectCount < bufferCapacity)
             indirectBuffers[indirectCount++] = &buffer;
@@ -487,7 +487,7 @@ struct SubmitHandle
 {
     uint64_t id = 0;
     uint32_t commandIndex = 0;
-    bool     isValid() const { return id != 0; }
+    bool     IsValid() const { return id != 0; }
 };
 
 class RenderContext
@@ -497,29 +497,29 @@ public:
     ~RenderContext();
     RenderContext(const RenderContext&) = delete;
     RenderContext& operator=(const RenderContext&) = delete;
-    bool           isValid() const { return ready; }
+    bool           IsValid() const { return ready; }
 
-    void waitIdle();
+    void WaitIdle();
     // Persists the driver-owned pipeline cache; call once the startup pipelines exist.
-    void savePipelineCache();
+    void SavePipelineCache();
 
     bool                  resize(uint32_t Width, uint32_t Height);
     bool                  setVSync(bool enabled);
     CommandList&          acquireCommandList();
     SubmitHandle          submit(CommandList&, const GPUTexture* pPresent = nullptr);
     void                  wait(SubmitHandle);
-    bool                  isComplete(SubmitHandle) const;
-    uint32_t              getWidth() const;
-    uint32_t              getHeight() const;
+    bool                  IsComplete(SubmitHandle) const;
+    uint32_t              GetWidth() const;
+    uint32_t              GetHeight() const;
     hz::Format            getColorFormat() const;
-    bool                  isHDREnabled() const;
+    bool                  IsHDREnabled() const;
     OutputMode            getOutputMode() const;
     const HDRDisplayInfo& getHDRDisplayInfo() const;
     const HDRMetadata&    getHDRMetadata() const;
     const GPUTexture&     getCurrentBackbuffer();
-    bool                  isSuspended() const;
+    bool                  IsSuspended() const;
 
-    bool                     supportsRayTracing() const;
+    bool                     SupportsRayTracing() const;
     GPUAccelerationStructure createAccelerationStructure(const AccelerationStructureDesc&);
     GPURayTracingPipeline    createRayTracingPipeline(const RayTracingPipelineDesc&);
     GPUBuffer   createBuffer(const BufferDesc&);
@@ -538,7 +538,7 @@ public:
     bool        getGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
     bool        updateBuffer(const GPUBuffer&, uint64_t offset, const void* Data, uint64_t Size);
     // Destroys the buffer once the open command list and all earlier submissions complete.
-    void                     deferRelease(GPUBuffer&& buffer);
+    void                     DeferRelease(GPUBuffer&& buffer);
     // Identifies the open command list, or the latest submission when none is open.
     uint64_t                 getResourceUseId() const;
     bool                     isResourceUseComplete(uint64_t useId) const;
@@ -563,8 +563,8 @@ private:
         uint64_t useId = 0;
         ResourceType Type = ResourceType::Buffer;
     };
-    void deferResource(ResourceType Type, void* resource, void* secondary = nullptr, void* tertiary = nullptr);
-    void releaseAccelerationStructure(AccelerationStructureData*);
+    void DeferResource(ResourceType Type, void* resource, void* secondary = nullptr, void* tertiary = nullptr);
+    void ReleaseAccelerationStructure(AccelerationStructureData*);
     void destroyAccelerationStructure(AccelerationStructureData*);
     void releaseTransientSlots();
 
@@ -595,7 +595,7 @@ private:
     bool     createSwapChain();
     void     destroySwapChain();
     void     destroyDevice(bool waitForGpu);
-    void     cleanup();
+    void     Cleanup();
     void     collectDeferredResources();
     uint64_t getPendingUseId() const;
     Shader*  createShader(const ShaderDesc&);

@@ -21,7 +21,7 @@ public:
         Array<AssetID> dependencies;
         dependencies.Reserve(pScene->getNodes().Count);
         for (const SceneAssetNode& node : pScene->getNodes())
-            if (node.mesh.isValid())
+            if (node.mesh.IsValid())
                 dependencies.PushBack(node.mesh);
         if (!dependencies.Empty())
             qsort(dependencies.GetData(), dependencies.Size(), sizeof(AssetID), compareIDs);

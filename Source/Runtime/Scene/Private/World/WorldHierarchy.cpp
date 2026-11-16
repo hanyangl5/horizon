@@ -332,7 +332,7 @@ bool WorldHierarchy::setParent(ecs_entity_t entity, ecs_entity_t parent, bool ke
     return true;
 }
 
-bool WorldHierarchy::destroy(ecs_entity_t entity, bool subtree)
+bool WorldHierarchy::Destroy(ecs_entity_t entity, bool subtree)
 {
     ecs_term_t term = { .id = ecs_pair(world.parentRelation, entity), .src = { .flags = EcsSelf } };
     ecs_iter_t children = ecs_term_iter(world.pWorld, &term);
@@ -390,12 +390,12 @@ void World::attachParent(Entity entity, Entity parent)
 }
 bool World::setParent(Entity entity, Entity parent, bool keepWorld)
 {
-    if (!isAlive(entity) || (parent.isValid() && !isAlive(parent)))
+    if (!isAlive(entity) || (parent.IsValid() && !isAlive(parent)))
         return false;
     return pImpl->pHierarchy->setParent(entity.value, parent.value, keepWorld);
 }
-bool                  World::destroyEntity(Entity entity) { return isAlive(entity) && pImpl->pHierarchy->destroy(entity.value, false); }
-bool                  World::destroySubtree(Entity entity) { return isAlive(entity) && pImpl->pHierarchy->destroy(entity.value, true); }
+bool                  World::destroyEntity(Entity entity) { return isAlive(entity) && pImpl->pHierarchy->Destroy(entity.value, false); }
+bool                  World::destroySubtree(Entity entity) { return isAlive(entity) && pImpl->pHierarchy->Destroy(entity.value, true); }
 void                  World::updateTransforms() { pImpl->pHierarchy->update(); }
 const WorldTransform* World::getWorldTransform(Entity entity) const
 {
@@ -404,7 +404,7 @@ const WorldTransform* World::getWorldTransform(Entity entity) const
 void World::commitTransforms() { pImpl->pHierarchy->commit(); }
 void World::resetTransformHistory(Entity root)
 {
-    if (!root.isValid() || isAlive(root))
+    if (!root.IsValid() || isAlive(root))
         pImpl->pHierarchy->markDirty(root.value);
 }
 } // namespace hz

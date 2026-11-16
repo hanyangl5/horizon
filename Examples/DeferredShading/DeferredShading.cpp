@@ -181,7 +181,7 @@ GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
         },
         .Name = "DeferredShading.GeometryBuildPipeline",
     });
-    ASSERT(pipeline.isValid());
+    ASSERT(pipeline.IsValid());
 
     vertices = context.createBuffer({
         .Size = sizeof(Vertex) * kGeneratedVertexCount,
@@ -201,14 +201,14 @@ GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
         .StartState = ResourceStateUnorderedAccess,
         .Descriptors = DescriptorTypeBuffer | DescriptorTypeRwBuffer | DescriptorTypeIndexBuffer,
     });
-    ASSERT(vertices.isValid() && indices.isValid());
+    ASSERT(vertices.IsValid() && indices.IsValid());
 }
 
 void GeometryBuildPass::execute(hz::CommandList& commands) const
 {
     commands.beginGpuTimestamp("Build Geometry");
     commands.setPipeline(pipeline);
-    commands.setRootConstant({ vertices.getUavIndex(), indices.getUavIndex() });
+    commands.setRootConstant({ vertices.GetUavIndex(), indices.GetUavIndex() });
     const hz::GPUBuffer* buffers[] = { &vertices, &indices };
     commands.dispatch(1, 1, 1, { .storageBuffers = buffers });
     commands.endGpuTimestamp();
@@ -301,7 +301,7 @@ GBufferPass::GBufferPass(hz::RenderContext& context)
         .depthStencilFormat = hz::Format::D32_SFLOAT,
         .Name = "DeferredShading.GBufferPipeline",
     });
-    ASSERT(pipeline.isValid());
+    ASSERT(pipeline.IsValid());
 }
 
 bool GBufferPass::resize(hz::RenderContext& context, uint32_t Width, uint32_t Height)
@@ -326,7 +326,7 @@ bool GBufferPass::resize(hz::RenderContext& context, uint32_t Width, uint32_t He
     albedo = context.createTexture(albedoDesc);
     normal = context.createTexture(normalDesc);
     Depth = context.createTexture(depthDesc);
-    if (!albedo.isValid() || !normal.isValid() || !Depth.isValid())
+    if (!albedo.IsValid() || !normal.IsValid() || !Depth.IsValid())
         return false;
     return true;
 }
@@ -356,9 +356,9 @@ void GBufferPass::execute(hz::CommandList& commands, const hz::GPUBuffer& vertic
     commands.setPipeline(pipeline);
     commands.setVertexBuffer(0, vertices, 0, sizeof(Vertex));
     commands.setIndexBuffer(indices, 0, IndexTypeUInt32);
-    commands.setRootConstant({ sceneUniforms[0]->getSrvIndex() });
+    commands.setRootConstant({ sceneUniforms[0]->GetSrvIndex() });
     commands.drawIndexed(kCubeIndexCount);
-    commands.setRootConstant({ sceneUniforms[1]->getSrvIndex() });
+    commands.setRootConstant({ sceneUniforms[1]->GetSrvIndex() });
     commands.drawIndexed(kPlaneIndexCount, kPlaneFirstIndex, kPlaneFirstVertex);
     commands.endRendering();
     commands.endGpuTimestamp();
@@ -420,7 +420,7 @@ LightingPass::LightingPass(hz::RenderContext& context, hz::Format surfaceFormat)
         .colorTargets = { { .Format = surfaceFormat } },
         .Name = "DeferredShading.LightingPipeline",
     });
-    ASSERT(pipeline.isValid());
+    ASSERT(pipeline.IsValid());
 }
 
 void LightingPass::execute(hz::CommandList& commands, const hz::GPUTexture& backbuffer, const hz::GPUTexture& albedo,
@@ -442,7 +442,7 @@ void LightingPass::execute(hz::CommandList& commands, const hz::GPUTexture& back
     commands.setViewport(0.0f, 0.0f, (float)Width, (float)Height);
     commands.setScissor(0, 0, Width, Height);
     commands.setPipeline(pipeline);
-    commands.setRootConstant({ { albedo.getSrvIndex(), normal.getSrvIndex(), Depth.getSrvIndex() } });
+    commands.setRootConstant({ { albedo.GetSrvIndex(), normal.GetSrvIndex(), Depth.GetSrvIndex() } });
     commands.draw(3);
     commands.endRendering();
     commands.endGpuTimestamp();
@@ -489,7 +489,7 @@ public:
     void Exit() override
     {
         PROFILER_SET_CPU_SCOPE("DeferredShading", "Exit", kCpuProfileColor);
-        context->waitIdle();
+        context->WaitIdle();
         lightingPass.reset();
         gBufferPass.reset();
         geometryBuildPass.reset();
@@ -524,7 +524,7 @@ public:
     {
         PROFILER_SET_CPU_SCOPE("DeferredShading", "Draw", kCpuProfileColor);
 
-        if (context->isSuspended())
+        if (context->IsSuspended())
             return;
         hz::CommandList& commands = context->acquireCommandList();
         updateSceneUniforms(commands);
@@ -536,9 +536,9 @@ public:
         };
         geometryBuildPass->execute(commands);
         gBufferPass->execute(commands, geometryBuildPass->getVertexBuffer(), geometryBuildPass->getIndexBuffer(), sceneUniforms,
-                             context->getWidth(), context->getHeight());
+                             context->GetWidth(), context->GetHeight());
         lightingPass->execute(commands, backbuffer, gBufferPass->getAlbedo(), gBufferPass->getNormal(), gBufferPass->getDepth(),
-                              context->getWidth(), context->getHeight());
+                              context->GetWidth(), context->GetHeight());
         context->submit(commands, &backbuffer);
     }
 
@@ -558,7 +558,7 @@ private:
                 .StartState = ResourceStateShaderResource,
                 .Descriptors = DescriptorTypeBuffer,
             });
-            ASSERT(sceneUniformBuffers[object].isValid());
+            ASSERT(sceneUniformBuffers[object].IsValid());
         }
     }
 

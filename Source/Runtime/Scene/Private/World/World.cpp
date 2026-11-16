@@ -74,7 +74,7 @@ void WorldImpl::destroyComponents(void* pValue, int32_t Count, const ecs_type_in
 {
     const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < Count; ++i)
-        Type.destroy((uint8_t*)pValue + (size_t)i * Type.Size);
+        Type.Destroy((uint8_t*)pValue + (size_t)i * Type.Size);
 }
 
 void WorldImpl::copyConstructComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
@@ -176,13 +176,13 @@ Entity World::createEntity()
 bool World::owns(Entity entity) const
 {
     // Invalid entities keep their "none" meaning; a Handle from another World is simply not part of this one.
-    return !entity.isValid() || entity.world == pImpl->id;
+    return !entity.IsValid() || entity.world == pImpl->id;
 }
 
 bool World::isAlive(Entity entity) const
 {
     pImpl->checkThread();
-    return owns(entity) && entity.isValid() && ecs_is_alive(pImpl->pWorld, entity.value);
+    return owns(entity) && entity.IsValid() && ecs_is_alive(pImpl->pWorld, entity.value);
 }
 
 bool World::addComponent(Entity entity, TypeID Type)
@@ -242,7 +242,7 @@ bool World::setComponent(Entity entity, TypeID Type, const void* pValue)
         void*           pCopy = MemAllocateAligned(description.alignment, description.Size);
         description.copyConstruct(pCopy, pValue);
         ecs_set_id(pImpl->pWorld, entity.value, pType->component, description.Size, pCopy);
-        description.destroy(pCopy);
+        description.Destroy(pCopy);
         MemDeallocate(pCopy);
         return true;
     }
@@ -317,11 +317,11 @@ WorldQueryImpl::~WorldQueryImpl()
 WorldQuery::WorldQuery(World& world, Span<TypeID> types): pImpl(MemNew(WorldQueryImpl, world, types)) {}
 WorldQuery::~WorldQuery() { MemDelete(pImpl); }
 
-bool WorldQuery::isValid() const { return pImpl->pQuery != nullptr; }
+bool WorldQuery::IsValid() const { return pImpl->pQuery != nullptr; }
 
 void WorldQuery::each(bool (*pCallback)(Entity, Span<const void*>, void*), void* UserData)
 {
-    ASSERT(isValid() && pCallback && !pImpl->iterating);
+    ASSERT(IsValid() && pCallback && !pImpl->iterating);
     DeferredChanges changes = pImpl->pOwner->defer();
     pImpl->iterating = true;
     ecs_iter_t it = ecs_query_iter(pImpl->pOwner->pImpl->pWorld, pImpl->pQuery);

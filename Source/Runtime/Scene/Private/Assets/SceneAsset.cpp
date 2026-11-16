@@ -150,7 +150,7 @@ bool SceneAssetReader::readString(const cJSON* pObject, const char* pField, cons
 bool SceneAssetReader::readID(const cJSON* pObject, AssetID& id, AssetKind kind)
 {
     const cJSON* pValue = field(pObject, "id");
-    if (!cJSON_IsString(pValue) || !id.parse(pValue->valuestring) || !id.isValid() || hmgetp_null(pAssets, id))
+    if (!cJSON_IsString(pValue) || !id.parse(pValue->valuestring) || !id.IsValid() || hmgetp_null(pAssets, id))
         return invalidField("id (invalid or duplicate AssetID)");
     const AssetEntry entry = { .key = id, .value = kind };
     hmputs(pAssets, entry);
@@ -162,7 +162,7 @@ bool SceneAssetReader::readReference(const cJSON* pObject, const char* pField, A
     const cJSON* pValue = field(pObject, pField);
     if (cJSON_IsNull(pValue) || (!pValue && optional))
         return true;
-    if (!cJSON_IsString(pValue) || !id.parse(pValue->valuestring) || !id.isValid())
+    if (!cJSON_IsString(pValue) || !id.parse(pValue->valuestring) || !id.IsValid())
         return invalidField(pField);
     const AssetEntry* pEntry = hmgetp_null(pAssets, id);
     return (pEntry && pEntry->value == kind) || invalidField(pField);
@@ -254,7 +254,7 @@ bool SceneAssetReader::readMeshes(const cJSON* pArray)
                 return invalidField("submesh id");
             if (!readReference(pSubmesh, "material", submesh.material, AssetKind::Material))
                 return false;
-            if (!submesh.material.isValid())
+            if (!submesh.material.IsValid())
                 return invalidField("submesh material");
             data.submeshes.PushBack(submesh);
             ids.PushBack(submesh.id);
@@ -439,9 +439,9 @@ static void copyName(Name& name, const char* pText)
 
 Entity SceneAsset::instantiate(World& world, Entity parent) const
 {
-    ASSERT(Data && !world.isDeferred() && (!parent.isValid() || world.isAlive(parent)));
+    ASSERT(Data && !world.isDeferred() && (!parent.IsValid() || world.isAlive(parent)));
     const Entity root = world.createPersistentEntity();
-    if (!root.isValid())
+    if (!root.IsValid())
         return {};
     Array<Entity> entities;
     entities.Reserve(Data->nodes.Size());
@@ -453,14 +453,14 @@ Entity SceneAsset::instantiate(World& world, Entity parent) const
         for (const SceneAssetNode& node : Data->nodes)
         {
             const Entity entity = world.createPersistentEntity();
-            if (!entity.isValid())
+            if (!entity.IsValid())
                 break;
             entities.PushBack(entity);
             copyName(name, node.Name);
             copied &= world.setComponent(entity, SceneTypes::name, &name);
             copied &= node.hasMatrix ? world.setComponent(entity, SceneTypes::localMatrix, &node.matrix)
                                      : world.setComponent(entity, SceneTypes::localTransform, &node.transform);
-            if (node.mesh.isValid())
+            if (node.mesh.IsValid())
             {
                 const MeshRenderer renderer = { .mesh = node.mesh };
                 copied &= world.setComponent(entity, SceneTypes::meshRenderer, &renderer);
@@ -475,7 +475,7 @@ Entity SceneAsset::instantiate(World& world, Entity parent) const
         world.destroyEntity(root);
         return {};
     }
-    if (parent.isValid())
+    if (parent.IsValid())
         world.attachParent(root, parent);
     for (uint32_t i = 0; i < entities.Size(); ++i)
         world.attachParent(entities[i], Data->nodes[i].parent == UINT32_MAX ? root : entities[Data->nodes[i].parent]);

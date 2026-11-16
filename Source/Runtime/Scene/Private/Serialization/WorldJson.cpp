@@ -160,14 +160,14 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
         const AssetID& id = *(const AssetID*)pValue;
         char           text[kIDStringCapacity];
         id.toString(text);
-        return id.isValid() ? cJSON_CreateString(text) : cJSON_CreateNull();
+        return id.IsValid() ? cJSON_CreateString(text) : cJSON_CreateNull();
     }
     case PropertyKind::EntityReference:
     {
         const Guid& id = *(const Guid*)pValue;
         char        text[kIDStringCapacity];
         id.toString(text);
-        return id.isValid() ? cJSON_CreateString(text) : cJSON_CreateNull();
+        return id.IsValid() ? cJSON_CreateString(text) : cJSON_CreateNull();
     }
     case PropertyKind::Array:
     {
@@ -375,7 +375,7 @@ bool validateWorldReferences(const TypeDesc& Type, const void* pValue, const Wor
         if (property.kind == PropertyKind::EntityReference)
         {
             const Guid& id = *(const Guid*)pField;
-            if (id.isValid() && !world.getEntity(id).isValid())
+            if (id.IsValid() && !world.getEntity(id).IsValid())
                 return false;
         }
         if (property.kind == PropertyKind::Array)
@@ -403,7 +403,7 @@ bool normalizeWorldComponent(TypeID Type, void* pValue, bool sortOverrides)
         if (sortOverrides && !overrides.Empty())
             qsort(overrides.GetData(), overrides.Size(), sizeof(MaterialOverride), compareMaterialOverrides);
         for (uint32_t i = 0; i < overrides.Size(); ++i)
-            if (!overrides[i].submesh || !overrides[i].material.isValid() || (i && overrides[i - 1].submesh >= overrides[i].submesh))
+            if (!overrides[i].submesh || !overrides[i].material.IsValid() || (i && overrides[i - 1].submesh >= overrides[i].submesh))
                 return false;
     }
     if (Type == SceneTypes::localTransform)

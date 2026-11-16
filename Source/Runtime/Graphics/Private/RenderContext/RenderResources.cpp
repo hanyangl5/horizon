@@ -21,7 +21,7 @@ GPUBuffer::GPUBuffer(RenderContext* context, Buffer* buffer, uint64_t bufferSize
     ++pContext->resourceCount;
 }
 
-GPUBuffer::~GPUBuffer() { destroy(); }
+GPUBuffer::~GPUBuffer() { Destroy(); }
 
 GPUBuffer::GPUBuffer(GPUBuffer&& other) noexcept:
     pContext(other.pContext), pBuffer(other.pBuffer), Size(other.Size), usage(other.usage), Descriptors(other.Descriptors),
@@ -39,7 +39,7 @@ GPUBuffer& GPUBuffer::operator=(GPUBuffer&& other) noexcept
 {
     if (this != &other)
     {
-        destroy();
+        Destroy();
         pContext = other.pContext;
         pBuffer = other.pBuffer;
         Size = other.Size;
@@ -56,13 +56,13 @@ GPUBuffer& GPUBuffer::operator=(GPUBuffer&& other) noexcept
     return *this;
 }
 
-void GPUBuffer::destroy()
+void GPUBuffer::Destroy()
 {
     ASSERT((pContext != nullptr) == (pBuffer != nullptr));
     if (pBuffer)
     {
         ASSERT(pContext->resourceCount);
-        pContext->deferResource(RenderContext::ResourceType::Buffer, pBuffer);
+        pContext->DeferResource(RenderContext::ResourceType::Buffer, pBuffer);
         pBuffer = nullptr;
         pContext = nullptr;
     }
@@ -79,7 +79,7 @@ GPUTexture::GPUTexture(RenderContext* context, Texture* texture, RenderTarget* r
     }
 }
 
-GPUTexture::~GPUTexture() { destroy(); }
+GPUTexture::~GPUTexture() { Destroy(); }
 
 GPUTexture::GPUTexture(GPUTexture&& other) noexcept:
     pContext(other.pContext), pTexture(other.pTexture), pRenderTarget(other.pRenderTarget), state(other.state), owned(other.owned)
@@ -95,7 +95,7 @@ GPUTexture& GPUTexture::operator=(GPUTexture&& other) noexcept
 {
     if (this != &other)
     {
-        destroy();
+        Destroy();
         pContext = other.pContext;
         pTexture = other.pTexture;
         pRenderTarget = other.pRenderTarget;
@@ -110,12 +110,12 @@ GPUTexture& GPUTexture::operator=(GPUTexture&& other) noexcept
     return *this;
 }
 
-void GPUTexture::destroy()
+void GPUTexture::Destroy()
 {
     if (pTexture && owned)
     {
         ASSERT(pContext && pContext->resourceCount);
-        pContext->deferResource(pRenderTarget ? RenderContext::ResourceType::RenderTarget : RenderContext::ResourceType::Texture,
+        pContext->DeferResource(pRenderTarget ? RenderContext::ResourceType::RenderTarget : RenderContext::ResourceType::Texture,
                                 pRenderTarget ? (void*)pRenderTarget : (void*)pTexture);
     }
 }
@@ -126,7 +126,7 @@ GPUSampler::GPUSampler(RenderContext* context, Sampler* sampler): pContext(conte
     ++pContext->resourceCount;
 }
 
-GPUSampler::~GPUSampler() { destroy(); }
+GPUSampler::~GPUSampler() { Destroy(); }
 
 GPUSampler::GPUSampler(GPUSampler&& other) noexcept: pContext(other.pContext), pSampler(other.pSampler)
 {
@@ -138,7 +138,7 @@ GPUSampler& GPUSampler::operator=(GPUSampler&& other) noexcept
 {
     if (this != &other)
     {
-        destroy();
+        Destroy();
         pContext = other.pContext;
         pSampler = other.pSampler;
         other.pContext = nullptr;
@@ -147,13 +147,13 @@ GPUSampler& GPUSampler::operator=(GPUSampler&& other) noexcept
     return *this;
 }
 
-void GPUSampler::destroy()
+void GPUSampler::Destroy()
 {
     ASSERT((pContext != nullptr) == (pSampler != nullptr));
     if (pSampler)
     {
         ASSERT(pContext->resourceCount);
-        pContext->deferResource(RenderContext::ResourceType::Sampler, pSampler);
+        pContext->DeferResource(RenderContext::ResourceType::Sampler, pSampler);
     }
 }
 
@@ -163,7 +163,7 @@ GPUShader::GPUShader(RenderContext* context, Shader* shader): pContext(context),
     ++pContext->resourceCount;
 }
 
-GPUShader::~GPUShader() { destroy(); }
+GPUShader::~GPUShader() { Destroy(); }
 
 GPUShader::GPUShader(GPUShader&& other) noexcept: pContext(other.pContext), pShader(other.pShader)
 {
@@ -175,7 +175,7 @@ GPUShader& GPUShader::operator=(GPUShader&& other) noexcept
 {
     if (this != &other)
     {
-        destroy();
+        Destroy();
         pContext = other.pContext;
         pShader = other.pShader;
         other.pContext = nullptr;
@@ -184,13 +184,13 @@ GPUShader& GPUShader::operator=(GPUShader&& other) noexcept
     return *this;
 }
 
-void GPUShader::destroy()
+void GPUShader::Destroy()
 {
     ASSERT((pContext != nullptr) == (pShader != nullptr));
     if (pShader)
     {
         ASSERT(pContext->resourceCount);
-        pContext->deferResource(RenderContext::ResourceType::Shader, pShader);
+        pContext->DeferResource(RenderContext::ResourceType::Shader, pShader);
     }
 }
 
@@ -202,7 +202,7 @@ GPUPipeline::GPUPipeline(RenderContext* context, Pipeline* pipeline, RootSignatu
     ++pContext->resourceCount;
 }
 
-GPUPipeline::~GPUPipeline() { destroy(); }
+GPUPipeline::~GPUPipeline() { Destroy(); }
 
 GPUPipeline::GPUPipeline(GPUPipeline&& other) noexcept:
     pContext(other.pContext), pPipeline(other.pPipeline), pRootSignature(other.pRootSignature),
@@ -218,7 +218,7 @@ GPUPipeline& GPUPipeline::operator=(GPUPipeline&& other) noexcept
 {
     if (this != &other)
     {
-        destroy();
+        Destroy();
         pContext = other.pContext;
         pPipeline = other.pPipeline;
         pRootSignature = other.pRootSignature;
@@ -232,13 +232,13 @@ GPUPipeline& GPUPipeline::operator=(GPUPipeline&& other) noexcept
     return *this;
 }
 
-void GPUPipeline::destroy()
+void GPUPipeline::Destroy()
 {
     ASSERT((pContext != nullptr) == (pPipeline != nullptr));
     if (pPipeline)
     {
         ASSERT(pContext->resourceCount && pRootSignature);
-        pContext->deferResource(RenderContext::ResourceType::Pipeline, pPipeline, pRootSignature, pDrawIndirectSignature);
+        pContext->DeferResource(RenderContext::ResourceType::Pipeline, pPipeline, pRootSignature, pDrawIndirectSignature);
     }
 }
 
@@ -315,11 +315,11 @@ GPUTexture RenderContext::createTexture(const TextureDesc& input)
     return GPUTexture(this, texture, renderTarget, input.StartState);
 }
 
-uint32_t GPUTexture::getWidth() const { return pTexture ? pTexture->Width : 0; }
-uint32_t GPUTexture::getHeight() const { return pTexture ? pTexture->Height : 0; }
-uint32_t GPUTexture::getArraySize() const { return pTexture ? pTexture->arraySizeMinusOne + 1 : 0; }
-uint32_t GPUTexture::getMipLevels() const { return pTexture ? pTexture->MipLevels : 0; }
-Format   GPUTexture::getFormat() const { return pTexture ? pTexture->Format : Format::UNDEFINED; }
+uint32_t GPUTexture::GetWidth() const { return pTexture ? pTexture->Width : 0; }
+uint32_t GPUTexture::GetHeight() const { return pTexture ? pTexture->Height : 0; }
+uint32_t GPUTexture::GetArraySize() const { return pTexture ? pTexture->arraySizeMinusOne + 1 : 0; }
+uint32_t GPUTexture::GetMipLevels() const { return pTexture ? pTexture->MipLevels : 0; }
+Format   GPUTexture::GetFormat() const { return pTexture ? pTexture->Format : Format::UNDEFINED; }
 
 static bool sameTextureDesc(const TextureDesc& a, const TextureDesc& b)
 {
@@ -689,7 +689,7 @@ bool RenderContext::initPipelineCache()
     return pPipelineCache != nullptr;
 }
 
-void RenderContext::savePipelineCache()
+void RenderContext::SavePipelineCache()
 {
     if (!pRenderer || !pPipelineCache)
         return;

@@ -178,7 +178,7 @@ public:
         uint32_t Count = 0;
         for (uint32_t i = 0; i < ids.Size(); ++i)
         {
-            if (!ids[i].isValid() || (i && ids[i] == ids[i - 1]))
+            if (!ids[i].IsValid() || (i && ids[i] == ids[i - 1]))
                 continue;
             if (Count == entry.dependencies.Count || ids[i] != entry.dependencies.Data[Count++])
                 return false;

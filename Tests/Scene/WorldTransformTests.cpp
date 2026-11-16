@@ -50,7 +50,7 @@ TEST_F(SceneTransformTest, PropagatesLocalChangesAndRejectsCycles)
     world.updateTransforms();
     expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3(18.0f, 0.0f, 0.0f)));
     EXPECT_EQ(world.getParent(leaf), child);
-    EXPECT_FALSE(world.getParent(root).isValid());
+    EXPECT_FALSE(world.getParent(root).IsValid());
 }
 
 TEST_F(SceneTransformTest, PreservesShearAndRejectsSingularParentsAtomically)
@@ -102,7 +102,7 @@ TEST_F(SceneTransformTest, ParentDeletionPreservesChildrenButSubtreeDeletionRemo
     EXPECT_FALSE(world.isAlive(root));
     EXPECT_TRUE(world.isAlive(child));
     EXPECT_TRUE(world.isAlive(sibling));
-    EXPECT_FALSE(world.getParent(child).isValid());
+    EXPECT_FALSE(world.getParent(child).IsValid());
     EXPECT_EQ(world.getParent(leaf), child);
     world.updateTransforms();
     expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3(15.0f, 0.0f, 0.0f)));
@@ -184,7 +184,7 @@ TEST_F(SceneTransformTest, DeepHierarchyUsesIterativeTraversalAndCleanUpdatesDoN
         entities.PushBack(entity);
         setTranslation(world, entity, 1.0f);
         ASSERT_TRUE(world.setParent(entity, parent, false));
-        if (!root.isValid())
+        if (!root.IsValid())
             root = entity;
         parent = entity;
     }
@@ -265,7 +265,7 @@ TEST_F(SceneTransformTest, DeepSubtreeSupportsReparentingComponentEditsAndDeleti
     world.updateTransforms();
     expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)Count + 7.0f, 0, 0)));
     ASSERT_TRUE(world.destroyEntity(secondParent));
-    EXPECT_FALSE(world.getParent(root).isValid());
+    EXPECT_FALSE(world.getParent(root).IsValid());
     world.updateTransforms();
     expectMatrix(world.getWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)Count + 7.0f, 0, 0)));
     ASSERT_TRUE(world.destroySubtree(root));
@@ -290,7 +290,7 @@ TEST_F(SceneTransformTest, BuildsOneHundredThousandEntitiesAndUpdatesASingleDirt
     {
         last = world.createEntity();
         setTranslation(world, last, (float)i);
-        if (!first.isValid())
+        if (!first.IsValid())
             first = last;
     }
     world.updateTransforms();

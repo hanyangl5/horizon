@@ -14,7 +14,7 @@ GpuDrawList::GpuDrawList(hz::RenderContext& Context): Context(Context)
         Context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearStatistics" } },
                                                         .pFileName = "FrustumCulling.slang" },
                                         .Name = "Renderer.ClearCullingStatistics" });
-    ASSERT(Pipeline.isValid() && ClearPipeline.isValid());
+    ASSERT(Pipeline.IsValid() && ClearPipeline.IsValid());
 }
 
 // Mirrors the RootConstant0 block of FrustumCulling.slang field for field.
@@ -42,7 +42,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
         uint32_t Id = 0;
         for (uint32_t Index = 0; Index < Tables.materials.Count; ++Index)
         {
-            MaterialIds[Index] = Tables.materials.Data[Index].id.isValid() ? Id++ : UINT32_MAX;
+            MaterialIds[Index] = Tables.materials.Data[Index].id.IsValid() ? Id++ : UINT32_MAX;
         }
         MaterialRevision = Tables.revision;
     }
@@ -125,7 +125,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
     }
     Frame& CurrentFrame = Frames[View.FrameIndex];
     CurrentFrame.Count = DrawData.Size();
-    if (CurrentFrame.Count > CurrentFrame.Capacity || !CurrentFrame.Statistics.isValid())
+    if (CurrentFrame.Count > CurrentFrame.Capacity || !CurrentFrame.Statistics.IsValid())
     {
         CurrentFrame.Capacity = TF_MAX(64u, TF_MAX(CurrentFrame.Count, CurrentFrame.Capacity * 2));
         CurrentFrame.DrawData = Context.createBuffer({ .Size = uint64_t(CurrentFrame.Capacity) * sizeof(GpuDrawData),
@@ -150,11 +150,11 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
                                                          .usage = MemoryUsageGpuOnly,
                                                          .StartState = ResourceStateUnorderedAccess,
                                                          .Descriptors = DescriptorTypeRwBufferRaw });
-        ASSERT(CurrentFrame.DrawData.isValid() && CurrentFrame.Opaque.isValid() && CurrentFrame.Transparent.isValid() &&
-               CurrentFrame.Statistics.isValid());
+        ASSERT(CurrentFrame.DrawData.IsValid() && CurrentFrame.Opaque.IsValid() && CurrentFrame.Transparent.IsValid() &&
+               CurrentFrame.Statistics.IsValid());
     }
     Commands.setPipeline(ClearPipeline);
-    Commands.setRootConstant({ CurrentFrame.Statistics.getUavIndex() }, 5);
+    Commands.setRootConstant({ CurrentFrame.Statistics.GetUavIndex() }, 5);
     Commands.dispatch(1, 1, 1, { .storageBuffers = { &CurrentFrame.Statistics } });
     if (!CurrentFrame.Count)
     {
@@ -164,15 +164,15 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
     ASSERT(Uploaded);
     Commands.beginGpuTimestamp("GPU Frustum Culling");
     Commands.setPipeline(Pipeline);
-    const CullingConstants Binding = { .frameIndex = FrameBuffer.getSrvIndex(),
-                                       .drawsIndex = CurrentFrame.DrawData.getSrvIndex(),
-                                       .instancesIndex = View.GpuScene.getBuffers().instances.getSrvIndex(),
-                                       .opaqueIndex = CurrentFrame.Opaque.getUavIndex(),
-                                       .transparentIndex = CurrentFrame.Transparent.getUavIndex(),
-                                       .statisticsIndex = CurrentFrame.Statistics.getUavIndex(),
+    const CullingConstants Binding = { .frameIndex = FrameBuffer.GetSrvIndex(),
+                                       .drawsIndex = CurrentFrame.DrawData.GetSrvIndex(),
+                                       .instancesIndex = View.GpuScene.getBuffers().instances.GetSrvIndex(),
+                                       .opaqueIndex = CurrentFrame.Opaque.GetUavIndex(),
+                                       .transparentIndex = CurrentFrame.Transparent.GetUavIndex(),
+                                       .statisticsIndex = CurrentFrame.Statistics.GetUavIndex(),
                                        .drawCount = CurrentFrame.Count,
                                        .cullingEnabled = Culling ? 1u : 0u,
-                                       .shadowsIndex = CurrentFrame.Shadow.getUavIndex() };
+                                       .shadowsIndex = CurrentFrame.Shadow.GetUavIndex() };
     Commands.setRootConstants(Binding);
     Commands.dispatch((CurrentFrame.Count + 63) / 64, 1, 1,
                       { .buffers = { &FrameBuffer, &CurrentFrame.DrawData, &View.GpuScene.getBuffers().instances },
@@ -189,15 +189,15 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
     Buffers.PushBack(&Frame);
     Buffers.PushBack(&GetDrawData(View.FrameIndex));
     const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
-    if (Gpu.instances.isValid())
+    if (Gpu.instances.IsValid())
     {
         Buffers.PushBack(&Gpu.instances);
     }
-    if (Gpu.materials.isValid())
+    if (Gpu.materials.IsValid())
     {
         Buffers.PushBack(&Gpu.materials);
     }
-    if (Gpu.textures.isValid())
+    if (Gpu.textures.IsValid())
     {
         Buffers.PushBack(&Gpu.textures);
     }
@@ -205,7 +205,7 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
     const hz::GPUBuffer*      Previous = nullptr;
     for (const hz::GpuMeshData& MeshData : Tables.meshes)
     {
-        if (!MeshData.id.isValid())
+        if (!MeshData.id.IsValid())
         {
             continue;
         }
@@ -224,7 +224,7 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
     }
     for (const hz::GpuTextureData& TextureData : Tables.textures)
     {
-        if (TextureData.id.isValid())
+        if (TextureData.id.IsValid())
         {
             Textures.PushBack(
                 &View.Assets.getTexture({ .index = TextureData.id.index, .generation = TextureData.id.generation })->getTexture());

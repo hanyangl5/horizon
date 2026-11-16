@@ -82,7 +82,7 @@ public:
     // Cooked scenes stay JSON on purpose: the same document is also the re-cook identity store, and one
     // parse at load costs far less than a binary layout plus a separate identity file.
     bool                     parse(Span<char> json);
-    bool                     isValid() const { return Data != nullptr; }
+    bool                     IsValid() const { return Data != nullptr; }
     AssetID                  getID() const;
     const char*              getSource() const;
     const char*              getContentHash() const;

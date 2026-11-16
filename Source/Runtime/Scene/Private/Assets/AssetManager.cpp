@@ -397,14 +397,14 @@ public:
         if (asset.pEntry->Type == AssetType::Texture)
         {
             textures[index] = { .id = { .index = index, .generation = asset.generation },
-                                .srv = ((const TextureAsset*)asset.pPayload)->getTexture().getSrvIndex() };
+                                .srv = ((const TextureAsset*)asset.pPayload)->getTexture().GetSrvIndex() };
         }
         else if (asset.pEntry->Type == AssetType::Mesh)
         {
             const MeshAsset& mesh = *(const MeshAsset*)asset.pPayload;
             tableGarbage += meshes[index].submeshCount + meshes[index].vertexStreamCount;
             meshes[index] = { .id = { .index = index, .generation = asset.generation },
-                              .indexSrv = mesh.getIndexBuffer().getSrvIndex(),
+                              .indexSrv = mesh.getIndexBuffer().GetSrvIndex(),
                               .indexStride = mesh.getIndexType() == IndexTypeUInt16 ? 2u : 4u,
                               .vertexStreamOffset = vertexStreams.Size(),
                               .vertexStreamCount = mesh.getVertexBufferCount(),
@@ -412,7 +412,7 @@ public:
                               .submeshCount = mesh.getDescription().submeshes.Count };
             for (uint32_t stream = 0; stream < mesh.getVertexBufferCount(); ++stream)
             {
-                vertexStreams.PushBack({ .srv = mesh.getVertexBuffer(stream).getSrvIndex(), .stride = mesh.getVertexStride(stream) });
+                vertexStreams.PushBack({ .srv = mesh.getVertexBuffer(stream).GetSrvIndex(), .stride = mesh.getVertexStride(stream) });
             }
             for (uint32_t draw = 0; draw < mesh.getDescription().submeshes.Count; ++draw)
             {
@@ -432,7 +432,7 @@ public:
                                            &mapping.emissiveTexture };
             for (uint32_t texture = 0; texture < 4; ++texture)
             {
-                if (!textureIDs[texture].isValid())
+                if (!textureIDs[texture].IsValid())
                 {
                     continue;
                 }
@@ -440,7 +440,7 @@ public:
                 const ManagedAsset* pTexture = pIndex ? &assets[pIndex->value.index] : nullptr;
                 // Only a released texture lease can leave this Empty; keep the previous mapping instead of crashing.
                 if (pTexture && pTexture->state == AssetState::Ready && pTexture->pPayload)
-                    *ppTextures[texture] = ((const TextureAsset*)pTexture->pPayload)->getTexture().getSrvIndex();
+                    *ppTextures[texture] = ((const TextureAsset*)pTexture->pPayload)->getTexture().GetSrvIndex();
             }
             memcpy(mapping.baseColorFactor, material.baseColorFactor, sizeof(mapping.baseColorFactor));
             memcpy(mapping.emissiveFactor, material.emissiveFactor, sizeof(mapping.emissiveFactor));
@@ -656,7 +656,7 @@ void AssetManager::shutdown()
     // Shutdown happens between frames, so idling covers every submission that could reference a payload.
     if (Data->pContext)
     {
-        Data->pContext->waitIdle();
+        Data->pContext->WaitIdle();
     }
     Data->retirements.Clear();
     for (ManagedAsset& asset : Data->assets)

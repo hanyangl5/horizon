@@ -545,7 +545,7 @@
 
 //         if (pRemoteAppServer->mServerConnectionSocket == SOCKET_INVALID)
 //         {
-//             // There's no active client connected so we should just destroy the socket here
+//             // There's no active client connected so we should just Destroy the socket here
 //             // since we don't have to send a disconnect message anymore
 //             socketDestroy(&pRemoteAppServer->mServerListenSocket);
 //         }

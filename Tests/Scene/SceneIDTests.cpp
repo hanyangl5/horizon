@@ -14,13 +14,13 @@ static_assert(!std::is_convertible_v<hz::Guid, hz::AssetID>);
 
 TEST(SceneIDTest, NilAndValueComparison)
 {
-    EXPECT_FALSE(hz::AssetID{}.isValid());
-    EXPECT_FALSE(hz::Guid{}.isValid());
+    EXPECT_FALSE(hz::AssetID{}.IsValid());
+    EXPECT_FALSE(hz::Guid{}.IsValid());
     const hz::AssetID first = { .high = 1, .low = 2 };
     const hz::AssetID same = { .high = 1, .low = 2 };
     const hz::AssetID nextLow = { .high = 1, .low = 3 };
     const hz::AssetID nextHigh = { .high = 2 };
-    EXPECT_TRUE(first.isValid());
+    EXPECT_TRUE(first.IsValid());
     EXPECT_EQ(first, same);
     EXPECT_NE(first, nextLow);
     EXPECT_LT(first, nextLow);
@@ -120,8 +120,8 @@ TEST(SceneIDTest, InjectedSequenceIsDeterministicAndSetsUuidBits)
     next = 0;
     EXPECT_EQ(hz::AssetID::create(generator), asset);
     EXPECT_EQ(hz::Guid::create(generator), object);
-    EXPECT_FALSE(hz::AssetID::create({ .pGenerate = failGeneration }).isValid());
-    EXPECT_FALSE(hz::Guid::create({ .pGenerate = failGeneration }).isValid());
+    EXPECT_FALSE(hz::AssetID::create({ .pGenerate = failGeneration }).IsValid());
+    EXPECT_FALSE(hz::Guid::create({ .pGenerate = failGeneration }).IsValid());
 }
 
 TEST(SceneIDTest, SystemGeneratorProducesValidDistinctIds)
@@ -130,14 +130,14 @@ TEST(SceneIDTest, SystemGeneratorProducesValidDistinctIds)
     for (uint32_t i = 0; i < 32; ++i)
     {
         assets[i] = hz::AssetID::create();
-        ASSERT_TRUE(assets[i].isValid());
+        ASSERT_TRUE(assets[i].IsValid());
         EXPECT_EQ((assets[i].high >> 12) & 0xf, 4u);
         EXPECT_EQ(assets[i].low >> 62, 2u);
         for (uint32_t j = 0; j < i; ++j)
             EXPECT_NE(assets[i], assets[j]);
     }
     const hz::Guid object = hz::Guid::create();
-    ASSERT_TRUE(object.isValid());
+    ASSERT_TRUE(object.IsValid());
     EXPECT_EQ((object.high >> 12) & 0xf, 4u);
     EXPECT_EQ(object.low >> 62, 2u);
 }

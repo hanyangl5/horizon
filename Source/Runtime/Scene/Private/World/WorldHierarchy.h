@@ -18,7 +18,7 @@ public:
     bool                  prepareLocalChange(ecs_entity_t entity, TypeID Type, bool adding);
     void                  finishDeferredChanges();
     bool                  setParent(ecs_entity_t entity, ecs_entity_t parent, bool keepWorld);
-    bool                  destroy(ecs_entity_t entity, bool subtree);
+    bool                  Destroy(ecs_entity_t entity, bool subtree);
     void                  update();
     const WorldTransform* get(ecs_entity_t entity) const;
     void                  commit();

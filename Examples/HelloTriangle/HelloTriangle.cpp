@@ -87,7 +87,7 @@ public:
     void Exit() override
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Exit", kCpuProfileColor);
-        context->waitIdle();
+        context->WaitIdle();
         resources.reset();
         context = nullptr;
     }
@@ -115,7 +115,7 @@ public:
         if (vSync != settings.vSyncEnabled && context->setVSync(settings.vSyncEnabled))
             vSync = settings.vSyncEnabled;
 
-        if (context->isSuspended())
+        if (context->IsSuspended())
             return;
         hz::CommandList&      commands = context->acquireCommandList();
         const hz::GPUTexture& backbuffer = context->getCurrentBackbuffer();
@@ -129,8 +129,8 @@ public:
             } },
         });
         commands.beginGpuTimestamp("Triangle Pass");
-        commands.setViewport(0.0f, 0.0f, (float)context->getWidth(), (float)context->getHeight());
-        commands.setScissor(0, 0, context->getWidth(), context->getHeight());
+        commands.setViewport(0.0f, 0.0f, (float)context->GetWidth(), (float)context->GetHeight());
+        commands.setScissor(0, 0, context->GetWidth(), context->GetHeight());
         commands.setPipeline(resources->pipeline);
         commands.setVertexBuffer(0, resources->vertexBuffer, 0, sizeof(Vertex));
         commands.draw(3);
@@ -154,7 +154,7 @@ private:
             .StartState = ResourceStateVertexAndConstantBuffer,
             .Descriptors = DescriptorTypeBufferRaw | DescriptorTypeVertexBuffer,
         });
-        ASSERT(resources->vertexBuffer.isValid());
+        ASSERT(resources->vertexBuffer.IsValid());
 
         resources->pipeline = context->createGraphicsPipeline({
             .shaderDesc = {
@@ -188,7 +188,7 @@ private:
             .colorTargets = { { .Format = kSurfaceFormat } },
             .Name = "HelloTriangle.Pipeline",
         });
-        ASSERT(resources->pipeline.isValid());
+        ASSERT(resources->pipeline.IsValid());
         return true;
     }
 

@@ -29,7 +29,7 @@ struct AssetID
     // FNV-1a over the 16 canonical bytes; compare the full ID when hashes match.
     uint64_t hash() const;
 
-    constexpr bool isValid() const { return high != 0 || low != 0; }
+    constexpr bool IsValid() const { return high != 0 || low != 0; }
     constexpr bool operator==(const AssetID&) const = default;
     constexpr bool operator<(const AssetID& other) const { return high < other.high || (high == other.high && low < other.low); }
 };
@@ -45,7 +45,7 @@ struct Guid
     void        toString(char (&text)[kIDStringCapacity]) const;
     uint64_t    hash() const;
 
-    constexpr bool isValid() const { return high != 0 || low != 0; }
+    constexpr bool IsValid() const { return high != 0 || low != 0; }
     constexpr bool operator==(const Guid&) const = default;
     constexpr bool operator<(const Guid& other) const { return high < other.high || (high == other.high && low < other.low); }
 };

@@ -93,7 +93,7 @@ struct TypeDesc
     const PropertyDesc* getProperty(PropertyID property) const;
     const PropertyDesc* getProperty(const char* pPropertyName) const;
     void                construct(void* pDestination) const;
-    void                destroy(void* pValue) const;
+    void                Destroy(void* pValue) const;
     void                copyConstruct(void* pDestination, const void* pSource) const;
     void                moveConstruct(void* pDestination, void* pSource) const;
 };

@@ -19,7 +19,7 @@ EnvironmentPass::EnvironmentPass(hz::RenderContext& Context, hz::Format ColorFor
     });
     Sampler = Context.createSampler(
         { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .AddressW = AddressModeClampToEdge });
-    ASSERT(Pipeline.isValid() && Sampler.isValid());
+    ASSERT(Pipeline.IsValid() && Sampler.IsValid());
 }
 
 bool EnvironmentPass::Load(const EnvironmentFiles& Files)
@@ -38,15 +38,15 @@ bool EnvironmentPass::Load(const EnvironmentFiles& Files)
     for (uint32_t Index = 0; Index < 3; ++Index)
     {
         Candidate[Index] = Context.loadTexture(Files.Directory, Paths[Index]);
-        if (!Candidate[Index].isValid())
+        if (!Candidate[Index].IsValid())
         {
             return false;
         }
         const hz::GPUTexture& Texture = Candidate[Index];
         const bool            Cube = Index != 2;
-        const TinyImageFormat Format = (TinyImageFormat)Texture.getFormat();
-        if (Texture.getArraySize() != (Cube ? 6u : 1u) || (Cube && Texture.getWidth() != Texture.getHeight()) ||
-            (Index == 0 && Texture.getMipLevels() < 2) || !TinyImageFormat_IsFloat(Format) || TinyImageFormat_HasDepthOrStencil(Format) ||
+        const TinyImageFormat Format = (TinyImageFormat)Texture.GetFormat();
+        if (Texture.GetArraySize() != (Cube ? 6u : 1u) || (Cube && Texture.GetWidth() != Texture.GetHeight()) ||
+            (Index == 0 && Texture.GetMipLevels() < 2) || !TinyImageFormat_IsFloat(Format) || TinyImageFormat_HasDepthOrStencil(Format) ||
             TinyImageFormat_IsSRGB(Format))
         {
             LOGF(Error, "Invalid environment texture '%s': expected linear floating-point %s%s", Paths[Index],
@@ -54,7 +54,7 @@ bool EnvironmentPass::Load(const EnvironmentFiles& Files)
             return false;
         }
     }
-    PrefilteredMipCount = Candidate[0].getMipLevels();
+    PrefilteredMipCount = Candidate[0].GetMipLevels();
     Prefiltered = std::move(Candidate[0]);
     Irradiance = std::move(Candidate[1]);
     BrdfLut = std::move(Candidate[2]);
@@ -63,7 +63,7 @@ bool EnvironmentPass::Load(const EnvironmentFiles& Files)
 
 bool EnvironmentPass::IsValid() const
 {
-    return Pipeline.isValid() && Sampler.isValid() && Prefiltered.isValid() && Irradiance.isValid() && BrdfLut.isValid();
+    return Pipeline.IsValid() && Sampler.IsValid() && Prefiltered.IsValid() && Irradiance.IsValid() && BrdfLut.IsValid();
 }
 
 // Mirrors the RootConstant0 block of Skybox.slang field for field.
@@ -84,15 +84,15 @@ void EnvironmentPass::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fr
     hz::DependencyList    Dependencies;
     const SkyboxConstants Constants = { .frameIndex = Dependencies.read(Frame),
                                         .environmentIndex = Dependencies.sample(&Prefiltered),
-                                        .samplerIndex = Sampler.getIndex(),
+                                        .samplerIndex = Sampler.GetIndex(),
                                         .intensity = Intensity };
     Commands.beginGpuTimestamp("Skybox");
     Commands.beginRendering(
         { .colorAttachments = { { .pTexture = &Color, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
           .depthAttachment = { .pTexture = &Depth, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
         Dependencies.get());
-    Commands.setViewport(0, 0, (float)Context.getWidth(), (float)Context.getHeight());
-    Commands.setScissor(0, 0, Context.getWidth(), Context.getHeight());
+    Commands.setViewport(0, 0, (float)Context.GetWidth(), (float)Context.GetHeight());
+    Commands.setScissor(0, 0, Context.GetWidth(), Context.GetHeight());
     Commands.setPipeline(Pipeline);
     Commands.setRootConstants(Constants);
     Commands.draw(36);

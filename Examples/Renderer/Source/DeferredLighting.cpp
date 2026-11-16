@@ -4,7 +4,7 @@
 
 static uint32_t LightingSamplerIndex(const hz::GPUSampler* Sampler)
 {
-    return Sampler && Sampler->isValid() ? Sampler->getIndex() : UINT32_MAX;
+    return Sampler && Sampler->IsValid() ? Sampler->GetIndex() : UINT32_MAX;
 }
 
 // Mirrors the RootConstant0 block of DeferredLighting.slang field for field.
@@ -35,7 +35,7 @@ DeferredLighting::DeferredLighting(hz::RenderContext& Context): Context(Context)
                                                                .pFileName = "DeferredLighting.slang" },
                                                 .colorTargets = { { .Format = hz::Format::R32G32B32A32_SFLOAT } },
                                                 .Name = "Renderer.DeferredLighting" });
-    ASSERT(Pipeline.isValid());
+    ASSERT(Pipeline.IsValid());
 }
 void DeferredLighting::Resize(uint32_t Width, uint32_t Height)
 {
@@ -47,13 +47,13 @@ void DeferredLighting::Resize(uint32_t Width, uint32_t Height)
                                     .Flags = TextureCreationFlagForce2D,
                                     .renderTarget = true,
                                     .Name = "Renderer.DeferredLighting.Color" });
-    ASSERT(Color.isValid());
+    ASSERT(Color.IsValid());
 }
 const hz::GPUTexture& DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
                                                 const SceneView& View, const LightingResources& Resources)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("DeferredLighting::Execute");
-    ASSERT(Color.isValid() && Resources.LightingFrame && Resources.LightingFrame->isValid());
+    ASSERT(Color.IsValid() && Resources.LightingFrame && Resources.LightingFrame->IsValid());
     ASSERT(GBuffer.Emissive && GBuffer.NormalMaterial && GBuffer.BaseColorMetallic && GBuffer.Depth);
     ASSERT(Resources.Environment && Resources.Irradiance && Resources.BRDFLut && Resources.EnvironmentSampler);
     hz::DependencyList Dependencies;
@@ -80,8 +80,8 @@ const hz::GPUTexture& DeferredLighting::Execute(hz::CommandList& Commands, const
     Commands.beginRendering(
         { .colorAttachments = { { .pTexture = &Color, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
         Dependencies.get());
-    Commands.setViewport(0, 0, (float)Color.getWidth(), (float)Color.getHeight());
-    Commands.setScissor(0, 0, Color.getWidth(), Color.getHeight());
+    Commands.setViewport(0, 0, (float)Color.GetWidth(), (float)Color.GetHeight());
+    Commands.setScissor(0, 0, Color.GetWidth(), Color.GetHeight());
     Commands.setRootConstants(Constants);
     Commands.draw(3);
     Commands.endRendering();

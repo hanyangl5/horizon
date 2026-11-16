@@ -404,7 +404,7 @@ TEST_F(WorldArchiveTest, LoadsDeepHierarchyWithoutRecursiveTraversal)
     hz::UniquePtr<hz::World> world;
     ASSERT_TRUE(archive.instantiate(types, world));
     EXPECT_EQ(world->getParent(world->getEntity(id(1))), world->getEntity(id(2)));
-    EXPECT_FALSE(world->getParent(world->getEntity(id(Count))).isValid());
+    EXPECT_FALSE(world->getParent(world->getEntity(id(Count))).IsValid());
     ASSERT_NE(world->getWorldTransform(world->getEntity(id(1))), nullptr);
 }
 

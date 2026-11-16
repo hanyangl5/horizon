@@ -43,25 +43,25 @@ RenderContext::RenderContext(const ContextDesc& input)
     const bool initialized = suspended || createSwapChain();
     ASSERT(initialized);
     if (!initialized)
-        cleanup();
+        Cleanup();
 }
 
-RenderContext::~RenderContext() { cleanup(); }
+RenderContext::~RenderContext() { Cleanup(); }
 
-void RenderContext::waitIdle()
+void RenderContext::WaitIdle()
 {
     waitQueueIdle(pGraphicsQueue);
     collectDeferredResources();
 }
 
-void RenderContext::deferRelease(GPUBuffer&& buffer)
+void RenderContext::DeferRelease(GPUBuffer&& buffer)
 {
     if (!buffer.pBuffer)
     {
         return;
     }
     ASSERT(ready && buffer.pContext == this);
-    buffer.destroy();
+    buffer.Destroy();
 }
 
 uint64_t RenderContext::getResourceUseId() const
@@ -101,7 +101,7 @@ uint64_t RenderContext::getPendingUseId() const
 
 bool RenderContext::isResourceUseComplete(uint64_t useId) const { return useId < getPendingUseId(); }
 
-void RenderContext::deferResource(ResourceType Type, void* resource, void* secondary, void* tertiary)
+void RenderContext::DeferResource(ResourceType Type, void* resource, void* secondary, void* tertiary)
 {
     if (resource)
     {
@@ -365,9 +365,9 @@ void RenderContext::destroySwapChain()
     imageAcquireWaitPending = false;
 }
 
-void RenderContext::cleanup()
+void RenderContext::Cleanup()
 {
-    savePipelineCache();
+    SavePipelineCache();
     for (const CommandResources& resources : commandResources)
     {
         ASSERT(!resources.commands.pCmd);
@@ -633,7 +633,7 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
 void RenderContext::wait(SubmitHandle Handle)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::wait");
-    ASSERT(Handle.isValid() && Handle.commandIndex < maxCommandLists);
+    ASSERT(Handle.IsValid() && Handle.commandIndex < maxCommandLists);
     CommandResources& resources = commandResources[Handle.commandIndex];
     if (resources.submitId == Handle.id)
     {
@@ -641,9 +641,9 @@ void RenderContext::wait(SubmitHandle Handle)
     }
 }
 
-bool RenderContext::isComplete(SubmitHandle Handle) const
+bool RenderContext::IsComplete(SubmitHandle Handle) const
 {
-    ASSERT(Handle.isValid() && Handle.commandIndex < maxCommandLists);
+    ASSERT(Handle.IsValid() && Handle.commandIndex < maxCommandLists);
     const CommandResources& resources = commandResources[Handle.commandIndex];
     if (resources.submitId != Handle.id)
     {
@@ -654,10 +654,10 @@ bool RenderContext::isComplete(SubmitHandle Handle) const
     return status != FenceStatusIncomplete;
 }
 
-uint32_t              RenderContext::getWidth() const { return desc.Width; }
-uint32_t              RenderContext::getHeight() const { return desc.Height; }
+uint32_t              RenderContext::GetWidth() const { return desc.Width; }
+uint32_t              RenderContext::GetHeight() const { return desc.Height; }
 hz::Format            RenderContext::getColorFormat() const { return desc.colorFormat; }
-bool                  RenderContext::isHDREnabled() const { return outputMode != OUTPUT_MODE_SDR; }
+bool                  RenderContext::IsHDREnabled() const { return outputMode != OUTPUT_MODE_SDR; }
 OutputMode            RenderContext::getOutputMode() const { return outputMode; }
 const HDRDisplayInfo& RenderContext::getHDRDisplayInfo() const { return hdrDisplayInfo; }
 const HDRMetadata&    RenderContext::getHDRMetadata() const { return hdrMetadata; }
@@ -674,6 +674,6 @@ const GPUTexture&     RenderContext::getCurrentBackbuffer()
     }
     return backbuffers[swapchainImageIndex];
 }
-bool RenderContext::isSuspended() const { return suspended; }
+bool RenderContext::IsSuspended() const { return suspended; }
 
 } // namespace hz

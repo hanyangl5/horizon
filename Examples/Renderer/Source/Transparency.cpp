@@ -53,7 +53,7 @@ Transparency::Transparency(hz::RenderContext& Context, hz::Format DepthFormat): 
         { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ResolveMain" } }, .pFileName = "Transparency.slang" },
           .Name = "Renderer.OIT.Resolve" });
     SurfaceSampler = Context.createSampler();
-    ASSERT(ClearPipeline.isValid() && GatherPipeline.isValid() && ResolvePipeline.isValid() && SurfaceSampler.isValid());
+    ASSERT(ClearPipeline.IsValid() && GatherPipeline.IsValid() && ResolvePipeline.IsValid() && SurfaceSampler.IsValid());
 }
 
 void Transparency::Resize(uint32_t NewWidth, uint32_t NewHeight, uint32_t FragmentsPerPixel)
@@ -90,7 +90,7 @@ void Transparency::Resize(uint32_t NewWidth, uint32_t NewHeight, uint32_t Fragme
                                       .usage = MemoryUsageGpuOnly,
                                       .StartState = ResourceStateUnorderedAccess,
                                       .Descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
-    ASSERT(Heads.isValid() && Color.isValid() && Nodes.isValid() && Counters.isValid());
+    ASSERT(Heads.IsValid() && Color.IsValid() && Nodes.IsValid() && Counters.IsValid());
 }
 
 const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
@@ -99,12 +99,12 @@ const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz:
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Transparency::execute");
     ASSERT(Width && Height && Lighting.LightingFrame && Lighting.EnvironmentSampler);
-    TransparencyConstants Constants = { .frameIndex = Frame.getSrvIndex(),
-                                        .oitHeadsIndex = Heads.getUavIndex(),
-                                        .oitCounterIndex = Counters.getUavIndex(),
-                                        .oitNodesIndex = Nodes.getUavIndex(),
+    TransparencyConstants Constants = { .frameIndex = Frame.GetSrvIndex(),
+                                        .oitHeadsIndex = Heads.GetUavIndex(),
+                                        .oitCounterIndex = Counters.GetUavIndex(),
+                                        .oitNodesIndex = Nodes.GetUavIndex(),
                                         .oitMaxNodes = MaxNodes,
-                                        .lightingFrameIndex = Lighting.LightingFrame->getSrvIndex() };
+                                        .lightingFrameIndex = Lighting.LightingFrame->GetSrvIndex() };
     Commands.beginGpuTimestamp("OIT");
     Commands.setPipeline(ClearPipeline);
     Commands.setRootConstants(Constants);
@@ -128,7 +128,7 @@ const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz:
         const hz::GPUTexture* LightingTextures[] = { Lighting.ShadowMap, Lighting.Environment, Lighting.Irradiance, Lighting.BRDFLut };
         for (const hz::GPUTexture* Texture : LightingTextures)
         {
-            if (Texture && Texture->isValid())
+            if (Texture && Texture->IsValid())
             {
                 Sampled.PushBack(Texture);
             }
@@ -145,27 +145,27 @@ const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz:
         Commands.setScissor(0, 0, Width, Height);
         Commands.setPipeline(GatherPipeline);
         const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
-        Constants.instancesIndex = Gpu.instances.getSrvIndex();
-        Constants.materialsIndex = Gpu.materials.getSrvIndex();
-        Constants.texturesIndex = Gpu.textures.getSrvIndex();
-        Constants.samplerIndex = SurfaceSampler.getIndex();
-        Constants.drawsIndex = Draws.GetDrawData(Backing).getSrvIndex();
-        Constants.shadowMapIndex = Lighting.ShadowMap ? Lighting.ShadowMap->getSrvIndex() : UINT32_MAX;
-        Constants.shadowSamplerIndex = Lighting.ShadowSampler ? Lighting.ShadowSampler->getIndex() : UINT32_MAX;
-        Constants.environmentIndex = Lighting.Environment ? Lighting.Environment->getSrvIndex() : UINT32_MAX;
-        Constants.irradianceIndex = Lighting.Irradiance ? Lighting.Irradiance->getSrvIndex() : UINT32_MAX;
-        Constants.brdfLutIndex = Lighting.BRDFLut ? Lighting.BRDFLut->getSrvIndex() : UINT32_MAX;
-        Constants.environmentSamplerIndex = Lighting.EnvironmentSampler->getIndex();
+        Constants.instancesIndex = Gpu.instances.GetSrvIndex();
+        Constants.materialsIndex = Gpu.materials.GetSrvIndex();
+        Constants.texturesIndex = Gpu.textures.GetSrvIndex();
+        Constants.samplerIndex = SurfaceSampler.GetIndex();
+        Constants.drawsIndex = Draws.GetDrawData(Backing).GetSrvIndex();
+        Constants.shadowMapIndex = Lighting.ShadowMap ? Lighting.ShadowMap->GetSrvIndex() : UINT32_MAX;
+        Constants.shadowSamplerIndex = Lighting.ShadowSampler ? Lighting.ShadowSampler->GetIndex() : UINT32_MAX;
+        Constants.environmentIndex = Lighting.Environment ? Lighting.Environment->GetSrvIndex() : UINT32_MAX;
+        Constants.irradianceIndex = Lighting.Irradiance ? Lighting.Irradiance->GetSrvIndex() : UINT32_MAX;
+        Constants.brdfLutIndex = Lighting.BRDFLut ? Lighting.BRDFLut->GetSrvIndex() : UINT32_MAX;
+        Constants.environmentSamplerIndex = Lighting.EnvironmentSampler->GetIndex();
         Commands.setRootConstants(Constants);
         Commands.drawIndirect(Indirect, 0, Draws.GetCount(Backing));
         Commands.endRendering();
     }
-    Constants.oitHeadsIndex = Heads.getSrvIndex();
-    Constants.oitNodesIndex = Nodes.getSrvIndex();
-    Constants.oitOpaqueIndex = OpaqueColor.getSrvIndex();
+    Constants.oitHeadsIndex = Heads.GetSrvIndex();
+    Constants.oitNodesIndex = Nodes.GetSrvIndex();
+    Constants.oitOpaqueIndex = OpaqueColor.GetSrvIndex();
     Constants.oitOpacityBoost = OpacityBoost;
     Constants.oitShowHeatmap = ShowHeatmap ? 1u : 0u;
-    Constants.oitOutputIndex = Color.getUavIndex();
+    Constants.oitOutputIndex = Color.GetUavIndex();
     Constants.oitTime = float(double(GetUSec(true)) * 1e-6);
     Commands.setPipeline(ResolvePipeline);
     Commands.setRootConstants(Constants);

@@ -87,8 +87,8 @@ static bool validTextureIdentity(const cJSON* pDocument)
     const cJSON* pLinear = cJSON_GetObjectItemCaseSensitive(pDocument, "linear");
     const cJSON* pSrgb = cJSON_GetObjectItemCaseSensitive(pDocument, "srgb");
     return strcmp(text(pDocument, "format"), "Horizon.TextureIdentity") == 0 && cJSON_IsNumber(pVersion) && pVersion->valuedouble == 1 &&
-           (pLinear || pSrgb) && (!pLinear || (cJSON_IsString(pLinear) && linear.parse(pLinear->valuestring) && linear.isValid())) &&
-           (!pSrgb || (cJSON_IsString(pSrgb) && srgb.parse(pSrgb->valuestring) && srgb.isValid())) && (!linear.isValid() || linear != srgb);
+           (pLinear || pSrgb) && (!pLinear || (cJSON_IsString(pLinear) && linear.parse(pLinear->valuestring) && linear.IsValid())) &&
+           (!pSrgb || (cJSON_IsString(pSrgb) && srgb.parse(pSrgb->valuestring) && srgb.IsValid())) && (!linear.IsValid() || linear != srgb);
 }
 
 static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<char> bytes)
@@ -242,7 +242,7 @@ static bool matchIdentities(cJSON* pOld, cJSON* pNew, bool submeshes = false)
         else
         {
             const hz::AssetID generated = hz::AssetID::create();
-            if (!generated.isValid())
+            if (!generated.IsValid())
                 return false;
             if (submeshes)
                 snprintf(id, sizeof(id), "%016llx", (unsigned long long)generated.low);
@@ -284,7 +284,7 @@ static bool validateIdentities(const cJSON* pRecords, bool submeshes = false)
             if (strlen(pID) != 16 || strspn(pID, "0123456789abcdef") != 16 || strtoull(pID, nullptr, 16) == 0)
                 return false;
         }
-        else if (!id.parse(pID) || !id.isValid())
+        else if (!id.parse(pID) || !id.IsValid())
             return false;
         if (!*text(pRecord, "kind") || !cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(pRecord, "missing")))
             return false;
@@ -421,7 +421,7 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
     hz::AssetID  sceneID;
     if (exists)
     {
-        if (!cJSON_IsNumber(pVersion) || pVersion->valuedouble != 1 || !sceneID.parse(text(pPrevious, "scene")) || !sceneID.isValid() ||
+        if (!cJSON_IsNumber(pVersion) || pVersion->valuedouble != 1 || !sceneID.parse(text(pPrevious, "scene")) || !sceneID.IsValid() ||
             !validateIdentities(pOldRecords) || containsID(pOldRecords, text(pPrevious, "scene")))
         {
             LOGF(Error, "Invalid scene identity sidecar '%s'; refusing to replace persistent IDs", metadataFile);
@@ -436,7 +436,7 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
             return false;
         }
         sceneID = hz::AssetID::create();
-        if (!sceneID.isValid())
+        if (!sceneID.IsValid())
             return false;
     }
     pMetadata = cJSON_CreateObject();
@@ -496,7 +496,7 @@ bool SceneAssetCooker::registerTexture(CookedSceneTexture& texture)
     if (*pID)
         return texture.registeredID.parse(pID);
     texture.registeredID = hz::AssetID::create();
-    if (!texture.registeredID.isValid())
+    if (!texture.registeredID.IsValid())
         return false;
     char id[hz::kIDStringCapacity];
     texture.registeredID.toString(id);
@@ -548,7 +548,7 @@ bool SceneAssetCooker::prepareTextures(const cgltf_data& data)
         }
         LOGF(Info, "Texture %u/%u %s", i + 1, textures.Size(), textures[i].source[0] ? textures[i].source : "(embedded)");
         for (uint32_t j = 0; j < i; ++j)
-            if (textures[i].registeredID.isValid() && textures[i].registeredID == textures[j].registeredID &&
+            if (textures[i].registeredID.IsValid() && textures[i].registeredID == textures[j].registeredID &&
                 (strcmp(textures[i].source, textures[j].source) != 0 || textures[i].srgb != textures[j].srgb))
             {
                 LOGF(Error, "Texture sidecars assign the same ID to different resources in '%s'", pSourceFile);
@@ -609,7 +609,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
         const CookedSceneTexture& cooked = this->textures[i];
         for (uint32_t j = 0; j < i; ++j)
             if ((data.textures[j].image == texture.image && this->textures[j].srgb == cooked.srgb) ||
-                (cooked.registeredID.isValid() && this->textures[j].registeredID == cooked.registeredID))
+                (cooked.registeredID.IsValid() && this->textures[j].registeredID == cooked.registeredID))
             {
                 textures[i] = textures[j];
                 break;
@@ -624,7 +624,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
         cJSON_AddBoolToObject(textures[i], "srgb", cooked.srgb);
         if (cooked.source[0])
             cJSON_AddStringToObject(textures[i], "source", cooked.source);
-        if (cooked.registeredID.isValid())
+        if (cooked.registeredID.IsValid())
         {
             char id[hz::kIDStringCapacity];
             cooked.registeredID.toString(id);

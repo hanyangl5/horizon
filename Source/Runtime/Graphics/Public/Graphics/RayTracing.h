@@ -56,14 +56,14 @@ public:
     GPUAccelerationStructure& operator=(GPUAccelerationStructure&&) noexcept;
     GPUAccelerationStructure(const GPUAccelerationStructure&) = delete;
     GPUAccelerationStructure& operator=(const GPUAccelerationStructure&) = delete;
-    bool                      isValid() const { return Data != nullptr; }
-    uint32_t                  getSrvIndex() const;
+    bool                      IsValid() const { return Data != nullptr; }
+    uint32_t                  GetSrvIndex() const;
     uint32_t                  getInstanceCount() const;
     void                      setInstance(uint32_t index, const AccelerationStructureInstance& instance);
 
 private:
     explicit GPUAccelerationStructure(AccelerationStructureData* data): Data(data) {}
-    void                       destroy();
+    void                       Destroy();
     AccelerationStructureData* Data = nullptr;
     friend class RenderContext;
     friend class CommandList;
@@ -101,11 +101,11 @@ public:
     GPURayTracingPipeline& operator=(GPURayTracingPipeline&&) noexcept;
     GPURayTracingPipeline(const GPURayTracingPipeline&) = delete;
     GPURayTracingPipeline& operator=(const GPURayTracingPipeline&) = delete;
-    bool                   isValid() const { return pPipeline != nullptr; }
+    bool                   IsValid() const { return pPipeline != nullptr; }
 
 private:
     GPURayTracingPipeline(RenderContext* context, RaytracingPipeline* pipeline): pContext(context), pPipeline(pipeline) {}
-    void                destroy();
+    void                Destroy();
     RenderContext*      pContext = nullptr;
     RaytracingPipeline* pPipeline = nullptr;
     friend class RenderContext;

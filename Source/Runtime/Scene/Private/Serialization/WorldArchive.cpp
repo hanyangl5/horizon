@@ -34,13 +34,13 @@ static bool readID(const cJSON* pValue, Guid& id, bool nullable = false)
         id = {};
         return true;
     }
-    return cJSON_IsString(pValue) && id.parse(pValue->valuestring) && id.isValid();
+    return cJSON_IsString(pValue) && id.parse(pValue->valuestring) && id.IsValid();
 }
 static void addID(cJSON* pObject, const char* Name, Guid id)
 {
     char text[kIDStringCapacity];
     id.toString(text);
-    cJSON_AddItemToObject(pObject, Name, id.isValid() ? cJSON_CreateString(text) : cJSON_CreateNull());
+    cJSON_AddItemToObject(pObject, Name, id.IsValid() ? cJSON_CreateString(text) : cJSON_CreateNull());
 }
 static bool typeID(const cJSON* pComponent, TypeID& Type)
 {
@@ -108,11 +108,11 @@ bool WorldArchive::capture(World& world, Guid id)
         LOGF(Error, "Cannot capture a deferred World");
         return false;
     }
-    if (!id.isValid())
+    if (!id.IsValid())
     {
         id = Data ? Data->id : Guid::create();
     }
-    if (!id.isValid())
+    if (!id.IsValid())
     {
         return false;
     }
@@ -147,7 +147,7 @@ bool WorldArchive::capture(World& world, Guid id)
         const Entity entity = world.getEntity(guid);
         const Entity parent = world.getParent(entity);
         const Guid   parentID = world.getEntityGuid(parent);
-        if (parent.isValid() && !parentID.isValid())
+        if (parent.IsValid() && !parentID.IsValid())
         {
             LOGF(Error, "A persistent entity's parent must have a Guid");
             return false;
@@ -206,7 +206,7 @@ public:
     explicit ComponentValue(const TypeDesc& Type): Type(Type), pValue(MemAllocateAligned(Type.alignment, Type.Size)) { Type.construct(pValue); }
     ~ComponentValue()
     {
-        Type.destroy(pValue);
+        Type.Destroy(pValue);
         MemDeallocate(pValue);
     }
     const TypeDesc& Type;
@@ -244,7 +244,7 @@ public:
                 return false;
             }
             node.entity = world.createPersistentEntity(node.id);
-            if (!node.entity.isValid())
+            if (!node.entity.IsValid())
             {
                 return false;
             }
@@ -263,7 +263,7 @@ public:
         }
         for (WorldLoadNode& node : nodes)
         {
-            if (!node.parent.isValid())
+            if (!node.parent.IsValid())
             {
                 continue;
             }

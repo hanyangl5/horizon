@@ -47,7 +47,7 @@ struct RTDenoiseConstants
     uint32_t step;
 };
 
-RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context), Supported(Context.supportsRayTracing())
+RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context), Supported(Context.SupportsRayTracing())
 {
     if (!Supported)
     {
@@ -87,8 +87,8 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
         .maxRecursionDepth = 2,
         .Name = "Renderer.RT.Reflection",
     });
-    ASSERT(Sampler.isValid() && MaterialSampler.isValid() && ShadowPipeline.isValid() && TemporalPipeline.isValid() &&
-           SpatialPipeline.isValid() && AtrousPipeline.isValid() && DepthCopyPipeline.isValid() && ReflectionPipeline.isValid());
+    ASSERT(Sampler.IsValid() && MaterialSampler.IsValid() && ShadowPipeline.IsValid() && TemporalPipeline.IsValid() &&
+           SpatialPipeline.IsValid() && AtrousPipeline.IsValid() && DepthCopyPipeline.IsValid() && ReflectionPipeline.IsValid());
 }
 
 RayTracedEffects::~RayTracedEffects() = default;
@@ -124,14 +124,14 @@ void RayTracedEffects::Resize(uint32_t Width, uint32_t Height)
     Desc.Format = hz::Format::R32G32B32A32_SFLOAT;
     Desc.Name = "Renderer.RT.Reflection";
     Reflection = Context.createTexture(Desc);
-    if (!BlueNoise.isValid())
+    if (!BlueNoise.IsValid())
     {
         BlueNoise = Context.loadTexture(DirectoryShaderSources, "../Assets/blue_noise_128x128x64.dds");
     }
     HistoryIndex = 0;
     MarkDirty();
-    ASSERT(Result.isValid() && Scratch.isValid() && History[0].isValid() && History[1].isValid() && PreviousDepth.isValid() &&
-           Reflection.isValid() && BlueNoise.isValid() && BlueNoise.getWidth() == 128 && BlueNoise.getHeight() == 8192);
+    ASSERT(Result.IsValid() && Scratch.IsValid() && History[0].IsValid() && History[1].IsValid() && PreviousDepth.IsValid() &&
+           Reflection.IsValid() && BlueNoise.IsValid() && BlueNoise.GetWidth() == 128 && BlueNoise.GetHeight() == 8192);
 }
 
 void RayTracedEffects::MarkDirty() { MarkedDirty = true; }
@@ -160,23 +160,23 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     Commands.endGpuTimestamp();
     const hz::GPUAccelerationStructure& TLAS = RayScene->GetSceneTLAS();
     const hz::GPUBuffer&                DrawData = Draws.GetDrawData(View.FrameIndex);
-    auto        Index = [](const hz::GPUTexture* Texture) { return Texture && Texture->isValid() ? Texture->getSrvIndex() : UINT32_MAX; };
+    auto        Index = [](const hz::GPUTexture* Texture) { return Texture && Texture->IsValid() ? Texture->GetSrvIndex() : UINT32_MAX; };
     RTConstants Constants = {
-                                .frame = Frame.getSrvIndex(),
-                                .lighting = Lighting.LightingFrame->getSrvIndex(),
-                                .draws = DrawData.getSrvIndex(),
-                                .materials = View.GpuScene.getBuffers().materials.getSrvIndex(),
-                                .textures = View.GpuScene.getBuffers().textures.getSrvIndex(),
-                                .sampler = MaterialSampler.getIndex(),
-                                .tlas = TLAS.isValid() ? TLAS.getSrvIndex() : UINT32_MAX,
-                                .normal = GBuffer.NormalMaterial->getSrvIndex(),
-                                .Depth = GBuffer.Depth->getSrvIndex(),
-                                .output = Result.getUavIndex(),
-                                .blueNoise = BlueNoise.getSrvIndex(),
+                                .frame = Frame.GetSrvIndex(),
+                                .lighting = Lighting.LightingFrame->GetSrvIndex(),
+                                .draws = DrawData.GetSrvIndex(),
+                                .materials = View.GpuScene.getBuffers().materials.GetSrvIndex(),
+                                .textures = View.GpuScene.getBuffers().textures.GetSrvIndex(),
+                                .sampler = MaterialSampler.GetIndex(),
+                                .tlas = TLAS.IsValid() ? TLAS.GetSrvIndex() : UINT32_MAX,
+                                .normal = GBuffer.NormalMaterial->GetSrvIndex(),
+                                .Depth = GBuffer.Depth->GetSrvIndex(),
+                                .output = Result.GetUavIndex(),
+                                .blueNoise = BlueNoise.GetSrvIndex(),
                                 .environment = Index(Lighting.Environment),
                                 .irradiance = Index(Lighting.Irradiance),
                                 .brdf = Index(Lighting.BRDFLut),
-                                .environmentSampler = Lighting.EnvironmentSampler ? Lighting.EnvironmentSampler->getIndex() : UINT32_MAX,
+                                .environmentSampler = Lighting.EnvironmentSampler ? Lighting.EnvironmentSampler->GetIndex() : UINT32_MAX,
                                 .shadows = Settings.Shadows,
                                 .ao = Settings.AO,
                                 .aoSamples = TF_MAX(Settings.AOSamples, 1u),
@@ -203,13 +203,13 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     const uint32_t     Current = HistoryIndex;
     const uint32_t     Previous = 1 - Current;
     RTDenoiseConstants Denoise = {
-        .frame = Frame.getSrvIndex(),
-        .input = Result.getSrvIndex(),
-        .history = History[Previous].getSrvIndex(),
-        .Depth = GBuffer.Depth->getSrvIndex(),
-        .previousDepth = PreviousDepth.getSrvIndex(),
-        .output = History[Current].getUavIndex(),
-        .sampler = Sampler.getIndex(),
+        .frame = Frame.GetSrvIndex(),
+        .input = Result.GetSrvIndex(),
+        .history = History[Previous].GetSrvIndex(),
+        .Depth = GBuffer.Depth->GetSrvIndex(),
+        .previousDepth = PreviousDepth.GetSrvIndex(),
+        .output = History[Current].GetUavIndex(),
+        .sampler = Sampler.GetIndex(),
         .historyValid = !MarkedDirty,
         .alpha = Settings.TemporalAlpha,
         .depthThreshold = Settings.TemporalDepthThreshold,
@@ -226,8 +226,8 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     {
         const hz::GPUTexture& Input = Pass ? Scratch : History[Current];
         const hz::GPUTexture& Output = Pass ? Result : Scratch;
-        Denoise.input = Input.getSrvIndex();
-        Denoise.output = Output.getUavIndex();
+        Denoise.input = Input.GetSrvIndex();
+        Denoise.output = Output.GetUavIndex();
         Denoise.horizontal = Pass == 0;
         Denoise.step = Pass + 1;
         Commands.setPipeline(Atrous ? AtrousPipeline : SpatialPipeline);
@@ -235,7 +235,7 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
                           { .sampledTextures = { &Input, GBuffer.Depth }, .storageTextures = { &Output } });
     }
-    Denoise.output = PreviousDepth.getUavIndex();
+    Denoise.output = PreviousDepth.GetUavIndex();
     Commands.setPipeline(DepthCopyPipeline);
     Commands.setRootConstants(Denoise);
     Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
@@ -245,7 +245,7 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     Commands.endGpuTimestamp();
 
     Commands.beginGpuTimestamp("RT Reflection");
-    Constants.output = Reflection.getUavIndex();
+    Constants.output = Reflection.GetUavIndex();
     if (!Settings.Reflection)
     {
         Constants.tlas = UINT32_MAX;

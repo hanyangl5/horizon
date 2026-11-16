@@ -13,12 +13,12 @@ template<typename T>
 struct ComponentLifecycle
 {
     static void                    construct(void* pDestination) { ::new (pDestination) T{}; }
-    static void                    destroy(void* pValue) { ((T*)pValue)->~T(); }
+    static void                    Destroy(void* pValue) { ((T*)pValue)->~T(); }
     static void                    copyConstruct(void* pDestination, const void* pSource) { ::new (pDestination) T(*(const T*)pSource); }
     static void                    moveConstruct(void* pDestination, void* pSource) { ::new (pDestination) T(std::move(*(T*)pSource)); }
     static constexpr TypeLifecycle get()
     {
-        return { .pConstruct = construct, .pDestroy = destroy, .pCopyConstruct = copyConstruct, .pMoveConstruct = moveConstruct };
+        return { .pConstruct = construct, .pDestroy = Destroy, .pCopyConstruct = copyConstruct, .pMoveConstruct = moveConstruct };
     }
 };
 

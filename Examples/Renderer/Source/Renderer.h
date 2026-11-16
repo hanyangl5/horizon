@@ -74,7 +74,7 @@ public:
         if (Ready)
         {
             // Persist the driver PSOs built here so the next start only validates them.
-            Context->savePipelineCache();
+            Context->SavePipelineCache();
         }
         return Ready;
     }
@@ -126,7 +126,7 @@ private:
         AssetManager = hz::MakeUnique<hz::AssetManager>(Catalog, Context.Get());
         Loaders->registerLoaders(*AssetManager);
         const hz::AssetHandle Handle = AssetManager->request(Entry->id);
-        if (!Handle.isValid())
+        if (!Handle.IsValid())
         {
             return false;
         }
@@ -145,7 +145,7 @@ private:
         const bool Registered = Types->registerBuiltins();
         ASSERT(Registered);
         World = hz::MakeUnique<hz::World>(*Types);
-        if (!Asset->instantiate(*World).isValid())
+        if (!Asset->instantiate(*World).IsValid())
         {
             LOGF(Error, "Cannot instantiate SceneAsset '%s'", SceneFile);
             return false;
@@ -177,9 +177,9 @@ public:
     void Exit() override
     {
         Camera = nullptr;
-        if (Context && Context->isValid())
+        if (Context && Context->IsValid())
         {
-            Context->waitIdle();
+            Context->WaitIdle();
         }
         Passes = nullptr;
         Scene = nullptr;
@@ -213,7 +213,7 @@ public:
         LOGF(Info, "Startup/resize: targets and environment %.1f ms", (GetUSec(true) - Start) / 1000.0);
         return Ready;
     }
-    void Unload(ReloadDesc*) override { Context->waitIdle(); }
+    void Unload(ReloadDesc*) override { Context->WaitIdle(); }
     void Update(float DeltaTime) override
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Renderer::Update");

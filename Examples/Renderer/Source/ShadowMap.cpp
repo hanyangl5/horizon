@@ -57,7 +57,7 @@ ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(C
                                                        .Descriptors = DescriptorTypeBuffer,
                                                        .Flags = BufferCreationFlagPersistentMapBit });
     }
-    ASSERT(Pipeline.isValid() && Depth.isValid() && Sampler.isValid());
+    ASSERT(Pipeline.IsValid() && Depth.IsValid() && Sampler.IsValid());
 }
 
 // Slots 0..7 of the RootConstant0 block shared with Geometry.slang.
@@ -165,14 +165,14 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     Commands.setScissor(0, 0, Resolution, Resolution);
     const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
     const ShadowBindingConstants Binding = {
-        .frameIndex = ShadowFrames[Backing].getSrvIndex(),
-        .instancesIndex = Gpu.instances.isValid() ? Gpu.instances.getSrvIndex() : UINT32_MAX,
-        .materialsIndex = Gpu.materials.isValid() ? Gpu.materials.getSrvIndex() : UINT32_MAX,
-        .texturesIndex = Gpu.textures.isValid() ? Gpu.textures.getSrvIndex() : UINT32_MAX,
-        .samplerIndex = SurfaceSampler.getIndex(),
+        .frameIndex = ShadowFrames[Backing].GetSrvIndex(),
+        .instancesIndex = Gpu.instances.IsValid() ? Gpu.instances.GetSrvIndex() : UINT32_MAX,
+        .materialsIndex = Gpu.materials.IsValid() ? Gpu.materials.GetSrvIndex() : UINT32_MAX,
+        .texturesIndex = Gpu.textures.IsValid() ? Gpu.textures.GetSrvIndex() : UINT32_MAX,
+        .samplerIndex = SurfaceSampler.GetIndex(),
     };
     Commands.setRootConstants(Binding);
-    Commands.setRootConstant({ Draws.GetDrawData(Backing).getSrvIndex() }, GeometryDrawSlot);
+    Commands.setRootConstant({ Draws.GetDrawData(Backing).GetSrvIndex() }, GeometryDrawSlot);
     if (Draws.GetCount(Backing))
     {
         Commands.drawIndirect(Draws.GetShadowCommands(Backing), 0, Draws.GetCount(Backing));

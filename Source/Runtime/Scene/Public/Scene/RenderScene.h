@@ -12,35 +12,35 @@ struct RenderPrimitiveID
 {
     uint32_t index = UINT32_MAX;
     uint32_t generation = 0;
-    bool     isValid() const { return index != UINT32_MAX && generation != 0; }
+    bool     IsValid() const { return index != UINT32_MAX && generation != 0; }
     bool     operator==(const RenderPrimitiveID&) const = default;
 };
 struct RenderInstanceID
 {
     uint32_t index = UINT32_MAX;
     uint32_t generation = 0;
-    bool     isValid() const { return index != UINT32_MAX && generation != 0; }
+    bool     IsValid() const { return index != UINT32_MAX && generation != 0; }
     bool     operator==(const RenderInstanceID&) const = default;
 };
 struct RenderMeshBatchID
 {
     uint32_t index = UINT32_MAX;
     uint32_t generation = 0;
-    bool     isValid() const { return index != UINT32_MAX && generation != 0; }
+    bool     IsValid() const { return index != UINT32_MAX && generation != 0; }
     bool     operator==(const RenderMeshBatchID&) const = default;
 };
 struct RenderLightID
 {
     uint32_t index = UINT32_MAX;
     uint32_t generation = 0;
-    bool     isValid() const { return index != UINT32_MAX && generation != 0; }
+    bool     IsValid() const { return index != UINT32_MAX && generation != 0; }
     bool     operator==(const RenderLightID&) const = default;
 };
 struct RenderCameraID
 {
     uint32_t index = UINT32_MAX;
     uint32_t generation = 0;
-    bool     isValid() const { return index != UINT32_MAX && generation != 0; }
+    bool     IsValid() const { return index != UINT32_MAX && generation != 0; }
     bool     operator==(const RenderCameraID&) const = default;
 };
 

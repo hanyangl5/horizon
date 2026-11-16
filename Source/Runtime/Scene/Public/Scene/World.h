@@ -11,12 +11,12 @@ class WorldQuery;
 class WorldImpl;
 class WorldQueryImpl;
 
-// Runtime identity, scoped to the World that created it. isValid does not test liveness.
+// Runtime identity, scoped to the World that created it. IsValid does not test liveness.
 class Entity
 {
 public:
     Entity() = default;
-    constexpr bool isValid() const { return value != 0; }
+    constexpr bool IsValid() const { return value != 0; }
     constexpr bool operator==(const Entity&) const = default;
 
 private:
@@ -122,7 +122,7 @@ public:
     ~WorldQuery();
     WorldQuery(const WorldQuery&) = delete;
     WorldQuery& operator=(const WorldQuery&) = delete;
-    bool        isValid() const;
+    bool        IsValid() const;
 
     // Fields follow the requested Type order. Returning false stops iteration. Structural changes are deferred.
     void each(bool (*pCallback)(Entity entity, Span<const void*> fields, void* UserData), void* UserData = nullptr);

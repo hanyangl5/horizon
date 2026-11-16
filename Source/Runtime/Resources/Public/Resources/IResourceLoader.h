@@ -605,7 +605,7 @@ FORGE_RENDERER_API void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDe
 
 /// Save/Load pipeline cache from disk
 FORGE_RENDERER_API void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, PipelineCache** ppPipelineCache);
-FORGE_RENDERER_API void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, PipelineCacheSaveDesc* pDesc);
+FORGE_RENDERER_API void SavePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, PipelineCacheSaveDesc* pDesc);
 
 /// Determines whether we are using Uniform Memory Architecture or not.
 /// Do not assume this variable will be the same, if code was compiled with multiple APIs result of this function might change per API.

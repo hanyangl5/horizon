@@ -24,7 +24,7 @@ public:
     uint32_t                             references = 1;
     void                                 setInstance(uint32_t index, const AccelerationStructureInstance& instance)
     {
-        ASSERT(index < instances.Size() && instance.pBottom && instance.pBottom->isValid());
+        ASSERT(index < instances.Size() && instance.pBottom && instance.pBottom->IsValid());
         ASSERT(instance.instanceId < (1u << 24) && instance.mask < (1u << 8) && instance.hitGroupOffset < (1u << 24));
         AccelerationStructureData* bottom = instance.pBottom->Data;
         ASSERT(bottom->pContext == pContext && bottom->Type == ACCELERATION_STRUCTURE_TYPE_BOTTOM);
@@ -39,7 +39,7 @@ public:
             ++bottom->references;
             if (bottoms[index])
             {
-                pContext->releaseAccelerationStructure(bottoms[index]);
+                pContext->ReleaseAccelerationStructure(bottoms[index]);
             }
             bottoms[index] = bottom;
             dirty = true;
@@ -52,7 +52,7 @@ public:
         {
             if (bottoms[i])
             {
-                pContext->releaseAccelerationStructure(bottoms[i]);
+                pContext->ReleaseAccelerationStructure(bottoms[i]);
             }
         }
         instances.resize(source.Count);
@@ -68,28 +68,28 @@ public:
     bool                                 dirty = true;
 };
 
-GPUAccelerationStructure::~GPUAccelerationStructure() { destroy(); }
+GPUAccelerationStructure::~GPUAccelerationStructure() { Destroy(); }
 GPUAccelerationStructure::GPUAccelerationStructure(GPUAccelerationStructure&& other) noexcept: Data(other.Data) { other.Data = nullptr; }
 GPUAccelerationStructure& GPUAccelerationStructure::operator=(GPUAccelerationStructure&& other) noexcept
 {
     if (this != &other)
     {
-        destroy();
+        Destroy();
         Data = other.Data;
         other.Data = nullptr;
     }
     return *this;
 }
-void GPUAccelerationStructure::destroy()
+void GPUAccelerationStructure::Destroy()
 {
     if (!Data)
     {
         return;
     }
-    Data->pContext->releaseAccelerationStructure(Data);
+    Data->pContext->ReleaseAccelerationStructure(Data);
     Data = nullptr;
 }
-uint32_t GPUAccelerationStructure::getSrvIndex() const { return Data ? getAccelerationStructureSrvIndex(Data->pStructure) : UINT32_MAX; }
+uint32_t GPUAccelerationStructure::GetSrvIndex() const { return Data ? getAccelerationStructureSrvIndex(Data->pStructure) : UINT32_MAX; }
 
 uint32_t GPUAccelerationStructure::getInstanceCount() const { return Data ? Data->instances.Size() : 0; }
 
@@ -99,12 +99,12 @@ void GPUAccelerationStructure::setInstance(uint32_t index, const AccelerationStr
     Data->setInstance(index, instance);
 }
 
-void RenderContext::releaseAccelerationStructure(AccelerationStructureData* data)
+void RenderContext::ReleaseAccelerationStructure(AccelerationStructureData* data)
 {
     ASSERT(data->references);
     if (--data->references == 0)
     {
-        deferResource(ResourceType::AccelerationStructure, data);
+        DeferResource(ResourceType::AccelerationStructure, data);
     }
 }
 
@@ -115,13 +115,13 @@ void RenderContext::destroyAccelerationStructure(AccelerationStructureData* data
     {
         if (bottom)
         {
-            releaseAccelerationStructure(bottom);
+            ReleaseAccelerationStructure(bottom);
         }
     }
     MemDelete(data);
 }
 
-bool RenderContext::supportsRayTracing() const
+bool RenderContext::SupportsRayTracing() const
 {
     return pRenderer && pRenderer->pGpu->settings.rayPipelineSupported && pRenderer->pGpu->settings.rayQuerySupported;
 }
@@ -146,7 +146,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
         ASSERT(input.geometries.Count);
         for (const AccelerationStructureGeometry& geometry : input.geometries)
         {
-            ASSERT(geometry.pVertexBuffer && geometry.pVertexBuffer->isValid() && geometry.vertexCount);
+            ASSERT(geometry.pVertexBuffer && geometry.pVertexBuffer->IsValid() && geometry.vertexCount);
             geometries.PushBack({ .pVertexBuffer = geometry.pVertexBuffer->pBuffer,
                                   .pIndexBuffer = geometry.pIndexBuffer ? geometry.pIndexBuffer->pBuffer : nullptr,
                                   .vertexOffset = geometry.vertexOffset,
@@ -178,7 +178,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
         }
         for (const AccelerationStructureInstance& instance : input.instances)
         {
-            ASSERT(instance.pBottom && instance.pBottom->isValid());
+            ASSERT(instance.pBottom && instance.pBottom->IsValid());
             ::AccelerationStructureInstanceDesc native = { .pBottomAS = instance.pBottom->Data->pStructure,
                                                            .instanceID = instance.instanceId,
                                                            .instanceMask = instance.mask,
@@ -197,7 +197,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
         {
             if (bottom)
             {
-                releaseAccelerationStructure(bottom);
+                ReleaseAccelerationStructure(bottom);
             }
         }
         MemDelete(data);
@@ -210,7 +210,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
 void CommandList::buildAccelerationStructure(GPUAccelerationStructure& structure, Span<AccelerationStructureInstance> instances,
                                              bool update)
 {
-    ASSERT(structure.isValid());
+    ASSERT(structure.IsValid());
     AccelerationStructureData& data = *structure.Data;
     ASSERT(data.pContext == pContext);
     ASSERT(!update || (data.built && (data.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE)));
@@ -245,7 +245,7 @@ void CommandList::buildAccelerationStructure(GPUAccelerationStructure& structure
 
 void CommandList::updateAccelerationStructure(GPUAccelerationStructure& structure)
 {
-    ASSERT(structure.isValid() && structure.Data->pContext == pContext);
+    ASSERT(structure.IsValid() && structure.Data->pContext == pContext);
     AccelerationStructureData& data = *structure.Data;
     ASSERT(data.Type == ACCELERATION_STRUCTURE_TYPE_TOP);
     if (data.dirty)
@@ -256,7 +256,7 @@ void CommandList::updateAccelerationStructure(GPUAccelerationStructure& structur
     }
 }
 
-GPURayTracingPipeline::~GPURayTracingPipeline() { destroy(); }
+GPURayTracingPipeline::~GPURayTracingPipeline() { Destroy(); }
 GPURayTracingPipeline::GPURayTracingPipeline(GPURayTracingPipeline&& other) noexcept: pContext(other.pContext), pPipeline(other.pPipeline)
 {
     other.pContext = nullptr;
@@ -266,7 +266,7 @@ GPURayTracingPipeline& GPURayTracingPipeline::operator=(GPURayTracingPipeline&& 
 {
     if (this != &other)
     {
-        destroy();
+        Destroy();
         pContext = other.pContext;
         pPipeline = other.pPipeline;
         other.pContext = nullptr;
@@ -274,11 +274,11 @@ GPURayTracingPipeline& GPURayTracingPipeline::operator=(GPURayTracingPipeline&& 
     }
     return *this;
 }
-void GPURayTracingPipeline::destroy()
+void GPURayTracingPipeline::Destroy()
 {
     if (pPipeline)
     {
-        pContext->deferResource(RenderContext::ResourceType::RayTracingPipeline, pPipeline);
+        pContext->DeferResource(RenderContext::ResourceType::RayTracingPipeline, pPipeline);
         pPipeline = nullptr;
         pContext = nullptr;
     }
@@ -433,7 +433,7 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
 
 void CommandList::setPipeline(const GPURayTracingPipeline& pipeline)
 {
-    ASSERT(pipeline.isValid() && pipeline.pContext == pContext);
+    ASSERT(pipeline.IsValid() && pipeline.pContext == pContext);
     pCurrentRootSignature = getRaytracingPipelineRootSignature(pipeline.pPipeline);
     pCurrentDrawIndirectSignature = nullptr;
     cmdBindRaytracingPipeline(pCmd, pipeline.pPipeline);
@@ -441,7 +441,7 @@ void CommandList::setPipeline(const GPURayTracingPipeline& pipeline)
 void CommandList::traceRays(const GPURayTracingPipeline& pipeline, uint32_t Width, uint32_t Height, uint32_t Depth,
                             const Dependencies& dependencies)
 {
-    ASSERT(pipeline.isValid() && Width && Height && Depth);
+    ASSERT(pipeline.IsValid() && Width && Height && Depth);
     barrier(dependencies, nullptr);
     cmdTraceRays(pCmd, pipeline.pPipeline, Width, Height, Depth);
 }

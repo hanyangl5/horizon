@@ -106,7 +106,7 @@ public:
     }
     const T* get(ID id) const
     {
-        return id.isValid() && id.index < values.Size() && values[id.index].id == id ? &values[id.index] : nullptr;
+        return id.IsValid() && id.index < values.Size() && values[id.index].id == id ? &values[id.index] : nullptr;
     }
     void markDirty(uint32_t index)
     {

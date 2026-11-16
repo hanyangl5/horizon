@@ -38,7 +38,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
                 .opaque = Source.Opaque,
             };
             BottomLevelAS[Index] = Context.createAccelerationStructure({ .geometries = { &Geometry, 1 } });
-            ASSERT(BottomLevelAS[Index].isValid());
+            ASSERT(BottomLevelAS[Index].IsValid());
             Commands.buildAccelerationStructure(BottomLevelAS[Index]);
         }
         GeometryRevision = Draws.GetGeometryRevision();
@@ -64,7 +64,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
             .instanceCount = InstanceCount,
         });
     }
-    ASSERT(TopLevelAS.isValid());
+    ASSERT(TopLevelAS.IsValid());
     uint32_t InstanceIndex = 0;
     for (uint32_t DrawIndex = 0; DrawIndex < Prepared.Count; ++DrawIndex)
     {

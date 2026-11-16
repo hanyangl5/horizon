@@ -72,7 +72,7 @@ TEST_F(SceneAssetReadTest, PreservesHierarchyLocalTransformsAndAssetReferences)
 {
     hz::SceneAsset asset;
     ASSERT_TRUE(asset.parse(kScene));
-    EXPECT_TRUE(asset.isValid());
+    EXPECT_TRUE(asset.IsValid());
     EXPECT_STREQ(asset.getSource(), "scene.gltf");
     EXPECT_STREQ(asset.getContentHash(), "fnv1a64:0123456789abcdef");
     ASSERT_EQ(asset.getNodes().Count, 3u);
@@ -128,7 +128,7 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadD
     const hz::Entity  firstRoot = asset.instantiate(world, parent);
     const hz::Entity  secondRoot = asset.instantiate(world);
     EXPECT_EQ(world.getParent(firstRoot), parent);
-    EXPECT_FALSE(world.getParent(secondRoot).isValid());
+    EXPECT_FALSE(world.getParent(secondRoot).IsValid());
     EXPECT_NE(world.getEntityGuid(firstRoot), world.getEntityGuid(secondRoot));
     asset = {};
     world.updateTransforms();
@@ -149,7 +149,7 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadD
             const hz::Entity nodeParent = data.world->getParent(entity);
             EXPECT_STREQ(((const hz::Name*)data.world->getComponent(nodeParent, hz::SceneTypes::name))->value, "Root");
             const hz::Entity sceneRoot = data.world->getParent(nodeParent);
-            const float      x = data.world->getParent(sceneRoot).isValid() ? 110.0f : 10.0f;
+            const float      x = data.world->getParent(sceneRoot).IsValid() ? 110.0f : 10.0f;
             EXPECT_FLOAT_EQ((float)data.world->getWorldTransform(entity)->current.getElem(3, 0), x);
             if (!strcmp(name.value, "First"))
             {
@@ -269,13 +269,13 @@ TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
             ASSERT_TRUE(world.setParent(child, parent, false));
             const hz::LocalTransform transform = { .translation = Vector3(3, 0, 0) };
             ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
-            EXPECT_FALSE(asset.instantiate(world, parent).isValid());
+            EXPECT_FALSE(asset.instantiate(world, parent).IsValid());
             EXPECT_EQ(source.calls, failureAt + 1);
             EXPECT_EQ(world.getEntity(parentID), parent);
             EXPECT_EQ(world.getEntity(childID), child);
             EXPECT_EQ(world.getParent(child), parent);
             for (uint32_t i = 0; i < failureAt; ++i)
-                EXPECT_FALSE(world.getEntity({ .high = 0x4000, .low = UINT64_C(0x8000000000000020) + i }).isValid());
+                EXPECT_FALSE(world.getEntity({ .high = 0x4000, .low = UINT64_C(0x8000000000000020) + i }).IsValid());
             uint32_t       Count = 0;
             hz::WorldQuery query(world, {});
             query.each(
@@ -290,7 +290,7 @@ TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
             EXPECT_FLOAT_EQ((float)world.getWorldTransform(child)->current.getElem(3, 0), 3.0f);
             source.failureAt = UINT32_MAX;
             const hz::Entity root = asset.instantiate(world, parent);
-            ASSERT_TRUE(root.isValid());
+            ASSERT_TRUE(root.IsValid());
             EXPECT_EQ(world.getParent(root), parent);
             ASSERT_TRUE(world.destroySubtree(root));
             EXPECT_EQ(world.getEntity(parentID), parent);
@@ -308,16 +308,16 @@ TEST_F(SceneAssetReadTest, OwnsStringsAndSupportsMoveAndReplacement)
         json.assign(json.size(), '!');
     }
     hz::SceneAsset moved(std::move(asset));
-    EXPECT_FALSE(asset.isValid());
+    EXPECT_FALSE(asset.IsValid());
     EXPECT_EQ(asset.getNodes().Count, 0u);
-    EXPECT_FALSE(asset.getID().isValid());
+    EXPECT_FALSE(asset.getID().IsValid());
     EXPECT_STREQ(moved.getNodes().Data[1].Name, "First");
     EXPECT_STREQ(moved.getMeshes().Data[0].pGeometry, "scene.bin");
     EXPECT_STREQ(moved.getMaterials().Data[0].Name, "Leaves");
     EXPECT_STREQ(moved.getTextures().Data[0].pPath, "Textures/albedo.dds");
     ASSERT_TRUE(asset.parse(kScene));
     asset = std::move(moved);
-    EXPECT_FALSE(moved.isValid());
+    EXPECT_FALSE(moved.IsValid());
     ASSERT_TRUE(parse(asset, replaceText("First", "Replaced")));
     EXPECT_STREQ(asset.getNodes().Data[1].Name, "Replaced");
 }
@@ -366,7 +366,7 @@ TEST_F(SceneAssetReadTest, RejectsInvalidHierarchyAndTransforms)
     {
         SCOPED_TRACE(replacement[1]);
         EXPECT_FALSE(parse(asset, replaceText(replacement[0], replacement[1])));
-        EXPECT_FALSE(asset.isValid());
+        EXPECT_FALSE(asset.IsValid());
     }
     EXPECT_TRUE(parse(asset, replaceText("\"parent\": 0", "\"parent\": 2")));
 }
@@ -378,7 +378,7 @@ TEST_F(SceneAssetReadTest, RejectsUnsupportedFormatAndVersion)
     EXPECT_FALSE(parse(asset, replaceText("\"version\": 1", "\"version\": 2")));
     EXPECT_FALSE(parse(asset, replaceText("\"version\": 1", "\"version\": 1.5")));
     EXPECT_FALSE(parse(asset, replaceText("Horizon.SceneAsset", "OtherFormat")));
-    EXPECT_FALSE(asset.isValid());
+    EXPECT_FALSE(asset.IsValid());
 }
 
 TEST_F(SceneAssetReadTest, RejectsMalformedJsonPathsAndMaterialFields)
