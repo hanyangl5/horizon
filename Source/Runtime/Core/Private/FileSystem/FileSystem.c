@@ -1551,7 +1551,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
     }
 
     //////////////////
-    // Read hash table
+    // Read Hash table
 
     if (!desc->disableHashTable && header.hashTablePointer.Size)
     {
@@ -1560,7 +1560,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
         if (!bunyArReadLocation(archive, header.hashTablePointer, archive->hashTable))
         {
             // not fatal, we can recreate it
-            LOGF(Error, "Failed to read archive hash table");
+            LOGF(Error, "Failed to read archive Hash table");
             MemDeallocate(archive->hashTable);
             archive->hashTable = NULL;
         }
@@ -1623,7 +1623,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
         if (namesChanged)
         {
-            LOGF(Error, "Baked archive hash table is abandoned because node names was "
+            LOGF(Error, "Baked archive Hash table is abandoned because node names was "
                          "modified");
             MemDeallocate(archive->hashTable);
             archive->hashTable = NULL;
@@ -1640,14 +1640,14 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
             if (value >= archive->nodeCount)
             {
-                LOGF(Error, "Archive hash table lookup test failed: key wasn't found.");
+                LOGF(Error, "Archive Hash table lookup test failed: key wasn't found.");
                 success = false;
                 break;
             }
 
             if (value != i)
             {
-                LOGF(Error, "Archive hash table lookup test failed: got the wrong key.");
+                LOGF(Error, "Archive Hash table lookup test failed: got the wrong key.");
                 success = false;
                 break;
             }
@@ -1655,15 +1655,15 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
         if (!success)
         {
-            LOGF(Error, "Baked archive hash table is abandoned because it was faulty");
+            LOGF(Error, "Baked archive Hash table is abandoned because it was faulty");
             MemDeallocate(archive->hashTable);
             archive->hashTable = NULL;
         }
     }
 
     ////////////////////////////////////
-    // Initialize hash table if required
-    // binary search is used in case hash table is not initialized
+    // Initialize Hash table if required
+    // binary search is used in case Hash table is not initialized
 
     if (!desc->disableHashTable && !archive->hashTable)
     {
@@ -1676,7 +1676,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
 
         if (msec)
         {
-            LOGF(Info, "Archive hash table %s in %fs", archive->hashTable ? "constructed" : "construction is failed",
+            LOGF(Info, "Archive Hash table %s in %fs", archive->hashTable ? "constructed" : "construction is failed",
                  (double)(msec) / 1000);
         }
     }

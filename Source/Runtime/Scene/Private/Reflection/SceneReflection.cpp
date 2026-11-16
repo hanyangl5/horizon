@@ -112,7 +112,7 @@ static bool validProperties(const TypeDesc& Type, bool arrayElement)
     return true;
 }
 
-const PropertyDesc* TypeDesc::getProperty(PropertyID property) const
+const PropertyDesc* TypeDesc::GetProperty(PropertyID property) const
 {
     for (const PropertyDesc& desc : properties)
         if (desc.id == property)
@@ -120,7 +120,7 @@ const PropertyDesc* TypeDesc::getProperty(PropertyID property) const
     return nullptr;
 }
 
-const PropertyDesc* TypeDesc::getProperty(const char* pPropertyName) const
+const PropertyDesc* TypeDesc::GetProperty(const char* pPropertyName) const
 {
     ASSERT(pPropertyName);
     for (const PropertyDesc& desc : properties)
@@ -129,7 +129,7 @@ const PropertyDesc* TypeDesc::getProperty(const char* pPropertyName) const
     return nullptr;
 }
 
-void TypeDesc::construct(void* pDestination) const
+void TypeDesc::Construct(void* pDestination) const
 {
     ASSERT(pDestination);
     if (lifecycle.pConstruct)
@@ -145,7 +145,7 @@ void TypeDesc::Destroy(void* pValue) const
         lifecycle.pDestroy(pValue);
 }
 
-void TypeDesc::copyConstruct(void* pDestination, const void* pSource) const
+void TypeDesc::CopyConstruct(void* pDestination, const void* pSource) const
 {
     ASSERT(pDestination && pSource && pDestination != pSource);
     if (lifecycle.pCopyConstruct)
@@ -154,7 +154,7 @@ void TypeDesc::copyConstruct(void* pDestination, const void* pSource) const
         memcpy(pDestination, pSource, Size);
 }
 
-void TypeDesc::moveConstruct(void* pDestination, void* pSource) const
+void TypeDesc::MoveConstruct(void* pDestination, void* pSource) const
 {
     ASSERT(pDestination && pSource && pDestination != pSource);
     if (lifecycle.pMoveConstruct)
@@ -166,7 +166,7 @@ void TypeDesc::moveConstruct(void* pDestination, void* pSource) const
 TypeRegistry::~TypeRegistry() { arrfree(ppTypes); }
 uint32_t TypeRegistry::Size() const { return (uint32_t)arrlenu(ppTypes); }
 
-const TypeDesc* TypeRegistry::getType(TypeID id) const
+const TypeDesc* TypeRegistry::GetType(TypeID id) const
 {
     for (uint32_t i = 0; i < Size(); ++i)
         if (ppTypes[i]->id == id)
@@ -174,7 +174,7 @@ const TypeDesc* TypeRegistry::getType(TypeID id) const
     return nullptr;
 }
 
-const TypeDesc* TypeRegistry::getType(const char* Name) const
+const TypeDesc* TypeRegistry::GetType(const char* Name) const
 {
     ASSERT(Name);
     for (uint32_t i = 0; i < Size(); ++i)
@@ -183,13 +183,13 @@ const TypeDesc* TypeRegistry::getType(const char* Name) const
     return nullptr;
 }
 
-const TypeDesc* TypeRegistry::getTypeAt(uint32_t index) const
+const TypeDesc* TypeRegistry::GetTypeAt(uint32_t index) const
 {
     ASSERT(index < Size());
     return ppTypes[index];
 }
 
-bool TypeRegistry::registerTypes(Span<TypeDesc> types)
+bool TypeRegistry::RegisterTypes(Span<TypeDesc> types)
 {
     ASSERT(types.Data || !types.Count);
     for (uint32_t i = 0; i < types.Count; ++i)
@@ -200,7 +200,7 @@ bool TypeRegistry::registerTypes(Span<TypeDesc> types)
             LOGF(Error, "Invalid reflection metadata for type '%s'", Type.Name ? Type.Name : "<unnamed>");
             return false;
         }
-        bool duplicate = getType(Type.id) || getType(Type.Name);
+        bool duplicate = GetType(Type.id) || GetType(Type.Name);
         for (uint32_t j = 0; j < i; ++j)
             duplicate |= Type.id == types.Data[j].id || !strcmp(Type.Name, types.Data[j].Name);
         if (duplicate)

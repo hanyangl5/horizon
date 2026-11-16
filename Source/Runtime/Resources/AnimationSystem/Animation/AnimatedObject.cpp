@@ -101,7 +101,7 @@ void AnimatedObject::Exit()
 
 void AnimatedObject::ComputePose(const Matrix4& rootTransform)
 {
-    // Set the world matrix of each joint
+    // Set the world matrix of Each joint
     for (uint32_t jointIndex = 0; jointIndex < rig->numJoints; jointIndex++)
     {
         jointWorldMats[jointIndex] = rootTransform * jointModelMats[jointIndex];
@@ -121,7 +121,7 @@ void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
     float minBoneLen = 0.f;
     bool  minBoneLenSet = false;
 
-    // For each joint
+    // For Each joint
     for (uint32_t childIndex = 0; childIndex < rig->numJoints; childIndex++)
     {
         // Do not make a bone if it is the root

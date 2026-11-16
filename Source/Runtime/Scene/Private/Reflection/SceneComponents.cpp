@@ -12,18 +12,18 @@ namespace hz
 template<typename T>
 struct ComponentLifecycle
 {
-    static void                    construct(void* pDestination) { ::new (pDestination) T{}; }
+    static void                    Construct(void* pDestination) { ::new (pDestination) T{}; }
     static void                    Destroy(void* pValue) { ((T*)pValue)->~T(); }
-    static void                    copyConstruct(void* pDestination, const void* pSource) { ::new (pDestination) T(*(const T*)pSource); }
-    static void                    moveConstruct(void* pDestination, void* pSource) { ::new (pDestination) T(std::move(*(T*)pSource)); }
+    static void                    CopyConstruct(void* pDestination, const void* pSource) { ::new (pDestination) T(*(const T*)pSource); }
+    static void                    MoveConstruct(void* pDestination, void* pSource) { ::new (pDestination) T(std::move(*(T*)pSource)); }
     static constexpr TypeLifecycle Get()
     {
-        return { .pConstruct = construct, .pDestroy = Destroy, .pCopyConstruct = copyConstruct, .pMoveConstruct = moveConstruct };
+        return { .pConstruct = Construct, .pDestroy = Destroy, .pCopyConstruct = CopyConstruct, .pMoveConstruct = MoveConstruct };
     }
 };
 
 template<>
-void ComponentLifecycle<Matrix4>::construct(void* pDestination)
+void ComponentLifecycle<Matrix4>::Construct(void* pDestination)
 {
     ::new (pDestination) Matrix4(Matrix4::identity());
 }
@@ -208,7 +208,7 @@ static const PropertyDesc cameraProperties[] = {
     { .id = 3, .Name = "farPlane", .kind = PropertyKind::Float, .offset = offsetof(Camera, farPlane), .Size = sizeof(float), .step = 1.0 },
 };
 
-bool TypeRegistry::registerBuiltins()
+bool TypeRegistry::RegisterBuiltins()
 {
     static const TypeDesc types[] = {
         { .id = SceneTypes::entityIdentity,
@@ -261,6 +261,6 @@ bool TypeRegistry::registerBuiltins()
           .triviallyCopyable = __is_trivially_copyable(Camera),
           .lifecycle = ComponentLifecycle<Camera>::Get() },
     };
-    return registerTypes(types);
+    return RegisterTypes(types);
 }
 } // namespace hz

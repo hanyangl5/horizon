@@ -171,7 +171,7 @@ public:
                     hmgetp_null(pLightIndices, lightEntities[i].entity)->value = i;
                 continue;
             }
-            const Light& source = *(const Light*)world.getComponent(entity.entity, SceneTypes::light);
+            const Light& source = *(const Light*)world.GetComponent(entity.entity, SceneTypes::light);
             if (assetManager.getState(entity.texture) == AssetState::Ready && !assetManager.getTexture(entity.texture) &&
                 entity.error != AssetError::LoadFailed)
             {
@@ -180,8 +180,8 @@ public:
             }
             RenderLight next = {
                 .id = entity.id,
-                .entityGuid = world.getEntityGuid(entity.entity),
-                .transform = world.getWorldTransform(entity.entity)->current,
+                .entityGuid = world.GetEntityGuid(entity.entity),
+                .transform = world.GetWorldTransform(entity.entity)->current,
                 .Type = source.Type,
                 .color = { (float)source.color.getX(), (float)source.color.getY(), (float)source.color.getZ() },
                 .intensity = source.intensity,
@@ -237,11 +237,11 @@ public:
         }
         RenderCameraEntity& cameraEntity = data.cameraEntities[pIndex->value];
         cameraEntity.seen = true;
-        const Matrix4& current = data.world.getWorldTransform(entity)->current;
+        const Matrix4& current = data.world.GetWorldTransform(entity)->current;
         const Camera&  lens = *(const Camera*)fields.Data[0];
         const Matrix4& previous = cameraEntity.historyValid ? cameraEntity.submitted : current;
         const Camera&  previousLens = cameraEntity.historyValid ? cameraEntity.submittedLens : lens;
-        const Guid     entityGuid = data.world.getEntityGuid(entity);
+        const Guid     entityGuid = data.world.GetEntityGuid(entity);
         RenderCamera&  camera = data.cameras.values[cameraEntity.id.index];
         if (camera.entityGuid != entityGuid || !equalMatrix(camera.current, current) || !equalMatrix(camera.previous, previous) ||
             !equalLens(camera.lens, lens) || !equalLens(camera.previousLens, previousLens))
@@ -423,9 +423,9 @@ public:
                     meshBatches.markDirty(id.index);
                 }
             }
-        const WorldTransform& transform = *world.getWorldTransform(entity.entity);
+        const WorldTransform& transform = *world.GetWorldTransform(entity.entity);
         RenderInstance&       instance = instances.values[entity.instance.index];
-        const Guid            entityGuid = world.getEntityGuid(entity.entity);
+        const Guid            entityGuid = world.GetEntityGuid(entity.entity);
         const RenderBounds    bounds = ready ? transformBounds(entity.localBounds, transform.current) : RenderBounds{};
         RenderHistory&        history = instanceHistory[entity.instance.index];
         const Matrix4&        previous = history.valid ? history.submitted : transform.current;
@@ -456,10 +456,10 @@ public:
     void update()
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::update");
-        ASSERT(!world.isDeferred() && !frameLocked);
+        ASSERT(!world.IsDeferred() && !frameLocked);
         {
-            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::updateTransforms");
-            world.updateTransforms();
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::UpdateTransforms");
+            world.UpdateTransforms();
         }
         primitives.beginUpdate();
         instances.beginUpdate();
@@ -474,14 +474,14 @@ public:
         for (RenderCameraEntity& entity : cameraEntities)
             entity.seen = false;
         // Retain new emission maps before mesh/material bindings release old dependencies.
-        lightQuery.each(syncLight, this);
+        lightQuery.Each(syncLight, this);
         {
             PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::bindings");
             bindings.update();
         }
         {
             PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::extract");
-            query.each(extractEntity, this);
+            query.Each(extractEntity, this);
         }
         for (uint32_t i = 0; i < entities.Size();)
         {
@@ -503,7 +503,7 @@ public:
                 hmgetp_null(pIndices, entities[i].entity)->value = i;
         }
         extractLights();
-        cameraQuery.each(extractCamera, this);
+        cameraQuery.Each(extractCamera, this);
         removeCameras();
         primitives.finishUpdate();
         instances.finishUpdate();

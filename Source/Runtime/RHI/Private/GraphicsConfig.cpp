@@ -485,7 +485,7 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
         if (lineCursor == pLineEnd)
             continue;
 
-        // parse configuration rules and settings
+        // Parse configuration rules and settings
         switch (parsingStatus)
         {
         case ConfigParsingStatus::CONFIG_PARSE_NONE:
@@ -662,7 +662,7 @@ void parseDefaultDataConfigurationLine(char* currentLine)
     }
     else
     {
-        LOGF(Debug, "Error could not parse GPU Default Data Configuration rule '%s' in '%s'.", ruleName, currentLine);
+        LOGF(Debug, "Error could not Parse GPU Default Data Configuration rule '%s' in '%s'.", ruleName, currentLine);
     }
 }
 
@@ -706,13 +706,13 @@ void parseGPUVendorLine(char* currentLine)
     }
     else
     {
-        LOGF(Debug, "Error could not parse GPU vendor in '%s'.", currentLine);
+        LOGF(Debug, "Error could not Parse GPU vendor in '%s'.", currentLine);
     }
 }
 
 void parseGPUSelectionLine(char* currentLine)
 {
-    // parse selection rule
+    // Parse selection rule
     char                 ruleParameters[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     size_t               ruleLength = strcspn(currentLine, "#");
     const char*          pLineEnd = currentLine + ruleLength;
@@ -721,7 +721,7 @@ void parseGPUSelectionLine(char* currentLine)
     char* tokens[] = { ruleParameters };
     tokenizeLine(currentLine, pLineEnd, TF_ARRAY_COUNT(tokens), tokens);
 
-    // parse comparison rules separated by ","
+    // Parse comparison rules separated by ","
     parseConfigurationRules(&currentChoice->pGpuComparisonRules, &currentChoice->comparisonRulesCount, ruleParameters);
     if (currentChoice->pGpuComparisonRules == NULL)
     {
@@ -739,7 +739,7 @@ void parseDriverRejectionLine(char* currentLine)
     char ruleParameters[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     char reasonStr[MAX_GPU_VENDOR_STRING_LENGTH] = {};
 
-    // parse driver rule
+    // Parse driver rule
     size_t      ruleLength = strcspn(currentLine, "#");
     const char* pLineEnd = currentLine + ruleLength;
     char*       tokens[] = { vendorStr, ruleParameters, reasonStr };
@@ -794,7 +794,7 @@ void parseConfigurationSettingLine(char* currentLine)
     char ruleParameters[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     char assignmentValue[MAX_GPU_VENDOR_STRING_LENGTH] = {};
 
-    // parse selection rule
+    // Parse selection rule
     size_t                ruleLength = strcspn(currentLine, "#");
     const char*           pLineEnd = currentLine + ruleLength;
     ConfigurationSetting* currentSettings = &gConfigurationSettings[gConfigurationSettingsCount];
@@ -811,7 +811,7 @@ void parseConfigurationSettingLine(char* currentLine)
                         ? 16
                         : 10;
         bool validConversion = stringToLargeInteger(assignmentValue, &currentSettings->assignmentValue, base);
-        // parse comparison rules separated by ","
+        // Parse comparison rules separated by ","
         parseConfigurationRules(&currentSettings->pConfigurationRules, &currentSettings->comparisonRulesCount, rulesBegin);
         if (currentSettings->pConfigurationRules == NULL)
         {
@@ -842,7 +842,7 @@ void parseUserExtendedSettingLine(char* currentLine, ExtendedSettings* pExtended
     char ruleParameters[MAX_GPU_VENDOR_STRING_LENGTH] = {};
     char assignmentValue[MAX_GPU_VENDOR_STRING_LENGTH] = {};
 
-    // parse selection rule
+    // Parse selection rule
     size_t      ruleLength = strcspn(currentLine, "#");
     const char* pLineEnd = currentLine + ruleLength;
     char*       tokens[] = { settingName, ruleParameters, assignmentValue };

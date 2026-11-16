@@ -136,9 +136,9 @@
 #define HW_RASTERIZED_BATCH_ARGUMENTS_OFFSET MAX_BATCHES / 2
 #endif
 
-// The following value defines the maximum amount of triangles we can Draw on each indirect Draw call.
+// The following value defines the maximum amount of triangles we can Draw on Each indirect Draw call.
 // The values of FILTER_BATCH_COUNT, FILTER_BATCH_SIZE and MAX_PRIMITIVES_PER_DRAW_INDIRECT determine how many invocations to
-// triangle_filtering are needed, one of the values will exhaust first the Capacity of each filtering batch.
+// triangle_filtering are needed, one of the values will exhaust first the Capacity of Each filtering batch.
 //
 // If MAX_PRIMITIVES_PER_DRAW_INDIRECT is smaller than FILTER_BATCH_COUNT * FILTER_BATCH_SIZE, then it means we'll be making more
 // triangle_filtering dispatches and none of them will use the max Capacity of the shader. This is needed when bigger
@@ -157,7 +157,7 @@
 #define DRAW_COUNTER_SLOT_POS             ((MAX_DRAWS_INDIRECT - 1) * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)
 #define DRAW_COUNTER_SLOT_OFFSET_IN_BYTES (DRAW_COUNTER_SLOT_POS * sizeof(uint))
 
-// Size for the instance buffer assuming each Draw call uses one instance index.
+// Size for the instance buffer assuming Each Draw call uses one instance index.
 #define INSTANCE_BUFFER_SIZE              (MAX_DRAWS_INDIRECT * NUM_GEOMETRY_SETS * NUM_CULLING_VIEWPORTS)
 
 // This function is used to Get the offset of the current material base index depending

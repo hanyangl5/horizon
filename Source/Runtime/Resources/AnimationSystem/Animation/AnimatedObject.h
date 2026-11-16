@@ -48,7 +48,7 @@ struct AimIKDesc
     const Vector3* jointUpVectors;
     // Twist_angle rotates joint around the target vector.
     float          twistAngle;
-    // Weight given to the IK correction clamped in range [0,1]. Applied to each joint in chain.
+    // Weight given to the IK correction clamped in range [0,1]. Applied to Each joint in chain.
     float          jointWeight;
     // Chain Length
     int32_t        jointChainLength;
@@ -131,7 +131,7 @@ public:
     Animation* animation = NULL;
 
     // Transform to apply to entire rig
-    Matrix4 rootTransform = Matrix4::identity(); // TODO: Do we need this here? Might be better if it's provided in each call to
+    Matrix4 rootTransform = Matrix4::identity(); // TODO: Do we need this here? Might be better if it's provided in Each call to
                                                  // ComputePose, less duplicated state
 
     // Buffer of local transforms as sampled from the animation.
@@ -151,7 +151,7 @@ public:
     // Color of the bones
     Vector4 boneColor = Vector4(0.9f, 0.6f, 0.1f, 1.0f); // orange
 
-    // Scales to apply to each joint - will be proportional to length of its child's bone
+    // Scales to apply to Each joint - will be proportional to length of its child's bone
     ozz::span<Vector3> jointScales;
 
 #endif

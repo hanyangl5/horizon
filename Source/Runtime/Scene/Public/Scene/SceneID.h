@@ -24,10 +24,10 @@ struct AssetID
     static AssetID create(const IDGenerator& generator = {});
 
     // Accepts exactly 36 characters in UUID form, including nil; failure leaves this ID unchanged.
-    bool     parse(const char* pText);
-    void     toString(char (&text)[kIDStringCapacity]) const;
+    bool     Parse(const char* pText);
+    void     ToString(char (&text)[kIDStringCapacity]) const;
     // FNV-1a over the 16 canonical bytes; compare the full ID when hashes match.
-    uint64_t hash() const;
+    uint64_t Hash() const;
 
     constexpr bool IsValid() const { return high != 0 || low != 0; }
     constexpr bool operator==(const AssetID&) const = default;
@@ -41,9 +41,9 @@ struct Guid
 
     // Generation and text conversion follow the same contract as AssetID.
     static Guid create(const IDGenerator& generator = {});
-    bool        parse(const char* pText);
-    void        toString(char (&text)[kIDStringCapacity]) const;
-    uint64_t    hash() const;
+    bool        Parse(const char* pText);
+    void        ToString(char (&text)[kIDStringCapacity]) const;
+    uint64_t    Hash() const;
 
     constexpr bool IsValid() const { return high != 0 || low != 0; }
     constexpr bool operator==(const Guid&) const = default;

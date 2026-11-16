@@ -125,7 +125,7 @@ typedef struct BufferChunkAllocator
     BufferChunk* unusedChunks;
 } BufferChunkAllocator;
 
-// Stores huge buffers that are then used to sub-allocate memory for each of the loaded meshes.
+// Stores huge buffers that are then used to sub-allocate memory for Each of the loaded meshes.
 // GeometryBuffer can be provided to GeometryLoadDesc::pGeometryBuffer when loading a mesh, sub-chunks will be allocated
 // by index and vertex allocators and return the BufferChunk(s) that where used in Geometry::indexBufferChunk and
 // Geometry::vertexBufferChunks
@@ -191,7 +191,7 @@ typedef struct Geometry
         };
     };
 
-    /// The array of traditional Draw arguments to Draw each subset in this geometry
+    /// The array of traditional Draw arguments to Draw Each subset in this geometry
     IndirectDrawIndexArguments* pDrawArgs;
 
     /// The array of vertex buffer strides to bind when drawing this geometry
@@ -307,7 +307,7 @@ typedef struct GeometryBufferLayoutDesc
 {
     IndexType indexType;
     uint32_t  verticesStrides[MAX_VERTEX_BINDINGS];
-    // Vertex buffer/binding idx for each semantic.
+    // Vertex buffer/binding idx for Each semantic.
     // Used to locate attributes inside specific buffers for loaded Geometry.
     uint32_t  semanticBindings[SEMANTIC_TEXCOORD9 + 1];
 } GeometryBufferLayoutDesc;
@@ -368,16 +368,16 @@ typedef struct BufferUpdateDesc
 typedef struct TextureSubresourceUpdate
 {
     /// Filled by ResourceLaoder in beginUpdateResource
-    /// Size of each row in destination including padding - Needs to be respected otherwise texture data will be corrupted if dst row stride
+    /// Size of Each row in destination including padding - Needs to be respected otherwise texture data will be corrupted if dst row stride
     /// is not the same as src row stride
     uint32_t dstRowStride;
     /// Number of rows in this slice of the texture
     uint32_t rowCount;
     /// Src row stride for convenience (rowCount * Width * texture Format Size)
     uint32_t srcRowStride;
-    /// Size of each slice in destination including padding - Use for offsetting dst data updating 3D textures
+    /// Size of Each slice in destination including padding - Use for offsetting dst data updating 3D textures
     uint32_t dstSliceStride;
-    /// Size of each slice in src - Use for offsetting src data when updating 3D textures
+    /// Size of Each slice in src - Use for offsetting src data when updating 3D textures
     uint32_t srcSliceStride;
     /// To be filled by the caller
     /// Example:

@@ -60,33 +60,33 @@ static bool checkSlangResult(SlangResult result, const char* operation, const Sl
     return SLANG_SUCCEEDED(result);
 }
 
-void hashShaderBytes(uint64_t& hash, const void* Data, size_t Size)
+void hashShaderBytes(uint64_t& Hash, const void* Data, size_t Size)
 {
     const uint8_t* pBytes = (const uint8_t*)Data;
     for (size_t i = 0; i < Size; ++i)
-        hash = (hash ^ pBytes[i]) * UINT64_C(1099511628211);
+        Hash = (Hash ^ pBytes[i]) * UINT64_C(1099511628211);
 }
 
 // Everything that changes the generated DXIL participates in the key, so a cache hit never hides a shader edit.
 uint64_t getShaderCacheKey(const ShaderSrcDesc& source, ShaderTarget target)
 {
-    uint64_t                  hash = UINT64_C(14695981039346656037);
+    uint64_t                  Hash = UINT64_C(14695981039346656037);
     const uint32_t            version = kShaderCacheVersion;
     const ShaderSrcStageDesc* stages[] = { &source.vert, &source.frag, &source.comp };
-    hashShaderBytes(hash, &version, sizeof(version));
+    hashShaderBytes(Hash, &version, sizeof(version));
     // The compiler build is what version-validates emitted DXIL; the driver never sees this cache, so it stays out of the key.
     const char* pBuildTag = spGetBuildTagString();
-    hashShaderBytes(hash, pBuildTag ? pBuildTag : "", pBuildTag ? strlen(pBuildTag) + 1 : 1);
-    hashShaderBytes(hash, &target, sizeof(target));
+    hashShaderBytes(Hash, pBuildTag ? pBuildTag : "", pBuildTag ? strlen(pBuildTag) + 1 : 1);
+    hashShaderBytes(Hash, &target, sizeof(target));
     for (uint32_t i = 0; i < kCachedStageCount; ++i)
     {
         if (!(source.stages & kCachedStages[i]))
             continue;
-        hashShaderBytes(hash, &kCachedStages[i], sizeof(kCachedStages[i]));
-        hashShaderBytes(hash, stages[i]->pByteCode, stages[i]->byteCodeSize);
-        hashShaderBytes(hash, stages[i]->pEntryPoint, strlen(stages[i]->pEntryPoint) + 1);
+        hashShaderBytes(Hash, &kCachedStages[i], sizeof(kCachedStages[i]));
+        hashShaderBytes(Hash, stages[i]->pByteCode, stages[i]->byteCodeSize);
+        hashShaderBytes(Hash, stages[i]->pEntryPoint, strlen(stages[i]->pEntryPoint) + 1);
     }
-    return hash;
+    return Hash;
 }
 
 void getShaderCacheFile(uint64_t key, char* pFileName, size_t Size)

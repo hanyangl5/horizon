@@ -55,7 +55,7 @@ void* WorldImpl::findEditableProperty(ecs_entity_t entity, TypeID Type, Property
         LOGF(Error, "Property edit requires a live entity and registered component type");
         return nullptr;
     }
-    pProperty = pType->pType->getProperty(property);
+    pProperty = pType->pType->GetProperty(property);
     if (!pProperty || (pProperty->Flags & PROPERTY_READ_ONLY) || Type == SceneTypes::entityIdentity)
     {
         LOGF(Error, "Property edit references an unknown or read-only property");
@@ -72,9 +72,9 @@ void* WorldImpl::findEditableProperty(ecs_entity_t entity, TypeID Type, Property
 
 void WorldImpl::notifyPropertyChange(ecs_entity_t entity, TypeID Type) { ecs_modified_id(pWorld, entity, findType(Type)->component); }
 
-bool World::setProperty(Entity entity, TypeID Type, PropertyID property, const PropertyValue& value)
+bool World::SetProperty(Entity entity, TypeID Type, PropertyID property, const PropertyValue& value)
 {
-    if (!isAlive(entity))
+    if (!IsAlive(entity))
         return false;
     const PropertyDesc* pProperty = nullptr;
     void*               pDestination = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
@@ -95,9 +95,9 @@ static bool validateArray(const PropertyDesc& property)
     return false;
 }
 
-bool World::resizeArray(Entity entity, TypeID Type, PropertyID property, uint32_t Count)
+bool World::ResizeArray(Entity entity, TypeID Type, PropertyID property, uint32_t Count)
 {
-    if (!isAlive(entity))
+    if (!IsAlive(entity))
         return false;
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
@@ -112,9 +112,9 @@ bool World::resizeArray(Entity entity, TypeID Type, PropertyID property, uint32_
     return true;
 }
 
-bool World::insertArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index, const void* pValue)
+bool World::InsertArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index, const void* pValue)
 {
-    if (!isAlive(entity))
+    if (!IsAlive(entity))
         return false;
     ASSERT(pValue);
     const PropertyDesc* pProperty = nullptr;
@@ -137,9 +137,9 @@ bool World::insertArrayElement(Entity entity, TypeID Type, PropertyID property, 
     return true;
 }
 
-bool World::removeArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index)
+bool World::RemoveArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index)
 {
-    if (!isAlive(entity))
+    if (!IsAlive(entity))
         return false;
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
@@ -161,7 +161,7 @@ bool World::removeArrayElement(Entity entity, TypeID Type, PropertyID property, 
 bool World::setArrayElementProperty(Entity entity, TypeID Type, PropertyID property, uint32_t index, PropertyID elementProperty,
                                     const PropertyValue& value)
 {
-    if (!isAlive(entity))
+    if (!IsAlive(entity))
         return false;
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
@@ -172,7 +172,7 @@ bool World::setArrayElementProperty(Entity entity, TypeID Type, PropertyID prope
         LOGF(Error, "Property '%s': element index is out of range", pProperty->Name);
         return false;
     }
-    const PropertyDesc* pField = pProperty->pElementType->getProperty(elementProperty);
+    const PropertyDesc* pField = pProperty->pElementType->GetProperty(elementProperty);
     if (!pField || (pField->Flags & PROPERTY_READ_ONLY))
     {
         LOGF(Error, "Array edit references an unknown or read-only element property");

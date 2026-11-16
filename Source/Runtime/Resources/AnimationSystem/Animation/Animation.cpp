@@ -62,7 +62,7 @@ void Animation::Initialize(AnimationDesc animationDesc)
         clipSamplingCaches[i] = ozz::New<ozz::animation::SamplingJob::Context>(rig->numJoints);
     }
 
-    // Allocate the blend layers that will be set each sampling based on each clip's properties
+    // Allocate the blend layers that will be set Each sampling based on Each clip's properties
     layers = allocator->AllocateRange<ozz::animation::BlendingJob::Layer>(numClips - numAdditiveClips);
     additiveLayers = allocator->AllocateRange<ozz::animation::BlendingJob::Layer>(numAdditiveClips);
 }
@@ -88,7 +88,7 @@ bool Animation::Sample(float dt, ozz::span<SoaTransform>& localTrans)
         UpdateBlendParameters();
     }
 
-    // sample each of the clips that make up this animation
+    // sample Each of the clips that make up this animation
     for (uint32_t i = 0; i < numClips; i++)
     {
         // Updates clips time.

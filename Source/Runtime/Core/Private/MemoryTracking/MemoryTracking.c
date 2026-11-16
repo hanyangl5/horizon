@@ -111,22 +111,22 @@ static void memoryTrackingUnlock(void) { __sync_lock_release(&gMemoryTrackingLoc
 
 static size_t memoryTrackingHashPtr(const void* ptr)
 {
-    uintptr_t hash = (uintptr_t)ptr;
-    hash >>= 4;
+    uintptr_t Hash = (uintptr_t)ptr;
+    Hash >>= 4;
 #if UINTPTR_MAX > 0xFFFFFFFFu
-    hash ^= hash >> 33;
-    hash *= (uintptr_t)0xff51afd7ed558ccdull;
-    hash ^= hash >> 33;
-    hash *= (uintptr_t)0xc4ceb9fe1a85ec53ull;
-    hash ^= hash >> 33;
+    Hash ^= Hash >> 33;
+    Hash *= (uintptr_t)0xff51afd7ed558ccdull;
+    Hash ^= Hash >> 33;
+    Hash *= (uintptr_t)0xc4ceb9fe1a85ec53ull;
+    Hash ^= Hash >> 33;
 #else
-    hash ^= hash >> 16;
-    hash *= (uintptr_t)0x7feb352du;
-    hash ^= hash >> 15;
-    hash *= (uintptr_t)0x846ca68bu;
-    hash ^= hash >> 16;
+    Hash ^= Hash >> 16;
+    Hash *= (uintptr_t)0x7feb352du;
+    Hash ^= Hash >> 15;
+    Hash *= (uintptr_t)0x846ca68bu;
+    Hash ^= Hash >> 16;
 #endif
-    return (size_t)hash;
+    return (size_t)Hash;
 }
 
 static void memoryTrackingApplyAllocLocked(size_t requestedSize, size_t actualSize)

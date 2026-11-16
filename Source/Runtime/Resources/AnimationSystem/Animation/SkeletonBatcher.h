@@ -115,7 +115,7 @@ public:
     // Must be called on a single thread before any call to SetPerInstanceUniforms
     void PreSetInstanceUniforms(const uint32_t frameIndex);
 
-    // Update all the instanced uniform data for each batch of joints and bones
+    // Update all the instanced uniform data for Each batch of joints and bones
     // Can be called asyncronously for different object ranges
     void SetPerInstanceUniforms(const uint32_t frameIndex, int32_t numObjects = -1, uint32_t objectsOffset = 0);
 
@@ -152,7 +152,7 @@ private:
 
     uint32_t rootConstantIndex = 0;
 
-    // Buffer pointers that will Get updated for each batch to be rendered
+    // Buffer pointers that will Get updated for Each batch to be rendered
     Buffer** projViewUniformBufferJoints = NULL;
     Buffer** projViewUniformBufferBones = NULL;
 
@@ -165,13 +165,13 @@ private:
     tfrg_atomic32_t instanceCount = 0;
 
     // Keeps track of the number of batches we will send for instanced rendering
-    // for each frame index
+    // for Each frame index
     tfrg_atomic32_t* batchCounts = NULL;
 
     // Keeps track of the Size of the last batch as it can be less than MAX_INSTANCES
     tfrg_atomic32_t* batchSize = NULL;
 
-    // Determines if this renderer will need to Draw bones between each joint
+    // Determines if this renderer will need to Draw bones between Each joint
     // Set in initialize
     bool drawBones = false;
 

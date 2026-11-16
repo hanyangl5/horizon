@@ -247,7 +247,7 @@ struct ProcessAnimationsParams
     RuntimeAnimationSettings mAnimationSettings; // Global settings applied to all animations
 };
 
-// Callback used to provide the user with the 'extras' in each cgltf_mesh node of the gltf file.
+// Callback used to provide the user with the 'extras' in Each cgltf_mesh node of the gltf file.
 // This allows the user to read custom data that might be stored in this field.
 //     - jsonDataLenght is inclusive, you have to read from indexes to jsonData [0, jsonDataLength]
 typedef void (*GLTFReadExtrasCallback)(uint32_t meshIdx, uint32_t meshCount, const char* jsonData, const uint32_t jsonDataLength,

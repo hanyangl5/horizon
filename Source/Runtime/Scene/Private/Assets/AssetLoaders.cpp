@@ -299,7 +299,7 @@ bool AssetSource::read(ResourceDirectory directory)
     Array<char>  json((uint32_t)Size);
     const size_t read = ReadFromStream(&stream, json.GetData(), (size_t)Size);
     CloseStream(&stream);
-    return read == (size_t)Size && scene.parse({ json.GetData(), json.Size() });
+    return read == (size_t)Size && scene.Parse({ json.GetData(), json.Size() });
 }
 void AssetSource::decode(void* User, uint64_t)
 {

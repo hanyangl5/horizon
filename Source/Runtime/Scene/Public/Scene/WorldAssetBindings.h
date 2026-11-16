@@ -39,7 +39,7 @@ public:
     WorldAssetBindings(const WorldAssetBindings&) = delete;
     WorldAssetBindings& operator=(const WorldAssetBindings&) = delete;
 
-    // Call outside World query/defer scopes. The caller advances asset manager loading with AssetManager::update().
+    // Call outside World query/Defer scopes. The caller advances asset manager loading with AssetManager::update().
     void                    update();
     // Views expire at the next update/Clear. Pending and failed bindings must not be rendered.
     const MeshAssetBinding* Get(Entity entity) const;

@@ -40,7 +40,7 @@ namespace ImGui
     * Format -> Format to print the float value as. (Mainly used to control number of decimal points)
     * minimumHitRadius -> Determines what's the minimum hit radius for the knob to start rotating and change the value.
     * windowWidthRatio -> [0,FLT_MAX] value that determines the final Size of the all the knobs on the same line with respect to the
-   containing window. Value of 1.0f with component = 1 --> Size of 1 knob takes full Width  .. with 2 knobs and value of 1 --> each knob is
+   containing window. Value of 1.0f with component = 1 --> Size of 1 knob takes full Width  .. with 2 knobs and value of 1 --> Each knob is
    half Width and so on.
     * doubleTapForText -> If true then double clicking on knob will open a text box
     * spawnText ->

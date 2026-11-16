@@ -80,8 +80,8 @@ public:
 
     // Owns decoded data. Failed reads preserve the previously loaded asset.
     // Cooked scenes stay JSON on purpose: the same document is also the re-cook identity store, and one
-    // parse at load costs far less than a binary layout plus a separate identity file.
-    bool                     parse(Span<char> json);
+    // Parse at load costs far less than a binary layout plus a separate identity file.
+    bool                     Parse(Span<char> json);
     bool                     IsValid() const { return Data != nullptr; }
     AssetID                  getID() const;
     const char*              getSource() const;

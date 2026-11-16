@@ -33,16 +33,16 @@ TEST(SceneIDTest, ParsesCanonicalTextAndFormatsLowercase)
 {
     hz::AssetID asset;
     hz::Guid    object;
-    ASSERT_TRUE(asset.parse("00112233-4455-4677-8899-aabbccddeeff"));
-    ASSERT_TRUE(object.parse("00112233-4455-4677-8899-aabbccddeeff"));
+    ASSERT_TRUE(asset.Parse("00112233-4455-4677-8899-aabbccddeeff"));
+    ASSERT_TRUE(object.Parse("00112233-4455-4677-8899-aabbccddeeff"));
     EXPECT_EQ(asset.high, UINT64_C(0x0011223344554677));
     EXPECT_EQ(asset.low, UINT64_C(0x8899aabbccddeeff));
     EXPECT_EQ(object.high, asset.high);
     EXPECT_EQ(object.low, asset.low);
     char text[hz::kIDStringCapacity];
-    asset.toString(text);
+    asset.ToString(text);
     EXPECT_STREQ(text, "00112233-4455-4677-8899-aabbccddeeff");
-    object.toString(text);
+    object.ToString(text);
     EXPECT_STREQ(text, "00112233-4455-4677-8899-aabbccddeeff");
 }
 
@@ -53,12 +53,12 @@ TEST(SceneIDTest, PreservesNilAndAllBits)
     {
         hz::AssetID asset;
         hz::Guid    object;
-        ASSERT_TRUE(asset.parse(value));
-        ASSERT_TRUE(object.parse(value));
+        ASSERT_TRUE(asset.Parse(value));
+        ASSERT_TRUE(object.Parse(value));
         char text[hz::kIDStringCapacity];
-        asset.toString(text);
+        asset.ToString(text);
         EXPECT_STREQ(text, value);
-        object.toString(text);
+        object.ToString(text);
         EXPECT_STREQ(text, value);
     }
 }
@@ -85,8 +85,8 @@ TEST(SceneIDTest, RejectsMalformedInputWithoutChangingOutput)
     {
         hz::AssetID asset = originalAsset;
         hz::Guid    object = originalObject;
-        EXPECT_FALSE(asset.parse(value));
-        EXPECT_FALSE(object.parse(value));
+        EXPECT_FALSE(asset.Parse(value));
+        EXPECT_FALSE(object.Parse(value));
         EXPECT_EQ(asset, originalAsset);
         EXPECT_EQ(object, originalObject);
     }
@@ -113,9 +113,9 @@ TEST(SceneIDTest, InjectedSequenceIsDeterministicAndSetsUuidBits)
     const hz::AssetID     asset = hz::AssetID::create(generator);
     const hz::Guid        object = hz::Guid::create(generator);
     char                  text[hz::kIDStringCapacity];
-    asset.toString(text);
+    asset.ToString(text);
     EXPECT_STREQ(text, "00010203-0405-4607-8809-0a0b0c0d0e0f");
-    object.toString(text);
+    object.ToString(text);
     EXPECT_STREQ(text, "10111213-1415-4617-9819-1a1b1c1d1e1f");
     next = 0;
     EXPECT_EQ(hz::AssetID::create(generator), asset);
@@ -147,12 +147,12 @@ TEST(SceneIDTest, HashUsesCanonicalBytes)
     hz::AssetID lowercase;
     hz::AssetID uppercase;
     hz::Guid    object;
-    ASSERT_TRUE(lowercase.parse("00112233-4455-4677-8899-aabbccddeeff"));
-    ASSERT_TRUE(uppercase.parse("00112233-4455-4677-8899-aabbccddeeff"));
-    ASSERT_TRUE(object.parse("00112233-4455-4677-8899-aabbccddeeff"));
-    EXPECT_EQ(lowercase.hash(), uppercase.hash());
-    EXPECT_EQ(lowercase.hash(), object.hash());
-    EXPECT_EQ(lowercase.hash(), UINT64_C(0xe5401c29d52a2355));
-    EXPECT_NE(lowercase.hash(), hz::AssetID{}.hash());
-    EXPECT_NE(lowercase.hash(), (hz::AssetID{ .high = lowercase.high, .low = lowercase.low ^ 1 }).hash());
+    ASSERT_TRUE(lowercase.Parse("00112233-4455-4677-8899-aabbccddeeff"));
+    ASSERT_TRUE(uppercase.Parse("00112233-4455-4677-8899-aabbccddeeff"));
+    ASSERT_TRUE(object.Parse("00112233-4455-4677-8899-aabbccddeeff"));
+    EXPECT_EQ(lowercase.Hash(), uppercase.Hash());
+    EXPECT_EQ(lowercase.Hash(), object.Hash());
+    EXPECT_EQ(lowercase.Hash(), UINT64_C(0xe5401c29d52a2355));
+    EXPECT_NE(lowercase.Hash(), hz::AssetID{}.Hash());
+    EXPECT_NE(lowercase.Hash(), (hz::AssetID{ .high = lowercase.high, .low = lowercase.low ^ 1 }).Hash());
 }

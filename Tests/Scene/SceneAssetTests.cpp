@@ -45,7 +45,7 @@ static std::string replaceText(const char* pFrom, const char* pTo)
     return json;
 }
 
-static bool parse(hz::SceneAsset& asset, const std::string& json) { return asset.parse({ json.data(), (uint32_t)json.size() }); }
+static bool Parse(hz::SceneAsset& asset, const std::string& json) { return asset.Parse({ json.data(), (uint32_t)json.size() }); }
 
 class SceneAssetReadTest: public ::testing::Test
 {
@@ -71,7 +71,7 @@ protected:
 TEST_F(SceneAssetReadTest, PreservesHierarchyLocalTransformsAndAssetReferences)
 {
     hz::SceneAsset asset;
-    ASSERT_TRUE(asset.parse(kScene));
+    ASSERT_TRUE(asset.Parse(kScene));
     EXPECT_TRUE(asset.IsValid());
     EXPECT_STREQ(asset.getSource(), "scene.gltf");
     EXPECT_STREQ(asset.getContentHash(), "fnv1a64:0123456789abcdef");
@@ -111,7 +111,7 @@ TEST_F(SceneAssetReadTest, PreservesHierarchyLocalTransformsAndAssetReferences)
 TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadData)
 {
     hz::SceneAsset asset;
-    ASSERT_TRUE(asset.parse(kScene));
+    ASSERT_TRUE(asset.Parse(kScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(asset, "scene.sceneasset.json"));
     const hz::AssetCatalogEntry* entry = catalog.findScene("scene.sceneasset.json");
@@ -119,19 +119,19 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadD
     EXPECT_EQ(entry->id, asset.getID());
     EXPECT_EQ(catalog.findScene("missing.sceneasset.json"), nullptr);
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World                world(types);
-    const hz::Entity         parent = world.createPersistentEntity();
+    const hz::Entity         parent = world.CreatePersistentEntity();
     const hz::LocalTransform transform = { .translation = Vector3(100, 0, 0) };
-    ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
+    ASSERT_TRUE(world.SetComponent(parent, hz::SceneTypes::localTransform, &transform));
     const hz::AssetID mesh = asset.getMeshes().Data[0].id;
     const hz::Entity  firstRoot = asset.instantiate(world, parent);
     const hz::Entity  secondRoot = asset.instantiate(world);
-    EXPECT_EQ(world.getParent(firstRoot), parent);
-    EXPECT_FALSE(world.getParent(secondRoot).IsValid());
-    EXPECT_NE(world.getEntityGuid(firstRoot), world.getEntityGuid(secondRoot));
+    EXPECT_EQ(world.GetParent(firstRoot), parent);
+    EXPECT_FALSE(world.GetParent(secondRoot).IsValid());
+    EXPECT_NE(world.GetEntityGuid(firstRoot), world.GetEntityGuid(secondRoot));
     asset = {};
-    world.updateTransforms();
+    world.UpdateTransforms();
     struct Instances
     {
         hz::World*  world;
@@ -139,42 +139,42 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadD
         uint32_t    Count = 0;
     } instances = { .world = &world, .mesh = mesh };
     hz::WorldQuery query(world, { hz::SceneTypes::meshRenderer, hz::SceneTypes::name });
-    query.each(
+    query.Each(
         [](hz::Entity entity, hz::Span<const void*> fields, void* User)
         {
             Instances&              data = *(Instances*)User;
             const hz::MeshRenderer& renderer = *(const hz::MeshRenderer*)fields.Data[0];
             const hz::Name&         name = *(const hz::Name*)fields.Data[1];
             EXPECT_EQ(renderer.mesh, data.mesh);
-            const hz::Entity nodeParent = data.world->getParent(entity);
-            EXPECT_STREQ(((const hz::Name*)data.world->getComponent(nodeParent, hz::SceneTypes::name))->value, "Root");
-            const hz::Entity sceneRoot = data.world->getParent(nodeParent);
-            const float      x = data.world->getParent(sceneRoot).IsValid() ? 110.0f : 10.0f;
-            EXPECT_FLOAT_EQ((float)data.world->getWorldTransform(entity)->current.getElem(3, 0), x);
+            const hz::Entity nodeParent = data.world->GetParent(entity);
+            EXPECT_STREQ(((const hz::Name*)data.world->GetComponent(nodeParent, hz::SceneTypes::name))->value, "Root");
+            const hz::Entity sceneRoot = data.world->GetParent(nodeParent);
+            const float      x = data.world->GetParent(sceneRoot).IsValid() ? 110.0f : 10.0f;
+            EXPECT_FLOAT_EQ((float)data.world->GetWorldTransform(entity)->current.getElem(3, 0), x);
             if (!strcmp(name.value, "First"))
             {
-                const Matrix4* matrix = (const Matrix4*)data.world->getComponent(entity, hz::SceneTypes::localMatrix);
+                const Matrix4* matrix = (const Matrix4*)data.world->GetComponent(entity, hz::SceneTypes::localMatrix);
                 ASSERT(matrix);
                 EXPECT_FLOAT_EQ((float)matrix->getElem(1, 0), 0.5f);
-                EXPECT_EQ(data.world->getComponent(entity, hz::SceneTypes::localTransform), nullptr);
+                EXPECT_EQ(data.world->GetComponent(entity, hz::SceneTypes::localTransform), nullptr);
             }
             else
                 EXPECT_STREQ(name.value, "Second");
-            EXPECT_EQ(data.world->getEntity(data.world->getEntityGuid(entity)), entity);
+            EXPECT_EQ(data.world->GetEntity(data.world->GetEntityGuid(entity)), entity);
             ++data.Count;
             return true;
         },
         &instances);
     EXPECT_EQ(instances.Count, 4u);
-    ASSERT_TRUE(world.destroySubtree(firstRoot));
-    EXPECT_TRUE(world.isAlive(secondRoot));
-    EXPECT_TRUE(world.isAlive(parent));
+    ASSERT_TRUE(world.DestroySubtree(firstRoot));
+    EXPECT_TRUE(world.IsAlive(secondRoot));
+    EXPECT_TRUE(world.IsAlive(parent));
 }
 
 TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
 {
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     const char*    codepoints[] = { "\xC2\xA2", "\xE4\xB8\xAD", "\xF0\x9F\x8C\xB3" };
     const uint32_t limit = sizeof(hz::Name::value) - 1;
     for (const char* pCodepoint : codepoints)
@@ -193,7 +193,7 @@ TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
             std::string json = replaceText("scene.gltf", input.c_str());
             json.replace(json.find("\"Root\""), strlen("\"Root\""), "\"" + input + "\"");
             hz::SceneAsset asset;
-            ASSERT_TRUE(parse(asset, json));
+            ASSERT_TRUE(Parse(asset, json));
             hz::World        world(types);
             const hz::Entity root = asset.instantiate(world);
             struct Names
@@ -204,11 +204,11 @@ TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
                 uint32_t    Count = 0;
             } names = { .pWorld = &world, .root = root, .pExpected = expected.c_str() };
             hz::WorldQuery query(world, { hz::SceneTypes::name });
-            query.each(
+            query.Each(
                 [](hz::Entity entity, hz::Span<const void*> fields, void* User)
                 {
                     Names& names = *(Names*)User;
-                    if (entity == names.root || names.pWorld->getParent(entity) == names.root)
+                    if (entity == names.root || names.pWorld->GetParent(entity) == names.root)
                     {
                         EXPECT_STREQ(((const hz::Name*)fields.Data[0])->value, names.pExpected);
                         ++names.Count;
@@ -221,8 +221,8 @@ TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
             ASSERT_TRUE(archive.capture(world));
             hz::UniquePtr<hz::World> restored;
             ASSERT_TRUE(archive.instantiate(types, restored));
-            const hz::Entity restoredRoot = restored->getEntity(world.getEntityGuid(root));
-            const hz::Name*  Name = (const hz::Name*)restored->getComponent(restoredRoot, hz::SceneTypes::name);
+            const hz::Entity restoredRoot = restored->GetEntity(world.GetEntityGuid(root));
+            const hz::Name*  Name = (const hz::Name*)restored->GetComponent(restoredRoot, hz::SceneTypes::name);
             ASSERT_NE(Name, nullptr);
             EXPECT_STREQ(Name->value, expected.c_str());
         }
@@ -232,9 +232,9 @@ TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
 TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
 {
     hz::SceneAsset asset;
-    ASSERT_TRUE(asset.parse(kScene));
+    ASSERT_TRUE(asset.Parse(kScene));
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     for (bool collision : { false, true })
     {
         for (uint32_t failureAt : { 0u, 2u })
@@ -264,21 +264,21 @@ TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
             hz::World        world(types, generator);
             const hz::Guid   parentID = { .high = 0x4000, .low = UINT64_C(0x8000000000000010) };
             const hz::Guid   childID = { .high = 0x4000, .low = UINT64_C(0x8000000000000011) };
-            const hz::Entity parent = world.createPersistentEntity(parentID);
-            const hz::Entity child = world.createPersistentEntity(childID);
+            const hz::Entity parent = world.CreatePersistentEntity(parentID);
+            const hz::Entity child = world.CreatePersistentEntity(childID);
             ASSERT_TRUE(world.setParent(child, parent, false));
             const hz::LocalTransform transform = { .translation = Vector3(3, 0, 0) };
-            ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
+            ASSERT_TRUE(world.SetComponent(parent, hz::SceneTypes::localTransform, &transform));
             EXPECT_FALSE(asset.instantiate(world, parent).IsValid());
             EXPECT_EQ(source.calls, failureAt + 1);
-            EXPECT_EQ(world.getEntity(parentID), parent);
-            EXPECT_EQ(world.getEntity(childID), child);
-            EXPECT_EQ(world.getParent(child), parent);
+            EXPECT_EQ(world.GetEntity(parentID), parent);
+            EXPECT_EQ(world.GetEntity(childID), child);
+            EXPECT_EQ(world.GetParent(child), parent);
             for (uint32_t i = 0; i < failureAt; ++i)
-                EXPECT_FALSE(world.getEntity({ .high = 0x4000, .low = UINT64_C(0x8000000000000020) + i }).IsValid());
+                EXPECT_FALSE(world.GetEntity({ .high = 0x4000, .low = UINT64_C(0x8000000000000020) + i }).IsValid());
             uint32_t       Count = 0;
             hz::WorldQuery query(world, {});
-            query.each(
+            query.Each(
                 [](hz::Entity, hz::Span<const void*>, void* User)
                 {
                     ++*(uint32_t*)User;
@@ -286,15 +286,15 @@ TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
                 },
                 &Count);
             EXPECT_EQ(Count, 2u);
-            world.updateTransforms();
-            EXPECT_FLOAT_EQ((float)world.getWorldTransform(child)->current.getElem(3, 0), 3.0f);
+            world.UpdateTransforms();
+            EXPECT_FLOAT_EQ((float)world.GetWorldTransform(child)->current.getElem(3, 0), 3.0f);
             source.failureAt = UINT32_MAX;
             const hz::Entity root = asset.instantiate(world, parent);
             ASSERT_TRUE(root.IsValid());
-            EXPECT_EQ(world.getParent(root), parent);
-            ASSERT_TRUE(world.destroySubtree(root));
-            EXPECT_EQ(world.getEntity(parentID), parent);
-            EXPECT_EQ(world.getParent(child), parent);
+            EXPECT_EQ(world.GetParent(root), parent);
+            ASSERT_TRUE(world.DestroySubtree(root));
+            EXPECT_EQ(world.GetEntity(parentID), parent);
+            EXPECT_EQ(world.GetParent(child), parent);
         }
     }
 }
@@ -304,7 +304,7 @@ TEST_F(SceneAssetReadTest, OwnsStringsAndSupportsMoveAndReplacement)
     hz::SceneAsset asset;
     {
         std::string json(kScene);
-        ASSERT_TRUE(parse(asset, json));
+        ASSERT_TRUE(Parse(asset, json));
         json.assign(json.size(), '!');
     }
     hz::SceneAsset moved(std::move(asset));
@@ -315,10 +315,10 @@ TEST_F(SceneAssetReadTest, OwnsStringsAndSupportsMoveAndReplacement)
     EXPECT_STREQ(moved.getMeshes().Data[0].pGeometry, "scene.bin");
     EXPECT_STREQ(moved.getMaterials().Data[0].Name, "Leaves");
     EXPECT_STREQ(moved.getTextures().Data[0].pPath, "Textures/albedo.dds");
-    ASSERT_TRUE(asset.parse(kScene));
+    ASSERT_TRUE(asset.Parse(kScene));
     asset = std::move(moved);
     EXPECT_FALSE(moved.IsValid());
-    ASSERT_TRUE(parse(asset, replaceText("First", "Replaced")));
+    ASSERT_TRUE(Parse(asset, replaceText("First", "Replaced")));
     EXPECT_STREQ(asset.getNodes().Data[1].Name, "Replaced");
 }
 
@@ -340,12 +340,12 @@ TEST_F(SceneAssetReadTest, RejectsInvalidIdentityAndReferencesWithoutChangingLoa
         { "8000000000000002", "+000000000000001" },
     };
     hz::SceneAsset asset;
-    ASSERT_TRUE(asset.parse(kScene));
+    ASSERT_TRUE(asset.Parse(kScene));
     const hz::SceneAssetNode* nodes = asset.getNodes().Data;
     for (const char* const* replacement : replacements)
     {
         SCOPED_TRACE(replacement[1]);
-        EXPECT_FALSE(parse(asset, replaceText(replacement[0], replacement[1])));
+        EXPECT_FALSE(Parse(asset, replaceText(replacement[0], replacement[1])));
         EXPECT_EQ(asset.getNodes().Data, nodes);
         EXPECT_STREQ(asset.getNodes().Data[0].Name, "Root");
     }
@@ -365,30 +365,30 @@ TEST_F(SceneAssetReadTest, RejectsInvalidHierarchyAndTransforms)
     for (const char* const* replacement : replacements)
     {
         SCOPED_TRACE(replacement[1]);
-        EXPECT_FALSE(parse(asset, replaceText(replacement[0], replacement[1])));
+        EXPECT_FALSE(Parse(asset, replaceText(replacement[0], replacement[1])));
         EXPECT_FALSE(asset.IsValid());
     }
-    EXPECT_TRUE(parse(asset, replaceText("\"parent\": 0", "\"parent\": 2")));
+    EXPECT_TRUE(Parse(asset, replaceText("\"parent\": 0", "\"parent\": 2")));
 }
 
 TEST_F(SceneAssetReadTest, RejectsUnsupportedFormatAndVersion)
 {
     hz::SceneAsset asset;
-    EXPECT_FALSE(parse(asset, replaceText("\"version\": 1", "\"version\": 0")));
-    EXPECT_FALSE(parse(asset, replaceText("\"version\": 1", "\"version\": 2")));
-    EXPECT_FALSE(parse(asset, replaceText("\"version\": 1", "\"version\": 1.5")));
-    EXPECT_FALSE(parse(asset, replaceText("Horizon.SceneAsset", "OtherFormat")));
+    EXPECT_FALSE(Parse(asset, replaceText("\"version\": 1", "\"version\": 0")));
+    EXPECT_FALSE(Parse(asset, replaceText("\"version\": 1", "\"version\": 2")));
+    EXPECT_FALSE(Parse(asset, replaceText("\"version\": 1", "\"version\": 1.5")));
+    EXPECT_FALSE(Parse(asset, replaceText("Horizon.SceneAsset", "OtherFormat")));
     EXPECT_FALSE(asset.IsValid());
 }
 
 TEST_F(SceneAssetReadTest, RejectsMalformedJsonPathsAndMaterialFields)
 {
     hz::SceneAsset asset;
-    EXPECT_FALSE(asset.parse({}));
-    EXPECT_FALSE(asset.parse("[]"));
-    EXPECT_FALSE(parse(asset, std::string(kScene) + " garbage"));
-    EXPECT_FALSE(parse(asset, std::string(kScene) + '\0' + "garbage"));
-    EXPECT_FALSE(parse(asset, std::string(kScene).substr(0, sizeof(kScene) - 3)));
+    EXPECT_FALSE(asset.Parse({}));
+    EXPECT_FALSE(asset.Parse("[]"));
+    EXPECT_FALSE(Parse(asset, std::string(kScene) + " garbage"));
+    EXPECT_FALSE(Parse(asset, std::string(kScene) + '\0' + "garbage"));
+    EXPECT_FALSE(Parse(asset, std::string(kScene).substr(0, sizeof(kScene) - 3)));
     const char* replacements[][2] = {
         { "Textures/albedo.dds", "../albedo.dds" },
         { "Textures/albedo.png", "../albedo.png" },
@@ -409,9 +409,9 @@ TEST_F(SceneAssetReadTest, RejectsMalformedJsonPathsAndMaterialFields)
     for (const char* const* replacement : replacements)
     {
         SCOPED_TRACE(replacement[1]);
-        EXPECT_FALSE(parse(asset, replaceText(replacement[0], replacement[1])));
+        EXPECT_FALSE(Parse(asset, replaceText(replacement[0], replacement[1])));
     }
-    EXPECT_TRUE(parse(asset, replaceText("\"alphaCutoff\": 0.5", "\"alphaCutoff\": 2")));
+    EXPECT_TRUE(Parse(asset, replaceText("\"alphaCutoff\": 0.5", "\"alphaCutoff\": 2")));
     EXPECT_FLOAT_EQ(asset.getMaterials().Data[0].alphaCutoff, 2.0f);
 }
 
@@ -434,18 +434,18 @@ TEST_F(SceneAssetReadTest, HandlesDeepHierarchyWithoutRecursiveTraversal)
         }
         json += "]}";
         hz::SceneAsset asset;
-        ASSERT_TRUE(parse(asset, json));
+        ASSERT_TRUE(Parse(asset, json));
         ASSERT_EQ(asset.getNodes().Count, Count);
         hz::TypeRegistry types;
-        ASSERT_TRUE(types.registerBuiltins());
+        ASSERT_TRUE(types.RegisterBuiltins());
         hz::World                world(types);
-        const hz::Entity         parent = world.createPersistentEntity();
+        const hz::Entity         parent = world.CreatePersistentEntity();
         const hz::LocalTransform transform = { .translation = Vector3(3, 0, 0) };
-        ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localTransform, &transform));
+        ASSERT_TRUE(world.SetComponent(parent, hz::SceneTypes::localTransform, &transform));
         const hz::Entity root = asset.instantiate(world, parent);
-        EXPECT_EQ(world.getParent(root), parent);
+        EXPECT_EQ(world.GetParent(root), parent);
         asset = {};
-        world.updateTransforms();
+        world.UpdateTransforms();
         struct Nodes
         {
             hz::World* world;
@@ -455,7 +455,7 @@ TEST_F(SceneAssetReadTest, HandlesDeepHierarchyWithoutRecursiveTraversal)
             uint32_t   found = 0;
         } nodes = { .world = &world, .root = root, .Count = Count, .parentFirst = parentFirst };
         hz::WorldQuery query(world, { hz::SceneTypes::name, hz::SceneTypes::localTransform });
-        query.each(
+        query.Each(
             [](hz::Entity entity, hz::Span<const void*> fields, void* User)
             {
                 Nodes&          nodes = *(Nodes*)User;
@@ -464,13 +464,13 @@ TEST_F(SceneAssetReadTest, HandlesDeepHierarchyWithoutRecursiveTraversal)
                 EXPECT_EQ(sscanf(name.value, "Node%u", &index), 1);
                 EXPECT_LT(index, nodes.Count);
                 const uint32_t Depth = nodes.parentFirst ? index + 1 : nodes.Count - index;
-                EXPECT_FLOAT_EQ((float)nodes.world->getWorldTransform(entity)->current.getElem(3, 0), (float)Depth + 3.0f);
-                const hz::Entity parent = nodes.world->getParent(entity);
+                EXPECT_FLOAT_EQ((float)nodes.world->GetWorldTransform(entity)->current.getElem(3, 0), (float)Depth + 3.0f);
+                const hz::Entity parent = nodes.world->GetParent(entity);
                 if (Depth == 1)
                     EXPECT_EQ(parent, nodes.root);
                 else
                 {
-                    const hz::Name* pParent = (const hz::Name*)nodes.world->getComponent(parent, hz::SceneTypes::name);
+                    const hz::Name* pParent = (const hz::Name*)nodes.world->GetComponent(parent, hz::SceneTypes::name);
                     EXPECT_NE(pParent, nullptr);
                     if (pParent)
                     {
@@ -495,7 +495,7 @@ TEST_F(SceneAssetReadTest, CatalogLocatesSubassetsAndDeduplicatesDependencies)
         R"({"id":"00000000-0000-4000-8000-000000000005","path":"Textures/normal.dds","source":"Textures/normal.png","srgb":false,"cooked":true},)");
     json.replace(json.find("\"normalTexture\": null"), strlen("\"normalTexture\": null"),
                  "\"normalTexture\": \"00000000-0000-4000-8000-000000000005\"");
-    ASSERT_TRUE(parse(scene, json));
+    ASSERT_TRUE(Parse(scene, json));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(scene, "Scenes/scene.sceneasset.json"));
     EXPECT_EQ(catalog.getCount(), 5u);
@@ -540,7 +540,7 @@ TEST_F(SceneAssetReadTest, CatalogOwnsMetadataAcrossSceneDestructionMoveAndClear
     hz::AssetID      id, textureID;
     {
         hz::SceneAsset scene;
-        ASSERT_TRUE(parse(scene, replaceText("\"cooked\": true", "\"cooked\": false")));
+        ASSERT_TRUE(Parse(scene, replaceText("\"cooked\": true", "\"cooked\": false")));
         std::string path = "Scenes/scene.sceneasset.json";
         ASSERT_TRUE(catalog.addScene(scene, path.c_str()));
         id = scene.getID();
@@ -555,7 +555,7 @@ TEST_F(SceneAssetReadTest, CatalogOwnsMetadataAcrossSceneDestructionMoveAndClear
     EXPECT_EQ(moved.find(textureID)->location.root, hz::AssetPathRoot::Source);
     EXPECT_NE(moved.find(moved.find(id)->dependencies.Data[0]), nullptr);
     hz::SceneAsset scene;
-    ASSERT_TRUE(scene.parse(kScene));
+    ASSERT_TRUE(scene.Parse(kScene));
     ASSERT_TRUE(catalog.addScene(scene, "replacement.sceneasset.json"));
     catalog = std::move(moved);
     EXPECT_EQ(moved.getCount(), 0u);
@@ -569,7 +569,7 @@ TEST_F(SceneAssetReadTest, CatalogOwnsMetadataAcrossSceneDestructionMoveAndClear
 TEST_F(SceneAssetReadTest, CatalogSharesExternalTexturesAndRejectsConflictsAtomically)
 {
     hz::SceneAsset first, second;
-    ASSERT_TRUE(first.parse(kScene));
+    ASSERT_TRUE(first.Parse(kScene));
     std::string json(kScene);
     for (const char* suffix : { "0001", "0003", "0004" })
     {
@@ -579,7 +579,7 @@ TEST_F(SceneAssetReadTest, CatalogSharesExternalTexturesAndRejectsConflictsAtomi
             json.replace(pos, from.size(), to);
     }
     json.replace(json.find("scene.gltf"), strlen("scene.gltf"), "second.gltf");
-    ASSERT_TRUE(parse(second, json));
+    ASSERT_TRUE(Parse(second, json));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(first, "first.sceneasset.json"));
     ASSERT_TRUE(catalog.addScene(second, "second.sceneasset.json"));
@@ -596,7 +596,7 @@ TEST_F(SceneAssetReadTest, CatalogSharesExternalTexturesAndRejectsConflictsAtomi
     const std::string newID = "00000000-0000-4000-8000-000000000009";
     for (size_t pos = changed.find(oldID); pos != std::string::npos; pos = changed.find(oldID, pos + newID.size()))
         changed.replace(pos, oldID.size(), newID);
-    ASSERT_TRUE(parse(conflict, changed));
+    ASSERT_TRUE(Parse(conflict, changed));
     EXPECT_FALSE(catalog.addScene(conflict, "first.sceneasset.json"));
     EXPECT_EQ(catalog.getCount(), 7u);
     EXPECT_EQ(catalog.find(conflict.getTextures().Data[0].id), nullptr);
@@ -623,7 +623,7 @@ TEST_F(SceneAssetReadTest, CatalogRejectsInvalidScenesAndPaths)
     hz::AssetCatalog catalog;
     hz::SceneAsset   scene;
     EXPECT_FALSE(catalog.addScene(scene, "scene.sceneasset.json"));
-    ASSERT_TRUE(scene.parse(kScene));
+    ASSERT_TRUE(scene.Parse(kScene));
     for (const char* path :
          { "", "../scene.json", "D:/scene.json", "/scene.json", "dir/../scene.json", "dir\\scene.json", "dir//scene.json" })
         EXPECT_FALSE(catalog.addScene(scene, path));
@@ -634,7 +634,7 @@ TEST_F(SceneAssetReadTest, CatalogRejectsInvalidScenesAndPaths)
 TEST_F(SceneAssetReadTest, CatalogSerializationIsDeterministicAndRoundTrips)
 {
     hz::SceneAsset scene;
-    ASSERT_TRUE(scene.parse(kScene));
+    ASSERT_TRUE(scene.Parse(kScene));
     hz::AssetCatalog catalog, reverse, decoded;
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
     ASSERT_TRUE(reverse.add(*catalog.find(scene.getID())));
@@ -645,7 +645,7 @@ TEST_F(SceneAssetReadTest, CatalogSerializationIsDeterministicAndRoundTrips)
     ASSERT_TRUE(catalog.serialize(first));
     ASSERT_TRUE(reverse.serialize(second));
     EXPECT_STREQ(first.GetData(), second.GetData());
-    ASSERT_TRUE(decoded.parse({ first.GetData(), first.Size() }));
+    ASSERT_TRUE(decoded.Parse({ first.GetData(), first.Size() }));
     ASSERT_TRUE(decoded.serialize(roundtrip));
     EXPECT_STREQ(first.GetData(), roundtrip.GetData());
     EXPECT_EQ(decoded.getCount(), catalog.getCount());
@@ -657,7 +657,7 @@ TEST_F(SceneAssetReadTest, CatalogSerializationIsDeterministicAndRoundTrips)
 TEST_F(SceneAssetReadTest, CatalogRejectsInvalidIndexWithoutChangingPublishedEntries)
 {
     hz::SceneAsset scene;
-    ASSERT_TRUE(scene.parse(kScene));
+    ASSERT_TRUE(scene.Parse(kScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
     hz::Array<char> json;
@@ -682,21 +682,21 @@ TEST_F(SceneAssetReadTest, CatalogRejectsInvalidIndexWithoutChangingPublishedEnt
         const size_t offset = invalid.find(replacement[0]);
         ASSERT_NE(offset, std::string::npos);
         invalid.replace(offset, strlen(replacement[0]), replacement[1]);
-        EXPECT_FALSE(catalog.parse({ invalid.data(), (uint32_t)invalid.size() }));
+        EXPECT_FALSE(catalog.Parse({ invalid.data(), (uint32_t)invalid.size() }));
         EXPECT_EQ(catalog.find(scene.getID()), original);
         EXPECT_EQ(catalog.getCount(), 4u);
     }
     std::string trailing(json.GetData());
     trailing += "{}";
-    EXPECT_FALSE(catalog.parse({ trailing.data(), (uint32_t)trailing.size() }));
-    EXPECT_FALSE(catalog.parse({}));
+    EXPECT_FALSE(catalog.Parse({ trailing.data(), (uint32_t)trailing.size() }));
+    EXPECT_FALSE(catalog.Parse({}));
     EXPECT_EQ(catalog.find(scene.getID()), original);
 }
 
 TEST_F(SceneAssetReadTest, CatalogReplacementRemovalAndFullReloadPreserveOldMetadataViews)
 {
     hz::SceneAsset scene;
-    ASSERT_TRUE(scene.parse(kScene));
+    ASSERT_TRUE(scene.Parse(kScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
     const hz::AssetID            id = scene.getID();
@@ -718,11 +718,11 @@ TEST_F(SceneAssetReadTest, CatalogReplacementRemovalAndFullReloadPreserveOldMeta
     hz::AssetCatalog Empty;
     hz::Array<char>  json;
     ASSERT_TRUE(Empty.serialize(json));
-    ASSERT_TRUE(catalog.parse({ json.GetData(), json.Size() }));
+    ASSERT_TRUE(catalog.Parse({ json.GetData(), json.Size() }));
     EXPECT_EQ(catalog.getCount(), 0u);
     EXPECT_STREQ(original->pSourcePath, "scene.gltf");
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
     ASSERT_TRUE(catalog.serialize(json));
-    ASSERT_TRUE(catalog.parse({ json.GetData(), json.Size() }));
+    ASSERT_TRUE(catalog.Parse({ json.GetData(), json.Size() }));
     EXPECT_EQ(catalog.getCount(), 4u);
 }

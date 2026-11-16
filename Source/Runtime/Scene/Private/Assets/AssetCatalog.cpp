@@ -244,7 +244,7 @@ bool AssetCatalog::addScene(const SceneAsset& scene, const char* pCookedScenePat
         if (pExisting && !sameEntry(*pExisting, entry))
         {
             char id[kIDStringCapacity];
-            entry.id.toString(id);
+            entry.id.ToString(id);
             LOGF(Error, "Conflicting AssetCatalog entry '%s' from '%s'", id, pCookedScenePath);
             return false;
         }
@@ -385,7 +385,7 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
         const cJSON*      pDependencies = cJSON_GetObjectItemCaseSensitive(pEntry, "dependencies");
         entry.pSourcePath = catalogString(pEntry, "source");
         entry.location.pPath = catalogString(pEntry, "path");
-        if (!uniqueFields(pEntry) || !pID || !entry.id.parse(pID) || catalog.find(entry.id) ||
+        if (!uniqueFields(pEntry) || !pID || !entry.id.Parse(pID) || catalog.find(entry.id) ||
             !catalogNumber(cJSON_GetObjectItemCaseSensitive(pEntry, "type"), Type) || Type > (uint32_t)AssetType::Texture ||
             !catalogNumber(cJSON_GetObjectItemCaseSensitive(pEntry, "root"), root) || root > (uint32_t)AssetPathRoot::Cooked ||
             (!cJSON_IsNull(pIndex) && !catalogNumber(pIndex, entry.location.elementIndex)) || !cJSON_IsBool(pSrgb) ||
@@ -398,7 +398,7 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
         for (const cJSON* pDependency = pDependencies->child; pDependency; pDependency = pDependency->next)
         {
             AssetID id;
-            if (!cJSON_IsString(pDependency) || !id.parse(pDependency->valuestring) || !id.IsValid())
+            if (!cJSON_IsString(pDependency) || !id.Parse(pDependency->valuestring) || !id.IsValid())
                 return false;
             dependencies.PushBack(id);
         }
@@ -409,7 +409,7 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
     return true;
 }
 
-bool AssetCatalog::parse(Span<char> json)
+bool AssetCatalog::Parse(Span<char> json)
 {
     AssetCatalog candidate;
     if (!readCatalog(json, candidate))
@@ -468,7 +468,7 @@ bool AssetCatalog::load(ResourceDirectory directory, const char* pFileName)
         LOGF(Error, "Cannot read AssetCatalog '%s'", pFileName);
         return false;
     }
-    return parse({ json.GetData(), json.Size() });
+    return Parse({ json.GetData(), json.Size() });
 }
 
 static int compareEntries(const void* pA, const void* pB)
@@ -497,7 +497,7 @@ bool AssetCatalog::serialize(Array<char>& json) const
         cJSON* pValue = cJSON_CreateObject();
         cJSON_AddItemToArray(pEntries, pValue);
         char id[kIDStringCapacity];
-        pEntry->id.toString(id);
+        pEntry->id.ToString(id);
         cJSON_AddStringToObject(pValue, "id", id);
         cJSON_AddNumberToObject(pValue, "type", (uint32_t)pEntry->Type);
         cJSON_AddStringToObject(pValue, "source", pEntry->pSourcePath);
@@ -511,7 +511,7 @@ bool AssetCatalog::serialize(Array<char>& json) const
         cJSON* pDependencies = cJSON_AddArrayToObject(pValue, "dependencies");
         for (AssetID dependency : pEntry->dependencies)
         {
-            dependency.toString(id);
+            dependency.ToString(id);
             cJSON_AddItemToArray(pDependencies, cJSON_CreateString(id));
         }
     }

@@ -25,7 +25,7 @@
 /*
  * Variant on RTree implementation using binary tree with leaf nodes containg between min/max allowed points
  *
- * Include "RTree.h" file in each .c/.cpp file where you want to use the RTree.
+ * Include "RTree.h" file in Each .c/.cpp file where you want to use the RTree.
  *
  * - In exacly *one* .c/.cpp file define following macro before this include:
  *

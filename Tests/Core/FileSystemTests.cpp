@@ -80,7 +80,7 @@ TEST(CoreFileSystemTest, BunyArchiveBlockPointerRoundTripsMetadata)
     EXPECT_EQ(decoded.offset, info.offset);
 }
 
-// Verifies that the Buny archive hash table resolves existing entries and reports misses outside the valid range.
+// Verifies that the Buny archive Hash table resolves existing entries and reports misses outside the valid range.
 TEST(CoreFileSystemTest, BunyArchiveHashTableResolvesExistingAndMissingEntries)
 {
     constexpr char nodeNames[] = "foo\0bar\0baz.txt\0";

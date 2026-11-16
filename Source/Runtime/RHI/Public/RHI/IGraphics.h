@@ -813,7 +813,7 @@ struct BufferDesc
     uint32_t            FirstElement;
     /// Number of elements in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
     uint32_t            ElementCount;
-    /// Size of each element (in bytes) in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
+    /// Size of Each element (in bytes) in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
     uint32_t            StructStride;
     /// Alignment
     uint32_t            alignment;
@@ -1099,7 +1099,7 @@ struct alignas(64) RootSignature
     PipelineType        pipelineType;
     /// Array of all Descriptors declared in the root signature layout
     DescriptorInfo*     pDescriptors;
-    /// Translates hash of descriptor name to descriptor index in pDescriptors array
+    /// Translates Hash of descriptor name to descriptor index in pDescriptors array
     DescriptorIndexMap* pDescriptorNameToIndexMap;
     struct
     {
@@ -1329,7 +1329,7 @@ struct BlendStateDesc
     BlendStateTargets renderTargetMask;
     /// Set whether alpha to coverage should be enabled.
     bool              alphaToCoverage;
-    /// Set whether each render target has an unique blend function. When false the blend function in slot 0 will be used for all render
+    /// Set whether Each render target has an unique blend function. When false the blend function in slot 0 will be used for all render
     /// targets.
     bool              independentBlend;
 };

@@ -535,7 +535,7 @@ AssetHandle AssetManager::request(AssetID id, AssetError* pError)
     if (error != AssetError::None)
     {
         char text[kIDStringCapacity];
-        id.toString(text);
+        id.ToString(text);
         LOGF(Error, "Asset request '%s' rejected (error %u)", text, (uint32_t)error);
         return {};
     }

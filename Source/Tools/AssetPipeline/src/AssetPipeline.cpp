@@ -55,7 +55,7 @@
 #ifdef ENABLE_ASSET_PIPELINE_CGLTF_IMPLEMENTATION
 #define CGLTF_IMPLEMENTATION
 #endif
-// We are using jsmn to parse joints, these functions are static so it doesn't matter if they are defined in other files.
+// We are using jsmn to Parse joints, these functions are static so it doesn't matter if they are defined in other files.
 #define CGLTF_JSMN_IMPLEMENTATION
 #include <ThirdParty/cgltf/cgltf_write.h>
 #include <ThirdParty/cJSON/cJSON.h>
@@ -409,7 +409,7 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
     cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
     CloseStream(&file);
 
-    if (!VERIFYMSG(cgltf_result_success == result, "Failed to parse gltf file %s with error %u", skeletonAsset, (uint32_t)result))
+    if (!VERIFYMSG(cgltf_result_success == result, "Failed to Parse gltf file %s with error %u", skeletonAsset, (uint32_t)result))
     {
         MemDeallocate(fileData);
         return result;
@@ -1604,7 +1604,7 @@ void CheckIfGltfHasAnimations(ResourceDirectory resourceDirInput, const char* gl
 
     if (cgltf_result_success != result)
     {
-        LOGF(Error, "Failed to parse gltf file %s with error %u", gltfFileName, (uint32_t)result);
+        LOGF(Error, "Failed to Parse gltf file %s with error %u", gltfFileName, (uint32_t)result);
         MemDeallocate(fileData);
         return;
     }
@@ -1884,7 +1884,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         if (cgltf_result_success != result)
         {
-            LOGF(Error, "Failed to parse gltf file %s with error %u", fileName, (uint32_t)result);
+            LOGF(Error, "Failed to Parse gltf file %s with error %u", fileName, (uint32_t)result);
             MemDeallocate(fileData);
             error = true;
             continue;
@@ -1970,7 +1970,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         SceneAssetCooker sceneCooker(assetParams->mRDInput, fileName, assetParams->mRDOutput, newFileName);
         if (!assetParams->mSettings.force && FileExists(assetParams->mRDOutput, newFileName) && sceneCooker.isCurrent(contentHash))
         {
-            LOGF(Info, "Skipping %s (content hash unchanged)", fileName);
+            LOGF(Info, "Skipping %s (content Hash unchanged)", fileName);
             MemDeallocate(pFingerprint);
             data->file_data = fileData;
             cgltf_free(data);
@@ -2075,7 +2075,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             glTFParams->pWriteExtrasCallback(&userDataSize, UserData, glTFParams->pCallbackUserData);
         }
 
-        // Determine vertex stride for each binding
+        // Determine vertex stride for Each binding
         for (uint32_t attrIdx = 0; attrIdx < pVertexLayout->attribCount; ++attrIdx)
         {
             const VertexAttrib*    attr = &pVertexLayout->attribs[attrIdx];
@@ -2648,7 +2648,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
     // TODO: Find beter way to discover if a .gltf mesh has external animations in other gltf files
     //		 For the time being, we assume that if this is the case, the animations are included in a "animations" subdirectory
     //		 For this reason, any subdirectory named "animations" are excluded from the discovery.
-    //		 For each gltf found, we check for extra gltf animations in the "animations" subdirectory if it exists.
+    //		 For Each gltf found, we check for extra gltf animations in the "animations" subdirectory if it exists.
 
     const char* subdirWithAnimationsName = "animations";
 
@@ -2700,7 +2700,7 @@ void OnDiscoverAnimation(ResourceDirectory resourceDir, const char* filename, vo
 
     if (cgltf_result_success != result)
     {
-        LOGF(Error, "Failed to parse gltf file %s with error %u", filename, (uint32_t)result);
+        LOGF(Error, "Failed to Parse gltf file %s with error %u", filename, (uint32_t)result);
         MemDeallocate(fileData);
         return;
     }

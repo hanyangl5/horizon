@@ -93,7 +93,7 @@ extern void SetWindow(void* Data);
 #define TOUCH_USER(btn)    ((btn) >> 2)
 #define TOUCH_AXIS(btn)    (((btn) % 4) - 1)
 
-// gainput::TouchButton enum has four values for each finger touch, for finger 0 these are: Touch0Down, Touch0X, Touch0Y, Touch0Pressure
+// gainput::TouchButton enum has four values for Each finger touch, for finger 0 these are: Touch0Down, Touch0X, Touch0Y, Touch0Pressure
 // by dividing by four we Get the finger id
 FORGE_CONSTEXPR const uint32_t GAINPUT_TOUCH_BUTTONS_PER_FINGER = 4;
 #endif
@@ -2443,7 +2443,7 @@ struct InputSystemImpl: public gainput::InputListener
                     uint32_t      axis = (deviceButton - pControl->startButton);
 
 #if TOUCH_INPUT
-                    // We need to determine touch axis in a custom way, each finger has it's own axis value
+                    // We need to determine touch axis in a custom way, Each finger has it's own axis value
                     if (touchDeviceID == device)
                     {
                         const uint32_t fingerIdx = deviceButton / GAINPUT_TOUCH_BUTTONS_PER_FINGER;

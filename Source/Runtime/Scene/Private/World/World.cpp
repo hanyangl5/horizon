@@ -67,7 +67,7 @@ void WorldImpl::constructComponents(void* pDestination, int32_t Count, const ecs
 {
     const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < Count; ++i)
-        Type.construct((uint8_t*)pDestination + (size_t)i * Type.Size);
+        Type.Construct((uint8_t*)pDestination + (size_t)i * Type.Size);
 }
 
 void WorldImpl::destroyComponents(void* pValue, int32_t Count, const ecs_type_info_t* pInfo)
@@ -81,14 +81,14 @@ void WorldImpl::copyConstructComponents(void* pDestination, const void* pSource,
 {
     const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < Count; ++i)
-        Type.copyConstruct((uint8_t*)pDestination + (size_t)i * Type.Size, (const uint8_t*)pSource + (size_t)i * Type.Size);
+        Type.CopyConstruct((uint8_t*)pDestination + (size_t)i * Type.Size, (const uint8_t*)pSource + (size_t)i * Type.Size);
 }
 
 void WorldImpl::moveConstructComponents(void* pDestination, void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
 {
     const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < Count; ++i)
-        Type.moveConstruct((uint8_t*)pDestination + (size_t)i * Type.Size, (uint8_t*)pSource + (size_t)i * Type.Size);
+        Type.MoveConstruct((uint8_t*)pDestination + (size_t)i * Type.Size, (uint8_t*)pSource + (size_t)i * Type.Size);
 }
 
 void WorldImpl::copyComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
@@ -115,13 +115,13 @@ WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& entityGuid
     pWorld = ecs_mini();
     ASSERT(pWorld);
     entityTag = ecs_new_id(pWorld);
-    // World owns transform propagation; its parent relation must not trigger recursive Flecs traversal.
+    // World Owns transform propagation; its parent relation must not trigger recursive Flecs traversal.
     parentRelation = ecs_new_w_id(pWorld, EcsExclusive);
     ecs_add_id(pWorld, parentRelation, EcsTag);
     ecs_add_pair(pWorld, parentRelation, EcsOnDeleteTarget, EcsDelete);
     for (uint32_t i = 0; i < registry.Size(); ++i)
     {
-        const TypeDesc*         pType = registry.getTypeAt(i);
+        const TypeDesc*         pType = registry.GetTypeAt(i);
         const ecs_entity_desc_t entityDesc = { .name = pType->Name, .sep = "", .use_low_id = true };
         const ecs_component_desc_t desc = {
             .entity = ecs_entity_init(pWorld, &entityDesc),
@@ -166,33 +166,33 @@ WorldImpl::~WorldImpl()
 World::World(const TypeRegistry& registry, const IDGenerator& entityGuids): pImpl(MemNew(WorldImpl, registry, entityGuids)) {}
 World::~World() { MemDelete(pImpl); }
 
-Entity World::createEntity()
+Entity World::CreateEntity()
 {
     pImpl->checkThread();
     pImpl->pHierarchy->invalidateStructure();
     return Entity(ecs_new_w_id(pImpl->pWorld, pImpl->entityTag), pImpl->id);
 }
 
-bool World::owns(Entity entity) const
+bool World::Owns(Entity entity) const
 {
     // Invalid entities keep their "none" meaning; a Handle from another World is simply not part of this one.
     return !entity.IsValid() || entity.world == pImpl->id;
 }
 
-bool World::isAlive(Entity entity) const
+bool World::IsAlive(Entity entity) const
 {
     pImpl->checkThread();
-    return owns(entity) && entity.IsValid() && ecs_is_alive(pImpl->pWorld, entity.value);
+    return Owns(entity) && entity.IsValid() && ecs_is_alive(pImpl->pWorld, entity.value);
 }
 
-bool World::addComponent(Entity entity, TypeID Type)
+bool World::AddComponent(Entity entity, TypeID Type)
 {
     if (Type == SceneTypes::entityIdentity)
     {
-        LOGF(Error, "EntityIdentity is managed by World::createPersistentEntity");
+        LOGF(Error, "EntityIdentity is managed by World::CreatePersistentEntity");
         return false;
     }
-    if (!isAlive(entity))
+    if (!IsAlive(entity))
         return false;
     const WorldType* pType = pImpl->findType(Type);
     if (!pType)
@@ -203,14 +203,14 @@ bool World::addComponent(Entity entity, TypeID Type)
     return true;
 }
 
-bool World::removeComponent(Entity entity, TypeID Type)
+bool World::RemoveComponent(Entity entity, TypeID Type)
 {
     if (Type == SceneTypes::entityIdentity)
     {
         LOGF(Error, "EntityIdentity cannot be removed from a live entity");
         return false;
     }
-    if (!isAlive(entity))
+    if (!IsAlive(entity))
         return false;
     const WorldType* pType = pImpl->findType(Type);
     if (!pType)
@@ -220,7 +220,7 @@ bool World::removeComponent(Entity entity, TypeID Type)
     return true;
 }
 
-bool World::setComponent(Entity entity, TypeID Type, const void* pValue)
+bool World::SetComponent(Entity entity, TypeID Type, const void* pValue)
 {
     ASSERT(pValue);
     if (Type == SceneTypes::entityIdentity)
@@ -228,7 +228,7 @@ bool World::setComponent(Entity entity, TypeID Type, const void* pValue)
         LOGF(Error, "EntityIdentity cannot be changed after entity creation");
         return false;
     }
-    if (!isAlive(entity))
+    if (!IsAlive(entity))
         return false;
     const WorldType* pType = pImpl->findType(Type);
     if (!pType)
@@ -240,7 +240,7 @@ bool World::setComponent(Entity entity, TypeID Type, const void* pValue)
         // Adding a component can move the table containing pValue before Flecs copies it.
         const TypeDesc& description = *pType->pType;
         void*           pCopy = MemAllocateAligned(description.alignment, description.Size);
-        description.copyConstruct(pCopy, pValue);
+        description.CopyConstruct(pCopy, pValue);
         ecs_set_id(pImpl->pWorld, entity.value, pType->component, description.Size, pCopy);
         description.Destroy(pCopy);
         MemDeallocate(pCopy);
@@ -250,16 +250,16 @@ bool World::setComponent(Entity entity, TypeID Type, const void* pValue)
     return true;
 }
 
-const void* World::getComponent(Entity entity, TypeID Type) const
+const void* World::GetComponent(Entity entity, TypeID Type) const
 {
-    if (!isAlive(entity))
+    if (!IsAlive(entity))
         return nullptr;
     const WorldType* pType = pImpl->findType(Type);
     return pType ? ecs_get_id(pImpl->pWorld, entity.value, pType->component) : nullptr;
 }
 
-DeferredChanges World::defer() { return DeferredChanges(*this); }
-bool            World::isDeferred() const
+DeferredChanges World::Defer() { return DeferredChanges(*this); }
+bool            World::IsDeferred() const
 {
     pImpl->checkThread();
     return ecs_is_deferred(pImpl->pWorld);
@@ -284,7 +284,7 @@ DeferredChanges::~DeferredChanges()
 WorldQueryImpl::WorldQueryImpl(World& world, Span<TypeID> types): pOwner(&world)
 {
     world.pImpl->checkThread();
-    ASSERT(!world.isDeferred());
+    ASSERT(!world.IsDeferred());
     fields.Resize(types.Count);
     Array<ecs_term_t> terms(types.Count + 1);
     terms[0].id = world.pImpl->entityTag;
@@ -319,10 +319,10 @@ WorldQuery::~WorldQuery() { MemDelete(pImpl); }
 
 bool WorldQuery::IsValid() const { return pImpl->pQuery != nullptr; }
 
-void WorldQuery::each(bool (*pCallback)(Entity, Span<const void*>, void*), void* UserData)
+void WorldQuery::Each(bool (*pCallback)(Entity, Span<const void*>, void*), void* UserData)
 {
     ASSERT(IsValid() && pCallback && !pImpl->iterating);
-    DeferredChanges changes = pImpl->pOwner->defer();
+    DeferredChanges changes = pImpl->pOwner->Defer();
     pImpl->iterating = true;
     ecs_iter_t it = ecs_query_iter(pImpl->pOwner->pImpl->pWorld, pImpl->pQuery);
     while (ecs_query_next(&it))

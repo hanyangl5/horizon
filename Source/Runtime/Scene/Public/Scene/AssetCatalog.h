@@ -61,7 +61,7 @@ public:
     bool                     replace(const AssetCatalogEntry& entry);
     bool                     remove(AssetID id);
     // Atomic full replacement from the current-Format index. Failed reads leave the catalog unchanged.
-    bool                     parse(Span<char> json);
+    bool                     Parse(Span<char> json);
     bool                     load(ResourceDirectory directory, const char* pFileName);
     bool                     serialize(Array<char>& json) const;
     // Entries own their metadata and stay at stable addresses until Clear or owner destruction.

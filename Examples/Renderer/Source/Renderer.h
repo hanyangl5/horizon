@@ -142,7 +142,7 @@ private:
             return false;
         }
         Types = hz::MakeUnique<hz::TypeRegistry>();
-        const bool Registered = Types->registerBuiltins();
+        const bool Registered = Types->RegisterBuiltins();
         ASSERT(Registered);
         World = hz::MakeUnique<hz::World>(*Types);
         if (!Asset->instantiate(*World).IsValid())
@@ -219,7 +219,7 @@ public:
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Renderer::Update");
         Camera->update(DeltaTime, (uint32_t)settings.Width, (uint32_t)settings.Height, settings.focused);
         const Matrix4 Pose = Camera->getWorldMatrix();
-        const bool    Updated = World->setComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose);
+        const bool    Updated = World->SetComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose);
         ASSERT(Updated);
         AssetManager->update();
         Passes->Update(DeltaTime);
@@ -299,7 +299,7 @@ private:
             .boostMultiplier = 4.0f,
         };
         Camera = hz::MakeUnique<FreeCameraController>(Desc);
-        CameraEntity = World->createPersistentEntity();
+        CameraEntity = World->CreatePersistentEntity();
         const hz::Camera      CameraData = { .verticalFov = PI / 3.0f };
         const Matrix4         Pose = Camera->getWorldMatrix();
         // Cookbook theta=90, phi=-26; both scene imports preserve the same Y-up basis.
@@ -308,11 +308,11 @@ private:
         const Vector3         X = normalize(cross(Vector3(0, 1, 0), Z));
         const hz::Light       Sun = { .Type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 1000 };
         const Matrix4         SunPose = Matrix4(Vector4(X, 0), Vector4(cross(Z, X), 0), Vector4(Z, 0), Vector4(0, 0, 0, 1));
-        const hz::Entity      SunEntity = World->createPersistentEntity();
-        const bool            Created = World->setComponent(CameraEntity, hz::SceneTypes::camera, &CameraData) &&
-                             World->setComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose) &&
-                             World->setComponent(SunEntity, hz::SceneTypes::light, &Sun) &&
-                             World->setComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
+        const hz::Entity      SunEntity = World->CreatePersistentEntity();
+        const bool            Created = World->SetComponent(CameraEntity, hz::SceneTypes::camera, &CameraData) &&
+                             World->SetComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose) &&
+                             World->SetComponent(SunEntity, hz::SceneTypes::light, &Sun) &&
+                             World->SetComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
         ASSERT(Created);
         Scene->update();
         LOGF(Info, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R Reset, Esc release mouse");

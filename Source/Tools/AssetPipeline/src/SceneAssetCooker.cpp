@@ -32,18 +32,18 @@ static const char* text(const cJSON* pObject, const char* pField)
     return cJSON_IsString(pValue) ? pValue->valuestring : "";
 }
 
-static uint64_t hashBytes(const void* Data, size_t Size, uint64_t hash = UINT64_C(14695981039346656037))
+static uint64_t hashBytes(const void* Data, size_t Size, uint64_t Hash = UINT64_C(14695981039346656037))
 {
     const uint8_t* pBytes = (const uint8_t*)Data;
     for (size_t i = 0; i < Size; ++i)
-        hash = (hash ^ pBytes[i]) * UINT64_C(1099511628211);
-    return hash;
+        Hash = (Hash ^ pBytes[i]) * UINT64_C(1099511628211);
+    return Hash;
 }
 
-static void addHash(cJSON* pObject, const char* pField, uint64_t hash)
+static void addHash(cJSON* pObject, const char* pField, uint64_t Hash)
 {
     char value[17];
-    snprintf(value, sizeof(value), "%016llx", (unsigned long long)hash);
+    snprintf(value, sizeof(value), "%016llx", (unsigned long long)Hash);
     cJSON_AddStringToObject(pObject, pField, value);
 }
 
@@ -87,8 +87,8 @@ static bool validTextureIdentity(const cJSON* pDocument)
     const cJSON* pLinear = cJSON_GetObjectItemCaseSensitive(pDocument, "linear");
     const cJSON* pSrgb = cJSON_GetObjectItemCaseSensitive(pDocument, "srgb");
     return strcmp(text(pDocument, "format"), "Horizon.TextureIdentity") == 0 && cJSON_IsNumber(pVersion) && pVersion->valuedouble == 1 &&
-           (pLinear || pSrgb) && (!pLinear || (cJSON_IsString(pLinear) && linear.parse(pLinear->valuestring) && linear.IsValid())) &&
-           (!pSrgb || (cJSON_IsString(pSrgb) && srgb.parse(pSrgb->valuestring) && srgb.IsValid())) && (!linear.IsValid() || linear != srgb);
+           (pLinear || pSrgb) && (!pLinear || (cJSON_IsString(pLinear) && linear.Parse(pLinear->valuestring) && linear.IsValid())) &&
+           (!pSrgb || (cJSON_IsString(pSrgb) && srgb.Parse(pSrgb->valuestring) && srgb.IsValid())) && (!linear.IsValid() || linear != srgb);
 }
 
 static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<char> bytes)
@@ -142,7 +142,7 @@ static bool buildCatalog(const cJSON* pAsset, const char* pAssetFile, hz::Array<
     if (!pJson)
         return false;
     hz::SceneAsset asset;
-    const bool     valid = asset.parse({ pJson, (uint32_t)strlen(pJson) });
+    const bool     valid = asset.Parse({ pJson, (uint32_t)strlen(pJson) });
     cJSON_free(pJson);
     hz::AssetCatalog catalog;
     return valid && catalog.addScene(asset, pAssetFile) && catalog.serialize(output);
@@ -247,7 +247,7 @@ static bool matchIdentities(cJSON* pOld, cJSON* pNew, bool submeshes = false)
             if (submeshes)
                 snprintf(id, sizeof(id), "%016llx", (unsigned long long)generated.low);
             else
-                generated.toString(id);
+                generated.ToString(id);
             if (containsID(pOld, id) || containsID(pNew, id))
             {
                 LOGF(Error, "Generated scene asset identity collision");
@@ -284,7 +284,7 @@ static bool validateIdentities(const cJSON* pRecords, bool submeshes = false)
             if (strlen(pID) != 16 || strspn(pID, "0123456789abcdef") != 16 || strtoull(pID, nullptr, 16) == 0)
                 return false;
         }
-        else if (!id.parse(pID) || !id.IsValid())
+        else if (!id.Parse(pID) || !id.IsValid())
             return false;
         if (!*text(pRecord, "kind") || !cJSON_IsBool(cJSON_GetObjectItemCaseSensitive(pRecord, "missing")))
             return false;
@@ -302,23 +302,23 @@ static uint64_t accessorHash(const cgltf_accessor* pAccessor)
 {
     if (!pAccessor)
         return 0;
-    uint64_t hash = hashBytes(&pAccessor->type, sizeof(pAccessor->type));
-    hash = hashBytes(&pAccessor->count, sizeof(pAccessor->count), hash);
+    uint64_t Hash = hashBytes(&pAccessor->type, sizeof(pAccessor->type));
+    Hash = hashBytes(&pAccessor->count, sizeof(pAccessor->count), Hash);
     if (pAccessor->is_sparse)
     {
         hz::Array<float> values((uint32_t)(pAccessor->count * cgltf_num_components(pAccessor->type)));
         if (cgltf_accessor_unpack_floats(pAccessor, values.GetData(), values.Size()) != values.Size())
             return 0;
-        return hashBytes(values.GetData(), values.Size() * sizeof(float), hash);
+        return hashBytes(values.GetData(), values.Size() * sizeof(float), Hash);
     }
     for (cgltf_size i = 0; i < pAccessor->count; ++i)
     {
         float values[16] = {};
         if (!cgltf_accessor_read_float(pAccessor, i, values, 16))
             return 0;
-        hash = hashBytes(values, cgltf_num_components(pAccessor->type) * sizeof(float), hash);
+        Hash = hashBytes(values, cgltf_num_components(pAccessor->type) * sizeof(float), Hash);
     }
-    return hash;
+    return Hash;
 }
 
 static int compareHashes(const void* pA, const void* pB)
@@ -338,15 +338,15 @@ static uint64_t primitiveHash(const cgltf_primitive& primitive)
         attributes[i] = hashBytes(attribute.name, strlen(attribute.name), attributes[i]);
     }
     qsort(attributes.GetData(), attributes.Size(), sizeof(uint64_t), compareHashes);
-    uint64_t hash = hashBytes(attributes.GetData(), attributes.Size() * sizeof(uint64_t));
-    hash = hashBytes(&primitive.type, sizeof(primitive.type), hash);
+    uint64_t Hash = hashBytes(attributes.GetData(), attributes.Size() * sizeof(uint64_t));
+    Hash = hashBytes(&primitive.type, sizeof(primitive.type), Hash);
     if (primitive.indices)
         for (cgltf_size i = 0; i < primitive.indices->count; ++i)
         {
             const uint64_t value = cgltf_accessor_read_index(primitive.indices, i);
-            hash = hashBytes(&value, sizeof(value), hash);
+            Hash = hashBytes(&value, sizeof(value), Hash);
         }
-    return hash;
+    return Hash;
 }
 
 SceneAssetCooker::SceneAssetCooker(ResourceDirectory sourceDirectory, const char* pSourceFile, ResourceDirectory outputDirectory,
@@ -372,11 +372,11 @@ bool SceneAssetCooker::isCurrent(const char* pContentHash) const
     if (!FileExists(sourceDirectory, metadataFile) || !FileExists(outputDirectory, assetFile) ||
         !FileExists(outputDirectory, catalogFile))
         return false;
-    uint64_t           hash = 0;
-    const JsonDocument metadata(readJson(sourceDirectory, metadataFile, &hash));
+    uint64_t           Hash = 0;
+    const JsonDocument metadata(readJson(sourceDirectory, metadataFile, &Hash));
     const JsonDocument asset(readJson(outputDirectory, assetFile));
     char               value[17];
-    snprintf(value, sizeof(value), "%016llx", (unsigned long long)hash);
+    snprintf(value, sizeof(value), "%016llx", (unsigned long long)Hash);
     const cJSON* pVersion = cJSON_GetObjectItemCaseSensitive(asset.Get(), "version");
     const bool   current = metadata.Get() && cJSON_IsNumber(pVersion) && pVersion->valuedouble == 1 &&
                          strcmp(text(asset.Get(), "format"), "Horizon.SceneAsset") == 0 &&
@@ -421,7 +421,7 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
     hz::AssetID  sceneID;
     if (exists)
     {
-        if (!cJSON_IsNumber(pVersion) || pVersion->valuedouble != 1 || !sceneID.parse(text(pPrevious, "scene")) || !sceneID.IsValid() ||
+        if (!cJSON_IsNumber(pVersion) || pVersion->valuedouble != 1 || !sceneID.Parse(text(pPrevious, "scene")) || !sceneID.IsValid() ||
             !validateIdentities(pOldRecords) || containsID(pOldRecords, text(pPrevious, "scene")))
         {
             LOGF(Error, "Invalid scene identity sidecar '%s'; refusing to replace persistent IDs", metadataFile);
@@ -442,7 +442,7 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
     pMetadata = cJSON_CreateObject();
     cJSON_AddNumberToObject(pMetadata, "version", 1);
     char id[hz::kIDStringCapacity];
-    sceneID.toString(id);
+    sceneID.ToString(id);
     cJSON_AddStringToObject(pMetadata, "scene", id);
     return prepareTextures(data);
 }
@@ -494,12 +494,12 @@ bool SceneAssetCooker::registerTexture(CookedSceneTexture& texture)
             return false;
         }
     if (*pID)
-        return texture.registeredID.parse(pID);
+        return texture.registeredID.Parse(pID);
     texture.registeredID = hz::AssetID::create();
     if (!texture.registeredID.IsValid())
         return false;
     char id[hz::kIDStringCapacity];
-    texture.registeredID.toString(id);
+    texture.registeredID.ToString(id);
     cJSON_AddStringToObject(pDocument, pVariant, id);
     if (!cJSON_GetObjectItemCaseSensitive(pEntry, "dirty"))
         cJSON_AddBoolToObject(pEntry, "dirty", true);
@@ -627,7 +627,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
         if (cooked.registeredID.IsValid())
         {
             char id[hz::kIDStringCapacity];
-            cooked.registeredID.toString(id);
+            cooked.registeredID.ToString(id);
             cJSON_AddStringToObject(textures[i], "registeredID", id);
         }
         cJSON_AddItemToArray(pRecords, textures[i]);
@@ -774,7 +774,7 @@ bool SceneAssetCooker::validate() const
     if (!pJson)
         return false;
     hz::SceneAsset asset;
-    const bool     valid = asset.parse({ pJson, (uint32_t)strlen(pJson) });
+    const bool     valid = asset.Parse({ pJson, (uint32_t)strlen(pJson) });
     cJSON_free(pJson);
     return valid;
 }

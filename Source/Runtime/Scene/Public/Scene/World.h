@@ -22,7 +22,7 @@ public:
 private:
     friend class World;
     friend class WorldQuery;
-    // Two 64-bit fields keep the Type padding-free: hash maps key on the raw bytes.
+    // Two 64-bit fields keep the Type padding-free: Hash maps key on the raw bytes.
     explicit Entity(uint64_t value, uint64_t world): value(value), world(world) {}
     uint64_t value = 0;
     uint64_t world = 0;
@@ -60,47 +60,47 @@ public:
     World(const World&) = delete;
     World& operator=(const World&) = delete;
 
-    Entity createEntity();
+    Entity CreateEntity();
     // Persistent entities. Explicit IDs must be nonzero and unique within this World.
-    Entity createPersistentEntity();
-    Entity createPersistentEntity(const Guid& id);
-    // Pending creations Reserve their IDs immediately but become visible to lookup at defer commit.
-    Entity getEntity(const Guid& id) const;
-    Guid   getEntityGuid(Entity entity) const;
+    Entity CreatePersistentEntity();
+    Entity CreatePersistentEntity(const Guid& id);
+    // Pending creations Reserve their IDs immediately but become visible to lookup at Defer commit.
+    Entity GetEntity(const Guid& id) const;
+    Guid   GetEntityGuid(Entity entity) const;
     // Leaf deletion can be deferred; deleting a parent preserves its children and requires a committed World.
-    bool   destroyEntity(Entity entity);
-    bool   isAlive(Entity entity) const;
-    bool   destroySubtree(Entity entity);
+    bool   DestroyEntity(Entity entity);
+    bool   IsAlive(Entity entity) const;
+    bool   DestroySubtree(Entity entity);
 
-    Entity                getParent(Entity entity) const;
-    // Hierarchy edits run outside defer/query scopes. An invalid parent means the root.
+    Entity                GetParent(Entity entity) const;
+    // Hierarchy edits run outside Defer/query scopes. An invalid parent means the root.
     bool                  setParent(Entity entity, Entity parent = {}, bool keepWorld = true);
-    void                  updateTransforms();
-    // Valid until the next structural update. Call updateTransforms before reading.
-    const WorldTransform* getWorldTransform(Entity entity) const;
+    void                  UpdateTransforms();
+    // Valid until the next structural update. Call UpdateTransforms before reading.
+    const WorldTransform* GetWorldTransform(Entity entity) const;
     // Advance history only after a rendered frame is submitted.
-    void                  commitTransforms();
+    void                  CommitTransforms();
     void                  resetTransformHistory(Entity root = {});
 
-    bool        addComponent(Entity entity, TypeID Type);
-    bool        removeComponent(Entity entity, TypeID Type);
-    // Copies the value. During defer, existing components update immediately; new components Wait for commit.
-    bool        setComponent(Entity entity, TypeID Type, const void* pValue);
-    // Read-only storage view. References expire on structural changes; owning values can change on setComponent.
-    const void* getComponent(Entity entity, TypeID Type) const;
+    bool        AddComponent(Entity entity, TypeID Type);
+    bool        RemoveComponent(Entity entity, TypeID Type);
+    // Copies the value. During Defer, existing components update immediately; new components Wait for commit.
+    bool        SetComponent(Entity entity, TypeID Type, const void* pValue);
+    // Read-only storage view. References expire on structural changes; owning values can change on SetComponent.
+    const void* GetComponent(Entity entity, TypeID Type) const;
 
-    // Edits require an existing component and take effect immediately, including during defer.
-    bool setProperty(Entity entity, TypeID Type, PropertyID property, const PropertyValue& value);
-    bool resizeArray(Entity entity, TypeID Type, PropertyID property, uint32_t Count);
+    // Edits require an existing component and take effect immediately, including during Defer.
+    bool SetProperty(Entity entity, TypeID Type, PropertyID property, const PropertyValue& value);
+    bool ResizeArray(Entity entity, TypeID Type, PropertyID property, uint32_t Count);
     // pValue points to an element of the reflected array Type, including when inserting from this array.
-    bool insertArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index, const void* pValue);
-    bool removeArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index);
+    bool InsertArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index, const void* pValue);
+    bool RemoveArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index);
     bool setArrayElementProperty(Entity entity, TypeID Type, PropertyID property, uint32_t index, PropertyID elementProperty,
                                  const PropertyValue& value);
 
     // Defers structural changes until the outermost scope ends. World must outlive its scopes and queries.
-    DeferredChanges defer();
-    bool            isDeferred() const;
+    DeferredChanges Defer();
+    bool            IsDeferred() const;
 
 private:
     friend class DeferredChanges;
@@ -109,8 +109,8 @@ private:
     friend class WorldArchive;
     friend class SceneAsset;
     // False for an invalid Entity; foreign entities fail the comparison and assert in debug.
-    bool       owns(Entity entity) const;
-    void       attachParent(Entity entity, Entity parent);
+    bool       Owns(Entity entity) const;
+    void       AttachParent(Entity entity, Entity parent);
     WorldImpl* pImpl = nullptr;
 };
 
@@ -125,7 +125,7 @@ public:
     bool        IsValid() const;
 
     // Fields follow the requested Type order. Returning false stops iteration. Structural changes are deferred.
-    void each(bool (*pCallback)(Entity entity, Span<const void*> fields, void* UserData), void* UserData = nullptr);
+    void Each(bool (*pCallback)(Entity entity, Span<const void*> fields, void* UserData), void* UserData = nullptr);
 
 private:
     WorldQueryImpl* pImpl = nullptr;

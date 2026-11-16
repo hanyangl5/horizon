@@ -189,7 +189,7 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
     for (uint32_t i = 0; i < pGpuProfiler->currentPoolIndex; ++i)
     {
         GpuTimer* tNode = &pGpuProfiler->pGpuTimerPool[i];
-        if (nameHash == tNode->hash)
+        if (nameHash == tNode->Hash)
         {
             node = tNode;
             break;
@@ -203,7 +203,7 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
         node = &pGpuProfiler->pGpuTimerPool[pGpuProfiler->currentPoolIndex];
         strncpy(node->name, Name, sizeof node->name - 1);
         node->name[sizeof node->name - 1] = 0;
-        node->hash = nameHash;
+        node->Hash = nameHash;
         node->HistoryIndex = 0;
         node->gpuMaxTime = 0;
         node->gpuMinTime = (uint64_t)-1;

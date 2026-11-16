@@ -31,7 +31,7 @@ public:
     WorldArchive& operator=(const WorldArchive&) = delete;
 
     // Parsing retains original JSON, including unknown component blobs. Failure preserves this archive.
-    bool parse(Span<char> json);
+    bool Parse(Span<char> json);
     bool load(ResourceDirectory directory, const char* pFileName);
     bool save(ResourceDirectory directory, const char* pFileName) const;
     // Output includes a terminating null. Parsed archives retain their original text exactly.

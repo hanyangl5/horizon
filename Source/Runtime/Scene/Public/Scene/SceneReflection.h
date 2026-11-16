@@ -70,7 +70,7 @@ struct PropertyDesc
     double                 step = 0.0;
 };
 
-// Copy/move construct into uninitialized storage. A moved-from source remains destructible.
+// Copy/move Construct into uninitialized storage. A moved-from source remains destructible.
 struct TypeLifecycle
 {
     void (*pConstruct)(void* pDestination) = nullptr;
@@ -90,12 +90,12 @@ struct TypeDesc
     bool               triviallyCopyable = true;
     TypeLifecycle      lifecycle;
 
-    const PropertyDesc* getProperty(PropertyID property) const;
-    const PropertyDesc* getProperty(const char* pPropertyName) const;
-    void                construct(void* pDestination) const;
+    const PropertyDesc* GetProperty(PropertyID property) const;
+    const PropertyDesc* GetProperty(const char* pPropertyName) const;
+    void                Construct(void* pDestination) const;
     void                Destroy(void* pValue) const;
-    void                copyConstruct(void* pDestination, const void* pSource) const;
-    void                moveConstruct(void* pDestination, void* pSource) const;
+    void                CopyConstruct(void* pDestination, const void* pSource) const;
+    void                MoveConstruct(void* pDestination, void* pSource) const;
 };
 
 class TypeRegistry
@@ -107,11 +107,11 @@ public:
     TypeRegistry& operator=(const TypeRegistry&) = delete;
 
     // Descriptors and their referenced data must outlive this registry. Registration is atomic per batch.
-    bool            registerTypes(Span<TypeDesc> types);
-    bool            registerBuiltins();
-    const TypeDesc* getType(TypeID id) const;
-    const TypeDesc* getType(const char* Name) const;
-    const TypeDesc* getTypeAt(uint32_t index) const;
+    bool            RegisterTypes(Span<TypeDesc> types);
+    bool            RegisterBuiltins();
+    const TypeDesc* GetType(TypeID id) const;
+    const TypeDesc* GetType(const char* Name) const;
+    const TypeDesc* GetTypeAt(uint32_t index) const;
     uint32_t        Size() const;
 
 private:

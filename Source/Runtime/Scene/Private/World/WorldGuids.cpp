@@ -5,14 +5,14 @@
 
 namespace hz
 {
-Entity World::createPersistentEntity()
+Entity World::CreatePersistentEntity()
 {
     pImpl->checkThread();
     const Guid id = Guid::create(pImpl->entityGuids);
-    return id.IsValid() ? createPersistentEntity(id) : Entity{};
+    return id.IsValid() ? CreatePersistentEntity(id) : Entity{};
 }
 
-Entity World::createPersistentEntity(const Guid& id)
+Entity World::CreatePersistentEntity(const Guid& id)
 {
     pImpl->checkThread();
     if (!pImpl->entityIdentityType)
@@ -28,24 +28,24 @@ Entity World::createPersistentEntity(const Guid& id)
     if (hmgetp_null(pImpl->pEntityGuids, id))
     {
         char text[kIDStringCapacity];
-        id.toString(text);
+        id.ToString(text);
         LOGF(Error, "Duplicate Guid: %s", text);
         return {};
     }
 
-    const Entity         entity = createEntity();
+    const Entity         entity = CreateEntity();
     const EntityIdentity identity = { .value = id };
     ecs_set_id(pImpl->pWorld, entity.value, pImpl->entityIdentityType, sizeof(identity), &identity);
     const EntityGuidEntry entry = { .key = id, .value = entity.value };
     hmputs(pImpl->pEntityGuids, entry);
-    if (isDeferred())
+    if (IsDeferred())
     {
         pImpl->pendingGuids.PushBack(id);
     }
     return entity;
 }
 
-Entity World::getEntity(const Guid& id) const
+Entity World::GetEntity(const Guid& id) const
 {
     pImpl->checkThread();
     if (!id.IsValid())
@@ -60,9 +60,9 @@ Entity World::getEntity(const Guid& id) const
     return Entity(pEntry->value, pImpl->id);
 }
 
-Guid World::getEntityGuid(Entity entity) const
+Guid World::GetEntityGuid(Entity entity) const
 {
-    const EntityIdentity* pIdentity = (const EntityIdentity*)getComponent(entity, SceneTypes::entityIdentity);
+    const EntityIdentity* pIdentity = (const EntityIdentity*)GetComponent(entity, SceneTypes::entityIdentity);
     return pIdentity ? pIdentity->value : Guid{};
 }
 

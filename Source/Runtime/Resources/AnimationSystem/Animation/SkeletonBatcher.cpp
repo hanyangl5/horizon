@@ -73,7 +73,7 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
                                                        sizeof(tfrg_atomic32_t));
     batchSize = batchCounts + frameCount;
 
-    // Initialize all the buffer that will be used for each batch per each frame index
+    // Initialize all the buffer that will be used for Each batch per Each frame index
     BufferLoadDesc ubDesc = {};
     ubDesc.desc.Descriptors = DescriptorTypeUniformBuffer;
     ubDesc.desc.MemoryUsage = MemoryUsageCpuToGpu;
@@ -463,7 +463,7 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t frameIndex)
     cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Skeletons Joints");
     cmdBindVertexBuffer(cmd, 1, &jointVertexBuffer, &jointVertexStride, NULL);
 
-    // for each batch of joints
+    // for Each batch of joints
     for (uint32_t batchIndex = 0; batchIndex < numBatches; batchIndex++)
     {
         const uint32_t uniformIndex = getBufferCbvIndex(projViewUniformBufferJoints[frameIndex * maxSkeletonBatches + batchIndex]);
@@ -481,7 +481,7 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t frameIndex)
         cmdBindVertexBuffer(cmd, 1, &boneVertexBuffer, &boneVertexStride, NULL);
         cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Skeletons Bones");
 
-        // for each batch of bones
+        // for Each batch of bones
 
         const AnimatedObject* animObj = animatedObjects[0];
         uint32_t              numJoints = animObj->rig->numJoints;

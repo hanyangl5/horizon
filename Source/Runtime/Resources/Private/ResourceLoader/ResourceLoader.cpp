@@ -3585,7 +3585,7 @@ const char* getShaderPlatformName();
 
 struct FSLDerivative
 {
-    uint64_t hash, offset, Size;
+    uint64_t Hash, offset, Size;
 };
 
 struct FSLMetadata
@@ -5089,7 +5089,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
 
     uint32_t defaultTexcoordSemantic = SEMANTIC_UNDEFINED;
 
-    // Determine vertex stride for each binding
+    // Determine vertex stride for Each binding
     for (uint32_t i = 0; i < pDesc->pVertexLayout->attribCount; ++i)
     {
         const VertexAttrib* attr = &pDesc->pVertexLayout->attribs[i];
@@ -6634,7 +6634,7 @@ static void removeBufferChunkAllocator(BufferChunkAllocator* pBuffer)
         ASSERT(arrlen(pBuffer->unusedChunks) == 1 && "Expecting just one chunk since the buffer is completely empty");
 
         // We are checking that the unnused chunk offset is 0 because we currently assume that a BufferChunkAllocator covers the entire
-        // buffer, but we could change this to allow to have several BufferChunkAllocators over the same buffer, each working on a fixed
+        // buffer, but we could change this to allow to have several BufferChunkAllocators over the same buffer, Each working on a fixed
         // memory range of the buffer.
         //
         // For example: In buffer below we could do the following splits
@@ -7194,7 +7194,7 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
 
         for (uint32_t i = 0; i < header.derivativeCount; ++i)
         {
-            if (header.derivativeCount == 1 || pDerivatives[i].hash == 0)
+            if (header.derivativeCount == 1 || pDerivatives[i].Hash == 0)
             {
                 if (!SeekStream(&binaryFileStream, SBO_START_OF_FILE, pDerivatives[i].offset))
                 {

@@ -37,7 +37,7 @@ typedef struct BufferAllocatorPlotWidget
 
 namespace ImGui
 {
-// Copied ImGui::PlotEx and modified it to be able to have different colors on each histogram bar to represent fragmentation.
+// Copied ImGui::PlotEx and modified it to be able to have different colors on Each histogram bar to represent fragmentation.
 static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data, int values_count, int values_offset,
                                              const char* overlay_text, ImVec2 frame_size)
 {

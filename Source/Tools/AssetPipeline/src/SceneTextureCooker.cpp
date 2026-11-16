@@ -31,11 +31,11 @@ private:
 
 #include "Core/IMemory.h"
 
-static uint64_t imageHash(const void* pBytes, size_t Size, uint64_t hash = UINT64_C(14695981039346656037))
+static uint64_t imageHash(const void* pBytes, size_t Size, uint64_t Hash = UINT64_C(14695981039346656037))
 {
     for (size_t i = 0; i < Size; ++i)
-        hash = (hash ^ ((const uint8_t*)pBytes)[i]) * UINT64_C(1099511628211);
-    return hash;
+        Hash = (Hash ^ ((const uint8_t*)pBytes)[i]) * UINT64_C(1099511628211);
+    return Hash;
 }
 
 bool SceneTextureCooker::readImage(const char* pPath, hz::Array<uint8_t>& bytes) const
@@ -166,7 +166,7 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t Size, bool srgb, const
         size_t     lastProgress = SIZE_MAX;
         const auto progress = [&](size_t current, size_t total)
         {
-            // The array overload reports zero-based indices after each mip.
+            // The array overload reports zero-based indices after Each mip.
             if (lastProgress != SIZE_MAX && pInput->GetImageCount() > 1 && current < total)
             {
                 ++current;
@@ -259,8 +259,8 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
     output.signature = imageHash(pBytes, Size);
 #if defined(_WIN32)
     const uint32_t settings[] = { 1, (uint32_t)(srgb ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM) };
-    const uint64_t hash = imageHash(settings, sizeof(settings), output.signature);
-    snprintf(output.path, sizeof(output.path), "Textures/%016llx.dds", (unsigned long long)hash);
+    const uint64_t Hash = imageHash(settings, sizeof(settings), output.signature);
+    snprintf(output.path, sizeof(output.path), "Textures/%016llx.dds", (unsigned long long)Hash);
     output.cooked = true;
     if (output.source[0])
         output.signature = imageHash(output.source, strlen(output.source));

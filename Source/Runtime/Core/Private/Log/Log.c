@@ -260,7 +260,7 @@ void WriteLogVaList(uint32_t level, const char* filename, int line_number, const
     gLogBuffer[offset] = '\n';
     gLogBuffer[offset + 1] = 0;
 
-    // Log for each flag
+    // Log for Each flag
     for (uint32_t i = 0; i < log_level_count; ++i)
     {
         strncpy(gLogBuffer + preable_end, logLevelPrefixes[log_levels[i]].second, LOG_LEVEL_SIZE);

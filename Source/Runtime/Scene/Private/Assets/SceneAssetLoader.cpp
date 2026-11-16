@@ -60,7 +60,7 @@ public:
             return false;
         }
         pScene = MemNew(SceneAsset);
-        if (!pScene->parse({ json.GetData(), json.Size() }) || pScene->getID() != entry.id)
+        if (!pScene->Parse({ json.GetData(), json.Size() }) || pScene->getID() != entry.id)
         {
             LOGF(Error, "Invalid SceneAsset payload or mismatched identity in '%s'", entry.location.pPath);
             return false;

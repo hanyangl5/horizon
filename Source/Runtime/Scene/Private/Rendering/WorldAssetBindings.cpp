@@ -145,7 +145,7 @@ private:
     void fail(const char* pMessage)
     {
         char text[kIDStringCapacity];
-        meshID.toString(text);
+        meshID.ToString(text);
         LOGF(Error, "World mesh '%s': %s", text, pMessage);
         releaseMaterials();
         view.state = AssetBindingState::Failed;
@@ -248,10 +248,10 @@ public:
 
     void update()
     {
-        ASSERT(!world.isDeferred());
+        ASSERT(!world.IsDeferred());
         for (WorldMeshBinding* pBinding : bindings)
             pBinding->seen = false;
-        query.each(sync, this);
+        query.Each(sync, this);
         for (WorldMeshBinding* pBinding : bindings)
             if (pBinding->seen)
                 pBinding->update();

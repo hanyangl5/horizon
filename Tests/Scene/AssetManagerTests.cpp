@@ -464,7 +464,7 @@ protected:
         FileSystemInitDesc desc = { .pAppName = "SceneAssetLoaderTest" };
         ASSERT_TRUE(InitFileSystem(&desc));
         char id[hz::kIDStringCapacity];
-        hz::AssetID::create().toString(id);
+        hz::AssetID::create().ToString(id);
         directory = std::filesystem::temp_directory_path() / id;
         std::filesystem::create_directory(directory);
         fileSystem = *SystemFileIO;
@@ -499,7 +499,7 @@ protected:
 TEST_F(SceneAssetLoaderTest, DecodesSceneAsynchronouslyAndPublishesTypedPayload)
 {
     hz::SceneAsset scene;
-    ASSERT_TRUE(scene.parse(kEmptyScene));
+    ASSERT_TRUE(scene.Parse(kEmptyScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
     hz::Array<char> index;
@@ -549,7 +549,7 @@ TEST_F(SceneAssetLoaderTest, RejectsMissingFileAndMismatchedIdentityAndDrainsOnS
 TEST_F(SceneAssetLoaderTest, RejectsPayloadWithDifferentDependenciesFromCatalog)
 {
     hz::SceneAsset scene;
-    ASSERT_TRUE(scene.parse(kEmptyScene));
+    ASSERT_TRUE(scene.Parse(kEmptyScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.add({ .id = scene.getID(),
                               .pSourcePath = "scene.gltf",
@@ -1044,7 +1044,7 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     writeScene();
     writeGeometry();
     hz::SceneAsset scene;
-    ASSERT_TRUE(scene.parse(kTypedScene));
+    ASSERT_TRUE(scene.Parse(kTypedScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "TypedAssetTest", .enableGpuValidation = true });
@@ -1112,7 +1112,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     writeScene(text.c_str());
     writeGeometry(IndexTypeUInt16, true);
     hz::SceneAsset asset;
-    ASSERT_TRUE(asset.parse({ text.data(), (uint32_t)text.size() }));
+    ASSERT_TRUE(asset.Parse({ text.data(), (uint32_t)text.size() }));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(asset, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "RayTracingSceneTest", .enableGpuValidation = true });
@@ -1138,7 +1138,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     ASSERT_EQ(assetManager.getState(root), hz::AssetState::Ready);
 
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World       world(types);
     hz::RenderScene scene(world, assetManager);
     hz::GpuScene    gpu(scene, assetManager, context);
@@ -1146,15 +1146,15 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     hz::Entity      entities[4];
     for (uint32_t i = 0; i < 4; ++i)
     {
-        entities[i] = world.createEntity();
+        entities[i] = world.CreateEntity();
         hz::MeshRenderer renderer = { .mesh = asset.getMeshes().Data[i == 3 ? 1 : 0].id };
         if (i == 1)
         {
             renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = asset.getMaterials().Data[1].id });
         }
         const Matrix4 transform = Matrix4::translation(Vector3(offsets[i], 0, 0));
-        ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::meshRenderer, &renderer));
-        ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::localMatrix, &transform));
+        ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::meshRenderer, &renderer));
+        ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::localMatrix, &transform));
     }
 
     scene.update();
@@ -1217,16 +1217,16 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     {
         if (pass == 1)
         {
-            ASSERT_TRUE(world.destroyEntity(entities[0]));
+            ASSERT_TRUE(world.DestroyEntity(entities[0]));
         }
         if (pass == 2)
         {
-            ASSERT_TRUE(world.destroyEntity(entities[2]));
+            ASSERT_TRUE(world.DestroyEntity(entities[2]));
         }
         if (pass == 3)
         {
-            ASSERT_TRUE(world.destroyEntity(entities[1]));
-            ASSERT_TRUE(world.destroyEntity(entities[3]));
+            ASSERT_TRUE(world.DestroyEntity(entities[1]));
+            ASSERT_TRUE(world.DestroyEntity(entities[3]));
         }
 
         ASSERT_TRUE(gpu.beginFrame());
@@ -1289,7 +1289,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     writeScene();
     writeGeometry(IndexTypeUInt32);
     hz::SceneAsset asset;
-    ASSERT_TRUE(asset.parse(kTypedScene));
+    ASSERT_TRUE(asset.Parse(kTypedScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(asset, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "TypedAsset32BitIndexTest", .enableGpuValidation = true });
@@ -1340,12 +1340,12 @@ TEST_F(AssetManagerTest, WorldBindingsRetainSharedMeshesAndReleaseRemovedCompone
     hz::AssetManager assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World        world(types);
-    const hz::Entity a = world.createEntity(), b = world.createEntity();
+    const hz::Entity a = world.CreateEntity(), b = world.CreateEntity();
     hz::MeshRenderer renderer = { .mesh = assetID(1) };
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
-    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::meshRenderer, &renderer));
     hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
     ASSERT_EQ(bindings.getCount(), 2u);
@@ -1364,12 +1364,12 @@ TEST_F(AssetManagerTest, WorldBindingsRetainSharedMeshesAndReleaseRemovedCompone
         EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
         EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
-    ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
+    ASSERT_TRUE(world.RemoveComponent(a, hz::SceneTypes::meshRenderer));
     bindings.update();
     EXPECT_EQ(bindings.Get(a), nullptr);
     EXPECT_EQ(bindings.getCount(), 1u);
     EXPECT_EQ(assetManager.getState(mesh), hz::AssetState::LoadingCPU);
-    ASSERT_TRUE(world.destroyEntity(b));
+    ASSERT_TRUE(world.DestroyEntity(b));
     bindings.update();
     EXPECT_EQ(bindings.getCount(), 0u);
     EXPECT_EQ(assetManager.getState(mesh), hz::AssetState::Retiring);
@@ -1390,18 +1390,18 @@ TEST_F(AssetManagerTest, WorldBindingsSwapMeshesWithoutRetiringSharedAssets)
     hz::AssetManager assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World        world(types);
-    const hz::Entity a = world.createEntity(), b = world.createEntity();
+    const hz::Entity a = world.CreateEntity(), b = world.CreateEntity();
     hz::MeshRenderer first = { .mesh = assetID(1) }, second = { .mesh = assetID(2) };
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &first));
-    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &second));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &first));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::meshRenderer, &second));
     hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
     const hz::AssetHandle meshA = bindings.Get(a)->mesh, meshB = bindings.Get(b)->mesh;
     assetManager.update();
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &second));
-    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &first));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &second));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::meshRenderer, &first));
     bindings.update();
     EXPECT_EQ(bindings.Get(a)->mesh, meshB);
     EXPECT_EQ(bindings.Get(b)->mesh, meshA);
@@ -1409,11 +1409,11 @@ TEST_F(AssetManagerTest, WorldBindingsSwapMeshesWithoutRetiringSharedAssets)
     EXPECT_EQ(assetManager.getState(meshB), hz::AssetState::LoadingCPU);
     EXPECT_EQ(loader.begun, 2u);
 
-    ASSERT_TRUE(world.destroyEntity(a));
+    ASSERT_TRUE(world.DestroyEntity(a));
     bindings.update();
-    const hz::Entity replacement = world.createEntity();
+    const hz::Entity replacement = world.CreateEntity();
     EXPECT_NE(replacement, a);
-    ASSERT_TRUE(world.setComponent(replacement, hz::SceneTypes::meshRenderer, &second));
+    ASSERT_TRUE(world.SetComponent(replacement, hz::SceneTypes::meshRenderer, &second));
     bindings.update();
     EXPECT_EQ(bindings.Get(a), nullptr);
     EXPECT_EQ(bindings.Get(replacement)->state, hz::AssetBindingState::Pending);
@@ -1438,13 +1438,13 @@ TEST_F(AssetManagerTest, RenderSceneKeepsPendingEntriesAndRejectsReusedGeneratio
     hz::AssetManager assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World              world(types);
     hz::RenderScene        scene(world, assetManager);
     const hz::MeshRenderer renderer = { .mesh = assetID(1) };
-    const hz::Entity       a = world.createEntity(), b = world.createEntity();
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
-    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
+    const hz::Entity       a = world.CreateEntity(), b = world.CreateEntity();
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     assetManager.update();
     const hz::RenderPrimitiveID first = scene.findPrimitive(a), second = scene.findPrimitive(b);
@@ -1472,7 +1472,7 @@ TEST_F(AssetManagerTest, RenderSceneKeepsPendingEntriesAndRejectsReusedGeneratio
     EXPECT_EQ(scene.getRevision(), revision);
     EXPECT_EQ(scene.getChanges().primitives.ranges.Count, 0u);
     EXPECT_EQ(scene.getChanges().instances.ranges.Count, 0u);
-    ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
+    ASSERT_TRUE(world.RemoveComponent(a, hz::SceneTypes::meshRenderer));
     scene.update();
     EXPECT_EQ(scene.getPrimitive(first), nullptr);
     EXPECT_EQ(scene.getInstance(instance), nullptr);
@@ -1481,14 +1481,14 @@ TEST_F(AssetManagerTest, RenderSceneKeepsPendingEntriesAndRejectsReusedGeneratio
     ASSERT_EQ(scene.getChanges().primitives.removed.Count, 1u);
     EXPECT_EQ(scene.getChanges().primitives.removed.Data[0], first.index);
     EXPECT_TRUE(scene.getChanges().primitives.activeList);
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     const hz::RenderPrimitiveID replacement = scene.findPrimitive(a);
     EXPECT_EQ(replacement.index, first.index);
     EXPECT_NE(replacement.generation, first.generation);
     EXPECT_EQ(scene.getPrimitive(first), nullptr);
     EXPECT_EQ(scene.getInstance(instance), nullptr);
-    ASSERT_TRUE(world.destroyEntity(b));
+    ASSERT_TRUE(world.DestroyEntity(b));
     scene.update();
     EXPECT_EQ(scene.getPrimitive(second), nullptr);
     EXPECT_EQ(scene.getActivePrimitives().Count, 1u);
@@ -1505,29 +1505,29 @@ TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocatin
     hz::AssetManager assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World              world(types);
     hz::RenderScene        scene(world, assetManager);
     hz::Array<hz::Entity>  entities;
     const hz::MeshRenderer renderer = { .mesh = assetID(1) };
     for (uint32_t i = 0; i < 40; ++i)
     {
-        const hz::Entity         entity = world.createEntity();
+        const hz::Entity         entity = world.CreateEntity();
         const hz::LocalTransform transform;
-        ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
-        ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
+        ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
+        ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
         entities.PushBack(entity);
     }
     scene.update();
     assetManager.update();
-    world.commitTransforms();
+    world.CommitTransforms();
     scene.update();
     const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (hz::Entity entity : entities)
         if ((scene.findPrimitive(entity).index % 2) == 0)
         {
             const hz::LocalTransform transform = { .translation = Vector3(2, 0, 0) };
-            ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
+            ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
         }
     scene.update();
     const MemoryTrackingStats after = GetMemoryTrackingStats();
@@ -1557,14 +1557,14 @@ TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
     hz::AssetManager assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World              world(types);
     hz::RenderScene        scene(world, assetManager);
-    const hz::Entity       entity = world.createEntity();
+    const hz::Entity       entity = world.CreateEntity();
     const hz::MeshRenderer renderer = { .mesh = assetID(1) };
     hz::LocalTransform     transform;
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
     scene.update();
     const hz::RenderSceneUploads initial = scene.getPendingUploads();
     EXPECT_EQ(initial.primitives.Count, 1u);
@@ -1576,7 +1576,7 @@ TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
     for (uint32_t i = 1; i <= 4; ++i)
     {
         transform.translation = Vector3((float)i, 0, 0);
-        ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
+        ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
         scene.update();
     }
     // getChanges() covers only the latest update; pending uploads keep everything not yet acknowledged.
@@ -1588,7 +1588,7 @@ TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
     EXPECT_EQ(moved.instances.Data[0].Count, 1u);
     EXPECT_EQ(moved.primitives.Count, 1u);
     EXPECT_TRUE(moved.activePrimitives);
-    ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::meshRenderer));
+    ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::meshRenderer));
     scene.update();
     const hz::RenderSceneUploads removal = scene.getPendingUploads();
     EXPECT_TRUE(removal.activePrimitives);
@@ -1604,14 +1604,14 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     hz::AssetCatalog catalog;
     hz::AssetManager assetManager(catalog);
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World       world(types);
     hz::RenderScene scene(world, assetManager);
     scene.Reserve(0, 0, 9, 9);
-    const hz::Entity parent = world.createEntity();
+    const hz::Entity parent = world.CreateEntity();
     Matrix4          parentMatrix = Matrix4::translation(Vector3(10, 20, 30)) * Matrix4::scale(Vector3(2, 3, 4));
     parentMatrix.setElem(1, 0, 0.5f);
-    ASSERT_TRUE(world.setComponent(parent, hz::SceneTypes::localMatrix, &parentMatrix));
+    ASSERT_TRUE(world.SetComponent(parent, hz::SceneTypes::localMatrix, &parentMatrix));
     hz::FixedArray<hz::Entity, 9> entities;
     hz::Light                     light = { .color = Vector3(0.1f, 0.2f, 0.3f),
                                             .intensity = 5,
@@ -1632,11 +1632,11 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     hz::LocalTransform            transform = { .translation = Vector3(1, 2, 3) };
     for (uint32_t i = 0; i < 9; ++i)
     {
-        entities[i] = world.createPersistentEntity({ .high = 2, .low = i + 1 });
+        entities[i] = world.CreatePersistentEntity({ .high = 2, .low = i + 1 });
         light.Type = (hz::LightType)i;
-        ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::light, &light));
-        ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::camera, &lens));
-        ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::localTransform, &transform));
+        ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::light, &light));
+        ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::camera, &lens));
+        ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::localTransform, &transform));
         ASSERT_TRUE(world.setParent(entities[i], parent, false));
     }
     scene.update();
@@ -1646,7 +1646,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     {
         const hz::RenderLight* extracted = scene.getLight(scene.findLight(entities[i]));
         ASSERT_NE(extracted, nullptr);
-        EXPECT_EQ(extracted->entityGuid, world.getEntityGuid(entities[i]));
+        EXPECT_EQ(extracted->entityGuid, world.GetEntityGuid(entities[i]));
         EXPECT_EQ(extracted->Type, (hz::LightType)i);
         EXPECT_EQ(extracted->ready, i == 8 ? 0u : 1u);
         EXPECT_FLOAT_EQ(extracted->color[2], 0.3f);
@@ -1685,8 +1685,8 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     lens.verticalFov = 0.6f;
     for (uint32_t i = 0; i < 9; i += 2)
     {
-        ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::localTransform, &transform));
-        ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::camera, &lens));
+        ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::localTransform, &transform));
+        ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::camera, &lens));
     }
     scene.update();
     const hz::RenderSceneChanges changes = scene.getChanges();
@@ -1703,8 +1703,8 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     }
     const hz::RenderLightID  oldLight = scene.findLight(entities[0]);
     const hz::RenderCameraID oldCamera = scene.findCamera(entities[0]);
-    ASSERT_TRUE(world.removeComponent(entities[0], hz::SceneTypes::light));
-    ASSERT_TRUE(world.removeComponent(entities[0], hz::SceneTypes::camera));
+    ASSERT_TRUE(world.RemoveComponent(entities[0], hz::SceneTypes::light));
+    ASSERT_TRUE(world.RemoveComponent(entities[0], hz::SceneTypes::camera));
     scene.update();
     EXPECT_EQ(scene.getLight(oldLight), nullptr);
     EXPECT_EQ(scene.getCamera(oldCamera), nullptr);
@@ -1712,8 +1712,8 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     EXPECT_FALSE(scene.findCamera(entities[0]).IsValid());
     EXPECT_TRUE(scene.getChanges().lights.activeList);
     EXPECT_TRUE(scene.getChanges().cameras.activeList);
-    ASSERT_TRUE(world.setComponent(entities[0], hz::SceneTypes::light, &light));
-    ASSERT_TRUE(world.setComponent(entities[0], hz::SceneTypes::camera, &lens));
+    ASSERT_TRUE(world.SetComponent(entities[0], hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(entities[0], hz::SceneTypes::camera, &lens));
     scene.update();
     EXPECT_EQ(scene.findLight(entities[0]).index, oldLight.index);
     EXPECT_NE(scene.findLight(entities[0]).generation, oldLight.generation);
@@ -1722,7 +1722,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     const hz::RenderCamera* replacement = scene.getCamera(scene.findCamera(entities[0]));
     EXPECT_FLOAT_EQ(replacement->previousLens.verticalFov, 0.6f);
     EXPECT_FLOAT_EQ((float)replacement->previous.getElem(3, 0), 15.5f);
-    ASSERT_TRUE(world.destroySubtree(parent));
+    ASSERT_TRUE(world.DestroySubtree(parent));
     scene.update();
     EXPECT_EQ(scene.getActiveLights().Count, 0u);
     EXPECT_EQ(scene.getActiveCameras().Count, 0u);
@@ -1740,12 +1740,12 @@ TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLease
     add(catalog, 2);
     assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World        world(types);
     hz::RenderScene  scene(world, assetManager);
-    const hz::Entity a = world.createEntity(), b = world.createEntity();
+    const hz::Entity a = world.CreateEntity(), b = world.CreateEntity();
     hz::Light        light = { .Type = hz::LightType::Dome, .texture = assetID(1) };
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::light, &light));
     scene.update();
     const hz::RenderLightID id = scene.findLight(a);
     const hz::AssetHandle   Handle = assetManager.find(light.texture);
@@ -1754,14 +1754,14 @@ TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLease
     EXPECT_EQ(scene.getLight(id)->ready, 0u);
     EXPECT_FALSE(scene.getLight(id)->texture.IsValid());
     light.Type = hz::LightType::Point;
-    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::light, &light));
     scene.update();
     EXPECT_EQ(scene.getLight(scene.findLight(b))->ready, 1u);
     EXPECT_FALSE(scene.getLight(scene.findLight(b))->texture.IsValid());
     // Move the only lease from a to b in one update, without retiring the texture.
-    ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::light));
+    ASSERT_TRUE(world.RemoveComponent(a, hz::SceneTypes::light));
     light.Type = hz::LightType::Rect;
-    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::light, &light));
     scene.update();
     assetManager.update();
     EXPECT_EQ(assetManager.find(light.texture), Handle);
@@ -1778,21 +1778,21 @@ TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLease
     }
     EXPECT_EQ(loader.begun, 1u);
     light.texture = assetID(999);
-    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::light, &light));
     scene.update();
     assetManager.update();
     EXPECT_FALSE(assetManager.find(assetID(1)).IsValid());
     EXPECT_EQ(scene.getLight(scene.findLight(b))->ready, 0u);
     scene.update();
     light.texture = {};
-    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::light, &light));
     scene.update();
     EXPECT_EQ(scene.getLight(scene.findLight(b))->ready, 1u);
     EXPECT_EQ(assetManager.getCount(), 0u);
     // A Ready payload of another Type must never become a GPU texture reference.
     loader.ready = true;
     light.texture = assetID(2);
-    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::light, &light));
     scene.update();
     assetManager.update();
     scene.update();
@@ -1809,11 +1809,11 @@ TEST_F(AssetManagerTest, WorldBindingsKeepFailedRequestsIdleUntilRebuilt)
     hz::AssetManager assetManager(catalog);
     assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World              world(types);
-    const hz::Entity       entity = world.createEntity();
+    const hz::Entity       entity = world.CreateEntity();
     const hz::MeshRenderer renderer = { .mesh = assetID(1) };
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
     hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
     ASSERT_EQ(bindings.Get(entity)->state, hz::AssetBindingState::Failed);
@@ -1852,8 +1852,8 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     writeScene(overrideText.c_str(), "override.sceneasset.json");
     writeGeometry();
     hz::SceneAsset scene, overrideScene;
-    ASSERT_TRUE(scene.parse({ sceneText.data(), (uint32_t)sceneText.size() }));
-    ASSERT_TRUE(overrideScene.parse({ overrideText.data(), (uint32_t)overrideText.size() }));
+    ASSERT_TRUE(scene.Parse({ sceneText.data(), (uint32_t)sceneText.size() }));
+    ASSERT_TRUE(overrideScene.Parse({ overrideText.data(), (uint32_t)overrideText.size() }));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
     const hz::AssetID alternate = overrideScene.getMaterials().Data[0].id;
@@ -1867,13 +1867,13 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World        world(types);
-    const hz::Entity a = world.createEntity(), b = world.createEntity();
+    const hz::Entity a = world.CreateEntity(), b = world.CreateEntity();
     hz::MeshRenderer renderer = { .mesh = scene.getMeshes().Data[0].id };
-    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::meshRenderer, &renderer));
     renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000003), .material = alternate });
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
     const hz::AssetHandle mesh = bindings.Get(a)->mesh;
@@ -1906,14 +1906,14 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     hz::CommandList& pending = context.AcquireCommandList();
     // Reverse authoring order; resolution follows stable SubmeshID, not override array position.
     renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = alternate });
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
     ASSERT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Ready);
     EXPECT_EQ(bindings.Get(a)->materials.Data[0].Handle, overrideMaterial);
     EXPECT_EQ(bindings.Get(a)->materials.Data[1].Handle, overrideMaterial);
 
     const hz::MeshRenderer pendingRenderer = { .mesh = scene.getMeshes().Data[1].id };
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &pendingRenderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &pendingRenderer));
     bindings.update();
     EXPECT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Pending);
     EXPECT_EQ(bindings.Get(a)->materials.Count, 0u);
@@ -1921,21 +1921,21 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     EXPECT_EQ(assetManager.getState(overrideMaterial), hz::AssetState::Retiring);
 
     renderer.overrides[0].submesh = 99;
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
     EXPECT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Failed);
     renderer.overrides[0].submesh = renderer.overrides[1].submesh;
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
     EXPECT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Failed);
     renderer.overrides.Clear();
     renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = scene.getTextures().Data[0].id });
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
     EXPECT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Failed);
 
-    ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
-    ASSERT_TRUE(world.destroyEntity(b));
+    ASSERT_TRUE(world.RemoveComponent(a, hz::SceneTypes::meshRenderer));
+    ASSERT_TRUE(world.DestroyEntity(b));
     bindings.update();
     assetManager.update();
     EXPECT_EQ(bindings.getCount(), 0u);
@@ -1962,8 +1962,8 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     writeScene(text.c_str());
     writeScene(alternateText.c_str(), "alternate.sceneasset.json");
     hz::SceneAsset assets, alternateAssets;
-    ASSERT_TRUE(assets.parse({ text.data(), (uint32_t)text.size() }));
-    ASSERT_TRUE(alternateAssets.parse({ alternateText.data(), (uint32_t)alternateText.size() }));
+    ASSERT_TRUE(assets.Parse({ text.data(), (uint32_t)text.size() }));
+    ASSERT_TRUE(alternateAssets.Parse({ alternateText.data(), (uint32_t)alternateText.size() }));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(assets, "scene.sceneasset.json"));
     const hz::AssetID alternate = alternateAssets.getMaterials().Data[0].id;
@@ -1977,19 +1977,19 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     hz::AssetManager  assetManager(catalog);
     loaders.registerLoaders(assetManager);
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World        world(types);
     hz::RenderScene  scene(world, assetManager);
     const hz::Guid   identity = { .high = 2, .low = 1 };
-    const hz::Entity a = world.createPersistentEntity(identity), b = world.createEntity();
+    const hz::Entity a = world.CreatePersistentEntity(identity), b = world.CreateEntity();
     hz::MeshRenderer renderer = { .mesh = assets.getMeshes().Data[0].id };
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
-    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::meshRenderer, &renderer));
     Matrix4 local;
     local = Matrix4::scale(Vector3(-2, 3, 0.5f));
     local.setElem(1, 0, 1.0f); // Shear X by Y.
     local.setTranslation(Vector3(10, 20, 30));
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localMatrix, &local));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::localMatrix, &local));
     scene.update();
     const hz::RenderPrimitiveID primitive = scene.findPrimitive(a);
     Wait(assetManager, assetManager.find(renderer.mesh));
@@ -2019,7 +2019,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1])->submesh, UINT64_C(0x8000000000000003));
     const hz::GpuMaterialID original = scene.getMeshBatch(meshBatchIDs[0])->material;
 
-    world.commitTransforms();
+    world.CommitTransforms();
     scene.update();
     const uint64_t            revision = scene.getRevision();
     const MemoryTrackingStats before = GetMemoryTrackingStats();
@@ -2034,7 +2034,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_EQ(scene.getRevision(), revision);
     EXPECT_EQ(scene.getChanges().meshBatches.ranges.Count, 0u);
     local.setTranslation(Vector3(11, 20, 30));
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localMatrix, &local));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::localMatrix, &local));
     scene.update();
     EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->current.getElem(3, 0), 11);
     EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->previous.getElem(3, 0), 11);
@@ -2051,7 +2051,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_EQ(scene.getChanges().instances.ranges.Count, 0u);
 
     renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000003), .material = alternate });
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     EXPECT_EQ(scene.getPrimitive(primitive)->instanceCount, 0u);
     EXPECT_NE(scene.getMeshBatch(meshBatchIDs[0]), nullptr);
@@ -2066,7 +2066,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
               (hz::GpuMaterialID{ .index = alternateHandle.index, .generation = alternateHandle.generation }));
     EXPECT_EQ(scene.getChanges().meshBatches.created.Count, 0u);
     renderer.overrides.Clear();
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1])->material, original);
     EXPECT_EQ(scene.getChanges().primitives.ranges.Count, 0u);
@@ -2074,7 +2074,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_EQ(scene.getChanges().meshBatches.ranges.Data[0].first, meshBatchIDs[1].index);
     EXPECT_EQ(scene.getChanges().meshBatches.ranges.Data[0].Count, 1u);
 
-    ASSERT_TRUE(world.destroyEntity(a));
+    ASSERT_TRUE(world.DestroyEntity(a));
     scene.update();
     EXPECT_EQ(scene.getPrimitive(primitive), nullptr);
     EXPECT_EQ(scene.getInstance(instanceID), nullptr);
@@ -2085,8 +2085,8 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     const hz::RenderPrimitiveID survivor = scene.findPrimitive(b);
     const uint32_t              survivingInstance = scene.getInstanceIndices().Data[scene.getPrimitive(survivor)->instanceOffset];
     EXPECT_EQ(scene.getInstances().Data[survivingInstance].primitive, survivor);
-    const hz::Entity replacement = world.createPersistentEntity(identity);
-    ASSERT_TRUE(world.setComponent(replacement, hz::SceneTypes::meshRenderer, &renderer));
+    const hz::Entity replacement = world.CreatePersistentEntity(identity);
+    ASSERT_TRUE(world.SetComponent(replacement, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     const hz::RenderPrimitiveID reused = scene.findPrimitive(replacement);
     EXPECT_EQ(reused.index, primitive.index);
@@ -2128,7 +2128,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     writeScene();
     writeGeometry();
     hz::SceneAsset assets;
-    ASSERT_TRUE(assets.parse(kTypedScene));
+    ASSERT_TRUE(assets.Parse(kTypedScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(assets, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "GpuSceneTest", .enableGpuValidation = true });
@@ -2136,15 +2136,15 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World              world(types);
     hz::RenderScene        scene(world, assetManager);
-    const hz::Entity       a = world.createEntity(), b = world.createEntity();
+    const hz::Entity       a = world.CreateEntity(), b = world.CreateEntity();
     const hz::MeshRenderer renderer = { .mesh = assets.getMeshes().Data[0].id };
     hz::LocalTransform     transform = { .translation = Vector3(1, 0, 0) };
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
-    ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &renderer));
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::localTransform, &transform));
     scene.update();
     const hz::AssetHandle meshHandle = assetManager.find(renderer.mesh);
     Wait(assetManager, meshHandle);
@@ -2203,7 +2203,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
 
     // Unchanged tables persist on the GPU without another upload.
     transform.translation = Vector3(2, 0, 0);
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::localTransform, &transform));
     const GpuSceneCopy movedCopies[] = {
         instanceCopy,
         { .table = &hz::GpuSceneBuffers::textures,
@@ -2221,7 +2221,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
 
     // A cancelled frame keeps its changes pending and does not advance history.
     transform.translation = Vector3(3, 0, 0);
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::localTransform, &transform));
     ASSERT_TRUE(gpu.beginFrame());
     gpu.cancelFrame();
     renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
@@ -2235,7 +2235,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     for (uint32_t i = 0; i < 12; ++i)
     {
         transform.translation = Vector3((float)i + 100, 0, 0);
-        ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
+        ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::localTransform, &transform));
         scene.update();
     }
     renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
@@ -2246,7 +2246,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     for (uint32_t i = 0; i < 30; ++i)
     {
         transform.translation = Vector3((float)i + 200, 0, 0);
-        ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
+        ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::localTransform, &transform));
         renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
         EXPECT_FLOAT_EQ(translationX(copiedInstance.current), (float)i + 200);
         EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), i ? (float)i + 199 : 111.0f);
@@ -2260,14 +2260,14 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
 
     // A teleport resets history for the next submitted frame.
     transform.translation = Vector3(300, 0, 0);
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::localTransform, &transform));
     scene.markDirty(a);
     renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
     EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 300);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 300);
 
     // Removal frees the slots; re-adding reuses them with new generations and fresh history.
-    ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
+    ASSERT_TRUE(world.RemoveComponent(a, hz::SceneTypes::meshRenderer));
     const GpuSceneCopy activeCopies[] = {
         { .table = &hz::GpuSceneBuffers::activePrimitives, .Size = sizeof(uint32_t) },
         { .table = &hz::GpuSceneBuffers::instanceIndices,
@@ -2279,7 +2279,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     EXPECT_EQ(scene.getActivePrimitives().Count, 1u);
     EXPECT_EQ(((const uint32_t*)pBytes)[0], scene.findPrimitive(b).index);
     EXPECT_EQ(((const uint32_t*)pBytes)[1], UINT32_MAX);
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
     const hz::RenderPrimitiveID reused = scene.findPrimitive(a);
     EXPECT_EQ(reused.index, primitive.index);
@@ -2290,8 +2290,8 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 300);
 
     // Released meshes leave the uploaded tables and retire once the GPU no longer uses them.
-    ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
-    ASSERT_TRUE(world.removeComponent(b, hz::SceneTypes::meshRenderer));
+    ASSERT_TRUE(world.RemoveComponent(a, hz::SceneTypes::meshRenderer));
+    ASSERT_TRUE(world.RemoveComponent(b, hz::SceneTypes::meshRenderer));
     renderGpuSceneFrame(context, gpu, readback, { &meshCopy, 1 });
     EXPECT_EQ(scene.getActivePrimitives().Count, 0u);
     EXPECT_FALSE(copiedMesh.id.IsValid());
@@ -2299,7 +2299,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     EXPECT_EQ(assetManager.getCount(), 0u);
 
     // Reloading uses a new slot generation; the old GPU mesh ID stays invalid.
-    ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     const hz::AssetHandle reloaded = assetManager.find(renderer.mesh);
     Wait(assetManager, reloaded);
@@ -2315,7 +2315,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     writeScene();
     writeGeometry();
     hz::SceneAsset assets;
-    ASSERT_TRUE(assets.parse(kTypedScene));
+    ASSERT_TRUE(assets.Parse(kTypedScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(assets, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "GpuSceneLightTest", .enableGpuValidation = true });
@@ -2323,17 +2323,17 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World              world(types);
     hz::RenderScene        scene(world, assetManager);
-    const hz::Entity       entity = world.createEntity();
+    const hz::Entity       entity = world.CreateEntity();
     hz::Light              light = { .Type = hz::LightType::Mesh, .intensity = 4, .texture = assets.getTextures().Data[0].id };
     hz::Camera             lens = { .verticalFov = 0.8f };
     hz::LocalTransform     transform = { .translation = Vector3(1, 0, 0) };
     const hz::MeshRenderer renderer = { .mesh = assets.getMeshes().Data[0].id };
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::light, &light));
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &lens));
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::camera, &lens));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
     scene.update();
     const hz::RenderLightID  lightID = scene.findLight(entity);
     const hz::RenderCameraID cameraID = scene.findCamera(entity);
@@ -2343,7 +2343,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     scene.update();
     EXPECT_EQ(scene.getLight(lightID)->ready, 0u); // Mesh emitter still has no mesh.
     EXPECT_TRUE(scene.getLight(lightID)->texture.IsValid());
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     Wait(assetManager, assetManager.find(renderer.mesh));
     scene.update();
@@ -2387,9 +2387,9 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     transform.translation = Vector3(2, 0, 0);
     lens.verticalFov = 0.6f;
     light.intensity = 8;
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &lens));
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::camera, &lens));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::light, &light));
     renderGpuSceneFrame(context, gpu, readback, copies);
     EXPECT_FLOAT_EQ(translationX(copiedCamera.current), 2);
     EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 1);
@@ -2406,8 +2406,8 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     {
         transform.translation = Vector3((float)i + 4, 0, 0);
         lens.verticalFov = 0.6f + 0.001f * i;
-        ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
-        ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &lens));
+        ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
+        ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::camera, &lens));
         renderGpuSceneFrame(context, gpu, readback, copies);
         EXPECT_FLOAT_EQ(translationX(copiedCamera.current), (float)i + 4);
         EXPECT_FLOAT_EQ(translationX(copiedLight.transform), (float)i + 4);
@@ -2423,15 +2423,15 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     // A camera cut resets history for the next submitted frame.
     transform.translation = Vector3(100, 0, 0);
     lens.verticalFov = 1;
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &lens));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::camera, &lens));
     scene.markDirty(entity);
     renderGpuSceneFrame(context, gpu, readback, copies);
     EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 100);
     EXPECT_FLOAT_EQ(copiedCamera.previousLens.verticalFov, 1);
 
     // Removing only the mesh disables its emitter, keeping the light slot and texture lease.
-    ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::meshRenderer));
+    ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::meshRenderer));
     renderGpuSceneFrame(context, gpu, readback, copies);
     assetManager.update();
     EXPECT_EQ(scene.findLight(entity), lightID);
@@ -2440,12 +2440,12 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     EXPECT_EQ(assetManager.getState(textureHandle), hz::AssetState::Ready);
 
     light.Type = hz::LightType::Dome;
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::light, &light));
     renderGpuSceneFrame(context, gpu, readback, copies);
     const hz::GpuTextureID textureID = copiedLight.texture;
     ASSERT_TRUE(textureID.IsValid());
-    ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::light));
-    ASSERT_TRUE(world.removeComponent(entity, hz::SceneTypes::camera));
+    ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::light));
+    ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::camera));
     const GpuSceneCopy textureCopy = { .table = &hz::GpuSceneBuffers::textures,
                                        .srcOffset = sizeof(hz::GpuTextureData) * textureID.index,
                                        .dstOffset = 768,
@@ -2458,8 +2458,8 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     EXPECT_EQ(assetManager.getCount(), 0u);
 
     light.texture = {};
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::light, &light));
-    ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::camera, &lens));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::camera, &lens));
     renderGpuSceneFrame(context, gpu, readback, copies);
     const hz::RenderCameraID reusedCamera = scene.findCamera(entity);
     EXPECT_EQ(reusedCamera.index, cameraID.index);
@@ -2481,7 +2481,7 @@ TEST_F(AssetManagerTest, GpuSceneUploadsSparseChangesForOneHundredThousandEntiti
     hz::AssetManager  assetManager(catalog, &context);
     assetManager.setLoader(hz::AssetType::Mesh, loader.getLoader());
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::World              world(types);
     hz::RenderScene        scene(world, assetManager);
     constexpr uint32_t     kEntityCount = 100000;
@@ -2491,10 +2491,10 @@ TEST_F(AssetManagerTest, GpuSceneUploadsSparseChangesForOneHundredThousandEntiti
     entities.Reserve(kEntityCount);
     for (uint32_t i = 0; i < kEntityCount; ++i)
     {
-        const hz::Entity         entity = world.createEntity();
+        const hz::Entity         entity = world.CreateEntity();
         const hz::LocalTransform transform = { .translation = Vector3((float)i, 0, 0) };
-        ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
-        ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::localTransform, &transform));
+        ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
+        ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
         entities.PushBack(entity);
     }
     hz::GpuScene gpu(scene, assetManager, context);
@@ -2515,7 +2515,7 @@ TEST_F(AssetManagerTest, GpuSceneUploadsSparseChangesForOneHundredThousandEntiti
         for (uint32_t i = frame; i < kEntityCount; i += kStride)
         {
             const hz::LocalTransform transform = { .translation = Vector3((float)i, (float)frame + 1, 0) };
-            ASSERT_TRUE(world.setComponent(entities[i], hz::SceneTypes::localTransform, &transform));
+            ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::localTransform, &transform));
         }
         // Primitive and instance slots are allocated together, so their indices match.
         const uint32_t     instance = scene.findPrimitive(entities[frame]).index;
@@ -2540,7 +2540,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     writeScene();
     writeGeometry();
     hz::SceneAsset assets;
-    ASSERT_TRUE(assets.parse(kTypedScene));
+    ASSERT_TRUE(assets.Parse(kTypedScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(assets, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "WorldWorkflowTest", .enableGpuValidation = true });
@@ -2551,7 +2551,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     Wait(assetManager, source);
     ASSERT_EQ(assetManager.getState(source), hz::AssetState::Ready);
     hz::TypeRegistry types;
-    ASSERT_TRUE(types.registerBuiltins());
+    ASSERT_TRUE(types.RegisterBuiltins());
     hz::UniquePtr<hz::World> world = hz::MakeUnique<hz::World>(types);
     const hz::Entity          root = assetManager.getScene(source)->instantiate(*world);
     hz::Entity                first, second;
@@ -2563,7 +2563,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
             hz::Entity* second;
             hz::AssetID mesh;
         } nodes = { &first, &second, assets.getMeshes().Data[0].id };
-        query.each(
+        query.Each(
             [](hz::Entity entity, hz::Span<const void*> fields, void* user)
             {
                 Nodes& nodes = *(Nodes*)user;
@@ -2575,15 +2575,15 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     ASSERT_TRUE(first.IsValid() && second.IsValid());
     Matrix4 transform = Matrix4::translation(Vector3(5, 0, 0));
     transform.setElem(1, 0, 0.25f);
-    ASSERT_TRUE(world->setComponent(root, hz::SceneTypes::localMatrix, &transform));
+    ASSERT_TRUE(world->SetComponent(root, hz::SceneTypes::localMatrix, &transform));
     ASSERT_TRUE(world->setParent(first, second, false));
     const hz::Name name = { "Edited" };
-    ASSERT_TRUE(world->setComponent(first, hz::SceneTypes::name, &name));
+    ASSERT_TRUE(world->SetComponent(first, hz::SceneTypes::name, &name));
     hz::MeshRenderer renderer = { .mesh = assets.getMeshes().Data[0].id };
     renderer.overrides.PushBack(
         { .submesh = assets.getMeshes().Data[0].submeshes.Data[0].id, .material = assets.getMaterials().Data[0].id });
-    ASSERT_TRUE(world->setComponent(first, hz::SceneTypes::meshRenderer, &renderer));
-    const hz::Guid   rootID = world->getEntityGuid(root), firstID = world->getEntityGuid(first), secondID = world->getEntityGuid(second);
+    ASSERT_TRUE(world->SetComponent(first, hz::SceneTypes::meshRenderer, &renderer));
+    const hz::Guid   rootID = world->GetEntityGuid(root), firstID = world->GetEntityGuid(first), secondID = world->GetEntityGuid(second);
     hz::WorldArchive saved;
     ASSERT_TRUE(saved.capture(*world));
     ASSERT_TRUE(saved.save(DirectoryOtherFiles, "edited.world.json"));
@@ -2601,12 +2601,12 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     const hz::AssetHandle        oldMesh = assetManager.find(renderer.mesh);
     for (uint32_t pass = 0; pass < 2; ++pass)
     {
-        const hz::Entity entity = world->getEntity(firstID);
+        const hz::Entity entity = world->GetEntity(firstID);
         ASSERT_TRUE(entity.IsValid());
-        EXPECT_EQ(world->getParent(entity), world->getEntity(secondID));
-        EXPECT_EQ(world->getParent(world->getEntity(secondID)), world->getEntity(rootID));
-        EXPECT_STREQ(((const hz::Name*)world->getComponent(entity, hz::SceneTypes::name))->value, "Edited");
-        const hz::MeshRenderer* meshRenderer = (const hz::MeshRenderer*)world->getComponent(entity, hz::SceneTypes::meshRenderer);
+        EXPECT_EQ(world->GetParent(entity), world->GetEntity(secondID));
+        EXPECT_EQ(world->GetParent(world->GetEntity(secondID)), world->GetEntity(rootID));
+        EXPECT_STREQ(((const hz::Name*)world->GetComponent(entity, hz::SceneTypes::name))->value, "Edited");
+        const hz::MeshRenderer* meshRenderer = (const hz::MeshRenderer*)world->GetComponent(entity, hz::SceneTypes::meshRenderer);
         ASSERT_NE(meshRenderer, nullptr);
         ASSERT_EQ(meshRenderer->overrides.Size(), 1u);
         EXPECT_EQ(meshRenderer->mesh, renderer.mesh);
@@ -2685,7 +2685,7 @@ TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancels
     writeScene();
     writeGeometry();
     hz::SceneAsset scene;
-    ASSERT_TRUE(scene.parse(kTypedScene));
+    ASSERT_TRUE(scene.Parse(kTypedScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(scene, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "TypedAssetFailureTest" });
@@ -2767,7 +2767,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     writeScene();
     writeGeometry(IndexTypeUInt16);
     hz::SceneAsset asset;
-    ASSERT_TRUE(asset.parse(kTypedScene));
+    ASSERT_TRUE(asset.Parse(kTypedScene));
     hz::AssetCatalog catalog;
     ASSERT_TRUE(catalog.addScene(asset, "scene.sceneasset.json"));
     hz::RenderContext context({ .pAppName = "IndirectDrawIdTest", .enableGpuValidation = true });

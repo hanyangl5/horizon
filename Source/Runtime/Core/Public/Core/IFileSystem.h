@@ -254,7 +254,7 @@ extern "C"
 
     struct ArchiveOpenDesc
     {
-        // Binary search "strcmp" is used as an alternative to hash table.
+        // Binary search "strcmp" is used as an alternative to Hash table.
         // Increases archive opening speed and decreases used memory.
         // Useful if user won't resolve filenames (GetFileUid, Open),
         // and will use UIDs instead (OpenByUid).
@@ -474,7 +474,7 @@ extern "C"
     // Metadata consist of following units:
     //    archive nodes (file entries)
     //    block of utf8 strings, referenced by nodes
-    //    precomputed hash table (optional)
+    //    precomputed Hash table (optional)
     //
     // Archive node contains file location within archive and other details
     //

@@ -34,12 +34,12 @@ static bool readID(const cJSON* pValue, Guid& id, bool nullable = false)
         id = {};
         return true;
     }
-    return cJSON_IsString(pValue) && id.parse(pValue->valuestring) && id.IsValid();
+    return cJSON_IsString(pValue) && id.Parse(pValue->valuestring) && id.IsValid();
 }
 static void addID(cJSON* pObject, const char* Name, Guid id)
 {
     char text[kIDStringCapacity];
-    id.toString(text);
+    id.ToString(text);
     cJSON_AddItemToObject(pObject, Name, id.IsValid() ? cJSON_CreateString(text) : cJSON_CreateNull());
 }
 static bool typeID(const cJSON* pComponent, TypeID& Type)
@@ -67,7 +67,7 @@ static int compareTypes(const void* pA, const void* pB)
 
 WorldArchive::~WorldArchive() { MemDelete(Data); }
 Guid WorldArchive::getID() const { return Data ? Data->id : Guid{}; }
-bool WorldArchive::parse(Span<char> json)
+bool WorldArchive::Parse(Span<char> json)
 {
     UniquePtr<WorldArchiveData> candidate = MakeUnique<WorldArchiveData>();
     candidate->pRoot = parseWorldJson(json);
@@ -103,7 +103,7 @@ bool WorldArchive::serialize(Array<char>& json) const
 }
 bool WorldArchive::capture(World& world, Guid id)
 {
-    if (world.isDeferred())
+    if (world.IsDeferred())
     {
         LOGF(Error, "Cannot capture a deferred World");
         return false;
@@ -144,9 +144,9 @@ bool WorldArchive::capture(World& world, Guid id)
     cJSON* pEntities = cJSON_AddArrayToObject(root.pValue, "entities");
     for (Guid guid : guids)
     {
-        const Entity entity = world.getEntity(guid);
-        const Entity parent = world.getParent(entity);
-        const Guid   parentID = world.getEntityGuid(parent);
+        const Entity entity = world.GetEntity(guid);
+        const Entity parent = world.GetParent(entity);
+        const Guid   parentID = world.GetEntityGuid(parent);
         if (parent.IsValid() && !parentID.IsValid())
         {
             LOGF(Error, "A persistent entity's parent must have a Guid");
@@ -156,7 +156,7 @@ bool WorldArchive::capture(World& world, Guid id)
         cJSON_AddItemToArray(pEntities, pEntityJson);
         addID(pEntityJson, "id", guid);
         addID(pEntityJson, "parent", parentID);
-        const Name* NameComponent = (const Name*)world.getComponent(entity, SceneTypes::name);
+        const Name* NameComponent = (const Name*)world.GetComponent(entity, SceneTypes::name);
         if (NameComponent && !memchr(NameComponent->value, 0, sizeof(NameComponent->value)))
         {
             return false;
@@ -165,7 +165,7 @@ bool WorldArchive::capture(World& world, Guid id)
         cJSON* pComponents = cJSON_AddArrayToObject(pEntityJson, "components");
         for (const TypeDesc* pType : types)
         {
-            const void* pValue = world.getComponent(entity, pType->id);
+            const void* pValue = world.GetComponent(entity, pType->id);
             if (!pValue)
             {
                 continue;
@@ -195,7 +195,7 @@ bool WorldArchive::capture(World& world, Guid id)
     {
         return false;
     }
-    const bool result = parse({ pText, (uint32_t)strlen(pText) });
+    const bool result = Parse({ pText, (uint32_t)strlen(pText) });
     cJSON_free(pText);
     return result;
 }
@@ -203,7 +203,7 @@ bool WorldArchive::capture(World& world, Guid id)
 class ComponentValue
 {
 public:
-    explicit ComponentValue(const TypeDesc& Type): Type(Type), pValue(MemAllocateAligned(Type.alignment, Type.Size)) { Type.construct(pValue); }
+    explicit ComponentValue(const TypeDesc& Type): Type(Type), pValue(MemAllocateAligned(Type.alignment, Type.Size)) { Type.Construct(pValue); }
     ~ComponentValue()
     {
         Type.Destroy(pValue);
@@ -243,7 +243,7 @@ public:
             {
                 return false;
             }
-            node.entity = world.createPersistentEntity(node.id);
+            node.entity = world.CreatePersistentEntity(node.id);
             if (!node.entity.IsValid())
             {
                 return false;
@@ -252,7 +252,7 @@ public:
             {
                 Name name;
                 strcpy(name.value, NameField->valuestring);
-                if (!world.setComponent(node.entity, SceneTypes::name, &name))
+                if (!world.SetComponent(node.entity, SceneTypes::name, &name))
                 {
                     return false;
                 }
@@ -352,12 +352,12 @@ static bool loadComponent(const cJSON* pComponent, const TypeDesc& Type, uint32_
     }
     ComponentValue value(Type);
     return readWorldProperties(Type, pProperties, value.pValue) && normalizeWorldComponent(Type.id, value.pValue, true) &&
-           validateWorldReferences(Type, value.pValue, world) && world.setComponent(entity, Type.id, value.pValue);
+           validateWorldReferences(Type, value.pValue, world) && world.SetComponent(entity, Type.id, value.pValue);
 }
 bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& target, Span<ComponentMigration> migrations,
                                const IDGenerator& entityGuids) const
 {
-    if (!Data || (target && target->isDeferred()))
+    if (!Data || (target && target->IsDeferred()))
     {
         return false;
     }
@@ -408,7 +408,7 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
                 }
             }
             present.PushBack(id);
-            const TypeDesc* pType = types.getType(id);
+            const TypeDesc* pType = types.GetType(id);
             if (!pType || id == SceneTypes::entityIdentity || id == SceneTypes::name ||
                 !loadComponent(pComponent, *pType, version, migrations, *staging, node.entity))
             {
@@ -423,10 +423,10 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
         const WorldLoadNode& node = plan.nodes[index];
         if (node.parentIndex != UINT32_MAX)
         {
-            staging->attachParent(node.entity, plan.nodes[node.parentIndex].entity);
+            staging->AttachParent(node.entity, plan.nodes[node.parentIndex].entity);
         }
     }
-    staging->updateTransforms();
+    staging->UpdateTransforms();
     target.Swap(staging);
     return true;
 }
@@ -453,7 +453,7 @@ bool WorldArchive::load(ResourceDirectory directory, const char* pFileName)
         LOGF(Error, "Cannot read World archive '%s'", pFileName);
         return false;
     }
-    return parse({ bytes.GetData(), bytes.Size() });
+    return Parse({ bytes.GetData(), bytes.Size() });
 }
 static bool writeWorldFile(ResourceDirectory directory, const char* pFileName, Span<char> text)
 {

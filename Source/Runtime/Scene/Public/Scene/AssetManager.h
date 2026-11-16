@@ -68,7 +68,7 @@ struct AssetLoader
     // On shutdown this must drain unfinished work before destroying the request.
     void (*pDestroyRequest)(void* pRequest, void* UserData) = nullptr;
     void (*pDestroyPayload)(void* pPayload, void* UserData) = nullptr;
-    // Optional GPU phase, called after all dependencies are ready. pollUpload owns failure detection and drains partial uploads.
+    // Optional GPU phase, called after all dependencies are ready. pollUpload Owns failure detection and drains partial uploads.
     void (*pUpload)(void* pPayload, const AssetManager&, Span<AssetHandle> dependencies, void* UserData) = nullptr;
     AssetLoadStatus (*pPollUpload)(void* pPayload, void* UserData) = nullptr;
     void (*pWaitUpload)(void* pPayload, void* UserData) = nullptr;

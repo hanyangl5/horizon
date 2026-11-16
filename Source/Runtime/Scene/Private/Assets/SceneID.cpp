@@ -88,13 +88,13 @@ static void formatIDWords(uint64_t high, uint64_t low, char (&text)[kIDStringCap
 
 static uint64_t hashIDWords(uint64_t high, uint64_t low)
 {
-    uint64_t hash = UINT64_C(14695981039346656037);
+    uint64_t Hash = UINT64_C(14695981039346656037);
     for (uint32_t i = 0; i < 16; ++i)
     {
-        hash ^= (uint8_t)((i < 8 ? high : low) >> ((7 - i % 8) * 8));
-        hash *= UINT64_C(1099511628211);
+        Hash ^= (uint8_t)((i < 8 ? high : low) >> ((7 - i % 8) * 8));
+        Hash *= UINT64_C(1099511628211);
     }
-    return hash;
+    return Hash;
 }
 
 AssetID AssetID::create(const IDGenerator& generator)
@@ -111,10 +111,10 @@ Guid Guid::create(const IDGenerator& generator)
     return id;
 }
 
-bool     AssetID::parse(const char* pText) { return parseID(pText, high, low); }
-bool     Guid::parse(const char* pText) { return parseID(pText, high, low); }
-void     AssetID::toString(char (&text)[kIDStringCapacity]) const { formatIDWords(high, low, text); }
-void     Guid::toString(char (&text)[kIDStringCapacity]) const { formatIDWords(high, low, text); }
-uint64_t AssetID::hash() const { return hashIDWords(high, low); }
-uint64_t Guid::hash() const { return hashIDWords(high, low); }
+bool     AssetID::Parse(const char* pText) { return parseID(pText, high, low); }
+bool     Guid::Parse(const char* pText) { return parseID(pText, high, low); }
+void     AssetID::ToString(char (&text)[kIDStringCapacity]) const { formatIDWords(high, low, text); }
+void     Guid::ToString(char (&text)[kIDStringCapacity]) const { formatIDWords(high, low, text); }
+uint64_t AssetID::Hash() const { return hashIDWords(high, low); }
+uint64_t Guid::Hash() const { return hashIDWords(high, low); }
 } // namespace hz

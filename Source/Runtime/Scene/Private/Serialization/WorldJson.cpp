@@ -159,14 +159,14 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
     {
         const AssetID& id = *(const AssetID*)pValue;
         char           text[kIDStringCapacity];
-        id.toString(text);
+        id.ToString(text);
         return id.IsValid() ? cJSON_CreateString(text) : cJSON_CreateNull();
     }
     case PropertyKind::EntityReference:
     {
         const Guid& id = *(const Guid*)pValue;
         char        text[kIDStringCapacity];
-        id.toString(text);
+        id.ToString(text);
         return id.IsValid() ? cJSON_CreateString(text) : cJSON_CreateNull();
     }
     case PropertyKind::Array:
@@ -303,14 +303,14 @@ static bool readProperty(const PropertyDesc& property, const cJSON* pJson, void*
             *(AssetID*)pValue = {};
             return true;
         }
-        return cJSON_IsString(pJson) && ((AssetID*)pValue)->parse(pJson->valuestring);
+        return cJSON_IsString(pJson) && ((AssetID*)pValue)->Parse(pJson->valuestring);
     case PropertyKind::EntityReference:
         if (cJSON_IsNull(pJson))
         {
             *(Guid*)pValue = {};
             return true;
         }
-        return cJSON_IsString(pJson) && ((Guid*)pValue)->parse(pJson->valuestring);
+        return cJSON_IsString(pJson) && ((Guid*)pValue)->Parse(pJson->valuestring);
     case PropertyKind::Array:
     {
         if (!cJSON_IsArray(pJson))
@@ -356,7 +356,7 @@ bool readWorldProperties(const TypeDesc& Type, const cJSON* pObject, void* pValu
         return false;
     for (const cJSON* pField = pObject->child; pField; pField = pField->next)
     {
-        const PropertyDesc* pProperty = Type.getProperty(pField->string);
+        const PropertyDesc* pProperty = Type.GetProperty(pField->string);
         if (!pProperty || !serialized(*pProperty) || !readProperty(*pProperty, pField, (uint8_t*)pValue + pProperty->offset))
         {
             LOGF(Error, "Invalid serialized property '%s.%s'", Type.Name, pField->string);
@@ -375,7 +375,7 @@ bool validateWorldReferences(const TypeDesc& Type, const void* pValue, const Wor
         if (property.kind == PropertyKind::EntityReference)
         {
             const Guid& id = *(const Guid*)pField;
-            if (id.IsValid() && !world.getEntity(id).IsValid())
+            if (id.IsValid() && !world.GetEntity(id).IsValid())
                 return false;
         }
         if (property.kind == PropertyKind::Array)

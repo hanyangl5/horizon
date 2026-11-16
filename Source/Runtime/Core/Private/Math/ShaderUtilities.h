@@ -148,7 +148,7 @@ inline uint packFloat3DirectionToHalf2(CONST_REF(float3) dir)
 
 //------------------------------------------------------------------------------
 //	Pack three positive normalized numbers between 0.0 and 1.0 into a 32-bit fp
-// channel of a render target.  The bits given to each member are:
+// channel of a render target.  The bits given to Each member are:
 //
 //		x = 16 bits
 //		y = 8 bits

@@ -56,7 +56,7 @@ public:
     // Resets all parameters to their default value.
     void Reset();
 
-    // Gets updated each time we set the time, will Get used externally (UI)
+    // Gets updated Each time we set the time, will Get used externally (UI)
     float* gExternallyUsedTime = NULL;
 
     // Blending weight [0-1] for the clip this is managing.

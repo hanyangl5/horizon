@@ -295,7 +295,7 @@ bool WorldHierarchy::setParent(ecs_entity_t entity, ecs_entity_t parent, bool ke
 {
     if (ecs_is_deferred(world.pWorld))
     {
-        LOGF(Error, "Reparenting requires a committed World outside query/defer scopes");
+        LOGF(Error, "Reparenting requires a committed World outside query/Defer scopes");
         return false;
     }
     for (ecs_entity_t ancestor = parent; ancestor; ancestor = ecs_get_target(world.pWorld, ancestor, world.parentRelation, 0))
@@ -347,7 +347,7 @@ bool WorldHierarchy::Destroy(ecs_entity_t entity, bool subtree)
     }
     if (ecs_is_deferred(world.pWorld))
     {
-        LOGF(Error, "Deleting a hierarchy requires a committed World outside query/defer scopes");
+        LOGF(Error, "Deleting a hierarchy requires a committed World outside query/Defer scopes");
         return false;
     }
     if (!subtree && !matrixType)
@@ -378,33 +378,33 @@ bool WorldHierarchy::Destroy(ecs_entity_t entity, bool subtree)
     return true;
 }
 
-Entity World::getParent(Entity entity) const
+Entity World::GetParent(Entity entity) const
 {
-    return isAlive(entity) ? Entity(ecs_get_target(pImpl->pWorld, entity.value, pImpl->parentRelation, 0), pImpl->id) : Entity{};
+    return IsAlive(entity) ? Entity(ecs_get_target(pImpl->pWorld, entity.value, pImpl->parentRelation, 0), pImpl->id) : Entity{};
 }
-void World::attachParent(Entity entity, Entity parent)
+void World::AttachParent(Entity entity, Entity parent)
 {
-    ASSERT(isAlive(entity) && isAlive(parent) && !isDeferred());
+    ASSERT(IsAlive(entity) && IsAlive(parent) && !IsDeferred());
     ecs_add_pair(pImpl->pWorld, entity.value, pImpl->parentRelation, parent.value);
     pImpl->pHierarchy->invalidateStructure();
 }
 bool World::setParent(Entity entity, Entity parent, bool keepWorld)
 {
-    if (!isAlive(entity) || (parent.IsValid() && !isAlive(parent)))
+    if (!IsAlive(entity) || (parent.IsValid() && !IsAlive(parent)))
         return false;
     return pImpl->pHierarchy->setParent(entity.value, parent.value, keepWorld);
 }
-bool                  World::destroyEntity(Entity entity) { return isAlive(entity) && pImpl->pHierarchy->Destroy(entity.value, false); }
-bool                  World::destroySubtree(Entity entity) { return isAlive(entity) && pImpl->pHierarchy->Destroy(entity.value, true); }
-void                  World::updateTransforms() { pImpl->pHierarchy->update(); }
-const WorldTransform* World::getWorldTransform(Entity entity) const
+bool                  World::DestroyEntity(Entity entity) { return IsAlive(entity) && pImpl->pHierarchy->Destroy(entity.value, false); }
+bool                  World::DestroySubtree(Entity entity) { return IsAlive(entity) && pImpl->pHierarchy->Destroy(entity.value, true); }
+void                  World::UpdateTransforms() { pImpl->pHierarchy->update(); }
+const WorldTransform* World::GetWorldTransform(Entity entity) const
 {
-    return isAlive(entity) ? pImpl->pHierarchy->Get(entity.value) : nullptr;
+    return IsAlive(entity) ? pImpl->pHierarchy->Get(entity.value) : nullptr;
 }
-void World::commitTransforms() { pImpl->pHierarchy->commit(); }
+void World::CommitTransforms() { pImpl->pHierarchy->commit(); }
 void World::resetTransformHistory(Entity root)
 {
-    if (!root.IsValid() || isAlive(root))
+    if (!root.IsValid() || IsAlive(root))
         pImpl->pHierarchy->markDirty(root.value);
 }
 } // namespace hz

@@ -47,7 +47,7 @@ typedef struct GpuTimer
     uint64_t     gpuMinTime = 0;
     uint64_t     gpuMaxTime = 0;
     uint64_t     gpuHistory[LENGTH_OF_HISTORY] = {};
-    size_t       hash = 0;
+    size_t       Hash = 0;
     ProfileToken token = {};
     void*        pBackendGpuZone = NULL;
     GpuTimer*    pParent = NULL;
