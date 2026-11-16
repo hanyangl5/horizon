@@ -65,8 +65,8 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
     {
         const hz::RenderMeshBatch& Draw = View.Scene.getMeshBatches().Data[MeshBatchIndex];
         const hz::RenderPrimitive& Primitive = View.Scene.getPrimitives().Data[Draw.primitive.index];
-        const hz::GpuMeshData*     Mesh = Tables.getMesh(Draw.mesh.mesh);
-        const hz::GpuMaterialData* Material = Tables.getMaterial(Draw.material);
+        const hz::GpuMeshData*     Mesh = Tables.GetMesh(Draw.mesh.mesh);
+        const hz::GpuMaterialData* Material = Tables.GetMaterial(Draw.material);
         if (!Primitive.instanceCount || !Mesh || !Material)
         {
             continue;
@@ -209,17 +209,17 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
         {
             continue;
         }
-        const hz::MeshAsset* Mesh = View.Assets.getMesh({ .index = MeshData.id.index, .generation = MeshData.id.generation });
+        const hz::MeshAsset* Mesh = View.Assets.GetMesh({ .index = MeshData.id.index, .generation = MeshData.id.generation });
         ASSERT(Mesh);
-        if (&Mesh->getIndexBuffer() == Previous)
+        if (&Mesh->GetIndexBuffer() == Previous)
         {
             continue;
         }
-        Previous = &Mesh->getIndexBuffer();
+        Previous = &Mesh->GetIndexBuffer();
         Buffers.PushBack(Previous);
-        for (uint32_t Index = 0; Index < Mesh->getVertexBufferCount(); ++Index)
+        for (uint32_t Index = 0; Index < Mesh->GetVertexBufferCount(); ++Index)
         {
-            Buffers.PushBack(&Mesh->getVertexBuffer(Index));
+            Buffers.PushBack(&Mesh->GetVertexBuffer(Index));
         }
     }
     for (const hz::GpuTextureData& TextureData : Tables.textures)
@@ -227,7 +227,7 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
         if (TextureData.id.IsValid())
         {
             Textures.PushBack(
-                &View.Assets.getTexture({ .index = TextureData.id.index, .generation = TextureData.id.generation })->getTexture());
+                &View.Assets.GetTexture({ .index = TextureData.id.index, .generation = TextureData.id.generation })->GetTexture());
         }
     }
     IndirectDependency = Indirect;

@@ -30,8 +30,8 @@ class GeometryBuildPass
 public:
     GeometryBuildPass(hz::RenderContext& context);
     void                 execute(hz::CommandList& commands) const;
-    const hz::GPUBuffer& getVertexBuffer() const { return vertices; }
-    const hz::GPUBuffer& getIndexBuffer() const { return indices; }
+    const hz::GPUBuffer& GetVertexBuffer() const { return vertices; }
+    const hz::GPUBuffer& GetIndexBuffer() const { return indices; }
 
 private:
     hz::GPUBuffer   vertices;
@@ -535,7 +535,7 @@ public:
             &sceneUniformBuffers[1],
         };
         geometryBuildPass->execute(commands);
-        gBufferPass->execute(commands, geometryBuildPass->getVertexBuffer(), geometryBuildPass->getIndexBuffer(), sceneUniforms,
+        gBufferPass->execute(commands, geometryBuildPass->GetVertexBuffer(), geometryBuildPass->GetIndexBuffer(), sceneUniforms,
                              context->GetWidth(), context->GetHeight());
         lightingPass->execute(commands, backbuffer, gBufferPass->getAlbedo(), gBufferPass->getNormal(), gBufferPass->getDepth(),
                               context->GetWidth(), context->GetHeight());

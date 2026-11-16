@@ -327,7 +327,7 @@
 //            }
 //        }
 //
-//        // end of that mesh, set it up so we can add the next mesh to this culling batch
+//        // end of that mesh, Set it up so we can Add the next mesh to this culling batch
 //        if (batchChunk.mCurrentBatchCount > 0)
 //        {
 //            ++stats.mTotalDrawCount;
@@ -376,7 +376,7 @@
 ////
 ////	//subtract the vector from w, and store in a
 ////	const __m128 a = _mm_sub_ps(w0, v);
-////	//add the vector to w, and store in b
+////	//Add the vector to w, and store in b
 ////	const __m128 b = _mm_add_ps(w1, v);
 ////
 ////	//compare if a and b are less than zero,
@@ -390,7 +390,7 @@
 ////	const int maska = pdep_lut[(_mm_movemask_ps(fmaska) & 0x7)];
 ////	const int maskb = pdep_lut[(_mm_movemask_ps(fmaskb) & 0x7)] << 1;
 ////
-////	//or the masks together and and the together with all bits set to 1
+////	//or the masks together and and the together with all bits Set to 1
 ////	// NOTE only the bits 0x3f are actually used
 ////	return (maska | maskb) & 0x3f;
 ////}
@@ -598,7 +598,7 @@
 //    ASSERT(pDesc->mNumBuffers > 0);
 //    ASSERT(pDesc->mNumGeometrySets > 0);
 //    ASSERT(pDesc->mNumGeometrySets <= VISIBILITY_BUFFER_MAX_GEOMETRY_SETS &&
-//           "Please update the configuration macro named VISIBILITY_BUFFER_MAX_GEOMETRY_SETS to be of the proper value");
+//           "Please Update the configuration macro named VISIBILITY_BUFFER_MAX_GEOMETRY_SETS to be of the proper value");
 //    ASSERT(pDesc->mNumViews > 0);
 //    ASSERT(pDesc->mFilterBatchCount > 0);
 //

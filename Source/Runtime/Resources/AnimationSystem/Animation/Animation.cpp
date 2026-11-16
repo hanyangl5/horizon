@@ -62,7 +62,7 @@ void Animation::Initialize(AnimationDesc animationDesc)
         clipSamplingCaches[i] = ozz::New<ozz::animation::SamplingJob::Context>(rig->numJoints);
     }
 
-    // Allocate the blend layers that will be set Each sampling based on Each clip's properties
+    // Allocate the blend layers that will be Set Each sampling based on Each clip's properties
     layers = allocator->AllocateRange<ozz::animation::BlendingJob::Layer>(numClips - numAdditiveClips);
     additiveLayers = allocator->AllocateRange<ozz::animation::BlendingJob::Layer>(numAdditiveClips);
 }
@@ -82,7 +82,7 @@ void Animation::Exit()
 
 bool Animation::Sample(float dt, ozz::span<SoaTransform>& localTrans)
 {
-    // update blend and sample parameters
+    // Update blend and sample parameters
     if (autoSetBlendParams)
     {
         UpdateBlendParameters();
@@ -168,7 +168,7 @@ void Animation::UpdateBlendParameters()
         ClipController* ClipControllerR = clipControllers[relevantClip + 1];
 
         // Interpolates animation durations using their respective weights, to
-        // find the loop cycle duration that matches blend_ratio_.
+        // Find the loop cycle duration that matches blend_ratio_.
         const float loopDuration =
 
             ClipControllerL->duration * ClipControllerL->weight + ClipControllerR->duration * ClipControllerR->weight;

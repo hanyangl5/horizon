@@ -47,7 +47,7 @@ public:
     // Updates the skeleton's joint and bone world matricies based on jointModelMats
     void Pose(const Matrix4& rootTransform);
 
-    // Finds the index of the joint with name jointName, if it cannot find it returns -1
+    // Finds the index of the joint with name jointName, if it cannot Find it returns -1
     int32_t FindJoint(const char* jointName);
 
     // Finds the indexes of joint chain with names joinNames

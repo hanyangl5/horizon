@@ -25,15 +25,15 @@ public:
     MeshAsset(const MeshAsset&) = delete;
     MeshAsset& operator=(const MeshAsset&) = delete;
 
-    const SceneAssetMesh&             getDescription() const;
-    const GPUBuffer&                  getIndexBuffer() const;
+    const SceneAssetMesh&             GetDescription() const;
+    const GPUBuffer&                  GetIndexBuffer() const;
     // Vertex streams are dense, in ascending source-layout binding order.
-    const GPUBuffer&                  getVertexBuffer(uint32_t binding) const;
-    uint32_t                          getVertexBufferCount() const;
-    uint32_t                          getVertexStride(uint32_t binding) const;
-    IndexType                         getIndexType() const;
-    const IndirectDrawIndexArguments& getDraw(uint32_t submesh) const;
-    const MeshBounds&                 getBounds(uint32_t submesh) const;
+    const GPUBuffer&                  GetVertexBuffer(uint32_t binding) const;
+    uint32_t                          GetVertexBufferCount() const;
+    uint32_t                          GetVertexStride(uint32_t binding) const;
+    IndexType                         GetIndexType() const;
+    const IndirectDrawIndexArguments& GetDraw(uint32_t submesh) const;
+    const MeshBounds&                 GetBounds(uint32_t submesh) const;
 
 private:
     AssetSource*   pSource = nullptr;

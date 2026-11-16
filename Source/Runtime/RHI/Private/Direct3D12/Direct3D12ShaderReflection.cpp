@@ -82,7 +82,7 @@ void calculate_bound_resource_count(ID3D12ReflectionT* d3d12reflection, const D3
         reflection.namePoolSize += (uint32_t)strlen(bindDesc.Name) + 1;
     }
 
-    // Count the number of variables and add to the Size of the string pool
+    // Count the number of variables and Add to the Size of the string pool
     for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)
     {
         ID3D12ShaderReflectionConstantBuffer* buffer = d3d12reflection->GetConstantBufferByIndex(i);
@@ -128,7 +128,7 @@ void fill_shader_resources(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADE
             uint32_t len = (uint32_t)strlen(bindDesc.Name);
 
             reflection.pShaderResources[i].Type = sD3D12_TO_DESCRIPTOR[bindDesc.Type];
-            reflection.pShaderResources[i].set = bindDesc.Space;
+            reflection.pShaderResources[i].Set = bindDesc.Space;
             reflection.pShaderResources[i].reg = bindDesc.BindPoint;
             reflection.pShaderResources[i].Size = bindDesc.BindCount;
             reflection.pShaderResources[i].used_stages = shaderStage;

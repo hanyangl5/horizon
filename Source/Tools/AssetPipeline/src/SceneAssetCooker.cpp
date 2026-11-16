@@ -122,7 +122,7 @@ static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<
         return false;
     }
     if (exists && !RemoveFile(directory, backup))
-        LOGF(Warning, "Cannot remove completed cook backup '%s'", backup);
+        LOGF(Warning, "Cannot Remove completed cook backup '%s'", backup);
     return true;
 }
 
@@ -145,7 +145,7 @@ static bool buildCatalog(const cJSON* pAsset, const char* pAssetFile, hz::Array<
     const bool     valid = asset.Parse({ pJson, (uint32_t)strlen(pJson) });
     cJSON_free(pJson);
     hz::AssetCatalog catalog;
-    return valid && catalog.addScene(asset, pAssetFile) && catalog.serialize(output);
+    return valid && catalog.AddScene(asset, pAssetFile) && catalog.Serialize(output);
 }
 
 static void addFloats(cJSON* pObject, const char* pField, const float* pValues, uint32_t Count)
@@ -386,7 +386,7 @@ bool SceneAssetCooker::isCurrent(const char* pContentHash) const
         return false;
     hz::AssetCatalog catalog;
     hz::Array<char>  expected, actual;
-    if (!buildCatalog(asset.Get(), assetFile, expected) || !catalog.load(outputDirectory, catalogFile) || !catalog.serialize(actual) ||
+    if (!buildCatalog(asset.Get(), assetFile, expected) || !catalog.Load(outputDirectory, catalogFile) || !catalog.Serialize(actual) ||
         expected.Size() != actual.Size() || memcmp(expected.GetData(), actual.GetData(), actual.Size()))
         return false;
     const cJSON* pTextures = cJSON_GetObjectItemCaseSensitive(asset.Get(), "textures");
@@ -424,7 +424,7 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
         if (!cJSON_IsNumber(pVersion) || pVersion->valuedouble != 1 || !sceneID.Parse(text(pPrevious, "scene")) || !sceneID.IsValid() ||
             !validateIdentities(pOldRecords) || containsID(pOldRecords, text(pPrevious, "scene")))
         {
-            LOGF(Error, "Invalid scene identity sidecar '%s'; refusing to replace persistent IDs", metadataFile);
+            LOGF(Error, "Invalid scene identity sidecar '%s'; refusing to Replace persistent IDs", metadataFile);
             return false;
         }
     }
@@ -472,7 +472,7 @@ bool SceneAssetCooker::registerTexture(CookedSceneTexture& texture)
         {
             if (!validTextureIdentity(pDocument))
             {
-                LOGF(Error, "Invalid texture identity sidecar '%s'; refusing to replace persistent IDs", path);
+                LOGF(Error, "Invalid texture identity sidecar '%s'; refusing to Replace persistent IDs", path);
                 return false;
             }
         }

@@ -75,7 +75,7 @@ extern "C"
 // PVS-Studio isn't convinced an assert macro is real unless it branches on the value being asserted.
 #if defined(FORGE_DEBUG) || defined(PVS_STUDIO)
 
-// Checks that an expression if true. Becomes a no-op in release.
+// Checks that an expression if true. Becomes a no-op in Release.
 #define ASSERTMSG(b, msgFmt, ...)                                                                                \
     do                                                                                                           \
     {                                                                                                            \
@@ -84,7 +84,7 @@ extern "C"
     } while (0)
 
 // Version of ASSERT intended to be used in if statements.
-// Expression is evaluated in both debug and release. Assertion only happens in debug.
+// Expression is evaluated in both debug and Release. Assertion only happens in debug.
 #define VERIFYMSG(b, msgFmt, ...) ((b) || (FailedAssert(__FILE__, __LINE__, #b, "" msgFmt, ##__VA_ARGS__), false))
 
 #else

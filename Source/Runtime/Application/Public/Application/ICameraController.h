@@ -49,7 +49,7 @@ class ICameraController
 public:
     virtual ~ICameraController() {}
     virtual void setMotionParameters(const CameraMotionParameters&) = 0;
-    virtual void update(float deltaTime) = 0;
+    virtual void Update(float deltaTime) = 0;
 
     // there are also implicit dependencies on the keyboard state.
 

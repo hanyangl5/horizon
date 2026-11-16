@@ -106,7 +106,7 @@ public:
 };
 
 TextureAsset::~TextureAsset() { MemDelete(Data); }
-const GPUTexture& TextureAsset::getTexture() const
+const GPUTexture& TextureAsset::GetTexture() const
 {
     ASSERT(Data);
     return Data->texture;
@@ -117,7 +117,7 @@ TextureAssetLoader::TextureAssetLoader(RenderContext& context, ResourceDirectory
 {
 }
 TextureAssetLoader::~TextureAssetLoader() { MemDelete(Data); }
-AssetLoader TextureAssetLoader::getLoader()
+AssetLoader TextureAssetLoader::GetLoader()
 {
     return { .UserData = Data,
              .pBegin = TextureAssetLoaderData::begin,

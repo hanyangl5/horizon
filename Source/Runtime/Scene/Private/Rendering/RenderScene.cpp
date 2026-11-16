@@ -113,7 +113,7 @@ public:
     {
         for (const RenderLightEntity& light : lightEntities)
             if (light.texture.IsValid())
-                assetManager.release(light.texture);
+                assetManager.Release(light.texture);
         hmfree(pIndices);
         hmfree(pLightIndices);
         hmfree(pCameraIndices);
@@ -127,7 +127,7 @@ public:
         {
             RenderLightEntity& lightEntity = data.lightEntities.EmplaceBack();
             lightEntity.entity = entity;
-            lightEntity.id = data.lights.add();
+            lightEntity.id = data.lights.Add();
             data.textureReleases.Reserve(data.lightEntities.Size());
             const RenderEntityIndex index = { .key = entity, .value = data.lightEntities.Size() - 1 };
             hmputs(data.pLightIndices, index);
@@ -150,7 +150,7 @@ public:
         if (textureID.IsValid() && !lightEntity.texture.IsValid() &&
             (lightEntity.error == AssetError::None || lightEntity.error == AssetError::Retiring))
         {
-            lightEntity.texture = data.assetManager.request(textureID, &lightEntity.error);
+            lightEntity.texture = data.assetManager.Request(textureID, &lightEntity.error);
         }
         return true;
     }
@@ -163,7 +163,7 @@ public:
             {
                 if (entity.texture.IsValid())
                     textureReleases.PushBack(entity.texture);
-                lights.remove(entity.id);
+                lights.Remove(entity.id);
                 hmdel(pLightIndices, entity.entity);
                 lightEntities[i] = lightEntities[lightEntities.Size() - 1];
                 lightEntities.PopBack();
@@ -172,7 +172,7 @@ public:
                 continue;
             }
             const Light& source = *(const Light*)world.GetComponent(entity.entity, SceneTypes::light);
-            if (assetManager.getState(entity.texture) == AssetState::Ready && !assetManager.getTexture(entity.texture) &&
+            if (assetManager.GetState(entity.texture) == AssetState::Ready && !assetManager.GetTexture(entity.texture) &&
                 entity.error != AssetError::LoadFailed)
             {
                 entity.error = AssetError::LoadFailed;
@@ -198,7 +198,7 @@ public:
                 .enableColorTemperature = source.enableColorTemperature ? 1u : 0u,
                 .normalize = source.normalize ? 1u : 0u,
                 .twoSided = source.twoSided ? 1u : 0u,
-                .ready = !entity.textureID.IsValid() || assetManager.getTexture(entity.texture) ? 1u : 0u,
+                .ready = !entity.textureID.IsValid() || assetManager.GetTexture(entity.texture) ? 1u : 0u,
             };
             if (entity.textureID.IsValid() && next.ready)
                 next.texture = { .index = entity.texture.index, .generation = entity.texture.generation };
@@ -219,7 +219,7 @@ public:
             ++i;
         }
         for (AssetHandle Handle : textureReleases)
-            assetManager.release(Handle);
+            assetManager.Release(Handle);
         textureReleases.Clear();
     }
     static bool extractCamera(Entity entity, Span<const void*> fields, void* User)
@@ -230,7 +230,7 @@ public:
         {
             RenderCameraEntity& cameraEntity = data.cameraEntities.EmplaceBack();
             cameraEntity.entity = entity;
-            cameraEntity.id = data.cameras.add();
+            cameraEntity.id = data.cameras.Add();
             const RenderEntityIndex index = { .key = entity, .value = data.cameraEntities.Size() - 1 };
             hmputs(data.pCameraIndices, index);
             pIndex = hmgetp_null(data.pCameraIndices, entity);
@@ -266,7 +266,7 @@ public:
                 ++i;
                 continue;
             }
-            cameras.remove(entity.id);
+            cameras.Remove(entity.id);
             hmdel(pCameraIndices, entity.entity);
             cameraEntities[i] = cameraEntities[cameraEntities.Size() - 1];
             cameraEntities.PopBack();
@@ -279,7 +279,7 @@ public:
     {
         for (RenderMeshBatchID meshBatch : entity.meshBatches)
         {
-            meshBatches.remove(meshBatch);
+            meshBatches.Remove(meshBatch);
         }
         entity.meshBatches.Clear();
     }
@@ -324,12 +324,12 @@ public:
             historyPending.PushBack(instance);
         }
     }
-    RenderEntity& add(Entity entity)
+    RenderEntity& Add(Entity entity)
     {
         RenderEntity& renderEntity = entities.EmplaceBack();
         renderEntity.entity = entity;
-        renderEntity.primitive = primitives.add();
-        renderEntity.instance = instances.add();
+        renderEntity.primitive = primitives.Add();
+        renderEntity.instance = instances.Add();
         primitives.values[renderEntity.primitive.index].instanceOffset = renderEntity.primitive.index;
         instances.values[renderEntity.instance.index].primitive = renderEntity.primitive;
         if (instanceHistory.Size() <= renderEntity.instance.index)
@@ -348,18 +348,18 @@ public:
     {
         removeMeshBatches(entity);
         entity.meshBatches.Reserve(binding.materials.Count);
-        entity.localBounds = binding.materials.Count ? mesh.getBounds(0) : MeshBounds{};
+        entity.localBounds = binding.materials.Count ? mesh.GetBounds(0) : MeshBounds{};
         for (uint32_t i = 0; i < binding.materials.Count; ++i)
         {
             const MaterialAssetBinding& material = binding.materials.Data[i];
-            const RenderMeshBatchID     id = meshBatches.add();
+            const RenderMeshBatchID     id = meshBatches.Add();
             RenderMeshBatch&            meshBatch = meshBatches.values[id.index];
             meshBatch.primitive = entity.primitive;
             meshBatch.submesh = material.submesh;
             meshBatch.mesh = { .mesh = primitives.values[entity.primitive.index].mesh, .submeshIndex = i };
             meshBatch.material = { .index = material.Handle.index, .generation = material.Handle.generation };
             entity.meshBatches.PushBack(id);
-            const MeshBounds& bounds = mesh.getBounds(i);
+            const MeshBounds& bounds = mesh.GetBounds(i);
             for (uint32_t axis = 0; axis < 3; ++axis)
             {
                 entity.localBounds.minimum[axis] = fminf(entity.localBounds.minimum[axis], bounds.minimum[axis]);
@@ -374,7 +374,7 @@ public:
         const MeshAssetBinding* pBinding = bindings.Get(entity.entity);
         ASSERT(pBinding);
         const bool       ready = pBinding->state == AssetBindingState::Ready;
-        const MeshAsset* pMesh = assetManager.getMesh(pBinding->mesh);
+        const MeshAsset* pMesh = assetManager.GetMesh(pBinding->mesh);
         const GpuMeshID  mesh = pMesh ? GpuMeshID{ .index = pBinding->mesh.index, .generation = pBinding->mesh.generation } : GpuMeshID{};
         const uint32_t   Count = ready ? 1u : 0u;
         if (primitive.mesh != mesh)
@@ -449,13 +449,13 @@ public:
     {
         RenderSceneData&         data = *(RenderSceneData*)User;
         const RenderEntityIndex* pIndex = hmgetp_null(data.pIndices, entity);
-        RenderEntity&            renderEntity = pIndex ? data.entities[pIndex->value] : data.add(entity);
+        RenderEntity&            renderEntity = pIndex ? data.entities[pIndex->value] : data.Add(entity);
         data.extract(renderEntity);
         return true;
     }
-    void update()
+    void Update()
     {
-        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::update");
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::Update");
         ASSERT(!world.IsDeferred() && !frameLocked);
         {
             PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::UpdateTransforms");
@@ -473,11 +473,11 @@ public:
             entity.seen = false;
         for (RenderCameraEntity& entity : cameraEntities)
             entity.seen = false;
-        // Retain new emission maps before mesh/material bindings release old dependencies.
+        // Retain new emission maps before mesh/material bindings Release old dependencies.
         lightQuery.Each(syncLight, this);
         {
             PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::bindings");
-            bindings.update();
+            bindings.Update();
         }
         {
             PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::extract");
@@ -493,8 +493,8 @@ public:
             }
             removeMeshBatches(entity);
             setInstanceIndex(entity.primitive.index, UINT32_MAX);
-            primitives.remove(entity.primitive);
-            instances.remove(entity.instance);
+            primitives.Remove(entity.primitive);
+            instances.Remove(entity.instance);
             hmdel(pIndices, entity.entity);
             if (i + 1 < entities.Size())
                 entities[i] = entities[entities.Size() - 1];
@@ -559,7 +559,7 @@ public:
             history.pending = false;
             const RenderInstance&  instance = instances.values[index];
             const RenderPrimitive* pPrimitive = primitives.Get(instance.primitive);
-            // A Reset since the last update renders previous == current first.
+            // A Reset since the last Update renders previous == current first.
             if (history.Reset || !instance.id.IsValid() || !pPrimitive || !pPrimitive->instanceCount)
             {
                 continue;
@@ -652,7 +652,7 @@ void RenderScene::Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint
     Data->cameraEntities.Reserve(cameraCount);
     Data->textureReleases.Reserve(lightCount);
 }
-void               RenderScene::update() { Data->update(); }
+void               RenderScene::Update() { Data->Update(); }
 uint64_t           RenderScene::getRevision() const { return Data->revision; }
 RenderSceneUploads RenderScene::getPendingUploads() { return Data->getPendingUploads(); }
 void               RenderScene::acknowledgeUploads() { Data->acknowledgeUploads(); }

@@ -293,7 +293,7 @@ void parseGPUDataFile()
     FileStream fh = {};
     if (!OpenStreamFromPath(DirectoryGpuConfig, "legacy_gpu_data", FileModeRead, &fh))
     {
-        LOGF(LogLevel::Warning, "Legacy GPU data could not be found, setting preset will be set to Low as a default.");
+        LOGF(LogLevel::Warning, "Legacy GPU data could not be found, setting preset will be Set to Low as a default.");
         return;
     }
     DataParsingStatus parsingStatus = DataParsingStatus::DATA_PARSE_NONE;
@@ -422,7 +422,7 @@ void parseGPUDataFile()
 
     // log default configuration
     LOGF(Info, "Default GPU Data:");
-    LOGF(Info, "    DefaultGPUPresetLevel set to %s", presetLevelToString(gDefaultPresetLevel));
+    LOGF(Info, "    DefaultGPUPresetLevel Set to %s", presetLevelToString(gDefaultPresetLevel));
     // log gpu vendors
     LOGF(Info, "GPU vendors:");
     for (uint32_t vendorIndex = 0; vendorIndex < gGPUVendorCount; vendorIndex++)
@@ -447,7 +447,7 @@ void parseGPUDataFile()
 
     if (!gpuListBeginFileCursor || !gpuListEndFileCursor)
     {
-        LOGF(Info, "Could not find a valid GPU list in legacy GPU data.");
+        LOGF(Info, "Could not Find a valid GPU list in legacy GPU data.");
     }
 
     CloseStream(&fh);
@@ -458,7 +458,7 @@ void parseGPUConfigFile(ExtendedSettings* pExtendedSettings)
     FileStream fh = {};
     if (!OpenStreamFromPath(DirectoryGpuConfig, "legacy_gpu_rules", FileModeRead, &fh))
     {
-        LOGF(LogLevel::Warning, "Legacy GPU rule data could not be found, first GPU found set as active GPU.");
+        LOGF(LogLevel::Warning, "Legacy GPU rule data could not be found, first GPU found Set as active GPU.");
         return;
     }
     ConfigParsingStatus parsingStatus = ConfigParsingStatus::CONFIG_PARSE_NONE;
@@ -766,7 +766,7 @@ void parseDriverRejectionLine(char* currentLine)
             comparisonRule += optionLength;
             comparisonRule += strspn(comparisonRule, " ");
             bool validConversion = parseDriverVersion(comparisonRule, currentVersion);
-            // optional, could add check on comparator validity
+            // optional, could Add check on comparator validity
             if (validConversion)
             {
                 strncpy(currentRule->reasonStr, reasonStr, MAX_GPU_VENDOR_STRING_LENGTH);
@@ -899,7 +899,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
         // this will be triggered for any platform specific rule, isheadless, graphicqueuesupported, ...
         if (currentComparisonRule->pGpuProperty == NULL)
         {
-            // discard current set of rules
+            // discard current Set of rules
             LOGF(Debug, "Extended Config| GPU Config invalid Field name: '%s'.", fieldName);
             MemDeallocate(*ppConfigurationRules);
             *ppConfigurationRules = NULL;
@@ -910,7 +910,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
         else if (optionLength > 0)
         {
             ASSERT(optionLength <= 3 && optionLength > 0);
-            // optional, could add check on comparator validity
+            // optional, could Add check on comparator validity
             strncpy(currentComparisonRule->comparator, currentRule, TF_MIN(optionLength, 3));
             //  read in the value relative to the field
             currentRule += optionLength;
@@ -933,7 +933,7 @@ void parseConfigurationRules(ConfigurationRule** ppConfigurationRules, uint32_t*
                 bool validConversion = stringToLargeInteger(parsedValue, &currentComparisonRule->comparatorValue, base);
                 if (!validConversion)
                 {
-                    // discard current set of rules
+                    // discard current Set of rules
                     LOGF(Debug, "Extended Config| GPU Config invalid comparison value: '%s' in rule: %s", parsedValue, ruleStr);
                     MemDeallocate(*ppConfigurationRules);
                     *ppConfigurationRules = NULL;
@@ -1404,7 +1404,7 @@ void tokenizeLine(const char* pLine, const char* pLineEnd, uint32_t numTokens, c
         ASSERT(length < MAX_GPU_VENDOR_STRING_LENGTH - 1);
 
         strncpy(pTokens[i], begin, length);
-        //  set token to be NUL-terminated
+        //  Set token to be NUL-terminated
         pTokens[i][length] = '\0';
     }
 }

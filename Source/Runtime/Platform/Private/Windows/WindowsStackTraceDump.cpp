@@ -82,12 +82,12 @@ void WindowsStackTrace::Log(const char* fmt, ...)
 
     if (init)
     {
-        // Use the normal log output if we haven't shutdown the log system yet
+        // Use the normal log output if we haven't Shutdown the log system yet
         WriteLogVaList(LogLevel::Error, __FILE__, __LINE__, fmt, args);
     }
     else
     {
-        // Manually write output if we have already shutdown OS systems.
+        // Manually write output if we have already Shutdown OS systems.
         const char* outputBuf;
         char        fmtBuf[1024];
         int         charsWritten = vsnprintf(fmtBuf, sizeof(fmtBuf), fmt, args);

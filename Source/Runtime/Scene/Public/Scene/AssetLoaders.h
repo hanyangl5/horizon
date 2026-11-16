@@ -24,7 +24,7 @@ public:
     AssetLoaders(const AssetLoaders&) = delete;
     AssetLoaders& operator=(const AssetLoaders&) = delete;
 
-    void registerLoaders(AssetManager& assetManager);
+    void RegisterLoaders(AssetManager& assetManager);
 
 private:
     AssetLoadersData* Data = nullptr;

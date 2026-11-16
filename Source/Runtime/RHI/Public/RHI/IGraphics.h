@@ -196,7 +196,7 @@ struct PlatformParameters
     uint32_t    pAvailableGpuIds[MAX_MULTIPLE_GPUS];
     uint32_t    availableGpuCount;
     uint32_t    selectedGpuIndex;
-    // Could add swap chain Size, render target Format, ...
+    // Could Add swap chain Size, render target Format, ...
     uint32_t    preferedGpuId;
 };
 
@@ -648,7 +648,7 @@ struct TextureBarrier
     uint8_t       beginOnly : 1;
     uint8_t       endOnly : 1;
     uint8_t       acquire : 1;
-    uint8_t       release : 1;
+    uint8_t       Release : 1;
     uint8_t       QueueType : 5;
     /// Specifiy whether following Barrier targets particular subresource
     uint8_t       subresourceBarrier : 1;
@@ -665,7 +665,7 @@ struct RenderTargetBarrier
     uint8_t       beginOnly : 1;
     uint8_t       endOnly : 1;
     uint8_t       acquire : 1;
-    uint8_t       release : 1;
+    uint8_t       Release : 1;
     uint8_t       QueueType : 5;
     /// Specifiy whether following Barrier targets particular subresource
     uint8_t       subresourceBarrier : 1;
@@ -1663,7 +1663,7 @@ enum WaveOpsSupportFlags : uint32_t
 };
 MAKE_ENUM_FLAG(uint32_t, WaveOpsSupportFlags);
 
-// update availableGpuProperties in GraphicsConfig.cpp if you made changes to this list
+// Update availableGpuProperties in GraphicsConfig.cpp if you made changes to this list
 struct GPUSettings
 {
     uint64_t            vram;

@@ -259,8 +259,8 @@ GPUBuffer RenderContext::CreateBuffer(const BufferDesc& input)
 
     Buffer*        buffer = nullptr;
     SyncToken      token = 0;
-    BufferLoadDesc load = { .ppBuffer = &buffer, .Data = input.pInitialData, .desc = desc };
-    addResource(&load, &token);
+    BufferLoadDesc Load = { .ppBuffer = &buffer, .Data = input.pInitialData, .desc = desc };
+    addResource(&Load, &token);
     ASSERT(buffer);
     waitForToken(&token);
     return GPUBuffer(this, buffer, input.Size, input.usage, input.Descriptors, input.StartState);
@@ -307,8 +307,8 @@ GPUTexture RenderContext::CreateTexture(const TextureDesc& input)
         desc.Flags = input.Flags;
         desc.Name = input.Name;
         SyncToken       token = 0;
-        TextureLoadDesc load = { .ppTexture = &texture, .pDesc = &desc };
-        addResource(&load, &token);
+        TextureLoadDesc Load = { .ppTexture = &texture, .pDesc = &desc };
+        addResource(&Load, &token);
         ASSERT(texture);
         waitForToken(&token);
     }
@@ -427,7 +427,7 @@ GPUTexture RenderContext::LoadTexture(ResourceDirectory directory, const char* p
         {
             removeResource(texture);
         }
-        LOGF(Error, "Failed to load texture '%s'", pFileName);
+        LOGF(Error, "Failed to Load texture '%s'", pFileName);
         return {};
     }
     return GPUTexture(this, texture, nullptr, ResourceStateShaderResource);

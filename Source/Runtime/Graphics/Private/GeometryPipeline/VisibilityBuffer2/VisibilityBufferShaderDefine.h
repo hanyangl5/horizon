@@ -162,7 +162,7 @@
 
 // This function is used to Get the offset of the current material base index depending
 // on the Type of geometry and on the culling view.
-#define BaseInstanceBuffer(set, viewID)   ((((viewID)*NUM_GEOMETRY_SETS) + (set)) * MAX_DRAWS_INDIRECT)
+#define BaseInstanceBuffer(Set, viewID)   ((((viewID)*NUM_GEOMETRY_SETS) + (Set)) * MAX_DRAWS_INDIRECT)
 
 // This index means that the Draw call doesn't have any instance data associated, can skip doing operations with it
 #ifndef INSTANCE_INDEX_NONE

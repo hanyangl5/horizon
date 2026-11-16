@@ -24,7 +24,7 @@ class AssetSource
 public:
     AssetSource(AssetLoadersData& owner, const char* pFile);
     ~AssetSource() { MemDeallocate(pPath); }
-    void        release();
+    void        Release();
     static void decode(void* User, uint64_t);
     bool        read(ResourceDirectory directory);
 
@@ -52,7 +52,7 @@ public:
             removeResource(pShadow);
         MemDeallocate(pPath);
     }
-    void            release();
+    void            Release();
     AssetLoadStatus poll();
     bool            buildBounds();
     static void     decodeBounds(void* User, uint64_t)
@@ -89,7 +89,7 @@ public:
     ~SubassetRequest()
     {
         if (pSource)
-            pSource->release();
+            pSource->Release();
     }
     const AssetCatalogEntry& entry;
     AssetSource*             pSource;
@@ -187,45 +187,45 @@ public:
     }
     static AssetLoadResult poll(void* pJob, void*)
     {
-        SubassetRequest&      request = *(SubassetRequest*)pJob;
-        const AssetLoadStatus status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&request.pSource->status);
+        SubassetRequest&      Request = *(SubassetRequest*)pJob;
+        const AssetLoadStatus status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&Request.pSource->status);
         if (status != AssetLoadStatus::Succeeded)
             return { .status = status };
-        const SceneAsset& scene = request.pSource->scene;
-        const uint32_t    index = request.entry.location.elementIndex;
+        const SceneAsset& scene = Request.pSource->scene;
+        const uint32_t    index = Request.entry.location.elementIndex;
         Array<AssetID>    dependencies;
-        if (request.entry.Type == AssetType::Material)
+        if (Request.entry.Type == AssetType::Material)
         {
-            if (index >= scene.getMaterials().Count || scene.getMaterials().Data[index].id != request.entry.id)
-                return invalid(request);
-            const SceneAssetMaterial& material = scene.getMaterials().Data[index];
+            if (index >= scene.GetMaterials().Count || scene.GetMaterials().Data[index].id != Request.entry.id)
+                return invalid(Request);
+            const SceneAssetMaterial& material = scene.GetMaterials().Data[index];
             dependencies.PushBack(material.baseColorTexture);
             dependencies.PushBack(material.normalTexture);
             dependencies.PushBack(material.metallicRoughnessTexture);
             dependencies.PushBack(material.emissiveTexture);
-            if (!matchesDependencies(request.entry, dependencies))
-                return invalid(request);
+            if (!matchesDependencies(Request.entry, dependencies))
+                return invalid(Request);
             MaterialAsset* pAsset = MemNew(MaterialAsset);
-            pAsset->pSource = request.pSource;
+            pAsset->pSource = Request.pSource;
             pAsset->index = index;
-            request.pSource = nullptr;
+            Request.pSource = nullptr;
             return { .status = AssetLoadStatus::Succeeded, .pPayload = pAsset };
         }
-        if (index >= scene.getMeshes().Count || scene.getMeshes().Data[index].id != request.entry.id)
-            return invalid(request);
-        for (const SceneAssetSubmesh& submesh : scene.getMeshes().Data[index].submeshes)
+        if (index >= scene.GetMeshes().Count || scene.GetMeshes().Data[index].id != Request.entry.id)
+            return invalid(Request);
+        for (const SceneAssetSubmesh& submesh : scene.GetMeshes().Data[index].submeshes)
             dependencies.PushBack(submesh.material);
-        if (!matchesDependencies(request.entry, dependencies))
-            return invalid(request);
+        if (!matchesDependencies(Request.entry, dependencies))
+            return invalid(Request);
         MeshAsset* pAsset = MemNew(MeshAsset);
-        pAsset->pSource = request.pSource;
+        pAsset->pSource = Request.pSource;
         pAsset->index = index;
-        request.pSource = nullptr;
+        Request.pSource = nullptr;
         return { .status = AssetLoadStatus::Succeeded, .pPayload = pAsset };
     }
-    static AssetLoadResult invalid(const SubassetRequest& request)
+    static AssetLoadResult invalid(const SubassetRequest& Request)
     {
-        LOGF(Error, "Mesh/Material identity, index or dependencies differ from Catalog: '%s'", request.entry.location.pPath);
+        LOGF(Error, "Mesh/Material identity, index or dependencies differ from Catalog: '%s'", Request.entry.location.pPath);
         return { .status = AssetLoadStatus::Failed, .pError = "Mesh/Material identity differs from the catalog" };
     }
     static void destroyRequest(void* pJob, void*) { MemDelete((SubassetRequest*)pJob); }
@@ -235,7 +235,7 @@ public:
     static void uploadMesh(void* pPayload, const AssetManager&, Span<AssetHandle>, void* User)
     {
         MeshAsset& mesh = *(MeshAsset*)pPayload;
-        mesh.pGeometry = ((AssetLoadersData*)User)->acquireGeometry(mesh.getDescription().pGeometry);
+        mesh.pGeometry = ((AssetLoadersData*)User)->acquireGeometry(mesh.GetDescription().pGeometry);
     }
     static AssetLoadStatus pollMesh(void* pPayload, void*)
     {
@@ -243,7 +243,7 @@ public:
         const AssetLoadStatus status = mesh.pGeometry->poll();
         if (status != AssetLoadStatus::Succeeded)
             return status;
-        for (const SceneAssetSubmesh& submesh : mesh.getDescription().submeshes)
+        for (const SceneAssetSubmesh& submesh : mesh.GetDescription().submeshes)
         {
             if (submesh.Draw >= mesh.pGeometry->draws.Size())
             {
@@ -275,7 +275,7 @@ AssetSource::AssetSource(AssetLoadersData& owner, const char* pFile): owner(owne
     pPath = (char*)MemAllocate(strlen(pFile) + 1);
     strcpy(pPath, pFile);
 }
-void AssetSource::release()
+void AssetSource::Release()
 {
     ASSERT(references);
     if (--references)
@@ -314,16 +314,16 @@ AssetGeometry::AssetGeometry(AssetLoadersData& owner, const char* pFile): owner(
 {
     pPath = (char*)MemAllocate(strlen(pFile) + 1);
     strcpy(pPath, pFile);
-    GeometryLoadDesc load = { .ppGeometry = &pUpload,
+    GeometryLoadDesc Load = { .ppGeometry = &pUpload,
                               .ppGeometryData = &pShadow,
                               .pFileName = pPath,
                               .Flags = GEOMETRY_LOAD_FLAG_SHADOWED,
                               .pVertexLayout = &owner.desc.vertexLayout,
                               .resourceDirectory = owner.desc.cookedDirectory,
                               .pSuccess = &uploadSucceeded };
-    addResource(&load, &token);
+    addResource(&Load, &token);
 }
-void AssetGeometry::release()
+void AssetGeometry::Release()
 {
     ASSERT(references);
     if (--references)
@@ -419,62 +419,62 @@ AssetLoadStatus AssetGeometry::poll()
 MaterialAsset::~MaterialAsset()
 {
     if (pSource)
-        pSource->release();
+        pSource->Release();
 }
-const SceneAssetMaterial& MaterialAsset::getDescription() const
+const SceneAssetMaterial& MaterialAsset::GetDescription() const
 {
     ASSERT(pSource);
-    return pSource->scene.getMaterials().Data[index];
+    return pSource->scene.GetMaterials().Data[index];
 }
 
 MeshAsset::~MeshAsset()
 {
     if (pGeometry)
-        pGeometry->release();
+        pGeometry->Release();
     if (pSource)
-        pSource->release();
+        pSource->Release();
 }
-const SceneAssetMesh& MeshAsset::getDescription() const
+const SceneAssetMesh& MeshAsset::GetDescription() const
 {
     ASSERT(pSource);
-    return pSource->scene.getMeshes().Data[index];
+    return pSource->scene.GetMeshes().Data[index];
 }
-const GPUBuffer& MeshAsset::getIndexBuffer() const { return pGeometry->indexBuffer; }
-const GPUBuffer& MeshAsset::getVertexBuffer(uint32_t binding) const
+const GPUBuffer& MeshAsset::GetIndexBuffer() const { return pGeometry->indexBuffer; }
+const GPUBuffer& MeshAsset::GetVertexBuffer(uint32_t binding) const
 {
     ASSERT(binding < pGeometry->vertexBufferCount);
     return pGeometry->vertexBuffers[binding];
 }
-uint32_t MeshAsset::getVertexBufferCount() const { return pGeometry->vertexBufferCount; }
-uint32_t MeshAsset::getVertexStride(uint32_t binding) const
+uint32_t MeshAsset::GetVertexBufferCount() const { return pGeometry->vertexBufferCount; }
+uint32_t MeshAsset::GetVertexStride(uint32_t binding) const
 {
     ASSERT(binding < pGeometry->vertexBufferCount);
     return pGeometry->vertexStrides[binding];
 }
-IndexType                         MeshAsset::getIndexType() const { return pGeometry->indexType; }
-const IndirectDrawIndexArguments& MeshAsset::getDraw(uint32_t submesh) const
+IndexType                         MeshAsset::GetIndexType() const { return pGeometry->indexType; }
+const IndirectDrawIndexArguments& MeshAsset::GetDraw(uint32_t submesh) const
 {
-    ASSERT(submesh < getDescription().submeshes.Count);
-    return pGeometry->draws[getDescription().submeshes.Data[submesh].Draw].arguments;
+    ASSERT(submesh < GetDescription().submeshes.Count);
+    return pGeometry->draws[GetDescription().submeshes.Data[submesh].Draw].arguments;
 }
-const MeshBounds& MeshAsset::getBounds(uint32_t submesh) const
+const MeshBounds& MeshAsset::GetBounds(uint32_t submesh) const
 {
-    ASSERT(submesh < getDescription().submeshes.Count);
-    return pGeometry->draws[getDescription().submeshes.Data[submesh].Draw].bounds;
+    ASSERT(submesh < GetDescription().submeshes.Count);
+    return pGeometry->draws[GetDescription().submeshes.Data[submesh].Draw].bounds;
 }
 
 AssetLoaders::AssetLoaders(RenderContext& context, const AssetLoadersDesc& desc): Data(MemNew(AssetLoadersData, context, desc)) {}
 AssetLoaders::~AssetLoaders() { MemDelete(Data); }
-void AssetLoaders::registerLoaders(AssetManager& assetManager)
+void AssetLoaders::RegisterLoaders(AssetManager& assetManager)
 {
-    assetManager.setLoader(AssetType::Scene, Data->sceneLoader.getLoader());
-    assetManager.setLoader(AssetType::Texture, Data->textureLoader.getLoader());
-    assetManager.setLoader(AssetType::Material, { .UserData = Data,
+    assetManager.SetLoader(AssetType::Scene, Data->sceneLoader.GetLoader());
+    assetManager.SetLoader(AssetType::Texture, Data->textureLoader.GetLoader());
+    assetManager.SetLoader(AssetType::Material, { .UserData = Data,
                                                   .pBegin = AssetLoadersData::begin,
                                                   .pPoll = AssetLoadersData::poll,
                                                   .pDestroyRequest = AssetLoadersData::destroyRequest,
                                                   .pDestroyPayload = AssetLoadersData::destroyMaterial });
-    assetManager.setLoader(AssetType::Mesh, { .UserData = Data,
+    assetManager.SetLoader(AssetType::Mesh, { .UserData = Data,
                                               .pBegin = AssetLoadersData::begin,
                                               .pPoll = AssetLoadersData::poll,
                                               .pDestroyRequest = AssetLoadersData::destroyRequest,

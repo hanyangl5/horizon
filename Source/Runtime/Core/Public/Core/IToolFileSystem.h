@@ -126,7 +126,7 @@ extern "C"
 
     /// Appends string buffer 'outputBeg' with normalized version of 'nextPath'
     ///
-    ///   'separator'  prefered character to replace all \ and /.
+    ///   'separator'  prefered character to Replace all \ and /.
     ///   'outputBeg'  start of output buffer.
     ///   'outputCur'  position to put 'nextPath' in.
     ///   'outputEnd'  end of output buffer (outputEnd = buffer + bufferSize)

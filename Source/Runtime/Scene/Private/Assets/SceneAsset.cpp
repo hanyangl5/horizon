@@ -407,22 +407,22 @@ bool SceneAsset::Parse(Span<char> json)
     return true;
 }
 
-AssetID              SceneAsset::getID() const { return Data ? Data->id : AssetID{}; }
-const char*          SceneAsset::getSource() const { return Data ? Data->pSource : ""; }
-const char*          SceneAsset::getContentHash() const { return Data ? Data->pContentHash : ""; }
-Span<SceneAssetNode> SceneAsset::getNodes() const
+AssetID              SceneAsset::GetID() const { return Data ? Data->id : AssetID{}; }
+const char*          SceneAsset::GetSource() const { return Data ? Data->pSource : ""; }
+const char*          SceneAsset::GetContentHash() const { return Data ? Data->pContentHash : ""; }
+Span<SceneAssetNode> SceneAsset::GetNodes() const
 {
     return Data ? Span<SceneAssetNode>(Data->nodes.GetData(), Data->nodes.Size()) : Span<SceneAssetNode>{};
 }
-Span<SceneAssetMesh> SceneAsset::getMeshes() const
+Span<SceneAssetMesh> SceneAsset::GetMeshes() const
 {
     return Data ? Span<SceneAssetMesh>(Data->meshes.GetData(), Data->meshes.Size()) : Span<SceneAssetMesh>{};
 }
-Span<SceneAssetMaterial> SceneAsset::getMaterials() const
+Span<SceneAssetMaterial> SceneAsset::GetMaterials() const
 {
     return Data ? Span<SceneAssetMaterial>(Data->materials.GetData(), Data->materials.Size()) : Span<SceneAssetMaterial>{};
 }
-Span<SceneAssetTexture> SceneAsset::getTextures() const
+Span<SceneAssetTexture> SceneAsset::GetTextures() const
 {
     return Data ? Span<SceneAssetTexture>(Data->textures.GetData(), Data->textures.Size()) : Span<SceneAssetTexture>{};
 }

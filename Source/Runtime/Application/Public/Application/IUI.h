@@ -33,9 +33,9 @@
 // Lua function name resolution:
 // - UI Widget "label"s will be included in the name
 //		- For Widget events: label name + "Event Name". e.g., Lua Function name for label - "Press", event - OnEdited : "PressOnEdited"
-//		- For Widget modifier ints/floats: "Set" and "Get" function set will be added as a prefix to label name.
+//		- For Widget modifier ints/floats: "Set" and "Get" function Set will be added as a prefix to label name.
 //											e.g., "X" variable will have "SetX" and "GetX" pair of functions
-// To add global Lua functions, independent of Unit Tests, add definition in UIApp::Init (Check LOGINFO there for example).
+// To Add global Lua functions, independent of Unit Tests, Add definition in UIApp::Init (Check LOGINFO there for example).
 
 #include <ThirdParty/stb/stb_ds.h>
 #include <ThirdParty/bstrlib/bstrlib.h>
@@ -436,7 +436,7 @@ typedef struct UIComponent
     float                 alpha = 0.f;
 
     // defaults to GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE
-    // on mobile, GUI_COMPONENT_FLAGS_START_COLLAPSED is also set
+    // on mobile, GUI_COMPONENT_FLAGS_START_COLLAPSED is also Set
     int32_t Flags = 0;
 
     bool active = false;
@@ -523,11 +523,11 @@ typedef struct UserInterfaceDrawData
 FORGE_API void initUserInterface(UserInterfaceDesc* pDesc);
 
 /// Frees Forge Rendering objects and memory associated with the User Interface
-/// To be called at application shutdown time by the App Layer
+/// To be called at application Shutdown time by the App Layer
 FORGE_API void exitUserInterface();
 
 /// Creates graphics pipelines associated with the User Interface
-/// To be called at application load time by the App Layer
+/// To be called at application Load time by the App Layer
 FORGE_API void loadUserInterface(const UserInterfaceLoadDesc* pDesc);
 
 /// Destroys graphics pipelines associated with the User Interface
@@ -557,16 +557,16 @@ inline void uiSetCollapsingHeaderWidgetCollapsed(CollapsingHeaderWidget* pWidget
 // MARK: - Dynamic Widget Public Functions
 /****************************************************************************/
 
-/// Create an independent set of widgets which can be dynamically added to a UI Component
+/// Create an independent Set of widgets which can be dynamically added to a UI Component
 FORGE_API UIWidget* uiCreateDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, const void* pWidget, WidgetType Type);
 
-/// Free memory associated with a set of dynamic UI widgets
+/// Free memory associated with a Set of dynamic UI widgets
 FORGE_API void uiDestroyDynamicWidgets(DynamicUIWidgets* pDynamicUI);
 
-/// Add an existing set of dynamic widgets to an existing UI Component
+/// Add an existing Set of dynamic widgets to an existing UI Component
 FORGE_API void uiShowDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui);
 
-/// Remove an existing set of dynamic widgets from an existing UI Component
+/// Remove an existing Set of dynamic widgets from an existing UI Component
 FORGE_API void uiHideDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui);
 
 /****************************************************************************/

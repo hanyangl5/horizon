@@ -52,7 +52,7 @@ struct AimIKDesc
     float          jointWeight;
     // Chain Length
     int32_t        jointChainLength;
-    // Optional boolean output value, set to true if target can be reached with IK
+    // Optional boolean output value, Set to true if target can be reached with IK
     // computations.
     bool           reached;
 };
@@ -77,7 +77,7 @@ struct TwoBonesIKDesc
     float   twistAngle;
     // Array of joint indexes.
     int32_t jointChain[3];
-    // Optional boolean output value, set to true if target can be reached with IK
+    // Optional boolean output value, Set to true if target can be reached with IK
     // computations.
     bool    reached;
 };
@@ -106,7 +106,7 @@ public:
     // compute joint scales
     void ComputeJointScales(const Matrix4& rootTransform);
 
-    // Have rig update to display in its bind pose
+    // Have rig Update to display in its bind pose
     void ComputeBindPose(const Matrix4& rootTransform);
 
     // Gets the world matrix without any scale data of the joint at index (returns identity if index is invalid)
@@ -137,7 +137,7 @@ public:
     // Buffer of local transforms as sampled from the animation.
     ozz::span<SoaTransform> localTrans;
 
-    // Buffer of joint model space matrices set by animations
+    // Buffer of joint model space matrices Set by animations
     ozz::span<Matrix4> jointModelMats;
     // Buffer of world model space matrices for joints.
     ozz::span<Matrix4> jointWorldMats;

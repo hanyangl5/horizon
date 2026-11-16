@@ -18,7 +18,7 @@ public:
     TextureAsset(const TextureAsset&) = delete;
     TextureAsset& operator=(const TextureAsset&) = delete;
 
-    const GPUTexture& getTexture() const;
+    const GPUTexture& GetTexture() const;
 
 private:
     TextureAssetData* Data = nullptr;
@@ -34,7 +34,7 @@ public:
     TextureAssetLoader(const TextureAssetLoader&) = delete;
     TextureAssetLoader& operator=(const TextureAssetLoader&) = delete;
 
-    AssetLoader getLoader();
+    AssetLoader GetLoader();
 
 private:
     TextureAssetLoaderData* Data = nullptr;

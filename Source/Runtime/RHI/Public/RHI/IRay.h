@@ -134,7 +134,7 @@ struct RaytracingBuildASDesc
 {
     AccelerationStructure* pAccelerationStructure;
     bool                   issueRWBarrier;
-    bool                   update = false;
+    bool                   Update = false;
     Buffer*                pInstanceBuffer = nullptr;
     uint32_t               instanceCount = UINT32_MAX;
 };

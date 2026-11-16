@@ -126,7 +126,7 @@ struct RendererInitializationErrorScope
 class DeferredCleanup
 {
 public:
-    void add(std::function<void()> fn) { mActions.emplace_back(std::move(fn)); }
+    void Add(std::function<void()> fn) { mActions.emplace_back(std::move(fn)); }
 
     ~DeferredCleanup()
     {
@@ -779,7 +779,7 @@ bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& 
         return false;
     }
     Shader* pSourceShader = pOut->pSourceShader;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pSourceShader]
         {
             if (pSourceShader)
@@ -796,7 +796,7 @@ bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& 
         return false;
     }
     Shader* pBinaryShader = pOut->pBinaryShader;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pBinaryShader]
         {
             if (pBinaryShader)
@@ -817,7 +817,7 @@ bool createLifecycleShaderBundle(LiveRendererHarness& harness, DeferredCleanup& 
         return false;
     }
     RootSignature* pRootSignature = pOut->pRootSignature;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pRootSignature]
         {
             if (pRootSignature)
@@ -864,7 +864,7 @@ bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& 
         return false;
     }
     ResourceHeap* pHeap = pOut->pHeap;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pHeap]
         {
             if (pHeap)
@@ -885,7 +885,7 @@ bool createLifecyclePlacedBuffer(LiveRendererHarness& harness, DeferredCleanup& 
         return false;
     }
     Buffer* pBuffer = pOut->pBuffer;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pBuffer]
         {
             if (pBuffer)
@@ -908,7 +908,7 @@ bool createLifecyclePipelineBundle(LiveRendererHarness& harness, DeferredCleanup
         return false;
     }
     PipelineCache* pPipelineCache = pOut->pPipelineCache;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pPipelineCache]
         {
             if (pPipelineCache)
@@ -933,7 +933,7 @@ bool createLifecyclePipelineBundle(LiveRendererHarness& harness, DeferredCleanup
         return false;
     }
     Pipeline* pPipeline = pOut->pPipeline;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pPipeline]
         {
             if (pPipeline)
@@ -966,7 +966,7 @@ bool createRenderTarget(LiveRendererHarness& harness, DeferredCleanup& Cleanup, 
         return false;
     }
     RenderTarget* pRenderTarget = *ppRenderTarget;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pRenderTarget]
         {
             if (pRenderTarget)
@@ -1007,7 +1007,7 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& Clea
         return false;
     }
     Buffer* pReadbackBuffer = pOut->pReadbackBuffer;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pReadbackBuffer]
         {
             if (pReadbackBuffer)
@@ -1024,7 +1024,7 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& Clea
         return false;
     }
     Shader* pGraphicsShader = pOut->pShader;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pGraphicsShader]
         {
             if (pGraphicsShader)
@@ -1045,7 +1045,7 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& Clea
         return false;
     }
     RootSignature* pGraphicsRootSignature = pOut->pRootSignature;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pGraphicsRootSignature]
         {
             if (pGraphicsRootSignature)
@@ -1076,7 +1076,7 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& Clea
         return false;
     }
     Buffer* pVertexBuffer = pOut->pVertexBuffer;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pVertexBuffer]
         {
             if (pVertexBuffer)
@@ -1103,7 +1103,7 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& Clea
         return false;
     }
     Buffer* pIndexBuffer = pOut->pIndexBuffer;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pIndexBuffer]
         {
             if (pIndexBuffer)
@@ -1160,7 +1160,7 @@ bool createGraphicsDrawSetup(LiveRendererHarness& harness, DeferredCleanup& Clea
         return false;
     }
     Pipeline* pGraphicsPipeline = pOut->pPipeline;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pGraphicsPipeline]
         {
             if (pGraphicsPipeline)
@@ -1262,7 +1262,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& Cl
         return false;
     }
     Shader* pComputeShader = pOut->pShader;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pComputeShader]
         {
             if (pComputeShader)
@@ -1283,7 +1283,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& Cl
         return false;
     }
     RootSignature* pComputeRootSignature = pOut->pRootSignature;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pComputeRootSignature]
         {
             if (pComputeRootSignature)
@@ -1315,7 +1315,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& Cl
         return false;
     }
     Buffer* pOutputBuffer = pOut->pOutputBuffer;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pOutputBuffer]
         {
             if (pOutputBuffer)
@@ -1339,7 +1339,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& Cl
         return false;
     }
     Buffer* pRootCbvBuffer = pOut->pRootCbvBuffer;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pRootCbvBuffer]
         {
             if (pRootCbvBuffer)
@@ -1364,7 +1364,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& Cl
         return false;
     }
     Buffer* pComputeReadbackBuffer = pOut->pReadbackBuffer;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pComputeReadbackBuffer]
         {
             if (pComputeReadbackBuffer)
@@ -1388,7 +1388,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& Cl
         return false;
     }
     Buffer* pIndirectBuffer = pOut->pIndirectBuffer;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pIndirectBuffer]
         {
             if (pIndirectBuffer)
@@ -1421,7 +1421,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& Cl
         return false;
     }
     Pipeline* pComputePipeline = pOut->pPipeline;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pComputePipeline]
         {
             if (pComputePipeline)
@@ -1444,7 +1444,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& Cl
         return false;
     }
     CommandSignature* pDispatchSignature = pOut->pDispatchSignature;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pDispatchSignature]
         {
             if (pDispatchSignature)
@@ -1517,7 +1517,7 @@ bool createQueryPool(LiveRendererHarness& harness, DeferredCleanup& Cleanup, Que
         return false;
     }
     QueryPool* pQueryPool = *ppQueryPool;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pQueryPool]
         {
             if (pQueryPool)
@@ -1544,7 +1544,7 @@ bool createMarkerBuffer(LiveRendererHarness& harness, DeferredCleanup& Cleanup, 
         return false;
     }
     Buffer* pMarkerBuffer = *ppMarkerBuffer;
-    Cleanup.add(
+    Cleanup.Add(
         [renderer = harness.pRenderer, pMarkerBuffer]
         {
             if (pMarkerBuffer)
@@ -1596,7 +1596,7 @@ TEST_F(RHIIGraphicsApiTest, QueueAndSyncApisSubmitAndSignalCorrectly)
     ASSERT_NE(pWaitFence, nullptr);
 
     DeferredCleanup Cleanup;
-    Cleanup.add(
+    Cleanup.Add(
         [&]
         {
             if (pWaitFence)
@@ -1674,7 +1674,7 @@ TEST_F(RHIIGraphicsApiTest, SamplerApiCreatesExpectedDescriptor)
     ASSERT_NE(pSampler, nullptr);
 
     DeferredCleanup Cleanup;
-    Cleanup.add(
+    Cleanup.Add(
         [&]
         {
             if (pSampler)
@@ -1741,7 +1741,7 @@ TEST_F(RHIIGraphicsApiTest, ResourceHeapAndPlacedBufferApisCreateExpectedAllocat
     EXPECT_EQ(placedBufferBundle.pBuffer->Size, sizeof(uint32_t) * 4);
 }
 
-// Verifies that pipeline-cache and compute-pipeline APIs create a usable pipeline and serialize cache data when available.
+// Verifies that pipeline-cache and compute-pipeline APIs create a usable pipeline and Serialize cache data when available.
 TEST_F(RHIIGraphicsApiTest, PipelineCacheAndPipelineApisCreateUsableComputePipeline)
 {
     LiveRendererHarness harness;

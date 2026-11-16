@@ -150,7 +150,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
             // determinant
             float det = mouseToKnob.x * mousePrevToKnob.y - mouseToKnob.y * mousePrevToKnob.x;
 
-            // Get the new angle to add. Needs to be in degrees
+            // Get the new angle to Add. Needs to be in degrees
             float deltaAngle = atan2f(det, dot) * 180.f / M_PI;
 
             // Increment current value
@@ -184,7 +184,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     // draw_list->AddRect(inner_bb.Min, inner_bb.Max, ImColor(0.0f, 0.0f, 1.0f, 1.0f));
 
     // Draw knob as Filled circle
-    // We could add textures to it in the future.
+    // We could Add textures to it in the future.
     draw_list->AddCircleFilled(center, knobRadius, col32, 32);
 
     // Cover the part that can't be dragged
@@ -256,7 +256,7 @@ int KnobFloatN(const char* label, float* value_p, const int& components, const f
         PopID();
         PopItemWidth();
 
-        // update user provided float value
+        // Update user provided float value
         value_p = (float*)((char*)value_p + type_size);
     }
     PopID();

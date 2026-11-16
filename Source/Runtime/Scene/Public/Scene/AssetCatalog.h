@@ -55,24 +55,24 @@ public:
     AssetCatalog& operator=(const AssetCatalog&) = delete;
 
     // Paths are relative to their source/cooked roots. Conflicts leave the catalog unchanged.
-    bool                     addScene(const SceneAsset& scene, const char* pCookedScenePath);
-    bool                     add(const AssetCatalogEntry& entry);
-    bool                     merge(const AssetCatalog& other);
-    bool                     replace(const AssetCatalogEntry& entry);
-    bool                     remove(AssetID id);
+    bool                     AddScene(const SceneAsset& scene, const char* pCookedScenePath);
+    bool                     Add(const AssetCatalogEntry& entry);
+    bool                     Merge(const AssetCatalog& other);
+    bool                     Replace(const AssetCatalogEntry& entry);
+    bool                     Remove(AssetID id);
     // Atomic full replacement from the current-Format index. Failed reads leave the catalog unchanged.
     bool                     Parse(Span<char> json);
-    bool                     load(ResourceDirectory directory, const char* pFileName);
-    bool                     serialize(Array<char>& json) const;
+    bool                     Load(ResourceDirectory directory, const char* pFileName);
+    bool                     Serialize(Array<char>& json) const;
     // Entries own their metadata and stay at stable addresses until Clear or owner destruction.
-    const AssetCatalogEntry* find(AssetID id) const;
+    const AssetCatalogEntry* Find(AssetID id) const;
     // Bootstrap a Scene AssetID from its relative cooked document path.
-    const AssetCatalogEntry* findScene(const char* pCookedScenePath) const;
-    uint32_t                 getCount() const;
+    const AssetCatalogEntry* FindScene(const char* pCookedScenePath) const;
+    uint32_t                 GetCount() const;
     void                     Clear();
 
 private:
-    bool              set(const AssetCatalogEntry& entry, bool replaceExisting);
+    bool              Set(const AssetCatalogEntry& entry, bool replaceExisting);
     AssetCatalogData* Data = nullptr;
 };
 } // namespace hz

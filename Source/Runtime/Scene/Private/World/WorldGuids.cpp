@@ -78,7 +78,7 @@ void WorldImpl::removeEntityGuids(ecs_iter_t* pIterator)
 
 void WorldImpl::finishGuidChanges()
 {
-    // A deferred create followed by delete may never add EntityIdentity, so its remove hook cannot run.
+    // A deferred create followed by delete may never Add EntityIdentity, so its Remove hook cannot run.
     for (const Guid& id : pendingGuids)
     {
         const EntityGuidEntry* pEntry = hmgetp_null(pEntityGuids, id);

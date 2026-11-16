@@ -28,7 +28,7 @@
 
 #include "RHI/IGraphics.h"
 
-// include Fontstash (should be after MemoryTracking so that it also detects memory free/remove in fontstash)
+// include Fontstash (should be after MemoryTracking so that it also detects memory free/Remove in fontstash)
 #define FONTSTASH_IMPLEMENTATION
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
 #include <ThirdParty/stb/stb_ds.h>
@@ -144,16 +144,16 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
     }
 
     GPURingBufferOffset buffer = getGPURingBufferOffset(&gFontstash.meshRingBuffer, nverts * sizeof(float4));
-    BufferUpdateDesc    update = { buffer.pBuffer, buffer.offset };
-    beginUpdateResource(&update);
-    float4* vtx = (float4*)update.pMappedData;
+    BufferUpdateDesc    Update = { buffer.pBuffer, buffer.offset };
+    beginUpdateResource(&Update);
+    float4* vtx = (float4*)Update.pMappedData;
     // build vertices
     for (int impl = 0; impl < nverts; impl++)
     {
         float4 vert = { verts[impl * 2 + 0], verts[impl * 2 + 1], tcoords[impl * 2 + 0], tcoords[impl * 2 + 1] };
         memcpy((void*)&vtx[impl], &vert, sizeof(vert));
     }
-    endUpdateResource(&update);
+    endUpdateResource(&Update);
 
     // extract color
     float4 color = unpackA8B8G8R8_SRGB(*colors);
@@ -570,7 +570,7 @@ void fntDefineFonts(const FontDesc* pDescs, uint32_t Count, uint32_t* pOutIDs)
             void*   buffer = MemAllocate(bytes);
             ReadFromStream(&fh, buffer, bytes);
 
-            // add buffer to font buffers for Cleanup
+            // Add buffer to font buffers for Cleanup
             arrpush(gFontstash.fontBuffers, buffer);
             ASSERT(bytes < UINT32_MAX);
             arrpush(gFontstash.fontBufferSizes, (uint32_t)bytes);

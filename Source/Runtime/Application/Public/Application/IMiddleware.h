@@ -41,8 +41,8 @@ public:
     virtual bool Init(Renderer* renderer, PipelineCache* pCache = NULL) = 0;
     virtual void Exit() = 0;
 
-    // When app is loaded, app is provided of the render targets to load
-    // App is responsible to keep track of these render targets until load is called again
+    // When app is loaded, app is provided of the render targets to Load
+    // App is responsible to keep track of these render targets until Load is called again
     virtual bool Load(RenderTarget** rts, uint32_t Count = 1) = 0;
     virtual void Unload() = 0;
 

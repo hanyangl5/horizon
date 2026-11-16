@@ -355,7 +355,7 @@ bool LoadTextureData(ResourceDirectory resourceDir, const char* pFilepath, const
         if (!headerOkay)
         {
             TinyDDS_DestroyContext(tinyDDSCtx);
-            LOGF(Error, "Could not load dds texture information '%s'.", pFilepath);
+            LOGF(Error, "Could not Load dds texture information '%s'.", pFilepath);
             success = false;
         }
 
@@ -716,7 +716,7 @@ bool BCCompression(uint8_t* ppData[MAX_MIPLEVELS], uint8_t* ppOutCompressed[MAX_
         bcCompress = inputChannels > 3 ? CompressBlocksBC7_alpha_fast : CompressBlocksBC7_fast;
         break;
     default:
-        ASSERT(false && "Unknown BC compression request");
+        ASSERT(false && "Unknown BC compression Request");
     }
     ASSERT(requiredInputChannels <= inputChannels && "Input should always have more data available");
 
@@ -1150,7 +1150,7 @@ bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* te
         /////////////////////////////////
         if (copyTextureParams.mGenerateMipmaps == MIPMAP_CUSTOM)
         {
-            ASSERT(copyTextureParams.pGenerateMipmapsCallback && "MIPMAP_CUSTOM requires pGenerateMipmapsCallback to be set");
+            ASSERT(copyTextureParams.pGenerateMipmapsCallback && "MIPMAP_CUSTOM requires pGenerateMipmapsCallback to be Set");
             if (inputTextureData.Data[0])
             {
                 uint32_t channels = TinyImageFormat_ChannelCount((TinyImageFormat)inputTextureData.mDesc.Format);

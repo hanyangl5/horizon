@@ -67,7 +67,7 @@ public:
     }
     void onZoom(const float2& vec) override { zoom = vec[1]; }
 
-    void update(float deltaTime) override;
+    void Update(float deltaTime) override;
 
     Vector3 startPosition;
     Vector3 startLookAt;
@@ -118,7 +118,7 @@ void FpsCameraController::setMotionParameters(const CameraMotionParameters& cmp)
     rotationSpeed = cmp.rotationSpeed;
 }
 
-void FpsCameraController::update(float deltaTime)
+void FpsCameraController::Update(float deltaTime)
 {
     // when frame time is too small (01 in releaseVK) the float comparison with zero is imprecise.
     // It returns when it shouldn't causing stutters
@@ -235,7 +235,7 @@ public:
     GuiCameraController(): viewRotation{ 0 }, viewPosition{ 0 }, velocity{ 0 }, maxSpeed{ 1.0f } {}
     void setMotionParameters(const CameraMotionParameters& cmp) override { maxSpeed = cmp.maxSpeed; }
 
-    void update(float deltaTime) override
+    void Update(float deltaTime) override
     {
         viewPosition += velocity * deltaTime;
         velocity = Vector3{ 0 };

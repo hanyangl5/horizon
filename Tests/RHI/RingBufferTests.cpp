@@ -57,7 +57,7 @@ TEST(RHIRingBufferTest, ResetClearsCurrentOffset)
     EXPECT_EQ(ring.currentBufferOffset, 16u);
 }
 
-// Verifies that the GPU command ring advances command and fence indices within a pool and cycles to the next pool on request.
+// Verifies that the GPU command ring advances command and fence indices within a pool and cycles to the next pool on Request.
 TEST(RHIRingBufferTest, CommandRingReturnsSequentialElementsAcrossPools)
 {
     GpuCmdRing ring = {

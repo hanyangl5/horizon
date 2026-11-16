@@ -19,7 +19,7 @@ public:
     void                  finishDeferredChanges();
     bool                  setParent(ecs_entity_t entity, ecs_entity_t parent, bool keepWorld);
     bool                  Destroy(ecs_entity_t entity, bool subtree);
-    void                  update();
+    void                  Update();
     const WorldTransform* Get(ecs_entity_t entity) const;
     void                  commit();
     void                  markDirty(ecs_entity_t root);
@@ -54,7 +54,7 @@ private:
         uint32_t     value;
     };
 
-    uint32_t find(ecs_entity_t entity) const;
+    uint32_t Find(ecs_entity_t entity) const;
     void     rebuild();
     Matrix4  localMatrix(ecs_entity_t entity) const;
     bool     writeLocalMatrix(ecs_entity_t entity, const Matrix4& matrix);

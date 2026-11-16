@@ -16,7 +16,7 @@ public:
     MaterialAsset(const MaterialAsset&) = delete;
     MaterialAsset& operator=(const MaterialAsset&) = delete;
 
-    const SceneAssetMaterial& getDescription() const;
+    const SceneAssetMaterial& GetDescription() const;
 
 private:
     AssetSource* pSource = nullptr;

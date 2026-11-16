@@ -232,18 +232,18 @@ extern "C"
         // 	| Pivot | Root | rightPivot	| leftPivot | leftRoot |
         // P:	-       0		0		    1			 1
 
-        leftRoot.parentIndex = root.leftOrFirst;                         // set leftRoot parent index
-        pRTree->pTree[pivot.leftOrFirst].parentIndex = root.leftOrFirst; // set leftPivot parent index
-        pRTree->pTree[pivot.leftOrFirst + 1] = leftRoot;                 // set leftRoot
+        leftRoot.parentIndex = root.leftOrFirst;                         // Set leftRoot parent index
+        pRTree->pTree[pivot.leftOrFirst].parentIndex = root.leftOrFirst; // Set leftPivot parent index
+        pRTree->pTree[pivot.leftOrFirst + 1] = leftRoot;                 // Set leftRoot
         if (leftRoot.countOrNode == INTERNAL_NODE)
         {
             pRTree->pTree[leftRoot.leftOrFirst].parentIndex = pivot.leftOrFirst + 1;
             pRTree->pTree[leftRoot.leftOrFirst + 1].parentIndex = pivot.leftOrFirst + 1;
         }
 
-        pivot.parentIndex = root.parentIndex;                          // set pivot parent index
-        root.parentIndex = pRTree->pTree[treeIndex].parentIndex;       // set root parent index
-        rightPivot.parentIndex = pRTree->pTree[treeIndex].parentIndex; // set leftPivot parent index
+        pivot.parentIndex = root.parentIndex;                          // Set pivot parent index
+        root.parentIndex = pRTree->pTree[treeIndex].parentIndex;       // Set root parent index
+        rightPivot.parentIndex = pRTree->pTree[treeIndex].parentIndex; // Set leftPivot parent index
 
         pivot.leftOrFirst = root.leftOrFirst;
         root.leftOrFirst = pRTree->pTree[treeIndex].leftOrFirst;
@@ -275,18 +275,18 @@ extern "C"
         // 	| pivot | leftPivot | Root 		| rightRoot | rightPivot |
         // P:	-  		0			0			2			2
 
-        rightRoot.parentIndex = root.leftOrFirst + 1;                            // set rightRoot parent index
-        pRTree->pTree[pivot.leftOrFirst + 1].parentIndex = root.leftOrFirst + 1; // set rightPivot parent index
-        pRTree->pTree[pivot.leftOrFirst] = rightRoot;                            // set rightRoot
+        rightRoot.parentIndex = root.leftOrFirst + 1;                            // Set rightRoot parent index
+        pRTree->pTree[pivot.leftOrFirst + 1].parentIndex = root.leftOrFirst + 1; // Set rightPivot parent index
+        pRTree->pTree[pivot.leftOrFirst] = rightRoot;                            // Set rightRoot
         if (rightRoot.countOrNode == INTERNAL_NODE)
         {
             pRTree->pTree[rightRoot.leftOrFirst].parentIndex = pivot.leftOrFirst;
             pRTree->pTree[rightRoot.leftOrFirst + 1].parentIndex = pivot.leftOrFirst;
         }
 
-        pivot.parentIndex = root.parentIndex;                         // set pivot parent index
-        root.parentIndex = pRTree->pTree[treeIndex].parentIndex;      // set root parent index
-        leftPivot.parentIndex = pRTree->pTree[treeIndex].parentIndex; // set leftPivot parent index
+        pivot.parentIndex = root.parentIndex;                         // Set pivot parent index
+        root.parentIndex = pRTree->pTree[treeIndex].parentIndex;      // Set root parent index
+        leftPivot.parentIndex = pRTree->pTree[treeIndex].parentIndex; // Set leftPivot parent index
 
         pivot.leftOrFirst = root.leftOrFirst;
         root.leftOrFirst = pRTree->pTree[treeIndex].leftOrFirst;
@@ -710,7 +710,7 @@ extern "C"
             RTreeNode*     sibling = &pTree[siblingIndex];
             ASSERT(sibling->parentIndex == node->parentIndex);
             sibling->parentIndex = pTree[node->parentIndex].parentIndex;
-            if (sibling->countOrNode == INTERNAL_NODE) // update child node parent index
+            if (sibling->countOrNode == INTERNAL_NODE) // Update child node parent index
             {
                 pTree[sibling->leftOrFirst].parentIndex = node->parentIndex;
                 pTree[sibling->leftOrFirst + 1].parentIndex = node->parentIndex;
@@ -723,14 +723,14 @@ extern "C"
             // Move outer nodes to free locations if not working on outer nodes
             // pTree[treeIndex] + pTree[siblingIndex] going to be free locations
             // Get "leafNodes * 2 (-1)" left and right and move to free space
-            // update parent leftOrFirst location
+            // Update parent leftOrFirst location
             if (pRTree->leafNodes * 2 != treeIndex && pRTree->leafNodes * 2 != siblingIndex)
             {
                 pTree[pTree[pRTree->leafNodes * 2].parentIndex].leftOrFirst = isLeftNode ? treeIndex : treeIndex - 1;
                 pTree[treeIndex] = isLeftNode ? pTree[pRTree->leafNodes * 2 - 1] : pTree[pRTree->leafNodes * 2];
                 pTree[siblingIndex] = isLeftNode ? pTree[pRTree->leafNodes * 2] : pTree[pRTree->leafNodes * 2 - 1];
 
-                // update child node parent index
+                // Update child node parent index
                 if (pTree[treeIndex].countOrNode == INTERNAL_NODE)
                 {
                     pTree[pTree[treeIndex].leftOrFirst].parentIndex = treeIndex;

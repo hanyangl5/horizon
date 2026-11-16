@@ -19,8 +19,8 @@ public:
     bool matchesDependencies() const
     {
         Array<AssetID> dependencies;
-        dependencies.Reserve(pScene->getNodes().Count);
-        for (const SceneAssetNode& node : pScene->getNodes())
+        dependencies.Reserve(pScene->GetNodes().Count);
+        for (const SceneAssetNode& node : pScene->GetNodes())
             if (node.mesh.IsValid())
                 dependencies.PushBack(node.mesh);
         if (!dependencies.Empty())
@@ -60,7 +60,7 @@ public:
             return false;
         }
         pScene = MemNew(SceneAsset);
-        if (!pScene->Parse({ json.GetData(), json.Size() }) || pScene->getID() != entry.id)
+        if (!pScene->Parse({ json.GetData(), json.Size() }) || pScene->GetID() != entry.id)
         {
             LOGF(Error, "Invalid SceneAsset payload or mismatched identity in '%s'", entry.location.pPath);
             return false;
@@ -151,7 +151,7 @@ public:
 SceneAssetLoader::SceneAssetLoader(ResourceDirectory cookedDirectory): Data(MemNew(SceneAssetLoaderData, cookedDirectory)) {}
 SceneAssetLoader::~SceneAssetLoader() { MemDelete(Data); }
 
-AssetLoader SceneAssetLoader::getLoader()
+AssetLoader SceneAssetLoader::GetLoader()
 {
     return { .UserData = Data,
              .pBegin = SceneAssetLoaderData::begin,

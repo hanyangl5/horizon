@@ -75,7 +75,7 @@ struct GpuTextureData
     uint32_t     srv = UINT32_MAX;
 };
 
-// CPU encoding of the ready payload set; unused asset manager entries have invalid IDs.
+// CPU encoding of the ready payload Set; unused asset manager entries have invalid IDs.
 // The srv fields are bindless descriptor indices resolved at encode time: they stay valid until
 // GpuAssetTables::revision changes, so consumers that keep them must re-read this table afterwards.
 struct GpuAssetTables
@@ -87,15 +87,15 @@ struct GpuAssetTables
     Span<GpuTextureData>    textures;
     uint64_t                revision = 0;
 
-    const GpuMeshData* getMesh(GpuMeshID id) const
+    const GpuMeshData* GetMesh(GpuMeshID id) const
     {
         return id.IsValid() && id.index < meshes.Count && meshes.Data[id.index].id == id ? meshes.Data + id.index : nullptr;
     }
-    const GpuMaterialData* getMaterial(GpuMaterialID id) const
+    const GpuMaterialData* GetMaterial(GpuMaterialID id) const
     {
         return id.IsValid() && id.index < materials.Count && materials.Data[id.index].id == id ? materials.Data + id.index : nullptr;
     }
-    const GpuTextureData* getTexture(GpuTextureID id) const
+    const GpuTextureData* GetTexture(GpuTextureID id) const
     {
         return id.IsValid() && id.index < textures.Count && textures.Data[id.index].id == id ? textures.Data + id.index : nullptr;
     }

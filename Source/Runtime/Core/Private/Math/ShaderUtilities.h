@@ -179,7 +179,7 @@ inline float pack3PNForFP32(float3 channel)
     // to prevent an exponent that is 0 we can check
     // check if SEEEEEEE is all 0
     // only check the highest 7-bit 0111 1111 0000 0000 0000 0000 0000 0000 == 0x7F000000
-    // to prevent all 7-bits from going zero we add 0000 0001 0000 0000 0000 0000 because we assume that
+    // to prevent all 7-bits from going zero we Add 0000 0001 0000 0000 0000 0000 because we assume that
     // all are zero :-;
     uValue |= (uint(channel.z * 253.0f + 1.5f)) << 24; // goes from bit 24 to 31
 

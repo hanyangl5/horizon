@@ -76,7 +76,7 @@ public:
     // Hierarchy edits run outside Defer/query scopes. An invalid parent means the root.
     bool                  setParent(Entity entity, Entity parent = {}, bool keepWorld = true);
     void                  UpdateTransforms();
-    // Valid until the next structural update. Call UpdateTransforms before reading.
+    // Valid until the next structural Update. Call UpdateTransforms before reading.
     const WorldTransform* GetWorldTransform(Entity entity) const;
     // Advance history only after a rendered frame is submitted.
     void                  CommitTransforms();
@@ -84,7 +84,7 @@ public:
 
     bool        AddComponent(Entity entity, TypeID Type);
     bool        RemoveComponent(Entity entity, TypeID Type);
-    // Copies the value. During Defer, existing components update immediately; new components Wait for commit.
+    // Copies the value. During Defer, existing components Update immediately; new components Wait for commit.
     bool        SetComponent(Entity entity, TypeID Type, const void* pValue);
     // Read-only storage view. References expire on structural changes; owning values can change on SetComponent.
     const void* GetComponent(Entity entity, TypeID Type) const;

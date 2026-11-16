@@ -486,7 +486,7 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
 {
     ImGuiIO& io = ImGui::GetIO();
 
-    // Build and load the texture atlas into a texture
+    // Build and Load the texture atlas into a texture
     int            Width, Height, bytesPerPixel;
     unsigned char* pixels = NULL;
 
@@ -1267,7 +1267,7 @@ static void processWidgetCallbacks(UIWidget* pWidget, bool deferred)
         pWidget->active = ImGui::IsItemActive();
         pWidget->focused = ImGui::IsItemFocused();
 
-        // ImGui::Button doesn't set the IsItemEdited flag, we assing ourselves:
+        // ImGui::Button doesn't Set the IsItemEdited flag, we assing ourselves:
         // pWidget->edited = ImGui::Button(...);
         if (pWidget->Type != WIDGET_TYPE_BUTTON)
             pWidget->edited = ImGui::IsItemEdited();
@@ -2269,7 +2269,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
             }
         }
 
-        if (cachedFontIndex == -1) // didn't find that font in the cache
+        if (cachedFontIndex == -1) // didn't Find that font in the cache
         {
             // Ensure we don't pass max amount of fonts
             if (arrlen(pUserInterface->pCachedFontsArr) < pUserInterface->maxUIFonts)
@@ -2546,7 +2546,7 @@ bool platformInitUserInterface()
     //         - ImGuiConfigFlags_NavEnableKeyboard
     io.ConfigFlags = ImGuiConfigFlags_NavEnableGamepad;
 
-    // Tell ImGui that we support ImDrawCmd::VtxOffset, otherwise ImGui will always set it to 0
+    // Tell ImGui that we support ImDrawCmd::VtxOffset, otherwise ImGui will always Set it to 0
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
     io.KeyMap[ImGuiKey_Tab] = UISystemInputActions::UI_ACTION_KEY_TAB;
@@ -2813,7 +2813,7 @@ void platformUpdateUserInterface(float deltaTime)
 
     pUserInterface->handledGestures = false;
 
-    // Apply post update keydown states
+    // Apply post Update keydown states
     COMPILE_ASSERT(sizeof(pUserInterface->postUpdateKeyDownStates) == sizeof(io.KeysDown));
     memcpy(io.KeysDown, pUserInterface->postUpdateKeyDownStates, sizeof(io.KeysDown));
 
@@ -2869,10 +2869,10 @@ static void cmdPrepareRenderingForUI(Cmd* pCmd, const float2& displayPos, const 
         { (R + L) / (L - R), (T + B) / (B - T), 0.5f, 1.0f },
     };
 
-    BufferUpdateDesc update = { pUserInterface->pUniformBuffer[pUserInterface->frameIdx] };
-    beginUpdateResource(&update);
-    memcpy(update.pMappedData, &mvp, sizeof(mvp));
-    endUpdateResource(&update);
+    BufferUpdateDesc Update = { pUserInterface->pUniformBuffer[pUserInterface->frameIdx] };
+    beginUpdateResource(&Update);
+    memcpy(Update.pMappedData, &mvp, sizeof(mvp));
+    endUpdateResource(&Update);
 
     const uint32_t vertexStride = sizeof(ImDrawVert);
 
@@ -3279,15 +3279,15 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
 
     if (pUIDrawData->vertexBufferData && pUIDrawData->indexBufferData)
     {
-        BufferUpdateDesc update = { pUserInterface->pVertexBuffer, vOffset };
-        beginUpdateResource(&update);
-        memcpy(update.pMappedData, pUIDrawData->vertexBufferData, (size_t)pUIDrawData->vertexCount * pUIDrawData->vertexSize);
-        endUpdateResource(&update);
+        BufferUpdateDesc Update = { pUserInterface->pVertexBuffer, vOffset };
+        beginUpdateResource(&Update);
+        memcpy(Update.pMappedData, pUIDrawData->vertexBufferData, (size_t)pUIDrawData->vertexCount * pUIDrawData->vertexSize);
+        endUpdateResource(&Update);
 
-        update = { pUserInterface->pIndexBuffer, iOffset };
-        beginUpdateResource(&update);
-        memcpy(update.pMappedData, pUIDrawData->indexBufferData, (size_t)pUIDrawData->indexCount * pUIDrawData->indexSize);
-        endUpdateResource(&update);
+        Update = { pUserInterface->pIndexBuffer, iOffset };
+        beginUpdateResource(&Update);
+        memcpy(Update.pMappedData, pUIDrawData->indexBufferData, (size_t)pUIDrawData->indexCount * pUIDrawData->indexSize);
+        endUpdateResource(&Update);
     }
     else
     {
@@ -3296,15 +3296,15 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
         for (int32_t i = 0; i < pImDrawData->CmdListsCount; i++)
         {
             const ImDrawList* pCmdList = pImDrawData->CmdLists[i];
-            BufferUpdateDesc  update = { pUserInterface->pVertexBuffer, vtxDst };
-            beginUpdateResource(&update);
-            memcpy(update.pMappedData, pCmdList->VtxBuffer.Data, pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
-            endUpdateResource(&update);
+            BufferUpdateDesc  Update = { pUserInterface->pVertexBuffer, vtxDst };
+            beginUpdateResource(&Update);
+            memcpy(Update.pMappedData, pCmdList->VtxBuffer.Data, pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
+            endUpdateResource(&Update);
 
-            update = { pUserInterface->pIndexBuffer, idxDst };
-            beginUpdateResource(&update);
-            memcpy(update.pMappedData, pCmdList->IdxBuffer.Data, pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
-            endUpdateResource(&update);
+            Update = { pUserInterface->pIndexBuffer, idxDst };
+            beginUpdateResource(&Update);
+            memcpy(Update.pMappedData, pCmdList->IdxBuffer.Data, pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
+            endUpdateResource(&Update);
 
             vtxDst += (pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
             idxDst += (pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
@@ -3507,7 +3507,7 @@ void uiOnButton(uint32_t actionId, bool press, const float2* pVec)
             {
                 if (ImGui::IsMouseHoveringRect(pUserInterface->lastUpdateMin[i], pUserInterface->lastUpdateMax[i], false))
                 {
-                    // TOOD: io.WantCaptureMouse is meant to be for the application to read, ImGui modifies it internally. We should find
+                    // TOOD: io.WantCaptureMouse is meant to be for the application to read, ImGui modifies it internally. We should Find
                     // another way to do this rather than changing it.
                     io.WantCaptureMouse = true;
                 }
@@ -3517,8 +3517,8 @@ void uiOnButton(uint32_t actionId, bool press, const float2* pVec)
         break;
     }
 
-    // Note that for keyboard keys, we only set them to true here if they are pressed because we may have a press/release
-    // happening in one frame and it would never Get registered.  Instead, unpressed are deferred at the end of update().
+    // Note that for keyboard keys, we only Set them to true here if they are pressed because we may have a press/Release
+    // happening in one frame and it would never Get registered.  Instead, unpressed are deferred at the end of Update().
     // This scenario occurs with mobile soft (on-screen) keyboards.
     case UISystemInputActions::UI_ACTION_KEY_TAB:
         if (press)

@@ -68,7 +68,7 @@ public:
     }
     ~AssetManagerData() { hmfree(pIndices); }
 
-    ManagedAsset* find(AssetHandle Handle)
+    ManagedAsset* Find(AssetHandle Handle)
     {
         if (Handle.index >= assets.Size())
         {
@@ -80,7 +80,7 @@ public:
 
     const void* getPayload(AssetHandle Handle, AssetType Type)
     {
-        const ManagedAsset* pAsset = find(Handle);
+        const ManagedAsset* pAsset = Find(Handle);
         return pAsset && pAsset->state == AssetState::Ready && pAsset->pEntry->Type == Type ? pAsset->pPayload : nullptr;
     }
 
@@ -106,7 +106,7 @@ public:
         {
             return pVisit->complete ? AssetError::None : AssetError::DependencyCycle;
         }
-        const AssetCatalogEntry* pEntry = catalog.find(id);
+        const AssetCatalogEntry* pEntry = catalog.Find(id);
         if (!pEntry)
         {
             return AssetError::UnknownAsset;
@@ -171,9 +171,9 @@ public:
         pending.PushBack(index);
     }
 
-    bool release(AssetHandle Handle)
+    bool Release(AssetHandle Handle)
     {
-        ManagedAsset* pAsset = find(Handle);
+        ManagedAsset* pAsset = Find(Handle);
         if (!pAsset || !pAsset->references)
         {
             return false;
@@ -181,7 +181,7 @@ public:
         if (--pAsset->references == 0)
         {
             pAsset->state = AssetState::Retiring;
-            // The payload left the ready set; work recorded until now may still reference it.
+            // The payload left the ready Set; work recorded until now may still reference it.
             pAsset->gpuUse = pContext ? pContext->GetResourceUseId() : 0;
             markTableDirty(Handle.index);
             queueRetirement(Handle.index);
@@ -206,7 +206,7 @@ public:
         }
         for (uint32_t i = 0; i < asset.pEntry->dependencies.Count; ++i)
         {
-            release(asset.pDependencies[i]);
+            Release(asset.pDependencies[i]);
         }
         MemDeallocate(asset.pDependencies);
         asset.pDependencies = nullptr;
@@ -229,7 +229,7 @@ public:
             destroyPayload(asset);
             releaseDependencies(asset);
             hmdel(pIndices, asset.pEntry->id);
-            // A release already drops the entry; only a slot that was still encoded needs clearing here.
+            // A Release already drops the entry; only a slot that was still encoded needs clearing here.
             if (asset.tableEncoded)
                 markTableDirty(index);
             const uint32_t generation = asset.generation + 1;
@@ -246,11 +246,11 @@ public:
         if (pReason && pReason[0])
             snprintf(asset.diagnostic, sizeof(asset.diagnostic), "%s", pReason);
         else if (!asset.diagnostic[0])
-            snprintf(asset.diagnostic, sizeof(asset.diagnostic), "Cannot load %s", asset.pEntry->location.pPath);
+            snprintf(asset.diagnostic, sizeof(asset.diagnostic), "Cannot Load %s", asset.pEntry->location.pPath);
     }
 
     // Returns true while the asset still has work to poll; Ready, Failed and retired slots drop out.
-    bool update(ManagedAsset& asset)
+    bool Update(ManagedAsset& asset)
     {
         const uint32_t index = (uint32_t)(&asset - assets.GetData());
         if (!asset.pEntry || asset.state == AssetState::Ready)
@@ -265,7 +265,7 @@ public:
                 const AssetState state = assets[asset.pDependencies[i].index].state;
                 dependenciesReady &= state == AssetState::Ready;
                 if (state == AssetState::Failed)
-                    fail(asset, AssetError::DependencyFailed, "A dependency failed to load");
+                    fail(asset, AssetError::DependencyFailed, "A dependency failed to Load");
             }
         }
         const AssetLoader& loader = loaders[(uint32_t)asset.pEntry->Type];
@@ -341,7 +341,7 @@ public:
         if (asset.state == AssetState::Failed)
         {
             if (!asset.diagnostic[0])
-                snprintf(asset.diagnostic, sizeof(asset.diagnostic), "Cannot load %s", asset.pEntry->location.pPath);
+                snprintf(asset.diagnostic, sizeof(asset.diagnostic), "Cannot Load %s", asset.pEntry->location.pPath);
             destroyPayload(asset);
             releaseDependencies(asset);
             markTableDirty(index);
@@ -355,7 +355,7 @@ public:
         return true;
     }
 
-    // Marks one asset for the next GPU table update. Materials bake texture Descriptors into their entry,
+    // Marks one asset for the next GPU table Update. Materials bake texture Descriptors into their entry,
     // so any texture change invalidates every material.
     void markTableDirty(uint32_t index)
     {
@@ -397,33 +397,33 @@ public:
         if (asset.pEntry->Type == AssetType::Texture)
         {
             textures[index] = { .id = { .index = index, .generation = asset.generation },
-                                .srv = ((const TextureAsset*)asset.pPayload)->getTexture().GetSrvIndex() };
+                                .srv = ((const TextureAsset*)asset.pPayload)->GetTexture().GetSrvIndex() };
         }
         else if (asset.pEntry->Type == AssetType::Mesh)
         {
             const MeshAsset& mesh = *(const MeshAsset*)asset.pPayload;
             tableGarbage += meshes[index].submeshCount + meshes[index].vertexStreamCount;
             meshes[index] = { .id = { .index = index, .generation = asset.generation },
-                              .indexSrv = mesh.getIndexBuffer().GetSrvIndex(),
-                              .indexStride = mesh.getIndexType() == IndexTypeUInt16 ? 2u : 4u,
+                              .indexSrv = mesh.GetIndexBuffer().GetSrvIndex(),
+                              .indexStride = mesh.GetIndexType() == IndexTypeUInt16 ? 2u : 4u,
                               .vertexStreamOffset = vertexStreams.Size(),
-                              .vertexStreamCount = mesh.getVertexBufferCount(),
+                              .vertexStreamCount = mesh.GetVertexBufferCount(),
                               .submeshOffset = submeshes.Size(),
-                              .submeshCount = mesh.getDescription().submeshes.Count };
-            for (uint32_t stream = 0; stream < mesh.getVertexBufferCount(); ++stream)
+                              .submeshCount = mesh.GetDescription().submeshes.Count };
+            for (uint32_t stream = 0; stream < mesh.GetVertexBufferCount(); ++stream)
             {
-                vertexStreams.PushBack({ .srv = mesh.getVertexBuffer(stream).GetSrvIndex(), .stride = mesh.getVertexStride(stream) });
+                vertexStreams.PushBack({ .srv = mesh.GetVertexBuffer(stream).GetSrvIndex(), .stride = mesh.GetVertexStride(stream) });
             }
-            for (uint32_t Draw = 0; Draw < mesh.getDescription().submeshes.Count; ++Draw)
+            for (uint32_t Draw = 0; Draw < mesh.GetDescription().submeshes.Count; ++Draw)
             {
-                const IndirectDrawIndexArguments& args = mesh.getDraw(Draw);
+                const IndirectDrawIndexArguments& args = mesh.GetDraw(Draw);
                 submeshes.PushBack({ .indexCount = args.indexCount, .firstIndex = args.startIndex,
                                      .vertexOffset = (int32_t)args.vertexOffset });
             }
         }
         else if (asset.pEntry->Type == AssetType::Material)
         {
-            const SceneAssetMaterial& material = ((const MaterialAsset*)asset.pPayload)->getDescription();
+            const SceneAssetMaterial& material = ((const MaterialAsset*)asset.pPayload)->GetDescription();
             GpuMaterialData&          mapping = materials[index];
             mapping.id = { .index = index, .generation = asset.generation };
             const AssetID textureIDs[] = { material.baseColorTexture, material.normalTexture, material.metallicRoughnessTexture,
@@ -440,7 +440,7 @@ public:
                 const ManagedAsset* pTexture = pIndex ? &assets[pIndex->value.index] : nullptr;
                 // Only a released texture lease can leave this Empty; keep the previous mapping instead of crashing.
                 if (pTexture && pTexture->state == AssetState::Ready && pTexture->pPayload)
-                    *ppTextures[texture] = ((const TextureAsset*)pTexture->pPayload)->getTexture().GetSrvIndex();
+                    *ppTextures[texture] = ((const TextureAsset*)pTexture->pPayload)->GetTexture().GetSrvIndex();
             }
             memcpy(mapping.baseColorFactor, material.baseColorFactor, sizeof(mapping.baseColorFactor));
             memcpy(mapping.emissiveFactor, material.emissiveFactor, sizeof(mapping.emissiveFactor));
@@ -512,19 +512,19 @@ AssetManager::AssetManager(const AssetCatalog& catalog, RenderContext* pContext)
 }
 AssetManager::~AssetManager()
 {
-    shutdown();
+    Shutdown();
     MemDelete(Data);
 }
 
-void AssetManager::setLoader(AssetType Type, const AssetLoader& loader)
+void AssetManager::SetLoader(AssetType Type, const AssetLoader& loader)
 {
-    ASSERT(Type <= AssetType::Texture && !getCount() && !Data->shuttingDown);
+    ASSERT(Type <= AssetType::Texture && !GetCount() && !Data->shuttingDown);
     ASSERT(loader.pBegin && loader.pPoll && loader.pDestroyRequest && loader.pDestroyPayload);
     ASSERT((loader.pUpload && loader.pPollUpload && loader.pWaitUpload) || (!loader.pUpload && !loader.pPollUpload && !loader.pWaitUpload));
     Data->loaders[(uint32_t)Type] = loader;
 }
 
-AssetHandle AssetManager::request(AssetID id, AssetError* pError)
+AssetHandle AssetManager::Request(AssetID id, AssetError* pError)
 {
     AssetRequestPlan plan;
     const AssetError error = Data->shuttingDown ? AssetError::ShuttingDown : Data->prepare(id, plan);
@@ -536,7 +536,7 @@ AssetHandle AssetManager::request(AssetID id, AssetError* pError)
     {
         char text[kIDStringCapacity];
         id.ToString(text);
-        LOGF(Error, "Asset request '%s' rejected (error %u)", text, (uint32_t)error);
+        LOGF(Error, "Asset Request '%s' rejected (error %u)", text, (uint32_t)error);
         return {};
     }
     Data->freeIndices.Reserve(Data->assets.Size() + plan.entries.Size());
@@ -550,64 +550,64 @@ AssetHandle AssetManager::request(AssetID id, AssetError* pError)
     return Handle;
 }
 
-bool AssetManager::release(AssetHandle Handle) { return Data->release(Handle); }
+bool AssetManager::Release(AssetHandle Handle) { return Data->Release(Handle); }
 
-void AssetManager::update()
+void AssetManager::Update()
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("AssetManager::update");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("AssetManager::Update");
     AssetManagerData& data = *Data;
     data.retire();
     // Only assets with work in flight are polled. A slot freed while still listed drops out here.
     uint32_t kept = 0;
     for (uint32_t i = 0; i < data.pending.Size(); ++i)
     {
-        if (data.update(data.assets[data.pending[i]]))
+        if (data.Update(data.assets[data.pending[i]]))
             data.pending[kept++] = data.pending[i];
     }
     data.pending.Resize(kept);
     data.retire();
 }
 
-AssetState AssetManager::getState(AssetHandle Handle) const
+AssetState AssetManager::GetState(AssetHandle Handle) const
 {
-    const ManagedAsset* pAsset = Data->find(Handle);
+    const ManagedAsset* pAsset = Data->Find(Handle);
     return pAsset ? pAsset->state : AssetState::Invalid;
 }
 
-AssetError AssetManager::getError(AssetHandle Handle) const
+AssetError AssetManager::GetError(AssetHandle Handle) const
 {
-    const ManagedAsset* pAsset = Data->find(Handle);
+    const ManagedAsset* pAsset = Data->Find(Handle);
     return pAsset ? pAsset->error : AssetError::UnknownAsset;
 }
 
-const char* AssetManager::getDiagnostic(AssetHandle Handle) const
+const char* AssetManager::GetDiagnostic(AssetHandle Handle) const
 {
-    const ManagedAsset* pAsset = Data->find(Handle);
+    const ManagedAsset* pAsset = Data->Find(Handle);
     return pAsset ? pAsset->diagnostic : "";
 }
 
-const SceneAsset* AssetManager::getScene(AssetHandle Handle) const
+const SceneAsset* AssetManager::GetScene(AssetHandle Handle) const
 {
     return (const SceneAsset*)Data->getPayload(Handle, AssetType::Scene);
 }
 
-const TextureAsset* AssetManager::getTexture(AssetHandle Handle) const
+const TextureAsset* AssetManager::GetTexture(AssetHandle Handle) const
 {
     return (const TextureAsset*)Data->getPayload(Handle, AssetType::Texture);
 }
-const MeshAsset* AssetManager::getMesh(AssetHandle Handle) const { return (const MeshAsset*)Data->getPayload(Handle, AssetType::Mesh); }
-const MaterialAsset* AssetManager::getMaterial(AssetHandle Handle) const
+const MeshAsset* AssetManager::GetMesh(AssetHandle Handle) const { return (const MeshAsset*)Data->getPayload(Handle, AssetType::Mesh); }
+const MaterialAsset* AssetManager::GetMaterial(AssetHandle Handle) const
 {
     return (const MaterialAsset*)Data->getPayload(Handle, AssetType::Material);
 }
 
-AssetHandle AssetManager::find(AssetID id) const
+AssetHandle AssetManager::Find(AssetID id) const
 {
     const AssetIndex* pIndex = hmgetp_null(Data->pIndices, id);
     return pIndex ? pIndex->value : AssetHandle{};
 }
 
-GpuAssetTables AssetManager::getGpuTables()
+GpuAssetTables AssetManager::GetGpuTables()
 {
     AssetManagerData& data = *Data;
     if (data.builtRevision != data.tableRevision)
@@ -624,9 +624,9 @@ GpuAssetTables AssetManager::getGpuTables()
              .revision = data.builtRevision };
 }
 
-uint32_t AssetManager::getCount() const { return (uint32_t)hmlen(Data->pIndices); }
+uint32_t AssetManager::GetCount() const { return (uint32_t)hmlen(Data->pIndices); }
 
-void AssetManager::shutdown()
+void AssetManager::Shutdown()
 {
     if (Data->shuttingDown)
     {
@@ -689,6 +689,6 @@ void AssetManager::shutdown()
         }
     }
     Data->retire();
-    ASSERT(!getCount());
+    ASSERT(!GetCount());
 }
 } // namespace hz

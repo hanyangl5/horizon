@@ -156,7 +156,7 @@ static void MemDeleteInternal(T* ptr, const char* f, int l, const char* sf)
 
 #endif
 
-// These guards only work per translation unit; unity builds concatenate them, so a macro set here
+// These guards only work per translation unit; unity builds concatenate them, so a macro Set here
 // would poison the next source file in the batch.
 #if !defined(IMEMORY_FROM_HEADER) && !defined(HORIZON_UNITY_BUILD)
 #ifndef malloc

@@ -66,7 +66,7 @@ public:
             Exit();
             return false;
         }
-        LOGF(Info, "Startup: scene load/instantiate %.1f ms", (GetUSec(true) - Start) / 1000.0);
+        LOGF(Info, "Startup: scene Load/instantiate %.1f ms", (GetUSec(true) - Start) / 1000.0);
         InitCamera();
         Start = GetUSec(true);
         const bool Ready = InitRenderPasses();
@@ -111,11 +111,11 @@ private:
         char CatalogFile[FS_MAX_PATH], SceneFile[FS_MAX_PATH];
         ReplacePathExtension(SceneSource, "assetcatalog.json", CatalogFile);
         ReplacePathExtension(SceneSource, "sceneasset.json", SceneFile);
-        if (!Catalog.load(DirectoryOtherFiles, CatalogFile))
+        if (!Catalog.Load(DirectoryOtherFiles, CatalogFile))
         {
             return false;
         }
-        const hz::AssetCatalogEntry* Entry = Catalog.findScene(SceneFile);
+        const hz::AssetCatalogEntry* Entry = Catalog.FindScene(SceneFile);
         if (!Entry)
         {
             LOGF(Error, "Catalog contains no SceneAsset '%s'", SceneFile);
@@ -124,21 +124,21 @@ private:
         Loaders = hz::MakeUnique<hz::AssetLoaders>(
             *Context, hz::AssetLoadersDesc{ .vertexLayout = SceneVertexLayout, .cookedDirectory = DirectoryOtherFiles });
         AssetManager = hz::MakeUnique<hz::AssetManager>(Catalog, Context.Get());
-        Loaders->registerLoaders(*AssetManager);
-        const hz::AssetHandle Handle = AssetManager->request(Entry->id);
+        Loaders->RegisterLoaders(*AssetManager);
+        const hz::AssetHandle Handle = AssetManager->Request(Entry->id);
         if (!Handle.IsValid())
         {
             return false;
         }
-        while (AssetManager->getState(Handle) != hz::AssetState::Ready && AssetManager->getState(Handle) != hz::AssetState::Failed)
+        while (AssetManager->GetState(Handle) != hz::AssetState::Ready && AssetManager->GetState(Handle) != hz::AssetState::Failed)
         {
-            AssetManager->update();
+            AssetManager->Update();
             ThreadSleep(1);
         }
-        const hz::SceneAsset* Asset = AssetManager->getScene(Handle);
+        const hz::SceneAsset* Asset = AssetManager->GetScene(Handle);
         if (!Asset)
         {
-            LOGF(Error, "SceneAsset '%s' failed to load (error %u)", SceneFile, (uint32_t)AssetManager->getError(Handle));
+            LOGF(Error, "SceneAsset '%s' failed to Load (error %u)", SceneFile, (uint32_t)AssetManager->GetError(Handle));
             return false;
         }
         Types = hz::MakeUnique<hz::TypeRegistry>();
@@ -151,12 +151,12 @@ private:
             return false;
         }
         Scene = hz::MakeUnique<hz::RenderScene>(*World, *AssetManager);
-        Scene->Reserve(Asset->getNodes().Count, Asset->getNodes().Count, 1, 1);
-        Scene->update();
+        Scene->Reserve(Asset->GetNodes().Count, Asset->GetNodes().Count, 1, 1);
+        Scene->Update();
         LOGF(Info, "World ready: %u render primitives, %u instances, %u mesh batches, %u materials, %u textures",
              Scene->getActivePrimitives().Count, Scene->getActiveInstances().Count, Scene->getActiveMeshBatches().Count,
-             Asset->getMaterials().Count, Asset->getTextures().Count);
-        AssetManager->release(Handle);
+             Asset->GetMaterials().Count, Asset->GetTextures().Count);
+        AssetManager->Release(Handle);
         return true;
     }
 
@@ -187,7 +187,7 @@ public:
         Types = nullptr;
         if (AssetManager)
         {
-            AssetManager->shutdown();
+            AssetManager->Shutdown();
         }
         AssetManager = nullptr;
         Loaders = nullptr;
@@ -217,11 +217,11 @@ public:
     void Update(float DeltaTime) override
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Renderer::Update");
-        Camera->update(DeltaTime, (uint32_t)settings.Width, (uint32_t)settings.Height, settings.focused);
+        Camera->Update(DeltaTime, (uint32_t)settings.Width, (uint32_t)settings.Height, settings.focused);
         const Matrix4 Pose = Camera->getWorldMatrix();
         const bool    Updated = World->SetComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose);
         ASSERT(Updated);
-        AssetManager->update();
+        AssetManager->Update();
         Passes->Update(DeltaTime);
     }
     const char* GetName() override { return "Renderer"; }
@@ -314,8 +314,8 @@ private:
                              World->SetComponent(SunEntity, hz::SceneTypes::light, &Sun) &&
                              World->SetComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
         ASSERT(Created);
-        Scene->update();
-        LOGF(Info, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R Reset, Esc release mouse");
+        Scene->Update();
+        LOGF(Info, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R Reset, Esc Release mouse");
     }
 
     hz::UniquePtr<FreeCameraController> Camera;

@@ -1030,7 +1030,7 @@ void setupPlatformParameters(Renderer* pRenderer)
     gPlatformParameters.availableGpuCount = 0;
     gPlatformParameters.selectedGpuIndex = 0;
 
-    // update available gpus and renderer api
+    // Update available gpus and renderer api
     if (pRenderer != NULL)
     {
         uint32_t gpuCount = pRenderer->pContext->gpuCount;
@@ -1068,7 +1068,7 @@ void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer**
         LOGF(LogLevel::Warning, "Falling back to the first available API...");
     }
 
-    // set available gpus and renderer api
+    // Set available gpus and renderer api
     setupPlatformParameters(*ppRenderer);
     // configure the user's settings using the newly created device
     if (pSettings->pExtendedSettings && *ppRenderer)

@@ -70,7 +70,7 @@ inline bool EnableD3D12ExperimentalFeatures(UUID* experimentalFeatures, uint32_t
 }
 
 // Enable experimental features required for compute-based raytracing fallback.
-// This will set active D3D12 devices to DEVICE_REMOVED state.
+// This will Set active D3D12 devices to DEVICE_REMOVED state.
 // Returns bool whether the call succeeded and the device supports the feature.
 inline bool EnableComputeRaytracingFallback()
 {
@@ -420,7 +420,7 @@ void d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Ray
     buildDesc.Inputs.Type = Type;
     buildDesc.DestAccelerationStructureData = as->pASBuffer->dx.pResource->GetGPUVirtualAddress();
     buildDesc.Inputs.Flags = as->Flags;
-    if (pDesc->update)
+    if (pDesc->Update)
     {
         ASSERT(as->built && (as->Flags & D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE));
         buildDesc.Inputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;

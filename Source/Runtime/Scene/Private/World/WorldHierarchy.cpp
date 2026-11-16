@@ -41,7 +41,7 @@ WorldHierarchy::~WorldHierarchy()
     hmfree(pPendingLocals);
 }
 
-uint32_t WorldHierarchy::find(ecs_entity_t entity) const
+uint32_t WorldHierarchy::Find(ecs_entity_t entity) const
 {
     ptrdiff_t    index;
     Index*       pLookup = pIndices;
@@ -53,7 +53,7 @@ void WorldHierarchy::markTransformDirty(ecs_entity_t entity)
 {
     if (structureDirty)
         return;
-    const uint32_t index = find(entity);
+    const uint32_t index = Find(entity);
     if (index != UINT32_MAX && !nodes[index].dirty)
     {
         nodes[index].dirty = true;
@@ -138,7 +138,7 @@ void WorldHierarchy::rebuild()
     {
         BuildNode& entry = buildNodes[current];
         entry.output = scratch.Size();
-        const uint32_t old = find(entry.entity);
+        const uint32_t old = Find(entry.entity);
         Node           node = old != UINT32_MAX ? nodes[old] : Node{};
         node.entity = entry.entity;
         node.parent = entry.parent == UINT32_MAX ? UINT32_MAX : buildNodes[entry.parent].output;
@@ -183,7 +183,7 @@ void WorldHierarchy::rebuild()
     structureDirty = false;
 }
 
-void WorldHierarchy::update()
+void WorldHierarchy::Update()
 {
     world.checkThread();
     ASSERT(!ecs_is_deferred(world.pWorld));
@@ -223,13 +223,13 @@ const WorldTransform* WorldHierarchy::Get(ecs_entity_t entity) const
 {
     world.checkThread();
     ASSERT(!structureDirty && dirtyRoots.Empty());
-    const uint32_t index = find(entity);
+    const uint32_t index = Find(entity);
     return index != UINT32_MAX ? &nodes[index].transform : nullptr;
 }
 
 void WorldHierarchy::commit()
 {
-    update();
+    Update();
     for (uint32_t index : historyDirty)
     {
         nodes[index].transform.previous = nodes[index].transform.current;
@@ -240,8 +240,8 @@ void WorldHierarchy::commit()
 
 void WorldHierarchy::markDirty(ecs_entity_t root)
 {
-    update();
-    const uint32_t first = root ? find(root) : 0;
+    Update();
+    const uint32_t first = root ? Find(root) : 0;
     if (first == UINT32_MAX)
         return;
     const uint32_t end = root ? nodes[first].subtreeEnd : nodes.Size();
@@ -306,7 +306,7 @@ bool WorldHierarchy::setParent(ecs_entity_t entity, ecs_entity_t parent, bool ke
         return true;
     if (keepWorld)
     {
-        update();
+        Update();
         Matrix4 local = Get(entity)->current;
         if (parent)
         {
@@ -355,8 +355,8 @@ bool WorldHierarchy::Destroy(ecs_entity_t entity, bool subtree)
         LOGF(Error, "Deleting a parent requires registered Matrix4 support");
         return false;
     }
-    update();
-    const uint32_t root = find(entity);
+    Update();
+    const uint32_t root = Find(entity);
     const uint32_t end = nodes[root].subtreeEnd;
     if (subtree)
     {
@@ -365,7 +365,7 @@ bool WorldHierarchy::Destroy(ecs_entity_t entity, bool subtree)
     }
     else
     {
-        // Each direct child's cached subtree range remains valid until the next update.
+        // Each direct child's cached subtree range remains valid until the next Update.
         for (uint32_t i = root + 1; i < end; i = nodes[i].subtreeEnd)
         {
             if (!writeLocalMatrix(nodes[i].entity, nodes[i].transform.current))
@@ -396,7 +396,7 @@ bool World::setParent(Entity entity, Entity parent, bool keepWorld)
 }
 bool                  World::DestroyEntity(Entity entity) { return IsAlive(entity) && pImpl->pHierarchy->Destroy(entity.value, false); }
 bool                  World::DestroySubtree(Entity entity) { return IsAlive(entity) && pImpl->pHierarchy->Destroy(entity.value, true); }
-void                  World::UpdateTransforms() { pImpl->pHierarchy->update(); }
+void                  World::UpdateTransforms() { pImpl->pHierarchy->Update(); }
 const WorldTransform* World::GetWorldTransform(Entity entity) const
 {
     return IsAlive(entity) ? pImpl->pHierarchy->Get(entity.value) : nullptr;

@@ -42,7 +42,7 @@
 typedef uint64_t uint64;
 #endif
 
-// Support fixed set of OS versions in order to minimize maintenance efforts
+// Support fixed Set of OS versions in order to minimize maintenance efforts
 // Two runtimes. Using IOS in the name as iOS versions are easier to remember
 // Try to match the macOS version with the relevant features in iOS version
 #define IOS14_API     API_AVAILABLE(macos(11.0), ios(14.1))

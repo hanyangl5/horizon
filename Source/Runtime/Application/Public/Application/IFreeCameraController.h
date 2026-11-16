@@ -22,7 +22,7 @@ public:
     FreeCameraController(const FreeCameraController&) = delete;
     FreeCameraController& operator=(const FreeCameraController&) = delete;
 
-    void update(float deltaTime, uint32_t Width, uint32_t Height, bool focused);
+    void Update(float deltaTime, uint32_t Width, uint32_t Height, bool focused);
     Matrix4 getViewMatrix() const;
     // Right-handed scene pose, with local -Z pointing forward.
     Matrix4 getWorldMatrix() const;

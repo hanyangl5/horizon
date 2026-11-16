@@ -164,7 +164,7 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
 
     if (!gVirtualJoystick->pTexture)
     {
-        LOGF(LogLevel::Warning, "Could not load virtual joystick texture file: %s", pDesc->pJoystickTexture);
+        LOGF(LogLevel::Warning, "Could not Load virtual joystick texture file: %s", pDesc->pJoystickTexture);
         MemDelete(gVirtualJoystick);
         gVirtualJoystick = NULL;
         return;
@@ -594,7 +594,7 @@ struct InputSystemImpl: public gainput::InputListener
         {
             enum State{ STARTED, HOLDING, ENDED };
 
-            // Since we're tracking touches ourselves, we must know when to update touch data
+            // Since we're tracking touches ourselves, we must know when to Update touch data
             bool updated;
             bool moved;
 
@@ -1030,7 +1030,7 @@ struct InputSystemImpl: public gainput::InputListener
             }
         }
 
-        // update gainput manager
+        // Update gainput manager
         pInputManager->SetDisplaySize(Width, Height);
         pInputManager->Update(deltaTime);
 
@@ -1373,7 +1373,7 @@ struct InputSystemImpl: public gainput::InputListener
                     pControl->target = 2;
                     break;
                 case TOUCH_GESTURE_LONG_PRESS:
-                    // This specific array is looped in update()
+                    // This specific array is looped in Update()
                     arrpush(controls[touchDeviceID][gainput::Touch0Down], pControl);
                     arrpush(controls[touchDeviceID][gainput::Touch1X], pControl);
                     pControl->target = 1;
@@ -1483,7 +1483,7 @@ struct InputSystemImpl: public gainput::InputListener
                 {
                     if (controls[index][i][j]->action == *pDesc)
                     {
-                        // Free is from the controls pool first and remove the entry
+                        // Free is from the controls pool first and Remove the entry
                         for (ptrdiff_t k = 0; k < arrlen(controlPool[index]); ++k)
                         {
                             if (controls[index][i][j] == controlPool[index][k])
@@ -1494,7 +1494,7 @@ struct InputSystemImpl: public gainput::InputListener
                             }
                         }
 
-                        // Then remove the entry from controls
+                        // Then Remove the entry from controls
                         arrdel(controls[index][i], j);
                     }
                 }
@@ -2636,7 +2636,7 @@ struct InputSystemImpl: public gainput::InputListener
                         if (touch->state == GestureRecognizer::Touch::ENDED)
                             continue;
 
-                        // save touch positions only while processing the first gesture
+                        // Save touch positions only while processing the first gesture
                         if (!touch->updated)
                         {
                             touch->updated = true;

@@ -532,7 +532,7 @@ struct DescriptorHeap
     /// Start position in the heap
     D3D12_CPU_DESCRIPTOR_HANDLE startCpuHandle;
     D3D12_GPU_DESCRIPTOR_HANDLE startGpuHandle;
-    // Bitmask to track free regions (set bit means occupied)
+    // Bitmask to track free regions (Set bit means occupied)
     uint32_t*                   pFlags;
     /// Description
     D3D12_DESCRIPTOR_HEAP_TYPE  Type;
@@ -588,7 +588,7 @@ static void add_descriptor_heap(ID3D12Device* pDevice, const D3D12_DESCRIPTOR_HE
     uint32_t numDescriptors = pDesc->NumDescriptors;
     hook_modify_descriptor_heap_size(pDesc->Type, &numDescriptors);
 
-    // Keep 32 aligned for easy remove
+    // Keep 32 aligned for easy Remove
     numDescriptors = round_up(numDescriptors, 32);
 
     const size_t sizeInBytes = (numDescriptors / 32) * sizeof(uint32_t);
@@ -2027,7 +2027,7 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
     DXGI_ADAPTER_DESC adapterDesc;
     pGpuDesc->pGpu->GetDesc(&adapterDesc);
 
-    // set default driver version as Empty string
+    // Set default driver version as Empty string
     gpuSettings.gpuVendorPreset.gpuDriverVersion[0] = '\0';
     if (gpuVendorEquals(adapterDesc.VendorId, "nvidia"))
     {
@@ -2087,7 +2087,7 @@ static void InitializeBufferDesc(Renderer* pRenderer, const BufferDesc* pDesc, D
     desc->Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
     // Keep this at 0 so the runtime/allocator can choose the proper alignment.
     // D3D12MA may enable tight alignment, and that flag requires Alignment == 0.
-    // FIXME(hyl5): crash when set D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT
+    // FIXME(hyl5): crash when Set D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT
     desc->Width = allocationSize;
     desc->Height = 1;
     desc->DepthOrArraySize = 1;
@@ -2147,7 +2147,7 @@ static void InitializeTextureDesc(Renderer* pRenderer, const TextureDesc* pDesc,
     DXGI_FORMAT dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)pDesc->Format);
 
     desc->Dimension = res_dim;
-    // On PC, If Alignment is set to 0, the runtime will use 4MB for MSAA textures and 64KB for everything else.
+    // On PC, If Alignment is Set to 0, the runtime will use 4MB for MSAA textures and 64KB for everything else.
     // On XBox, We have to explicitlly assign D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT if MSAA is used
     desc->Alignment = (UINT)pDesc->SampleCount > 1 ? D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT : 0;
     desc->Width = pDesc->Width;
@@ -2227,7 +2227,7 @@ void DebugMessageCallback(D3D12_MESSAGE_CATEGORY category, D3D12_MESSAGE_SEVERIT
 {
     UNREF_PARAM(pContext);
     D3D12_MESSAGE_ID ignoreMessageIDs[] = {
-        // Trying to load a PSO that isn't in loaded library is expected. New PSOs will always trigger this warning.
+        // Trying to Load a PSO that isn't in loaded library is expected. New PSOs will always trigger this warning.
         D3D12_MESSAGE_ID_LOADPIPELINE_NAMENOTFOUND,
         // Required when we want to Alias the same memory from multiple buffers and use them at the same time
         // (we know from the App that we don't read/write on the same memory at the same time)
@@ -2326,7 +2326,7 @@ static bool SelectBestGpu(Renderer* pRenderer, const RendererDesc* pDesc, D3D_FE
     bool driverValid = checkDriverRejectionSettings(&gpuSettings[gpuIndex]);
     if (!driverValid)
     {
-        setRendererInitializationError("Driver rejection return invalid result.\nPlease, update your driver to the latest version.");
+        setRendererInitializationError("Driver rejection return invalid result.\nPlease, Update your driver to the latest version.");
         return false;
     }
 
@@ -2412,7 +2412,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
         uint32_t           hideMessageCount = 0;
         D3D12_MESSAGE_ID   hideMessages[maxHideMessages] = {};
 
-        // Trying to load a PSO that isn't in loaded library is expected. New PSOs will always trigger this warning.
+        // Trying to Load a PSO that isn't in loaded library is expected. New PSOs will always trigger this warning.
         hideMessages[hideMessageCount++] = D3D12_MESSAGE_ID_LOADPIPELINE_NAMENOTFOUND;
 
         // On Windows 11 there's a bug in the DXGI debug layer that triggers a false-positive on hybrid GPU
@@ -2511,7 +2511,7 @@ void InitCommon(const RendererContextDesc* pDesc, RendererContext* pContext)
     // tools using an injection library) is not compatible with Nsight Aftermath.
     // If Aftermath detects that any of these tools are present it will fail initialization.
 #if defined(ENABLE_GRAPHICS_DEBUG) && defined(_WINDOWS) && !defined(USE_NSIGHT_AFTERMATH)
-    // add debug layer if in debug mode
+    // Add debug layer if in debug mode
     if (SUCCEEDED(d3d12dll_GetDebugInterface(IID_ARGS(&pContext->dx.pDebug))))
     {
         hook_enable_debug_layer(pDesc, pContext);
@@ -2894,7 +2894,7 @@ void d3d12_removeFence(Renderer* pRenderer, Fence* pFence)
 {
     // ASSERT that renderer is valid
     ASSERT(pRenderer);
-    // ASSERT that given fence to remove is valid
+    // ASSERT that given fence to Remove is valid
     ASSERT(pFence);
 
     SAFE_RELEASE(pFence->dx.pFence);
@@ -2923,7 +2923,7 @@ void d3d12_removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
 {
     // ASSERT that renderer is valid
     ASSERT(pRenderer);
-    // ASSERT that given fence to remove is valid
+    // ASSERT that given fence to Remove is valid
     ASSERT(pSemaphore);
 
     SAFE_RELEASE(pSemaphore->dx.pFence);
@@ -2982,7 +2982,7 @@ void d3d12_removeQueue(Renderer* pRenderer, Queue* pQueue)
 {
     ASSERT(pQueue);
 
-    // Make sure we finished all GPU works before we remove the queue
+    // Make sure we finished all GPU works before we Remove the queue
     waitQueueIdle(pQueue);
 
     removeFence(pRenderer, pQueue->dx.pFence);
@@ -3308,18 +3308,18 @@ void d3d12_directStorageEnqueueBufferRequest(DirectStorageQueue* pQueue, const D
     ASSERT(pRequest->pBuffer);
     ASSERT(pRequest->pFile || pRequest->pMemory);
 
-    DSTORAGE_REQUEST request = {};
-    request.Options.CompressionFormat = util_to_dstorage_compression(pRequest->compressionFormat);
-    request.Options.DestinationType = DSTORAGE_REQUEST_DESTINATION_BUFFER;
-    fill_dstorage_source(&request, pRequest->pFile, pRequest->pMemory, pRequest->sourceOffset, pRequest->sourceSize);
-    request.Destination.Buffer.Resource = pRequest->pBuffer->dx.pResource;
-    request.Destination.Buffer.Offset = pRequest->destinationOffset;
-    request.Destination.Buffer.Size = pRequest->destinationSize ? pRequest->destinationSize : pRequest->sourceSize;
-    request.UncompressedSize = pRequest->uncompressedSize;
-    request.CancellationTag = pRequest->cancellationTag;
-    request.Name = pRequest->Name;
+    DSTORAGE_REQUEST Request = {};
+    Request.Options.CompressionFormat = util_to_dstorage_compression(pRequest->compressionFormat);
+    Request.Options.DestinationType = DSTORAGE_REQUEST_DESTINATION_BUFFER;
+    fill_dstorage_source(&Request, pRequest->pFile, pRequest->pMemory, pRequest->sourceOffset, pRequest->sourceSize);
+    Request.Destination.Buffer.Resource = pRequest->pBuffer->dx.pResource;
+    Request.Destination.Buffer.Offset = pRequest->destinationOffset;
+    Request.Destination.Buffer.Size = pRequest->destinationSize ? pRequest->destinationSize : pRequest->sourceSize;
+    Request.UncompressedSize = pRequest->uncompressedSize;
+    Request.CancellationTag = pRequest->cancellationTag;
+    Request.Name = pRequest->Name;
 
-    pQueue->pQueue->EnqueueRequest(&request);
+    pQueue->pQueue->EnqueueRequest(&Request);
 }
 
 void d3d12_directStorageEnqueueTextureRequest(DirectStorageQueue* pQueue, const DirectStorageTextureRequest* pRequest)
@@ -3329,23 +3329,23 @@ void d3d12_directStorageEnqueueTextureRequest(DirectStorageQueue* pQueue, const 
     ASSERT(pRequest->pTexture);
     ASSERT(pRequest->pFile || pRequest->pMemory);
 
-    DSTORAGE_REQUEST request = {};
-    request.Options.CompressionFormat = util_to_dstorage_compression(pRequest->compressionFormat);
-    request.Options.DestinationType = DSTORAGE_REQUEST_DESTINATION_TEXTURE_REGION;
-    fill_dstorage_source(&request, pRequest->pFile, pRequest->pMemory, pRequest->sourceOffset, pRequest->sourceSize);
-    request.Destination.Texture.Resource = pRequest->pTexture->dx.pResource;
-    request.Destination.Texture.SubresourceIndex = pRequest->subresourceIndex;
-    request.Destination.Texture.Region.left = pRequest->x;
-    request.Destination.Texture.Region.top = pRequest->y;
-    request.Destination.Texture.Region.front = pRequest->z;
-    request.Destination.Texture.Region.right = pRequest->x + pRequest->Width;
-    request.Destination.Texture.Region.bottom = pRequest->y + pRequest->Height;
-    request.Destination.Texture.Region.back = pRequest->z + pRequest->Depth;
-    request.UncompressedSize = pRequest->uncompressedSize;
-    request.CancellationTag = pRequest->cancellationTag;
-    request.Name = pRequest->Name;
+    DSTORAGE_REQUEST Request = {};
+    Request.Options.CompressionFormat = util_to_dstorage_compression(pRequest->compressionFormat);
+    Request.Options.DestinationType = DSTORAGE_REQUEST_DESTINATION_TEXTURE_REGION;
+    fill_dstorage_source(&Request, pRequest->pFile, pRequest->pMemory, pRequest->sourceOffset, pRequest->sourceSize);
+    Request.Destination.Texture.Resource = pRequest->pTexture->dx.pResource;
+    Request.Destination.Texture.SubresourceIndex = pRequest->subresourceIndex;
+    Request.Destination.Texture.Region.left = pRequest->x;
+    Request.Destination.Texture.Region.top = pRequest->y;
+    Request.Destination.Texture.Region.front = pRequest->z;
+    Request.Destination.Texture.Region.right = pRequest->x + pRequest->Width;
+    Request.Destination.Texture.Region.bottom = pRequest->y + pRequest->Height;
+    Request.Destination.Texture.Region.back = pRequest->z + pRequest->Depth;
+    Request.UncompressedSize = pRequest->uncompressedSize;
+    Request.CancellationTag = pRequest->cancellationTag;
+    Request.Name = pRequest->Name;
 
-    pQueue->pQueue->EnqueueRequest(&request);
+    pQueue->pQueue->EnqueueRequest(&Request);
 }
 
 void d3d12_directStorageEnqueueStatus(DirectStorageQueue* pQueue, DirectStorageStatusArray* pStatusArray, uint32_t index)
@@ -3375,7 +3375,7 @@ void d3d12_addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** p
     ASSERT(pDesc);
     ASSERT(ppCmdPool);
 
-    // create one new CmdPool and add to renderer
+    // create one new CmdPool and Add to renderer
     CmdPool* pCmdPool = (CmdPool*)MemCallocate(1, sizeof(CmdPool));
     ASSERT(pCmdPool);
 
@@ -3408,7 +3408,7 @@ void d3d12_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
     Cmd* pCmd = (Cmd*)MemCallocateAligned(1, alignof(Cmd), sizeof(Cmd));
     ASSERT(pCmd);
 
-    // set command pool of new command
+    // Set command pool of new command
     pCmd->dx.Type = pDesc->pPool->pQueue->Type;
     pCmd->pQueue = pDesc->pPool->pQueue;
     pCmd->pRenderer = pRenderer;
@@ -3482,7 +3482,7 @@ void d3d12_addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount
     Cmd** ppCmds = (Cmd**)MemCallocate(cmdCount, sizeof(Cmd*));
     ASSERT(ppCmds);
 
-    // add n new cmds to given pool
+    // Add n new cmds to given pool
     for (uint32_t i = 0; i < cmdCount; ++i)
     {
         ::addCmd(pRenderer, pDesc, &ppCmds[i]);
@@ -3496,7 +3496,7 @@ void d3d12_removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
     // verify that given command list is valid
     ASSERT(ppCmds);
 
-    // remove every given cmd in array
+    // Remove every given cmd in array
     for (uint32_t i = 0; i < cmdCount; ++i)
     {
         removeCmd(pRenderer, ppCmds[i]);
@@ -3511,7 +3511,7 @@ void d3d12_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
     ASSERT(ppSwapChain);
 
     SwapChain* pSwapChain = *ppSwapChain;
-    // set descriptor vsync boolean
+    // Set descriptor vsync boolean
     pSwapChain->enableVsync = !pSwapChain->enableVsync;
 #if !defined(XBOX)
     if (!pSwapChain->enableVsync)
@@ -3835,7 +3835,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     pBuffer->dx.gpuDescriptors = D3D12_DESCRIPTOR_ID_NONE;
     ASSERT(ppBuffer);
 
-    // add to renderer
+    // Add to renderer
 
     DECLARE_ZERO(D3D12_RESOURCE_DESC, desc);
     InitializeBufferDesc(pRenderer, pDesc, &desc);
@@ -4096,7 +4096,7 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
         pTexture->ownsImage = true;
     }
 
-    // add to gpu
+    // Add to gpu
     D3D12_RESOURCE_DESC desc = {};
 
     DXGI_FORMAT dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)pDesc->Format);
@@ -4414,7 +4414,7 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
     RenderTarget* pRenderTarget = (RenderTarget*)MemCallocateAligned(1, alignof(RenderTarget), sizeof(RenderTarget));
     ASSERT(pRenderTarget);
 
-    // add to gpu
+    // Add to gpu
     DXGI_FORMAT dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)pDesc->Format);
     ASSERT(DXGI_FORMAT_UNKNOWN != dxFormat);
 
@@ -4551,7 +4551,7 @@ void d3d12_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** p
     }
 
     D3D12_SAMPLER_DESC desc = {};
-    // add sampler to gpu
+    // Add sampler to gpu
     desc.Filter = util_to_dx12_filter(pDesc->MinFilter, pDesc->MagFilter, pDesc->MipMapMode, pDesc->MaxAnisotropy > 0.0f,
                                       (pDesc->CompareFunc != CMP_NEVER ? true : false));
     desc.AddressU = util_to_dx12_texture_address_mode(pDesc->AddressU);
@@ -4912,7 +4912,7 @@ void d3d12_removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 {
     UNREF_PARAM(pRenderer);
 
-    // remove given shader
+    // Remove given shader
     for (uint32_t i = 0; i < pShaderProgram->pReflection->stageReflectionCount; ++i)
     {
         SAFE_RELEASE(pShaderProgram->dx.pShaderBlobs[i]);
@@ -4971,7 +4971,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
             if (pExisting)
             {
                 D3D12_ROOT_PARAMETER1& parameter = rootParams[pExisting->value];
-                if (parameter.Constants.ShaderRegister != resource.reg || parameter.Constants.RegisterSpace != resource.set ||
+                if (parameter.Constants.ShaderRegister != resource.reg || parameter.Constants.RegisterSpace != resource.Set ||
                     parameter.Constants.Num32BitValues != Size)
                 {
                     LOGF(Error, "Root constant '%s' has incompatible layouts across shaders.", resource.name);
@@ -4994,7 +4994,7 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
                                                     .Size = Size,
                                                     .handleIndex = index };
             rootParams[index] = { .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
-                                  .Constants = { .ShaderRegister = resource.reg, .RegisterSpace = resource.set, .Num32BitValues = Size },
+                                  .Constants = { .ShaderRegister = resource.reg, .RegisterSpace = resource.Set, .Num32BitValues = Size },
                                   .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL };
         }
     }
@@ -5185,7 +5185,7 @@ void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pip
     pPipeline->dx.Type = PIPELINE_TYPE_GRAPHICS;
     pPipeline->dx.pRootSignature = pDesc->pRootSignature;
 
-    // add to gpu
+    // Add to gpu
     DECLARE_ZERO(D3D12_SHADER_BYTECODE, VS);
     DECLARE_ZERO(D3D12_SHADER_BYTECODE, PS);
     DECLARE_ZERO(D3D12_SHADER_BYTECODE, DS);
@@ -5513,7 +5513,7 @@ void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDesc, Pipe
     pPipeline->dx.Type = PIPELINE_TYPE_COMPUTE;
     pPipeline->dx.pRootSignature = pDesc->pRootSignature;
 
-    // add pipeline specifying its for compute purposes
+    // Add pipeline specifying its for compute purposes
     DECLARE_ZERO(D3D12_SHADER_BYTECODE, CS);
     CS.BytecodeLength = pDesc->pShaderProgram->dx.pShaderBlobs[0]->GetBufferSize();
     CS.pShaderBytecode = pDesc->pShaderProgram->dx.pShaderBlobs[0]->GetBufferPointer();
@@ -5748,7 +5748,7 @@ void d3d12_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
     const bool                  hasDepth = pDesc->depthStencil.pDepthStencil;
 
     // An attachment view selects one mip, not the whole resource. Array slices and
-    // Depth/stencil planes are separate subresources and must retain independent load actions.
+    // Depth/stencil planes are separate subresources and must retain independent Load actions.
     const auto discardView = [pCmd](RenderTarget* target, uint32_t mip, uint32_t slice, bool useSlice, uint32_t plane)
     {
         ID3D12Resource* const     resource = target->pTexture->dx.pResource;
@@ -5893,7 +5893,7 @@ void d3d12_cmdSetViewport(Cmd* pCmd, float x, float y, float Width, float Height
 {
     ASSERT(pCmd);
 
-    // set new viewport
+    // Set new viewport
     ASSERT(pCmd->dx.pCmdList);
 
     D3D12_VIEWPORT viewport;
@@ -5911,7 +5911,7 @@ void d3d12_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t Width, uint
 {
     ASSERT(pCmd);
 
-    // set new scissor values
+    // Set new scissor values
     ASSERT(pCmd->dx.pCmdList);
 
     D3D12_RECT scissor;
@@ -6172,7 +6172,7 @@ void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarri
             else
                 pBarrier->Transition.StateBefore = util_to_dx12_resource_state(pTrans->currentState);
 
-            if (pTrans->release)
+            if (pTrans->Release)
                 pBarrier->Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
             else
                 pBarrier->Transition.StateAfter = util_to_dx12_resource_state(pTrans->newState);
@@ -6224,7 +6224,7 @@ void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarri
             else
                 pBarrier->Transition.StateBefore = util_to_dx12_resource_state(pTrans->currentState);
 
-            if (pTrans->release)
+            if (pTrans->Release)
                 pBarrier->Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
             else
                 pBarrier->Transition.StateAfter = util_to_dx12_resource_state(pTrans->newState);

@@ -223,7 +223,7 @@ cJSON* writeWorldProperties(const TypeDesc& Type, const void* pValue)
         cJSON* pField = writeProperty(*pProperty, (const uint8_t*)pValue + pProperty->offset);
         if (!pField)
         {
-            LOGF(Error, "Cannot serialize property '%s.%s'", Type.Name, pProperty->Name);
+            LOGF(Error, "Cannot Serialize property '%s.%s'", Type.Name, pProperty->Name);
             return nullptr;
         }
         cJSON_AddItemToObject(object.pValue, pProperty->Name, pField);

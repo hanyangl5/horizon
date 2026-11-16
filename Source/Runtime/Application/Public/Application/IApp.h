@@ -50,15 +50,15 @@ void exitApp();
 // device changes can come from a user switching from hardware to Warp rendering support or switching on and off MSAA and other quality
 settings
 // typically shaders, textures, render targets and buffers are loaded here
-bool load();
+bool Load();
 void unload();
 
 // hot swap from input device ... mouse, keyboard, controller etc..
 void initInput();
 void exitInput();
 
-// this is input / math update -> everything CPU only ... no Graphics API calls
-void update(float deltaTime);
+// this is input / math Update -> everything CPU only ... no Graphics API calls
+void Update(float deltaTime);
 
 // only Graphics API Draw calls and command buffer generation
 void drawFrame(float deltaTime);
@@ -68,7 +68,7 @@ void drawFrame(float deltaTime);
 // so what is going to happen if the user changes the graphics device?
 // There must be a call to exitApp() initApp() to initialize the renderer from scratch ... let's say with a new MSAA settings
 // then unload() needs to be called to unload all the device dependent things like shaders and textures (are they still dependent in DirectX
-// 12 / Vulkan?) then load() needs to be called to load all the device dependent things from scratch again ... It needs to make sure that
+// 12 / Vulkan?) then Load() needs to be called to Load all the device dependent things from scratch again ... It needs to make sure that
 // only the bare minimum of tasks is done here, so no memory allocation and deallocation apart from the necessary
 
 // hot-swap the input device
@@ -141,7 +141,7 @@ public:
 #if defined(TARGET_IOS)
         bool    showStatusBar = false;
         float   contentScaleFactor = 0.f;
-        // Use to set iPhone's/Ipad target display refresh rate.
+        // Use to Set iPhone's/Ipad target display refresh rate.
         int32_t maxDisplayRefreshRate = -1;
 #endif
     } settings;

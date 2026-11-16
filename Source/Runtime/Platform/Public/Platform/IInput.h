@@ -762,7 +762,7 @@ FORGE_API void SetVirtualKeyboard(uint32_t Type);
 FORGE_API void SetDeadZone(unsigned int controllerIndex, float deadZoneSize);
 FORGE_API void SetLedColor(int gamePadIndex, uint8_t r, uint8_t g, uint8_t b);
 
-// if gamepad index == BUILTIN_DEVICE_HAPTICS it will try to set rumble on the actual device
+// if gamepad index == BUILTIN_DEVICE_HAPTICS it will try to Set rumble on the actual device
 // in the case of iOS and iphones that would mean the actual phone vibrates
 FORGE_API bool SetRumbleEffect(int gamePadIndex, float left_motor, float right_motor, uint32_t duration_ms);
 

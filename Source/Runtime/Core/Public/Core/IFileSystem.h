@@ -141,13 +141,13 @@ extern "C"
         // RW mode
         FileModeReadWrite = FileModeRead | FileModeWrite,
 
-        // W mode and set position to the end
+        // W mode and Set position to the end
         FileModeWriteAppend = FileModeWrite | FileModeAppend,
 
-        // R mode and set position to the end
+        // R mode and Set position to the end
         FileModeReadAppend = FileModeRead | FileModeAppend,
 
-        // RW mode and set position to the end
+        // RW mode and Set position to the end
         FileModeReadWriteAppend = FileModeRead | FileModeWrite | FileModeAppend,
 
         // -- mode and -- and also read access for other processes.
@@ -276,7 +276,7 @@ extern "C"
         // It allows to read several files from archive asynchronously.
         // Not used for OpenArchiveFromMemory
         //
-        // Allows: (if this flag is set)
+        // Allows: (if this flag is Set)
         // Thread1: reads file "A"
         // Thread2: reads file "B"
         //
@@ -440,14 +440,14 @@ extern "C"
     /************************************************************************/
     // MARK: - Directory queries
     /************************************************************************/
-    /// Returns location set for resource directory in SetResourceDirectoryPath.
+    /// Returns location Set for resource directory in SetResourceDirectoryPath.
     FORGE_API const char*   GetResourceDirectory(ResourceDirectory resourceDir);
     /// Returns Resource Mount point for resource directory
     FORGE_API ResourceMount GetResourceDirectoryMount(ResourceDirectory resourceDir);
 
     /// Sets the relative path for `resourceDir` from `mount` to `bundledFolder`.
     /// The `resourceDir` will making use of the given IFileSystem `FileSystem` file functions.
-    /// When `mount` is set to `MountContent` for a `resourceDir`, this directory is marked as a bundled resource folder.
+    /// When `mount` is Set to `MountContent` for a `resourceDir`, this directory is marked as a bundled resource folder.
     /// Bundled resource folders should only be used for Read operations.
     /// Sets or replaces the location associated with a resource directory.
     FORGE_API void SetResourceDirectoryPath(IFileSystem* FileSystem, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder);
@@ -586,7 +586,7 @@ extern "C"
 
 // Block pointer represents Format, offset, and Size of the block
 // 1 + 40 + 23
-// 1  bit   boolean set when block is compressed
+// 1  bit   boolean Set when block is compressed
 // 40 bits  block offset, max offset is 1024GB-1B
 // 23 bits  block Size minus one, max Size is 8MB
 #define BUNYAR_BLOCK_MAX_SIZE_MINUS_ONE (((uint32_t)1 << 23) - 1)

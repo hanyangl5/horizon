@@ -77,12 +77,12 @@ public:
 
     explicit CatalogBatch(const SceneAsset& scene, const char* pPath)
     {
-        uint32_t dependencyCount = scene.getNodes().Count + scene.getMaterials().Count * 4;
-        for (const SceneAssetMesh& mesh : scene.getMeshes())
+        uint32_t dependencyCount = scene.GetNodes().Count + scene.GetMaterials().Count * 4;
+        for (const SceneAssetMesh& mesh : scene.GetMeshes())
             dependencyCount += mesh.submeshes.Count;
         dependencies.Reserve(dependencyCount);
-        entries.Reserve(1 + scene.getTextures().Count + scene.getMaterials().Count + scene.getMeshes().Count);
-        for (const SceneAssetTexture& texture : scene.getTextures())
+        entries.Reserve(1 + scene.GetTextures().Count + scene.GetMaterials().Count + scene.GetMeshes().Count);
+        for (const SceneAssetTexture& texture : scene.GetTextures())
             entries.PushBack(
                 { .id = texture.id,
                   .Type = AssetType::Texture,
@@ -90,7 +90,7 @@ public:
                   .location = { .pPath = texture.pPath, .root = texture.cooked ? AssetPathRoot::Cooked : AssetPathRoot::Source },
                   .srgb = texture.srgb });
         uint32_t index = 0;
-        for (const SceneAssetMaterial& material : scene.getMaterials())
+        for (const SceneAssetMaterial& material : scene.GetMaterials())
         {
             const uint32_t start = dependencies.Size();
             addDependency(material.baseColorTexture);
@@ -99,28 +99,28 @@ public:
             addDependency(material.emissiveTexture);
             entries.PushBack({ .id = material.id,
                                .Type = AssetType::Material,
-                               .pSourcePath = scene.getSource(),
+                               .pSourcePath = scene.GetSource(),
                                .location = { .pPath = pPath, .elementIndex = index++ },
                                .dependencies = finishDependencies(start) });
         }
         index = 0;
-        for (const SceneAssetMesh& mesh : scene.getMeshes())
+        for (const SceneAssetMesh& mesh : scene.GetMeshes())
         {
             const uint32_t start = dependencies.Size();
             for (const SceneAssetSubmesh& submesh : mesh.submeshes)
                 addDependency(submesh.material);
             entries.PushBack({ .id = mesh.id,
                                .Type = AssetType::Mesh,
-                               .pSourcePath = scene.getSource(),
+                               .pSourcePath = scene.GetSource(),
                                .location = { .pPath = pPath, .elementIndex = index++ },
                                .dependencies = finishDependencies(start) });
         }
         const uint32_t start = dependencies.Size();
-        for (const SceneAssetNode& node : scene.getNodes())
+        for (const SceneAssetNode& node : scene.GetNodes())
             addDependency(node.mesh);
-        entries.PushBack({ .id = scene.getID(),
+        entries.PushBack({ .id = scene.GetID(),
                            .Type = AssetType::Scene,
-                           .pSourcePath = scene.getSource(),
+                           .pSourcePath = scene.GetSource(),
                            .location = { .pPath = pPath },
                            .dependencies = finishDependencies(start) });
     }
@@ -193,10 +193,10 @@ AssetCatalog& AssetCatalog::operator=(AssetCatalog&& other) noexcept
     return *this;
 }
 
-bool AssetCatalog::add(const AssetCatalogEntry& entry) { return set(entry, false); }
-bool AssetCatalog::replace(const AssetCatalogEntry& entry) { return set(entry, true); }
+bool AssetCatalog::Add(const AssetCatalogEntry& entry) { return Set(entry, false); }
+bool AssetCatalog::Replace(const AssetCatalogEntry& entry) { return Set(entry, true); }
 
-bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
+bool AssetCatalog::Set(const AssetCatalogEntry& entry, bool replaceExisting)
 {
     if (!entry.id.IsValid() || entry.Type > AssetType::Texture || entry.location.root > AssetPathRoot::Cooked ||
         !validPath(entry.pSourcePath) || !validPath(entry.location.pPath) || (entry.dependencies.Count && !entry.dependencies.Data))
@@ -212,7 +212,7 @@ bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
         }
     const CatalogBatch       batch(entry);
     const AssetCatalogEntry& normalized = batch.getEntries().Data[0];
-    const AssetCatalogEntry* pExisting = find(entry.id);
+    const AssetCatalogEntry* pExisting = Find(entry.id);
     if (pExisting)
     {
         if (sameEntry(*pExisting, normalized))
@@ -230,7 +230,7 @@ bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
     return true;
 }
 
-bool AssetCatalog::addScene(const SceneAsset& scene, const char* pCookedScenePath)
+bool AssetCatalog::AddScene(const SceneAsset& scene, const char* pCookedScenePath)
 {
     if (!scene.IsValid() || !validPath(pCookedScenePath))
     {
@@ -240,7 +240,7 @@ bool AssetCatalog::addScene(const SceneAsset& scene, const char* pCookedScenePat
     const CatalogBatch batch(scene, pCookedScenePath);
     for (const AssetCatalogEntry& entry : batch.getEntries())
     {
-        const AssetCatalogEntry* pExisting = find(entry.id);
+        const AssetCatalogEntry* pExisting = Find(entry.id);
         if (pExisting && !sameEntry(*pExisting, entry))
         {
             char id[kIDStringCapacity];
@@ -253,14 +253,14 @@ bool AssetCatalog::addScene(const SceneAsset& scene, const char* pCookedScenePat
         Data = MemNew(AssetCatalogData);
     for (const AssetCatalogEntry& entry : batch.getEntries())
     {
-        if (find(entry.id))
+        if (Find(entry.id))
             continue;
         Data->insert(entry);
     }
     return true;
 }
 
-const AssetCatalogEntry* AssetCatalog::find(AssetID id) const
+const AssetCatalogEntry* AssetCatalog::Find(AssetID id) const
 {
     if (!Data || !id.IsValid())
         return nullptr;
@@ -268,8 +268,8 @@ const AssetCatalogEntry* AssetCatalog::find(AssetID id) const
     return pIndex ? pIndex->value : nullptr;
 }
 
-uint32_t                 AssetCatalog::getCount() const { return Data ? (uint32_t)hmlen(Data->pIndices) : 0; }
-const AssetCatalogEntry* AssetCatalog::findScene(const char* pCookedScenePath) const
+uint32_t                 AssetCatalog::GetCount() const { return Data ? (uint32_t)hmlen(Data->pIndices) : 0; }
+const AssetCatalogEntry* AssetCatalog::FindScene(const char* pCookedScenePath) const
 {
     if (!Data || !pCookedScenePath)
         return nullptr;
@@ -283,7 +283,7 @@ const AssetCatalogEntry* AssetCatalog::findScene(const char* pCookedScenePath) c
     return nullptr;
 }
 
-bool AssetCatalog::remove(AssetID id)
+bool AssetCatalog::Remove(AssetID id)
 {
     if (!Data)
         return false;
@@ -297,14 +297,14 @@ bool AssetCatalog::remove(AssetID id)
     return true;
 }
 
-bool AssetCatalog::merge(const AssetCatalog& other)
+bool AssetCatalog::Merge(const AssetCatalog& other)
 {
     if (!other.Data)
         return true;
     for (ptrdiff_t i = 0; i < hmlen(other.Data->pIndices); ++i)
     {
         const AssetCatalogEntry& entry = *other.Data->pIndices[i].value;
-        const AssetCatalogEntry* pExisting = find(entry.id);
+        const AssetCatalogEntry* pExisting = Find(entry.id);
         if (pExisting && !sameEntry(*pExisting, entry))
         {
             LOGF(Error, "Conflicting AssetCatalog entry from '%s'", entry.pSourcePath);
@@ -316,7 +316,7 @@ bool AssetCatalog::merge(const AssetCatalog& other)
     for (ptrdiff_t i = 0; i < hmlen(other.Data->pIndices); ++i)
     {
         const AssetCatalogEntry& entry = *other.Data->pIndices[i].value;
-        if (!find(entry.id))
+        if (!Find(entry.id))
             Data->insert(entry);
     }
     return true;
@@ -385,7 +385,7 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
         const cJSON*      pDependencies = cJSON_GetObjectItemCaseSensitive(pEntry, "dependencies");
         entry.pSourcePath = catalogString(pEntry, "source");
         entry.location.pPath = catalogString(pEntry, "path");
-        if (!uniqueFields(pEntry) || !pID || !entry.id.Parse(pID) || catalog.find(entry.id) ||
+        if (!uniqueFields(pEntry) || !pID || !entry.id.Parse(pID) || catalog.Find(entry.id) ||
             !catalogNumber(cJSON_GetObjectItemCaseSensitive(pEntry, "type"), Type) || Type > (uint32_t)AssetType::Texture ||
             !catalogNumber(cJSON_GetObjectItemCaseSensitive(pEntry, "root"), root) || root > (uint32_t)AssetPathRoot::Cooked ||
             (!cJSON_IsNull(pIndex) && !catalogNumber(pIndex, entry.location.elementIndex)) || !cJSON_IsBool(pSrgb) ||
@@ -403,7 +403,7 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
             dependencies.PushBack(id);
         }
         entry.dependencies = { dependencies.GetData(), dependencies.Size() };
-        if (!catalog.add(entry))
+        if (!catalog.Add(entry))
             return false;
     }
     return true;
@@ -421,7 +421,7 @@ bool AssetCatalog::Parse(Span<char> json)
         for (ptrdiff_t i = 0; i < hmlen(candidate.Data->pIndices); ++i)
         {
             const AssetCatalogEntry& entry = *candidate.Data->pIndices[i].value;
-            const AssetCatalogEntry* pExisting = find(entry.id);
+            const AssetCatalogEntry* pExisting = Find(entry.id);
             if (pExisting && pExisting->Type != entry.Type)
             {
                 LOGF(Error, "AssetCatalog replacement cannot change an AssetID's type");
@@ -443,7 +443,7 @@ bool AssetCatalog::Parse(Span<char> json)
     return true;
 }
 
-bool AssetCatalog::load(ResourceDirectory directory, const char* pFileName)
+bool AssetCatalog::Load(ResourceDirectory directory, const char* pFileName)
 {
     if (!validPath(pFileName))
     {
@@ -476,10 +476,10 @@ static int compareEntries(const void* pA, const void* pB)
     return compareIDs(&(*(const AssetCatalogEntry* const*)pA)->id, &(*(const AssetCatalogEntry* const*)pB)->id);
 }
 
-bool AssetCatalog::serialize(Array<char>& json) const
+bool AssetCatalog::Serialize(Array<char>& json) const
 {
     Array<const AssetCatalogEntry*> entries;
-    entries.Reserve(getCount());
+    entries.Reserve(GetCount());
     if (Data)
         for (ptrdiff_t i = 0; i < hmlen(Data->pIndices); ++i)
         {

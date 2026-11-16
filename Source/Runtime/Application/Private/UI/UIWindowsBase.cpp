@@ -435,7 +435,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
     gWindowDesc = &window; // WindowsBase.cpp
     gLogWindowHandle =
         (HWND*)&window.Handle
-            .window; // WindowsLog.c, save the address to this Handle to avoid having to adding includes to WindowsLog.c to use WindowDesc*.
+            .window; // WindowsLog.c, Save the address to this Handle to avoid having to adding includes to WindowsLog.c to use WindowDesc*.
 
     if (pSettings->monitorIndex < 0 || pSettings->monitorIndex >= (int)gMonitorCount)
     {
@@ -487,7 +487,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
             if (i + 1 < argc && isdigit(*argv[i + 1]))
                 targetFrameCount = min(max(atoi(argv[i + 1]), 32), 512);
         }
-        else if (strcmp(argv[i], "--request-recompile-after") == 0)
+        else if (strcmp(argv[i], "--Request-recompile-after") == 0)
         {
             extern uint32_t gReloadServerRequestRecompileAfter;
             if (i + 1 < argc && isdigit(*argv[i + 1]))
@@ -502,7 +502,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
         {
             strcpy(benchmarkOutput, argv[i + 1]);
         }
-        // Allow to set renderer API through command line so that we are able to test the same build with differnt APIs
+        // Allow to Set renderer API through command line so that we are able to test the same build with differnt APIs
         // On the TheForge Jenkins setup we change APIs through a lua script that changes the selector variable in the UI,
         // but for projects where we compile without our lua interface we cannot do this.
         else if (strcmp(argv[i], "--d3d12") == 0)
@@ -670,7 +670,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
         // If window is Minimized let other processes take over
         if (gWindow->Minimized)
         {
-            // Call update once after minimize so app can react.
+            // Call Update once after minimize so app can react.
             if (lastMinimized != gWindow->Minimized)
             {
                 pApp->Update(deltaTime);

@@ -44,7 +44,7 @@ public:
 
     void                   Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
     // Updates the scene and stages its changes. Returns false without waiting when every frame is still in GPU use.
-    // Do not update the scene or Reset history until endFrame or cancelFrame.
+    // Do not Update the scene or Reset history until endFrame or cancelFrame.
     bool                   beginFrame();
     // Record before any pass that reads the buffers.
     void                   upload(CommandList& commands);

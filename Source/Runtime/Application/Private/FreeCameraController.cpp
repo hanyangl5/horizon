@@ -119,7 +119,7 @@ FreeCameraController::~FreeCameraController()
     exitCameraController(pCamera);
 }
 
-void FreeCameraController::update(float deltaTime, uint32_t Width, uint32_t Height, bool focused)
+void FreeCameraController::Update(float deltaTime, uint32_t Width, uint32_t Height, bool focused)
 {
     look = float2(0.0f);
     UpdateInputSystem(deltaTime, Width, Height);
@@ -138,7 +138,7 @@ void FreeCameraController::update(float deltaTime, uint32_t Width, uint32_t Heig
     pCamera->onMove(float2(-movement.x, movement.y));
     pCamera->onMoveY(vertical);
     pCamera->onRotate(float2(-look.x, look.y));
-    pCamera->update(TF_MIN(deltaTime, 0.1f));
+    pCamera->Update(TF_MIN(deltaTime, 0.1f));
 
     Vector2 rotation = pCamera->getRotationXY();
     rotation.setX(TF_MAX(-1.553343f, TF_MIN(1.553343f, (float)rotation.getX())));

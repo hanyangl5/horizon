@@ -71,7 +71,7 @@ typedef enum RegisterMaterialResult
 typedef struct BufferLoadDesc
 {
     Buffer**    ppBuffer;
-    // This must stay valid until the buffer load is not completed
+    // This must stay valid until the buffer Load is not completed
     // Use waitForToken (if a token was passed to addResource) or waitForAllResourceLoads before freeing Data
     const void* Data;
     BufferDesc  desc;
@@ -116,7 +116,7 @@ typedef struct BufferChunk
 } BufferChunk;
 
 // Structure used to sub-allocate chunks on a buffer, keeps track of free memory to Handle new requests.
-// Interface to add/remove this allocator is currently private, could be made public if needed.
+// Interface to Add/Remove this allocator is currently private, could be made public if needed.
 typedef struct BufferChunkAllocator
 {
     Buffer*      pBuffer;
@@ -247,7 +247,7 @@ typedef struct GeometryData
         uint32_t attributeCount[MAX_SEMANTICS];
     };
 
-    /// Shadow copy of the geometry vertex and index data if requested through the load Flags
+    /// Shadow copy of the geometry vertex and index data if requested through the Load Flags
     ShadowData* pShadow;
 
     /// The array of joint inverse bind-pose matrices ( object-space )
@@ -333,7 +333,7 @@ typedef struct GeometryLoadDesc
     /// Used to convert data to desired state inside GeometryBuffer.
     GeometryBufferLayoutDesc* pGeometryBufferLayoutDesc;
     ResourceDirectory         resourceDirectory = DirectoryMeshes;
-    // Read only after the load token completes.
+    // Read only after the Load token completes.
     bool*                     pSuccess = nullptr;
 } GeometryLoadDesc;
 
@@ -345,12 +345,12 @@ typedef struct BufferUpdateDesc
 
     /// To be filled by the caller between beginUpdateResource and endUpdateResource calls
     /// Example:
-    /// BufferUpdateDesc update = { pBuffer, bufferDstOffset };
-    /// beginUpdateResource(&update);
-    /// ParticleVertex* vertices = (ParticleVertex*)update.pMappedData;
+    /// BufferUpdateDesc Update = { pBuffer, bufferDstOffset };
+    /// beginUpdateResource(&Update);
+    /// ParticleVertex* vertices = (ParticleVertex*)Update.pMappedData;
     ///   for (uint32_t i = 0; i < particleCount; ++i)
     ///	    vertices[i] = { rand() };
-    /// endUpdateResource(&update, &token);
+    /// endUpdateResource(&Update, &token);
     void* pMappedData;
 
     // Optional (if user provides staging buffer memory)
@@ -381,21 +381,21 @@ typedef struct TextureSubresourceUpdate
     uint32_t srcSliceStride;
     /// To be filled by the caller
     /// Example:
-    /// BufferUpdateDesc update = { pTexture, 2, 1 };
-    /// beginUpdateResource(&update);
+    /// BufferUpdateDesc Update = { pTexture, 2, 1 };
+    /// beginUpdateResource(&Update);
     /// Row by row copy is required if dstRowStride > srcRowStride. Single memcpy will work if dstRowStride == srcRowStride
     /// 2D
-    /// for (uint32_t r = 0; r < update.rowCount; ++r)
-    ///     memcpy(update.pMappedData + r * update.dstRowStride, srcPixels + r * update.srcRowStride, update.srcRowStride);
+    /// for (uint32_t r = 0; r < Update.rowCount; ++r)
+    ///     memcpy(Update.pMappedData + r * Update.dstRowStride, srcPixels + r * Update.srcRowStride, Update.srcRowStride);
     /// 3D
     /// for (uint32_t z = 0; z < Depth; ++z)
     /// {
-    ///     uint8_t* dstData = update.pMappedData + update.dstSliceStride * z;
-    ///     uint8_t* srcData = srcPixels + update.srcSliceStride * z;
-    ///     for (uint32_t r = 0; r < update.rowCount; ++r)
-    ///         memcpy(dstData + r * update.dstRowStride, srcData + r * update.srcRowStride, update.srcRowStride);
+    ///     uint8_t* dstData = Update.pMappedData + Update.dstSliceStride * z;
+    ///     uint8_t* srcData = srcPixels + Update.srcSliceStride * z;
+    ///     for (uint32_t r = 0; r < Update.rowCount; ++r)
+    ///         memcpy(dstData + r * Update.dstRowStride, srcData + r * Update.srcRowStride, Update.srcRowStride);
     /// }
-    /// endUpdateResource(&update, &token);
+    /// endUpdateResource(&Update, &token);
     uint8_t* pMappedData;
 } TextureSubresourceUpdate;
 
@@ -408,7 +408,7 @@ typedef struct TextureUpdateDesc
     uint32_t      baseArrayLayer;
     uint32_t      layerCount;
     ResourceState currentState;
-    // Optional - If we want to run the update on user specified command buffer instead
+    // Optional - If we want to run the Update on user specified command buffer instead
     Cmd*          pCmd;
 
     FORGE_RENDERER_API TextureSubresourceUpdate getSubresourceUpdateDesc(uint32_t mip, uint32_t layer);
@@ -491,7 +491,7 @@ FORGE_RENDERER_API void exitResourceLoaderInterface(Renderer** ppRenderers, uint
 // MARK: App Material Management
 #ifdef ENABLE_FORGE_MATERIALS
 
-// Will load a material and all related shaders/textures (if they are not already loaded, Material shaders/textures are shared across all
+// Will Load a material and all related shaders/textures (if they are not already loaded, Material shaders/textures are shared across all
 // Materials)
 FORGE_RENDERER_API uint32_t addMaterial(const char* pMaterialFileName, Material** pMaterial, SyncToken* pSyncToken);
 // Will unload all the related shaders/textures (if they are not still used by some other Material)
@@ -531,7 +531,7 @@ FORGE_RENDERER_API void endUpdateResource(TextureUpdateDesc* pTexture);
 /// This function is used to acquire geometry buffer location.
 /// It can be used on index or vertex buffer
 /// When there are no continious chunk with enough Size, output chunk contains 0 Size.
-/// Use releaseGeometryBufferPart to release chunk.
+/// Use releaseGeometryBufferPart to Release chunk.
 /// Make sure all chunks are released before removeGeometryBuffer.
 FORGE_RENDERER_API void addGeometryBufferPart(BufferChunkAllocator* buffer, uint32_t Size, uint32_t alignment, BufferChunk* pOut,
                                               BufferChunk* pPreferredChunk = NULL);

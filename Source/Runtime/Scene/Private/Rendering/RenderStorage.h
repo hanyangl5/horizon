@@ -63,7 +63,7 @@ public:
         removed.Clear();
         ranges.Clear();
     }
-    ID add()
+    ID Add()
     {
         uint32_t index = values.Size();
         if (!free.Empty())
@@ -88,7 +88,7 @@ public:
         markDirty(index);
         return value.id;
     }
-    void remove(ID id)
+    void Remove(ID id)
     {
         ASSERT(Get(id));
         const uint32_t position = positions[id.index];

@@ -441,7 +441,7 @@ static size_t doubleToShortStr(double d, int precision, char* str)
     int Size = snprintf(NULL, 0, "%.*f", precision, d);
     snprintf(str, (unsigned)Size + 1, "%.*f", precision, d);
 
-    // remove trailing zeroes
+    // Remove trailing zeroes
     int end = Size;
     for (int i = Size - 1; i >= 0; i--)
     {

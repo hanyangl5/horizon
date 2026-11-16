@@ -249,7 +249,7 @@ TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
         EXPECT_EQ(result[i], expected) << i;
     }
 
-    // Released buffers return their SRV index for immediate reuse, which makes the release point observable.
+    // Released buffers return their SRV index for immediate reuse, which makes the Release point observable.
     const hz::BufferDesc rawDesc = {
         .Size = sizeof(values),
         .ElementCount = 16,
@@ -264,7 +264,7 @@ TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
     pending.CopyBufferRegions(released, staging, regions);
     context.DeferRelease(std::move(released));
     EXPECT_FALSE(released.IsValid());
-    // The open command list still references the buffer, so idling the queue must not release it.
+    // The open command list still references the buffer, so idling the queue must not Release it.
     context.WaitIdle();
     {
         const hz::GPUBuffer probe = context.CreateBuffer(rawDesc);
@@ -460,7 +460,7 @@ TEST(DependencyListTest, SkipsOptionalResourcesAndReportsIndices)
     hz::GPUTexture     texture;
     hz::GPUBuffer      buffer;
     hz::DependencyList dependencies;
-    // Null and uninitialized handles are optional: they report the invalid index and add no Barrier.
+    // Null and uninitialized handles are optional: they report the invalid index and Add no Barrier.
     EXPECT_EQ(dependencies.sample(nullptr), UINT32_MAX);
     EXPECT_EQ(dependencies.sample(&texture), UINT32_MAX);
     EXPECT_EQ(dependencies.store(nullptr), UINT32_MAX);

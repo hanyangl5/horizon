@@ -65,7 +65,7 @@ struct AssetLoader
     void* UserData = nullptr;
     void* (*pBegin)(const AssetCatalogEntry&, AssetHandle, void*) = nullptr;
     AssetLoadResult (*pPoll)(void* pRequest, void* UserData) = nullptr;
-    // On shutdown this must drain unfinished work before destroying the request.
+    // On Shutdown this must drain unfinished work before destroying the Request.
     void (*pDestroyRequest)(void* pRequest, void* UserData) = nullptr;
     void (*pDestroyPayload)(void* pPayload, void* UserData) = nullptr;
     // Optional GPU phase, called after all dependencies are ready. pollUpload Owns failure detection and drains partial uploads.
@@ -91,24 +91,24 @@ public:
     AssetManager(const AssetManager&) = delete;
     AssetManager& operator=(const AssetManager&) = delete;
 
-    void                 setLoader(AssetType Type, const AssetLoader& loader);
-    AssetHandle          request(AssetID id, AssetError* pError = nullptr);
-    bool                 release(AssetHandle Handle);
-    void                 update();
-    AssetState           getState(AssetHandle Handle) const;
-    AssetError           getError(AssetHandle Handle) const;
+    void                 SetLoader(AssetType Type, const AssetLoader& loader);
+    AssetHandle          Request(AssetID id, AssetError* pError = nullptr);
+    bool                 Release(AssetHandle Handle);
+    void                 Update();
+    AssetState           GetState(AssetHandle Handle) const;
+    AssetError           GetError(AssetHandle Handle) const;
     // Empty until the asset fails; the loader reason when it provided one, otherwise the asset path.
-    const char*          getDiagnostic(AssetHandle Handle) const;
-    const SceneAsset*    getScene(AssetHandle Handle) const;
-    const TextureAsset*  getTexture(AssetHandle Handle) const;
-    const MeshAsset*     getMesh(AssetHandle Handle) const;
-    const MaterialAsset* getMaterial(AssetHandle Handle) const;
-    // Lookup does not acquire a reference; use request() to retain the asset.
-    AssetHandle          find(AssetID id) const;
-    // Encodes the ready payload set once per revision. Views expire when the ready set changes.
-    GpuAssetTables       getGpuTables();
-    uint32_t             getCount() const;
-    void                 shutdown();
+    const char*          GetDiagnostic(AssetHandle Handle) const;
+    const SceneAsset*    GetScene(AssetHandle Handle) const;
+    const TextureAsset*  GetTexture(AssetHandle Handle) const;
+    const MeshAsset*     GetMesh(AssetHandle Handle) const;
+    const MaterialAsset* GetMaterial(AssetHandle Handle) const;
+    // Lookup does not acquire a reference; use Request() to retain the asset.
+    AssetHandle          Find(AssetID id) const;
+    // Encodes the ready payload Set once per revision. Views expire when the ready Set changes.
+    GpuAssetTables       GetGpuTables();
+    uint32_t             GetCount() const;
+    void                 Shutdown();
 
 private:
     AssetManagerData* Data = nullptr;

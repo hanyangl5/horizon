@@ -208,13 +208,13 @@ GPUAccelerationStructure RenderContext::CreateAccelerationStructure(const Accele
 }
 
 void CommandList::BuildAccelerationStructure(GPUAccelerationStructure& structure, Span<AccelerationStructureInstance> instances,
-                                             bool update)
+                                             bool Update)
 {
     ASSERT(structure.IsValid());
     AccelerationStructureData& data = *structure.Data;
     ASSERT(data.pContext == pContext);
-    ASSERT(!update || (data.built && (data.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE)));
-    RaytracingBuildASDesc desc = { .pAccelerationStructure = data.pStructure, .issueRWBarrier = true, .update = update };
+    ASSERT(!Update || (data.built && (data.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE)));
+    RaytracingBuildASDesc desc = { .pAccelerationStructure = data.pStructure, .issueRWBarrier = true, .Update = Update };
     if (data.Type == ACCELERATION_STRUCTURE_TYPE_BOTTOM)
     {
         arrsetlen(bufferBarriers, 0);
@@ -227,7 +227,7 @@ void CommandList::BuildAccelerationStructure(GPUAccelerationStructure& structure
         {
             data.setInstances(instances);
         }
-        ASSERT(data.instances.Size() <= data.Capacity && (!update || data.instances.Size() == data.builtCount));
+        ASSERT(data.instances.Size() <= data.Capacity && (!Update || data.instances.Size() == data.builtCount));
         for (AccelerationStructureData* bottom : data.bottoms)
         {
             ASSERT(bottom && bottom->built);
@@ -250,9 +250,9 @@ void CommandList::UpdateAccelerationStructure(GPUAccelerationStructure& structur
     ASSERT(data.Type == ACCELERATION_STRUCTURE_TYPE_TOP);
     if (data.dirty)
     {
-        const bool update =
+        const bool Update =
             data.built && (data.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE) && data.instances.Size() == data.builtCount;
-        BuildAccelerationStructure(structure, {}, update);
+        BuildAccelerationStructure(structure, {}, Update);
     }
 }
 

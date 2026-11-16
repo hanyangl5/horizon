@@ -155,7 +155,7 @@ FORGE_API size_t NormalizePathContinue(const char* nextPath, char separator, con
     // /../a/../b/
     //     ^ noback
 
-    // set noback to beg (dropping const)
+    // Set noback to beg (dropping const)
     char* noback = cur - (cur - beg);
 
     if (cur > beg)
@@ -265,7 +265,7 @@ FORGE_API size_t NormalizePathContinue(const char* nextPath, char separator, con
         }
         else
         {
-            // resolve ".." (remove "parentdir/..")
+            // resolve ".." (Remove "parentdir/..")
             for (cur -= 2; cur >= beg && *cur != separator; --cur)
                 ;
             ++cur;
@@ -788,7 +788,7 @@ bool OpenStreamFromPath(ResourceDirectory resourceDir, const char* fileName, Fil
     if (!io)
     {
         LOGF(Error,
-             "Trying to Get an unset resource directory '%d' to open stream for '%s', make sure the resourceDirectory is set on start of "
+             "Trying to Get an unset resource directory '%d' to open stream for '%s', make sure the resourceDirectory is Set on start of "
              "the application",
              resourceDir, fileName ? fileName : "<NULL>");
         return false;
@@ -996,7 +996,7 @@ const char* GetResourceDirectory(ResourceDirectory resourceDir)
     if (!dir->FileSystem)
     {
         LOGF_IF(Error, !dir->path[0],
-                "Trying to Get an unset resource directory '%d', make sure the resourceDirectory is set on start of the application",
+                "Trying to Get an unset resource directory '%d', make sure the resourceDirectory is Set on start of the application",
                 resourceDir);
         ASSERT(dir->path[0] != 0);
     }

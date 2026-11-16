@@ -118,8 +118,8 @@ public:
         {
             return false;
         }
-        scene.update();
-        assets = assetManager.getGpuTables();
+        scene.Update();
+        assets = assetManager.GetGpuTables();
         const RenderSceneUploads uploads = scene.getPendingUploads();
         const bool               assetsChanged = assets.revision != uploadedRevision;
         const GpuTableSource     sources[] = {

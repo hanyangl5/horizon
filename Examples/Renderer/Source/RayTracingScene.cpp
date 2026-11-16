@@ -17,24 +17,24 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
                 BottomLevelAS[Index] = std::move(Previous[Source.PreviousIndex]);
                 continue;
             }
-            const hz::MeshAsset* Mesh = View.Assets.getMesh({ Source.Mesh.mesh.index, Source.Mesh.mesh.generation });
+            const hz::MeshAsset* Mesh = View.Assets.GetMesh({ Source.Mesh.mesh.index, Source.Mesh.mesh.generation });
             ASSERT(Mesh);
-            const IndirectDrawIndexArguments& Submesh = Mesh->getDraw(Source.Mesh.submeshIndex);
-            const hz::GPUBuffer&              Vertices = Mesh->getVertexBuffer(0);
-            const uint32_t                    Stride = Mesh->getVertexStride(0);
+            const IndirectDrawIndexArguments& Submesh = Mesh->GetDraw(Source.Mesh.submeshIndex);
+            const hz::GPUBuffer&              Vertices = Mesh->GetVertexBuffer(0);
+            const uint32_t                    Stride = Mesh->GetVertexStride(0);
             const int32_t                     BaseVertex = int32_t(Submesh.vertexOffset);
             ASSERT(BaseVertex >= 0 && Stride == 12 && Submesh.indexCount % 3 == 0);
             const uint64_t VertexOffset = uint64_t(BaseVertex) * Stride;
             ASSERT(Vertices.GetSize() >= VertexOffset);
             const hz::AccelerationStructureGeometry Geometry = {
                 .pVertexBuffer = &Vertices,
-                .pIndexBuffer = &Mesh->getIndexBuffer(),
+                .pIndexBuffer = &Mesh->GetIndexBuffer(),
                 .vertexOffset = VertexOffset,
-                .indexOffset = uint64_t(Submesh.startIndex) * (Mesh->getIndexType() == IndexTypeUInt16 ? 2u : 4u),
+                .indexOffset = uint64_t(Submesh.startIndex) * (Mesh->GetIndexType() == IndexTypeUInt16 ? 2u : 4u),
                 .vertexCount = uint32_t((Vertices.GetSize() - VertexOffset) / Stride),
                 .vertexStride = Stride,
                 .indexCount = Submesh.indexCount,
-                .indexType = Mesh->getIndexType(),
+                .indexType = Mesh->GetIndexType(),
                 .opaque = Source.Opaque,
             };
             BottomLevelAS[Index] = Context.CreateAccelerationStructure({ .geometries = { &Geometry, 1 } });

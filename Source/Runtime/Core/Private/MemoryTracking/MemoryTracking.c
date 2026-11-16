@@ -501,7 +501,7 @@ void PlotMemoryTrackingStats(void)
                             // either truncate the copied string or leave the destination unchanged.
 #endif
 
-// Just include the cpp here so we don't have to add it to the all projects
+// Just include the cpp here so we don't have to Add it to the all projects
 #include <ThirdParty/MemoryManager/mmgr.h>
 
 #if defined(__GNUC__) && !defined(__clang__)

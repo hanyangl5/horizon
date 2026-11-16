@@ -99,7 +99,7 @@ struct ShaderCacheFile
 {
     ~ShaderCacheFile() { MemDeallocate(pBytes); }
 
-    uint8_t* release()
+    uint8_t* Release()
     {
         uint8_t* pResult = pBytes;
         pBytes = nullptr;
@@ -171,7 +171,7 @@ bool loadShaderCache(uint64_t key, const ShaderSrcDesc& source, BinaryShaderDesc
             return false;
     }
     binary = result;
-    pStorage = file.release();
+    pStorage = file.Release();
     return true;
 }
 

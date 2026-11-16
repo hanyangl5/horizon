@@ -182,7 +182,7 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
     const HMONITOR monitor = MonitorFromWindow((HWND)pWindow->window, MONITOR_DEFAULTTONEAREST);
     if (!monitor)
     {
-        LOGF(LogLevel::Error, "Failed to find a monitor for the swapchain window");
+        LOGF(LogLevel::Error, "Failed to Find a monitor for the swapchain window");
         return false;
     }
 
@@ -340,7 +340,7 @@ extern void hook_fill_gpu_desc(ID3D12Device* pDevice, D3D_FEATURE_LEVEL featureL
     gpuDesc.featureDataOptions1 = featureData1;
     gpuDesc.featureDataOptions16 = featureData16;
 
-    // save vendor and model Id as string
+    // Save vendor and model Id as string
     // char hexChar[10];
     // convert deviceId and assign it
     gpuDesc.deviceId = desc.DeviceId;
@@ -349,7 +349,7 @@ extern void hook_fill_gpu_desc(ID3D12Device* pDevice, D3D_FEATURE_LEVEL featureL
     // convert Revision Id
     gpuDesc.revisionId = desc.Revision;
 
-    // save gpu name (Some situtations this can show description instead of name)
+    // Save gpu name (Some situtations this can show description instead of name)
     // char sName[MAX_PATH];
     size_t numConverted = 0;
     wcstombs_s(&numConverted, gpuDesc.name, desc.Description, MAX_GPU_VENDOR_STRING_LENGTH);

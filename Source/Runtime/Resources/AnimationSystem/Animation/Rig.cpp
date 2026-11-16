@@ -29,7 +29,7 @@ void Rig::Initialize(const ResourceDirectory resourceDir, const char* fileName)
     // Reading skeleton.
     if (!LoadSkeleton(resourceDir, fileName))
     {
-        LOGF(Error, "Couldn't load skeleton %s", fileName);
+        LOGF(Error, "Couldn't Load skeleton %s", fileName);
         return; // need error catching
     }
 
@@ -38,7 +38,7 @@ void Rig::Initialize(const ResourceDirectory resourceDir, const char* fileName)
 
     if (numJoints == 0)
     {
-        LOGF(Error, "Couldn't load skeleton %s", fileName);
+        LOGF(Error, "Couldn't Load skeleton %s", fileName);
         return;
     }
 

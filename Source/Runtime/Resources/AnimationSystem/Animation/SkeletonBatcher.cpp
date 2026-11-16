@@ -352,7 +352,7 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t frameIndex, int32_t 
                 // Finalize the data for this batch by adding the batch instance to the batch total Size
                 uint32_t currBatchSize = tfrg_atomic32_add_relaxed(&pFrameBatchSize[batchIndex], batchInstanceCount) + batchInstanceCount;
 
-                // Only update if batch is full, or this is the last batch as it could be less than MAX_SKELETON_BATCHER_BLOCK_INSTANCES
+                // Only Update if batch is full, or this is the last batch as it could be less than MAX_SKELETON_BATCHER_BLOCK_INSTANCES
                 if (currBatchSize == MAX_SKELETON_BATCHER_BLOCK_INSTANCES ||
                     (lastBatchIndex == batchIndex && currBatchSize == lastBatchSize))
                 {
@@ -381,7 +381,7 @@ void SkeletonBatcher::AddAnimatedObject(AnimatedObject* animatedObject)
     ASSERT(animatedObject && animatedObject->rig);
     for (uint32_t i = 0; i < numAnimatedObjects; ++i)
     {
-        ASSERT(animatedObject != animatedObjects[i] && "Trying to add duplicated animated object");
+        ASSERT(animatedObject != animatedObjects[i] && "Trying to Add duplicated animated object");
     }
 
     // Adds the rig so its data can be used and increments the rig Count

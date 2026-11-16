@@ -47,7 +47,7 @@ typedef enum AssetPipelineErrorCode
 {
     ASSET_PIPELINE_SUCCESS = 0,
     ASSET_PIPELINE_GENERAL_FAILURE = 1,
-    // TODO: add more error codes as needed
+    // TODO: Add more error codes as needed
 } AssetPipelineErrorCode;
 
 enum AssetPipelineProcessMode
@@ -94,7 +94,7 @@ struct AssetPipelineParams
 
     const char* mInDir;
     const char* mOutDir;
-    const char* mOutSubdir; // If set, the subdirectory of the input filepath will be ignored and this one will be used instead
+    const char* mOutSubdir; // If Set, the subdirectory of the input filepath will be ignored and this one will be used instead
 
     // From argc and argv
     const char* mFlags[MAX_FLAGS];
@@ -107,7 +107,7 @@ struct AssetPipelineParams
     ResourceDirectory mRDInput;
     ResourceDirectory mRDOutput;
 
-    // TODO looks like this directory is always set to nothing
+    // TODO looks like this directory is always Set to nothing
     ResourceDirectory mRDZipWrite;
 };
 
@@ -257,7 +257,7 @@ typedef void (*GLTFReadExtrasCallback)(uint32_t meshIdx, uint32_t meshCount, con
 // from the gltf file.
 // This callback is invoked twice:
 //     1. pDst being nullptr: the user should just write the Size it requires to write all data into pOutSize.
-//     2. pDst being a valid pointer: the user should serialize the data into pDst, the buffer will be at least
+//     2. pDst being a valid pointer: the user should Serialize the data into pDst, the buffer will be at least
 //        as big as the value assigned to pOutSize in the first call to this callback.
 typedef void (*MeshWriteExtrasCallback)(uint32_t* pOutSize, void* pDst, void* UserData);
 

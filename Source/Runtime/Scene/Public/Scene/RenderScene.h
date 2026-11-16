@@ -164,11 +164,11 @@ public:
 
     void               Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
     // Runs after asset manager loading/mutation. Updates World transforms and bindings without advancing history.
-    void               update();
+    void               Update();
     uint64_t           getRevision() const;
-    // Only the latest update.
+    // Only the latest Update.
     RenderSceneChanges getChanges() const;
-    // Returned spans expire on the next call or update.
+    // Returned spans expire on the next call or Update.
     RenderSceneUploads getPendingUploads();
     // The next submitted frame renders previous == current for the entity, or for every entity when invalid.
     void               markDirty(Entity entity = {});
@@ -182,7 +182,7 @@ public:
     const RenderLight*     getLight(RenderLightID id) const;
     const RenderCamera*    getCamera(RenderCameraID id) const;
 
-    // CPU extraction views expire at the next update. Mesh/material handles are borrowed.
+    // CPU extraction views expire at the next Update. Mesh/material handles are borrowed.
     // Iterate active lists; sparse arrays include holes. These views do not pin assets for GPU work.
     // Slot order follows sparse allocation, not insertion or Entity order: consumers that need deterministic
     // output (transparency sorting, screenshots) must Sort by their own key instead of relying on index order.
@@ -200,10 +200,10 @@ public:
 
 private:
     friend class GpuScene;
-    // Set while a GpuScene frame is open; update() and markDirty() must not run then.
+    // Set while a GpuScene frame is open; Update() and markDirty() must not run then.
     void             setFrameLocked(bool locked);
     void             acknowledgeUploads();
-    // Records the current transforms and lenses as submitted, so the next update renders them as previous.
+    // Records the current transforms and lenses as submitted, so the next Update renders them as previous.
     void             commitHistory();
     RenderSceneData* Data = nullptr;
 };

@@ -58,7 +58,7 @@ static ThreadID getCurrentPthreadID(void)
     ASSERT(ptr_id < THREAD_ID_MAX);
     ThreadID id = (ThreadID)ptr_id;
 
-    // thread id wasn't set
+    // thread id wasn't Set
     if (id == 0)
     {
         id = (ThreadID)tfrg_atomic32_add_relaxed(&counter, 1);

@@ -46,7 +46,7 @@ TEST(CoreToolFileSystemTest, MergeDirAndFileNameNormalizesCombinedPath)
     EXPECT_STREQ(output, "Assets/Textures/hero_albedo.dds");
 }
 
-// Verifies that path component and extension helpers split, append, and replace path parts consistently.
+// Verifies that path component and extension helpers split, append, and Replace path parts consistently.
 TEST(CoreToolFileSystemTest, PathExtensionAndComponentHelpersSplitAndAppendConsistently)
 {
     char appended[FS_MAX_PATH] = {};

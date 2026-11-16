@@ -49,7 +49,7 @@
 #define ANONIMOUS_VARIABLE_LOG(str) CONCAT_STR_LOG(str, __LINE__)
 #endif
 
-// If you add more levels don't forget to change LOG_LEVELS macro to the actual number of levels
+// If you Add more levels don't forget to change LOG_LEVELS macro to the actual number of levels
 typedef enum LogLevel
 {
     None = 0,

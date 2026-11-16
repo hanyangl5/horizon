@@ -39,7 +39,7 @@ static bool ShaderResourceCmp(ShaderResource* a, ShaderResource* b)
     bool isSame = true;
 
     isSame = isSame && (a->Type == b->Type);
-    isSame = isSame && (a->set == b->set);
+    isSame = isSame && (a->Set == b->Set);
     isSame = isSame && (a->reg == b->reg);
 
 #ifdef RESOURCE_NAME_CHECK
@@ -160,15 +160,15 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
             bool unique = true;
 
             // Go through all already added shader resources to see if this shader
-            //  resource was already added from a different shader stage. If we find a
-            //  duplicate shader resource, we add the shader stage to the shader stage
+            //  resource was already added from a different shader stage. If we Find a
+            //  duplicate shader resource, we Add the shader stage to the shader stage
             //  mask of that resource instead.
             for (uint32_t k = 0; k < (uint32_t)arrlen(pUniqueResources); ++k)
             {
                 unique = !ShaderResourceCmp(&pSrcRef->pShaderResources[j], pUniqueResources[k]);
                 if (unique == false)
                 {
-                    // update shader usage
+                    // Update shader usage
                     // NOT SURE
                     // shaderUsage[k] = (ShaderStage)(shaderUsage[k] & pSrcRef->pShaderResources[j].used_stages);
                     ASSERT(pShaderUsage);
@@ -181,7 +181,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
                 }
             }
 
-            // If it's unique, we add it to the list of shader resourceas
+            // If it's unique, we Add it to the list of shader resourceas
             if (unique == true)
             {
                 arrpush(pShaderUsage, pSrcRef->pShaderResources[j].used_stages);
@@ -194,8 +194,8 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
         {
             bool unique = true;
             // Go through all already added shader variables to see if this shader
-            //  variable was already added from a different shader stage. If we find a
-            //  duplicate shader variables, we don't add it.
+            //  variable was already added from a different shader stage. If we Find a
+            //  duplicate shader variables, we don't Add it.
             for (uint32_t k = 0; k < (uint32_t)arrlen(pUniqueVariable); ++k)
             {
                 unique = !ShaderVariableCmp(&pSrcRef->pVariables[j], pUniqueVariable[k]);
@@ -203,7 +203,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
                     break;
             }
 
-            // If it's unique we add it to the list of shader variables
+            // If it's unique we Add it to the list of shader variables
             if (unique)
             {
                 arrpush(pUniqueVariableParent, &pSrcRef->pShaderResources[pSrcRef->pVariables[j].parent_index]);

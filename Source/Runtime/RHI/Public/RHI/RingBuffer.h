@@ -63,7 +63,7 @@ typedef struct GpuCmdRingDesc
     uint32_t poolCount;
     // Number of command buffers to be created per command pool
     uint32_t cmdPerPoolCount;
-    // Whether to add fence, semaphore for this ring
+    // Whether to Add fence, semaphore for this ring
     bool     addSyncPrimitives;
 } GpuCmdRingDesc;
 

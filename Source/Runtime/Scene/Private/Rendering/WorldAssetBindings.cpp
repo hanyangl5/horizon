@@ -22,8 +22,8 @@ public:
     ~WorldMeshBinding()
     {
         for (const MaterialAssetBinding& material : materials)
-            assetManager.release(material.Handle);
-        assetManager.release(view.mesh);
+            assetManager.Release(material.Handle);
+        assetManager.Release(view.mesh);
     }
 
     void sync(const MeshRenderer& renderer)
@@ -54,7 +54,7 @@ public:
         initialized = true;
     }
 
-    void update()
+    void Update()
     {
         if (view.state == AssetBindingState::Failed)
             return;
@@ -69,10 +69,10 @@ public:
             releaseMaterials();
             return;
         }
-        const MeshAsset* pMesh = assetManager.getMesh(view.mesh);
+        const MeshAsset* pMesh = assetManager.GetMesh(view.mesh);
         if (meshState == AssetBindingState::Failed || !pMesh)
         {
-            fail("Mesh asset failed to load or has the wrong type");
+            fail("Mesh asset failed to Load or has the wrong type");
             return;
         }
         if (needsResolve && !resolve(*pMesh))
@@ -90,9 +90,9 @@ public:
             }
             const AssetBindingState materialState = state(material.Handle);
             if (materialState == AssetBindingState::Failed ||
-                (materialState == AssetBindingState::Ready && !assetManager.getMaterial(material.Handle)))
+                (materialState == AssetBindingState::Ready && !assetManager.GetMaterial(material.Handle)))
             {
-                fail("Material asset failed to load or has the wrong type");
+                fail("Material asset failed to Load or has the wrong type");
                 return;
             }
             if (materialState == AssetBindingState::Pending)
@@ -107,12 +107,12 @@ public:
 private:
     bool acquire(AssetID id, AssetHandle& Handle)
     {
-        if (assetManager.getState(assetManager.find(id)) == AssetState::Retiring)
+        if (assetManager.GetState(assetManager.Find(id)) == AssetState::Retiring)
         {
             return true;
         }
         AssetError error;
-        Handle = assetManager.request(id, &error);
+        Handle = assetManager.Request(id, &error);
         return Handle.IsValid() || error == AssetError::Retiring;
     }
 
@@ -120,7 +120,7 @@ private:
     {
         if (!Handle.IsValid())
             return AssetBindingState::Pending;
-        switch (assetManager.getState(Handle))
+        switch (assetManager.GetState(Handle))
         {
         case AssetState::Ready:
             return AssetBindingState::Ready;
@@ -161,7 +161,7 @@ private:
                 return false;
 
         Array<MaterialAssetBinding>   next;
-        const Span<SceneAssetSubmesh> submeshes = mesh.getDescription().submeshes;
+        const Span<SceneAssetSubmesh> submeshes = mesh.GetDescription().submeshes;
         next.Reserve(submeshes.Count);
         uint32_t matched = 0;
         for (const SceneAssetSubmesh& submesh : submeshes)
@@ -181,7 +181,7 @@ private:
         }
         if (matched != sorted.Size())
             return false;
-        // Acquire replacements before releasing old leases, including handoffs between entities in this update.
+        // Acquire replacements before releasing old leases, including handoffs between entities in this Update.
         bool acquired = true;
         for (MaterialAssetBinding& material : next)
             acquired &= acquire(material.asset, material.Handle);
@@ -246,7 +246,7 @@ public:
         return true;
     }
 
-    void update()
+    void Update()
     {
         ASSERT(!world.IsDeferred());
         for (WorldMeshBinding* pBinding : bindings)
@@ -254,7 +254,7 @@ public:
         query.Each(sync, this);
         for (WorldMeshBinding* pBinding : bindings)
             if (pBinding->seen)
-                pBinding->update();
+                pBinding->Update();
         for (uint32_t i = 0; i < bindings.Size();)
         {
             WorldMeshBinding* pBinding = bindings[i];
@@ -271,7 +271,7 @@ public:
                 hmgetp_null(pIndices, bindings[i]->entity)->value = i;
         }
         for (AssetHandle Handle : releases)
-            assetManager.release(Handle);
+            assetManager.Release(Handle);
         releases.Clear();
     }
 
@@ -287,9 +287,9 @@ WorldAssetBindings::WorldAssetBindings(World& world, AssetManager& assetManager)
 {
 }
 WorldAssetBindings::~WorldAssetBindings() { MemDelete(Data); }
-void                    WorldAssetBindings::update() { Data->update(); }
+void                    WorldAssetBindings::Update() { Data->Update(); }
 void                    WorldAssetBindings::Clear() { Data->Clear(); }
-uint32_t                WorldAssetBindings::getCount() const { return Data->bindings.Size(); }
+uint32_t                WorldAssetBindings::GetCount() const { return Data->bindings.Size(); }
 const MeshAssetBinding* WorldAssetBindings::Get(Entity entity) const
 {
     const WorldBindingIndex* pIndex = hmgetp_null(Data->pIndices, entity);

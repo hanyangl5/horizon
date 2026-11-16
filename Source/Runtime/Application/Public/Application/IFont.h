@@ -92,11 +92,11 @@ typedef struct FontDrawDesc
 FORGE_API bool initFontSystem(FontSystemDesc* pDesc);
 
 /// Frees Forge Rendering objects and memory associated with Font Rendering
-/// To be called at application shutdown time by the App Layer
+/// To be called at application Shutdown time by the App Layer
 FORGE_API void exitFontSystem();
 
 /// Loads Font Rendering resources depending on FontSystemLoadDesc::loadType
-/// To be called at application load time by the App Layer
+/// To be called at application Load time by the App Layer
 FORGE_API void loadFontSystem(const FontSystemLoadDesc* pDesc);
 
 /// Unloads Font Rendering resources depending on FontSystemLoadDesc::loadType

@@ -79,7 +79,7 @@ FORGE_API void initProfiler(ProfilerDesc* pDesc);
 // Call on application exit
 FORGE_API void exitProfiler();
 
-// Call once per frame to update profiler
+// Call once per frame to Update profiler
 FORGE_API void flipProfiler();
 
 // Legacy MicroProfile benchmark/dump APIs are parked while Tracy capture export is wired up.
@@ -160,7 +160,7 @@ struct CpuProfileScopeMarker
 #define PROFILER_CONCAT0(a, b) a##b
 #define PROFILER_CONCAT(a, b)  PROFILER_CONCAT0(a, b)
 // Call at the start of a block to profile cpu time between '{' '}'
-// TODO(profiler): Register these static tokens and release them from exitProfiler().
+// TODO(profiler): Register these static tokens and Release them from exitProfiler().
 #define PROFILER_SET_CPU_SCOPE(group, name, color)                                                             \
     static ProfileToken   PROFILER_CONCAT(cpuProfileToken, __LINE__) = getCpuProfileToken(group, name, color); \
     CpuProfileScopeMarker PROFILER_CONCAT(marker, __LINE__)(PROFILER_CONCAT(cpuProfileToken, __LINE__))

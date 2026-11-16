@@ -66,7 +66,7 @@ static int compareTypes(const void* pA, const void* pB)
 }
 
 WorldArchive::~WorldArchive() { MemDelete(Data); }
-Guid WorldArchive::getID() const { return Data ? Data->id : Guid{}; }
+Guid WorldArchive::GetID() const { return Data ? Data->id : Guid{}; }
 bool WorldArchive::Parse(Span<char> json)
 {
     UniquePtr<WorldArchiveData> candidate = MakeUnique<WorldArchiveData>();
@@ -92,7 +92,7 @@ bool WorldArchive::Parse(Span<char> json)
     Data = candidate.Release();
     return true;
 }
-bool WorldArchive::serialize(Array<char>& json) const
+bool WorldArchive::Serialize(Array<char>& json) const
 {
     if (!Data)
     {
@@ -172,7 +172,7 @@ bool WorldArchive::capture(World& world, Guid id)
             }
             if (!normalizeWorldComponent(pType->id, (void*)pValue, false) || !validateWorldReferences(*pType, pValue, world))
             {
-                LOGF(Error, "Cannot save invalid '%s' component", pType->Name);
+                LOGF(Error, "Cannot Save invalid '%s' component", pType->Name);
                 return false;
             }
             cJSON* pProperties = writeWorldProperties(*pType, pValue);
@@ -430,7 +430,7 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
     target.Swap(staging);
     return true;
 }
-bool WorldArchive::load(ResourceDirectory directory, const char* pFileName)
+bool WorldArchive::Load(ResourceDirectory directory, const char* pFileName)
 {
     FileStream stream = {};
     if (!OpenStreamFromPath(directory, pFileName, FileModeRead, &stream))
@@ -494,17 +494,17 @@ static bool writeWorldFile(ResourceDirectory directory, const char* pFileName, S
     }
     if (exists && !RemoveFile(directory, backup))
     {
-        LOGF(Warning, "Cannot remove World backup '%s'", backup);
+        LOGF(Warning, "Cannot Remove World backup '%s'", backup);
     }
     return true;
 }
-bool WorldArchive::save(ResourceDirectory directory, const char* pFileName) const
+bool WorldArchive::Save(ResourceDirectory directory, const char* pFileName) const
 {
     if (Data && writeWorldFile(directory, pFileName, { Data->text.GetData(), Data->text.Size() - 1 }))
     {
         return true;
     }
-    LOGF(Error, "Cannot save World archive '%s'", pFileName);
+    LOGF(Error, "Cannot Save World archive '%s'", pFileName);
     return false;
 }
 } // namespace hz

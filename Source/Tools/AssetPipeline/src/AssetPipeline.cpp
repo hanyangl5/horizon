@@ -117,7 +117,7 @@ public:
             return false;
         }
         if (exists && !RemoveFile(directory, backup))
-            LOGF(Warning, "Cannot remove completed geometry backup '%s'", backup);
+            LOGF(Warning, "Cannot Remove completed geometry backup '%s'", backup);
         return true;
     }
 
@@ -449,7 +449,7 @@ cgltf_result cgltf_parse_and_load(ResourceDirectory resourceDir, const char* ske
     }
 
     result = cgltf_load_buffers(&options, data, skeletonAsset);
-    if (!VERIFYMSG(cgltf_result_success == result, "Failed to load buffers from gltf file %s with error %u", skeletonAsset,
+    if (!VERIFYMSG(cgltf_result_success == result, "Failed to Load buffers from gltf file %s with error %u", skeletonAsset,
                    (uint32_t)result))
     {
         MemDeallocate(fileData);
@@ -620,10 +620,10 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
             FileStream file = {};
             if (!OpenStreamFromPath(assetParams->mRDOutput, skeletonOutput, FileModeRead, &file))
             {
-                LOGF(Error, "Couldn't load Skeleton for mesh '%s' in %s. Skipping asset and all it's animations", skeletonInputFile,
+                LOGF(Error, "Couldn't Load Skeleton for mesh '%s' in %s. Skipping asset and all it's animations", skeletonInputFile,
                      skeletonOutput);
                 success = false;
-                continue; // TODO: We could add a parameter so that the user can select whether to stop processing more assets or not when
+                continue; // TODO: We could Add a parameter so that the user can select whether to stop processing more assets or not when
                           // encountering an error
             }
             ozz::io::IArchive archive(&file);
@@ -700,7 +700,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
 #define RETURN_IF_TFX_ERROR(expression)     \
     if (!(expression))                      \
     {                                       \
-        LOGF(Error, "Failed to load tfx"); \
+        LOGF(Error, "Failed to Load tfx"); \
         return false;                       \
     }
 
@@ -1059,7 +1059,7 @@ bool CreateRuntimeSkeleton(ResourceDirectory resourceDirInput, const char* skele
                     pScaling = -pScaling;
                 joint.transform.scale = pScaling; //*(boneInfo.mParentNodeIndex == -1 ? 0.01f : 1.f);
 
-                // and remove all scaling from the matrix
+                // and Remove all scaling from the matrix
                 if (pScaling.getX())
                     upperMat.setCol0(upperMat.getCol0() / pScaling.getX());
                 if (pScaling.getY())
@@ -1701,7 +1701,7 @@ static void geomOptimize(GeometryData* geomData, MeshOptimizerFlags optimization
         validStreamCount++;
     }
 
-    // Remap functions expect the same vertex Count passed when generating the map, so we have to set the new vertex Count later on
+    // Remap functions expect the same vertex Count passed when generating the map, so we have to Set the new vertex Count later on
     uint32_t newVertCount = 0;
 
     // generating remap & new vertex/index sets
@@ -1946,7 +1946,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             result = cgltf_validate(data);
         if (cgltf_result_success != result)
         {
-            LOGF(Error, "Failed to load buffers from gltf file %s with error %u", fileName, (uint32_t)result);
+            LOGF(Error, "Failed to Load buffers from gltf file %s with error %u", fileName, (uint32_t)result);
             data->file_data = fileData;
             cgltf_free(data);
             error = true;
@@ -2024,7 +2024,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             }
         }
 
-        // Request the Size that the user will need to load it's custom fields
+        // Request the Size that the user will need to Load it's custom fields
         uint32_t userDataSize = 0;
         if (glTFParams->pWriteExtrasCallback)
             glTFParams->pWriteExtrasCallback(&userDataSize, NULL, glTFParams->pCallbackUserData);
@@ -2180,7 +2180,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         COMPILE_ASSERT(TF_ARRAY_COUNT(geomData->pShadow->vertexStrides) == TF_ARRAY_COUNT(geomData->pShadow->pAttributes));
         for (uint32_t j = 1; j < TF_ARRAY_COUNT(geomData->pShadow->vertexStrides); ++j)
         {
-            // If the attribute is not present in the gltf file we just don't save anything
+            // If the attribute is not present in the gltf file we just don't Save anything
             if (geomData->pShadow->vertexStrides[j] == 0)
                 geomData->pShadow->pAttributes[j] = nullptr;
         }
@@ -2283,7 +2283,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                         uint8_t* dst = (uint8_t*)geomData->pShadow->pAttributes[semanticIdx] + (uint64_t)vertexCount * stride;
 
                         // For now we just copy attributes to it's own buffer, in case of interleaved attributes we pack them in the
-                        // ResourceLoader during load
+                        // ResourceLoader during Load
                         // TODO: Consider adding an option to make the attributes interleaved here in the AssetPipeline so that we don't
                         // have to do it in runtime.
                         //       The inconvenience in that case would be that in order to Get the pShadow data we would have to unpack the
@@ -2457,7 +2457,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         geometryFile.write(&totalGeomSize, sizeof(totalGeomSize));
         geometryFile.write(geom, totalGeomSize);
 
-        // Serialized pointers are restored from the following data blocks during load.
+        // Serialized pointers are restored from the following data blocks during Load.
         GeometryData::ShadowData* pTempShadow = geomData->pShadow;
         void*                     pTempUserData = geomData->UserData;
         geomData->pShadow = nullptr;
@@ -2938,7 +2938,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             {
                 if (texturesParams.mInExt && texturesParams.mInExt[0] != '\0')
                 {
-                    LOGF(Error, "Already set input format to %s.", texturesParams.mInExt);
+                    LOGF(Error, "Already Set input format to %s.", texturesParams.mInExt);
                     error = true;
                 }
 
@@ -2948,7 +2948,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             {
                 if (texturesParams.mInExt && texturesParams.mInExt[0] != '\0')
                 {
-                    LOGF(Error, "Already set input format to %s.", texturesParams.mInExt);
+                    LOGF(Error, "Already Set input format to %s.", texturesParams.mInExt);
                     error = true;
                 }
 
@@ -2958,7 +2958,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             {
                 if (texturesParams.mInExt && texturesParams.mInExt[0] != '\0')
                 {
-                    LOGF(Error, "Already set input format to %s.", texturesParams.mInExt);
+                    LOGF(Error, "Already Set input format to %s.", texturesParams.mInExt);
                     error = true;
                 }
 
@@ -2968,7 +2968,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             {
                 if (texturesParams.mInExt && texturesParams.mInExt[0] != '\0')
                 {
-                    LOGF(Error, "Already set input format to %s.", texturesParams.mInExt);
+                    LOGF(Error, "Already Set input format to %s.", texturesParams.mInExt);
                     error = true;
                 }
 
@@ -2978,7 +2978,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
             {
                 if (texturesParams.mInExt && texturesParams.mInExt[0] != '\0')
                 {
-                    LOGF(Error, "Already set input format to %s.", texturesParams.mInExt);
+                    LOGF(Error, "Already Set input format to %s.", texturesParams.mInExt);
                     error = true;
                 }
 
@@ -3091,7 +3091,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
 
         if (!texturesParams.mInExt)
         {
-            LOGF(Error, "Texture input format isn't set.");
+            LOGF(Error, "Texture input format isn't Set.");
             error = true;
         }
 

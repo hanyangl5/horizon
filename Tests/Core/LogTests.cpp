@@ -56,7 +56,7 @@ TEST(CoreLogTest, InteractiveModeToggleRoundTrips)
     EXPECT_EQ(_IsInteractiveMode(), initial);
 }
 
-// Verifies that log callbacks receive formatted and raw messages and are closed during shutdown.
+// Verifies that log callbacks receive formatted and raw messages and are closed during Shutdown.
 TEST(CoreLogTest, CallbackReceivesFormattedAndRawMessages)
 {
     LogCapture capture = {};

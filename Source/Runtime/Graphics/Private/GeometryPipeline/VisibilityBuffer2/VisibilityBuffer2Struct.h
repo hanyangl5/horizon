@@ -79,7 +79,7 @@ STRUCT(FilterBatchData)
                                          // encoded data in different bits
     DATA(uint, geometrySet, None);       // We only use 2 bits from this variable, the rest is free
 
-    // Note: we could combine faceCount and geometrySet to add more data in this struct
+    // Note: we could combine faceCount and geometrySet to Add more data in this struct
     //   - geometrySet: 2 bits (we have 3 geometry sets: OPAQUE, ALPHA_CUTOUT, ALPHA_BLEND)
     //   - faceCount: 9 bits (this depends on FILTER_BATCH_SIZE, but it's usually 256, so 9 bits are enough)
     //   - 21 bits free

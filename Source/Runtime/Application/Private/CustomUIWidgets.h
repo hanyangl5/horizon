@@ -132,7 +132,7 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
 
                 int64_t intensity = intData[v1_idx * 2 + 1];
 
-                // set redness based on intensity
+                // Set redness based on intensity
                 uint8_t blue = 0x33;
                 uint8_t green = 0x99;
                 uint8_t red = 0xff;
@@ -150,7 +150,7 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
 
             const ImVec2 tp1 = ImVec2(t1, 1.0f - ImSaturate((v1 - scale_min) * inv_scale));
 
-            // NB: Draw calls are merged together by the DrawList system. Still, we should render our batch are lower level to save a bit of
+            // NB: Draw calls are merged together by the DrawList system. Still, we should render our batch are lower level to Save a bit of
             // CPU.
             ImVec2 pos0 = ImLerp(inner_bb.Min, inner_bb.Max, tp0);
             ImVec2 pos1 = ImLerp(inner_bb.Min, inner_bb.Max, ImVec2(tp1.x, histogram_zero_line_t));
@@ -303,7 +303,7 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
             intensity = 0;
         }
 
-        // we hit free zone, add free chunk in a point
+        // we hit free zone, Add free chunk in a point
         ++intensity;
 
         // while we are in the free chunk

@@ -141,7 +141,7 @@ private:
     uint32_t numAnimatedObjects = 0;
     uint32_t numActiveAnimatedObjects = 0;
 
-    // Application variables used to be able to update buffers
+    // Application variables used to be able to Update buffers
     Renderer* renderer = NULL;
     Buffer*   jointVertexBuffer = NULL;
     Buffer*   boneVertexBuffer = NULL;

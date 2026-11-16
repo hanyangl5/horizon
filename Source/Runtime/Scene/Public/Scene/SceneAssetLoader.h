@@ -16,7 +16,7 @@ public:
     SceneAssetLoader(const SceneAssetLoader&) = delete;
     SceneAssetLoader& operator=(const SceneAssetLoader&) = delete;
 
-    AssetLoader getLoader();
+    AssetLoader GetLoader();
 
 private:
     SceneAssetLoaderData* Data = nullptr;

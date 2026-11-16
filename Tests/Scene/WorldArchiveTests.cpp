@@ -29,7 +29,7 @@ protected:
     static std::string text(const hz::WorldArchive& archive)
     {
         hz::Array<char> json;
-        EXPECT_TRUE(archive.serialize(json));
+        EXPECT_TRUE(archive.Serialize(json));
         return json.Empty() ? "" : std::string(json.GetData(), json.Size() - 1);
     }
     static bool Parse(hz::WorldArchive& archive, const std::string& json) { return archive.Parse({ json.data(), (uint32_t)json.size() }); }
@@ -422,18 +422,18 @@ TEST_F(WorldArchiveTest, SavesLoadsAndRecoversInterruptedFileReplacement)
         SetResourceDirectoryPath(&io, MountProject, DirectoryOtherFiles, directory.string().c_str());
         hz::WorldArchive original, loaded;
         ASSERT_TRUE(Parse(original, envelope(entityJson(1))));
-        ASSERT_TRUE(original.save(DirectoryOtherFiles, "test.world.json"));
-        ASSERT_TRUE(loaded.load(DirectoryOtherFiles, "test.world.json"));
+        ASSERT_TRUE(original.Save(DirectoryOtherFiles, "test.world.json"));
+        ASSERT_TRUE(loaded.Load(DirectoryOtherFiles, "test.world.json"));
         EXPECT_EQ(text(loaded), text(original));
         std::filesystem::create_directory(directory / "test.world.json.tmp");
         ASSERT_TRUE(Parse(original, envelope(entityJson(2))));
-        EXPECT_FALSE(original.save(DirectoryOtherFiles, "test.world.json"));
-        ASSERT_TRUE(loaded.load(DirectoryOtherFiles, "test.world.json"));
+        EXPECT_FALSE(original.Save(DirectoryOtherFiles, "test.world.json"));
+        ASSERT_TRUE(loaded.Load(DirectoryOtherFiles, "test.world.json"));
         EXPECT_EQ(text(loaded), envelope(entityJson(1)));
         std::filesystem::remove(directory / "test.world.json.tmp");
         std::filesystem::rename(directory / "test.world.json", directory / "test.world.json.bak");
-        ASSERT_TRUE(original.save(DirectoryOtherFiles, "test.world.json"));
-        ASSERT_TRUE(loaded.load(DirectoryOtherFiles, "test.world.json"));
+        ASSERT_TRUE(original.Save(DirectoryOtherFiles, "test.world.json"));
+        ASSERT_TRUE(loaded.Load(DirectoryOtherFiles, "test.world.json"));
         EXPECT_EQ(text(loaded), envelope(entityJson(2)));
         std::filesystem::remove_all(directory);
     }

@@ -77,11 +77,11 @@ public:
     // Will sample the animation at dt, storing the local transform results in localTrans
     bool Sample(float dt, ozz::span<SoaTransform>& localTrans);
 
-    // Hard set the current animation with timeRatio [0,1] (based on the longest clip)
+    // Hard Set the current animation with timeRatio [0,1] (based on the longest clip)
     void SetTimeRatio(float timeRatio);
 
 private:
-    // Sets the various blend parameters based on the Type of blend set
+    // Sets the various blend parameters based on the Type of blend Set
     void UpdateBlendParameters();
 
     // Blend the sampled clips together based on their blend parameters
@@ -106,7 +106,7 @@ public:
     // The buffer of local transforms that will be updated as output when Each clip is sampled
     ozz::span<SoaTransform> clipLocalTrans[MAX_NUM_CLIPS];
 
-    // The blend layers that will be set Each sampling based on Each clip's properties
+    // The blend layers that will be Set Each sampling based on Each clip's properties
     ozz::span<ozz::animation::BlendingJob::Layer> layers;
     ozz::span<ozz::animation::BlendingJob::Layer> additiveLayers;
 
@@ -141,6 +141,6 @@ public:
     float blendRatio = 0.5f;
 
     // Controls if the UpdateBlendParameters() function gets called or not
-    // A value of false implies that all blend parameters will be set externally
+    // A value of false implies that all blend parameters will be Set externally
     bool autoSetBlendParams = true;
 };

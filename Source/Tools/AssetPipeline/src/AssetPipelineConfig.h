@@ -29,7 +29,7 @@
 #include EXTERNAL_ASSET_PIPELINE_CONFIG_FILEPATH
 #elif defined(EXTERNAL_ASSET_PIPELINE_CONFIG_FILEPATH_NO_STRING)
 // When invoking clanng from FastBuild the EXTERNAL_ASSET_PIPELINE_CONFIG_FILEPATH define doesn't Get expanded to a string,
-// quotes are removed, that's why we add this variation of the macro that turns the define back into a valid string
+// quotes are removed, that's why we Add this variation of the macro that turns the define back into a valid string
 #define TF_EXTERNAL_ASSET_PIPELINE_CONFIG_STRINGIFY2(x) #x
 #define TF_EXTERNAL_ASSET_PIPELINE_CONFIG_STRINGIFY(x)  TF_EXTERNAL_ASSET_PIPELINE_CONFIG_STRINGIFY2(x)
 
@@ -39,7 +39,7 @@
 #undef TF_EXTERNAL_ASSET_PIPELINE_CONFIG_STRINGIFY2
 #else
 
-// Define these for the asset pipeline to add the proper defines to implement the functions of these libraries.
+// Define these for the asset pipeline to Add the proper defines to implement the functions of these libraries.
 // Don't define them if the AssetPipeline is linked against some other library that already implements these functions (it would generate
 // linker errors).
 #define ENABLE_ASSET_PIPELINE_CGLTF_WRITE_IMPLEMENTATION

@@ -414,7 +414,7 @@ public:
     void EndRendering();
     void SetPipeline(const GPUPipeline&);
     void SetPipeline(const GPURayTracingPipeline&);
-    void BuildAccelerationStructure(GPUAccelerationStructure&, Span<AccelerationStructureInstance> instances = {}, bool update = false);
+    void BuildAccelerationStructure(GPUAccelerationStructure&, Span<AccelerationStructureInstance> instances = {}, bool Update = false);
     void UpdateAccelerationStructure(GPUAccelerationStructure&);
     void TraceRays(const GPURayTracingPipeline&, uint32_t Width, uint32_t Height, uint32_t Depth = 1, const Dependencies& = {});
     void SetVertexBuffer(uint32_t bindingIndex, const GPUBuffer&, uint64_t offset, uint32_t stride);

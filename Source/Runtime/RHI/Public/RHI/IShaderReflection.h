@@ -62,8 +62,8 @@ struct ShaderResource
     // resource Type
     DescriptorType Type;
 
-    // The resource set for binding frequency
-    uint32_t set;
+    // The resource Set for binding frequency
+    uint32_t Set;
 
     // The resource binding location
     uint32_t reg;

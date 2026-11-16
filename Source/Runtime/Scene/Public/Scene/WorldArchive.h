@@ -32,11 +32,11 @@ public:
 
     // Parsing retains original JSON, including unknown component blobs. Failure preserves this archive.
     bool Parse(Span<char> json);
-    bool load(ResourceDirectory directory, const char* pFileName);
-    bool save(ResourceDirectory directory, const char* pFileName) const;
+    bool Load(ResourceDirectory directory, const char* pFileName);
+    bool Save(ResourceDirectory directory, const char* pFileName) const;
     // Output includes a terminating null. Parsed archives retain their original text exactly.
-    bool serialize(Array<char>& json) const;
-    Guid getID() const;
+    bool Serialize(Array<char>& json) const;
+    Guid GetID() const;
     // Captures persistent entities only; an existing archive ID is retained unless explicitly replaced.
     bool capture(World& world, Guid id = {});
     // Replaces target only after complete validation. Destroy its queries/scopes before calling.

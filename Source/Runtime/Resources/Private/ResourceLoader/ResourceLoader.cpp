@@ -3676,12 +3676,12 @@ struct MaterialDesc
 
     uint8_t* pTextureFlags;
 
-    // These are needed in release because they contain the filenames of the resources
-    // Although we could load them at startup and then use the indexes in pTextureIds to access a global array storing these names
+    // These are needed in Release because they contain the filenames of the resources
+    // Although we could Load them at startup and then use the indexes in pTextureIds to access a global array storing these names
     const char** pTextureNames;
     const char** pShaderNames;
 
-    // These could be kept in shipping builds as we could use them to find Materials from gameplay code.
+    // These could be kept in shipping builds as we could use them to Find Materials from gameplay code.
     const char** pMaterialSetNames;
 
     // Storage for all the strings pointed by this material
@@ -3822,7 +3822,7 @@ static void materialLoadBinaryShader(Renderer* pRenderer, const MaterialDesc* pM
 
             BinaryShaderStageDesc* pBinaryShaderStage = pStageDescriptors[i];
 
-            // Note: If we want to add support for custom entry points for shaders in materials this is the place to do it.
+            // Note: If we want to Add support for custom entry points for shaders in materials this is the place to do it.
             //       We would also need to output these entry names during material compilation.
             pBinaryShaderStage->pEntryPoint = defaultShaderEntryName;
             load_shader_stage_byte_code(pRenderer, pMaterialDesc->pShaderNames[shaderIds[i]], pStages[i], pBinaryShaderStage,
@@ -3976,7 +3976,7 @@ struct CopyResourceSet
     uint64_t   allocatedSpace = 0;
 
     /// Buffers created in case we ran out of space in the original staging buffer
-    /// Will be cleaned up after the fence for this set is complete
+    /// Will be cleaned up after the fence for this Set is complete
     /// stb_ds array of Buffer*
     Buffer** tempBuffers = nullptr;
 
@@ -4777,7 +4777,7 @@ static UploadFunctionResult LoadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                 else
                 {
                     LOGF(Warning,
-                         "Trying to load '%s' image using SRGB profile. "
+                         "Trying to Load '%s' image using SRGB profile. "
                          "But image has '%s' format, which doesn't have SRGB counterpart.",
                          pTextureDesc->pFileName, TinyImageFormat_Name((TinyImageFormat)textureDesc.Format));
                 }
@@ -5021,7 +5021,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         LOGF(Error, "Invalid Geometry header or data sizes in '%s'", pDesc->pFileName);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
     }
-    // Serialized addresses are replaced by allocations owned by this load.
+    // Serialized addresses are replaced by allocations owned by this Load.
     memset(geom->pVertexBuffers, 0, sizeof(geom->pVertexBuffers));
     memset(geom->vertexStrides, 0, sizeof(geom->vertexStrides));
     geom->pIndexBuffer = nullptr;
@@ -5100,7 +5100,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         {
             if (attr->semantic >= SEMANTIC_TEXCOORD0 && attr->semantic <= SEMANTIC_TEXCOORD9)
             {
-                // Make sure there are only 1 set of default texcoords
+                // Make sure there are only 1 Set of default texcoords
                 ASSERT(defaultTexcoordSemantic == SEMANTIC_UNDEFINED);
                 defaultTexcoordSemantic = attr->semantic;
             }
@@ -5323,7 +5323,7 @@ static UploadFunctionResult CopyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
     cmdCopySubresource(cmd, pTextureCopy.pBuffer, pTextureCopy.pTexture, &subresourceDesc);
 
     Barrier = { texture, ResourceStateCopySource, pTextureCopy.textureState };
-    Barrier.release = 1;
+    Barrier.Release = 1;
     Barrier.QueueType = pTextureCopy.QueueType;
     cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
 
@@ -5355,7 +5355,7 @@ static void streamerThreadFunc(void* pThreadData)
                 UnlockMutex(&pLoader->queueMutex);
                 return;
             }
-            // Sleep until someone adds an update request to the queue
+            // Sleep until someone adds an Update Request to the queue
             WaitConditionVariable(&pLoader->queueCond, &pLoader->queueMutex, TIMEOUT_INFINITE);
         }
 
@@ -6192,7 +6192,7 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
     MaterialDesc* pMaterialDesc = pMaterial->pDesc;
 
     // Load all resources
-    // (this step could be delayed in time, by extending the API we could allow the user to only load specific MaterialSets)
+    // (this step could be delayed in time, by extending the API we could allow the user to only Load specific MaterialSets)
 
     ShaderByteCodeBuffer shaderByteCodeBuffer = {};
     char                 bytecodeStack[ShaderByteCodeBuffer::kStackSize] = {};
@@ -6210,7 +6210,7 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
         ASSERT(pMaterialSet->shaderSetIdx < pMaterialDesc->shaderSetCount);
         const MaterialDesc::ShaderSet* pShaderSet = pMaterialDesc->pShaderSets + pMaterialSet->shaderSetIdx;
 
-        // If the shader is not loaded we need to load it
+        // If the shader is not loaded we need to Load it
         const uint32_t shaderIndex = pShaderSet->id;
         ASSERT(shaderIndex < pLib->maxMaterialShaders);
 
@@ -6250,7 +6250,7 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
                 ASSERT(pLib->loadedTextureCount < pLib->maxMaterialTextures && "Seems like we loaded some texture multiple times");
                 pLib->loadedTextureCount++;
 
-                // Texture is not in the cache yet, load it into the cache
+                // Texture is not in the cache yet, Load it into the cache
                 TextureLoadDesc desc = {};
                 desc.pFileName = pMaterialDesc->pTextureNames[pTextureSet->pTextureIdxs[j]];
                 desc.ppTexture = &pLib->ppMaterialTextures[textureIndex];
@@ -6289,7 +6289,7 @@ void removeMaterial(Material* pMaterial)
 
     // We Wait for all material related requests before we unload this material.
     // This is needed in case pMaterial resources are still queued to upload to the GPU.
-    // A better approach might be to store one sync token per request (but that might me a lot of SyncTokens), to be decided in the future
+    // A better approach might be to store one sync token per Request (but that might me a lot of SyncTokens), to be decided in the future
     waitForToken(&pLib->syncToken);
 
     for (uint32_t i = 0; i < pMaterial->pDesc->materialCount; ++i)
@@ -6298,7 +6298,7 @@ void removeMaterial(Material* pMaterial)
         const uint32_t            shaderIndex = pLoadedMaterial->shaderIndex;
         pLoadedMaterial->shaderIndex = INVALID_MATERIAL_ID;
 
-        // Right now we are loading all material resources when we add them.
+        // Right now we are loading all material resources when we Add them.
         ASSERT(shaderIndex < pLib->maxMaterialShaders);
         ASSERT(pLib->ppMaterialShaders[shaderIndex] != NULL);
         ASSERT(pLib->pMaterialShaderRefCount[shaderIndex] > 0);
@@ -6420,7 +6420,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
     {
         LOADER_LOGF(Warning,
                     "addResource : BufferLoadDesc(%s)::Data is non NULL but token is NULL. It is undefined behavior if Data is freed "
-                    "before the buffer load has completed on the ResourceLoader thread. Use waitForAllResourceLoads before freeing Data "
+                    "before the buffer Load has completed on the ResourceLoader thread. Use waitForAllResourceLoads before freeing Data "
                     "when explicit token was not passed",
                     pBufferDesc->desc.Name ? pBufferDesc->desc.Name : "Unnamed");
     }
@@ -6434,8 +6434,8 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
     }
 
     Renderer*  pRenderer = pResourceLoader->pRenderer;
-    const bool update = pBufferDesc->Data || pBufferDesc->forceReset;
-    const bool gpuUpdate = pBufferDesc->desc.MemoryUsage == MemoryUsageGpuOnly && update && !gUma;
+    const bool Update = pBufferDesc->Data || pBufferDesc->forceReset;
+    const bool gpuUpdate = pBufferDesc->desc.MemoryUsage == MemoryUsageGpuOnly && Update && !gUma;
 
     if (gpuUpdate)
     {
@@ -6449,7 +6449,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
     const uint64_t bufferSize = pBufferDesc->desc.Size;
     addBuffer(pRenderer, &pBufferDesc->desc, pBufferDesc->ppBuffer);
 
-    if (update)
+    if (Update)
     {
         BufferLoadDescInternal loadDesc = {};
         loadDesc.forceReset = pBufferDesc->forceReset;
@@ -6491,7 +6491,7 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 #if defined(GFX_DRIVER_MANAGED_VIDEO_MEMORY)
         if (pTextureDesc->forceReset)
         {
-            // If we are going to mem zero using staging buffer set start state to copy dest to avoid one Barrier in the beginning
+            // If we are going to mem zero using staging buffer Set start state to copy dest to avoid one Barrier in the beginning
             textureDesc.StartState = ResourceStateCopyDest;
         }
 #endif
@@ -6606,7 +6606,7 @@ void removeGeometryShadowData(GeometryData* pGeom)
     }
 }
 
-// Interface to add/remove BufferChunkAllocators is currently private but we could expose it in the IResourceLoader interface if needed
+// Interface to Add/Remove BufferChunkAllocators is currently private but we could expose it in the IResourceLoader interface if needed
 struct BufferChunkAllocatorDesc
 {
     Buffer* pBuffer;
@@ -6647,7 +6647,7 @@ static void removeBufferChunkAllocator(BufferChunkAllocator* pBuffer)
         // Note: If we want this behavior we would need extend BufferChunkAllocatorDesc to provide offset and Size that the
         // BufferChunkAllocator would cover,
         //       if Size is 0 we would use the Size of the buffer.
-        //       We would also need to consider if we want to expose the add/removeBufferChunkAllocator interface to the user and let him
+        //       We would also need to consider if we want to expose the Add/removeBufferChunkAllocator interface to the user and let him
         //       allocate the BufferChunkAllocator or we want to include this splitting logic in addGeometryBuffer.
         ASSERT(pBuffer->unusedChunks && (pBuffer->unusedChunks[0].offset == 0) && (pBuffer->unusedChunks[0].Size == pBuffer->Size) &&
                "Expecting just one chunk since the buffer is completely empty");
@@ -6866,10 +6866,10 @@ void removeGeometryBufferPart(BufferChunkAllocator* pBuffer, BufferChunk* pChunk
             break;
 
         auto chunkEnd = chunk->offset + chunk->Size;
-        if (chunkEnd == pChunk->offset) // if pChunk goes after chunk, merge both
+        if (chunkEnd == pChunk->offset) // if pChunk goes after chunk, Merge both
         {
             chunk->Size += pChunk->Size;
-            if (i + 1 < arrlenu(pBuffer->unusedChunks)) // If there's another Empty chunk after pChunk, merge that one too
+            if (i + 1 < arrlenu(pBuffer->unusedChunks)) // If there's another Empty chunk after pChunk, Merge that one too
             {
                 if (partEnd == pBuffer->unusedChunks[i + 1].offset)
                 {
@@ -6880,7 +6880,7 @@ void removeGeometryBufferPart(BufferChunkAllocator* pBuffer, BufferChunk* pChunk
             return;
         }
 
-        if (partEnd == chunk->offset) // If pChunk goes after chunk, merge both
+        if (partEnd == chunk->offset) // If pChunk goes after chunk, Merge both
         {
             chunk->offset = pChunk->offset;
             chunk->Size += pChunk->Size;
@@ -7159,7 +7159,7 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
     FileStream binaryFileStream = {};
 
     // NOTE: On some platforms, we might not be allowed to write in the `DirectoryShaderBinaries` directory.
-    // If we want to load re-compiled binaries, then they must be cached elsewhere and queried here.
+    // If we want to Load re-compiled binaries, then they must be cached elsewhere and queried here.
 
     const bool result = OpenStreamFromPath(DirectoryShaderBinaries, binaryShaderPath, FileModeRead, &binaryFileStream);
     ASSERT(result);
@@ -7420,7 +7420,7 @@ void addShaderSrc(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppS
 }
 
 /************************************************************************/
-// Pipeline cache save, load
+// Pipeline cache Save, Load
 /************************************************************************/
 void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, PipelineCache** ppPipelineCache)
 {
