@@ -62,7 +62,7 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         .Flags = BufferCreationFlagNone,
     };
     {
-        hz::GPUBuffer first = context.createBuffer(bufferDesc);
+        hz::GPUBuffer first = context.CreateBuffer(bufferDesc);
         ASSERT_TRUE(first.IsValid());
         hz::GPUBuffer second((hz::GPUBuffer&&)first);
         EXPECT_FALSE(first.IsValid());
@@ -85,14 +85,14 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
     };
     const MemoryTrackingStats before = GetMemoryTrackingStats();
     {
-        hz::GPUPipeline first = context.createComputePipeline(pipelineDesc);
+        hz::GPUPipeline first = context.CreateComputePipeline(pipelineDesc);
         ASSERT_TRUE(first.IsValid());
         Pipeline* const pPipeline = first.get();
         hz::GPUPipeline second(std::move(first));
         EXPECT_FALSE(first.IsValid());
         EXPECT_EQ(second.get(), pPipeline);
 
-        first = context.createComputePipeline(pipelineDesc);
+        first = context.CreateComputePipeline(pipelineDesc);
         first = std::move(second);
         EXPECT_FALSE(second.IsValid());
         EXPECT_EQ(first.get(), pPipeline);
@@ -101,7 +101,7 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         const char vertexSource[] = "float4 main(uint id : SV_VertexID) : SV_Position { return float4(0, 0, 0, 1); }";
         const char fragmentSource[] = "struct Output { float4 first : SV_Target0; float4 second : SV_Target1; };"
                                       "Output main() { Output result; result.first = 1; result.second = 0.5; return result; }";
-        second = context.createGraphicsPipeline({
+        second = context.CreateGraphicsPipeline({
             .shaderDesc = {
                 .stages = {
                     { .stage = ShaderStageVert, .pSource = vertexSource, .sourceSize = sizeof(vertexSource) - 1 },
@@ -137,7 +137,7 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
         [numthreads(4, 1, 1)]
         void CSMain(uint3 id : SV_DispatchThreadID) { RWStructuredBuffer<uint> Results = ResourceDescriptorHeap[outputIndex]; Results[id.x] = identity<uint>(id.x + 23); }
     )";
-    hz::GPUPipeline pipeline = context.createComputePipeline({
+    hz::GPUPipeline pipeline = context.CreateComputePipeline({
         .shaderDesc = {
             .stages = { { .stage = ShaderStageComp, .pSource = source, .sourceSize = sizeof(source) - 1,
                           .pEntryPoint = "CSMain" } },
@@ -145,7 +145,7 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
         },
     });
     ASSERT_TRUE(pipeline.IsValid());
-    hz::GPUBuffer    output = context.createBuffer({
+    hz::GPUBuffer    output = context.CreateBuffer({
         .Size = 4 * sizeof(uint32_t),
         .ElementCount = 4,
         .StructStride = sizeof(uint32_t),
@@ -153,18 +153,18 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
         .StartState = ResourceStateUnorderedAccess,
         .Descriptors = DescriptorTypeRwBuffer,
     });
-    hz::GPUBuffer    readback = context.createBuffer({
+    hz::GPUBuffer    readback = context.CreateBuffer({
         .Size = 4 * sizeof(uint32_t),
         .usage = MemoryUsageGpuToCpu,
         .StartState = ResourceStateCopyDest,
         .Flags = BufferCreationFlagPersistentMapBit,
     });
-    hz::CommandList& commands = context.acquireCommandList();
-    commands.setPipeline(pipeline);
-    commands.setRootConstant({ output.GetUavIndex() });
-    commands.dispatch(1, 1, 1, { .storageBuffers = { &output } });
-    commands.copyBuffer(readback, 0, output, 0, 4 * sizeof(uint32_t));
-    context.wait(context.submit(commands));
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.SetPipeline(pipeline);
+    commands.SetRootConstant({ output.GetUavIndex() });
+    commands.Dispatch(1, 1, 1, { .storageBuffers = { &output } });
+    commands.CopyBuffer(readback, 0, output, 0, 4 * sizeof(uint32_t));
+    context.Wait(context.Submit(commands));
     const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
     ASSERT_NE(values, nullptr);
     for (uint32_t i = 0; i < 4; ++i)
@@ -185,7 +185,7 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
             return FragmentOnly[0] + Shared[0];
         }
     )";
-    hz::GPUPipeline graphics = context.createGraphicsPipeline({
+    hz::GPUPipeline graphics = context.CreateGraphicsPipeline({
         .shaderDesc = {
             .stages = {
                 { .stage = ShaderStageVert, .pSource = graphicsSource, .sourceSize = sizeof(graphicsSource) - 1,
@@ -210,37 +210,37 @@ TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
     uint32_t          values[16];
     for (uint32_t i = 0; i < 16; ++i)
         values[i] = 100 + i;
-    hz::GPUBuffer staging = context.createBuffer({
+    hz::GPUBuffer staging = context.CreateBuffer({
         .Size = sizeof(values),
         .usage = MemoryUsageCpuToGpu,
         .StartState = ResourceStateGenericRead,
         .Flags = BufferCreationFlagPersistentMapBit,
     });
-    hz::GPUBuffer target = context.createBuffer({
+    hz::GPUBuffer target = context.CreateBuffer({
         .Size = sizeof(values),
         .ElementCount = 16,
         .usage = MemoryUsageGpuOnly,
         .StartState = ResourceStateShaderResource,
         .Descriptors = DescriptorTypeBufferRaw,
     });
-    hz::GPUBuffer readback = context.createBuffer({
+    hz::GPUBuffer readback = context.CreateBuffer({
         .Size = sizeof(values),
         .usage = MemoryUsageGpuToCpu,
         .StartState = ResourceStateCopyDest,
         .Flags = BufferCreationFlagPersistentMapBit,
     });
     ASSERT_TRUE(staging.IsValid() && target.IsValid() && readback.IsValid());
-    ASSERT_TRUE(context.updateBuffer(staging, 0, values, sizeof(values)));
+    ASSERT_TRUE(context.UpdateBuffer(staging, 0, values, sizeof(values)));
 
-    hz::CommandList& commands = context.acquireCommandList();
-    commands.fillBuffer(target, 0, 0, sizeof(values));
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.FillBuffer(target, 0, 0, sizeof(values));
     const hz::BufferCopyRegion regions[] = {
         { .srcOffset = 0, .dstOffset = 8 * sizeof(uint32_t), .Size = 4 * sizeof(uint32_t) },
         { .srcOffset = 12 * sizeof(uint32_t), .dstOffset = 0, .Size = 2 * sizeof(uint32_t) },
     };
-    commands.copyBufferRegions(target, staging, regions);
-    commands.copyBuffer(readback, 0, target, 0, sizeof(values));
-    context.wait(context.submit(commands));
+    commands.CopyBufferRegions(target, staging, regions);
+    commands.CopyBuffer(readback, 0, target, 0, sizeof(values));
+    context.Wait(context.Submit(commands));
     const uint32_t* result = (const uint32_t*)readback.get()->pCpuMappedAddress;
     ASSERT_NE(result, nullptr);
     for (uint32_t i = 0; i < 16; ++i)
@@ -257,22 +257,22 @@ TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
         .StartState = ResourceStateShaderResource,
         .Descriptors = DescriptorTypeBufferRaw,
     };
-    hz::GPUBuffer released = context.createBuffer(rawDesc);
+    hz::GPUBuffer released = context.CreateBuffer(rawDesc);
     ASSERT_TRUE(released.IsValid());
     const uint32_t   releasedIndex = released.GetSrvIndex();
-    hz::CommandList& pending = context.acquireCommandList();
-    pending.copyBufferRegions(released, staging, regions);
+    hz::CommandList& pending = context.AcquireCommandList();
+    pending.CopyBufferRegions(released, staging, regions);
     context.DeferRelease(std::move(released));
     EXPECT_FALSE(released.IsValid());
     // The open command list still references the buffer, so idling the queue must not release it.
     context.WaitIdle();
     {
-        const hz::GPUBuffer probe = context.createBuffer(rawDesc);
+        const hz::GPUBuffer probe = context.CreateBuffer(rawDesc);
         EXPECT_NE(probe.GetSrvIndex(), releasedIndex);
     }
-    context.wait(context.submit(pending));
-    context.submit(context.acquireCommandList());
-    const hz::GPUBuffer reused = context.createBuffer(rawDesc);
+    context.Wait(context.Submit(pending));
+    context.Submit(context.AcquireCommandList());
+    const hz::GPUBuffer reused = context.CreateBuffer(rawDesc);
     EXPECT_EQ(reused.GetSrvIndex(), releasedIndex);
     context.WaitIdle();
 #else
@@ -308,12 +308,12 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
             output[id.x] = uint4(round(source.SampleLevel(surface, float2(0.5, 0.5), 1) * 255)) * config.multiplier + raw.Load(0);
         }
     )";
-    hz::GPUPipeline   write = context.createComputePipeline(
+    hz::GPUPipeline   write = context.CreateComputePipeline(
         { .shaderDesc = {
               .stages = { { .stage = ShaderStageComp, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Write" } },
               .language = hz::ShaderLanguage::Slang,
           } });
-    hz::GPUPipeline read = context.createComputePipeline(
+    hz::GPUPipeline read = context.CreateComputePipeline(
         { .shaderDesc = {
               .stages = { { .stage = ShaderStageComp, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Read" } },
               .language = hz::ShaderLanguage::Slang,
@@ -327,11 +327,11 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
         .StartState = ResourceStateUnorderedAccess,
         .Descriptors = DescriptorTypeTexture | DescriptorTypeRwTexture,
     };
-    hz::GPUTexture textures[] = { context.createTexture(textureDesc), context.createTexture(textureDesc) };
-    hz::GPUSampler sampler = context.createSampler({ .MinFilter = FILTER_NEAREST, .MagFilter = FILTER_NEAREST });
+    hz::GPUTexture textures[] = { context.CreateTexture(textureDesc), context.CreateTexture(textureDesc) };
+    hz::GPUSampler sampler = context.CreateSampler({ .MinFilter = FILTER_NEAREST, .MagFilter = FILTER_NEAREST });
     const uint32_t configData[64] = { 2 };
     const uint32_t bias = 3;
-    hz::GPUBuffer  config = context.createBuffer({
+    hz::GPUBuffer  config = context.CreateBuffer({
         .Size = 256,
         .ElementCount = 64,
         .StructStride = 4,
@@ -341,7 +341,7 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
         .StartState = ResourceStateVertexAndConstantBuffer,
         .Descriptors = DescriptorTypeUniformBuffer | DescriptorTypeRwBuffer,
     });
-    hz::GPUBuffer  raw = context.createBuffer({
+    hz::GPUBuffer  raw = context.CreateBuffer({
         .Size = 4,
         .ElementCount = 1,
         .pInitialData = &bias,
@@ -350,7 +350,7 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
         .StartState = ResourceStateShaderResource,
         .Descriptors = DescriptorTypeBufferRaw,
     });
-    hz::GPUBuffer  output = context.createBuffer({
+    hz::GPUBuffer  output = context.CreateBuffer({
         .Size = 32,
         .ElementCount = 2,
         .StructStride = 16,
@@ -358,7 +358,7 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
         .StartState = ResourceStateUnorderedAccess,
         .Descriptors = DescriptorTypeRwBuffer,
     });
-    hz::GPUBuffer  readback = context.createBuffer({
+    hz::GPUBuffer  readback = context.CreateBuffer({
         .Size = 32,
         .usage = MemoryUsageGpuToCpu,
         .StartState = ResourceStateCopyDest,
@@ -369,18 +369,18 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
     const uint32_t   indices[] = { textures[0].GetUavIndex(1), textures[1].GetUavIndex(1), textures[0].GetSrvIndex(),
                                    textures[1].GetSrvIndex(),  sampler.GetIndex(),         output.GetUavIndex(),
                                    config.GetCbvIndex(),       raw.GetSrvIndex() };
-    hz::CommandList& commands = context.acquireCommandList();
-    commands.setPipeline(write);
-    commands.setRootConstant({ indices, 4 });
-    commands.setRootConstant({ indices + 4, 4 }, 4);
-    commands.dispatch(1, 1, 1, { .storageTextures = { &textures[0], &textures[1] } });
-    commands.setPipeline(read);
-    commands.setRootConstant({ indices, 4 });
-    commands.setRootConstant({ indices + 4, 4 }, 4);
-    commands.dispatch(1, 1, 1,
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.SetPipeline(write);
+    commands.SetRootConstant({ indices, 4 });
+    commands.SetRootConstant({ indices + 4, 4 }, 4);
+    commands.Dispatch(1, 1, 1, { .storageTextures = { &textures[0], &textures[1] } });
+    commands.SetPipeline(read);
+    commands.SetRootConstant({ indices, 4 });
+    commands.SetRootConstant({ indices + 4, 4 }, 4);
+    commands.Dispatch(1, 1, 1,
                       { .sampledTextures = { &textures[0], &textures[1] }, .buffers = { &config, &raw }, .storageBuffers = { &output } });
-    commands.copyBuffer(readback, 0, output, 0, 32);
-    context.wait(context.submit(commands));
+    commands.CopyBuffer(readback, 0, output, 0, 32);
+    context.Wait(context.Submit(commands));
     const uint32_t  expected[] = { 513, 3, 3, 513, 3, 513, 3, 513 };
     const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(expected); ++i)
@@ -390,7 +390,7 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
     EXPECT_FALSE(textures[0].IsValid());
     EXPECT_EQ(moved.GetSrvIndex(), indices[2]);
     moved = {};
-    textures[0] = context.createTexture(textureDesc);
+    textures[0] = context.CreateTexture(textureDesc);
     EXPECT_EQ(textures[0].GetSrvIndex(), indices[2]);
     EXPECT_EQ(textures[1].GetSrvIndex(), indices[3]);
 #else
@@ -427,13 +427,13 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
     const uint32_t sizes[][2] = { { 900, 600 }, { 1400, 800 }, { 640, 480 }, { 1280, 720 } };
     for (const auto& Size : sizes)
     {
-        ASSERT_TRUE(context.resize(Size[0], Size[1]));
-        hz::CommandList&       prepare = context.acquireCommandList();
-        const hz::SubmitHandle prepareSubmit = context.submit(prepare);
+        ASSERT_TRUE(context.Resize(Size[0], Size[1]));
+        hz::CommandList&       prepare = context.AcquireCommandList();
+        const hz::SubmitHandle prepareSubmit = context.Submit(prepare);
 
-        hz::CommandList&      commands = context.acquireCommandList();
-        const hz::GPUTexture& backbuffer = context.getCurrentBackbuffer();
-        commands.beginRendering({
+        hz::CommandList&      commands = context.AcquireCommandList();
+        const hz::GPUTexture& backbuffer = context.GetCurrentBackbuffer();
+        commands.BeginRendering({
             .colorAttachments = { {
                 .pTexture = &backbuffer,
                 .loadAction = LoadActionClear,
@@ -441,11 +441,11 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
                 .ClearValue = { .r = 0.0f, .g = 0.0f, .b = 0.0f, .a = 1.0f },
             } },
         });
-        commands.endRendering();
-        const hz::SubmitHandle presentSubmit = context.submit(commands, &backbuffer);
+        commands.EndRendering();
+        const hz::SubmitHandle presentSubmit = context.Submit(commands, &backbuffer);
         EXPECT_TRUE(prepareSubmit.IsValid());
         EXPECT_TRUE(presentSubmit.IsValid());
-        context.wait(presentSubmit);
+        context.Wait(presentSubmit);
     }
 
     ClosePlatformWindow(&window);
@@ -460,7 +460,7 @@ TEST(DependencyListTest, SkipsOptionalResourcesAndReportsIndices)
     hz::GPUTexture     texture;
     hz::GPUBuffer      buffer;
     hz::DependencyList dependencies;
-    // Null and uninitialized handles are optional: they report the invalid index and add no barrier.
+    // Null and uninitialized handles are optional: they report the invalid index and add no Barrier.
     EXPECT_EQ(dependencies.sample(nullptr), UINT32_MAX);
     EXPECT_EQ(dependencies.sample(&texture), UINT32_MAX);
     EXPECT_EQ(dependencies.store(nullptr), UINT32_MAX);

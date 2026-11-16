@@ -414,9 +414,9 @@ public:
             {
                 vertexStreams.PushBack({ .srv = mesh.getVertexBuffer(stream).GetSrvIndex(), .stride = mesh.getVertexStride(stream) });
             }
-            for (uint32_t draw = 0; draw < mesh.getDescription().submeshes.Count; ++draw)
+            for (uint32_t Draw = 0; Draw < mesh.getDescription().submeshes.Count; ++Draw)
             {
-                const IndirectDrawIndexArguments& args = mesh.getDraw(draw);
+                const IndirectDrawIndexArguments& args = mesh.getDraw(Draw);
                 submeshes.PushBack({ .indexCount = args.indexCount, .firstIndex = args.startIndex,
                                      .vertexOffset = (int32_t)args.vertexOffset });
             }
@@ -456,9 +456,9 @@ public:
 
     void encodeTables()
     {
-        meshes.resize(assets.Size());
-        materials.resize(assets.Size());
-        textures.resize(assets.Size());
+        meshes.Resize(assets.Size());
+        materials.Resize(assets.Size());
+        textures.Resize(assets.Size());
         if (tableGarbage > kTableGarbageLimit)
         {
             vertexStreams.Clear();
@@ -564,7 +564,7 @@ void AssetManager::update()
         if (data.update(data.assets[data.pending[i]]))
             data.pending[kept++] = data.pending[i];
     }
-    data.pending.resize(kept);
+    data.pending.Resize(kept);
     data.retire();
 }
 

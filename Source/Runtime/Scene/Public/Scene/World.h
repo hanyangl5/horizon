@@ -84,7 +84,7 @@ public:
 
     bool        addComponent(Entity entity, TypeID Type);
     bool        removeComponent(Entity entity, TypeID Type);
-    // Copies the value. During defer, existing components update immediately; new components wait for commit.
+    // Copies the value. During defer, existing components update immediately; new components Wait for commit.
     bool        setComponent(Entity entity, TypeID Type, const void* pValue);
     // Read-only storage view. References expire on structural changes; owning values can change on setComponent.
     const void* getComponent(Entity entity, TypeID Type) const;

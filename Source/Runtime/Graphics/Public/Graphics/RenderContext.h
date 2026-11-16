@@ -320,7 +320,7 @@ struct Dependencies
 };
 
 // Collects the resources a command touches while handing out their descriptor indices, so binding a
-// resource and declaring its barrier cannot drift apart. Fixed Capacity, no allocation.
+// resource and declaring its Barrier cannot drift apart. Fixed Capacity, no allocation.
 class DependencyList
 {
 public:
@@ -410,62 +410,62 @@ class CommandList
 public:
     ~CommandList();
 
-    void beginRendering(const RenderPassDesc&, const Dependencies& = {});
-    void endRendering();
-    void setPipeline(const GPUPipeline&);
-    void setPipeline(const GPURayTracingPipeline&);
-    void buildAccelerationStructure(GPUAccelerationStructure&, Span<AccelerationStructureInstance> instances = {}, bool update = false);
-    void updateAccelerationStructure(GPUAccelerationStructure&);
-    void traceRays(const GPURayTracingPipeline&, uint32_t Width, uint32_t Height, uint32_t Depth = 1, const Dependencies& = {});
-    void setVertexBuffer(uint32_t bindingIndex, const GPUBuffer&, uint64_t offset, uint32_t stride);
-    void setIndexBuffer(const GPUBuffer&, uint64_t offset, IndexType);
-    void setViewport(float x, float y, float Width, float Height, float minDepth = 0.0f, float maxDepth = 1.0f);
-    void setScissor(uint32_t x, uint32_t y, uint32_t Width, uint32_t Height);
-    void setRootConstant(Span<const uint32_t> values, uint32_t offsetIn32BitValues = 0);
+    void BeginRendering(const RenderPassDesc&, const Dependencies& = {});
+    void EndRendering();
+    void SetPipeline(const GPUPipeline&);
+    void SetPipeline(const GPURayTracingPipeline&);
+    void BuildAccelerationStructure(GPUAccelerationStructure&, Span<AccelerationStructureInstance> instances = {}, bool update = false);
+    void UpdateAccelerationStructure(GPUAccelerationStructure&);
+    void TraceRays(const GPURayTracingPipeline&, uint32_t Width, uint32_t Height, uint32_t Depth = 1, const Dependencies& = {});
+    void SetVertexBuffer(uint32_t bindingIndex, const GPUBuffer&, uint64_t offset, uint32_t stride);
+    void SetIndexBuffer(const GPUBuffer&, uint64_t offset, IndexType);
+    void SetViewport(float x, float y, float Width, float Height, float minDepth = 0.0f, float maxDepth = 1.0f);
+    void SetScissor(uint32_t x, uint32_t y, uint32_t Width, uint32_t Height);
+    void SetRootConstant(Span<const uint32_t> values, uint32_t offsetIn32BitValues = 0);
     // Typed block form. T must mirror the shader constant block field for field, in declaration order.
     template<typename T>
-    void setRootConstants(const T& values, uint32_t offsetIn32BitValues = 0)
+    void SetRootConstants(const T& values, uint32_t offsetIn32BitValues = 0)
     {
         static_assert(sizeof(T) % sizeof(uint32_t) == 0, "Root constants are uploaded as 32-bit words");
-        setRootConstant({ (const uint32_t*)&values, (uint32_t)(sizeof(T) / sizeof(uint32_t)) }, offsetIn32BitValues);
+        SetRootConstant({ (const uint32_t*)&values, (uint32_t)(sizeof(T) / sizeof(uint32_t)) }, offsetIn32BitValues);
     }
 
-    void draw(uint32_t vertexCount, uint32_t firstVertex = 0);
-    void drawIndexed(uint32_t indexCount, uint32_t firstIndex = 0, uint32_t firstVertex = 0);
-    void drawIndirect(const GPUBuffer& buffer, uint64_t offset, uint32_t drawCount);
-    void drawIndexedIndirect(const GPUBuffer& buffer, uint64_t offset, uint32_t drawCount);
-    void dispatch(uint32_t groupCountX, uint32_t groupCountY = 1, uint32_t groupCountZ = 1, const Dependencies& = {});
-    void dispatchIndirect(const GPUBuffer& buffer, uint64_t offset, const Dependencies& = {});
+    void Draw(uint32_t vertexCount, uint32_t firstVertex = 0);
+    void DrawIndexed(uint32_t indexCount, uint32_t firstIndex = 0, uint32_t firstVertex = 0);
+    void DrawIndirect(const GPUBuffer& buffer, uint64_t offset, uint32_t drawCount);
+    void DrawIndexedIndirect(const GPUBuffer& buffer, uint64_t offset, uint32_t drawCount);
+    void Dispatch(uint32_t groupCountX, uint32_t groupCountY = 1, uint32_t groupCountZ = 1, const Dependencies& = {});
+    void DispatchIndirect(const GPUBuffer& buffer, uint64_t offset, const Dependencies& = {});
 
-    void beginGpuTimestamp(const char* name);
-    void endGpuTimestamp();
+    void BeginGpuTimestamp(const char* name);
+    void EndGpuTimestamp();
 
-    void copyBuffer(const GPUBuffer& dst, uint64_t dstOffset, const GPUBuffer& src, uint64_t srcOffset, uint64_t Size);
+    void CopyBuffer(const GPUBuffer& dst, uint64_t dstOffset, const GPUBuffer& src, uint64_t srcOffset, uint64_t Size);
     // Transitions both buffers once for all regions.
-    void copyBufferRegions(const GPUBuffer& dst, const GPUBuffer& src, Span<BufferCopyRegion> regions);
-    void fillBuffer(const GPUBuffer& dst, uint64_t dstOffset, uint32_t value, uint64_t Size);
-    void updateBuffer(const GPUBuffer& dst, uint64_t dstOffset, const void* Data, uint64_t Size);
+    void CopyBufferRegions(const GPUBuffer& dst, const GPUBuffer& src, Span<BufferCopyRegion> regions);
+    void FillBuffer(const GPUBuffer& dst, uint64_t dstOffset, uint32_t value, uint64_t Size);
+    void UpdateBuffer(const GPUBuffer& dst, uint64_t dstOffset, const void* Data, uint64_t Size);
 
-    void copyTexture(const GPUTexture& dst, const GPUTexture& src);
+    void CopyTexture(const GPUTexture& dst, const GPUTexture& src);
 
-    void pushDebugGroupLabel(const char* label, uint32_t colorRGBA) const;
-    void insertDebugEventLabel(const char* label, uint32_t colorRGBA) const;
-    void popDebugGroupLabel() const;
+    void PushDebugGroupLabel(const char* label, uint32_t colorRGBA) const;
+    void InsertDebugEventLabel(const char* label, uint32_t colorRGBA) const;
+    void PopDebugGroupLabel() const;
 
 private:
     CommandList() = default;
     CommandList(const CommandList&) = delete;
     CommandList& operator=(const CommandList&) = delete;
-    void         reset(Cmd*, uint64_t gpuProfilerToken);
+    void         Reset(Cmd*, uint64_t gpuProfilerToken);
     void         Clear();
-    void         beginGpuFrameProfile();
-    void         endGpuFrameProfile();
-    void         addBufferBarriers(Span<const GPUBuffer*> buffers, bool storage);
-    void         addIndirectBarriers(Span<const GPUBuffer*> buffers);
-    Buffer*      createUploadBuffer(uint64_t Size);
-    void         barrier(uint32_t bufferCount, BufferBarrier*, uint32_t textureCount, TextureBarrier*, uint32_t renderTargetCount,
+    void         BeginGpuFrameProfile();
+    void         EndGpuFrameProfile();
+    void         AddBufferBarriers(Span<const GPUBuffer*> buffers, bool storage);
+    void         AddIndirectBarriers(Span<const GPUBuffer*> buffers);
+    Buffer*      CreateUploadBuffer(uint64_t Size);
+    void         Barrier(uint32_t bufferCount, BufferBarrier*, uint32_t textureCount, TextureBarrier*, uint32_t renderTargetCount,
                          RenderTargetBarrier*);
-    void         barrier(const Dependencies&, const GPUBuffer* pIndirectBuffer);
+    void         Barrier(const Dependencies&, const GPUBuffer* pIndirectBuffer);
 
     Cmd*                 pCmd = nullptr;
     RenderContext*       pContext = nullptr;
@@ -503,40 +503,40 @@ public:
     // Persists the driver-owned pipeline cache; call once the startup pipelines exist.
     void SavePipelineCache();
 
-    bool                  resize(uint32_t Width, uint32_t Height);
-    bool                  setVSync(bool enabled);
-    CommandList&          acquireCommandList();
-    SubmitHandle          submit(CommandList&, const GPUTexture* pPresent = nullptr);
-    void                  wait(SubmitHandle);
+    bool                  Resize(uint32_t Width, uint32_t Height);
+    bool                  SetVSync(bool enabled);
+    CommandList&          AcquireCommandList();
+    SubmitHandle          Submit(CommandList&, const GPUTexture* pPresent = nullptr);
+    void                  Wait(SubmitHandle);
     bool                  IsComplete(SubmitHandle) const;
     uint32_t              GetWidth() const;
     uint32_t              GetHeight() const;
-    hz::Format            getColorFormat() const;
+    hz::Format            GetColorFormat() const;
     bool                  IsHDREnabled() const;
-    OutputMode            getOutputMode() const;
-    const HDRDisplayInfo& getHDRDisplayInfo() const;
-    const HDRMetadata&    getHDRMetadata() const;
-    const GPUTexture&     getCurrentBackbuffer();
+    OutputMode            GetOutputMode() const;
+    const HDRDisplayInfo& GetHDRDisplayInfo() const;
+    const HDRMetadata&    GetHDRMetadata() const;
+    const GPUTexture&     GetCurrentBackbuffer();
     bool                  IsSuspended() const;
 
     bool                     SupportsRayTracing() const;
-    GPUAccelerationStructure createAccelerationStructure(const AccelerationStructureDesc&);
-    GPURayTracingPipeline    createRayTracingPipeline(const RayTracingPipelineDesc&);
-    GPUBuffer   createBuffer(const BufferDesc&);
-    GPUTexture  createTexture(const TextureDesc&);
+    GPUAccelerationStructure CreateAccelerationStructure(const AccelerationStructureDesc&);
+    GPURayTracingPipeline    CreateRayTracingPipeline(const RayTracingPipelineDesc&);
+    GPUBuffer   CreateBuffer(const BufferDesc&);
+    GPUTexture  CreateTexture(const TextureDesc&);
     // Pooled per-frame target, or null when every matching slot is still in use. The pool keeps the
-    // Handle alive between frames, so its resource state survives; releaseTransient parks it again.
-    GPUTexture* acquireTransient(const TextureDesc&);
-    void        releaseTransient(GPUTexture* pTexture);
+    // Handle alive between frames, so its resource state survives; ReleaseTransient parks it again.
+    GPUTexture* AcquireTransient(const TextureDesc&);
+    void        ReleaseTransient(GPUTexture* pTexture);
     // Destroys parked targets, for example when the render Size changes and their Descriptors no longer
     // match. Call after waiting for the GPU; targets still in use are kept.
-    void        purgeTransients();
-    GPUTexture               loadTexture(ResourceDirectory, const char* pFileName, TextureCreationFlags = TextureCreationFlagNone);
-    GPUSampler  createSampler(const SamplerDesc& = {});
-    GPUPipeline createGraphicsPipeline(const GraphicsPipelineDesc&);
-    GPUPipeline createComputePipeline(const ComputePipelineDesc&);
+    void        PurgeTransients();
+    GPUTexture               LoadTexture(ResourceDirectory, const char* pFileName, TextureCreationFlags = TextureCreationFlagNone);
+    GPUSampler  CreateSampler(const SamplerDesc& = {});
+    GPUPipeline CreateGraphicsPipeline(const GraphicsPipelineDesc&);
+    GPUPipeline CreateComputePipeline(const ComputePipelineDesc&);
     bool        getGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
-    bool        updateBuffer(const GPUBuffer&, uint64_t offset, const void* Data, uint64_t Size);
+    bool        UpdateBuffer(const GPUBuffer&, uint64_t offset, const void* Data, uint64_t Size);
     // Destroys the buffer once the open command list and all earlier submissions complete.
     void                     DeferRelease(GPUBuffer&& buffer);
     // Identifies the open command list, or the latest submission when none is open.

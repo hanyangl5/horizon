@@ -54,31 +54,31 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
         return;
     }
     RayScene = hz::MakeUnique<RayTracingScene>(Context);
-    Sampler = Context.createSampler(
+    Sampler = Context.CreateSampler(
         { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .AddressW = AddressModeClampToEdge });
-    MaterialSampler = Context.createSampler();
-    ShadowPipeline = Context.createComputePipeline({
+    MaterialSampler = Context.CreateSampler();
+    ShadowPipeline = Context.CreateComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "RTShadowAO.slang" },
         .Name = "Renderer.RT.ShadowAO",
     });
-    TemporalPipeline = Context.createComputePipeline({
+    TemporalPipeline = Context.CreateComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } },
                         .pFileName = "rt_denoise_temporal.comp.slang" },
         .Name = "Renderer.RT.Temporal",
     });
-    SpatialPipeline = Context.createComputePipeline({
+    SpatialPipeline = Context.CreateComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_spatial.comp.slang" },
         .Name = "Renderer.RT.Spatial",
     });
-    AtrousPipeline = Context.createComputePipeline({
+    AtrousPipeline = Context.CreateComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_atrous.comp.slang" },
         .Name = "Renderer.RT.Atrous",
     });
-    DepthCopyPipeline = Context.createComputePipeline({
+    DepthCopyPipeline = Context.CreateComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSCopyDepth" } }, .pFileName = "RTDenoise.slang" },
         .Name = "Renderer.RT.DepthHistory",
     });
-    ReflectionPipeline = Context.createRayTracingPipeline({
+    ReflectionPipeline = Context.CreateRayTracingPipeline({
         .pFileName = "RTReflection.slang",
         .pRayGeneration = "rayGenMain",
         .missShaders = { "missMain" },
@@ -110,23 +110,23 @@ void RayTracedEffects::Resize(uint32_t Width, uint32_t Height)
                                   .Descriptors = Views,
                                   .Flags = TextureCreationFlagForce2D,
                                   .Name = "Renderer.RT.ShadowAO" };
-    Result = Context.createTexture(Desc);
+    Result = Context.CreateTexture(Desc);
     Desc.Name = "Renderer.RT.DenoiseScratch";
-    Scratch = Context.createTexture(Desc);
+    Scratch = Context.CreateTexture(Desc);
     Desc.Name = "Renderer.RT.History";
     for (hz::GPUTexture& Texture : History)
     {
-        Texture = Context.createTexture(Desc);
+        Texture = Context.CreateTexture(Desc);
     }
     Desc.Format = hz::Format::R32_SFLOAT;
     Desc.Name = "Renderer.RT.PreviousDepth";
-    PreviousDepth = Context.createTexture(Desc);
+    PreviousDepth = Context.CreateTexture(Desc);
     Desc.Format = hz::Format::R32G32B32A32_SFLOAT;
     Desc.Name = "Renderer.RT.Reflection";
-    Reflection = Context.createTexture(Desc);
+    Reflection = Context.CreateTexture(Desc);
     if (!BlueNoise.IsValid())
     {
-        BlueNoise = Context.loadTexture(DirectoryShaderSources, "../Assets/blue_noise_128x128x64.dds");
+        BlueNoise = Context.LoadTexture(DirectoryShaderSources, "../Assets/blue_noise_128x128x64.dds");
     }
     HistoryIndex = 0;
     MarkDirty();
@@ -155,9 +155,9 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         MarkDirty();
     }
     AssetRevision = View.GpuScene.getAssetTables().revision;
-    Commands.beginGpuTimestamp("RT Acceleration Structures");
+    Commands.BeginGpuTimestamp("RT Acceleration Structures");
     RayScene->Update(Commands, View, Draws);
-    Commands.endGpuTimestamp();
+    Commands.EndGpuTimestamp();
     const hz::GPUAccelerationStructure& TLAS = RayScene->GetSceneTLAS();
     const hz::GPUBuffer&                DrawData = Draws.GetDrawData(View.FrameIndex);
     auto        Index = [](const hz::GPUTexture* Texture) { return Texture && Texture->IsValid() ? Texture->GetSrvIndex() : UINT32_MAX; };
@@ -188,18 +188,18 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
                                 .shadowRadius = Settings.ShadowRadius,
     };
     const hz::Dependencies SceneDependencies = Draws.GetDependencies(Frame, View);
-    Commands.beginGpuTimestamp("RT Shadow AO");
-    Commands.setPipeline(ShadowPipeline);
-    Commands.setRootConstants(Constants);
-    Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
+    Commands.BeginGpuTimestamp("RT Shadow AO");
+    Commands.SetPipeline(ShadowPipeline);
+    Commands.SetRootConstants(Constants);
+    Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
                       { .sampledTextures = { GBuffer.NormalMaterial, GBuffer.Depth, &BlueNoise },
                         .storageTextures = { &Result },
                         .buffers = { Lighting.LightingFrame },
 
                         .pShared = &SceneDependencies });
-    Commands.endGpuTimestamp();
+    Commands.EndGpuTimestamp();
 
-    Commands.beginGpuTimestamp("RT Denoise");
+    Commands.BeginGpuTimestamp("RT Denoise");
     const uint32_t     Current = HistoryIndex;
     const uint32_t     Previous = 1 - Current;
     RTDenoiseConstants Denoise = {
@@ -214,9 +214,9 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         .alpha = Settings.TemporalAlpha,
         .depthThreshold = Settings.TemporalDepthThreshold,
     };
-    Commands.setPipeline(TemporalPipeline);
-    Commands.setRootConstants(Denoise);
-    Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
+    Commands.SetPipeline(TemporalPipeline);
+    Commands.SetRootConstants(Denoise);
+    Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
                       { .sampledTextures = { &Result, &History[Previous], GBuffer.Depth, &PreviousDepth },
                         .storageTextures = { &History[Current] },
                         .buffers = { &Frame } });
@@ -230,34 +230,34 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         Denoise.output = Output.GetUavIndex();
         Denoise.horizontal = Pass == 0;
         Denoise.step = Pass + 1;
-        Commands.setPipeline(Atrous ? AtrousPipeline : SpatialPipeline);
-        Commands.setRootConstants(Denoise);
-        Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
+        Commands.SetPipeline(Atrous ? AtrousPipeline : SpatialPipeline);
+        Commands.SetRootConstants(Denoise);
+        Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
                           { .sampledTextures = { &Input, GBuffer.Depth }, .storageTextures = { &Output } });
     }
     Denoise.output = PreviousDepth.GetUavIndex();
-    Commands.setPipeline(DepthCopyPipeline);
-    Commands.setRootConstants(Denoise);
-    Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
+    Commands.SetPipeline(DepthCopyPipeline);
+    Commands.SetRootConstants(Denoise);
+    Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
                       { .sampledTextures = { GBuffer.Depth }, .storageTextures = { &PreviousDepth } });
     HistoryIndex = Previous;
     MarkedDirty = false;
-    Commands.endGpuTimestamp();
+    Commands.EndGpuTimestamp();
 
-    Commands.beginGpuTimestamp("RT Reflection");
+    Commands.BeginGpuTimestamp("RT Reflection");
     Constants.output = Reflection.GetUavIndex();
     if (!Settings.Reflection)
     {
         Constants.tlas = UINT32_MAX;
     }
-    Commands.setPipeline(ReflectionPipeline);
-    Commands.setRootConstants(Constants);
-    Commands.traceRays(ReflectionPipeline, Width, Height, 1,
+    Commands.SetPipeline(ReflectionPipeline);
+    Commands.SetRootConstants(Constants);
+    Commands.TraceRays(ReflectionPipeline, Width, Height, 1,
                        { .sampledTextures = { GBuffer.NormalMaterial, GBuffer.Depth, &BlueNoise, Lighting.Environment,
                                               Lighting.Irradiance, Lighting.BRDFLut },
                          .storageTextures = { &Reflection },
                          .buffers = { Lighting.LightingFrame },
 
                          .pShared = &SceneDependencies });
-    Commands.endGpuTimestamp();
+    Commands.EndGpuTimestamp();
 }

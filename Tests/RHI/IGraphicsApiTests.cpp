@@ -1384,7 +1384,7 @@ bool createComputeCommandSetup(LiveRendererHarness& harness, DeferredCleanup& Cl
     addBuffer(harness.pRenderer, &indirectBufferDesc, &pOut->pIndirectBuffer);
     if (!pOut->pIndirectBuffer)
     {
-        ADD_FAILURE() << "addBuffer returned null for indirect dispatch";
+        ADD_FAILURE() << "addBuffer returned null for indirect Dispatch";
         return false;
     }
     Buffer* pIndirectBuffer = pOut->pIndirectBuffer;
@@ -1567,7 +1567,7 @@ TEST_F(RHIIGraphicsApiTest, RendererApisCreateLiveContextAndRenderer)
     EXPECT_EQ(harness.pRenderer->rendererApi, RENDERER_API_D3D12);
 }
 
-// Verifies that queue, fence, semaphore, command-pool, and command-buffer APIs submit work and transition fence state as expected.
+// Verifies that queue, fence, semaphore, command-pool, and command-buffer APIs Submit work and transition fence state as expected.
 TEST_F(RHIIGraphicsApiTest, QueueAndSyncApisSubmitAndSignalCorrectly)
 {
     LiveRendererHarness harness;

@@ -29,7 +29,7 @@
 
 /*
 
-// when we are in windowed mode and the user wants to resize the window with the mouse
+// when we are in windowed mode and the user wants to Resize the window with the mouse
 void onResize(RectDesc rect);
 
 // this pair of functions initializes and exits once during start-up and shut-down of the application
@@ -60,7 +60,7 @@ void exitInput();
 // this is input / math update -> everything CPU only ... no Graphics API calls
 void update(float deltaTime);
 
-// only Graphics API draw calls and command buffer generation
+// only Graphics API Draw calls and command buffer generation
 void drawFrame(float deltaTime);
 */
 
@@ -111,7 +111,7 @@ public:
         bool    Fullscreen = false;
         /// Set to true if app wants to use an external window
         bool    externalWindow = false;
-        /// Drag to resize enabled
+        /// Drag to Resize enabled
         bool    dragToResize = true;
         /// Border less window
         bool    Borderless = false;

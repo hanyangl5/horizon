@@ -481,7 +481,7 @@ protected:
         std::filesystem::remove_all(directory);
         AssetManagerTest::TearDown();
     }
-    static void wait(hz::AssetManager& assetManager, hz::AssetHandle Handle)
+    static void Wait(hz::AssetManager& assetManager, hz::AssetHandle Handle)
     {
         for (uint32_t i = 0; i < 5000; ++i)
         {
@@ -515,7 +515,7 @@ TEST_F(SceneAssetLoaderTest, DecodesSceneAsynchronouslyAndPublishesTypedPayload)
     assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
     const hz::AssetHandle Handle = assetManager.request(scene.getID());
     EXPECT_EQ(assetManager.getScene(Handle), nullptr);
-    wait(assetManager, Handle);
+    Wait(assetManager, Handle);
     ASSERT_EQ(assetManager.getState(Handle), hz::AssetState::Ready);
     ASSERT_NE(assetManager.getScene(Handle), nullptr);
     EXPECT_EQ(assetManager.getScene(Handle)->getID(), scene.getID());
@@ -534,8 +534,8 @@ TEST_F(SceneAssetLoaderTest, RejectsMissingFileAndMismatchedIdentityAndDrainsOnS
     assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
     const hz::AssetHandle missing = assetManager.request(assetID(1));
     const hz::AssetHandle mismatched = assetManager.request(assetID(2));
-    wait(assetManager, missing);
-    wait(assetManager, mismatched);
+    Wait(assetManager, missing);
+    Wait(assetManager, mismatched);
     EXPECT_EQ(assetManager.getError(missing), hz::AssetError::LoadFailed);
     EXPECT_EQ(assetManager.getError(mismatched), hz::AssetError::LoadFailed);
     assetManager.release(mismatched);
@@ -565,7 +565,7 @@ TEST_F(SceneAssetLoaderTest, RejectsPayloadWithDifferentDependenciesFromCatalog)
     assetManager.setLoader(hz::AssetType::Scene, loader.getLoader());
     assetManager.setLoader(hz::AssetType::Mesh, meshLoader.getLoader());
     const hz::AssetHandle Handle = assetManager.request(scene.getID());
-    wait(assetManager, Handle);
+    Wait(assetManager, Handle);
     EXPECT_EQ(assetManager.getState(Handle), hz::AssetState::Failed);
     EXPECT_EQ(assetManager.getScene(Handle), nullptr);
     EXPECT_EQ(meshLoader.destroyed, (std::vector<uint32_t>{ 1 }));
@@ -611,7 +611,7 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
     const hz::AssetHandle Handle = assetManager.request(assetID(1));
     EXPECT_EQ(assetManager.request(assetID(1)), Handle);
     assetManager.release(Handle);
-    wait(assetManager, Handle);
+    Wait(assetManager, Handle);
     ASSERT_EQ(assetManager.getState(Handle), hz::AssetState::Ready);
     const hz::GPUTexture& texture = assetManager.getTexture(Handle)->getTexture();
     ASSERT_TRUE(texture.IsValid());
@@ -623,33 +623,33 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
             output[0] = uint4(round(source.Load(int3(0,0,0)) * 255.0));
         }
     )hlsl";
-    hz::GPUPipeline pipeline = context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
+    hz::GPUPipeline pipeline = context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
                                                                                              .pSource = shader,
                                                                                              .sourceSize = sizeof(shader) - 1,
                                                                                              .pEntryPoint = "CSMain" } } },
                                                                .Name = "TextureAsset.Readback" });
     ASSERT_TRUE(pipeline.IsValid());
-    hz::GPUBuffer    output = context.createBuffer({ .Size = 16,
+    hz::GPUBuffer    output = context.CreateBuffer({ .Size = 16,
                                                      .ElementCount = 1,
                                                      .StructStride = 16,
                                                      .usage = MemoryUsageGpuOnly,
                                                      .StartState = ResourceStateUnorderedAccess,
                                                      .Descriptors = DescriptorTypeRwBuffer });
-    hz::GPUBuffer    readback = context.createBuffer({ .Size = 16,
+    hz::GPUBuffer    readback = context.CreateBuffer({ .Size = 16,
                                                        .usage = MemoryUsageGpuToCpu,
                                                        .StartState = ResourceStateCopyDest,
                                                        .Flags = BufferCreationFlagPersistentMapBit });
-    hz::CommandList& commands = context.acquireCommandList();
-    commands.setPipeline(pipeline);
-    commands.setRootConstant({ texture.GetSrvIndex(), output.GetUavIndex() });
-    commands.dispatch(1, 1, 1, { .sampledTextures = { &texture }, .storageBuffers = { &output } });
-    commands.copyBuffer(readback, 0, output, 0, 16);
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.SetPipeline(pipeline);
+    commands.SetRootConstant({ texture.GetSrvIndex(), output.GetUavIndex() });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &texture }, .storageBuffers = { &output } });
+    commands.CopyBuffer(readback, 0, output, 0, 16);
     // The open command list references the texture, so its release waits for that work.
     assetManager.release(Handle);
     assetManager.update();
     EXPECT_EQ(assetManager.getState(Handle), hz::AssetState::Retiring);
     EXPECT_EQ(assetManager.getCount(), 1u);
-    const hz::SubmitHandle submission = context.submit(commands);
+    const hz::SubmitHandle submission = context.Submit(commands);
     assetManager.shutdown();
     EXPECT_TRUE(context.IsComplete(submission));
     EXPECT_EQ(assetManager.getCount(), 0u);
@@ -667,7 +667,7 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "RendererMotionTest", .enableGpuValidation = true });
-    hz::GPUPipeline   pipeline = context.createGraphicsPipeline({
+    hz::GPUPipeline   pipeline = context.CreateGraphicsPipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                         .sourceDirectory = DirectoryOtherFiles,
@@ -699,7 +699,7 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     const hz::GpuMaterialData   material;
     const auto                  input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .Size = Size,
+        return context.CreateBuffer({ .Size = Size,
                                       .ElementCount = stride ? Size / stride : Size / 4,
                                       .StructStride = stride,
                                       .pInitialData = data,
@@ -712,10 +712,10 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     hz::GPUBuffer  instances = input(&instance, sizeof(instance)), materials = input(&material, sizeof(material));
     hz::GPUBuffer  vertices = input(positions, sizeof(positions)), normal = input(normals, sizeof(normals));
     hz::GPUBuffer  uv = input(texcoords, sizeof(texcoords));
-    hz::GPUSampler sampler = context.createSampler();
+    hz::GPUSampler sampler = context.CreateSampler();
     hz::GPUTexture targets[4];
     for (hz::GPUTexture& target : targets)
-        target = context.createTexture({ .Width = 64,
+        target = context.CreateTexture({ .Width = 64,
                                          .Height = 64,
                                          .Format = hz::Format::R8G8B8A8_UNORM,
                                          .StartState = ResourceStateRenderTarget,
@@ -729,40 +729,40 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
             output[0] = uint4(round(motion.Load(int3(32,32,0)) * 255.0));
         }
     )hlsl";
-    hz::GPUPipeline reader = context.createComputePipeline(
+    hz::GPUPipeline reader = context.CreateComputePipeline(
         { .shaderDesc = {
               .stages = {
                   { .stage = ShaderStageComp, .pSource = readPixel, .sourceSize = sizeof(readPixel) - 1, .pEntryPoint = "CSMain" } } } });
-    hz::GPUBuffer output = context.createBuffer({ .Size = 16,
+    hz::GPUBuffer output = context.CreateBuffer({ .Size = 16,
                                                   .ElementCount = 1,
                                                   .StructStride = 16,
                                                   .usage = MemoryUsageGpuOnly,
                                                   .StartState = ResourceStateUnorderedAccess,
                                                   .Descriptors = DescriptorTypeRwBuffer });
-    hz::GPUBuffer readback = context.createBuffer({ .Size = 16,
+    hz::GPUBuffer readback = context.CreateBuffer({ .Size = 16,
                                                     .usage = MemoryUsageGpuToCpu,
                                                     .StartState = ResourceStateCopyDest,
                                                     .Flags = BufferCreationFlagPersistentMapBit });
     ASSERT_TRUE(reader.IsValid() && sampler.IsValid());
-    hz::CommandList& commands = context.acquireCommandList();
-    commands.beginRendering({ .colorAttachments = {
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.BeginRendering({ .colorAttachments = {
         { .pTexture = &targets[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
         { .pTexture = &targets[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
         { .pTexture = &targets[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
         { .pTexture = &targets[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
     } }, { .buffers = { &frame, &instances, &materials, &vertices, &normal, &uv } });
-    commands.setViewport(0, 0, 64, 64);
-    commands.setScissor(0, 0, 64, 64);
-    commands.setPipeline(pipeline);
-    commands.setRootConstant({ 0, 0, 7, frame.GetSrvIndex(), instances.GetSrvIndex(), materials.GetSrvIndex(), UINT32_MAX,
+    commands.SetViewport(0, 0, 64, 64);
+    commands.SetScissor(0, 0, 64, 64);
+    commands.SetPipeline(pipeline);
+    commands.SetRootConstant({ 0, 0, 7, frame.GetSrvIndex(), instances.GetSrvIndex(), materials.GetSrvIndex(), UINT32_MAX,
                                sampler.GetIndex(), vertices.GetSrvIndex(), normal.GetSrvIndex(), uv.GetSrvIndex() });
-    commands.draw(3);
-    commands.endRendering();
-    commands.setPipeline(reader);
-    commands.setRootConstant({ targets[3].GetSrvIndex(), output.GetUavIndex() });
-    commands.dispatch(1, 1, 1, { .sampledTextures = { &targets[3] }, .storageBuffers = { &output } });
-    commands.copyBuffer(readback, 0, output, 0, 16);
-    context.wait(context.submit(commands));
+    commands.Draw(3);
+    commands.EndRendering();
+    commands.SetPipeline(reader);
+    commands.SetRootConstant({ targets[3].GetSrvIndex(), output.GetUavIndex() });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &targets[3] }, .storageBuffers = { &output } });
+    commands.CopyBuffer(readback, 0, output, 0, 16);
+    context.Wait(context.Submit(commands));
     const uint32_t* pixel = (const uint32_t*)readback.get()->pCpuMappedAddress;
     ASSERT_EQ(pixel[3], 7u); // The sampled pixel was covered by the triangle.
     const uint32_t packed = pixel[0] | (pixel[1] << 8) | (pixel[2] << 16);
@@ -780,11 +780,11 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "RendererCullingTest", .enableGpuValidation = true });
     hz::GPUPipeline   pipeline =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } },
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } },
                                                         .sourceDirectory = DirectoryOtherFiles,
                                                         .pFileName = "FrustumCulling.slang" } });
     hz::GPUPipeline Clear =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearStatistics" } },
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearStatistics" } },
                                                         .sourceDirectory = DirectoryOtherFiles,
                                                         .pFileName = "FrustumCulling.slang" } });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
@@ -814,7 +814,7 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
     }
     const auto input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .Size = Size,
+        return context.CreateBuffer({ .Size = Size,
                                       .ElementCount = stride ? Size / stride : Size / 4,
                                       .StructStride = stride,
                                       .pInitialData = data,
@@ -830,18 +830,18 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
     hz::GPUBuffer outputs[3];
     for (hz::GPUBuffer& buffer : outputs)
     {
-        buffer = context.createBuffer({ .Size = 100,
+        buffer = context.CreateBuffer({ .Size = 100,
                                         .ElementCount = 25,
                                         .usage = MemoryUsageGpuOnly,
                                         .StartState = ResourceStateUnorderedAccess,
                                         .Descriptors = DescriptorTypeRwBufferRaw });
     }
-    hz::GPUBuffer  statistics = context.createBuffer({ .Size = 16,
+    hz::GPUBuffer  statistics = context.CreateBuffer({ .Size = 16,
                                                        .ElementCount = 4,
                                                        .usage = MemoryUsageGpuOnly,
                                                        .StartState = ResourceStateUnorderedAccess,
                                                        .Descriptors = DescriptorTypeRwBufferRaw });
-    hz::GPUBuffer  readback = context.createBuffer({ .Size = 316,
+    hz::GPUBuffer  readback = context.CreateBuffer({ .Size = 316,
                                                      .usage = MemoryUsageGpuToCpu,
                                                      .StartState = ResourceStateCopyDest,
                                                      .Flags = BufferCreationFlagPersistentMapBit });
@@ -869,29 +869,29 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
             camera.previous = camera.current;
             camera.inverse = inverse(camera.current);
             camera.eye = pose.getCol3();
-            ASSERT_TRUE(context.updateBuffer(frame, 0, &camera, sizeof(camera)));
-            ASSERT_TRUE(context.updateBuffer(instanceBuffer, 0, instances, sizeof(instances)));
+            ASSERT_TRUE(context.UpdateBuffer(frame, 0, &camera, sizeof(camera)));
+            ASSERT_TRUE(context.UpdateBuffer(instanceBuffer, 0, instances, sizeof(instances)));
         }
         for (bool culling : { true, false })
         {
             SCOPED_TRACE(culling);
-            hz::CommandList& commands = context.acquireCommandList();
-            commands.setPipeline(Clear);
-            commands.setRootConstant({ statistics.GetUavIndex() }, 5);
-            commands.dispatch(1, 1, 1, { .storageBuffers = { &statistics } });
-            commands.setPipeline(pipeline);
-            commands.setRootConstant({ frame.GetSrvIndex(), drawBuffer.GetSrvIndex(), instanceBuffer.GetSrvIndex(),
+            hz::CommandList& commands = context.AcquireCommandList();
+            commands.SetPipeline(Clear);
+            commands.SetRootConstant({ statistics.GetUavIndex() }, 5);
+            commands.Dispatch(1, 1, 1, { .storageBuffers = { &statistics } });
+            commands.SetPipeline(pipeline);
+            commands.SetRootConstant({ frame.GetSrvIndex(), drawBuffer.GetSrvIndex(), instanceBuffer.GetSrvIndex(),
                                        outputs[0].GetUavIndex(), outputs[1].GetUavIndex(), statistics.GetUavIndex(), 5, culling ? 1u : 0u,
                                        outputs[2].GetUavIndex() });
-            commands.dispatch(1, 1, 1,
+            commands.Dispatch(1, 1, 1,
                               { .buffers = { &frame, &drawBuffer, &instanceBuffer },
                                 .storageBuffers = { &outputs[0], &outputs[1], &outputs[2], &statistics } });
             for (uint32_t i = 0; i < 3; ++i)
             {
-                commands.copyBuffer(readback, i * 100, outputs[i], 0, 100);
+                commands.CopyBuffer(readback, i * 100, outputs[i], 0, 100);
             }
-            commands.copyBuffer(readback, 300, statistics, 0, 16);
-            context.wait(context.submit(commands));
+            commands.CopyBuffer(readback, 300, statistics, 0, 16);
+            context.Wait(context.Submit(commands));
             const uint32_t* data = (const uint32_t*)readback.get()->pCpuMappedAddress;
             ASSERT_NE(data, nullptr);
             for (uint32_t i = 0; i < 5; ++i)
@@ -944,7 +944,7 @@ TEST_F(TextureAssetLiveTest, CancelsUploadsAndReportsInvalidFiles)
     for (uint32_t i = 2; i <= 5; ++i)
     {
         const hz::AssetHandle invalid = assetManager.request(assetID(i));
-        wait(assetManager, invalid);
+        Wait(assetManager, invalid);
         EXPECT_EQ(assetManager.getError(invalid), hz::AssetError::UploadFailed);
         EXPECT_EQ(assetManager.getTexture(invalid), nullptr);
     }
@@ -998,7 +998,7 @@ protected:
         geometry.indexCount = 3;
         geometry.vertexCount = 3;
         geometry.indexType = indexType;
-        const IndirectDrawIndexArguments draw = { .indexCount = 3, .instanceCount = 1 };
+        const IndirectDrawIndexArguments Draw = { .indexCount = 3, .instanceCount = 1 };
         const GeometryData               data = {};
         GeometryData::ShadowData         shadow = {};
         shadow.vertexStrides[SEMANTIC_POSITION] = 12;
@@ -1014,7 +1014,7 @@ protected:
         const void*    pIndices = indexType == IndexTypeUInt16 ? (const void*)indices16 : indices32;
         const uint32_t indexBytes = indexType == IndexTypeUInt16 ? sizeof(indices16) : sizeof(indices32);
         const float    positions[] = { -1, 2, 3, 4, -5, 6, 0, 1, -2 };
-        const uint32_t geometrySize = sizeof(geometry) + sizeof(draw);
+        const uint32_t geometrySize = sizeof(geometry) + sizeof(Draw);
         const uint32_t dataSize = sizeof(data);
         const uint32_t shadowSize = sizeof(shadow) + indexBytes + sizeof(positions) + (rendererLayout ? sizeof(normals) + sizeof(uvs) : 0);
         FileStream     stream = {};
@@ -1022,7 +1022,7 @@ protected:
         WriteToStream(&stream, GEOMETRY_FILE_MAGIC_STR, sizeof(GEOMETRY_FILE_MAGIC_STR));
         WriteToStream(&stream, &geometrySize, sizeof(geometrySize));
         WriteToStream(&stream, &geometry, sizeof(geometry));
-        WriteToStream(&stream, &draw, sizeof(draw));
+        WriteToStream(&stream, &Draw, sizeof(Draw));
         WriteToStream(&stream, &dataSize, sizeof(dataSize));
         WriteToStream(&stream, &data, sizeof(data));
         WriteToStream(&stream, &shadowSize, sizeof(shadowSize));
@@ -1053,7 +1053,7 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     loaders.registerLoaders(assetManager);
     const hz::AssetHandle root = assetManager.request(scene.getID());
     const hz::AssetHandle second = assetManager.request(scene.getMeshes().Data[1].id);
-    wait(assetManager, root);
+    Wait(assetManager, root);
     ASSERT_EQ(assetManager.getState(root), hz::AssetState::Ready);
     EXPECT_EQ(assetManager.getCount(), 5u);
     const hz::AssetHandle first = assetManager.find(scene.getMeshes().Data[0].id);
@@ -1078,17 +1078,17 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     ASSERT_NE(pMaterial, nullptr);
     EXPECT_FLOAT_EQ(pMaterial->getDescription().roughnessFactor, 0.8f);
     ASSERT_NE(assetManager.getTexture(assetManager.find(pMaterial->getDescription().baseColorTexture)), nullptr);
-    hz::GPUBuffer    readback = context.createBuffer({ .Size = 36,
+    hz::GPUBuffer    readback = context.CreateBuffer({ .Size = 36,
                                                        .usage = MemoryUsageGpuToCpu,
                                                        .StartState = ResourceStateCopyDest,
                                                        .Flags = BufferCreationFlagPersistentMapBit });
-    hz::CommandList& commands = context.acquireCommandList();
-    commands.copyBuffer(readback, 0, pFirst->getVertexBuffer(0), 0, 36);
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.CopyBuffer(readback, 0, pFirst->getVertexBuffer(0), 0, 36);
     assetManager.release(root);
     assetManager.release(second);
     assetManager.update();
     EXPECT_EQ(assetManager.getCount(), 5u);
-    const hz::SubmitHandle submission = context.submit(commands);
+    const hz::SubmitHandle submission = context.Submit(commands);
     assetManager.shutdown();
     EXPECT_EQ(assetManager.getCount(), 0u);
     EXPECT_TRUE(context.IsComplete(submission));
@@ -1134,7 +1134,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     hz::AssetManager assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     const hz::AssetHandle root = assetManager.request(asset.getID());
-    wait(assetManager, root);
+    Wait(assetManager, root);
     ASSERT_EQ(assetManager.getState(root), hz::AssetState::Ready);
 
     hz::TypeRegistry types;
@@ -1160,7 +1160,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     scene.update();
     const hz::AssetHandle blendMaterial = assetManager.find(asset.getMaterials().Data[1].id);
     ASSERT_TRUE(blendMaterial.IsValid());
-    wait(assetManager, blendMaterial);
+    Wait(assetManager, blendMaterial);
     ASSERT_EQ(assetManager.getState(blendMaterial), hz::AssetState::Ready);
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
@@ -1184,7 +1184,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
             output[id.x] = query.CommittedStatus() == COMMITTED_TRIANGLE_HIT ? query.CommittedInstanceID() : 0xffffffff;
         }
     )hlsl";
-    hz::GPUPipeline trace = context.createComputePipeline(
+    hz::GPUPipeline trace = context.CreateComputePipeline(
         { .shaderDesc = {
               .stages = {
                   { .stage = ShaderStageComp, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "CSMain" } } } });
@@ -1195,20 +1195,20 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
         Matrix4 current = Matrix4::identity(), previous = Matrix4::identity(), inverse = Matrix4::identity();
         Vector4 eye = Vector4(0, 0, -10, 1);
     } camera;
-    hz::GPUBuffer frame = context.createBuffer({ .Size = sizeof(camera),
+    hz::GPUBuffer frame = context.CreateBuffer({ .Size = sizeof(camera),
                                                  .ElementCount = sizeof(camera) / 4,
                                                  .pInitialData = &camera,
                                                  .initialDataSize = sizeof(camera),
                                                  .usage = MemoryUsageCpuToGpu,
                                                  .StartState = ResourceStateShaderResource,
                                                  .Descriptors = DescriptorTypeBufferRaw });
-    hz::GPUBuffer output = context.createBuffer({ .Size = 16,
+    hz::GPUBuffer output = context.CreateBuffer({ .Size = 16,
                                                   .ElementCount = 4,
                                                   .StructStride = 4,
                                                   .usage = MemoryUsageGpuOnly,
                                                   .StartState = ResourceStateUnorderedAccess,
                                                   .Descriptors = DescriptorTypeRwBuffer });
-    hz::GPUBuffer readback = context.createBuffer({ .Size = 96,
+    hz::GPUBuffer readback = context.CreateBuffer({ .Size = 96,
                                                     .usage = MemoryUsageGpuToCpu,
                                                     .StartState = ResourceStateCopyDest,
                                                     .Flags = BufferCreationFlagPersistentMapBit });
@@ -1231,7 +1231,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
 
         ASSERT_TRUE(gpu.beginFrame());
         const SceneView  view = { .Scene = scene, .GpuScene = gpu, .Assets = assetManager, .FrameIndex = pass % 3 };
-        hz::CommandList& commands = context.acquireCommandList();
+        hz::CommandList& commands = context.AcquireCommandList();
 
         gpu.upload(commands);
         draws.Prepare(commands, frame, view);
@@ -1245,27 +1245,27 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
             EXPECT_EQ(prepared.Count, 4 - pass);
             for (uint32_t i = 0; i < prepared.Count; ++i)
             {
-                const GpuDrawData& draw = prepared.Data[i];
-                const float        x = (float)scene.getInstances().Data[draw.instance].current.getTranslation().getX();
+                const GpuDrawData& Draw = prepared.Data[i];
+                const float        x = (float)scene.getInstances().Data[Draw.instance].current.getTranslation().getX();
                 for (uint32_t j = 0; j < 4; ++j)
                 {
-                    if (x == offsets[j] && draw.alphaMode != uint32_t(hz::MaterialAlphaMode::Blend))
+                    if (x == offsets[j] && Draw.alphaMode != uint32_t(hz::MaterialAlphaMode::Blend))
                     {
                         expected[j] = i;
                     }
                 }
             }
             const hz::Dependencies sceneDependencies = draws.GetDependencies(frame, view);
-            commands.setPipeline(trace);
-            commands.setRootConstant({ rayScene.GetSceneTLAS().GetSrvIndex(), output.GetUavIndex() });
-            commands.dispatch(1, 1, 1, { .storageBuffers = { &output }, .pShared = &sceneDependencies });
-            commands.copyBuffer(readback, 0, output, 0, 16);
-            commands.copyBuffer(readback, 16, draws.GetCommands(view.FrameIndex), 0, prepared.Count * 20);
+            commands.SetPipeline(trace);
+            commands.SetRootConstant({ rayScene.GetSceneTLAS().GetSrvIndex(), output.GetUavIndex() });
+            commands.Dispatch(1, 1, 1, { .storageBuffers = { &output }, .pShared = &sceneDependencies });
+            commands.CopyBuffer(readback, 0, output, 0, 16);
+            commands.CopyBuffer(readback, 16, draws.GetCommands(view.FrameIndex), 0, prepared.Count * 20);
         }
 
-        const hz::SubmitHandle submission = context.submit(commands);
+        const hz::SubmitHandle submission = context.Submit(commands);
         gpu.endFrame(submission);
-        context.wait(submission);
+        context.Wait(submission);
         if (pass < 3)
         {
             const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
@@ -1274,7 +1274,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
                 EXPECT_EQ(values[i], expected[i]) << "pass " << pass << ", ray " << i;
             }
             ASSERT_NE(expected[3], UINT32_MAX);
-            EXPECT_EQ(values[4 + expected[3] * 5 + 2], 0u); // Offscreen raster draw still received a ray hit.
+            EXPECT_EQ(values[4 + expected[3] * 5 + 2], 0u); // Offscreen raster Draw still received a ray hit.
         }
         else
         {
@@ -1297,7 +1297,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     const hz::AssetHandle Handle = assetManager.request(asset.getMeshes().Data[0].id);
-    wait(assetManager, Handle);
+    Wait(assetManager, Handle);
     ASSERT_EQ(assetManager.getState(Handle), hz::AssetState::Ready);
     const hz::MeshAsset* mesh = assetManager.getMesh(Handle);
     ASSERT_NE(mesh, nullptr);
@@ -1312,15 +1312,15 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     const hz::GpuMeshData* gpuMesh = assetManager.getGpuTables().getMesh({ .index = Handle.index, .generation = Handle.generation });
     ASSERT_NE(gpuMesh, nullptr);
     EXPECT_EQ(gpuMesh->indexStride, 4u);
-    hz::GPUBuffer    readback = context.createBuffer({ .Size = 48,
+    hz::GPUBuffer    readback = context.CreateBuffer({ .Size = 48,
                                                        .usage = MemoryUsageGpuToCpu,
                                                        .StartState = ResourceStateCopyDest,
                                                        .Flags = BufferCreationFlagPersistentMapBit });
-    hz::CommandList& commands = context.acquireCommandList();
-    commands.copyBuffer(readback, 0, mesh->getIndexBuffer(), 0, 12);
-    commands.copyBuffer(readback, 12, mesh->getVertexBuffer(0), 0, 36);
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.CopyBuffer(readback, 0, mesh->getIndexBuffer(), 0, 12);
+    commands.CopyBuffer(readback, 12, mesh->getVertexBuffer(0), 0, 36);
     assetManager.release(Handle);
-    const hz::SubmitHandle submission = context.submit(commands);
+    const hz::SubmitHandle submission = context.Submit(commands);
     assetManager.shutdown();
     EXPECT_TRUE(context.IsComplete(submission));
     const uint32_t expectedIndices[] = { 0, 1, 2 };
@@ -1878,11 +1878,11 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     bindings.update();
     const hz::AssetHandle mesh = bindings.get(a)->mesh;
     EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
-    wait(assetManager, mesh);
+    Wait(assetManager, mesh);
     bindings.update();
     const hz::AssetHandle overrideMaterial = assetManager.find(alternate);
     ASSERT_TRUE(overrideMaterial.IsValid());
-    wait(assetManager, overrideMaterial);
+    Wait(assetManager, overrideMaterial);
     bindings.update();
     ASSERT_EQ(bindings.get(a)->state, hz::AssetBindingState::Ready);
     ASSERT_EQ(bindings.get(b)->state, hz::AssetBindingState::Ready);
@@ -1903,7 +1903,7 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     }
 
     // An open command list may reference any ready payload, so released payloads stay alive until it completes.
-    hz::CommandList& pending = context.acquireCommandList();
+    hz::CommandList& pending = context.AcquireCommandList();
     // Reverse authoring order; resolution follows stable SubmeshID, not override array position.
     renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = alternate });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
@@ -1941,7 +1941,7 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     EXPECT_EQ(bindings.getCount(), 0u);
     EXPECT_EQ(assetManager.getState(mesh), hz::AssetState::Retiring);
     EXPECT_EQ(assetManager.getState(overrideMaterial), hz::AssetState::Retiring);
-    context.wait(context.submit(pending));
+    context.Wait(context.Submit(pending));
     assetManager.update();
     EXPECT_EQ(assetManager.getCount(), 0u);
 }
@@ -1992,7 +1992,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localMatrix, &local));
     scene.update();
     const hz::RenderPrimitiveID primitive = scene.findPrimitive(a);
-    wait(assetManager, assetManager.find(renderer.mesh));
+    Wait(assetManager, assetManager.find(renderer.mesh));
     scene.update();
     ASSERT_EQ(scene.getPrimitive(primitive)->instanceCount, 1u);
     EXPECT_EQ(scene.findPrimitive(a), primitive);
@@ -2057,7 +2057,7 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_NE(scene.getMeshBatch(meshBatchIDs[0]), nullptr);
     EXPECT_NE(scene.getMeshBatch(meshBatchIDs[1]), nullptr);
     EXPECT_FALSE(scene.getMeshBatch(meshBatchIDs[1])->material.IsValid());
-    wait(assetManager, assetManager.find(alternate));
+    Wait(assetManager, assetManager.find(alternate));
     scene.update();
     EXPECT_EQ(scene.getPrimitive(primitive)->instanceCount, 1u);
     EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[0])->material, original);
@@ -2111,13 +2111,13 @@ struct GpuSceneCopy
 static void renderGpuSceneFrame(hz::RenderContext& context, hz::GpuScene& gpu, const hz::GPUBuffer& readback, hz::Span<GpuSceneCopy> copies)
 {
     ASSERT_TRUE(gpu.beginFrame());
-    hz::CommandList& commands = context.acquireCommandList();
+    hz::CommandList& commands = context.AcquireCommandList();
     gpu.upload(commands);
     for (const GpuSceneCopy& copy : copies)
-        commands.copyBuffer(readback, copy.dstOffset, gpu.getBuffers().*copy.table, copy.srcOffset, copy.Size);
-    const hz::SubmitHandle submission = context.submit(commands);
+        commands.CopyBuffer(readback, copy.dstOffset, gpu.getBuffers().*copy.table, copy.srcOffset, copy.Size);
+    const hz::SubmitHandle submission = context.Submit(commands);
     gpu.endFrame(submission);
-    context.wait(submission);
+    context.Wait(submission);
 }
 
 static float translationX(const Matrix4& matrix) { return (float)matrix.getElem(3, 0); }
@@ -2147,7 +2147,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::localTransform, &transform));
     scene.update();
     const hz::AssetHandle meshHandle = assetManager.find(renderer.mesh);
-    wait(assetManager, meshHandle);
+    Wait(assetManager, meshHandle);
     scene.update();
     const hz::RenderPrimitiveID primitive = scene.findPrimitive(a);
     const hz::GpuMeshID         meshID = scene.getPrimitive(primitive)->mesh;
@@ -2161,7 +2161,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     const uint32_t textureSrv = assetManager.getTexture(assetManager.find(assets.getTextures().Data[0].id))->getTexture().GetSrvIndex();
 
     hz::GpuScene              gpu(scene, assetManager, context);
-    hz::GPUBuffer             readback = context.createBuffer({ .Size = 1024,
+    hz::GPUBuffer             readback = context.CreateBuffer({ .Size = 1024,
                                                                 .usage = MemoryUsageGpuToCpu,
                                                                 .StartState = ResourceStateCopyDest,
                                                                 .Flags = BufferCreationFlagPersistentMapBit });
@@ -2302,7 +2302,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
     const hz::AssetHandle reloaded = assetManager.find(renderer.mesh);
-    wait(assetManager, reloaded);
+    Wait(assetManager, reloaded);
     renderGpuSceneFrame(context, gpu, readback, { &meshCopy, 1 });
     EXPECT_NE(scene.getPrimitive(scene.findPrimitive(a))->mesh, meshID);
     EXPECT_NE(copiedMesh.id, meshID);
@@ -2339,20 +2339,20 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     const hz::RenderCameraID cameraID = scene.findCamera(entity);
     const hz::AssetHandle    textureHandle = assetManager.find(light.texture);
     EXPECT_EQ(scene.getLight(lightID)->ready, 0u);
-    wait(assetManager, textureHandle);
+    Wait(assetManager, textureHandle);
     scene.update();
     EXPECT_EQ(scene.getLight(lightID)->ready, 0u); // Mesh emitter still has no mesh.
     EXPECT_TRUE(scene.getLight(lightID)->texture.IsValid());
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
     scene.update();
-    wait(assetManager, assetManager.find(renderer.mesh));
+    Wait(assetManager, assetManager.find(renderer.mesh));
     scene.update();
     ASSERT_EQ(scene.getLight(lightID)->ready, 1u);
     EXPECT_EQ(scene.getLight(lightID)->primitive, scene.findPrimitive(entity));
 
     hz::GpuScene gpu(scene, assetManager, context);
     gpu.Reserve(1, 1, 1, 1);
-    hz::GPUBuffer           readback = context.createBuffer({ .Size = 1024,
+    hz::GPUBuffer           readback = context.CreateBuffer({ .Size = 1024,
                                                               .usage = MemoryUsageGpuToCpu,
                                                               .StartState = ResourceStateCopyDest,
                                                               .Flags = BufferCreationFlagPersistentMapBit });
@@ -2499,7 +2499,7 @@ TEST_F(AssetManagerTest, GpuSceneUploadsSparseChangesForOneHundredThousandEntiti
     }
     hz::GpuScene gpu(scene, assetManager, context);
     gpu.Reserve(kEntityCount, kEntityCount);
-    hz::GPUBuffer             readback = context.createBuffer({ .Size = sizeof(hz::RenderInstance),
+    hz::GPUBuffer             readback = context.CreateBuffer({ .Size = sizeof(hz::RenderInstance),
                                                                 .usage = MemoryUsageGpuToCpu,
                                                                 .StartState = ResourceStateCopyDest,
                                                                 .Flags = BufferCreationFlagPersistentMapBit });
@@ -2548,7 +2548,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     const hz::AssetHandle source = assetManager.request(assets.getID());
-    wait(assetManager, source);
+    Wait(assetManager, source);
     ASSERT_EQ(assetManager.getState(source), hz::AssetState::Ready);
     hz::TypeRegistry types;
     ASSERT_TRUE(types.registerBuiltins());
@@ -2594,7 +2594,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     ASSERT_EQ(scene->getActiveMeshBatches().Count, 2u);
     ASSERT_TRUE(assetManager.release(source));
     hz::UniquePtr<hz::GpuScene> gpu = hz::MakeUnique<hz::GpuScene>(*scene, assetManager, context);
-    hz::GPUBuffer                readback = context.createBuffer({ .Size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData) + 36,
+    hz::GPUBuffer                readback = context.CreateBuffer({ .Size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData) + 36,
                                                                    .usage = MemoryUsageGpuToCpu,
                                                                    .StartState = ResourceStateCopyDest,
                                                                    .Flags = BufferCreationFlagPersistentMapBit });
@@ -2628,19 +2628,19 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         EXPECT_NE(material->baseColorTexture, UINT32_MAX);
         const hz::MeshAsset* mesh = assetManager.getMesh(assetManager.find(renderer.mesh));
         ASSERT_NE(mesh, nullptr);
-        hz::CommandList& commands = context.acquireCommandList();
+        hz::CommandList& commands = context.AcquireCommandList();
         gpu->upload(commands);
-        commands.copyBuffer(readback, 0, gpu->getBuffers().instances, instance * sizeof(hz::RenderInstance), sizeof(hz::RenderInstance));
-        commands.copyBuffer(readback, sizeof(hz::RenderInstance), gpu->getBuffers().materials,
+        commands.CopyBuffer(readback, 0, gpu->getBuffers().instances, instance * sizeof(hz::RenderInstance), sizeof(hz::RenderInstance));
+        commands.CopyBuffer(readback, sizeof(hz::RenderInstance), gpu->getBuffers().materials,
                             meshBatch->material.index * sizeof(hz::GpuMaterialData), sizeof(hz::GpuMaterialData));
-        commands.copyBuffer(readback, sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData), mesh->getVertexBuffer(0), 0, 36);
-        const hz::SubmitHandle submission = context.submit(commands);
+        commands.CopyBuffer(readback, sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData), mesh->getVertexBuffer(0), 0, 36);
+        const hz::SubmitHandle submission = context.Submit(commands);
         gpu->endFrame(submission);
-        // Destroying the GPU scene, bindings and World does not wait; buffers and payloads retire after the frame.
+        // Destroying the GPU scene, bindings and World does not Wait; buffers and payloads retire after the frame.
         gpu = nullptr;
         scene = nullptr;
         world = nullptr;
-        context.wait(submission);
+        context.Wait(submission);
         assetManager.update();
         EXPECT_EQ(assetManager.getCount(), 0u);
         EXPECT_EQ(assetManager.getMesh(oldMesh), nullptr);
@@ -2671,8 +2671,8 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         const hz::AssetHandle reloadedMesh = assetManager.find(renderer.mesh);
         ASSERT_TRUE(reloadedMesh.IsValid());
         EXPECT_NE(reloadedMesh, oldMesh);
-        wait(assetManager, reloadedMesh);
-        wait(assetManager, assetManager.find(assets.getMeshes().Data[1].id));
+        Wait(assetManager, reloadedMesh);
+        Wait(assetManager, assetManager.find(assets.getMeshes().Data[1].id));
         scene->update();
         gpu = hz::MakeUnique<hz::GpuScene>(*scene, assetManager, context);
     }
@@ -2701,7 +2701,7 @@ TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancels
         hz::AssetManager assetManager(catalog);
         loaders.registerLoaders(assetManager);
         const hz::AssetHandle mesh = assetManager.request(scene.getMeshes().Data[0].id);
-        wait(assetManager, mesh);
+        Wait(assetManager, mesh);
         EXPECT_EQ(assetManager.getError(mesh), hz::AssetError::UploadFailed) << prefix;
         EXPECT_EQ(assetManager.getMesh(mesh), nullptr);
     }
@@ -2710,7 +2710,7 @@ TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancels
         hz::AssetManager assetManager(catalog);
         loaders.registerLoaders(assetManager);
         const hz::AssetHandle mesh = assetManager.request(scene.getMeshes().Data[0].id);
-        wait(assetManager, mesh);
+        Wait(assetManager, mesh);
         EXPECT_EQ(assetManager.getError(mesh), hz::AssetError::UploadFailed);
         EXPECT_EQ(assetManager.getMesh(mesh), nullptr);
     }
@@ -2719,7 +2719,7 @@ TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancels
         hz::AssetManager assetManager(catalog);
         loaders.registerLoaders(assetManager);
         const hz::AssetHandle mesh = assetManager.request(scene.getMeshes().Data[0].id);
-        wait(assetManager, mesh);
+        Wait(assetManager, mesh);
         EXPECT_EQ(assetManager.getError(mesh), hz::AssetError::UploadFailed);
     }
     writeGeometry();
@@ -2731,7 +2731,7 @@ TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancels
         loaders.registerLoaders(assetManager);
         const hz::AssetHandle mismatched = assetManager.request(wrong.id);
         const hz::AssetHandle root = assetManager.request(scene.getID());
-        wait(assetManager, root);
+        Wait(assetManager, root);
         EXPECT_EQ(assetManager.getError(root), hz::AssetError::DependencyFailed);
         EXPECT_EQ(assetManager.getError(mismatched), hz::AssetError::LoadFailed);
     }
@@ -2775,7 +2775,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     hz::AssetManager  assetManager(catalog, &context);
     loaders.registerLoaders(assetManager);
     const hz::AssetHandle Handle = assetManager.request(asset.getMeshes().Data[0].id);
-    wait(assetManager, Handle);
+    Wait(assetManager, Handle);
     ASSERT_EQ(assetManager.getState(Handle), hz::AssetState::Ready);
     const hz::MeshAsset* mesh = assetManager.getMesh(Handle);
     ASSERT_NE(mesh, nullptr);
@@ -2785,7 +2785,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
-    hz::GPUPipeline pipeline = context.createGraphicsPipeline({
+    hz::GPUPipeline pipeline = context.CreateGraphicsPipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                         .sourceDirectory = DirectoryOtherFiles,
@@ -2816,7 +2816,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     const uint32_t normals[] = { 0x80008000, 0x80008000, 0x80008000 }, uvs[] = { 0, 0, 0 };
     const auto     input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .Size = Size,
+        return context.CreateBuffer({ .Size = Size,
                                       .ElementCount = stride ? Size / stride : Size / 4,
                                       .StructStride = stride,
                                       .pInitialData = data,
@@ -2857,17 +2857,17 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     };
     static_assert(sizeof(DrawCommand) == 20);
     const DrawCommand arguments[] = { { 0, 3, 1, 0, 0 }, { 1, 3, 1, 0, 0 } };
-    hz::GPUBuffer     indirect = context.createBuffer({ .Size = sizeof(arguments),
+    hz::GPUBuffer     indirect = context.CreateBuffer({ .Size = sizeof(arguments),
                                                         .pInitialData = arguments,
                                                         .initialDataSize = sizeof(arguments),
                                                         .usage = MemoryUsageCpuToGpu,
                                                         .StartState = ResourceStateIndirectArgument,
                                                         .Descriptors = DescriptorTypeIndirectBuffer });
-    hz::GPUSampler    sampler = context.createSampler();
+    hz::GPUSampler    sampler = context.CreateSampler();
     hz::GPUTexture    targets[4];
     for (hz::GPUTexture& target : targets)
     {
-        target = context.createTexture({ .Width = 64,
+        target = context.CreateTexture({ .Width = 64,
                                          .Height = 64,
                                          .Format = hz::Format::R8G8B8A8_UNORM,
                                          .StartState = ResourceStateRenderTarget,
@@ -2883,30 +2883,30 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
             output[1] = uint4(round(source.Load(int3(48,32,0)) * 255));
         }
     )hlsl";
-    hz::GPUPipeline reader = context.createComputePipeline(
+    hz::GPUPipeline reader = context.CreateComputePipeline(
         { .shaderDesc = {
               .stages = {
                   { .stage = ShaderStageComp, .pSource = readPixel, .sourceSize = sizeof(readPixel) - 1, .pEntryPoint = "CSMain" } } } });
-    hz::GPUBuffer    output = context.createBuffer({ .Size = 32,
+    hz::GPUBuffer    output = context.CreateBuffer({ .Size = 32,
                                                      .ElementCount = 2,
                                                      .StructStride = 16,
                                                      .usage = MemoryUsageGpuOnly,
                                                      .StartState = ResourceStateUnorderedAccess,
                                                      .Descriptors = DescriptorTypeRwBuffer });
-    hz::GPUBuffer    readback = context.createBuffer({ .Size = 32,
+    hz::GPUBuffer    readback = context.CreateBuffer({ .Size = 32,
                                                        .usage = MemoryUsageGpuToCpu,
                                                        .StartState = ResourceStateCopyDest,
                                                        .Flags = BufferCreationFlagPersistentMapBit });
-    hz::CommandList& commands = context.acquireCommandList();
-    commands.beginRendering({ .colorAttachments = {
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.BeginRendering({ .colorAttachments = {
         { .pTexture = &targets[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
         { .pTexture = &targets[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
         { .pTexture = &targets[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
         { .pTexture = &targets[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
     } }, { .buffers = { &frame, &instanceBuffer, &materialBuffer, &vertices, &normal, &uv, &draws, &mesh->getIndexBuffer() } });
-    commands.setViewport(0, 0, 64, 64);
-    commands.setScissor(0, 0, 64, 64);
-    commands.setPipeline(pipeline);
+    commands.SetViewport(0, 0, 64, 64);
+    commands.SetScissor(0, 0, 64, 64);
+    commands.SetPipeline(pipeline);
     uint32_t constants[27] = {};
     constants[3] = frame.GetSrvIndex();
     constants[4] = instanceBuffer.GetSrvIndex();
@@ -2914,14 +2914,14 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     constants[6] = UINT32_MAX;
     constants[7] = sampler.GetIndex();
     constants[11] = draws.GetSrvIndex();
-    commands.setRootConstant({ constants, 27 });
-    commands.drawIndirect(indirect, 0, 2);
-    commands.endRendering();
-    commands.setPipeline(reader);
-    commands.setRootConstant({ targets[2].GetSrvIndex(), output.GetUavIndex() });
-    commands.dispatch(1, 1, 1, { .sampledTextures = { &targets[2] }, .storageBuffers = { &output } });
-    commands.copyBuffer(readback, 0, output, 0, 32);
-    context.wait(context.submit(commands));
+    commands.SetRootConstant({ constants, 27 });
+    commands.DrawIndirect(indirect, 0, 2);
+    commands.EndRendering();
+    commands.SetPipeline(reader);
+    commands.SetRootConstant({ targets[2].GetSrvIndex(), output.GetUavIndex() });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &targets[2] }, .storageBuffers = { &output } });
+    commands.CopyBuffer(readback, 0, output, 0, 32);
+    context.Wait(context.Submit(commands));
     const uint32_t* pixels = (const uint32_t*)readback.get()->pCpuMappedAddress;
     ASSERT_NE(pixels, nullptr);
     EXPECT_EQ(pixels[0], 255u);
@@ -2963,7 +2963,7 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
     CloseStream(&stream);
     ASSERT_EQ(written, sizeof(source) - 1);
     hz::GPURayTracingPipeline pipeline =
-        context.createRayTracingPipeline({ .sourceDirectory = DirectoryOtherFiles,
+        context.CreateRayTracingPipeline({ .sourceDirectory = DirectoryOtherFiles,
                                            .pFileName = "dxr-regression.slang",
                                            .pRayGeneration = "RayGeneration",
                                            .missShaders = { "Miss" },
@@ -2979,21 +2979,21 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
             output[id.x] += 1000;
         }
     )hlsl";
-    hz::GPUPipeline increment = context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
+    hz::GPUPipeline increment = context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
                                                                                               .pSource = incrementSource,
                                                                                               .sourceSize = sizeof(incrementSource) - 1,
                                                                                               .pEntryPoint = "CSMain" } } } });
     ASSERT_TRUE(increment.IsValid());
     const float                             positions[] = { -1, -1, 0, 1, -1, 0, 0, 1, 0 };
     const uint32_t                          indices[] = { 0, 1, 2 };
-    hz::GPUBuffer                           vertices = context.createBuffer({ .Size = sizeof(positions),
+    hz::GPUBuffer                           vertices = context.CreateBuffer({ .Size = sizeof(positions),
                                                                               .ElementCount = 9,
                                                                               .pInitialData = positions,
                                                                               .initialDataSize = sizeof(positions),
                                                                               .usage = MemoryUsageCpuToGpu,
                                                                               .StartState = ResourceStateShaderResource,
                                                                               .Descriptors = DescriptorTypeBufferRaw });
-    hz::GPUBuffer                           indexBuffer = context.createBuffer({ .Size = sizeof(indices),
+    hz::GPUBuffer                           indexBuffer = context.CreateBuffer({ .Size = sizeof(indices),
                                                                                  .ElementCount = 3,
                                                                                  .pInitialData = indices,
                                                                                  .initialDataSize = sizeof(indices),
@@ -3004,25 +3004,25 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
                                                          .pIndexBuffer = &indexBuffer,
                                                          .vertexCount = 3,
                                                          .indexCount = 3 };
-    hz::GPUAccelerationStructure            bottom = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
+    hz::GPUAccelerationStructure            bottom = context.CreateAccelerationStructure({ .geometries = { &geometry, 1 } });
     ASSERT_TRUE(bottom.IsValid());
     hz::AccelerationStructureInstance instance = { .pBottom = &bottom,
                                                    .instanceId = 23,
                                                    .Flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE };
     hz::GPUAccelerationStructure      top =
-        context.createAccelerationStructure({ .Type = ACCELERATION_STRUCTURE_TYPE_TOP,
+        context.CreateAccelerationStructure({ .Type = ACCELERATION_STRUCTURE_TYPE_TOP,
                                               .Flags = AccelerationStructureBuildFlags(ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE |
                                                                                        ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE),
                                               .instanceCount = 1 });
     ASSERT_TRUE(top.IsValid());
     ASSERT_EQ(top.getInstanceCount(), 1u);
-    hz::GPUBuffer output = context.createBuffer({ .Size = 8,
+    hz::GPUBuffer output = context.CreateBuffer({ .Size = 8,
                                                   .ElementCount = 2,
                                                   .StructStride = 4,
                                                   .usage = MemoryUsageGpuOnly,
                                                   .StartState = ResourceStateUnorderedAccess,
                                                   .Descriptors = DescriptorTypeRwBuffer });
-    hz::GPUBuffer readback = context.createBuffer({ .Size = 40,
+    hz::GPUBuffer readback = context.CreateBuffer({ .Size = 40,
                                                     .usage = MemoryUsageGpuToCpu,
                                                     .StartState = ResourceStateCopyDest,
                                                     .Flags = BufferCreationFlagPersistentMapBit });
@@ -3091,34 +3091,34 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
     hz::SubmitHandle submission;
     for (uint32_t pass = 0; pass < 5; ++pass)
     {
-        hz::CommandList& commands = context.acquireCommandList();
+        hz::CommandList& commands = context.AcquireCommandList();
         if (!pass)
         {
-            commands.buildAccelerationStructure(bottom);
+            commands.BuildAccelerationStructure(bottom);
         }
         if (pass < 3)
         {
             instance.transform[3] = pass ? 4.0f : 0.0f;
             top.setInstance(0, instance);
             // The third pass repeats the same instance and must preserve the existing TLAS.
-            commands.updateAccelerationStructure(top);
+            commands.UpdateAccelerationStructure(top);
         }
         else if (pass == 3)
         {
             // Saved TLAS inputs and BLAS references remain valid after their public owner is gone.
-            commands.buildAccelerationStructure(top, {}, true);
+            commands.BuildAccelerationStructure(top, {}, true);
         }
         if (pass == 2)
         {
             bottom = {};
         }
-        commands.setPipeline(pipeline);
-        commands.setRootConstant({ top.GetSrvIndex(), output.GetUavIndex() });
-        commands.traceRays(pipeline, 2, 1, 1, { .storageBuffers = { &output } });
-        commands.setPipeline(increment);
-        commands.setRootConstant({ output.GetUavIndex() });
-        commands.dispatch(1, 1, 1, { .storageBuffers = { &output } });
-        commands.copyBuffer(readback, pass * 8, output, 0, 8);
+        commands.SetPipeline(pipeline);
+        commands.SetRootConstant({ top.GetSrvIndex(), output.GetUavIndex() });
+        commands.TraceRays(pipeline, 2, 1, 1, { .storageBuffers = { &output } });
+        commands.SetPipeline(increment);
+        commands.SetRootConstant({ output.GetUavIndex() });
+        commands.Dispatch(1, 1, 1, { .storageBuffers = { &output } });
+        commands.CopyBuffer(readback, pass * 8, output, 0, 8);
         if (pass == 4)
         {
             // Trace-only submission: destruction is safe without an AS dependency declaration or an AS build.
@@ -3127,10 +3127,10 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
             increment = {};
             output = {};
         }
-        submission = context.submit(commands);
+        submission = context.Submit(commands);
     }
     // Queue several frames through one TLAS, including refit after an earlier trace, before waiting.
-    context.wait(submission);
+    context.Wait(submission);
     ASSERT_EQ(validateDevice("Queued TLAS updates and traces"), S_OK);
     const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
     ASSERT_NE(values, nullptr);
@@ -3162,7 +3162,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
-    hz::GPURayTracingPipeline reflection = context.createRayTracingPipeline({
+    hz::GPURayTracingPipeline reflection = context.CreateRayTracingPipeline({
         .sourceDirectory = DirectoryOtherFiles,
         .pFileName = "RTReflection.slang",
         .pRayGeneration = "rayGenMain",
@@ -3173,14 +3173,14 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     hz::GPUPipeline reader =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
     ASSERT_TRUE(reflection.IsValid() && reader.IsValid());
     const auto input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .Size = Size,
+        return context.CreateBuffer({ .Size = Size,
                                       .ElementCount = stride ? Size / stride : Size / 4,
                                       .StructStride = stride,
                                       .pInitialData = data,
@@ -3192,7 +3192,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     };
     const auto image = [&](hz::Format Format, bool target)
     {
-        return context.createTexture({ .Width = 1,
+        return context.CreateTexture({ .Width = 1,
                                        .Height = 1,
                                        .Format = Format,
                                        .StartState = target ? ResourceStateRenderTarget : ResourceStateUnorderedAccess,
@@ -3203,7 +3203,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     hz::GPUTexture normal = image(hz::Format::R32G32B32A32_SFLOAT, true), Depth = image(hz::Format::R32_SFLOAT, true);
     hz::GPUTexture alpha = image(hz::Format::R32G32B32A32_SFLOAT, true);
     hz::GPUTexture result = image(hz::Format::R32G32B32A32_SFLOAT, false);
-    hz::GPUSampler sampler = context.createSampler();
+    hz::GPUSampler sampler = context.CreateSampler();
     struct FrameData
     {
         Matrix4 current, previous, inverse;
@@ -3253,9 +3253,9 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
                                                    .vertexCount = 3,
                                                    .indexCount = 3,
                                                    .indexType = IndexTypeUInt16 };
-    hz::GPUAccelerationStructure      opaque = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
+    hz::GPUAccelerationStructure      opaque = context.CreateAccelerationStructure({ .geometries = { &geometry, 1 } });
     geometry.opaque = false;
-    hz::GPUAccelerationStructure      masked = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
+    hz::GPUAccelerationStructure      masked = context.CreateAccelerationStructure({ .geometries = { &geometry, 1 } });
     hz::AccelerationStructureInstance background = {
         .pBottom = &opaque,
         .instanceId = 7,
@@ -3271,19 +3271,19 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
         background,
     };
     hz::GPUAccelerationStructure opaqueTop =
-        context.createAccelerationStructure({ .Type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { opaqueInstances, 2 } });
+        context.CreateAccelerationStructure({ .Type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { opaqueInstances, 2 } });
     hz::GPUAccelerationStructure maskedTop =
-        context.createAccelerationStructure({ .Type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { maskedInstances, 2 } });
+        context.CreateAccelerationStructure({ .Type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { maskedInstances, 2 } });
     hz::GPUAccelerationStructure maskedOnly =
-        context.createAccelerationStructure({ .Type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { maskedInstances, 1 } });
+        context.CreateAccelerationStructure({ .Type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { maskedInstances, 1 } });
     ASSERT_TRUE(opaque.IsValid() && masked.IsValid() && opaqueTop.IsValid() && maskedTop.IsValid() && maskedOnly.IsValid());
-    hz::GPUBuffer output = context.createBuffer({ .Size = 16,
+    hz::GPUBuffer output = context.CreateBuffer({ .Size = 16,
                                                   .ElementCount = 1,
                                                   .StructStride = 16,
                                                   .usage = MemoryUsageGpuOnly,
                                                   .StartState = ResourceStateUnorderedAccess,
                                                   .Descriptors = DescriptorTypeRwBuffer });
-    hz::GPUBuffer readback = context.createBuffer({ .Size = 16,
+    hz::GPUBuffer readback = context.CreateBuffer({ .Size = 16,
                                                     .usage = MemoryUsageGpuToCpu,
                                                     .StartState = ResourceStateCopyDest,
                                                     .Flags = BufferCreationFlagPersistentMapBit });
@@ -3329,47 +3329,47 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     {
         SCOPED_TRACE(caseIndex);
         const AlphaCase& test = cases[caseIndex % caseCount];
-        for (GpuDrawData& draw : drawData)
+        for (GpuDrawData& Draw : drawData)
         {
-            draw.indices = caseIndex < caseCount ? indexBuffer.GetSrvIndex() : indexBuffer32.GetSrvIndex();
-            draw.indexStride = caseIndex < caseCount ? 2 : 4;
+            Draw.indices = caseIndex < caseCount ? indexBuffer.GetSrvIndex() : indexBuffer32.GetSrvIndex();
+            Draw.indexStride = caseIndex < caseCount ? 2 : 4;
         }
-        ASSERT_TRUE(context.updateBuffer(drawBuffer, 0, drawData, sizeof(drawData)));
+        ASSERT_TRUE(context.UpdateBuffer(drawBuffer, 0, drawData, sizeof(drawData)));
         materials[1].baseColorFactor[3] = test.factor;
         materials[1].baseColorTexture = test.hasTexture ? alpha.GetSrvIndex() : UINT32_MAX;
-        ASSERT_TRUE(context.updateBuffer(materialBuffer, 0, materials, sizeof(materials)));
-        hz::CommandList& commands = context.acquireCommandList();
+        ASSERT_TRUE(context.UpdateBuffer(materialBuffer, 0, materials, sizeof(materials)));
+        hz::CommandList& commands = context.AcquireCommandList();
         if (!caseIndex)
         {
-            commands.buildAccelerationStructure(opaque);
-            commands.buildAccelerationStructure(masked);
-            commands.buildAccelerationStructure(opaqueTop);
-            commands.buildAccelerationStructure(maskedTop);
-            commands.buildAccelerationStructure(maskedOnly);
+            commands.BuildAccelerationStructure(opaque);
+            commands.BuildAccelerationStructure(masked);
+            commands.BuildAccelerationStructure(opaqueTop);
+            commands.BuildAccelerationStructure(maskedTop);
+            commands.BuildAccelerationStructure(maskedOnly);
         }
         const auto Clear = [&](const hz::GPUTexture& texture, ClearValue value)
         {
-            commands.beginRendering({ .colorAttachments = { { .pTexture = &texture,
+            commands.BeginRendering({ .colorAttachments = { { .pTexture = &texture,
                                                               .loadAction = LoadActionClear,
                                                               .storeAction = StoreActionStore,
                                                               .ClearValue = value } } });
-            commands.endRendering();
+            commands.EndRendering();
         };
         Clear(normal, { .r = 0.5f, .g = 0.5f, .a = 1 });
         Clear(Depth, { .r = 0.2f });
         Clear(alpha, { .r = 1, .g = 1, .b = 1, .a = test.textureAlpha });
         constants.tlas = test.opaque ? opaqueTop.GetSrvIndex() : test.background ? maskedTop.GetSrvIndex() : maskedOnly.GetSrvIndex();
-        commands.setPipeline(reflection);
-        commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
-        commands.traceRays(reflection, 1, 1, 1,
+        commands.SetPipeline(reflection);
+        commands.SetRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
+        commands.TraceRays(reflection, 1, 1, 1,
                            { .sampledTextures = { &normal, &Depth, &alpha },
                              .storageTextures = { &result },
                              .buffers = { &frame, &light, &drawBuffer, &materialBuffer, &textureBuffer, &vertices, &indexBuffer, &indexBuffer32, &uv } });
-        commands.setPipeline(reader);
-        commands.setRootConstant({ result.GetSrvIndex(), output.GetUavIndex(), 0 });
-        commands.dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
-        commands.copyBuffer(readback, 0, output, 0, 16);
-        context.wait(context.submit(commands));
+        commands.SetPipeline(reader);
+        commands.SetRootConstant({ result.GetSrvIndex(), output.GetUavIndex(), 0 });
+        commands.Dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
+        commands.CopyBuffer(readback, 0, output, 0, 16);
+        context.Wait(context.Submit(commands));
         const float* values = (const float*)readback.get()->pCpuMappedAddress;
         ASSERT_NE(values, nullptr);
         EXPECT_NEAR(values[0], test.red, 1e-5f);
@@ -3379,25 +3379,25 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     }
     // Verify reflected lighting color as well as emissive hit IDs: a white surface and white light stay neutral.
     LightingFrameData whiteLight = { .lightDirection = Vector4(0, 0, 1, 1), .lightColor = Vector4(1, 1, 1, 1) };
-    ASSERT_TRUE(context.updateBuffer(light, 0, &whiteLight, sizeof(whiteLight)));
+    ASSERT_TRUE(context.UpdateBuffer(light, 0, &whiteLight, sizeof(whiteLight)));
     materials[0].baseColorTexture = UINT32_MAX;
     materials[0].baseColorFactor[0] = materials[0].baseColorFactor[1] = materials[0].baseColorFactor[2] = 1;
     materials[0].emissiveFactor[0] = materials[0].emissiveFactor[1] = materials[0].emissiveFactor[2] = 0;
     materials[0].metallicFactor = 0;
     materials[0].roughnessFactor = 1;
-    ASSERT_TRUE(context.updateBuffer(materialBuffer, 0, materials, sizeof(materials)));
+    ASSERT_TRUE(context.UpdateBuffer(materialBuffer, 0, materials, sizeof(materials)));
     constants.tlas = opaqueTop.GetSrvIndex();
-    hz::CommandList& lit = context.acquireCommandList();
-    lit.setPipeline(reflection);
-    lit.setRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
-    lit.traceRays(reflection, 1, 1, 1,
+    hz::CommandList& lit = context.AcquireCommandList();
+    lit.SetPipeline(reflection);
+    lit.SetRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
+    lit.TraceRays(reflection, 1, 1, 1,
                   { .sampledTextures = { &normal, &Depth }, .storageTextures = { &result },
                     .buffers = { &frame, &light, &drawBuffer, &materialBuffer, &vertices, &indexBuffer32, &uv } });
-    lit.setPipeline(reader);
-    lit.setRootConstant({ result.GetSrvIndex(), output.GetUavIndex(), 0 });
-    lit.dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
-    lit.copyBuffer(readback, 0, output, 0, 16);
-    context.wait(context.submit(lit));
+    lit.SetPipeline(reader);
+    lit.SetRootConstant({ result.GetSrvIndex(), output.GetUavIndex(), 0 });
+    lit.Dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
+    lit.CopyBuffer(readback, 0, output, 0, 16);
+    context.Wait(context.Submit(lit));
     const float* litColor = (const float*)readback.get()->pCpuMappedAddress;
     const float expectedLighting = (0.96f + 0.04f / 4.0f) / 3.14159265359f;
     for (uint32_t channel = 0; channel < 3; ++channel)
@@ -3435,19 +3435,19 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::GPUPipeline shadow =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } },
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } },
                                                         .sourceDirectory = DirectoryOtherFiles,
                                                         .pFileName = "RTShadowAO.slang" } });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     hz::GPUPipeline reader =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
     ASSERT_TRUE(shadow.IsValid() && reader.IsValid());
     const auto input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .Size = Size,
+        return context.CreateBuffer({ .Size = Size,
                                       .ElementCount = stride ? Size / stride : Size / 4,
                                       .StructStride = stride,
                                       .pInitialData = data,
@@ -3458,7 +3458,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     };
     const auto image = [&](hz::Format Format, bool target)
     {
-        return context.createTexture({ .Width = 1,
+        return context.CreateTexture({ .Width = 1,
                                        .Height = 1,
                                        .Format = Format,
                                        .StartState = target ? ResourceStateRenderTarget : ResourceStateUnorderedAccess,
@@ -3469,7 +3469,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     hz::GPUTexture normal = image(hz::Format::R32G32B32A32_SFLOAT, true), Depth = image(hz::Format::R32_SFLOAT, true);
     hz::GPUTexture alpha = image(hz::Format::R32G32B32A32_SFLOAT, true), noise = image(hz::Format::R32G32B32A32_SFLOAT, true);
     hz::GPUTexture result = image(hz::Format::R8G8_UNORM, false);
-    hz::GPUSampler sampler = context.createSampler();
+    hz::GPUSampler sampler = context.CreateSampler();
     struct FrameData
     {
         Matrix4 current, previous, inverse;
@@ -3512,25 +3512,25 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
                                                    .vertexCount = 3,
                                                    .indexCount = 3,
                                                    .indexType = IndexTypeUInt16 };
-    hz::GPUAccelerationStructure      opaque = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
+    hz::GPUAccelerationStructure      opaque = context.CreateAccelerationStructure({ .geometries = { &geometry, 1 } });
     geometry.opaque = false;
-    hz::GPUAccelerationStructure            masked = context.createAccelerationStructure({ .geometries = { &geometry, 1 } });
+    hz::GPUAccelerationStructure            masked = context.CreateAccelerationStructure({ .geometries = { &geometry, 1 } });
     const hz::AccelerationStructureInstance instances[] = {
         { .pBottom = &opaque, .instanceId = 5, .Flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE },
         { .pBottom = &masked, .instanceId = 6, .Flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE },
     };
     hz::GPUAccelerationStructure opaqueTop =
-        context.createAccelerationStructure({ .Type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { instances, 1 } });
+        context.CreateAccelerationStructure({ .Type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { instances, 1 } });
     hz::GPUAccelerationStructure maskedTop =
-        context.createAccelerationStructure({ .Type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { instances + 1, 1 } });
+        context.CreateAccelerationStructure({ .Type = ACCELERATION_STRUCTURE_TYPE_TOP, .instances = { instances + 1, 1 } });
     ASSERT_TRUE(opaque.IsValid() && masked.IsValid() && opaqueTop.IsValid() && maskedTop.IsValid());
-    hz::GPUBuffer output = context.createBuffer({ .Size = 16,
+    hz::GPUBuffer output = context.CreateBuffer({ .Size = 16,
                                                   .ElementCount = 1,
                                                   .StructStride = 16,
                                                   .usage = MemoryUsageGpuOnly,
                                                   .StartState = ResourceStateUnorderedAccess,
                                                   .Descriptors = DescriptorTypeRwBuffer });
-    hz::GPUBuffer readback = context.createBuffer({ .Size = 16,
+    hz::GPUBuffer readback = context.CreateBuffer({ .Size = 16,
                                                     .usage = MemoryUsageGpuToCpu,
                                                     .StartState = ResourceStateCopyDest,
                                                     .Flags = BufferCreationFlagPersistentMapBit });
@@ -3559,38 +3559,38 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         constants.alphaMethod = (caseIndex / 3) % 3;
         constants.shadows = caseIndex < 9;
         constants.ao = caseIndex >= 9;
-        hz::CommandList& commands = context.acquireCommandList();
+        hz::CommandList& commands = context.AcquireCommandList();
         if (!caseIndex)
         {
-            commands.buildAccelerationStructure(opaque);
-            commands.buildAccelerationStructure(masked);
-            commands.buildAccelerationStructure(opaqueTop);
-            commands.buildAccelerationStructure(maskedTop);
+            commands.BuildAccelerationStructure(opaque);
+            commands.BuildAccelerationStructure(masked);
+            commands.BuildAccelerationStructure(opaqueTop);
+            commands.BuildAccelerationStructure(maskedTop);
         }
         const auto Clear = [&](const hz::GPUTexture& texture, ClearValue value)
         {
-            commands.beginRendering({ .colorAttachments = { { .pTexture = &texture,
+            commands.BeginRendering({ .colorAttachments = { { .pTexture = &texture,
                                                               .loadAction = LoadActionClear,
                                                               .storeAction = StoreActionStore,
                                                               .ClearValue = value } } });
-            commands.endRendering();
+            commands.EndRendering();
         };
         Clear(normal, { .r = 0.5f, .g = 0.5f, .a = 1 }); // Octahedral +Z.
         Clear(Depth, { .r = 0.2f });
         Clear(noise, { .r = 0.5f, .g = 0.5f });
         Clear(alpha, { .a = scenario == 2 ? 0.75f : 0.25f });
         constants.top = scenario ? maskedTop.GetSrvIndex() : opaqueTop.GetSrvIndex();
-        commands.setPipeline(shadow);
-        commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
-        commands.dispatch(1, 1, 1,
+        commands.SetPipeline(shadow);
+        commands.SetRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
+        commands.Dispatch(1, 1, 1,
                           { .sampledTextures = { &normal, &Depth, &noise, &alpha },
                             .storageTextures = { &result },
                             .buffers = { &frame, &light, &drawBuffer, &materialBuffer, &textureBuffer, &vertices, &indexBuffer, &uv } });
-        commands.setPipeline(reader);
-        commands.setRootConstant({ result.GetSrvIndex(), output.GetUavIndex(), 0 });
-        commands.dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
-        commands.copyBuffer(readback, 0, output, 0, 16);
-        context.wait(context.submit(commands));
+        commands.SetPipeline(reader);
+        commands.SetRootConstant({ result.GetSrvIndex(), output.GetUavIndex(), 0 });
+        commands.Dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
+        commands.CopyBuffer(readback, 0, output, 0, 16);
+        context.Wait(context.Submit(commands));
         const float* values = (const float*)readback.get()->pCpuMappedAddress;
         ASSERT_NE(values, nullptr);
         EXPECT_FLOAT_EQ(values[0], constants.ao || (constants.alphaMethod != 0 && scenario == 1) ? 1.0f : 0.0f);
@@ -3600,7 +3600,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     // Reuse the same scene to exercise the production raster shadow alpha test as well.
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::GPUPipeline raster =
-        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
+        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
                                                                      { .stage = ShaderStageFrag, .pEntryPoint = "PSShadow" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "ShadowMap.slang" },
@@ -3612,13 +3612,13 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     const hz::RenderInstance identity;
     hz::GPUBuffer            instanceBuffer = input(&identity, sizeof(identity));
     const uint32_t           arguments[2][5] = { { 5, 3, 1, 0, 0 }, { 6, 3, 1, 0, 0 } };
-    hz::GPUBuffer            indirect = context.createBuffer({ .Size = sizeof(arguments),
+    hz::GPUBuffer            indirect = context.CreateBuffer({ .Size = sizeof(arguments),
                                                                .pInitialData = arguments,
                                                                .initialDataSize = sizeof(arguments),
                                                                .usage = MemoryUsageGpuOnly,
                                                                .StartState = ResourceStateIndirectArgument,
                                                                .Descriptors = DescriptorTypeIndirectBuffer });
-    hz::GPUTexture           shadowDepth = context.createTexture({ .Width = 1,
+    hz::GPUTexture           shadowDepth = context.CreateTexture({ .Width = 1,
                                                                    .Height = 1,
                                                                    .Format = hz::Format::D16_UNORM,
                                                                    .StartState = ResourceStateDepthWrite,
@@ -3629,14 +3629,14 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     for (uint32_t scenario = 0; scenario < 3; ++scenario)
     {
         SCOPED_TRACE(scenario);
-        hz::CommandList& commands = context.acquireCommandList();
-        commands.beginRendering({ .colorAttachments = { { .pTexture = &alpha,
+        hz::CommandList& commands = context.AcquireCommandList();
+        commands.BeginRendering({ .colorAttachments = { { .pTexture = &alpha,
                                                           .loadAction = LoadActionClear,
                                                           .storeAction = StoreActionStore,
                                                           .ClearValue = { .a = scenario == 2 ? 0.75f : 0.25f } } } });
-        commands.endRendering();
-        commands.setPipeline(raster);
-        commands.beginRendering(
+        commands.EndRendering();
+        commands.SetPipeline(raster);
+        commands.BeginRendering(
             { .depthAttachment = { .pTexture = &shadowDepth,
                                    .loadAction = LoadActionClear,
                                    .storeAction = StoreActionStore,
@@ -3644,18 +3644,18 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
             { .sampledTextures = { &alpha },
               .buffers = { &frame, &instanceBuffer, &materialBuffer, &textureBuffer, &drawBuffer, &vertices, &indexBuffer, &uv },
               .indirectBuffers = { &indirect } });
-        commands.setViewport(0, 0, 1, 1);
-        commands.setScissor(0, 0, 1, 1);
-        commands.setRootConstant({ 0, 0, 0, frame.GetSrvIndex(), instanceBuffer.GetSrvIndex(), materialBuffer.GetSrvIndex(),
+        commands.SetViewport(0, 0, 1, 1);
+        commands.SetScissor(0, 0, 1, 1);
+        commands.SetRootConstant({ 0, 0, 0, frame.GetSrvIndex(), instanceBuffer.GetSrvIndex(), materialBuffer.GetSrvIndex(),
                                    textureBuffer.GetSrvIndex(), sampler.GetIndex() });
-        commands.setRootConstant({ drawBuffer.GetSrvIndex() }, 11);
-        commands.drawIndirect(indirect, scenario ? 20 : 0, 1);
-        commands.endRendering();
-        commands.setPipeline(reader);
-        commands.setRootConstant({ shadowDepth.GetSrvIndex(), output.GetUavIndex(), 0 });
-        commands.dispatch(1, 1, 1, { .sampledTextures = { &shadowDepth }, .storageBuffers = { &output } });
-        commands.copyBuffer(readback, 0, output, 0, 16);
-        context.wait(context.submit(commands));
+        commands.SetRootConstant({ drawBuffer.GetSrvIndex() }, 11);
+        commands.DrawIndirect(indirect, scenario ? 20 : 0, 1);
+        commands.EndRendering();
+        commands.SetPipeline(reader);
+        commands.SetRootConstant({ shadowDepth.GetSrvIndex(), output.GetUavIndex(), 0 });
+        commands.Dispatch(1, 1, 1, { .sampledTextures = { &shadowDepth }, .storageBuffers = { &output } });
+        commands.CopyBuffer(readback, 0, output, 0, 16);
+        context.Wait(context.Submit(commands));
         const float* values = (const float*)readback.get()->pCpuMappedAddress;
         ASSERT_NE(values, nullptr);
         EXPECT_NEAR(values[0], scenario == 1 ? 1.0f : 0.5f, 2e-5f);
@@ -3669,7 +3669,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "CookbookPpllTest", .enableGpuValidation = true });
     hz::GPUPipeline   gather =
-        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
+        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
                                                                      { .stage = ShaderStageFrag, .pEntryPoint = "PSTransparent" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "Transparency.slang" },
@@ -3677,21 +3677,21 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                          .depthStencilFormat = hz::Format::D32_SFLOAT });
     const auto compute = [&](const char* entry)
     {
-        return context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = entry } },
+        return context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = entry } },
                                                                .sourceDirectory = DirectoryOtherFiles,
                                                                .pFileName = "Transparency.slang" } });
     };
     hz::GPUPipeline Clear = compute("ClearMain"), resolve = compute("ResolveMain");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     hz::GPUPipeline reader =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
     ASSERT_TRUE(gather.IsValid() && Clear.IsValid() && resolve.IsValid() && reader.IsValid());
     const auto input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .Size = Size,
+        return context.CreateBuffer({ .Size = Size,
                                       .ElementCount = stride ? Size / stride : Size / 4,
                                       .StructStride = stride,
                                       .pInitialData = data,
@@ -3723,10 +3723,10 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
     hz::GPUBuffer  instanceBuffer = input(instances, sizeof(instances)), materialBuffer = input(materials, sizeof(materials));
     hz::GPUBuffer  vertices = input(positions, sizeof(positions)), normal = input(normals, sizeof(normals)),
                   uv = input(texcoords, sizeof(texcoords));
-    hz::GPUSampler sampler = context.createSampler();
+    hz::GPUSampler sampler = context.CreateSampler();
     const auto     image = [&](hz::Format Format, bool target)
     {
-        return context.createTexture({ .Width = 8,
+        return context.CreateTexture({ .Width = 8,
                                        .Height = 8,
                                        .Format = Format,
                                        .StartState = ResourceStateUnorderedAccess,
@@ -3735,21 +3735,21 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
     };
     hz::GPUTexture heads = image(hz::Format::R32_UINT, false), result = image(hz::Format::R32G32B32A32_SFLOAT, false);
     hz::GPUTexture opaque = image(hz::Format::R32G32B32A32_SFLOAT, true);
-    hz::GPUTexture Depth = context.createTexture(
+    hz::GPUTexture Depth = context.CreateTexture(
         { .Width = 8, .Height = 8, .Format = hz::Format::D32_SFLOAT, .StartState = ResourceStateDepthWrite, .renderTarget = true });
     hz::GPUBuffer counters =
-        context.createBuffer({ .Size = 16,
+        context.CreateBuffer({ .Size = 16,
                                .ElementCount = 4,
                                .usage = MemoryUsageGpuOnly,
                                .StartState = ResourceStateUnorderedAccess,
                                .Descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
-    hz::GPUBuffer pixels = context.createBuffer({ .Size = 64 * 16,
+    hz::GPUBuffer pixels = context.CreateBuffer({ .Size = 64 * 16,
                                                   .ElementCount = 64,
                                                   .StructStride = 16,
                                                   .usage = MemoryUsageGpuOnly,
                                                   .StartState = ResourceStateUnorderedAccess,
                                                   .Descriptors = DescriptorTypeRwBuffer });
-    hz::GPUBuffer readback = context.createBuffer({ .Size = 64 * 16 + 16,
+    hz::GPUBuffer readback = context.CreateBuffer({ .Size = 64 * 16 + 16,
                                                     .usage = MemoryUsageGpuToCpu,
                                                     .StartState = ResourceStateCopyDest,
                                                     .Flags = BufferCreationFlagPersistentMapBit });
@@ -3758,17 +3758,17 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         SCOPED_TRACE(scenario);
         const uint32_t Capacity = scenario == 3 ? 1 : 128;
         hz::GPUBuffer  nodes =
-            context.createBuffer({ .Size = Capacity * 16,
+            context.CreateBuffer({ .Size = Capacity * 16,
                                    .ElementCount = Capacity * 4,
                                    .usage = MemoryUsageGpuOnly,
                                    .StartState = ResourceStateUnorderedAccess,
                                    .Descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
-        hz::CommandList& commands = context.acquireCommandList();
-        commands.beginRendering({ .colorAttachments = { { .pTexture = &opaque,
+        hz::CommandList& commands = context.AcquireCommandList();
+        commands.BeginRendering({ .colorAttachments = { { .pTexture = &opaque,
                                                           .loadAction = LoadActionClear,
                                                           .storeAction = StoreActionStore,
                                                           .ClearValue = { .b = 1, .a = 1 } } } });
-        commands.endRendering();
+        commands.EndRendering();
         uint32_t constants[28];
         for (uint32_t& value : constants)
         {
@@ -3786,44 +3786,44 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         constants[14] = nodes.GetUavIndex();
         constants[15] = Capacity;
         constants[16] = light.GetSrvIndex();
-        commands.setPipeline(Clear);
-        commands.setRootConstant(constants);
-        commands.dispatch(1, 1, 1, { .storageTextures = { &heads }, .storageBuffers = { &counters } });
-        commands.beginRendering({ .depthAttachment = { .pTexture = &Depth,
+        commands.SetPipeline(Clear);
+        commands.SetRootConstant(constants);
+        commands.Dispatch(1, 1, 1, { .storageTextures = { &heads }, .storageBuffers = { &counters } });
+        commands.BeginRendering({ .depthAttachment = { .pTexture = &Depth,
                                                        .loadAction = LoadActionClear,
                                                        .storeAction = StoreActionStore,
                                                        .ClearValue = { .Depth = scenario == 2 ? 0.5f : 1.0f } } },
                                 { .storageTextures = { &heads },
                                   .buffers = { &frame, &light, &instanceBuffer, &materialBuffer, &vertices, &normal, &uv },
                                   .storageBuffers = { &counters, &nodes } });
-        commands.setViewport(0, 0, 8, 8);
-        commands.setScissor(0, 0, 8, 8);
-        commands.setPipeline(gather);
-        for (uint32_t draw = 0; draw < 2; ++draw)
+        commands.SetViewport(0, 0, 8, 8);
+        commands.SetScissor(0, 0, 8, 8);
+        commands.SetPipeline(gather);
+        for (uint32_t Draw = 0; Draw < 2; ++Draw)
         {
-            constants[0] = constants[1] = scenario == 1 ? 1 - draw : draw;
-            commands.setRootConstant(constants);
-            commands.draw(3);
+            constants[0] = constants[1] = scenario == 1 ? 1 - Draw : Draw;
+            commands.SetRootConstant(constants);
+            commands.Draw(3);
         }
-        commands.endRendering();
+        commands.EndRendering();
         constants[12] = heads.GetSrvIndex();
         constants[14] = nodes.GetSrvIndex();
         constants[23] = opaque.GetSrvIndex();
         constants[24] = constants[25] = constants[27] = 0;
         constants[26] = result.GetUavIndex();
-        commands.setPipeline(resolve);
-        commands.setRootConstant(constants);
-        commands.dispatch(1, 1, 1,
+        commands.SetPipeline(resolve);
+        commands.SetRootConstant(constants);
+        commands.Dispatch(1, 1, 1,
                           { .sampledTextures = { &heads, &opaque },
                             .storageTextures = { &result },
                             .buffers = { &nodes },
                             .storageBuffers = { &counters } });
-        commands.setPipeline(reader);
-        commands.setRootConstant({ result.GetSrvIndex(), pixels.GetUavIndex(), 0 });
-        commands.dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &pixels } });
-        commands.copyBuffer(readback, 0, pixels, 0, 64 * 16);
-        commands.copyBuffer(readback, 64 * 16, counters, 0, 16);
-        context.wait(context.submit(commands));
+        commands.SetPipeline(reader);
+        commands.SetRootConstant({ result.GetSrvIndex(), pixels.GetUavIndex(), 0 });
+        commands.Dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &pixels } });
+        commands.CopyBuffer(readback, 0, pixels, 0, 64 * 16);
+        commands.CopyBuffer(readback, 64 * 16, counters, 0, 16);
+        context.Wait(context.Submit(commands));
         const float*    color = (const float*)readback.get()->pCpuMappedAddress;
         const uint32_t* stats = (const uint32_t*)((const uint8_t*)color + 64 * 16);
         EXPECT_EQ(stats[0], scenario == 2 ? 64u : 128u);
@@ -3859,7 +3859,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::RenderContext context({ .pAppName = "CookbookPostTest", .enableGpuValidation = true });
     const auto        compute = [&](const char* file, const char* entry)
     {
-        return context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = entry } },
+        return context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = entry } },
                                                                .sourceDirectory = DirectoryOtherFiles,
                                                                .pFileName = file } });
     };
@@ -3869,13 +3869,13 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::GPUPipeline downsample = compute("PostBloomDownsample.slang", "CSMain");
     hz::GPUPipeline upsample = compute("PostBloomUpsample.slang", "CSMain");
     hz::GPUPipeline tone =
-        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
+        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
                                                                      { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "PostToneMap.slang" },
                                          .colorTargets = { { .Format = hz::Format::R32G32B32A32_SFLOAT } } });
     hz::GPUPipeline deferred =
-        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
+        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
                                                                      { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "DeferredLighting.slang" },
@@ -3898,7 +3898,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     )hlsl";
     const auto helper = [&](const char* source, uint32_t Size, const char* entry)
     {
-        return context.createComputePipeline(
+        return context.CreateComputePipeline(
             { .shaderDesc = {
                   .stages = { { .stage = ShaderStageComp, .pSource = source, .sourceSize = Size, .pEntryPoint = entry } } } });
     };
@@ -3911,7 +3911,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                 deferred.IsValid());
     const auto image = [&](uint32_t Width, uint32_t Height, hz::Format Format)
     {
-        return context.createTexture({ .Width = Width,
+        return context.CreateTexture({ .Width = Width,
                                        .Height = Height,
                                        .Format = Format,
                                        .StartState = ResourceStateRenderTarget,
@@ -3924,15 +3924,15 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::GPUTexture       logOutput = image(2, 2, scalar), logGrid = image(2, 2, scalar);
     hz::GPUTexture       reduced = image(1, 1, scalar), previous = image(1, 1, scalar), adapted = image(1, 1, scalar);
     hz::GPUTexture       impulse = image(9, 9, rgba), blurred = image(9, 9, rgba);
-    hz::GPUSampler       sampler = context.createSampler(
+    hz::GPUSampler       sampler = context.CreateSampler(
         { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .AddressW = AddressModeClampToEdge });
-    hz::GPUBuffer  output = context.createBuffer({ .Size = 256 * 16,
+    hz::GPUBuffer  output = context.CreateBuffer({ .Size = 256 * 16,
                                                    .ElementCount = 256,
                                                    .StructStride = 16,
                                                    .usage = MemoryUsageGpuOnly,
                                                    .StartState = ResourceStateUnorderedAccess,
                                                    .Descriptors = DescriptorTypeRwBuffer });
-    hz::GPUBuffer  readback = context.createBuffer({ .Size = 256 * 16,
+    hz::GPUBuffer  readback = context.CreateBuffer({ .Size = 256 * 16,
                                                      .usage = MemoryUsageGpuToCpu,
                                                      .StartState = ResourceStateCopyDest,
                                                      .Flags = BufferCreationFlagPersistentMapBit });
@@ -3950,7 +3950,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     peakLight.lightDirection = Vector4(0, 0, -1, 100000);
     const auto upload = [&](const void* data, uint32_t Size)
     {
-        return context.createBuffer({ .Size = Size,
+        return context.CreateBuffer({ .Size = Size,
                                       .ElementCount = 1,
                                       .StructStride = Size,
                                       .pInitialData = data,
@@ -3960,23 +3960,23 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                       .Descriptors = DescriptorTypeBuffer });
     };
     hz::GPUBuffer    peakFrame = upload(&peakCamera, sizeof(peakCamera)), peakLighting = upload(&peakLight, sizeof(peakLight));
-    hz::CommandList& commands = context.acquireCommandList();
+    hz::CommandList& commands = context.AcquireCommandList();
     const auto       Clear = [&](const hz::GPUTexture& texture, float value)
     {
-        commands.beginRendering({ .colorAttachments = { { .pTexture = &texture,
+        commands.BeginRendering({ .colorAttachments = { { .pTexture = &texture,
                                                           .loadAction = LoadActionClear,
                                                           .storeAction = StoreActionStore,
                                                           .ClearValue = { .r = value, .g = value, .b = value, .a = 1 } } } });
-        commands.endRendering();
+        commands.EndRendering();
     };
     Clear(source, 1.2f);
     Clear(black, 0);
     Clear(average, 0.18f);
     const auto read = [&](const hz::GPUTexture& texture, uint32_t offset)
     {
-        commands.setPipeline(reader);
-        commands.setRootConstant({ texture.GetSrvIndex(), output.GetUavIndex(), offset });
-        commands.dispatch((texture.GetWidth() + 7) / 8, (texture.GetHeight() + 7) / 8, 1,
+        commands.SetPipeline(reader);
+        commands.SetRootConstant({ texture.GetSrvIndex(), output.GetUavIndex(), offset });
+        commands.Dispatch((texture.GetWidth() + 7) / 8, (texture.GetHeight() + 7) / 8, 1,
                           { .sampledTextures = { &texture }, .storageBuffers = { &output } });
     };
     struct ToneConstants
@@ -3989,16 +3989,16 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     } toneConstants = { source.GetSrvIndex(), average.GetSrvIndex(), black.GetSrvIndex(), sampler.GetIndex(), 0 };
     for (uint32_t mode = 0; mode < 4; ++mode)
     {
-        commands.beginRendering(
+        commands.BeginRendering(
             { .colorAttachments = { { .pTexture = &mapped, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
             { .sampledTextures = { &source, &average, &black } });
-        commands.setViewport(0, 0, 1, 1);
-        commands.setScissor(0, 0, 1, 1);
-        commands.setPipeline(tone);
+        commands.SetViewport(0, 0, 1, 1);
+        commands.SetScissor(0, 0, 1, 1);
+        commands.SetPipeline(tone);
         toneConstants.mode = mode;
-        commands.setRootConstant({ (const uint32_t*)&toneConstants, sizeof(toneConstants) / 4 });
-        commands.draw(3);
-        commands.endRendering();
+        commands.SetRootConstant({ (const uint32_t*)&toneConstants, sizeof(toneConstants) / 4 });
+        commands.Draw(3);
+        commands.EndRendering();
         read(mapped, mode);
     }
     struct MeteringConstants
@@ -4006,12 +4006,12 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         uint32_t source, log;
     };
     const MeteringConstants meteringConstants = { source.GetSrvIndex(), logOutput.GetUavIndex() };
-    commands.setPipeline(metering);
-    commands.setRootConstant({ (const uint32_t*)&meteringConstants, sizeof(meteringConstants) / 4 });
-    commands.dispatch(1, 1, 1, { .sampledTextures = { &source }, .storageTextures = { &logOutput } });
+    commands.SetPipeline(metering);
+    commands.SetRootConstant({ (const uint32_t*)&meteringConstants, sizeof(meteringConstants) / 4 });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &source }, .storageTextures = { &logOutput } });
     read(logOutput, 8);
     // Real deferred shader: N=V=L, white dielectric, roughness=.2, quantized Specular=8/16. No environment, shadow or AO.
-    commands.beginRendering({ .colorAttachments = { { .pTexture = &peakNormal,
+    commands.BeginRendering({ .colorAttachments = { { .pTexture = &peakNormal,
                                                       .loadAction = LoadActionClear,
                                                       .storeAction = StoreActionStore,
                                                       .ClearValue = { .r = .5f, .g = .5f, .b = 51.0f / 1023.0f, .a = 2.0f / 3.0f } },
@@ -4019,13 +4019,13 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                                       .loadAction = LoadActionClear,
                                                       .storeAction = StoreActionStore,
                                                       .ClearValue = { .r = 1, .g = 1, .b = 1, .a = 0 } } } });
-    commands.endRendering();
-    commands.setPipeline(deferred);
-    commands.beginRendering(
+    commands.EndRendering();
+    commands.SetPipeline(deferred);
+    commands.BeginRendering(
         { .colorAttachments = { { .pTexture = &mapped, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
         { .sampledTextures = { &black, &average, &peakNormal, &peakBase }, .buffers = { &peakFrame, &peakLighting } });
-    commands.setViewport(0, 0, 1, 1);
-    commands.setScissor(0, 0, 1, 1);
+    commands.SetViewport(0, 0, 1, 1);
+    commands.SetScissor(0, 0, 1, 1);
     uint32_t peakConstants[15];
     for (uint32_t& value : peakConstants)
     {
@@ -4037,9 +4037,9 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     peakConstants[3] = peakNormal.GetSrvIndex();
     peakConstants[4] = peakBase.GetSrvIndex();
     peakConstants[5] = average.GetSrvIndex();
-    commands.setRootConstant(peakConstants);
-    commands.draw(3);
-    commands.endRendering();
+    commands.SetRootConstant(peakConstants);
+    commands.Draw(3);
+    commands.EndRendering();
     read(mapped, 15);
     struct LuminanceConstants
     {
@@ -4047,22 +4047,22 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         float    time;
     };
     LuminanceConstants luminanceConstants = { previous.GetUavIndex(), adapted.GetUavIndex(), 0, 0 };
-    commands.setPipeline(initialize);
-    commands.setRootConstant({ (const uint32_t*)&luminanceConstants, sizeof(luminanceConstants) / 4 });
-    commands.dispatch(1, 1, 1, { .storageTextures = { &previous, &adapted } });
+    commands.SetPipeline(initialize);
+    commands.SetRootConstant({ (const uint32_t*)&luminanceConstants, sizeof(luminanceConstants) / 4 });
+    commands.Dispatch(1, 1, 1, { .storageTextures = { &previous, &adapted } });
     read(previous, 12);
-    commands.setPipeline(seedLogs);
-    commands.setRootConstant({ logGrid.GetUavIndex() });
-    commands.dispatch(1, 1, 1, { .storageTextures = { &logGrid } });
-    commands.setPipeline(reduce);
+    commands.SetPipeline(seedLogs);
+    commands.SetRootConstant({ logGrid.GetUavIndex() });
+    commands.Dispatch(1, 1, 1, { .storageTextures = { &logGrid } });
+    commands.SetPipeline(reduce);
     luminanceConstants = { logGrid.GetSrvIndex(), reduced.GetUavIndex(), 0, 0 };
-    commands.setRootConstant({ (const uint32_t*)&luminanceConstants, sizeof(luminanceConstants) / 4 });
-    commands.dispatch(1, 1, 1, { .sampledTextures = { &logGrid }, .storageTextures = { &reduced } });
+    commands.SetRootConstant({ (const uint32_t*)&luminanceConstants, sizeof(luminanceConstants) / 4 });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &logGrid }, .storageTextures = { &reduced } });
     read(reduced, 13);
-    commands.setPipeline(adapt);
+    commands.SetPipeline(adapt);
     luminanceConstants = { reduced.GetSrvIndex(), adapted.GetUavIndex(), previous.GetSrvIndex(), 0.3f };
-    commands.setRootConstant({ (const uint32_t*)&luminanceConstants, sizeof(luminanceConstants) / 4 });
-    commands.dispatch(1, 1, 1, { .sampledTextures = { &reduced, &previous }, .storageTextures = { &adapted } });
+    commands.SetRootConstant({ (const uint32_t*)&luminanceConstants, sizeof(luminanceConstants) / 4 });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &reduced, &previous }, .storageTextures = { &adapted } });
     read(adapted, 14);
     struct DownsampleConstants
     {
@@ -4079,13 +4079,13 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     Clear(bloomWide, 1.0f);
     const DownsampleConstants boxConstants = { impulse.GetSrvIndex(), bloomSmall.GetUavIndex(), sampler.GetIndex(),
                                                average.GetSrvIndex(), 0, 0, 1 };
-    commands.setPipeline(downsample);
-    commands.setRootConstant({ (const uint32_t*)&boxConstants, sizeof(boxConstants) / 4 });
-    commands.dispatch(1, 1, 1, { .sampledTextures = { &impulse, &average }, .storageTextures = { &bloomSmall } });
+    commands.SetPipeline(downsample);
+    commands.SetRootConstant({ (const uint32_t*)&boxConstants, sizeof(boxConstants) / 4 });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &impulse, &average }, .storageTextures = { &bloomSmall } });
     const UpsampleConstants tentConstants = { bloomWide.GetSrvIndex(), bloomSmall.GetSrvIndex(), blurred.GetUavIndex(), sampler.GetIndex() };
-    commands.setPipeline(upsample);
-    commands.setRootConstant({ (const uint32_t*)&tentConstants, sizeof(tentConstants) / 4 });
-    commands.dispatch(1, 1, 1, { .sampledTextures = { &bloomWide, &bloomSmall }, .storageTextures = { &blurred } });
+    commands.SetPipeline(upsample);
+    commands.SetRootConstant({ (const uint32_t*)&tentConstants, sizeof(tentConstants) / 4 });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &bloomWide, &bloomSmall }, .storageTextures = { &blurred } });
     read(blurred, 16);
     // Real output shader: retain the HDR shoulder for gray 1.2 above paper white.
     toneConstants.mode = 0;
@@ -4094,34 +4094,34 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     for (uint32_t mode = 1; mode <= 2; ++mode)
     {
         toneConstants.outputMode = mode;
-        commands.setPipeline(tone);
-        commands.beginRendering(
+        commands.SetPipeline(tone);
+        commands.BeginRendering(
             { .colorAttachments = { { .pTexture = &mapped, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
             { .sampledTextures = { &source, &average, &black } });
-        commands.setViewport(0, 0, 1, 1);
-        commands.setScissor(0, 0, 1, 1);
-        commands.setRootConstant({ reinterpret_cast<const uint32_t*>(&toneConstants), sizeof(toneConstants) / 4 });
-        commands.draw(3);
-        commands.endRendering();
+        commands.SetViewport(0, 0, 1, 1);
+        commands.SetScissor(0, 0, 1, 1);
+        commands.SetRootConstant({ reinterpret_cast<const uint32_t*>(&toneConstants), sizeof(toneConstants) / 4 });
+        commands.Draw(3);
+        commands.EndRendering();
         read(mapped, 177 + mode);
     }
     // A 2x2 footprint is one box step: a 270 texel keeps a quarter and the soft knee passes 66.5; a NaN texel is dropped.
     for (uint32_t x = 0; x < 2; ++x)
     {
-        commands.setPipeline(movingPeak);
-        commands.setRootConstant({ peakSource.GetUavIndex(), x });
-        commands.dispatch(1, 1, 1, { .storageTextures = { &peakSource } });
+        commands.SetPipeline(movingPeak);
+        commands.SetRootConstant({ peakSource.GetUavIndex(), x });
+        commands.Dispatch(1, 1, 1, { .storageTextures = { &peakSource } });
         const DownsampleConstants movingConstants = { peakSource.GetSrvIndex(), peakBright.GetUavIndex(), sampler.GetIndex(),
                                                       average.GetSrvIndex(), 1, 1, 1 };
-        commands.setPipeline(downsample);
-        commands.setRootConstant({ (const uint32_t*)&movingConstants, sizeof(movingConstants) / 4 });
-        commands.dispatch(1, 1, 1, { .sampledTextures = { &peakSource, &average }, .storageTextures = { &peakBright } });
+        commands.SetPipeline(downsample);
+        commands.SetRootConstant({ (const uint32_t*)&movingConstants, sizeof(movingConstants) / 4 });
+        commands.Dispatch(1, 1, 1, { .sampledTextures = { &peakSource, &average }, .storageTextures = { &peakBright } });
         read(peakBright, 180 + x);
     }
 
-    commands.copyBuffer(readback, 0, output, 0, 256 * 16);
+    commands.CopyBuffer(readback, 0, output, 0, 256 * 16);
 
-    context.wait(context.submit(commands));
+    context.Wait(context.Submit(commands));
     const float* values = (const float*)readback.get()->pCpuMappedAddress;
     ASSERT_NE(values, nullptr);
     for (uint32_t x = 0; x < 2; ++x)
@@ -4201,12 +4201,12 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     const size_t normalBytes = WriteToStream(&normalStream, normalDDS, sizeof(normalDDS));
     CloseStream(&normalStream);
     ASSERT_EQ(normalBytes, sizeof(normalDDS));
-    hz::GPUTexture normalMap = context.loadTexture(DirectoryOtherFiles, "normal-bc5.dds");
+    hz::GPUTexture normalMap = context.LoadTexture(DirectoryOtherFiles, "normal-bc5.dds");
     ASSERT_TRUE(normalMap.IsValid());
     ASSERT_EQ(normalMap.GetFormat(), hz::Format::DXBC5_UNORM);
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::GPUPipeline geometry =
-        context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
+        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
                                                                      { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "Geometry.slang" },
@@ -4216,14 +4216,14 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
                                                            { .Format = hz::Format::R8G8B8A8_UNORM } } });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     hz::GPUPipeline reader =
-        context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
     ASSERT_TRUE(geometry.IsValid() && reader.IsValid());
     const auto input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
-        return context.createBuffer({ .Size = Size,
+        return context.CreateBuffer({ .Size = Size,
                                       .ElementCount = stride ? Size / stride : Size / 4,
                                       .StructStride = stride,
                                       .pInitialData = data,
@@ -4235,7 +4235,7 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     };
     const auto image = [&](hz::Format Format)
     {
-        return context.createTexture({ .Width = 4,
+        return context.CreateTexture({ .Width = 4,
                                        .Height = 4,
                                        .Format = Format,
                                        .StartState = ResourceStateRenderTarget,
@@ -4270,14 +4270,14 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     hz::GPUBuffer              materials = input(&material, sizeof(material)), textures = input(&texture, sizeof(texture));
     hz::GPUBuffer              vertices = input(positions, sizeof(positions)), normal = input(normals, sizeof(normals)),
                   uv = input(nearUV, sizeof(nearUV));
-    hz::GPUSampler sampler = context.createSampler();
-    hz::GPUBuffer  output = context.createBuffer({ .Size = 16 * 16,
+    hz::GPUSampler sampler = context.CreateSampler();
+    hz::GPUBuffer  output = context.CreateBuffer({ .Size = 16 * 16,
                                                    .ElementCount = 16,
                                                    .StructStride = 16,
                                                    .usage = MemoryUsageGpuOnly,
                                                    .StartState = ResourceStateUnorderedAccess,
                                                    .Descriptors = DescriptorTypeRwBuffer });
-    hz::GPUBuffer  readback = context.createBuffer({ .Size = 2 * 16 * 16,
+    hz::GPUBuffer  readback = context.CreateBuffer({ .Size = 2 * 16 * 16,
                                                      .usage = MemoryUsageGpuToCpu,
                                                      .StartState = ResourceStateCopyDest,
                                                      .Flags = BufferCreationFlagPersistentMapBit });
@@ -4293,24 +4293,24 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     {
         SCOPED_TRACE(::testing::Message() << scenario.mode << ":" << scenario.alpha << ":" << scenario.distant);
         material.alphaMode = scenario.mode;
-        ASSERT_TRUE(context.updateBuffer(materials, 0, &material, sizeof(material)));
-        ASSERT_TRUE(context.updateBuffer(uv, 0, scenario.distant ? farUV : nearUV, sizeof(nearUV)));
-        hz::CommandList& commands = context.acquireCommandList();
-        commands.beginRendering({ .colorAttachments = { { .pTexture = &alpha,
+        ASSERT_TRUE(context.UpdateBuffer(materials, 0, &material, sizeof(material)));
+        ASSERT_TRUE(context.UpdateBuffer(uv, 0, scenario.distant ? farUV : nearUV, sizeof(nearUV)));
+        hz::CommandList& commands = context.AcquireCommandList();
+        commands.BeginRendering({ .colorAttachments = { { .pTexture = &alpha,
                                                           .loadAction = LoadActionClear,
                                                           .storeAction = StoreActionStore,
                                                           .ClearValue = { .r = 1, .g = 1, .b = 1, .a = scenario.alpha } } } });
-        commands.endRendering();
-        commands.setPipeline(geometry);
-        commands.beginRendering(
+        commands.EndRendering();
+        commands.SetPipeline(geometry);
+        commands.BeginRendering(
             { .colorAttachments = { { .pTexture = &targets[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
                                     { .pTexture = &targets[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
                                     { .pTexture = &targets[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
                                     { .pTexture = &targets[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore } } },
             { .sampledTextures = { &alpha, &normalMap },
               .buffers = { &frame, &instances, &materials, &textures, &vertices, &normal, &uv } });
-        commands.setViewport(0, 0, 4, 4);
-        commands.setScissor(0, 0, 4, 4);
+        commands.SetViewport(0, 0, 4, 4);
+        commands.SetScissor(0, 0, 4, 4);
         uint32_t constants[27] = {};
         constants[3] = frame.GetSrvIndex();
         constants[4] = instances.GetSrvIndex();
@@ -4320,17 +4320,17 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
         constants[8] = vertices.GetSrvIndex();
         constants[9] = normal.GetSrvIndex();
         constants[10] = uv.GetSrvIndex();
-        commands.setRootConstant(constants);
-        commands.draw(3);
-        commands.endRendering();
-        commands.setPipeline(reader);
-        commands.setRootConstant({ targets[2].GetSrvIndex(), output.GetUavIndex(), 0 });
-        commands.dispatch(1, 1, 1, { .sampledTextures = { &targets[2] }, .storageBuffers = { &output } });
-        commands.copyBuffer(readback, 0, output, 0, 16 * 16);
-        commands.setRootConstant({ targets[1].GetSrvIndex(), output.GetUavIndex(), 0 });
-        commands.dispatch(1, 1, 1, { .sampledTextures = { &targets[1] }, .storageBuffers = { &output } });
-        commands.copyBuffer(readback, 16 * 16, output, 0, 16 * 16);
-        context.wait(context.submit(commands));
+        commands.SetRootConstant(constants);
+        commands.Draw(3);
+        commands.EndRendering();
+        commands.SetPipeline(reader);
+        commands.SetRootConstant({ targets[2].GetSrvIndex(), output.GetUavIndex(), 0 });
+        commands.Dispatch(1, 1, 1, { .sampledTextures = { &targets[2] }, .storageBuffers = { &output } });
+        commands.CopyBuffer(readback, 0, output, 0, 16 * 16);
+        commands.SetRootConstant({ targets[1].GetSrvIndex(), output.GetUavIndex(), 0 });
+        commands.Dispatch(1, 1, 1, { .sampledTextures = { &targets[1] }, .storageBuffers = { &output } });
+        commands.CopyBuffer(readback, 16 * 16, output, 0, 16 * 16);
+        context.Wait(context.Submit(commands));
         const float* pixels = (const float*)readback.get()->pCpuMappedAddress;
         ASSERT_NE(pixels, nullptr);
         uint32_t coverage = 0;
@@ -4358,7 +4358,7 @@ TEST_F(SceneAssetLoaderTest, RendererScreenSpaceAOShadersCompile)
     // The AO pass produces the indirect-light occlusion the deferred shader consumes, so both entry points must link.
     for (const char* entry : { "CSMain", "BlurMain" })
     {
-        const hz::GPUPipeline pipeline = context.createComputePipeline(
+        const hz::GPUPipeline pipeline = context.CreateComputePipeline(
             { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = entry } },
                               .sourceDirectory = DirectoryOtherFiles,
                               .pFileName = "ScreenSpaceAO.slang" } });

@@ -38,7 +38,7 @@ static_assert(sizeof(GeometryBindingConstants) == 5 * sizeof(uint32_t));
 
 GBuffer::GBuffer(hz::RenderContext& Context): Context(Context)
 {
-    Pipeline = Context.createGraphicsPipeline({
+    Pipeline = Context.CreateGraphicsPipeline({
     .shaderDesc = {
         .stages = {
             { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect", .Name = "Renderer.GeometryVS" },
@@ -58,7 +58,7 @@ GBuffer::GBuffer(hz::RenderContext& Context): Context(Context)
     .Name = "Renderer.GeometryPipeline",
 });
 
-    Sampler = Context.createSampler();
+    Sampler = Context.CreateSampler();
     ASSERT(Pipeline.IsValid() && Sampler.IsValid());
 }
 
@@ -78,13 +78,13 @@ void GBuffer::Resize(uint32_t Width, uint32_t Height)
     {
         TargetDesc.Format = GBufferFormats[Index];
         TargetDesc.Name = GBufferNames[Index];
-        Textures[Index] = Context.createTexture(TargetDesc);
+        Textures[Index] = Context.CreateTexture(TargetDesc);
     }
 
     TargetDesc.Format = DepthFormat;
     TargetDesc.StartState = ResourceStateDepthWrite;
     TargetDesc.Name = "Renderer.Depth";
-    Depth = Context.createTexture(TargetDesc);
+    Depth = Context.CreateTexture(TargetDesc);
 }
 
 void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const SceneView& View, const GpuDrawList& Draws)
@@ -92,8 +92,8 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const Sc
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GBuffer::execute");
     const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
     const ClearValue           Black = {};
-    Cmd.beginGpuTimestamp("Geometry");
-    Cmd.beginRendering({
+    Cmd.BeginGpuTimestamp("Geometry");
+    Cmd.BeginRendering({
         .colorAttachments =  {
             { .pTexture = &Textures[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .ClearValue = Black },
             { .pTexture = &Textures[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .ClearValue = Black },
@@ -105,9 +105,9 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const Sc
                              .storeAction = StoreActionStore,
                              .ClearValue = { .Depth = 1.0f } },
     }, Draws.GetDependencies(Frame, View, &Draws.GetCommands(View.FrameIndex)));
-    Cmd.setViewport(0, 0, (float)Width, (float)Height);
-    Cmd.setScissor(0, 0, Width, Height);
-    Cmd.setPipeline(Pipeline);
+    Cmd.SetViewport(0, 0, (float)Width, (float)Height);
+    Cmd.SetScissor(0, 0, Width, Height);
+    Cmd.SetPipeline(Pipeline);
     const GeometryBindingConstants Binding = {
         .frameIndex = Frame.GetSrvIndex(),
         .instancesIndex = Gpu.instances.IsValid() ? Gpu.instances.GetSrvIndex() : UINT32_MAX,
@@ -115,15 +115,15 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const Sc
         .texturesIndex = Gpu.textures.IsValid() ? Gpu.textures.GetSrvIndex() : UINT32_MAX,
         .samplerIndex = Sampler.GetIndex(),
     };
-    Cmd.setRootConstants(Binding, GeometryBindingSlot);
+    Cmd.SetRootConstants(Binding, GeometryBindingSlot);
 
-    Cmd.setRootConstant({ Draws.GetDrawData(View.FrameIndex).GetSrvIndex() }, GeometryDrawSlot);
+    Cmd.SetRootConstant({ Draws.GetDrawData(View.FrameIndex).GetSrvIndex() }, GeometryDrawSlot);
     if (Draws.GetCount(View.FrameIndex))
     {
-        Cmd.drawIndirect(Draws.GetCommands(View.FrameIndex), 0, Draws.GetCount(View.FrameIndex));
+        Cmd.DrawIndirect(Draws.GetCommands(View.FrameIndex), 0, Draws.GetCount(View.FrameIndex));
     }
-    Cmd.endRendering();
-    Cmd.endGpuTimestamp();
+    Cmd.EndRendering();
+    Cmd.EndGpuTimestamp();
 }
 
 static void ExecuteShadows(FrameContext& Frame, void* UserData)
@@ -215,11 +215,11 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     AddPass({ .Name = "Transparency", .Execute = ExecuteTransparency, .UserData = Transparency.Get(), .Enabled = &EnableTransparency });
     AddPass({ .Name = "Post", .Execute = ExecutePost, .UserData = PostProcessing.Get() });
 
-    LinearSampler = Context.createSampler({ .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge });
+    LinearSampler = Context.CreateSampler({ .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge });
     for (FrameConstantBuffer& ConstantBuffer : FrameConstants)
     {
         hz::GPUBuffer& Buffer = ConstantBuffer.Buffer;
-        Buffer = Context.createBuffer({ .Size = sizeof(FrameData),
+        Buffer = Context.CreateBuffer({ .Size = sizeof(FrameData),
                                         .ElementCount = 1,
                                         .StructStride = sizeof(FrameData),
                                         .Name = "Renderer.Frame",
@@ -282,7 +282,7 @@ void RenderPasses::Execute()
     if (ConstantBuffer.Submission.IsValid())
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::waitForFrame");
-        Context.wait(ConstantBuffer.Submission);
+        Context.Wait(ConstantBuffer.Submission);
     }
     if (!GpuSceneData.beginFrame())
     {
@@ -301,16 +301,16 @@ void RenderPasses::Execute()
                                             .inverseViewProjection = inverse(Current),
                                             .eye = CameraState.current.getCol3() };
     const hz::GPUBuffer&    Frame = ConstantBuffer.Buffer;
-    const bool              Updated = Context.updateBuffer(Frame, 0, &FrameValues, sizeof(FrameValues));
+    const bool              Updated = Context.UpdateBuffer(Frame, 0, &FrameValues, sizeof(FrameValues));
     ASSERT(Updated);
-    hz::CommandList& Commands = Context.acquireCommandList();
+    hz::CommandList& Commands = Context.AcquireCommandList();
     GpuSceneData.upload(Commands);
     Draws.Prepare(Commands, Frame, View);
     // Frame shape the passes depend on; the shadow pass publishes its intensity once it ran.
     Shadows->Data.environmentMipCount = Environment->GetPrefilteredMipCount();
     Shadows->Data.rtShadowEnabled = RayTracing->IsSupported() && RayTracing->Settings.Shadows ? 1u : 0u;
     Shadows->Data.rtAOEnabled = RayTracing->IsSupported() && RayTracing->Settings.AO ? 1u : 0u;
-    const hz::GPUTexture& Backbuffer = Context.getCurrentBackbuffer();
+    const hz::GPUTexture& Backbuffer = Context.GetCurrentBackbuffer();
     FrameContext          FrameState = { .Commands = Commands,
                                          .Draws = Draws,
                                          .Frame = Frame,
@@ -334,6 +334,6 @@ void RenderPasses::Execute()
         Pass.Execute(FrameState, Pass.UserData);
     }
     ASSERT(FrameState.Color && FrameState.Backbuffer);
-    ConstantBuffer.Submission = Context.submit(Commands, FrameState.Backbuffer);
+    ConstantBuffer.Submission = Context.Submit(Commands, FrameState.Backbuffer);
     GpuSceneData.endFrame(ConstantBuffer.Submission);
 }

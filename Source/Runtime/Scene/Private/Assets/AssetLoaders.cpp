@@ -60,7 +60,7 @@ public:
         AssetGeometry& geometry = *(AssetGeometry*)User;
         const bool     success = geometry.buildBounds();
         if (!success)
-            LOGF(Error, "Invalid Mesh positions or draw ranges in '%s'", geometry.pPath);
+            LOGF(Error, "Invalid Mesh positions or Draw ranges in '%s'", geometry.pPath);
         tfrg_atomic32_store_release(&geometry.status, (uint32_t)(success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
     }
 
@@ -245,9 +245,9 @@ public:
             return status;
         for (const SceneAssetSubmesh& submesh : mesh.getDescription().submeshes)
         {
-            if (submesh.draw >= mesh.pGeometry->draws.Size())
+            if (submesh.Draw >= mesh.pGeometry->draws.Size())
             {
-                LOGF(Error, "Mesh submesh draw is outside Geometry '%s'", mesh.pGeometry->pPath);
+                LOGF(Error, "Mesh submesh Draw is outside Geometry '%s'", mesh.pGeometry->pPath);
                 return AssetLoadStatus::Failed;
             }
         }
@@ -341,25 +341,25 @@ bool AssetGeometry::buildBounds()
     const GeometryData::ShadowData& shadow = *pShadow->pShadow;
     const uint8_t*                  pPositions = (const uint8_t*)shadow.pAttributes[SEMANTIC_POSITION];
     const bool                      index32 = pUpload->indexType == IndexTypeUInt32;
-    draws.resize(pUpload->drawArgCount);
+    draws.Resize(pUpload->drawArgCount);
     for (uint32_t i = 0; i < draws.Size(); ++i)
     {
-        MeshDraw& draw = draws[i];
-        draw.arguments = pUpload->pDrawArgs[i];
-        if (!draw.arguments.indexCount || draw.arguments.startIndex > pUpload->indexCount ||
-            draw.arguments.indexCount > pUpload->indexCount - draw.arguments.startIndex)
+        MeshDraw& Draw = draws[i];
+        Draw.arguments = pUpload->pDrawArgs[i];
+        if (!Draw.arguments.indexCount || Draw.arguments.startIndex > pUpload->indexCount ||
+            Draw.arguments.indexCount > pUpload->indexCount - Draw.arguments.startIndex)
             return false;
         for (uint32_t axis = 0; axis < 3; ++axis)
         {
-            draw.bounds.minimum[axis] = FLT_MAX;
-            draw.bounds.maximum[axis] = -FLT_MAX;
+            Draw.bounds.minimum[axis] = FLT_MAX;
+            Draw.bounds.maximum[axis] = -FLT_MAX;
         }
-        for (uint32_t j = 0; j < draw.arguments.indexCount; ++j)
+        for (uint32_t j = 0; j < Draw.arguments.indexCount; ++j)
         {
-            const uint32_t index = draw.arguments.startIndex + j;
+            const uint32_t index = Draw.arguments.startIndex + j;
             const int64_t  vertex =
                 (int64_t)(index32 ? ((const uint32_t*)shadow.pIndices)[index] : ((const uint16_t*)shadow.pIndices)[index]) +
-                (int32_t)draw.arguments.vertexOffset;
+                (int32_t)Draw.arguments.vertexOffset;
             if (vertex < 0 || (uint64_t)vertex >= pUpload->vertexCount)
                 return false;
             for (uint32_t axis = 0; axis < 3; ++axis)
@@ -368,10 +368,10 @@ bool AssetGeometry::buildBounds()
                 memcpy(&value, pPositions + (vertex * 3 + axis) * sizeof(float), sizeof(value));
                 if (!isfinite(value))
                     return false;
-                if (value < draw.bounds.minimum[axis])
-                    draw.bounds.minimum[axis] = value;
-                if (value > draw.bounds.maximum[axis])
-                    draw.bounds.maximum[axis] = value;
+                if (value < Draw.bounds.minimum[axis])
+                    Draw.bounds.minimum[axis] = value;
+                if (value > Draw.bounds.maximum[axis])
+                    Draw.bounds.maximum[axis] = value;
             }
         }
     }
@@ -455,12 +455,12 @@ IndexType                         MeshAsset::getIndexType() const { return pGeom
 const IndirectDrawIndexArguments& MeshAsset::getDraw(uint32_t submesh) const
 {
     ASSERT(submesh < getDescription().submeshes.Count);
-    return pGeometry->draws[getDescription().submeshes.Data[submesh].draw].arguments;
+    return pGeometry->draws[getDescription().submeshes.Data[submesh].Draw].arguments;
 }
 const MeshBounds& MeshAsset::getBounds(uint32_t submesh) const
 {
     ASSERT(submesh < getDescription().submeshes.Count);
-    return pGeometry->draws[getDescription().submeshes.Data[submesh].draw].bounds;
+    return pGeometry->draws[getDescription().submeshes.Data[submesh].Draw].bounds;
 }
 
 AssetLoaders::AssetLoaders(RenderContext& context, const AssetLoadersDesc& desc): Data(MemNew(AssetLoadersData, context, desc)) {}

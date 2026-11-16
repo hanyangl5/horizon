@@ -49,7 +49,7 @@ bool SceneTextureCooker::readImage(const char* pPath, hz::Array<uint8_t>& bytes)
         CloseStream(&stream);
         return false;
     }
-    bytes.resize((uint32_t)Size);
+    bytes.Resize((uint32_t)Size);
     const bool read = ReadFromStream(&stream, bytes.GetData(), bytes.Size()) == bytes.Size();
     return CloseStream(&stream) && read;
 }
@@ -69,7 +69,7 @@ static bool decodeImageURI(const char* pURI, hz::Array<uint8_t>& bytes)
     const size_t padding = (pEncoded[length - 1] == '=') + (pEncoded[length - 2] == '=');
     if (strspn(pEncoded, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") != length - padding)
         return false;
-    bytes.resize((uint32_t)(length / 4 * 3 - padding));
+    bytes.Resize((uint32_t)(length / 4 * 3 - padding));
     // Decode through cgltf into the already sized buffer.
     cgltf_options options = {};
     options.memory_user_data = bytes.GetData();

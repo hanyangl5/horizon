@@ -51,7 +51,7 @@ struct UniformSkeletonBlock
     Matrix4 toWorldMat[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
 };
 
-// Description needed to Handle buffer updates and draw calls
+// Description needed to Handle buffer updates and Draw calls
 struct SkeletonRenderDesc
 {
     Renderer* renderer;
@@ -87,7 +87,7 @@ typedef struct SkeletonBatcherLoadDesc
 } SkeletonBatcherLoadDesc;
 
 // Allows for efficiently instance rendering all joints and bones of all skeletons in the scene
-// Will eventually be a debug option and a part of a much larger Animation System's draw functionalities
+// Will eventually be a debug option and a part of a much larger Animation System's Draw functionalities
 class FORGE_API SkeletonBatcher
 {
 public:
@@ -101,7 +101,7 @@ public:
 
     void Unload(ReloadType reloadType);
 
-    // Add a rig to the list of skeletons to draw
+    // Add a rig to the list of skeletons to Draw
     void AddAnimatedObject(AnimatedObject* animatedObject);
 
     void RemoveAnimatedObject(AnimatedObject* animatedObject);
@@ -119,7 +119,7 @@ public:
     // Can be called asyncronously for different object ranges
     void SetPerInstanceUniforms(const uint32_t frameIndex, int32_t numObjects = -1, uint32_t objectsOffset = 0);
 
-    // Instance draw all the skeletons
+    // Instance Draw all the skeletons
     void Draw(Cmd* cmd, const uint32_t frameIndex);
 
     Shader*        jointShader = NULL;
@@ -171,7 +171,7 @@ private:
     // Keeps track of the Size of the last batch as it can be less than MAX_INSTANCES
     tfrg_atomic32_t* batchSize = NULL;
 
-    // Determines if this renderer will need to draw bones between each joint
+    // Determines if this renderer will need to Draw bones between each joint
     // Set in initialize
     bool drawBones = false;
 

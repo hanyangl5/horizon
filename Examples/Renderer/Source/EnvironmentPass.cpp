@@ -8,7 +8,7 @@
 
 EnvironmentPass::EnvironmentPass(hz::RenderContext& Context, hz::Format ColorFormat, hz::Format DepthFormat): Context(Context)
 {
-    Pipeline = Context.createGraphicsPipeline({
+    Pipeline = Context.CreateGraphicsPipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                         .pFileName = "Skybox.slang" },
@@ -17,7 +17,7 @@ EnvironmentPass::EnvironmentPass(hz::RenderContext& Context, hz::Format ColorFor
         .depthStencilFormat = DepthFormat,
         .Name = "Renderer.Skybox",
     });
-    Sampler = Context.createSampler(
+    Sampler = Context.CreateSampler(
         { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .AddressW = AddressModeClampToEdge });
     ASSERT(Pipeline.IsValid() && Sampler.IsValid());
 }
@@ -37,7 +37,7 @@ bool EnvironmentPass::Load(const EnvironmentFiles& Files)
     hz::GPUTexture Candidate[3];
     for (uint32_t Index = 0; Index < 3; ++Index)
     {
-        Candidate[Index] = Context.loadTexture(Files.Directory, Paths[Index]);
+        Candidate[Index] = Context.LoadTexture(Files.Directory, Paths[Index]);
         if (!Candidate[Index].IsValid())
         {
             return false;
@@ -86,16 +86,16 @@ void EnvironmentPass::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fr
                                         .environmentIndex = Dependencies.sample(&Prefiltered),
                                         .samplerIndex = Sampler.GetIndex(),
                                         .intensity = Intensity };
-    Commands.beginGpuTimestamp("Skybox");
-    Commands.beginRendering(
+    Commands.BeginGpuTimestamp("Skybox");
+    Commands.BeginRendering(
         { .colorAttachments = { { .pTexture = &Color, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
           .depthAttachment = { .pTexture = &Depth, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
         Dependencies.get());
-    Commands.setViewport(0, 0, (float)Context.GetWidth(), (float)Context.GetHeight());
-    Commands.setScissor(0, 0, Context.GetWidth(), Context.GetHeight());
-    Commands.setPipeline(Pipeline);
-    Commands.setRootConstants(Constants);
-    Commands.draw(36);
-    Commands.endRendering();
-    Commands.endGpuTimestamp();
+    Commands.SetViewport(0, 0, (float)Context.GetWidth(), (float)Context.GetHeight());
+    Commands.SetScissor(0, 0, Context.GetWidth(), Context.GetHeight());
+    Commands.SetPipeline(Pipeline);
+    Commands.SetRootConstants(Constants);
+    Commands.Draw(36);
+    Commands.EndRendering();
+    Commands.EndGpuTimestamp();
 }

@@ -48,13 +48,13 @@ TEST_F(CoreContainerTest, ArrayPreservesElementsAndAliasedValuesAcrossGrowth)
         EXPECT_EQ(values[i], i + 10);
     EXPECT_EQ(values[Capacity], 10u);
 
-    values.resize(Capacity + 4);
+    values.Resize(Capacity + 4);
     EXPECT_EQ(values[Capacity + 1], 0u);
     EXPECT_EQ(values[Capacity + 3], 0u);
     values.PopBack();
     EXPECT_EQ(values.Size(), Capacity + 3);
-    values.resize(1);
-    values.resize(3);
+    values.Resize(1);
+    values.Resize(3);
     EXPECT_EQ(values[0], 10u);
     EXPECT_EQ(values[1], 0u);
     EXPECT_EQ(values[2], 0u);
@@ -86,14 +86,14 @@ TEST_F(CoreContainerTest, ArrayMovesStorageAndRetainsCapacityWhenCleared)
     values = destination;
     EXPECT_NE(values.GetData(), destination.GetData());
     EXPECT_EQ(values[2], 7);
-    values.reset();
+    values.Reset();
     destination.Clear();
     EXPECT_EQ(destination.GetData(), Data);
     EXPECT_EQ(destination.Capacity(), Capacity);
     EXPECT_TRUE(destination.Empty());
     destination.PushBack(9);
     EXPECT_EQ(destination[0], 9);
-    destination.reset();
+    destination.Reset();
     EXPECT_EQ(destination.Capacity(), 0u);
     EXPECT_EQ(destination.GetData(), nullptr);
     values.PushBack(11);
@@ -189,7 +189,7 @@ TEST_F(CoreContainerTest, ArrayRelocatesAndDestroysAlignedMoveOnlyObjects)
     for (uint32_t i = 0; i < Capacity; ++i)
         EXPECT_EQ(objects[i].value, (int)i + 10);
     EXPECT_EQ((uintptr_t)objects.GetData() % alignof(MovableObject), 0u);
-    objects.resize(2);
+    objects.Resize(2);
     EXPECT_EQ(MovableObject::liveCount, 2);
     objects.PopBack();
     EXPECT_EQ(MovableObject::liveCount, 1);

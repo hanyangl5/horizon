@@ -88,7 +88,7 @@ public:
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Exit", kCpuProfileColor);
         context->WaitIdle();
-        resources.reset();
+        resources.Reset();
         context = nullptr;
     }
 
@@ -100,7 +100,7 @@ public:
 
         const uint32_t Width = (uint32_t)settings.Width;
         const uint32_t Height = (uint32_t)settings.Height;
-        if (!context->resize(Width, Height))
+        if (!context->Resize(Width, Height))
             return false;
         return true;
     }
@@ -112,15 +112,15 @@ public:
     void Draw() override
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Draw", kCpuProfileColor);
-        if (vSync != settings.vSyncEnabled && context->setVSync(settings.vSyncEnabled))
+        if (vSync != settings.vSyncEnabled && context->SetVSync(settings.vSyncEnabled))
             vSync = settings.vSyncEnabled;
 
         if (context->IsSuspended())
             return;
-        hz::CommandList&      commands = context->acquireCommandList();
-        const hz::GPUTexture& backbuffer = context->getCurrentBackbuffer();
+        hz::CommandList&      commands = context->AcquireCommandList();
+        const hz::GPUTexture& backbuffer = context->GetCurrentBackbuffer();
 
-        commands.beginRendering({
+        commands.BeginRendering({
             .colorAttachments = { {
                 .pTexture = &backbuffer,
                 .loadAction = LoadActionClear,
@@ -128,15 +128,15 @@ public:
                 .ClearValue = { .r = 0.05f, .g = 0.06f, .b = 0.08f, .a = 1.0f },
             } },
         });
-        commands.beginGpuTimestamp("Triangle Pass");
-        commands.setViewport(0.0f, 0.0f, (float)context->GetWidth(), (float)context->GetHeight());
-        commands.setScissor(0, 0, context->GetWidth(), context->GetHeight());
-        commands.setPipeline(resources->pipeline);
-        commands.setVertexBuffer(0, resources->vertexBuffer, 0, sizeof(Vertex));
-        commands.draw(3);
-        commands.endGpuTimestamp();
-        commands.endRendering();
-        context->submit(commands, &backbuffer);
+        commands.BeginGpuTimestamp("Triangle Pass");
+        commands.SetViewport(0.0f, 0.0f, (float)context->GetWidth(), (float)context->GetHeight());
+        commands.SetScissor(0, 0, context->GetWidth(), context->GetHeight());
+        commands.SetPipeline(resources->pipeline);
+        commands.SetVertexBuffer(0, resources->vertexBuffer, 0, sizeof(Vertex));
+        commands.Draw(3);
+        commands.EndGpuTimestamp();
+        commands.EndRendering();
+        context->Submit(commands, &backbuffer);
     }
 
     const char* GetName() override { return "HelloTriangle"; }
@@ -144,7 +144,7 @@ public:
 private:
     bool createResources()
     {
-        resources->vertexBuffer = context->createBuffer({
+        resources->vertexBuffer = context->CreateBuffer({
             .Size = sizeof(kTriangleVertices),
             .ElementCount = sizeof(kTriangleVertices) / sizeof(uint32_t),
             .Name = "HelloTriangle.VertexBuffer",
@@ -156,7 +156,7 @@ private:
         });
         ASSERT(resources->vertexBuffer.IsValid());
 
-        resources->pipeline = context->createGraphicsPipeline({
+        resources->pipeline = context->CreateGraphicsPipeline({
             .shaderDesc = {
             .stages = {
                 {

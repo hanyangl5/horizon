@@ -52,7 +52,7 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
     memset(cumulativeAnimatedObjectInstanceCount, 0,
            sizeof(*cumulativeAnimatedObjectInstanceCount) * (skeletonRenderDesc.maxAnimatedObjects + 1));
 
-    // Determine if we will ever expect to use this renderer to draw bones
+    // Determine if we will ever expect to use this renderer to Draw bones
     drawBones = skeletonRenderDesc.drawBones;
     if (drawBones)
     {
@@ -448,7 +448,7 @@ void SkeletonBatcher::RemoveAllAnimatedObjects()
 void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t frameIndex)
 {
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
-    // Get the number of batches to draw for this frameindex
+    // Get the number of batches to Draw for this frameindex
     uint32_t numBatches = tfrg_atomic32_store_relaxed(&batchCounts[frameIndex], 0);
     if (numBatches == 0)
     {

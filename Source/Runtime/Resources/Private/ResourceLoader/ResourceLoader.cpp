@@ -4040,7 +4040,7 @@ struct UpdateRequest
     UpdateRequest(const BufferLoadDescInternal& buffer): Type(UPDATE_REQUEST_LOAD_BUFFER), bufLoadDesc(buffer) {}
     UpdateRequest(const TextureLoadDescInternal& texture): Type(UPDATE_REQUEST_LOAD_TEXTURE), texLoadDesc(texture) {}
     UpdateRequest(const GeometryLoadDesc& geom): Type(UPDATE_REQUEST_LOAD_GEOMETRY), geomLoadDesc(geom) {}
-    UpdateRequest(const TextureBarrier& barrier): Type(UPDATE_REQUEST_TEXTURE_BARRIER), textureBarrier(barrier) {}
+    UpdateRequest(const TextureBarrier& Barrier): Type(UPDATE_REQUEST_TEXTURE_BARRIER), textureBarrier(Barrier) {}
     UpdateRequest(const TextureCopyDesc& texture): Type(UPDATE_REQUEST_COPY_TEXTURE), texCopyDesc(texture) {}
 
     UpdateRequestType Type = UPDATE_REQUEST_INVALID;
@@ -4367,7 +4367,7 @@ static void streamerFlush(CopyEngine* pCopyEngine)
 /// Return memory from pre-allocated staging buffer or create a temporary buffer if the streamer ran out of memory
 static MappedMemoryRange allocateStagingMemory(CopyEngine* pCopyEngine, uint64_t memoryRequirement, uint32_t alignment)
 {
-    // #NOTE: Call to make sure we dont reset copy engine after staging memory was already allocated
+    // #NOTE: Call to make sure we dont Reset copy engine after staging memory was already allocated
     acquireCmd(pCopyEngine);
 
     CopyResourceSet* pResourceSet = &pCopyEngine->resourceSets[pCopyEngine->activeSet];
@@ -4408,7 +4408,7 @@ static MappedMemoryRange allocateStagingMemory(CopyEngine* pCopyEngine, uint64_t
     }
 }
 
-static UploadFunctionResult updateBuffer(Renderer* pRenderer, CopyEngine* pCopyEngine, const BufferUpdateDesc& bufUpdateDesc)
+static UploadFunctionResult UpdateBuffer(Renderer* pRenderer, CopyEngine* pCopyEngine, const BufferUpdateDesc& bufUpdateDesc)
 {
     UNREF_PARAM(pRenderer);
     Buffer* pBuffer = bufUpdateDesc.pBuffer;
@@ -4418,8 +4418,8 @@ static UploadFunctionResult updateBuffer(Renderer* pRenderer, CopyEngine* pCopyE
 
     if (IssueBufferCopyBarriers() && bufUpdateDesc.currentState != ResourceStateCopyDest)
     {
-        BufferBarrier barrier = { bufUpdateDesc.pBuffer, bufUpdateDesc.currentState, ResourceStateCopyDest };
-        cmdResourceBarrier(pCmd, 1, &barrier, 0, NULL, 0, NULL);
+        BufferBarrier Barrier = { bufUpdateDesc.pBuffer, bufUpdateDesc.currentState, ResourceStateCopyDest };
+        cmdResourceBarrier(pCmd, 1, &Barrier, 0, NULL, 0, NULL);
     }
 
     MappedMemoryRange range = bufUpdateDesc.internal.mappedRange;
@@ -4428,8 +4428,8 @@ static UploadFunctionResult updateBuffer(Renderer* pRenderer, CopyEngine* pCopyE
 
     if (IssueBufferCopyBarriers() && bufUpdateDesc.currentState != ResourceStateCopyDest)
     {
-        BufferBarrier barrier = { bufUpdateDesc.pBuffer, ResourceStateCopyDest, bufUpdateDesc.currentState };
-        cmdResourceBarrier(pCmd, 1, &barrier, 0, NULL, 0, NULL);
+        BufferBarrier Barrier = { bufUpdateDesc.pBuffer, ResourceStateCopyDest, bufUpdateDesc.currentState };
+        cmdResourceBarrier(pCmd, 1, &Barrier, 0, NULL, 0, NULL);
     }
 
     return UPLOAD_FUNCTION_RESULT_COMPLETED;
@@ -4486,14 +4486,14 @@ static UploadFunctionResult loadBuffer(Renderer* pRenderer, CopyEngine* pCopyEng
         return UPLOAD_FUNCTION_RESULT_COMPLETED;
     }
 
-    UploadFunctionResult res = updateBuffer(pRenderer, pCopyEngine, updateDesc);
+    UploadFunctionResult res = UpdateBuffer(pRenderer, pCopyEngine, updateDesc);
     if (UPLOAD_FUNCTION_RESULT_COMPLETED == res)
     {
         if (IssueBufferCopyBarriers() && loadDesc.StartState != ResourceStateCopyDest)
         {
-            BufferBarrier barrier = { loadDesc.pBuffer, ResourceStateCopyDest, loadDesc.StartState };
+            BufferBarrier Barrier = { loadDesc.pBuffer, ResourceStateCopyDest, loadDesc.StartState };
             Cmd*          cmd = acquirePostCopyBarrierCmd(pCopyEngine);
-            cmdResourceBarrier(cmd, 1, &barrier, 0, NULL, 0, NULL);
+            cmdResourceBarrier(cmd, 1, &Barrier, 0, NULL, 0, NULL);
         }
     }
 
@@ -4521,8 +4521,8 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
     Cmd* cmd = texUpdateDesc.pCmd ? texUpdateDesc.pCmd : acquireCmd(pCopyEngine);
     if (IssueTextureCopyBarriers() && texUpdateDesc.currentState != ResourceStateCopyDest)
     {
-        TextureBarrier barrier = { texture, texUpdateDesc.currentState, ResourceStateCopyDest };
-        cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
+        TextureBarrier Barrier = { texture, texUpdateDesc.currentState, ResourceStateCopyDest };
+        cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
     }
 
     // #TODO: Investigate - ReadStream crashes if we pass the upload buffer mapped address. Allocating temporary buffer as a workaround. Does NX
@@ -4631,8 +4631,8 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 
     if (IssueTextureCopyBarriers() && texUpdateDesc.currentState != ResourceStateCopyDest)
     {
-        TextureBarrier barrier = { texture, ResourceStateCopyDest, texUpdateDesc.currentState };
-        cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
+        TextureBarrier Barrier = { texture, ResourceStateCopyDest, texUpdateDesc.currentState };
+        cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
     }
 
     if (stream.FileSystem)
@@ -4643,7 +4643,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
     return UPLOAD_FUNCTION_RESULT_COMPLETED;
 }
 
-static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, const UpdateRequest& pTextureUpdate)
+static UploadFunctionResult LoadTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, const UpdateRequest& pTextureUpdate)
 {
     const TextureLoadDescInternal* pTextureDesc = &pTextureUpdate.texLoadDesc;
     uint8_t                        singleTexelNormal[2] = {};
@@ -4655,8 +4655,8 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         if (IssueExplicitInitialStateBarrier())
         {
             Cmd*           cmd = acquireCmd(pCopyEngine);
-            TextureBarrier barrier = { texture, ResourceStateUndefined, ResourceStateCopyDest };
-            cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
+            TextureBarrier Barrier = { texture, ResourceStateUndefined, ResourceStateCopyDest };
+            cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
         }
 
         hz::Format        fmt = texture->Format;
@@ -4678,9 +4678,9 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 
         if (IssueTextureCopyBarriers() && pTextureDesc->StartState != ResourceStateCopyDest)
         {
-            TextureBarrier barrier = { texture, ResourceStateCopyDest, pTextureDesc->StartState };
+            TextureBarrier Barrier = { texture, ResourceStateCopyDest, pTextureDesc->StartState };
             Cmd*           cmd = acquirePostCopyBarrierCmd(pCopyEngine);
-            cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
+            cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
         }
 
         return UPLOAD_FUNCTION_RESULT_COMPLETED;
@@ -4795,21 +4795,21 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 
             if (IssueExplicitInitialStateBarrier())
             {
-                TextureBarrier barrier = { updateDesc.pTexture, ResourceStateUndefined, ResourceStateCopyDest };
+                TextureBarrier Barrier = { updateDesc.pTexture, ResourceStateUndefined, ResourceStateCopyDest };
                 Cmd*           cmd = acquireCmd(pCopyEngine);
-                cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
+                cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
             }
 
             UploadFunctionResult res = updateTexture(pRenderer, pCopyEngine, updateDesc);
 
             if (IssueTextureCopyBarriers() && UPLOAD_FUNCTION_RESULT_COMPLETED == res)
             {
-                TextureBarrier barrier = { *pTextureDesc->ppTexture,
+                TextureBarrier Barrier = { *pTextureDesc->ppTexture,
                                            pCopyEngine->pQueue->Type == QueueTypeTransfer ? ResourceStateCommon
                                                                                             : ResourceStateCopyDest,
                                            ResourceStateShaderResource };
                 Cmd*           cmd = acquirePostCopyBarrierCmd(pCopyEngine);
-                cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
+                cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
             }
 
             return res;
@@ -5247,7 +5247,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
             setBufferName(pRenderer, indexUpdateDesc.internal.mappedRange.pBuffer, pDesc->pFileName);
         }
         indexUpdateDesc.pMappedData = indexUpdateDesc.internal.mappedRange.Data;
-        uploadResult = updateBuffer(pRenderer, pCopyEngine, indexUpdateDesc);
+        uploadResult = UpdateBuffer(pRenderer, pCopyEngine, indexUpdateDesc);
     }
 
     barriers[barrierCount++] = { indexUpdateDesc.pBuffer, ResourceStateCopyDest, gIndexBufferState };
@@ -5269,7 +5269,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
                     setBufferName(pRenderer, vertexUpdateDesc[i].internal.mappedRange.pBuffer, pDesc->pFileName);
                 }
                 vertexUpdateDesc[i].pMappedData = vertexUpdateDesc[i].internal.mappedRange.Data;
-                uploadResult = updateBuffer(pRenderer, pCopyEngine, vertexUpdateDesc[i]);
+                uploadResult = UpdateBuffer(pRenderer, pCopyEngine, vertexUpdateDesc[i]);
             }
             barriers[barrierCount++] = { vertexUpdateDesc[i].pBuffer, ResourceStateCopyDest, gVertexBufferState };
         }
@@ -5284,7 +5284,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
     return uploadResult;
 }
 
-static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, TextureCopyDesc& pTextureCopy)
+static UploadFunctionResult CopyTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, TextureCopyDesc& pTextureCopy)
 {
     UNREF_PARAM(pRenderer);
     Texture*         texture = pTextureCopy.pTexture;
@@ -5295,10 +5295,10 @@ static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
     if (pTextureCopy.pWaitSemaphore)
         arrpush(pCopyEngine->waitSemaphores, pTextureCopy.pWaitSemaphore);
 
-    TextureBarrier barrier = { texture, pTextureCopy.textureState, ResourceStateCopySource };
-    barrier.acquire = 1;
-    barrier.QueueType = pTextureCopy.QueueType;
-    cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
+    TextureBarrier Barrier = { texture, pTextureCopy.textureState, ResourceStateCopySource };
+    Barrier.acquire = 1;
+    Barrier.QueueType = pTextureCopy.QueueType;
+    cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
 
     uint32_t numBytes = 0;
     uint32_t rowBytes = 0;
@@ -5322,10 +5322,10 @@ static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
     subresourceDesc.slicePitch = subSlicePitch;
     cmdCopySubresource(cmd, pTextureCopy.pBuffer, pTextureCopy.pTexture, &subresourceDesc);
 
-    barrier = { texture, ResourceStateCopySource, pTextureCopy.textureState };
-    barrier.release = 1;
-    barrier.QueueType = pTextureCopy.QueueType;
-    cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
+    Barrier = { texture, ResourceStateCopySource, pTextureCopy.textureState };
+    Barrier.release = 1;
+    Barrier.QueueType = pTextureCopy.QueueType;
+    cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
 
     return UPLOAD_FUNCTION_RESULT_COMPLETED;
 }
@@ -5414,7 +5414,7 @@ static void streamerThreadFunc(void* pThreadData)
                     result = loadBuffer(pRenderer, pCopyEngine, updateState);
                     break;
                 case UPDATE_REQUEST_LOAD_TEXTURE:
-                    result = loadTexture(pRenderer, pCopyEngine, updateState);
+                    result = LoadTexture(pRenderer, pCopyEngine, updateState);
                     if (updateState.texLoadDesc.pSuccess)
                         *updateState.texLoadDesc.pSuccess = result == UPLOAD_FUNCTION_RESULT_COMPLETED;
                     break;
@@ -5424,7 +5424,7 @@ static void streamerThreadFunc(void* pThreadData)
                         *updateState.geomLoadDesc.pSuccess = result == UPLOAD_FUNCTION_RESULT_COMPLETED;
                     break;
                 case UPDATE_REQUEST_COPY_TEXTURE:
-                    result = copyTexture(pRenderer, pCopyEngine, updateState.texCopyDesc);
+                    result = CopyTexture(pRenderer, pCopyEngine, updateState.texCopyDesc);
                     break;
                 case UPDATE_REQUEST_INVALID:
                     break;
@@ -6287,7 +6287,7 @@ void removeMaterial(Material* pMaterial)
     ASSERT(pLib);
     ASSERT(pMaterial && pMaterial->pDesc);
 
-    // We wait for all material related requests before we unload this material.
+    // We Wait for all material related requests before we unload this material.
     // This is needed in case pMaterial resources are still queued to upload to the GPU.
     // A better approach might be to store one sync token per request (but that might me a lot of SyncTokens), to be decided in the future
     waitForToken(&pLib->syncToken);
@@ -6491,7 +6491,7 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 #if defined(GFX_DRIVER_MANAGED_VIDEO_MEMORY)
         if (pTextureDesc->forceReset)
         {
-            // If we are going to mem zero using staging buffer set start state to copy dest to avoid one barrier in the beginning
+            // If we are going to mem zero using staging buffer set start state to copy dest to avoid one Barrier in the beginning
             textureDesc.StartState = ResourceStateCopyDest;
         }
 #endif
@@ -6955,7 +6955,7 @@ void endUpdateResource(BufferUpdateDesc* pBufferUpdate)
     {
         MutexLock   lock(pResourceLoader->uploadEngineMutex);
         CopyEngine* pCopyEngine = &pResourceLoader->uploadEngine;
-        updateBuffer(pResourceLoader->pRenderer, pCopyEngine, *pBufferUpdate);
+        UpdateBuffer(pResourceLoader->pRenderer, pCopyEngine, *pBufferUpdate);
     }
 
     // Restore the state to before the beginUpdateResource call.

@@ -516,8 +516,8 @@ typedef struct UISystemInputActions
         UI_ACTION_NAV_ACTIVATE, // activate / open / toggle / tweak value       // e.g. Cross  (PS4), A (Xbox), A (Switch), Space (Keyboard)
         UI_ACTION_NAV_CANCEL, // cancel / close / exit                        // e.g. Circle (PS4), B (Xbox), B (Switch), Escape (Keyboard)
         UI_ACTION_NAV_INPUT,  // text input / on-screen keyboard              // e.g. Triang.(PS4), Y (Xbox), X (Switch), Return (Keyboard)
-        UI_ACTION_NAV_MENU,   // tap: toggle menu / hold: focus, move, resize // e.g. Square (PS4), X (Xbox), Y (Switch), Alt (Keyboard)
-        UI_ACTION_NAV_TWEAK_WINDOW_LEFT, // move / tweak / resize window (w/ PadMenu)    // e.g. D-pad Left/Right/Up/Down (Gamepads), Arrow
+        UI_ACTION_NAV_MENU,   // tap: toggle menu / hold: focus, move, Resize // e.g. Square (PS4), X (Xbox), Y (Switch), Alt (Keyboard)
+        UI_ACTION_NAV_TWEAK_WINDOW_LEFT, // move / tweak / Resize window (w/ PadMenu)    // e.g. D-pad Left/Right/Up/Down (Gamepads), Arrow
                                          // keys (Keyboard)
         UI_ACTION_NAV_TWEAK_WINDOW_RIGHT,
         UI_ACTION_NAV_TWEAK_WINDOW_UP,

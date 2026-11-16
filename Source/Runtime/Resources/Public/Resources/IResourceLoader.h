@@ -191,7 +191,7 @@ typedef struct Geometry
         };
     };
 
-    /// The array of traditional draw arguments to draw each subset in this geometry
+    /// The array of traditional Draw arguments to Draw each subset in this geometry
     IndirectDrawIndexArguments* pDrawArgs;
 
     /// The array of vertex buffer strides to bind when drawing this geometry
@@ -201,7 +201,7 @@ typedef struct Geometry
     uint32_t vertexBufferCount : 8;
     /// Index Type (32 or 16 bit)
     uint32_t indexType : 2;
-    /// Number of draw args in the geometry
+    /// Number of Draw args in the geometry
     uint32_t drawArgCount : 22;
     /// Number of indices in the geometry
     uint32_t indexCount;
@@ -590,8 +590,8 @@ FORGE_RENDERER_API bool      isTokenCompleted(const SyncToken* token);
 FORGE_RENDERER_API void      waitForToken(const SyncToken* token);
 
 /// Allows clients to synchronize with the submission of copy commands (as opposed to their completion).
-/// This can reduce the wait time for clients but requires using the Semaphore from getLastSemaphoreCompleted() in a wait
-/// operation in a submit that uses the textures just updated.
+/// This can reduce the Wait time for clients but requires using the Semaphore from getLastSemaphoreCompleted() in a Wait
+/// operation in a Submit that uses the textures just updated.
 FORGE_RENDERER_API SyncToken getLastTokenSubmitted();
 FORGE_RENDERER_API bool      isTokenSubmitted(const SyncToken* token);
 FORGE_RENDERER_API void      waitForTokenSubmitted(const SyncToken* token);

@@ -264,7 +264,7 @@ enum IndirectArgumentType : uint32_t
     INDIRECT_UNORDERED_ACCESS_VIEW,  // only for dx
     INDIRECT_INCREMENTING_CONSTANT,  // only for dx
     INDIRECT_COMMAND_BUFFER,         // metal ICB
-    INDIRECT_COMMAND_BUFFER_RESET,   // metal ICB reset
+    INDIRECT_COMMAND_BUFFER_RESET,   // metal ICB Reset
     INDIRECT_COMMAND_BUFFER_OPTIMIZE // metal ICB optimization
 };
 /************************************************/
@@ -650,7 +650,7 @@ struct TextureBarrier
     uint8_t       acquire : 1;
     uint8_t       release : 1;
     uint8_t       QueueType : 5;
-    /// Specifiy whether following barrier targets particular subresource
+    /// Specifiy whether following Barrier targets particular subresource
     uint8_t       subresourceBarrier : 1;
     /// Following values are ignored if subresourceBarrier is false
     uint8_t       mipLevel : 7;
@@ -667,7 +667,7 @@ struct RenderTargetBarrier
     uint8_t       acquire : 1;
     uint8_t       release : 1;
     uint8_t       QueueType : 5;
-    /// Specifiy whether following barrier targets particular subresource
+    /// Specifiy whether following Barrier targets particular subresource
     uint8_t       subresourceBarrier : 1;
     /// Following values are ignored if subresourceBarrier is false
     uint8_t       mipLevel : 7;
@@ -1203,7 +1203,7 @@ struct Semaphore
 {
     // DirectX12 does not have a concept of semaphores
     // All synchronization is done using fences
-    // Simulate semaphore signal and wait using DirectX12 fences
+    // Simulate semaphore signal and Wait using DirectX12 fences
     struct
     {
         ID3D12Fence* pFence;

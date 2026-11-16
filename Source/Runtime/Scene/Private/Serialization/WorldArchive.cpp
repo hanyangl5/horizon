@@ -85,7 +85,7 @@ bool WorldArchive::parse(Span<char> json)
     {
         --Count;
     }
-    candidate->text.resize(Count + 1);
+    candidate->text.Resize(Count + 1);
     memcpy(candidate->text.GetData(), json.Data, Count);
     candidate->text[Count] = 0;
     MemDelete(Data);

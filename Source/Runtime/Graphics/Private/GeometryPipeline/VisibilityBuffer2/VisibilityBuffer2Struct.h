@@ -73,7 +73,7 @@ STRUCT(FilterBatchData)
     DATA(uint, indexOffset, None);       // Index relative to the meshConstants[meshIndex].indexOffset
     DATA(uint, faceCount, None);         // Number of faces in this small batch
     DATA(uint, outputIndexOffset, None); // Offset into the output index buffer
-    DATA(uint, drawBatchStart, None);    // First slot for the current draw call
+    DATA(uint, drawBatchStart, None);    // First slot for the current Draw call
     DATA(uint, accumDrawIndex, None);
     DATA(uint, instanceDataIndex, None); // Instance specific data, usually an index into instanceData buffer but could also contain more
                                          // encoded data in different bits

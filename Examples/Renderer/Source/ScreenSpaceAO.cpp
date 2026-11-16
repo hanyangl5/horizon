@@ -22,13 +22,13 @@ struct ScreenSpaceAOConstants
 
 ScreenSpaceAO::ScreenSpaceAO(hz::RenderContext& Context): Context(Context)
 {
-    AOPipeline = Context.createComputePipeline(
+    AOPipeline = Context.CreateComputePipeline(
         { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } }, .pFileName = "ScreenSpaceAO.slang" },
           .Name = "Renderer.SSAO" });
-    BlurPipeline = Context.createComputePipeline(
+    BlurPipeline = Context.CreateComputePipeline(
         { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "BlurMain" } }, .pFileName = "ScreenSpaceAO.slang" },
           .Name = "Renderer.SSAO.Blur" });
-    RotationSampler = Context.createSampler({ .AddressU = AddressModeRepeat, .AddressV = AddressModeRepeat });
+    RotationSampler = Context.CreateSampler({ .AddressU = AddressModeRepeat, .AddressV = AddressModeRepeat });
     ASSERT(AOPipeline.IsValid() && BlurPipeline.IsValid() && RotationSampler.IsValid());
 }
 
@@ -38,7 +38,7 @@ bool ScreenSpaceAO::Resize(uint32_t NewWidth, uint32_t NewHeight)
     if (!Rotations.IsValid())
     {
         // Lossless RGBA8 conversion of Cookbook's data/rot_texture.bmp, with its original 4x4 texels.
-        Rotations = Context.loadTexture(DirectoryShaderSources, "../Assets/rotations.dds");
+        Rotations = Context.LoadTexture(DirectoryShaderSources, "../Assets/rotations.dds");
         if (!Rotations.IsValid())
         {
             LOGF(Error, "SSAO requires Examples/Renderer/Assets/rotations.dds (Cookbook rotation texture)");
@@ -54,10 +54,10 @@ bool ScreenSpaceAO::Resize(uint32_t NewWidth, uint32_t NewHeight)
                                    .Descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
                                    .Flags = TextureCreationFlagForce2D,
                                    .Name = "Renderer.SSAO" };
-    Occlusion = Context.createTexture(Desc);
+    Occlusion = Context.CreateTexture(Desc);
     for (hz::GPUTexture& Texture : Blur)
     {
-        Texture = Context.createTexture(Desc);
+        Texture = Context.CreateTexture(Desc);
     }
     Blurred = false;
     ASSERT(Occlusion.IsValid() && Blur[0].IsValid() && Blur[1].IsValid());
@@ -80,13 +80,13 @@ const hz::GPUTexture& ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz
                                                .radius = Settings.Radius,
                                                .attenuationScale = Settings.AttenuationScale,
                                                .distanceScale = Settings.DistanceScale };
-    Commands.beginGpuTimestamp("SSAO");
-    Commands.setPipeline(AOPipeline);
-    Commands.setRootConstants(Constants);
-    Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1, Dependencies.get());
+    Commands.BeginGpuTimestamp("SSAO");
+    Commands.SetPipeline(AOPipeline);
+    Commands.SetRootConstants(Constants);
+    Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1, Dependencies.get());
     const hz::GPUTexture* Source = &Occlusion;
     Blurred = false;
-    Commands.setPipeline(BlurPipeline);
+    Commands.SetPipeline(BlurPipeline);
     for (uint32_t Pass = 0; Pass < Settings.BlurPasses; ++Pass)
     {
         for (uint32_t Axis = 0; Axis < 2; ++Axis)
@@ -99,13 +99,13 @@ const hz::GPUTexture& ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz
                                                            .samplerIndex = Sampler.GetIndex(),
                                                            .horizontal = Axis == 0,
                                                            .depthThreshold = Settings.DepthThreshold };
-            Commands.setRootConstants(BlurConstants);
-            Commands.dispatch((Width + 15) / 16, (Height + 15) / 16, 1, BlurDependencies.get());
+            Commands.SetRootConstants(BlurConstants);
+            Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1, BlurDependencies.get());
             Source = &Target;
             Blurred = true;
         }
     }
-    Commands.endGpuTimestamp();
+    Commands.EndGpuTimestamp();
     return GetOcclusion();
 }
 

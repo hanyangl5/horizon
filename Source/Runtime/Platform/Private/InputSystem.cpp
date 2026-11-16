@@ -1549,7 +1549,7 @@ struct InputSystemImpl: public gainput::InputListener
         // Ensure there isn't too many actions than we can fit in memory
         ASSERT(numActions < MAX_INPUT_ACTIONS);
 
-        // First need to reset mappings
+        // First need to Reset mappings
         RemoveActionMappings(actionMappingTarget);
 
         // Clear transient data structures
@@ -1702,7 +1702,7 @@ struct InputSystemImpl: public gainput::InputListener
 #ifdef TARGET_IOS
             UIView*      mainView = (UIView*)CFBridgingRelease(view);
             GainputView* newView = [[GainputView alloc] initWithFrame:mainView.bounds inputManager:*pInputManager];
-            // we want everything to resize with main view.
+            // we want everything to Resize with main view.
             [newView setAutoresizingMask:(UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight |
                                           UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleLeftMargin |
                                           UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin)];

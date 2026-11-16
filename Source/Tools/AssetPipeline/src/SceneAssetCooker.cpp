@@ -509,7 +509,7 @@ bool SceneAssetCooker::registerTexture(CookedSceneTexture& texture)
 bool SceneAssetCooker::prepareTextures(const cgltf_data& data)
 {
     pTextureMetadata = cJSON_CreateArray();
-    textures.resize((uint32_t)data.textures_count);
+    textures.Resize((uint32_t)data.textures_count);
     const SceneTextureCooker cooker(sourceDirectory, outputDirectory, pSourceFile);
     for (uint32_t i = 0; i < textures.Size(); ++i)
     {

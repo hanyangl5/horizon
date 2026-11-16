@@ -150,7 +150,7 @@
 //
 //            memcpy(&batches[batchChunk.mCurrentBatchCount++], &skinBatchData, sizeof(skinBatchData));
 //
-//            // If batcher are full dispatch and start a new one
+//            // If batcher are full Dispatch and start a new one
 //            if (batchChunk.mCurrentBatchCount >= gVBSettings.mPreSkinBatchCount)
 //            {
 //                stats.mTotalShaderDispatches++;
@@ -219,7 +219,7 @@
 //
 //    FilterPassStats stats = {};
 //
-//    BufferBarrier barrier[3] = {};
+//    BufferBarrier Barrier[3] = {};
 //    uint32_t      bufferIndex = 0;
 //
 //    /************************************************************************/
@@ -230,9 +230,9 @@
 //    cmdBindDescriptorSet(pCmd, pDesc->mBuffersIndex, pDesc->pDescriptorSetClearBuffers);
 //    cmdDispatch(pCmd, 1, 1, 1);
 //    bufferIndex = 0;
-//    barrier[bufferIndex++] = { pVisibilityBuffer->ppBinBuffer[pDesc->mBuffersIndex], ResourceStateUnorderedAccess,
+//    Barrier[bufferIndex++] = { pVisibilityBuffer->ppBinBuffer[pDesc->mBuffersIndex], ResourceStateUnorderedAccess,
 //                               ResourceStateUnorderedAccess };
-//    cmdResourceBarrier(pCmd, bufferIndex, barrier, 0, nullptr, 0, nullptr);
+//    cmdResourceBarrier(pCmd, bufferIndex, Barrier, 0, nullptr, 0, nullptr);
 //    cmdEndGpuTimestampQuery(pCmd, pDesc->mGpuProfileToken);
 //
 //    /************************************************************************/
@@ -290,8 +290,8 @@
 //            accumNumTriangles += trianglesInBatch;
 //
 //            // Check to see if we filled the batch, two options for filled batch:
-//            //    - We filled all FilterBatchData structs we can process in on one triangle filtering compute shader dispatch
-//            //    - We filled enough triangles that if we put more into this dispatch we won't be able to store their PrimitiveID in the
+//            //    - We filled all FilterBatchData structs we can process in on one triangle filtering compute shader Dispatch
+//            //    - We filled enough triangles that if we put more into this Dispatch we won't be able to store their PrimitiveID in the
 //            //      Visibility Buffer because we don't have enough bits to represent them. PrimitiveID would be clamped and geometry would
 //            //      flicker because we would access incorrect primitive data during the shading stage.
 //            if (batchChunk.mCurrentBatchCount >= gVBSettings.mFilterBatchCount)
@@ -314,7 +314,7 @@
 //                                            batchDataOffset * sizeof(FilterBatchData));
 //                }
 //
-//                // Make sure we advance to a proper aligned batch Count so that the next dispatch call has the memory properly aligned.
+//                // Make sure we advance to a proper aligned batch Count so that the next Dispatch call has the memory properly aligned.
 //                // (this can happen if we reached gVBSettings.mMaxPrimitivesPerDrawIndirect before gVBSettings.mBatchCount)
 //                const uint32_t alignedBatchCount =
 //                    round_up(batchCount, gVBSettings.uniformBufferAlignment >= sizeof(FilterBatchData)

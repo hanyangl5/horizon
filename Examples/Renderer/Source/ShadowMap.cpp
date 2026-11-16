@@ -16,7 +16,7 @@ static float QuantizeShadowExtent(float Extent)
 
 ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(Context), Resolution(Resolution)
 {
-    Pipeline = Context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
+    Pipeline = Context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
                                                                            { .stage = ShaderStageFrag, .pEntryPoint = "PSShadow" } },
                                                                .pFileName = "ShadowMap.slang" },
                                                 .rasterizer = { .cullMode = CULL_MODE_NONE,
@@ -28,19 +28,19 @@ ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(C
                                                 .depthStencilFormat = hz::Format::D16_UNORM,
                                                 .indirectDrawId = true,
                                                 .Name = "Renderer.ShadowMap" });
-    Depth = Context.createTexture({ .Width = Resolution,
+    Depth = Context.CreateTexture({ .Width = Resolution,
                                     .Height = Resolution,
                                     .Format = hz::Format::D16_UNORM,
                                     .StartState = ResourceStateDepthWrite,
                                     .Descriptors = DescriptorTypeTexture,
                                     .renderTarget = true,
                                     .Name = "Renderer.ShadowMap" });
-    Sampler = Context.createSampler(
+    Sampler = Context.CreateSampler(
         { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .CompareFunc = CMP_LEQUAL });
-    SurfaceSampler = Context.createSampler();
+    SurfaceSampler = Context.CreateSampler();
     for (uint32_t Index = 0; Index < ShadowFrames.Size(); ++Index)
     {
-        ShadowFrames[Index] = Context.createBuffer({ .Size = 208,
+        ShadowFrames[Index] = Context.CreateBuffer({ .Size = 208,
                                                      .ElementCount = 1,
                                                      .StructStride = 208,
                                                      .Name = "Renderer.ShadowCamera",
@@ -48,7 +48,7 @@ ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(C
                                                      .StartState = ResourceStateShaderResource,
                                                      .Descriptors = DescriptorTypeBuffer,
                                                      .Flags = BufferCreationFlagPersistentMapBit });
-        LightingFrames[Index] = Context.createBuffer({ .Size = sizeof(LightingFrameData),
+        LightingFrames[Index] = Context.CreateBuffer({ .Size = sizeof(LightingFrameData),
                                                        .ElementCount = 1,
                                                        .StructStride = sizeof(LightingFrameData),
                                                        .Name = "Renderer.LightingFrame",
@@ -150,19 +150,19 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
                                  Vector4(0, 0, 0, 1) };
 
     const uint32_t Backing = View.FrameIndex;
-    const bool     CameraUpdated = Context.updateBuffer(ShadowFrames[Backing], 0, &Camera, sizeof(Camera));
-    const bool     LightUpdated = Context.updateBuffer(LightingFrames[Backing], 0, &Data, sizeof(Data));
+    const bool     CameraUpdated = Context.UpdateBuffer(ShadowFrames[Backing], 0, &Camera, sizeof(Camera));
+    const bool     LightUpdated = Context.UpdateBuffer(LightingFrames[Backing], 0, &Data, sizeof(Data));
     ASSERT(CameraUpdated && LightUpdated);
     ++Data.frameIndex;
-    Commands.beginGpuTimestamp("Shadow Map");
-    Commands.beginRendering({ .depthAttachment = { .pTexture = &Depth,
+    Commands.BeginGpuTimestamp("Shadow Map");
+    Commands.BeginRendering({ .depthAttachment = { .pTexture = &Depth,
                                                    .loadAction = LoadActionClear,
                                                    .storeAction = StoreActionStore,
                                                    .ClearValue = { .Depth = 1 } } },
                             Draws.GetDependencies(ShadowFrames[Backing], View, &Draws.GetShadowCommands(Backing)));
-    Commands.setPipeline(Pipeline);
-    Commands.setViewport(0, 0, (float)Resolution, (float)Resolution);
-    Commands.setScissor(0, 0, Resolution, Resolution);
+    Commands.SetPipeline(Pipeline);
+    Commands.SetViewport(0, 0, (float)Resolution, (float)Resolution);
+    Commands.SetScissor(0, 0, Resolution, Resolution);
     const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
     const ShadowBindingConstants Binding = {
         .frameIndex = ShadowFrames[Backing].GetSrvIndex(),
@@ -171,12 +171,12 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
         .texturesIndex = Gpu.textures.IsValid() ? Gpu.textures.GetSrvIndex() : UINT32_MAX,
         .samplerIndex = SurfaceSampler.GetIndex(),
     };
-    Commands.setRootConstants(Binding);
-    Commands.setRootConstant({ Draws.GetDrawData(Backing).GetSrvIndex() }, GeometryDrawSlot);
+    Commands.SetRootConstants(Binding);
+    Commands.SetRootConstant({ Draws.GetDrawData(Backing).GetSrvIndex() }, GeometryDrawSlot);
     if (Draws.GetCount(Backing))
     {
-        Commands.drawIndirect(Draws.GetShadowCommands(Backing), 0, Draws.GetCount(Backing));
+        Commands.DrawIndirect(Draws.GetShadowCommands(Backing), 0, Draws.GetCount(Backing));
     }
-    Commands.endRendering();
-    Commands.endGpuTimestamp();
+    Commands.EndRendering();
+    Commands.EndGpuTimestamp();
 }

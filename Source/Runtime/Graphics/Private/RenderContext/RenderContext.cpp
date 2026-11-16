@@ -475,7 +475,7 @@ void RenderContext::destroyDevice(bool waitForGpu)
     }
 }
 
-bool RenderContext::resize(uint32_t Width, uint32_t Height)
+bool RenderContext::Resize(uint32_t Width, uint32_t Height)
 {
     for (const CommandResources& resources : commandResources)
     {
@@ -502,7 +502,7 @@ bool RenderContext::resize(uint32_t Width, uint32_t Height)
     return created;
 }
 
-bool RenderContext::setVSync(bool enabled)
+bool RenderContext::SetVSync(bool enabled)
 {
     for (const CommandResources& resources : commandResources)
     {
@@ -521,9 +521,9 @@ bool RenderContext::setVSync(bool enabled)
     return updated;
 }
 
-CommandList& RenderContext::acquireCommandList()
+CommandList& RenderContext::AcquireCommandList()
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::acquireCommandList");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::AcquireCommandList");
     ASSERT(ready);
     for (const CommandResources& resources : commandResources)
     {
@@ -568,15 +568,15 @@ CommandList& RenderContext::acquireCommandList()
     collectDeferredResources();
     resetCmdPool(pRenderer, available->pCmdPool);
     beginCmd(available->pCmd);
-    available->commands.reset(available->pCmd, gpuProfilerToken);
-    available->commands.beginGpuFrameProfile();
+    available->commands.Reset(available->pCmd, gpuProfilerToken);
+    available->commands.BeginGpuFrameProfile();
     nextCommandIndex = (available->commands.commandIndex + 1) % maxCommandLists;
     return available->commands;
 }
 
-SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPresent)
+SubmitHandle RenderContext::Submit(CommandList& commands, const GPUTexture* pPresent)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::submit");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::Submit");
     ASSERT(commands.commandIndex < maxCommandLists);
     CommandResources& resources = commandResources[commands.commandIndex];
     ASSERT(&commands == &resources.commands && commands.pCmd == resources.pCmd && !resources.submitId);
@@ -588,10 +588,10 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
             .currentState = pPresent->state,
             .newState = ResourceStatePresent,
         };
-        commands.barrier(0, nullptr, 0, nullptr, 1, &presentBarrier);
+        commands.Barrier(0, nullptr, 0, nullptr, 1, &presentBarrier);
         pPresent->state = ResourceStatePresent;
     }
-    commands.endGpuFrameProfile();
+    commands.EndGpuFrameProfile();
     endCmd(resources.pCmd);
 
     Semaphore*      waitSemaphores[] = { pImageAcquiredSemaphore };
@@ -630,9 +630,9 @@ SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPre
     return Handle;
 }
 
-void RenderContext::wait(SubmitHandle Handle)
+void RenderContext::Wait(SubmitHandle Handle)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::wait");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::Wait");
     ASSERT(Handle.IsValid() && Handle.commandIndex < maxCommandLists);
     CommandResources& resources = commandResources[Handle.commandIndex];
     if (resources.submitId == Handle.id)
@@ -656,12 +656,12 @@ bool RenderContext::IsComplete(SubmitHandle Handle) const
 
 uint32_t              RenderContext::GetWidth() const { return desc.Width; }
 uint32_t              RenderContext::GetHeight() const { return desc.Height; }
-hz::Format            RenderContext::getColorFormat() const { return desc.colorFormat; }
+hz::Format            RenderContext::GetColorFormat() const { return desc.colorFormat; }
 bool                  RenderContext::IsHDREnabled() const { return outputMode != OUTPUT_MODE_SDR; }
-OutputMode            RenderContext::getOutputMode() const { return outputMode; }
-const HDRDisplayInfo& RenderContext::getHDRDisplayInfo() const { return hdrDisplayInfo; }
-const HDRMetadata&    RenderContext::getHDRMetadata() const { return hdrMetadata; }
-const GPUTexture&     RenderContext::getCurrentBackbuffer()
+OutputMode            RenderContext::GetOutputMode() const { return outputMode; }
+const HDRDisplayInfo& RenderContext::GetHDRDisplayInfo() const { return hdrDisplayInfo; }
+const HDRMetadata&    RenderContext::GetHDRMetadata() const { return hdrMetadata; }
+const GPUTexture&     RenderContext::GetCurrentBackbuffer()
 {
     ASSERT(!suspended && pSwapChain);
     if (!imageAcquired)

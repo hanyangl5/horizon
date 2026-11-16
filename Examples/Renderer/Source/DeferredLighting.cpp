@@ -30,7 +30,7 @@ static_assert(sizeof(DeferredLightingConstants) == 15 * sizeof(uint32_t));
 
 DeferredLighting::DeferredLighting(hz::RenderContext& Context): Context(Context)
 {
-    Pipeline = Context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
+    Pipeline = Context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
                                                                            { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                                                                .pFileName = "DeferredLighting.slang" },
                                                 .colorTargets = { { .Format = hz::Format::R32G32B32A32_SFLOAT } },
@@ -39,7 +39,7 @@ DeferredLighting::DeferredLighting(hz::RenderContext& Context): Context(Context)
 }
 void DeferredLighting::Resize(uint32_t Width, uint32_t Height)
 {
-    Color = Context.createTexture({ .Width = Width,
+    Color = Context.CreateTexture({ .Width = Width,
                                     .Height = Height,
                                     .Format = hz::Format::R32G32B32A32_SFLOAT,
                                     .StartState = ResourceStateRenderTarget,
@@ -74,17 +74,17 @@ const hz::GPUTexture& DeferredLighting::Execute(hz::CommandList& Commands, const
         .rtReflectionIndex = Dependencies.sample(Resources.RTReflection),
         .ssaoIndex = Dependencies.sample(Resources.SSAO),
     };
-    Commands.beginGpuTimestamp("DeferredLighting");
+    Commands.BeginGpuTimestamp("DeferredLighting");
     // Keep graphics state active during GBV attachment-transition checks after DXR.
-    Commands.setPipeline(Pipeline);
-    Commands.beginRendering(
+    Commands.SetPipeline(Pipeline);
+    Commands.BeginRendering(
         { .colorAttachments = { { .pTexture = &Color, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
         Dependencies.get());
-    Commands.setViewport(0, 0, (float)Color.GetWidth(), (float)Color.GetHeight());
-    Commands.setScissor(0, 0, Color.GetWidth(), Color.GetHeight());
-    Commands.setRootConstants(Constants);
-    Commands.draw(3);
-    Commands.endRendering();
-    Commands.endGpuTimestamp();
+    Commands.SetViewport(0, 0, (float)Color.GetWidth(), (float)Color.GetHeight());
+    Commands.SetScissor(0, 0, Color.GetWidth(), Color.GetHeight());
+    Commands.SetRootConstants(Constants);
+    Commands.Draw(3);
+    Commands.EndRendering();
+    Commands.EndGpuTimestamp();
     return Color;
 }

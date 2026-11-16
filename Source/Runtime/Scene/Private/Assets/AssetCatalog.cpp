@@ -143,7 +143,7 @@ private:
         for (uint32_t i = end; i < dependencies.Size(); ++i)
             if (dependencies[i] != dependencies[end - 1])
                 dependencies[end++] = dependencies[i];
-        dependencies.resize(end);
+        dependencies.Resize(end);
         return { dependencies.GetData() + start, end - start };
     }
 
@@ -518,7 +518,7 @@ bool AssetCatalog::serialize(Array<char>& json) const
     char* pText = cJSON_PrintUnformatted(document.pRoot);
     if (!pText)
         return false;
-    json.resize((uint32_t)strlen(pText) + 1);
+    json.Resize((uint32_t)strlen(pText) + 1);
     memcpy(json.GetData(), pText, json.Size());
     cJSON_free(pText);
     return true;

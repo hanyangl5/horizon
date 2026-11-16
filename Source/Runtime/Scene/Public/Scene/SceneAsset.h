@@ -43,7 +43,7 @@ struct SceneAssetMaterial
 struct SceneAssetSubmesh
 {
     SubmeshID id = 0;
-    uint32_t  draw = 0;
+    uint32_t  Draw = 0;
     AssetID   material;
 };
 

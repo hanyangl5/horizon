@@ -455,8 +455,8 @@ void d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Ray
 
     if (pDesc->issueRWBarrier)
     {
-        BufferBarrier barrier = { as->pASBuffer, ResourceStateAccelerationStructureWrite, ResourceStateAccelerationStructureRead };
-        cmdResourceBarrier(pCmd, 1, &barrier, 0, NULL, 0, NULL);
+        BufferBarrier Barrier = { as->pASBuffer, ResourceStateAccelerationStructureWrite, ResourceStateAccelerationStructureRead };
+        cmdResourceBarrier(pCmd, 1, &Barrier, 0, NULL, 0, NULL);
     }
 
     dxrCmd->Release();

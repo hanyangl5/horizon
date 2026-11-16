@@ -55,8 +55,8 @@ public:
                 pContext->ReleaseAccelerationStructure(bottoms[i]);
             }
         }
-        instances.resize(source.Count);
-        bottoms.resize(source.Count);
+        instances.Resize(source.Count);
+        bottoms.Resize(source.Count);
         for (uint32_t i = 0; i < source.Count; ++i)
         {
             setInstance(i, source.Data[i]);
@@ -126,7 +126,7 @@ bool RenderContext::SupportsRayTracing() const
     return pRenderer && pRenderer->pGpu->settings.rayPipelineSupported && pRenderer->pGpu->settings.rayQuerySupported;
 }
 
-GPUAccelerationStructure RenderContext::createAccelerationStructure(const AccelerationStructureDesc& input)
+GPUAccelerationStructure RenderContext::CreateAccelerationStructure(const AccelerationStructureDesc& input)
 {
     if (!pRaytracing && !initRaytracing(pRenderer, &pRaytracing))
     {
@@ -173,8 +173,8 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
         data->setInstances(input.instances);
         if (!input.instances.Count)
         {
-            data->instances.resize(data->Capacity);
-            data->bottoms.resize(data->Capacity);
+            data->instances.Resize(data->Capacity);
+            data->bottoms.Resize(data->Capacity);
         }
         for (const AccelerationStructureInstance& instance : input.instances)
         {
@@ -207,7 +207,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
     return GPUAccelerationStructure(data);
 }
 
-void CommandList::buildAccelerationStructure(GPUAccelerationStructure& structure, Span<AccelerationStructureInstance> instances,
+void CommandList::BuildAccelerationStructure(GPUAccelerationStructure& structure, Span<AccelerationStructureInstance> instances,
                                              bool update)
 {
     ASSERT(structure.IsValid());
@@ -218,8 +218,8 @@ void CommandList::buildAccelerationStructure(GPUAccelerationStructure& structure
     if (data.Type == ACCELERATION_STRUCTURE_TYPE_BOTTOM)
     {
         arrsetlen(bufferBarriers, 0);
-        addBufferBarriers({ data.inputs.GetData(), data.inputs.Size() }, false);
-        barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, 0, nullptr, 0, nullptr);
+        AddBufferBarriers({ data.inputs.GetData(), data.inputs.Size() }, false);
+        Barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, 0, nullptr, 0, nullptr);
     }
     else
     {
@@ -232,7 +232,7 @@ void CommandList::buildAccelerationStructure(GPUAccelerationStructure& structure
         {
             ASSERT(bottom && bottom->built);
         }
-        Buffer* upload = createUploadBuffer((uint64_t)data.instances.Size() * sizeof(RaytracingInstanceData));
+        Buffer* upload = CreateUploadBuffer((uint64_t)data.instances.Size() * sizeof(RaytracingInstanceData));
         memcpy(upload->pCpuMappedAddress, data.instances.GetData(), data.instances.Size() * sizeof(RaytracingInstanceData));
         desc.pInstanceBuffer = upload;
         desc.instanceCount = data.instances.Size();
@@ -243,7 +243,7 @@ void CommandList::buildAccelerationStructure(GPUAccelerationStructure& structure
     data.dirty = false;
 }
 
-void CommandList::updateAccelerationStructure(GPUAccelerationStructure& structure)
+void CommandList::UpdateAccelerationStructure(GPUAccelerationStructure& structure)
 {
     ASSERT(structure.IsValid() && structure.Data->pContext == pContext);
     AccelerationStructureData& data = *structure.Data;
@@ -252,7 +252,7 @@ void CommandList::updateAccelerationStructure(GPUAccelerationStructure& structur
     {
         const bool update =
             data.built && (data.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE) && data.instances.Size() == data.builtCount;
-        buildAccelerationStructure(structure, {}, update);
+        BuildAccelerationStructure(structure, {}, update);
     }
 }
 
@@ -314,7 +314,7 @@ static bool raySlangResult(SlangResult result, const Slang::ComPtr<ISlangBlob>& 
     return SLANG_SUCCEEDED(result);
 }
 
-GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPipelineDesc& input)
+GPURayTracingPipeline RenderContext::CreateRayTracingPipeline(const RayTracingPipelineDesc& input)
 {
     ASSERT(input.pFileName && input.pRayGeneration && input.rootConstantSize && input.rootConstantSize <= 256 &&
            !(input.rootConstantSize % 4));
@@ -431,18 +431,18 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
     return GPURayTracingPipeline(this, pipeline);
 }
 
-void CommandList::setPipeline(const GPURayTracingPipeline& pipeline)
+void CommandList::SetPipeline(const GPURayTracingPipeline& pipeline)
 {
     ASSERT(pipeline.IsValid() && pipeline.pContext == pContext);
     pCurrentRootSignature = getRaytracingPipelineRootSignature(pipeline.pPipeline);
     pCurrentDrawIndirectSignature = nullptr;
     cmdBindRaytracingPipeline(pCmd, pipeline.pPipeline);
 }
-void CommandList::traceRays(const GPURayTracingPipeline& pipeline, uint32_t Width, uint32_t Height, uint32_t Depth,
+void CommandList::TraceRays(const GPURayTracingPipeline& pipeline, uint32_t Width, uint32_t Height, uint32_t Depth,
                             const Dependencies& dependencies)
 {
     ASSERT(pipeline.IsValid() && Width && Height && Depth);
-    barrier(dependencies, nullptr);
+    Barrier(dependencies, nullptr);
     cmdTraceRays(pCmd, pipeline.pPipeline, Width, Height, Depth);
 }
 } // namespace hz

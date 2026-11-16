@@ -695,7 +695,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 #ifdef AUTOMATED_TESTING
         extern bool gAutomatedTestingScriptsFinished;
-        // wait for the automated testing if it hasn't managed to finish in time
+        // Wait for the automated testing if it hasn't managed to finish in time
         if (gAutomatedTestingScriptsFinished && frameCounter >= targetFrameCount)
             quit = true;
         frameCounter++;

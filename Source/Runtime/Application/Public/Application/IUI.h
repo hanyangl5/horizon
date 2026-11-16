@@ -536,7 +536,7 @@ FORGE_API void unloadUserInterface(uint32_t unloadType);
 
 /// Renders defined ImGUI components and widgets using The Forge's Renderer
 /// This function also handles rendering the Forge Profiler's UI Window.
-/// If pUIDrawData* is NULL, the current ImGUI state will be used, otherwise the passed in draw data will be used.
+/// If pUIDrawData* is NULL, the current ImGUI state will be used, otherwise the passed in Draw data will be used.
 /// Due to the nature of ImGUI not being thread safe, this call must be made on the main thread if pUIDrawData* is kept NULL.
 FORGE_API void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData = NULL);
 
@@ -665,7 +665,7 @@ FORGE_API bool uiIsRenderingEnabled();
 /// It's the caller's responsibility to call removeUIDrawData(...) when done.
 FORGE_API UserInterfaceDrawData* addUIDrawData();
 
-/// Populates a UserInterfaceDrawData* with current frame draw data so that it can be passed to cmdDrawUserInterface(Cmd* pCmd,
+/// Populates a UserInterfaceDrawData* with current frame Draw data so that it can be passed to cmdDrawUserInterface(Cmd* pCmd,
 /// UserInterfaceDrawData* pUIDrawData) at a later time.
 FORGE_API void uiPopulateDrawData(UserInterfaceDrawData* pUIDrawData);
 

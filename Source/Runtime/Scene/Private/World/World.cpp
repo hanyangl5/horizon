@@ -285,7 +285,7 @@ WorldQueryImpl::WorldQueryImpl(World& world, Span<TypeID> types): pOwner(&world)
 {
     world.pImpl->checkThread();
     ASSERT(!world.isDeferred());
-    fields.resize(types.Count);
+    fields.Resize(types.Count);
     Array<ecs_term_t> terms(types.Count + 1);
     terms[0].id = world.pImpl->entityTag;
     terms[0].src.flags = EcsSelf;

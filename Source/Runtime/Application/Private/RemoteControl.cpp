@@ -510,7 +510,7 @@
 // }
 
 // /// Initialize remote control server.
-// /// The server application sends the UI draw commands to connected client.
+// /// The server application sends the UI Draw commands to connected client.
 // /// Clients send the input data.
 // void initRemoteAppServer(uint16_t port)
 // {
@@ -567,7 +567,7 @@
 
 //     ASSERT(pRemoteAppServer->mServerListenSocket == SOCKET_INVALID && "Server Listen Socket is still active");
 
-//     // Free all awaiting draw data
+//     // Free all awaiting Draw data
 //     remove_circular_buffer(&pRemoteAppServer->mAwaitingSendDrawData);
 //     remove_circular_buffer(&pRemoteAppServer->mAwaitingSendTextureData);
 
@@ -867,7 +867,7 @@
 //     remove_circular_buffer(&pRemoteControlClient->mAwaitingSendInput);
 //     arrfree(pRemoteControlClient->inputs);
 
-//     // Free all received draw data
+//     // Free all received Draw data
 //     remove_circular_buffer(&pRemoteControlClient->mReceivedDrawData);
 //     removeUserInterfaceDrawData(&pRemoteControlClient->mLastReceivedDrawData);
 //     remove_circular_buffer(&pRemoteControlClient->mReceivedTextureData);
@@ -918,7 +918,7 @@
 
 // bool remoteControlIsConnected() { return pRemoteControlClient && pRemoteControlClient->mClientConnectionSocket != SOCKET_INVALID; }
 
-// /// Get the latest user interface draw data received from the server.
+// /// Get the latest user interface Draw data received from the server.
 // UserInterfaceDrawData* remoteControlReceiveDrawData()
 // {
 //     if (!pRemoteControlClient || pRemoteControlClient->mClientConnectionSocket == SOCKET_INVALID)

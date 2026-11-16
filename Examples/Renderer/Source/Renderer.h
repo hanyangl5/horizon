@@ -203,14 +203,14 @@ public:
             return true;
         }
         const uint32_t Width = (uint32_t)settings.Width, Height = (uint32_t)settings.Height;
-        if (!Context->resize(Width, Height))
+        if (!Context->Resize(Width, Height))
         {
-            LOGF(Error, "Failed to resize RenderContext to %ux%u", Width, Height);
+            LOGF(Error, "Failed to Resize RenderContext to %ux%u", Width, Height);
             return false;
         }
         const int64_t Start = GetUSec(true);
         const bool    Ready = Passes->Resize(Width, Height);
-        LOGF(Info, "Startup/resize: targets and environment %.1f ms", (GetUSec(true) - Start) / 1000.0);
+        LOGF(Info, "Startup/Resize: targets and environment %.1f ms", (GetUSec(true) - Start) / 1000.0);
         return Ready;
     }
     void Unload(ReloadDesc*) override { Context->WaitIdle(); }
@@ -315,7 +315,7 @@ private:
                              World->setComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
         ASSERT(Created);
         Scene->update();
-        LOGF(Info, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R reset, Esc release mouse");
+        LOGF(Info, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R Reset, Esc release mouse");
     }
 
     hz::UniquePtr<FreeCameraController> Camera;

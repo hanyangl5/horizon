@@ -8,7 +8,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
     if (GeometryRevision != Draws.GetGeometryRevision())
     {
         hz::Array<hz::GPUAccelerationStructure> Previous = std::move(BottomLevelAS);
-        BottomLevelAS.resize(Geometries.Count);
+        BottomLevelAS.Resize(Geometries.Count);
         for (uint32_t Index = 0; Index < Geometries.Count; ++Index)
         {
             const DrawGeometry& Source = Geometries.Data[Index];
@@ -37,9 +37,9 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
                 .indexType = Mesh->getIndexType(),
                 .opaque = Source.Opaque,
             };
-            BottomLevelAS[Index] = Context.createAccelerationStructure({ .geometries = { &Geometry, 1 } });
+            BottomLevelAS[Index] = Context.CreateAccelerationStructure({ .geometries = { &Geometry, 1 } });
             ASSERT(BottomLevelAS[Index].IsValid());
-            Commands.buildAccelerationStructure(BottomLevelAS[Index]);
+            Commands.BuildAccelerationStructure(BottomLevelAS[Index]);
         }
         GeometryRevision = Draws.GetGeometryRevision();
     }
@@ -57,7 +57,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
     }
     if (TopLevelAS.getInstanceCount() != InstanceCount)
     {
-        TopLevelAS = Context.createAccelerationStructure({
+        TopLevelAS = Context.CreateAccelerationStructure({
             .Type = ACCELERATION_STRUCTURE_TYPE_TOP,
             .Flags = AccelerationStructureBuildFlags(ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE |
                                                      ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE),
@@ -88,5 +88,5 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
         }
         TopLevelAS.setInstance(InstanceIndex++, Instance);
     }
-    Commands.updateAccelerationStructure(TopLevelAS);
+    Commands.UpdateAccelerationStructure(TopLevelAS);
 }

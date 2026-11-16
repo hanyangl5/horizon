@@ -38,7 +38,7 @@ public:
         view.state = AssetBindingState::Pending;
         view.materials = {};
         needsResolve = true;
-        overrides.resize(renderer.overrides.Size());
+        overrides.Resize(renderer.overrides.Size());
         for (uint32_t i = 0; i < overrides.Size(); ++i)
             overrides[i] = renderer.overrides[i];
         if (!initialized || meshID != renderer.mesh)

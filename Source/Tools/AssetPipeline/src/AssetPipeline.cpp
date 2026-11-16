@@ -1994,7 +1994,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         uint32_t jointCount = 0;
         uint32_t vertexAttribCount[MAX_SEMANTICS] = {};
 
-        // Find number of traditional draw calls required to draw this piece of geometry
+        // Find number of traditional Draw calls required to Draw this piece of geometry
         // Find total index Count, total vertex Count
         for (uint32_t j = 0; j < data->meshes_count; ++j)
         {
@@ -2317,14 +2317,14 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 }
 
                 /************************************************************************/
-                // Fill draw arguments for this primitive
+                // Fill Draw arguments for this primitive
                 /************************************************************************/
                 geom->pDrawArgs[drawCount].indexCount = primitiveIndexCount;
                 geom->pDrawArgs[drawCount].instanceCount = 1;
                 geom->pDrawArgs[drawCount].startIndex = indexCount;
                 geom->pDrawArgs[drawCount].startInstance = 0;
                 // Since we already offset indices when creating the index buffer, vertex offset will be zero
-                // With this approach, we can draw everything in one draw call or use the traditional draw per subset without the
+                // With this approach, we can Draw everything in one Draw call or use the traditional Draw per subset without the
                 // need for changing shader code
                 geom->pDrawArgs[drawCount].vertexOffset = 0;
 

@@ -10,7 +10,7 @@ struct SubresourceDataDesc;
 //     BARRIER_STAGE_NONE = 0,
 //     // All GPU work scopes.
 //     BARRIER_STAGE_ALL = 0x1,
-//     // Entire graphics draw pipeline.
+//     // Entire graphics Draw pipeline.
 //     BARRIER_STAGE_DRAW = 0x2,
 //     // Index input and vertex/index fetch.
 //     BARRIER_STAGE_INDEX_INPUT = 0x4,
@@ -24,7 +24,7 @@ struct SubresourceDataDesc;
 //     BARRIER_STAGE_RENDER_TARGET = 0x40,
 //     // Compute shading.
 //     BARRIER_STAGE_COMPUTE_SHADING = 0x80,
-//     // Raytracing dispatch.
+//     // Raytracing Dispatch.
 //     BARRIER_STAGE_RAYTRACING = 0x100,
 //     // Copy commands.
 //     BARRIER_STAGE_COPY = 0x200,
@@ -54,10 +54,10 @@ struct SubresourceDataDesc;
 //     BARRIER_STAGE_COPY_RAYTRACING_ACCELERATION_STRUCTURE = 0x1000000,
 //     // ConvertLinearAlgebraMatrix.
 //     BARRIER_STAGE_CONVERT_LINEAR_ALGEBRA_MATRIX = 0x20000000,
-//     // Split barrier marker scope.
+//     // Split Barrier marker scope.
 //     BARRIER_STAGE_SPLIT = 0x80000000,
 
-//     // Legacy runtime alias for the full graphics draw pipeline.
+//     // Legacy runtime alias for the full graphics Draw pipeline.
 //     BARRIER_STAGE_ALL_GRAPHICS = BARRIER_STAGE_DRAW,
 //     // Legacy runtime alias for vertex shading.
 //     BARRIER_STAGE_VERTEX_SHADER = BARRIER_STAGE_VERTEX_SHADING,
@@ -124,7 +124,7 @@ struct SubresourceDataDesc;
 //     RESOURCE_ACCESS_VIDEO_ENCODE_READ = 0x200000,
 //     // Video encode write access.
 //     RESOURCE_ACCESS_VIDEO_ENCODE_WRITE = 0x400000,
-//     // Global barrier access mask.
+//     // Global Barrier access mask.
 //     RESOURCE_ACCESS_GLOBAL = 0x40000000,
 //     // No resource memory access. Must be paired with BARRIER_STAGE_NONE.
 //     RESOURCE_ACCESS_NO_ACCESS = 0x80000000,

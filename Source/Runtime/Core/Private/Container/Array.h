@@ -13,7 +13,7 @@ class Array
 {
 public:
     Array() = default;
-    explicit Array(uint32_t Count) { resize(Count); }
+    explicit Array(uint32_t Count) { Resize(Count); }
     explicit Array(Span<T> values)
     {
         ASSERT(values.Data || !values.Count);
@@ -39,14 +39,14 @@ public:
     {
         if (this != &other)
         {
-            reset();
+            Reset();
             Data = other.Data;
             other.Data = nullptr;
         }
         return *this;
     }
 
-    ~Array() { reset(); }
+    ~Array() { Reset(); }
 
     uint32_t Size() const { return (uint32_t)stbds_arrlenu(Data); }
     uint32_t Capacity() const { return (uint32_t)stbds_arrcap(Data); }
@@ -86,11 +86,11 @@ public:
             for (uint32_t i = 0; i < oldCount; ++i)
                 relocate(pNew + i, Data[i]);
             stbds_arrsetlen(pNew, oldCount);
-            reset();
+            Reset();
             Data = pNew;
         }
     }
-    void resize(uint32_t Count)
+    void Resize(uint32_t Count)
     {
         const uint32_t oldCount = Size();
         DestroyFrom(Count);
@@ -128,7 +128,7 @@ public:
         DestroyFrom(0);
         stbds_arrsetlen(Data, 0);
     }
-    void reset()
+    void Reset()
     {
         Clear();
         stbds_arrfree(Data);

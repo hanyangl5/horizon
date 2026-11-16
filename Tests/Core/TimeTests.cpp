@@ -3,7 +3,7 @@
 #include "Core/ITime.h"
 #include "Core/IThread.h"
 
-// Verifies timer frequency, monotonic elapsed time, and reset semantics for the basic timer helpers.
+// Verifies timer frequency, monotonic elapsed time, and Reset semantics for the basic timer helpers.
 TEST(CoreTimeTest, TimerFunctionsReportMonotonicElapsedTime)
 {
     EXPECT_GT(GetTimerFrequency(), 0);

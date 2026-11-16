@@ -57,7 +57,7 @@ struct AssetLoadResult
 
 class AssetManager;
 
-// Loader callbacks run on the asset manager's owning thread. begin/poll/upload must not wait for IO or GPU work.
+// Loader callbacks run on the asset manager's owning thread. begin/poll/upload must not Wait for IO or GPU work.
 // A terminal poll transfers its payload to the asset manager, including partial failure results.
 // Callbacks may query dependencies, but must not mutate the asset manager. Payload Type matches the registered AssetType.
 struct AssetLoader

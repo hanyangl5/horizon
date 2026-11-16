@@ -52,7 +52,7 @@ public:
         scene(scene), assetManager(assetManager), context(context)
     {
         ASSERT(desc.frameCount);
-        frames.resize(desc.frameCount);
+        frames.Resize(desc.frameCount);
         GPUBuffer* const  pBuffers[] = { &buffers.primitives,        &buffers.instances,        &buffers.meshBatches,
                                          &buffers.instanceIndices,   &buffers.activePrimitives, &buffers.activeInstances,
                                          &buffers.activeMeshBatches, &buffers.lights,           &buffers.cameras,
@@ -151,7 +151,7 @@ public:
             {
                 table.Capacity = growCapacity(table.Capacity, Size);
                 context.DeferRelease(std::move(*table.pBuffer));
-                *table.pBuffer = context.createBuffer({ .Size = table.Capacity,
+                *table.pBuffer = context.CreateBuffer({ .Size = table.Capacity,
                                                         .ElementCount = (uint32_t)(table.Capacity / 4),
                                                         .Name = table.Name,
                                                         .usage = MemoryUsageGpuOnly,
@@ -185,7 +185,7 @@ public:
             {
                 frame.Capacity = growCapacity(frame.Capacity, staged);
                 context.DeferRelease(std::move(frame.staging));
-                frame.staging = context.createBuffer({ .Size = frame.Capacity,
+                frame.staging = context.CreateBuffer({ .Size = frame.Capacity,
                                                        .Name = "GpuScene.Staging",
                                                        .usage = MemoryUsageCpuToGpu,
                                                        .StartState = ResourceStateGenericRead,
@@ -196,7 +196,7 @@ public:
             {
                 for (const BufferCopyRegion& region : tables[i].regions)
                 {
-                    const bool written = context.updateBuffer(frame.staging, region.srcOffset,
+                    const bool written = context.UpdateBuffer(frame.staging, region.srcOffset,
                                                               (const uint8_t*)sources[i].Data + region.dstOffset, region.Size);
                     ASSERT(written);
                 }
@@ -256,7 +256,7 @@ void GpuScene::upload(CommandList& commands)
     {
         if (!table.regions.Empty())
         {
-            commands.copyBufferRegions(*table.pBuffer, frame.staging, { table.regions.GetData(), table.regions.Size() });
+            commands.CopyBufferRegions(*table.pBuffer, frame.staging, { table.regions.GetData(), table.regions.Size() });
         }
     }
     Data->recorded = true;

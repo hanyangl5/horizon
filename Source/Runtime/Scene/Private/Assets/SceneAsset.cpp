@@ -141,7 +141,7 @@ bool SceneAssetReader::readString(const cJSON* pObject, const char* pField, cons
         return invalidField(pField);
     const uint32_t offset = data.strings.Size();
     const uint32_t Size = (uint32_t)strlen(pValue->valuestring) + 1;
-    data.strings.resize(offset + Size);
+    data.strings.Resize(offset + Size);
     memcpy(data.strings.GetData() + offset, pValue->valuestring, Size);
     pOutput = data.strings.GetData() + offset;
     return true;
@@ -247,9 +247,9 @@ bool SceneAssetReader::readMeshes(const cJSON* pArray)
             const cJSON* pID = field(pSubmesh, "id");
             if (!cJSON_IsString(pID) || strlen(pID->valuestring) != 16 || strspn(pID->valuestring, "0123456789abcdefABCDEF") != 16 ||
                 !readInteger(field(pSubmesh, "draw"), 0, UINT32_MAX))
-                return invalidField("submesh id/draw");
+                return invalidField("submesh id/Draw");
             SceneAssetSubmesh submesh = { .id = strtoull(pID->valuestring, nullptr, 16),
-                                          .draw = (uint32_t)field(pSubmesh, "draw")->valuedouble };
+                                          .Draw = (uint32_t)field(pSubmesh, "draw")->valuedouble };
             if (!submesh.id)
                 return invalidField("submesh id");
             if (!readReference(pSubmesh, "material", submesh.material, AssetKind::Material))

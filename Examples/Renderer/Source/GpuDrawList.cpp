@@ -6,12 +6,12 @@
 
 GpuDrawList::GpuDrawList(hz::RenderContext& Context): Context(Context)
 {
-    Pipeline = Context.createComputePipeline(
+    Pipeline = Context.CreateComputePipeline(
         { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain", .Name = "Renderer.FrustumCull" } },
                           .pFileName = "FrustumCulling.slang" },
           .Name = "Renderer.FrustumCull" });
     ClearPipeline =
-        Context.createComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearStatistics" } },
+        Context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearStatistics" } },
                                                         .pFileName = "FrustumCulling.slang" },
                                         .Name = "Renderer.ClearCullingStatistics" });
     ASSERT(Pipeline.IsValid() && ClearPipeline.IsValid());
@@ -38,7 +38,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
     const hz::GpuAssetTables& Tables = View.GpuScene.getAssetTables();
     if (MaterialRevision != Tables.revision)
     {
-        MaterialIds.resize(Tables.materials.Count);
+        MaterialIds.Resize(Tables.materials.Count);
         uint32_t Id = 0;
         for (uint32_t Index = 0; Index < Tables.materials.Count; ++Index)
         {
@@ -117,7 +117,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
     if (GeometryCount != Geometries.Size())
     {
         MarkGeometryChanged();
-        Geometries.resize(GeometryCount);
+        Geometries.Resize(GeometryCount);
     }
     if (GeometryChanged)
     {
@@ -128,7 +128,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
     if (CurrentFrame.Count > CurrentFrame.Capacity || !CurrentFrame.Statistics.IsValid())
     {
         CurrentFrame.Capacity = TF_MAX(64u, TF_MAX(CurrentFrame.Count, CurrentFrame.Capacity * 2));
-        CurrentFrame.DrawData = Context.createBuffer({ .Size = uint64_t(CurrentFrame.Capacity) * sizeof(GpuDrawData),
+        CurrentFrame.DrawData = Context.CreateBuffer({ .Size = uint64_t(CurrentFrame.Capacity) * sizeof(GpuDrawData),
                                                        .ElementCount = CurrentFrame.Capacity * (uint32_t)(sizeof(GpuDrawData) / 4),
                                                        .Name = "Renderer.DrawData",
                                                        .usage = MemoryUsageCpuToGpu,
@@ -141,10 +141,10 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
                                            .usage = MemoryUsageGpuOnly,
                                            .StartState = ResourceStateUnorderedAccess,
                                            .Descriptors = DescriptorTypeRwBufferRaw | DescriptorTypeIndirectBuffer };
-        CurrentFrame.Opaque = Context.createBuffer(Arguments);
-        CurrentFrame.Transparent = Context.createBuffer(Arguments);
-        CurrentFrame.Shadow = Context.createBuffer(Arguments);
-        CurrentFrame.Statistics = Context.createBuffer({ .Size = 16,
+        CurrentFrame.Opaque = Context.CreateBuffer(Arguments);
+        CurrentFrame.Transparent = Context.CreateBuffer(Arguments);
+        CurrentFrame.Shadow = Context.CreateBuffer(Arguments);
+        CurrentFrame.Statistics = Context.CreateBuffer({ .Size = 16,
                                                          .ElementCount = 4,
                                                          .Name = "Renderer.CullingStatistics",
                                                          .usage = MemoryUsageGpuOnly,
@@ -153,17 +153,17 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
         ASSERT(CurrentFrame.DrawData.IsValid() && CurrentFrame.Opaque.IsValid() && CurrentFrame.Transparent.IsValid() &&
                CurrentFrame.Statistics.IsValid());
     }
-    Commands.setPipeline(ClearPipeline);
-    Commands.setRootConstant({ CurrentFrame.Statistics.GetUavIndex() }, 5);
-    Commands.dispatch(1, 1, 1, { .storageBuffers = { &CurrentFrame.Statistics } });
+    Commands.SetPipeline(ClearPipeline);
+    Commands.SetRootConstant({ CurrentFrame.Statistics.GetUavIndex() }, 5);
+    Commands.Dispatch(1, 1, 1, { .storageBuffers = { &CurrentFrame.Statistics } });
     if (!CurrentFrame.Count)
     {
         return;
     }
-    const bool Uploaded = Context.updateBuffer(CurrentFrame.DrawData, 0, DrawData.GetData(), uint64_t(CurrentFrame.Count) * sizeof(GpuDrawData));
+    const bool Uploaded = Context.UpdateBuffer(CurrentFrame.DrawData, 0, DrawData.GetData(), uint64_t(CurrentFrame.Count) * sizeof(GpuDrawData));
     ASSERT(Uploaded);
-    Commands.beginGpuTimestamp("GPU Frustum Culling");
-    Commands.setPipeline(Pipeline);
+    Commands.BeginGpuTimestamp("GPU Frustum Culling");
+    Commands.SetPipeline(Pipeline);
     const CullingConstants Binding = { .frameIndex = FrameBuffer.GetSrvIndex(),
                                        .drawsIndex = CurrentFrame.DrawData.GetSrvIndex(),
                                        .instancesIndex = View.GpuScene.getBuffers().instances.GetSrvIndex(),
@@ -173,12 +173,12 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
                                        .drawCount = CurrentFrame.Count,
                                        .cullingEnabled = Culling ? 1u : 0u,
                                        .shadowsIndex = CurrentFrame.Shadow.GetUavIndex() };
-    Commands.setRootConstants(Binding);
-    Commands.dispatch((CurrentFrame.Count + 63) / 64, 1, 1,
+    Commands.SetRootConstants(Binding);
+    Commands.Dispatch((CurrentFrame.Count + 63) / 64, 1, 1,
                       { .buffers = { &FrameBuffer, &CurrentFrame.DrawData, &View.GpuScene.getBuffers().instances },
                         .storageBuffers = { &CurrentFrame.Opaque, &CurrentFrame.Transparent, &CurrentFrame.Statistics,
                                             &CurrentFrame.Shadow } });
-    Commands.endGpuTimestamp();
+    Commands.EndGpuTimestamp();
 }
 
 hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const SceneView& View,

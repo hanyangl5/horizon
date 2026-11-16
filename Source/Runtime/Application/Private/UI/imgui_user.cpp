@@ -134,7 +134,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     if (isActive && g.ActiveIdPreviousFrame == id)
     {
         // sanity check in case user clicks on center of knob.
-        // wait for 3 frames before activating the knob
+        // Wait for 3 frames before activating the knob
         const float delay = ((1.f / g.IO.Framerate) * 3.f);
         if (lengthPrev > 0.001f && lengthCurr > hitRadius && g.ActiveIdTimer > delay)
         {
@@ -178,7 +178,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     uint32_t    col32line = ImGui::GetColorU32(ImGuiCol_SliderGrabActive);
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-    // Enable to draw debug rectangles to view the frames being used
+    // Enable to Draw debug rectangles to view the frames being used
     // [DEBUGGING]
     // draw_list->AddRect(total_bb.Min, total_bb.Max, ImColor(0.0f, 1.0f, 0.0f, 1.0f));
     // draw_list->AddRect(inner_bb.Min, inner_bb.Max, ImColor(0.0f, 0.0f, 1.0f, 1.0f));

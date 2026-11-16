@@ -30,7 +30,7 @@ void ComponentLifecycle<Matrix4>::construct(void* pDestination)
 
 static uint32_t    overrideCount(const void* pArray) { return ((const Array<MaterialOverride>*)pArray)->Size(); }
 static const void* overrideData(const void* pArray) { return ((const Array<MaterialOverride>*)pArray)->GetData(); }
-static void        resizeOverrides(void* pArray, uint32_t Count) { ((Array<MaterialOverride>*)pArray)->resize(Count); }
+static void        resizeOverrides(void* pArray, uint32_t Count) { ((Array<MaterialOverride>*)pArray)->Resize(Count); }
 
 static bool insertOverride(void* pArray, uint32_t index, const void* pValue)
 {
@@ -39,7 +39,7 @@ static bool insertOverride(void* pArray, uint32_t index, const void* pValue)
     if (index > values.Size())
         return false;
     const MaterialOverride value = *(const MaterialOverride*)pValue;
-    values.resize(values.Size() + 1);
+    values.Resize(values.Size() + 1);
     for (uint32_t i = values.Size() - 1; i > index; --i)
         values[i] = values[i - 1];
     values[index] = value;

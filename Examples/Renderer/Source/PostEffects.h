@@ -63,7 +63,7 @@ private:
     hz::GPUPipeline                                 BloomUpsamplePipeline;
     hz::GPUPipeline                                 ToneMapPipeline;
     hz::Format                                      ColorFormat = {};
-    // Pooled per frame; resize creates the chain so execute only borrows it.
+    // Pooled per frame; Resize creates the chain so execute only borrows it.
     hz::GPUTexture* BloomDown[BloomLevels] = {};
     hz::GPUTexture* BloomUp[BloomLevels - 1] = {};
     hz::FixedArray<hz::GPUTexture, 2>               AdaptedLuminance;

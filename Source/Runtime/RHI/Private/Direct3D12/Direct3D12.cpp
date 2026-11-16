@@ -6011,7 +6011,7 @@ void d3d12_cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
 {
     ASSERT(pCmd);
 
-    // draw given vertices
+    // Draw given vertices
     ASSERT(pCmd->dx.pCmdList);
 
     pCmd->dx.pCmdList->DrawInstanced((UINT)vertexCount, (UINT)1, (UINT)firstVertex, (UINT)0);
@@ -6021,7 +6021,7 @@ void d3d12_cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVerte
 {
     ASSERT(pCmd);
 
-    // draw given vertices
+    // Draw given vertices
     ASSERT(pCmd->dx.pCmdList);
 
     pCmd->dx.pCmdList->DrawInstanced((UINT)vertexCount, (UINT)instanceCount, (UINT)firstVertex, (UINT)firstInstance);
@@ -6031,7 +6031,7 @@ void d3d12_cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, u
 {
     ASSERT(pCmd);
 
-    // draw indexed mesh
+    // Draw indexed mesh
     ASSERT(pCmd->dx.pCmdList);
 
     pCmd->dx.pCmdList->DrawIndexedInstanced((UINT)indexCount, (UINT)1, (UINT)firstIndex, (UINT)firstVertex, (UINT)0);
@@ -6042,7 +6042,7 @@ void d3d12_cmdDrawIndexedInstanced(Cmd* pCmd, uint32_t indexCount, uint32_t firs
 {
     ASSERT(pCmd);
 
-    // draw indexed mesh
+    // Draw indexed mesh
     ASSERT(pCmd->dx.pCmdList);
 
     pCmd->dx.pCmdList->DrawIndexedInstanced((UINT)indexCount, (UINT)instanceCount, (UINT)firstIndex, (UINT)firstVertex,
@@ -6053,7 +6053,7 @@ void d3d12_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, ui
 {
     ASSERT(pCmd);
 
-    // dispatch given command
+    // Dispatch given command
     ASSERT(pCmd->dx.pCmdList != NULL);
 
     hook_dispatch(pCmd, groupCountX, groupCountY, groupCountZ);
@@ -6554,7 +6554,7 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 
         if (!VERIFY(SUCCEEDED(removeHr)))
         {
-            ThreadSleep(5000); // Wait for a few seconds to allow the driver to come back online before doing a reset.
+            ThreadSleep(5000); // Wait for a few seconds to allow the driver to come back online before doing a Reset.
             ResetDesc resetDesc;
             resetDesc.Type = ResetTypeDeviceLost;
             RequestReset(&resetDesc);
@@ -6715,7 +6715,7 @@ void d3d12_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatu
         case INDIRECT_DRAW:
             argumentDescs[i].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
             commandStride += sizeof(IndirectDrawArguments);
-            // Only one draw command allowed. So make sure no other draw command args in the list
+            // Only one Draw command allowed. So make sure no other Draw command args in the list
             ASSERT(INDIRECT_ARG_INVALID == drawType);
             drawType = INDIRECT_DRAW;
             break;

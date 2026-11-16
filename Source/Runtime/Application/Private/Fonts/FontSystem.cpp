@@ -121,8 +121,8 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
         return;
     }
 
-    FontstashDrawData* draw = (FontstashDrawData*)userPtr;
-    Cmd*               pCmd = draw->pCmd;
+    FontstashDrawData* Draw = (FontstashDrawData*)userPtr;
+    Cmd*               pCmd = Draw->pCmd;
 
     if (gFontstash.updateTexture)
     {
@@ -158,7 +158,7 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
     // extract color
     float4 color = unpackA8B8G8R8_SRGB(*colors);
 
-    uint32_t  pipelineIndex = draw->text3D ? 1 : 0;
+    uint32_t  pipelineIndex = Draw->text3D ? 1 : 0;
     Pipeline* pPipeline = gFontstash.pPipelines[pipelineIndex];
     ASSERT(pPipeline);
 
@@ -179,9 +179,9 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
     data.textureIndex = getTextureSrvIndex(gFontstash.pAtlasTexture);
     data.samplerIndex = getSamplerIndex(gFontstash.pDefaultSampler);
 
-    if (draw->text3D)
+    if (Draw->text3D)
     {
-        CameraMatrix mvp = (draw->projView * draw->worldMat);
+        CameraMatrix mvp = (Draw->projView * Draw->worldMat);
         data.color = color;
         data.scaleBias.x = -data.scaleBias.x;
 
@@ -469,15 +469,15 @@ void cmdDrawTextWithFont(Cmd* pCmd, float2 screenCoordsInPx, const FontDrawDesc*
     float       spacing = pDesc->fontSpacing;
     float       blur = pDesc->fontBlur;
 
-    FontstashDrawData draw = {};
-    draw.text3D = false;
-    draw.pCmd = pCmd;
+    FontstashDrawData Draw = {};
+    Draw.text3D = false;
+    Draw.pCmd = pCmd;
     // clamp the font Size to max Size.
     // Precomputed font texture puts limitation to the maximum Size.
     Size = min(Size, gFontstash.fontMaxSize);
 
     FONScontext* fs = gFontstash.pContext;
-    fs->params.userPtr = &draw; // -V506 (draw only used inside this function)
+    fs->params.userPtr = &Draw; // -V506 (Draw only used inside this function)
     fonsSetSize(fs, Size * gFontstash.dpiScaleMin);
     fonsSetFont(fs, fontID);
     fonsSetColor(fs, color);
@@ -512,17 +512,17 @@ void cmdDrawWorldSpaceTextWithFont(Cmd* pCmd, const Matrix4* pMatWorld, const Ca
     float               spacing = pDesc->fontSpacing;
     float               blur = pDesc->fontBlur;
 
-    FontstashDrawData draw = {};
-    draw.text3D = true;
-    draw.projView = projView;
-    draw.worldMat = worldMat;
-    draw.pCmd = pCmd;
+    FontstashDrawData Draw = {};
+    Draw.text3D = true;
+    Draw.projView = projView;
+    Draw.worldMat = worldMat;
+    Draw.pCmd = pCmd;
     // clamp the font Size to max Size.
     // Precomputed font texture puts limitation to the maximum Size.
     Size = min(Size, gFontstash.fontMaxSize);
 
     FONScontext* fs = gFontstash.pContext;
-    fs->params.userPtr = &draw; // -V506 (draw only used inside this function)
+    fs->params.userPtr = &Draw; // -V506 (Draw only used inside this function)
     fonsSetSize(fs, Size * gFontstash.dpiScaleMin);
     fonsSetFont(fs, fontID);
     fonsSetColor(fs, color);
@@ -538,12 +538,12 @@ void cmdDrawDebugFontAtlas(Cmd* pCmd, float2 screenCoordInPx)
 #ifdef ENABLE_FORGE_FONTS
     ASSERT(gFontstash.renderInitialized && "Font Rendering not initialized! Make sure to call initFontRendering!");
 
-    FontstashDrawData draw = {};
-    draw.text3D = false;
-    draw.pCmd = pCmd;
+    FontstashDrawData Draw = {};
+    Draw.text3D = false;
+    Draw.pCmd = pCmd;
 
     FONScontext* fs = gFontstash.pContext;
-    fs->params.userPtr = &draw; // -V506 (draw only used inside this function)
+    fs->params.userPtr = &Draw; // -V506 (Draw only used inside this function)
     fonsDrawDebug(fs, screenCoordInPx.x, screenCoordInPx.y);
 #endif
 }

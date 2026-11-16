@@ -92,7 +92,7 @@ TEST_F(SceneAssetReadTest, PreservesHierarchyLocalTransformsAndAssetReferences)
     EXPECT_EQ(nodes[2].mesh, mesh.id);
     ASSERT_EQ(mesh.submeshes.Count, 2u);
     EXPECT_EQ(mesh.submeshes.Data[0].id, UINT64_C(0x8000000000000001));
-    EXPECT_EQ(mesh.submeshes.Data[1].draw, 1u);
+    EXPECT_EQ(mesh.submeshes.Data[1].Draw, 1u);
     EXPECT_EQ(mesh.submeshes.Data[1].material, mesh.submeshes.Data[0].material);
     ASSERT_EQ(asset.getMaterials().Count, 1u);
     const hz::SceneAssetMaterial& material = asset.getMaterials().Data[0];

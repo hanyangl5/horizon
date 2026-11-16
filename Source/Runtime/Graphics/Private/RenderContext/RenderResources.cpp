@@ -242,7 +242,7 @@ void GPUPipeline::Destroy()
     }
 }
 
-GPUBuffer RenderContext::createBuffer(const BufferDesc& input)
+GPUBuffer RenderContext::CreateBuffer(const BufferDesc& input)
 {
     ASSERT(ready && input.Size && input.initialDataSize <= input.Size && ((input.pInitialData != nullptr) == (input.initialDataSize != 0)));
 
@@ -266,7 +266,7 @@ GPUBuffer RenderContext::createBuffer(const BufferDesc& input)
     return GPUBuffer(this, buffer, input.Size, input.usage, input.Descriptors, input.StartState);
 }
 
-GPUTexture RenderContext::createTexture(const TextureDesc& input)
+GPUTexture RenderContext::CreateTexture(const TextureDesc& input)
 {
     ASSERT(ready && input.Width && input.Height && input.Depth && input.ArraySize && input.MipLevels);
 
@@ -328,7 +328,7 @@ static bool sameTextureDesc(const TextureDesc& a, const TextureDesc& b)
            a.Descriptors == b.Descriptors && a.Flags == b.Flags && a.renderTarget == b.renderTarget;
 }
 
-GPUTexture* RenderContext::acquireTransient(const TextureDesc& input)
+GPUTexture* RenderContext::AcquireTransient(const TextureDesc& input)
 {
     ASSERT(ready && input.Width && input.Height);
     uint32_t freeSlot = transientCapacity;
@@ -354,7 +354,7 @@ GPUTexture* RenderContext::acquireTransient(const TextureDesc& input)
         return nullptr;
     }
     TransientSlot& slot = transientSlots[freeSlot];
-    slot.texture = createTexture(input);
+    slot.texture = CreateTexture(input);
     slot.desc = input;
     slot.useId = 0;
     slot.inUse = true;
@@ -362,7 +362,7 @@ GPUTexture* RenderContext::acquireTransient(const TextureDesc& input)
     return &slot.texture;
 }
 
-void RenderContext::releaseTransient(GPUTexture* pTexture)
+void RenderContext::ReleaseTransient(GPUTexture* pTexture)
 {
     for (uint32_t i = 0; i < transientCapacity; ++i)
     {
@@ -376,7 +376,7 @@ void RenderContext::releaseTransient(GPUTexture* pTexture)
     ASSERT(false);
 }
 
-void RenderContext::purgeTransients()
+void RenderContext::PurgeTransients()
 {
     for (TransientSlot& slot : transientSlots)
     {
@@ -401,7 +401,7 @@ void RenderContext::releaseTransientSlots()
     }
 }
 
-GPUTexture RenderContext::loadTexture(ResourceDirectory directory, const char* pFileName, TextureCreationFlags Flags)
+GPUTexture RenderContext::LoadTexture(ResourceDirectory directory, const char* pFileName, TextureCreationFlags Flags)
 {
     ASSERT(ready && pFileName);
     const char* extension = strrchr(pFileName, '.');
@@ -433,7 +433,7 @@ GPUTexture RenderContext::loadTexture(ResourceDirectory directory, const char* p
     return GPUTexture(this, texture, nullptr, ResourceStateShaderResource);
 }
 
-GPUSampler RenderContext::createSampler(const SamplerDesc& input)
+GPUSampler RenderContext::CreateSampler(const SamplerDesc& input)
 {
     ASSERT(ready);
     const ::SamplerDesc samplerDesc = {
@@ -515,7 +515,7 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
     return shader;
 }
 
-GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& input)
+GPUPipeline RenderContext::CreateGraphicsPipeline(const GraphicsPipelineDesc& input)
 {
     ASSERT(ready && input.colorTargets.Count <= MAX_RENDER_TARGETS && (input.colorTargets.Data || !input.colorTargets.Count));
     Shader* shader = this->createShader(input.shaderDesc);
@@ -587,7 +587,7 @@ GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& in
     return GPUPipeline(this, pipeline, rootSignature, GPUShader(this, shader), drawSignature);
 }
 
-GPUPipeline RenderContext::createComputePipeline(const ComputePipelineDesc& input)
+GPUPipeline RenderContext::CreateComputePipeline(const ComputePipelineDesc& input)
 {
     ASSERT(ready);
     Shader* shader = this->createShader(input.shaderDesc);
@@ -617,7 +617,7 @@ bool RenderContext::getGpuAddress(const GPUBuffer& buffer, uint64_t* pAddress) c
     return true;
 }
 
-bool RenderContext::updateBuffer(const GPUBuffer& buffer, uint64_t offset, const void* Data, uint64_t Size)
+bool RenderContext::UpdateBuffer(const GPUBuffer& buffer, uint64_t offset, const void* Data, uint64_t Size)
 {
     ASSERT(ready && buffer.pBuffer && Data && Size);
     ASSERT(buffer.usage == MemoryUsageCpuToGpu && offset <= buffer.Size && Size <= buffer.Size - offset &&

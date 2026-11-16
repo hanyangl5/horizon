@@ -72,7 +72,7 @@ struct RenderHistory
 {
     Matrix4 submitted = Matrix4::identity();
     bool    valid = false;
-    bool    reset = false;
+    bool    Reset = false;
     bool    pending = false;
 };
 struct RenderEntityIndex
@@ -335,10 +335,10 @@ public:
         if (instanceHistory.Size() <= renderEntity.instance.index)
         {
             historyPending.Reserve(renderEntity.instance.index + 1);
-            instanceHistory.resize(renderEntity.instance.index + 1);
+            instanceHistory.Resize(renderEntity.instance.index + 1);
         }
         instanceHistory[renderEntity.instance.index].valid = false;
-        instanceHistory[renderEntity.instance.index].reset = false;
+        instanceHistory[renderEntity.instance.index].Reset = false;
         setInstanceIndex(renderEntity.primitive.index, UINT32_MAX);
         const RenderEntityIndex index = { .key = entity, .value = entities.Size() - 1 };
         hmputs(pIndices, index);
@@ -439,9 +439,9 @@ public:
             instances.markDirty(instance.id.index);
             markHistory(entity.instance.index);
         }
-        if (history.reset)
+        if (history.Reset)
         {
-            history.reset = false;
+            history.Reset = false;
             markHistory(entity.instance.index);
         }
     }
@@ -559,8 +559,8 @@ public:
             history.pending = false;
             const RenderInstance&  instance = instances.values[index];
             const RenderPrimitive* pPrimitive = primitives.get(instance.primitive);
-            // A reset since the last update renders previous == current first.
-            if (history.reset || !instance.id.IsValid() || !pPrimitive || !pPrimitive->instanceCount)
+            // A Reset since the last update renders previous == current first.
+            if (history.Reset || !instance.id.IsValid() || !pPrimitive || !pPrimitive->instanceCount)
             {
                 continue;
             }
@@ -587,7 +587,7 @@ public:
             if (!target.IsValid() || entity.entity == target)
             {
                 instanceHistory[entity.instance.index].valid = false;
-                instanceHistory[entity.instance.index].reset = true;
+                instanceHistory[entity.instance.index].Reset = true;
             }
         for (RenderCameraEntity& entity : cameraEntities)
             if (!target.IsValid() || entity.entity == target)

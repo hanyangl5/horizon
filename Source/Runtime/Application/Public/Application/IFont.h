@@ -125,7 +125,7 @@ FORGE_API void fntDefineFonts(const FontDesc* pDescs, uint32_t Count, uint32_t* 
 /// Get current font atlas Size
 FORGE_API int2 fntGetFontAtlasSize();
 
-/// Clear all data from the font atlas and resize it to provide Size. Pass zero to keep the current Size.
+/// Clear all data from the font atlas and Resize it to provide Size. Pass zero to keep the current Size.
 FORGE_API void fntResetFontAtlas(int2 newAtlasSize);
 
 /// Expands the font atlas Size by given Size without clearing the contents

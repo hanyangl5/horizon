@@ -239,7 +239,7 @@ static bool renameMigration(hz::Span<char> input, hz::Array<char>& output, const
     if (offset == std::string::npos)
         return false;
     json.replace(offset, strlen(from), to);
-    output.resize((uint32_t)json.size());
+    output.Resize((uint32_t)json.size());
     memcpy(output.GetData(), json.data(), json.size());
     return true;
 }

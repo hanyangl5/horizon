@@ -69,7 +69,7 @@
 #endif
 
 // This value defines the amount of threads per group that will be used to Clear the
-// indirect draw buffers.
+// indirect Draw buffers.
 #define CLEAR_THREAD_COUNT     256
 
 #define INDIRECT_ROOT_CONSTANT 1
@@ -123,7 +123,7 @@
 #define INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET 0
 #endif
 
-// The following value defines the maximum amount of indirect draw calls that will be
+// The following value defines the maximum amount of indirect Draw calls that will be
 // drawn at once. This value depends on the number of submeshes or individual objects
 // in the scene. Changing a scene will require to change this value accordingly.
 #ifndef MAX_DRAWS_INDIRECT
@@ -136,7 +136,7 @@
 #define HW_RASTERIZED_BATCH_ARGUMENTS_OFFSET MAX_BATCHES / 2
 #endif
 
-// The following value defines the maximum amount of triangles we can draw on each indirect draw call.
+// The following value defines the maximum amount of triangles we can Draw on each indirect Draw call.
 // The values of FILTER_BATCH_COUNT, FILTER_BATCH_SIZE and MAX_PRIMITIVES_PER_DRAW_INDIRECT determine how many invocations to
 // triangle_filtering are needed, one of the values will exhaust first the Capacity of each filtering batch.
 //
@@ -150,21 +150,21 @@
 
 #define MAX_DRAWS_INDIRECT_ELEMENTS       (MAX_DRAWS_INDIRECT * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)
 
-// The following values point to the position in the indirect draw buffer that holds the
-// number of draw calls to draw after triangle filtering and batch compaction.
-// This value number is stored in the last position of the indirect draw buffer.
+// The following values point to the position in the indirect Draw buffer that holds the
+// number of Draw calls to Draw after triangle filtering and batch compaction.
+// This value number is stored in the last position of the indirect Draw buffer.
 // So it depends on MAX_DRAWS_INDIRECT
 #define DRAW_COUNTER_SLOT_POS             ((MAX_DRAWS_INDIRECT - 1) * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)
 #define DRAW_COUNTER_SLOT_OFFSET_IN_BYTES (DRAW_COUNTER_SLOT_POS * sizeof(uint))
 
-// Size for the instance buffer assuming each draw call uses one instance index.
+// Size for the instance buffer assuming each Draw call uses one instance index.
 #define INSTANCE_BUFFER_SIZE              (MAX_DRAWS_INDIRECT * NUM_GEOMETRY_SETS * NUM_CULLING_VIEWPORTS)
 
 // This function is used to get the offset of the current material base index depending
 // on the Type of geometry and on the culling view.
 #define BaseInstanceBuffer(set, viewID)   ((((viewID)*NUM_GEOMETRY_SETS) + (set)) * MAX_DRAWS_INDIRECT)
 
-// This index means that the draw call doesn't have any instance data associated, can skip doing operations with it
+// This index means that the Draw call doesn't have any instance data associated, can skip doing operations with it
 #ifndef INSTANCE_INDEX_NONE
 #define INSTANCE_INDEX_NONE uint(-1)
 #endif

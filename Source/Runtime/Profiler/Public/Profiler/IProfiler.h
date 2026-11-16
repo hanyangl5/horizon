@@ -89,11 +89,11 @@ FORGE_API void flipProfiler();
 
 //------ Profiler UI Widget --------//
 
-// Call once per frame before AppUI.Draw, draw requested Gpu profiler timers
+// Call once per frame before AppUI.Draw, Draw requested Gpu profiler timers
 // Returns text dimensions so caller can align other UI elements
 FORGE_API float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfileToken, FontDrawDesc* pDrawDesc);
 
-// Call once per frame before AppUI.Draw, draw requested Cpu profile time
+// Call once per frame before AppUI.Draw, Draw requested Cpu profile time
 // Returns text dimensions so caller can align other UI elements
 FORGE_API float2 cmdDrawCpuProfile(Cmd* pCmd, float2 screenCoordsInPx, FontDrawDesc* pDrawDesc);
 

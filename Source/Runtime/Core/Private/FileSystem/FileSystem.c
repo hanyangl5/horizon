@@ -753,7 +753,7 @@ bool OpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, 
     // Move cursor to the end for appending buffer
     size_t cursor = (mode & FileModeAppend) ? Size : 0;
 
-    // For write streams we have to own the memory as we might need to resize it
+    // For write streams we have to own the memory as we might need to Resize it
     if ((mode & FileModeWrite) && (!owner || !buffer))
     {
         // make Capacity multiple of MEMORY_STREAM_GROW_SIZE
@@ -2028,7 +2028,7 @@ static bool bunyArReadBlockToStagingBuffer(struct BunyArMetadata* archive, struc
         return true;
     }
 
-    // decompressed buffer data is corrupted, so we have to reset Handle
+    // decompressed buffer data is corrupted, so we have to Reset Handle
     fs->currentBlock = NULL;
     return false;
 }
