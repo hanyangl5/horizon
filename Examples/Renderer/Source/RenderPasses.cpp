@@ -72,7 +72,7 @@ void GBuffer::Resize(uint32_t Width, uint32_t Height)
         .StartState = ResourceStateRenderTarget,
         .Descriptors = DescriptorTypeTexture,
         .Flags = TextureCreationFlagForce2D,
-        .renderTarget = true,
+        .GetRenderTarget = true,
     };
     for (uint32_t Index = 0; Index < TextureCount; ++Index)
     {

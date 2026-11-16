@@ -43,7 +43,7 @@ struct AccelerationStructureDesc
     AccelerationStructureBuildFlags     Flags = ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
     Span<AccelerationStructureGeometry> geometries;
     Span<AccelerationStructureInstance> instances;
-    // Allocate a TLAS before filling its instances with setInstance().
+    // Allocate a TLAS before filling its instances with SetInstance().
     uint32_t                            instanceCount = 0;
 };
 
@@ -58,8 +58,8 @@ public:
     GPUAccelerationStructure& operator=(const GPUAccelerationStructure&) = delete;
     bool                      IsValid() const { return Data != nullptr; }
     uint32_t                  GetSrvIndex() const;
-    uint32_t                  getInstanceCount() const;
-    void                      setInstance(uint32_t index, const AccelerationStructureInstance& instance);
+    uint32_t                  GetInstanceCount() const;
+    void                      SetInstance(uint32_t index, const AccelerationStructureInstance& instance);
 
 private:
     explicit GPUAccelerationStructure(AccelerationStructureData* data): Data(data) {}

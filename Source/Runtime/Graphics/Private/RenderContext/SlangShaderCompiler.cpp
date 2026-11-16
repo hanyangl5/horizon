@@ -213,7 +213,7 @@ slang::IGlobalSession* getSlangGlobalSession()
     return gSlangSession;
 }
 
-Shader* RenderContext::createSlangShader(const ShaderSrcDesc& input)
+Shader* RenderContext::CreateSlangShader(const ShaderSrcDesc& input)
 {
     slang::IGlobalSession* pGlobalSession = getSlangGlobalSession();
     if (!pGlobalSession)

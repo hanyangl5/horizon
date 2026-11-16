@@ -68,8 +68,8 @@ void GPUBuffer::Destroy()
     }
 }
 
-GPUTexture::GPUTexture(RenderContext* context, Texture* texture, RenderTarget* renderTarget, ResourceState initialState, bool ownsResource):
-    pContext(context), pTexture(texture), pRenderTarget(renderTarget), state(initialState), owned(ownsResource)
+GPUTexture::GPUTexture(RenderContext* context, Texture* texture, RenderTarget* GetRenderTarget, ResourceState initialState, bool ownsResource):
+    pContext(context), pTexture(texture), pRenderTarget(GetRenderTarget), state(initialState), owned(ownsResource)
 {
     ASSERT(pTexture);
     if (owned)
@@ -271,9 +271,9 @@ GPUTexture RenderContext::CreateTexture(const TextureDesc& input)
     ASSERT(ready && input.Width && input.Height && input.Depth && input.ArraySize && input.MipLevels);
 
     Texture*      texture = nullptr;
-    RenderTarget* renderTarget = nullptr;
+    RenderTarget* GetRenderTarget = nullptr;
 
-    if (input.renderTarget)
+    if (input.GetRenderTarget)
     {
         const RenderTargetDesc desc = {
             .Flags = input.Flags,
@@ -288,9 +288,9 @@ GPUTexture RenderContext::CreateTexture(const TextureDesc& input)
             .Descriptors = input.Descriptors,
             .Name = input.Name,
         };
-        addRenderTarget(pRenderer, &desc, &renderTarget);
-        ASSERT(renderTarget);
-        texture = renderTarget->pTexture;
+        addRenderTarget(pRenderer, &desc, &GetRenderTarget);
+        ASSERT(GetRenderTarget);
+        texture = GetRenderTarget->pTexture;
     }
     else
     {
@@ -312,7 +312,7 @@ GPUTexture RenderContext::CreateTexture(const TextureDesc& input)
         ASSERT(texture);
         waitForToken(&token);
     }
-    return GPUTexture(this, texture, renderTarget, input.StartState);
+    return GPUTexture(this, texture, GetRenderTarget, input.StartState);
 }
 
 uint32_t GPUTexture::GetWidth() const { return pTexture ? pTexture->Width : 0; }
@@ -325,7 +325,7 @@ static bool sameTextureDesc(const TextureDesc& a, const TextureDesc& b)
 {
     return a.Width == b.Width && a.Height == b.Height && a.Depth == b.Depth && a.ArraySize == b.ArraySize &&
            a.MipLevels == b.MipLevels && a.SampleCount == b.SampleCount && a.Format == b.Format && a.StartState == b.StartState &&
-           a.Descriptors == b.Descriptors && a.Flags == b.Flags && a.renderTarget == b.renderTarget;
+           a.Descriptors == b.Descriptors && a.Flags == b.Flags && a.GetRenderTarget == b.GetRenderTarget;
 }
 
 GPUTexture* RenderContext::AcquireTransient(const TextureDesc& input)
@@ -343,7 +343,7 @@ GPUTexture* RenderContext::AcquireTransient(const TextureDesc& input)
         }
         if (slot.inUse || !sameTextureDesc(slot.desc, input))
             continue;
-        if (slot.useId && !isResourceUseComplete(slot.useId))
+        if (slot.useId && !IsResourceUseComplete(slot.useId))
             continue;
         slot.inUse = true;
         return &slot.texture;
@@ -370,7 +370,7 @@ void RenderContext::ReleaseTransient(GPUTexture* pTexture)
             continue;
         ASSERT(transientSlots[i].inUse);
         transientSlots[i].inUse = false;
-        transientSlots[i].useId = getResourceUseId();
+        transientSlots[i].useId = GetResourceUseId();
         return;
     }
     ASSERT(false);
@@ -388,7 +388,7 @@ void RenderContext::PurgeTransients()
     }
 }
 
-void RenderContext::releaseTransientSlots()
+void RenderContext::ReleaseTransientSlots()
 {
     for (TransientSlot& slot : transientSlots)
     {
@@ -456,7 +456,7 @@ GPUSampler RenderContext::CreateSampler(const SamplerDesc& input)
     return GPUSampler(this, sampler);
 }
 
-Shader* RenderContext::createShader(const ShaderDesc& input)
+Shader* RenderContext::CreateShader(const ShaderDesc& input)
 {
     ASSERT(ready);
     ShaderSrcDesc source = {};
@@ -506,7 +506,7 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
     const char* extension = input.pFileName ? strrchr(input.pFileName, '.') : nullptr;
     if (input.language == ShaderLanguage::Slang ||
         (input.language == ShaderLanguage::Auto && extension && strcmp(extension, ".slang") == 0))
-        shader = createSlangShader(source);
+        shader = CreateSlangShader(source);
     else
         addShaderSource(pRenderer, &source, &shader);
     if (sourceFile.FileSystem)
@@ -518,7 +518,7 @@ Shader* RenderContext::createShader(const ShaderDesc& input)
 GPUPipeline RenderContext::CreateGraphicsPipeline(const GraphicsPipelineDesc& input)
 {
     ASSERT(ready && input.colorTargets.Count <= MAX_RENDER_TARGETS && (input.colorTargets.Data || !input.colorTargets.Count));
-    Shader* shader = this->createShader(input.shaderDesc);
+    Shader* shader = this->CreateShader(input.shaderDesc);
     ASSERT(shader);
     Shader*           shaders[] = { shader };
     RootSignatureDesc rootDesc = { .ppShaders = shaders, .shaderCount = 1 };
@@ -590,7 +590,7 @@ GPUPipeline RenderContext::CreateGraphicsPipeline(const GraphicsPipelineDesc& in
 GPUPipeline RenderContext::CreateComputePipeline(const ComputePipelineDesc& input)
 {
     ASSERT(ready);
-    Shader* shader = this->createShader(input.shaderDesc);
+    Shader* shader = this->CreateShader(input.shaderDesc);
     ASSERT(shader);
     Shader*           shaders[] = { shader };
     RootSignatureDesc rootDesc = { .ppShaders = shaders, .shaderCount = 1 };
@@ -610,7 +610,7 @@ GPUPipeline RenderContext::CreateComputePipeline(const ComputePipelineDesc& inpu
     return GPUPipeline(this, pipeline, rootSignature, GPUShader(this, shader));
 }
 
-bool RenderContext::getGpuAddress(const GPUBuffer& buffer, uint64_t* pAddress) const
+bool RenderContext::GetGpuAddress(const GPUBuffer& buffer, uint64_t* pAddress) const
 {
     ASSERT(ready && buffer.pBuffer && pAddress);
     *pAddress = buffer.pBuffer->dx.gpuAddress;
@@ -659,7 +659,7 @@ PipelineCacheHeader makeCacheHeader(const GPUSettings& settings)
 }
 } // namespace
 
-bool RenderContext::initPipelineCache()
+bool RenderContext::InitPipelineCache()
 {
     const GPUSettings&       settings = pRenderer->pGpu->settings;
     const PipelineCacheHeader expected = makeCacheHeader(settings);

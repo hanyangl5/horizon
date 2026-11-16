@@ -312,7 +312,7 @@ bool GBufferPass::Resize(hz::RenderContext& context, uint32_t Width, uint32_t He
         .Format = hz::Format::R8G8B8A8_UNORM,
         .StartState = ResourceStateRenderTarget,
         .Descriptors = DescriptorTypeTexture,
-        .renderTarget = true,
+        .GetRenderTarget = true,
         .Name = "GBuffer.Albedo",
     };
     hz::TextureDesc normalDesc = albedoDesc;

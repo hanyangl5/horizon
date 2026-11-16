@@ -27,20 +27,20 @@ RenderContext::RenderContext(const ContextDesc& input)
     desc.imageCount = input.imageCount ? input.imageCount : 3;
     memcpy(appName, input.pAppName, strlen(input.pAppName) + 1);
 
-    const bool deviceInitialized = initDevice();
+    const bool deviceInitialized = InitDevice();
     ASSERT(deviceInitialized);
     if (!deviceInitialized)
     {
-        destroyDevice(false);
+        DestroyDevice(false);
         return;
     }
 
     suspended = !input.Width || !input.Height;
     if (desc.enablePipelineCache)
     {
-        initPipelineCache();
+        InitPipelineCache();
     }
-    const bool initialized = suspended || createSwapChain();
+    const bool initialized = suspended || CreateSwapChain();
     ASSERT(initialized);
     if (!initialized)
         Cleanup();
@@ -51,7 +51,7 @@ RenderContext::~RenderContext() { Cleanup(); }
 void RenderContext::WaitIdle()
 {
     waitQueueIdle(pGraphicsQueue);
-    collectDeferredResources();
+    CollectDeferredResources();
 }
 
 void RenderContext::DeferRelease(GPUBuffer&& buffer)
@@ -64,7 +64,7 @@ void RenderContext::DeferRelease(GPUBuffer&& buffer)
     buffer.Destroy();
 }
 
-uint64_t RenderContext::getResourceUseId() const
+uint64_t RenderContext::GetResourceUseId() const
 {
     for (const CommandResources& resources : commandResources)
     {
@@ -76,7 +76,7 @@ uint64_t RenderContext::getResourceUseId() const
     return nextSubmitId - 1;
 }
 
-uint64_t RenderContext::getPendingUseId() const
+uint64_t RenderContext::GetPendingUseId() const
 {
     // Submissions complete in order on the single graphics queue.
     uint64_t pending = UINT64_MAX;
@@ -99,7 +99,7 @@ uint64_t RenderContext::getPendingUseId() const
     return pending;
 }
 
-bool RenderContext::isResourceUseComplete(uint64_t useId) const { return useId < getPendingUseId(); }
+bool RenderContext::IsResourceUseComplete(uint64_t useId) const { return useId < GetPendingUseId(); }
 
 void RenderContext::DeferResource(ResourceType Type, void* resource, void* secondary, void* tertiary)
 {
@@ -108,15 +108,15 @@ void RenderContext::DeferResource(ResourceType Type, void* resource, void* secon
         const DeferredResource deferred = { .resource = resource,
                                             .secondary = secondary,
                                             .tertiary = tertiary,
-                                            .useId = getResourceUseId(),
+                                            .useId = GetResourceUseId(),
                                             .Type = Type };
         arrpush(deferredResources, deferred);
     }
 }
 
-void RenderContext::collectDeferredResources()
+void RenderContext::CollectDeferredResources()
 {
-    const uint64_t pending = getPendingUseId();
+    const uint64_t pending = GetPendingUseId();
     uint32_t       kept = 0;
     // Destruction may enqueue dependent resources, which are processed in the same pass.
     for (uint32_t i = 0; i < (uint32_t)arrlen(deferredResources); ++i)
@@ -155,7 +155,7 @@ void RenderContext::collectDeferredResources()
             removeRootSignature(pRenderer, (RootSignature*)resource.secondary);
             break;
         case ResourceType::AccelerationStructure:
-            destroyAccelerationStructure((AccelerationStructureData*)resource.resource);
+            DestroyAccelerationStructure((AccelerationStructureData*)resource.resource);
             break;
         case ResourceType::RayTracingPipeline:
             removeRaytracingPipeline(pRaytracing, (RaytracingPipeline*)resource.resource);
@@ -165,7 +165,7 @@ void RenderContext::collectDeferredResources()
     arrsetlen(deferredResources, kept);
 }
 
-bool RenderContext::initDevice()
+bool RenderContext::InitDevice()
 {
     const RendererContextDesc contextDesc = {
         .enableGpuBasedValidation = desc.enableGpuValidation,
@@ -269,7 +269,7 @@ bool RenderContext::initDevice()
     return true;
 }
 
-bool RenderContext::createSwapChain()
+bool RenderContext::CreateSwapChain()
 {
     ASSERT(ready && !pSwapChain);
     Queue*        queues[] = { pGraphicsQueue };
@@ -346,7 +346,7 @@ bool RenderContext::createSwapChain()
     return pSwapChain != nullptr;
 }
 
-void RenderContext::destroySwapChain()
+void RenderContext::DestroySwapChain()
 {
     for (const CommandResources& resources : commandResources)
     {
@@ -372,17 +372,17 @@ void RenderContext::Cleanup()
     {
         ASSERT(!resources.commands.pCmd);
     }
-    releaseTransientSlots();
-    destroySwapChain();
-    destroyDevice(true);
+    ReleaseTransientSlots();
+    DestroySwapChain();
+    DestroyDevice(true);
 }
 
-void RenderContext::destroyDevice(bool waitForGpu)
+void RenderContext::DestroyDevice(bool waitForGpu)
 {
     ready = false;
     if (waitForGpu && pGraphicsQueue)
         waitQueueIdle(pGraphicsQueue);
-    collectDeferredResources();
+    CollectDeferredResources();
     arrfree(deferredResources);
     if (profilerInitialized)
     {
@@ -485,18 +485,18 @@ bool RenderContext::Resize(uint32_t Width, uint32_t Height)
     if (!suspended && desc.Width == Width && desc.Height == Height)
         return true;
 
-    destroySwapChain();
+    DestroySwapChain();
     desc.Width = Width;
     desc.Height = Height;
     suspended = !Width || !Height;
     if (suspended)
         return true;
 
-    const bool created = createSwapChain();
+    const bool created = CreateSwapChain();
     ASSERT(created);
     if (!created)
     {
-        destroySwapChain();
+        DestroySwapChain();
         suspended = true;
     }
     return created;
@@ -565,7 +565,7 @@ CommandList& RenderContext::AcquireCommandList()
     for (uint32_t i = 0; i < (uint32_t)arrlen(available->transientBuffers); ++i)
         removeBuffer(pRenderer, available->transientBuffers[i]);
     arrsetlen(available->transientBuffers, 0);
-    collectDeferredResources();
+    CollectDeferredResources();
     resetCmdPool(pRenderer, available->pCmdPool);
     beginCmd(available->pCmd);
     available->commands.Reset(available->pCmd, gpuProfilerToken);

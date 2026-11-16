@@ -25,13 +25,13 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
             const int32_t                     BaseVertex = int32_t(Submesh.vertexOffset);
             ASSERT(BaseVertex >= 0 && Stride == 12 && Submesh.indexCount % 3 == 0);
             const uint64_t VertexOffset = uint64_t(BaseVertex) * Stride;
-            ASSERT(Vertices.getSize() >= VertexOffset);
+            ASSERT(Vertices.GetSize() >= VertexOffset);
             const hz::AccelerationStructureGeometry Geometry = {
                 .pVertexBuffer = &Vertices,
                 .pIndexBuffer = &Mesh->getIndexBuffer(),
                 .vertexOffset = VertexOffset,
                 .indexOffset = uint64_t(Submesh.startIndex) * (Mesh->getIndexType() == IndexTypeUInt16 ? 2u : 4u),
-                .vertexCount = uint32_t((Vertices.getSize() - VertexOffset) / Stride),
+                .vertexCount = uint32_t((Vertices.GetSize() - VertexOffset) / Stride),
                 .vertexStride = Stride,
                 .indexCount = Submesh.indexCount,
                 .indexType = Mesh->getIndexType(),
@@ -55,7 +55,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
         TopLevelAS = {};
         return;
     }
-    if (TopLevelAS.getInstanceCount() != InstanceCount)
+    if (TopLevelAS.GetInstanceCount() != InstanceCount)
     {
         TopLevelAS = Context.CreateAccelerationStructure({
             .Type = ACCELERATION_STRUCTURE_TYPE_TOP,
@@ -86,7 +86,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
                 Instance.transform[Row * 4 + Column] = Transform.getCol(Column).getElem(Row);
             }
         }
-        TopLevelAS.setInstance(InstanceIndex++, Instance);
+        TopLevelAS.SetInstance(InstanceIndex++, Instance);
     }
     Commands.UpdateAccelerationStructure(TopLevelAS);
 }

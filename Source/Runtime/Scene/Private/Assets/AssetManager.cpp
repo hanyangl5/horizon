@@ -182,7 +182,7 @@ public:
         {
             pAsset->state = AssetState::Retiring;
             // The payload left the ready set; work recorded until now may still reference it.
-            pAsset->gpuUse = pContext ? pContext->getResourceUseId() : 0;
+            pAsset->gpuUse = pContext ? pContext->GetResourceUseId() : 0;
             markTableDirty(Handle.index);
             queueRetirement(Handle.index);
         }
@@ -218,7 +218,7 @@ public:
         {
             const uint32_t index = retirements[i];
             ManagedAsset&  asset = assets[index];
-            if (pContext && !pContext->isResourceUseComplete(asset.gpuUse))
+            if (pContext && !pContext->IsResourceUseComplete(asset.gpuUse))
             {
                 ++i;
                 continue;

@@ -22,7 +22,7 @@ public:
     Array<RaytracingInstanceData>        instances;
     Array<AccelerationStructureData*>    bottoms;
     uint32_t                             references = 1;
-    void                                 setInstance(uint32_t index, const AccelerationStructureInstance& instance)
+    void                                 SetInstance(uint32_t index, const AccelerationStructureInstance& instance)
     {
         ASSERT(index < instances.Size() && instance.pBottom && instance.pBottom->IsValid());
         ASSERT(instance.instanceId < (1u << 24) && instance.mask < (1u << 8) && instance.hitGroupOffset < (1u << 24));
@@ -59,7 +59,7 @@ public:
         bottoms.Resize(source.Count);
         for (uint32_t i = 0; i < source.Count; ++i)
         {
-            setInstance(i, source.Data[i]);
+            SetInstance(i, source.Data[i]);
         }
     }
     uint32_t                             Capacity = 0;
@@ -91,12 +91,12 @@ void GPUAccelerationStructure::Destroy()
 }
 uint32_t GPUAccelerationStructure::GetSrvIndex() const { return Data ? getAccelerationStructureSrvIndex(Data->pStructure) : UINT32_MAX; }
 
-uint32_t GPUAccelerationStructure::getInstanceCount() const { return Data ? Data->instances.Size() : 0; }
+uint32_t GPUAccelerationStructure::GetInstanceCount() const { return Data ? Data->instances.Size() : 0; }
 
-void GPUAccelerationStructure::setInstance(uint32_t index, const AccelerationStructureInstance& instance)
+void GPUAccelerationStructure::SetInstance(uint32_t index, const AccelerationStructureInstance& instance)
 {
     ASSERT(Data && Data->Type == ACCELERATION_STRUCTURE_TYPE_TOP);
-    Data->setInstance(index, instance);
+    Data->SetInstance(index, instance);
 }
 
 void RenderContext::ReleaseAccelerationStructure(AccelerationStructureData* data)
@@ -108,7 +108,7 @@ void RenderContext::ReleaseAccelerationStructure(AccelerationStructureData* data
     }
 }
 
-void RenderContext::destroyAccelerationStructure(AccelerationStructureData* data)
+void RenderContext::DestroyAccelerationStructure(AccelerationStructureData* data)
 {
     removeAccelerationStructure(pRaytracing, data->pStructure);
     for (AccelerationStructureData* bottom : data->bottoms)

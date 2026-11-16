@@ -33,7 +33,7 @@ ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(C
                                     .Format = hz::Format::D16_UNORM,
                                     .StartState = ResourceStateDepthWrite,
                                     .Descriptors = DescriptorTypeTexture,
-                                    .renderTarget = true,
+                                    .GetRenderTarget = true,
                                     .Name = "Renderer.ShadowMap" });
     Sampler = Context.CreateSampler(
         { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .CompareFunc = CMP_LEQUAL });

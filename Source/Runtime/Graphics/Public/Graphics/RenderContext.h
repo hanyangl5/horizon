@@ -54,7 +54,7 @@ struct TextureDesc
     ResourceState        StartState = ResourceStateUndefined;
     DescriptorType       Descriptors = DescriptorTypeUndefined;
     TextureCreationFlags Flags = TextureCreationFlagNone;
-    bool                 renderTarget = false;
+    bool                 GetRenderTarget = false;
     const char*          Name = nullptr;
 };
 
@@ -189,7 +189,7 @@ public:
     GPUBuffer& operator=(const GPUBuffer&) = delete;
     bool       IsValid() const { return pBuffer != nullptr; }
     Buffer*    Get() const { return pBuffer; }
-    uint64_t   getSize() const { return Size; }
+    uint64_t   GetSize() const { return Size; }
     uint32_t   GetSrvIndex() const { return getBufferSrvIndex(pBuffer); }
     uint32_t   GetUavIndex() const { return getBufferUavIndex(pBuffer); }
     uint32_t   GetCbvIndex() const { return getBufferCbvIndex(pBuffer); }
@@ -221,7 +221,7 @@ public:
     Texture*      Get() const { return pTexture; }
     uint32_t      GetSrvIndex() const { return getTextureSrvIndex(pTexture); }
     uint32_t      GetUavIndex(uint32_t mip = 0) const { return getTextureUavIndex(pTexture, mip); }
-    RenderTarget* renderTarget() const { return pRenderTarget; }
+    RenderTarget* GetRenderTarget() const { return pRenderTarget; }
     uint32_t      GetWidth() const;
     uint32_t      GetHeight() const;
     uint32_t      GetArraySize() const;
@@ -535,13 +535,13 @@ public:
     GPUSampler  CreateSampler(const SamplerDesc& = {});
     GPUPipeline CreateGraphicsPipeline(const GraphicsPipelineDesc&);
     GPUPipeline CreateComputePipeline(const ComputePipelineDesc&);
-    bool        getGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
+    bool        GetGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
     bool        UpdateBuffer(const GPUBuffer&, uint64_t offset, const void* Data, uint64_t Size);
     // Destroys the buffer once the open command list and all earlier submissions complete.
     void                     DeferRelease(GPUBuffer&& buffer);
     // Identifies the open command list, or the latest submission when none is open.
-    uint64_t                 getResourceUseId() const;
-    bool                     isResourceUseComplete(uint64_t useId) const;
+    uint64_t                 GetResourceUseId() const;
+    bool                     IsResourceUseComplete(uint64_t useId) const;
 
 private:
     enum class ResourceType
@@ -565,8 +565,8 @@ private:
     };
     void DeferResource(ResourceType Type, void* resource, void* secondary = nullptr, void* tertiary = nullptr);
     void ReleaseAccelerationStructure(AccelerationStructureData*);
-    void destroyAccelerationStructure(AccelerationStructureData*);
-    void releaseTransientSlots();
+    void DestroyAccelerationStructure(AccelerationStructureData*);
+    void ReleaseTransientSlots();
 
     struct CommandResources
     {
@@ -591,16 +591,16 @@ private:
         bool        used = false;
     };
 
-    bool     initDevice();
-    bool     createSwapChain();
-    void     destroySwapChain();
-    void     destroyDevice(bool waitForGpu);
+    bool     InitDevice();
+    bool     CreateSwapChain();
+    void     DestroySwapChain();
+    void     DestroyDevice(bool waitForGpu);
     void     Cleanup();
-    void     collectDeferredResources();
-    uint64_t getPendingUseId() const;
-    Shader*  createShader(const ShaderDesc&);
-    Shader*  createSlangShader(const ShaderSrcDesc&);
-    bool     initPipelineCache();
+    void     CollectDeferredResources();
+    uint64_t GetPendingUseId() const;
+    Shader*  CreateShader(const ShaderDesc&);
+    Shader*  CreateSlangShader(const ShaderSrcDesc&);
+    bool     InitPipelineCache();
 
     Raytracing*    pRaytracing = nullptr;
     PipelineCache* pPipelineCache = nullptr;

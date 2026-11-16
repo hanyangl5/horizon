@@ -45,7 +45,7 @@ void DeferredLighting::Resize(uint32_t Width, uint32_t Height)
                                     .StartState = ResourceStateRenderTarget,
                                     .Descriptors = DescriptorTypeTexture,
                                     .Flags = TextureCreationFlagForce2D,
-                                    .renderTarget = true,
+                                    .GetRenderTarget = true,
                                     .Name = "Renderer.DeferredLighting.Color" });
     ASSERT(Color.IsValid());
 }

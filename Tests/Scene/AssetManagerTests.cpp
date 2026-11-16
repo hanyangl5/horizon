@@ -720,7 +720,7 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
                                          .Format = hz::Format::R8G8B8A8_UNORM,
                                          .StartState = ResourceStateRenderTarget,
                                          .Descriptors = DescriptorTypeTexture,
-                                         .renderTarget = true });
+                                         .GetRenderTarget = true });
     const char      readPixel[] = R"hlsl(
         cbuffer RootConstant0 { uint textureIndex; uint outputIndex; };
         [numthreads(1,1,1)] void CSMain() {
@@ -1236,7 +1236,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
         gpu.upload(commands);
         draws.Prepare(commands, frame, view);
         rayScene.Update(commands, view, draws);
-        EXPECT_EQ(rayScene.GetSceneTLAS().getInstanceCount(), pass < 3 ? 3 - pass : 0);
+        EXPECT_EQ(rayScene.GetSceneTLAS().GetInstanceCount(), pass < 3 ? 3 - pass : 0);
         EXPECT_EQ(draws.GetGeometries().Count, pass < 2 ? 2u : (pass == 2 ? 1u : 0u));
         uint32_t expected[] = { UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX };
         if (pass < 3)
@@ -2781,7 +2781,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     ASSERT_NE(mesh, nullptr);
     ASSERT_EQ(mesh->getIndexType(), IndexTypeUInt16);
     // Three indices consume six bytes; RAW loads require a second complete DWORD.
-    ASSERT_EQ(mesh->getIndexBuffer().getSize(), 8u);
+    ASSERT_EQ(mesh->getIndexBuffer().GetSize(), 8u);
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
@@ -2872,7 +2872,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
                                          .Format = hz::Format::R8G8B8A8_UNORM,
                                          .StartState = ResourceStateRenderTarget,
                                          .Descriptors = DescriptorTypeTexture,
-                                         .renderTarget = true });
+                                         .GetRenderTarget = true });
     }
     const char      readPixel[] = R"hlsl(
         cbuffer RootConstant0 { uint textureIndex; uint outputIndex; };
@@ -3015,7 +3015,7 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
                                                                                        ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE),
                                               .instanceCount = 1 });
     ASSERT_TRUE(top.IsValid());
-    ASSERT_EQ(top.getInstanceCount(), 1u);
+    ASSERT_EQ(top.GetInstanceCount(), 1u);
     hz::GPUBuffer output = context.CreateBuffer({ .Size = 8,
                                                   .ElementCount = 2,
                                                   .StructStride = 4,
@@ -3099,7 +3099,7 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
         if (pass < 3)
         {
             instance.transform[3] = pass ? 4.0f : 0.0f;
-            top.setInstance(0, instance);
+            top.SetInstance(0, instance);
             // The third pass repeats the same instance and must preserve the existing TLAS.
             commands.UpdateAccelerationStructure(top);
         }
@@ -3198,7 +3198,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
                                        .StartState = target ? ResourceStateRenderTarget : ResourceStateUnorderedAccess,
                                        .Descriptors = DescriptorType(DescriptorTypeTexture | DescriptorTypeRwTexture),
                                        .Flags = TextureCreationFlagForce2D,
-                                       .renderTarget = target });
+                                       .GetRenderTarget = target });
     };
     hz::GPUTexture normal = image(hz::Format::R32G32B32A32_SFLOAT, true), Depth = image(hz::Format::R32_SFLOAT, true);
     hz::GPUTexture alpha = image(hz::Format::R32G32B32A32_SFLOAT, true);
@@ -3464,7 +3464,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
                                        .StartState = target ? ResourceStateRenderTarget : ResourceStateUnorderedAccess,
                                        .Descriptors = DescriptorType(DescriptorTypeTexture | DescriptorTypeRwTexture),
                                        .Flags = TextureCreationFlagForce2D,
-                                       .renderTarget = target });
+                                       .GetRenderTarget = target });
     };
     hz::GPUTexture normal = image(hz::Format::R32G32B32A32_SFLOAT, true), Depth = image(hz::Format::R32_SFLOAT, true);
     hz::GPUTexture alpha = image(hz::Format::R32G32B32A32_SFLOAT, true), noise = image(hz::Format::R32G32B32A32_SFLOAT, true);
@@ -3624,7 +3624,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
                                                                    .StartState = ResourceStateDepthWrite,
                                                                    .Descriptors = DescriptorTypeTexture,
                                                                    .Flags = TextureCreationFlagForce2D,
-                                                                   .renderTarget = true });
+                                                                   .GetRenderTarget = true });
     ASSERT_TRUE(instanceBuffer.IsValid() && indirect.IsValid() && shadowDepth.IsValid());
     for (uint32_t scenario = 0; scenario < 3; ++scenario)
     {
@@ -3731,12 +3731,12 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                        .Format = Format,
                                        .StartState = ResourceStateUnorderedAccess,
                                        .Descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
-                                       .renderTarget = target });
+                                       .GetRenderTarget = target });
     };
     hz::GPUTexture heads = image(hz::Format::R32_UINT, false), result = image(hz::Format::R32G32B32A32_SFLOAT, false);
     hz::GPUTexture opaque = image(hz::Format::R32G32B32A32_SFLOAT, true);
     hz::GPUTexture Depth = context.CreateTexture(
-        { .Width = 8, .Height = 8, .Format = hz::Format::D32_SFLOAT, .StartState = ResourceStateDepthWrite, .renderTarget = true });
+        { .Width = 8, .Height = 8, .Format = hz::Format::D32_SFLOAT, .StartState = ResourceStateDepthWrite, .GetRenderTarget = true });
     hz::GPUBuffer counters =
         context.CreateBuffer({ .Size = 16,
                                .ElementCount = 4,
@@ -3917,7 +3917,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                        .StartState = ResourceStateRenderTarget,
                                        .Descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
                                        .Flags = TextureCreationFlagForce2D,
-                                       .renderTarget = true });
+                                       .GetRenderTarget = true });
     };
     constexpr hz::Format rgba = hz::Format::R32G32B32A32_SFLOAT, scalar = hz::Format::R32_SFLOAT;
     hz::GPUTexture       source = image(1, 1, rgba), black = image(1, 1, rgba), average = image(1, 1, scalar), mapped = image(1, 1, rgba);
@@ -4241,7 +4241,7 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
                                        .StartState = ResourceStateRenderTarget,
                                        .Descriptors = DescriptorTypeTexture,
                                        .Flags = TextureCreationFlagForce2D,
-                                       .renderTarget = true });
+                                       .GetRenderTarget = true });
     };
     hz::GPUTexture alpha = image(hz::Format::R32G32B32A32_SFLOAT), targets[4];
     for (hz::GPUTexture& target : targets)
