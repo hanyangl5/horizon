@@ -6963,7 +6963,7 @@ void endUpdateResource(BufferUpdateDesc* pBufferUpdate)
     pBufferUpdate->internal = {};
 }
 
-TextureSubresourceUpdate TextureUpdateDesc::getSubresourceUpdateDesc(uint32_t mip, uint32_t layer)
+TextureSubresourceUpdate TextureUpdateDesc::GetSubresourceUpdateDesc(uint32_t mip, uint32_t layer)
 {
     TextureSubresourceUpdate ret = {};
     Texture*                 texture = pTexture;
@@ -7025,7 +7025,7 @@ void beginUpdateResource(TextureUpdateDesc* pTextureUpdate)
     pTextureUpdate->internal = {};
     pTextureUpdate->internal.mappedRange = range;
 
-    // Pre-calculate stride for the mip chain. Will be used in getSubresourceUpdateDesc
+    // Pre-calculate stride for the mip chain. Will be used in GetSubresourceUpdateDesc
     for (uint32_t mip = pTextureUpdate->baseMipLevel; mip < pTextureUpdate->MipLevels; ++mip)
     {
         uint32_t srcSliceStride = 0;

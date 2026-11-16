@@ -970,7 +970,7 @@
 //         TextureUpdateDesc updateDesc = { texture };
 //         updateDesc.currentState = ResourceStateNonPixelShaderResource | ResourceStatePixelShaderResource;
 //         beginUpdateResource(&updateDesc);
-//         TextureSubresourceUpdate subresource = updateDesc.getSubresourceUpdateDesc(0, 0);
+//         TextureSubresourceUpdate subresource = updateDesc.GetSubresourceUpdateDesc(0, 0);
 //         memcpy(subresource.pMappedData, ((unsigned char*)textureData) + sizeof(RemoteCommandUserInterfaceTexture),
 //                textureData->mTextureSize);
 //         endUpdateResource(&updateDesc);

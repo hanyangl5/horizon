@@ -540,7 +540,7 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
 
     TextureUpdateDesc updateDesc = { pTexture, 0, 1, 0, 1, ResourceStatePixelShaderResource };
     beginUpdateResource(&updateDesc);
-    TextureSubresourceUpdate subresource = updateDesc.getSubresourceUpdateDesc(0, 0);
+    TextureSubresourceUpdate subresource = updateDesc.GetSubresourceUpdateDesc(0, 0);
     for (uint32_t r = 0; r < subresource.rowCount; ++r)
     {
         memcpy(subresource.pMappedData + r * subresource.dstRowStride, pixels + r * subresource.srcRowStride, subresource.srcRowStride);

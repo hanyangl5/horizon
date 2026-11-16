@@ -411,7 +411,7 @@ typedef struct TextureUpdateDesc
     // Optional - If we want to run the Update on user specified command buffer instead
     Cmd*          pCmd;
 
-    FORGE_RENDERER_API TextureSubresourceUpdate getSubresourceUpdateDesc(uint32_t mip, uint32_t layer);
+    FORGE_RENDERER_API TextureSubresourceUpdate GetSubresourceUpdateDesc(uint32_t mip, uint32_t layer);
 
     /// Internal
     struct
