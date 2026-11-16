@@ -119,7 +119,7 @@ static const char* getFileName(const struct UnixFileStream* stream, char* buffer
     }
 #endif
 
-    LOGF(Error, "Failed to get file name for %i descriptor: %s", stream->descriptor, strerror(errno));
+    LOGF(Error, "Failed to Get file name for %i descriptor: %s", stream->descriptor, strerror(errno));
     return "unknown file name";
 }
 
@@ -182,7 +182,7 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
     }
     else
     {
-        LOGF(Error, "Failed to get size for file '%s': %s", filePath, strerror(errno));
+        LOGF(Error, "Failed to Get size for file '%s': %s", filePath, strerror(errno));
     }
 
     fs->mode = mode;
@@ -253,7 +253,7 @@ static bool ioUnixFsClose(FileStream* fs)
         }
     }
 
-#if defined(FORGE_DEBUG) // we can't get file name after closing it
+#if defined(FORGE_DEBUG) // we can't Get file name after closing it
     char buffer[1024];
     getFileName(stream, buffer, sizeof buffer);
 #endif

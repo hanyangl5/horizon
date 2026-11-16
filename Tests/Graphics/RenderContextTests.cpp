@@ -87,15 +87,15 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
     {
         hz::GPUPipeline first = context.CreateComputePipeline(pipelineDesc);
         ASSERT_TRUE(first.IsValid());
-        Pipeline* const pPipeline = first.get();
+        Pipeline* const pPipeline = first.Get();
         hz::GPUPipeline second(std::move(first));
         EXPECT_FALSE(first.IsValid());
-        EXPECT_EQ(second.get(), pPipeline);
+        EXPECT_EQ(second.Get(), pPipeline);
 
         first = context.CreateComputePipeline(pipelineDesc);
         first = std::move(second);
         EXPECT_FALSE(second.IsValid());
-        EXPECT_EQ(first.get(), pPipeline);
+        EXPECT_EQ(first.Get(), pPipeline);
         first = hz::GPUPipeline{};
         EXPECT_FALSE(first.IsValid());
         const char vertexSource[] = "float4 main(uint id : SV_VertexID) : SV_Position { return float4(0, 0, 0, 1); }";
@@ -165,7 +165,7 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
     commands.Dispatch(1, 1, 1, { .storageBuffers = { &output } });
     commands.CopyBuffer(readback, 0, output, 0, 4 * sizeof(uint32_t));
     context.Wait(context.Submit(commands));
-    const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    const uint32_t* values = (const uint32_t*)readback.Get()->pCpuMappedAddress;
     ASSERT_NE(values, nullptr);
     for (uint32_t i = 0; i < 4; ++i)
         EXPECT_EQ(values[i], i + 23);
@@ -241,7 +241,7 @@ TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
     commands.CopyBufferRegions(target, staging, regions);
     commands.CopyBuffer(readback, 0, target, 0, sizeof(values));
     context.Wait(context.Submit(commands));
-    const uint32_t* result = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    const uint32_t* result = (const uint32_t*)readback.Get()->pCpuMappedAddress;
     ASSERT_NE(result, nullptr);
     for (uint32_t i = 0; i < 16; ++i)
     {
@@ -382,7 +382,7 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
     commands.CopyBuffer(readback, 0, output, 0, 32);
     context.Wait(context.Submit(commands));
     const uint32_t  expected[] = { 513, 3, 3, 513, 3, 513, 3, 513 };
-    const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    const uint32_t* values = (const uint32_t*)readback.Get()->pCpuMappedAddress;
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(expected); ++i)
         EXPECT_EQ(values[i], expected[i]);
 
@@ -468,7 +468,7 @@ TEST(DependencyListTest, SkipsOptionalResourcesAndReportsIndices)
     EXPECT_EQ(dependencies.read(buffer), UINT32_MAX);
     EXPECT_EQ(dependencies.write(buffer), UINT32_MAX);
     dependencies.indirect(buffer);
-    const hz::Dependencies recorded = dependencies.get();
+    const hz::Dependencies recorded = dependencies.Get();
     EXPECT_EQ(recorded.sampledTextures.Count, 0u);
     EXPECT_EQ(recorded.storageTextures.Count, 0u);
     EXPECT_EQ(recorded.buffers.Count, 0u);

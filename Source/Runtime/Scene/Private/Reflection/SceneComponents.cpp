@@ -16,7 +16,7 @@ struct ComponentLifecycle
     static void                    Destroy(void* pValue) { ((T*)pValue)->~T(); }
     static void                    copyConstruct(void* pDestination, const void* pSource) { ::new (pDestination) T(*(const T*)pSource); }
     static void                    moveConstruct(void* pDestination, void* pSource) { ::new (pDestination) T(std::move(*(T*)pSource)); }
-    static constexpr TypeLifecycle get()
+    static constexpr TypeLifecycle Get()
     {
         return { .pConstruct = construct, .pDestroy = Destroy, .pCopyConstruct = copyConstruct, .pMoveConstruct = moveConstruct };
     }
@@ -217,49 +217,49 @@ bool TypeRegistry::registerBuiltins()
           .alignment = alignof(EntityIdentity),
           .properties = identityProperties,
           .triviallyCopyable = __is_trivially_copyable(EntityIdentity),
-          .lifecycle = ComponentLifecycle<EntityIdentity>::get() },
+          .lifecycle = ComponentLifecycle<EntityIdentity>::Get() },
         { .id = SceneTypes::name,
           .Name = "Name",
           .Size = sizeof(Name),
           .alignment = alignof(Name),
           .properties = nameProperties,
           .triviallyCopyable = __is_trivially_copyable(Name),
-          .lifecycle = ComponentLifecycle<Name>::get() },
+          .lifecycle = ComponentLifecycle<Name>::Get() },
         { .id = SceneTypes::localTransform,
           .Name = "LocalTransform",
           .Size = sizeof(LocalTransform),
           .alignment = alignof(LocalTransform),
           .properties = transformProperties,
           .triviallyCopyable = __is_trivially_copyable(LocalTransform),
-          .lifecycle = ComponentLifecycle<LocalTransform>::get() },
+          .lifecycle = ComponentLifecycle<LocalTransform>::Get() },
         { .id = SceneTypes::localMatrix,
           .Name = "Matrix4",
           .Size = sizeof(Matrix4),
           .alignment = alignof(Matrix4),
           .properties = matrixProperties,
           .triviallyCopyable = __is_trivially_copyable(Matrix4),
-          .lifecycle = ComponentLifecycle<Matrix4>::get() },
+          .lifecycle = ComponentLifecycle<Matrix4>::Get() },
         { .id = SceneTypes::meshRenderer,
           .Name = "MeshRenderer",
           .Size = sizeof(MeshRenderer),
           .alignment = alignof(MeshRenderer),
           .properties = meshProperties,
           .triviallyCopyable = false,
-          .lifecycle = ComponentLifecycle<MeshRenderer>::get() },
+          .lifecycle = ComponentLifecycle<MeshRenderer>::Get() },
         { .id = SceneTypes::light,
           .Name = "Light",
           .Size = sizeof(Light),
           .alignment = alignof(Light),
           .properties = lightProperties,
           .triviallyCopyable = __is_trivially_copyable(Light),
-          .lifecycle = ComponentLifecycle<Light>::get() },
+          .lifecycle = ComponentLifecycle<Light>::Get() },
         { .id = SceneTypes::camera,
           .Name = "Camera",
           .Size = sizeof(Camera),
           .alignment = alignof(Camera),
           .properties = cameraProperties,
           .triviallyCopyable = __is_trivially_copyable(Camera),
-          .lifecycle = ComponentLifecycle<Camera>::get() },
+          .lifecycle = ComponentLifecycle<Camera>::Get() },
     };
     return registerTypes(types);
 }

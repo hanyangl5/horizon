@@ -20,7 +20,7 @@ public:
     bool                  setParent(ecs_entity_t entity, ecs_entity_t parent, bool keepWorld);
     bool                  Destroy(ecs_entity_t entity, bool subtree);
     void                  update();
-    const WorldTransform* get(ecs_entity_t entity) const;
+    const WorldTransform* Get(ecs_entity_t entity) const;
     void                  commit();
     void                  markDirty(ecs_entity_t root);
 

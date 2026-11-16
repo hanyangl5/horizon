@@ -497,7 +497,7 @@ FORGE_RENDERER_API uint32_t addMaterial(const char* pMaterialFileName, Material*
 // Will unload all the related shaders/textures (if they are not still used by some other Material)
 FORGE_RENDERER_API void     removeMaterial(Material* pMaterial);
 
-// TODO: Functions below are a simple interface to get resources from materials, as we develop materials further this interface will
+// TODO: Functions below are a simple interface to Get resources from materials, as we develop materials further this interface will
 // probably change.
 FORGE_RENDERER_API uint32_t getMaterialSetIndex(Material* pMaterial, const char* name);
 FORGE_RENDERER_API void     getMaterialShader(Material* pMaterial, uint32_t materialSetIndex, Shader** ppOutShader);

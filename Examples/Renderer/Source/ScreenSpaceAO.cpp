@@ -83,7 +83,7 @@ const hz::GPUTexture& ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz
     Commands.BeginGpuTimestamp("SSAO");
     Commands.SetPipeline(AOPipeline);
     Commands.SetRootConstants(Constants);
-    Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1, Dependencies.get());
+    Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1, Dependencies.Get());
     const hz::GPUTexture* Source = &Occlusion;
     Blurred = false;
     Commands.SetPipeline(BlurPipeline);
@@ -100,7 +100,7 @@ const hz::GPUTexture& ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz
                                                            .horizontal = Axis == 0,
                                                            .depthThreshold = Settings.DepthThreshold };
             Commands.SetRootConstants(BlurConstants);
-            Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1, BlurDependencies.get());
+            Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1, BlurDependencies.Get());
             Source = &Target;
             Blurred = true;
         }

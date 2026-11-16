@@ -160,7 +160,7 @@
 // Size for the instance buffer assuming each Draw call uses one instance index.
 #define INSTANCE_BUFFER_SIZE              (MAX_DRAWS_INDIRECT * NUM_GEOMETRY_SETS * NUM_CULLING_VIEWPORTS)
 
-// This function is used to get the offset of the current material base index depending
+// This function is used to Get the offset of the current material base index depending
 // on the Type of geometry and on the culling view.
 #define BaseInstanceBuffer(set, viewID)   ((((viewID)*NUM_GEOMETRY_SETS) + (set)) * MAX_DRAWS_INDIRECT)
 
@@ -188,7 +188,7 @@ typedef struct IndirectDrawIndexArguments
 #define INDIRECT_DRAW_ARGUMENTS_VERTEX_OFFSET_OFFSET   (INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 3)
 #define INDIRECT_DRAW_ARGUMENTS_START_INSTANCE_OFFSET  (INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 4)
 
-// This function is used to get the offset of the IndirectDrawArgsBuffer index depending
+// This function is used to Get the offset of the IndirectDrawArgsBuffer index depending
 // on the Type of geometry and on the culling view.
 #define GET_INDIRECT_DRAW_ELEM_INDEX(VIEW, GEOM, ELEM) (((((VIEW)*NUM_GEOMETRY_SETS) + (GEOM)) * MAX_DRAWS_INDIRECT_ELEMENTS) + (ELEM))
 

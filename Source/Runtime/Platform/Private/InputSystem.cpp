@@ -94,7 +94,7 @@ extern void SetWindow(void* Data);
 #define TOUCH_AXIS(btn)    (((btn) % 4) - 1)
 
 // gainput::TouchButton enum has four values for each finger touch, for finger 0 these are: Touch0Down, Touch0X, Touch0Y, Touch0Pressure
-// by dividing by four we get the finger id
+// by dividing by four we Get the finger id
 FORGE_CONSTEXPR const uint32_t GAINPUT_TOUCH_BUTTONS_PER_FINGER = 4;
 #endif
 
@@ -1138,7 +1138,7 @@ struct InputSystemImpl: public gainput::InputListener
                 break;
             }
             default:
-                ASSERT(0); // should never get here
+                ASSERT(0); // should never Get here
             }
             break;
         }
@@ -1190,7 +1190,7 @@ struct InputSystemImpl: public gainput::InputListener
                 break;
             }
             default:
-                ASSERT(0); // should never get here
+                ASSERT(0); // should never Get here
             }
             break;
         }
@@ -1267,7 +1267,7 @@ struct InputSystemImpl: public gainput::InputListener
                 break;
             }
             default:
-                ASSERT(0); // should never get here
+                ASSERT(0); // should never Get here
             }
             break;
         }
@@ -1407,13 +1407,13 @@ struct InputSystemImpl: public gainput::InputListener
                 break;
             }
             default:
-                ASSERT(0); // should never get here
+                ASSERT(0); // should never Get here
             }
 #endif
             break;
         }
         default:
-            ASSERT(0); // should never get here
+            ASSERT(0); // should never Get here
         }
     }
 
@@ -1539,7 +1539,7 @@ struct InputSystemImpl: public gainput::InputListener
             globalTextInputControl.UserData = pDesc->UserData;
             break;
         default:
-            ASSERT(0); // should never get here
+            ASSERT(0); // should never Get here
         }
     }
 
@@ -1597,7 +1597,7 @@ struct InputSystemImpl: public gainput::InputListener
                     break;
                 }
                 default:
-                    ASSERT(0); // should never get here
+                    ASSERT(0); // should never Get here
                 }
 
                 ASSERT(index != ~0u);
@@ -1628,7 +1628,7 @@ struct InputSystemImpl: public gainput::InputListener
                     break;
                 }
                 default:
-                    ASSERT(0); // should never get here
+                    ASSERT(0); // should never Get here
                 }
             }
         }
@@ -1741,7 +1741,7 @@ struct InputSystemImpl: public gainput::InputListener
             return;
 
         // automatic reference counting
-        // it will get deallocated.
+        // it will Get deallocated.
         if (pGainputView)
         {
 #ifndef TARGET_IOS
@@ -2364,8 +2364,8 @@ struct InputSystemImpl: public gainput::InputListener
         const uint32_t touchIndex = TOUCH_USER(deviceButton);
         if (touchDeviceID == device)
         {
-            // The first frame that a touch starts we get the touch position of the previous touch in oldValue,
-            // for controls that use deltas we would get a huge delta. To prevent this we want to ignore the oldValue for a touch
+            // The first frame that a touch starts we Get the touch position of the previous touch in oldValue,
+            // for controls that use deltas we would Get a huge delta. To prevent this we want to ignore the oldValue for a touch
             // that just started.
             touchJustStarted = (touchDownTime[touchIndex] == 0.f);
 
@@ -3487,7 +3487,7 @@ bool SetRumbleEffect(int gamePadIndex, float left_motor, float right_motor, uint
     ASSERT(pInputSystem);
     // this is used only for mobile phones atm.
     // allows us to vibrate the actual phone instead of the connected gamepad.
-    // if a gamepad is also connected, the app can decide which device should get the vibration
+    // if a gamepad is also connected, the app can decide which device should Get the vibration
     bool vibrateDeviceInsteadOfPad = false;
     if (gamePadIndex == BUILTIN_DEVICE_HAPTICS)
     {

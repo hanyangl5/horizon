@@ -79,7 +79,7 @@ const hz::GPUTexture& DeferredLighting::Execute(hz::CommandList& Commands, const
     Commands.SetPipeline(Pipeline);
     Commands.BeginRendering(
         { .colorAttachments = { { .pTexture = &Color, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
-        Dependencies.get());
+        Dependencies.Get());
     Commands.SetViewport(0, 0, (float)Color.GetWidth(), (float)Color.GetHeight());
     Commands.SetScissor(0, 0, Color.GetWidth(), Color.GetHeight());
     Commands.SetRootConstants(Constants);

@@ -62,7 +62,7 @@ extern "C"
      stbds_temp((t)-1))
 #define bhgeti(t, k)                   bhgeti_impl(t, k, __FILE__, __LINE__, __FUNCTION__, "bhgeti")
 
-/* get value */
+/* Get value */
 #define bhget(t, k)                    (bhgetp_impl(t, k, __FILE__, __LINE__, __FUNCTION__, "bhget")->value)
 #define bhgets(t, k)                   (*bhgetp_impl(t, k, __FILE__, __LINE__, __FUNCTION__, "bhgets"))
 

@@ -2286,7 +2286,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                         // ResourceLoader during load
                         // TODO: Consider adding an option to make the attributes interleaved here in the AssetPipeline so that we don't
                         // have to do it in runtime.
-                        //       The inconvenience in that case would be that in order to get the pShadow data we would have to unpack the
+                        //       The inconvenience in that case would be that in order to Get the pShadow data we would have to unpack the
                         //       interleaved attributes, another option would be to store interleaved buffers AND pShadow buffers (duplicate
                         //       some data). If we duplicate data would be better to only store pShadow data for the meshes that require it
                         //       rather than all of them, that would require more configuration parameters per mesh while running the

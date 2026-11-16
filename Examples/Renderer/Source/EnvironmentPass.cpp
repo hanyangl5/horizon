@@ -90,7 +90,7 @@ void EnvironmentPass::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fr
     Commands.BeginRendering(
         { .colorAttachments = { { .pTexture = &Color, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
           .depthAttachment = { .pTexture = &Depth, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
-        Dependencies.get());
+        Dependencies.Get());
     Commands.SetViewport(0, 0, (float)Context.GetWidth(), (float)Context.GetHeight());
     Commands.SetScissor(0, 0, Context.GetWidth(), Context.GetHeight());
     Commands.SetPipeline(Pipeline);

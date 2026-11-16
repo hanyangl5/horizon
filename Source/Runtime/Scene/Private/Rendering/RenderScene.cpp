@@ -207,7 +207,7 @@ public:
                 const RenderEntityIndex* pIndex = hmgetp_null(pIndices, entity.entity);
                 if (pIndex)
                     next.primitive = entities[pIndex->value].primitive;
-                const RenderPrimitive* pPrimitive = primitives.get(next.primitive);
+                const RenderPrimitive* pPrimitive = primitives.Get(next.primitive);
                 next.ready = next.ready && pPrimitive && pPrimitive->instanceCount ? 1u : 0u;
             }
             RenderLight& light = lights.values[entity.id.index];
@@ -371,7 +371,7 @@ public:
     {
         entity.seen = true;
         RenderPrimitive&        primitive = primitives.values[entity.primitive.index];
-        const MeshAssetBinding* pBinding = bindings.get(entity.entity);
+        const MeshAssetBinding* pBinding = bindings.Get(entity.entity);
         ASSERT(pBinding);
         const bool       ready = pBinding->state == AssetBindingState::Ready;
         const MeshAsset* pMesh = assetManager.getMesh(pBinding->mesh);
@@ -558,7 +558,7 @@ public:
             RenderHistory& history = instanceHistory[index];
             history.pending = false;
             const RenderInstance&  instance = instances.values[index];
-            const RenderPrimitive* pPrimitive = primitives.get(instance.primitive);
+            const RenderPrimitive* pPrimitive = primitives.Get(instance.primitive);
             // A Reset since the last update renders previous == current first.
             if (history.Reset || !instance.id.IsValid() || !pPrimitive || !pPrimitive->instanceCount)
             {
@@ -673,9 +673,9 @@ RenderPrimitiveID RenderScene::findPrimitive(Entity entity) const
     const RenderEntityIndex* pIndex = hmgetp_null(Data->pIndices, entity);
     return pIndex ? Data->entities[pIndex->value].primitive : RenderPrimitiveID{};
 }
-const RenderPrimitive* RenderScene::getPrimitive(RenderPrimitiveID id) const { return Data->primitives.get(id); }
-const RenderInstance*  RenderScene::getInstance(RenderInstanceID id) const { return Data->instances.get(id); }
-const RenderMeshBatch* RenderScene::getMeshBatch(RenderMeshBatchID id) const { return Data->meshBatches.get(id); }
+const RenderPrimitive* RenderScene::getPrimitive(RenderPrimitiveID id) const { return Data->primitives.Get(id); }
+const RenderInstance*  RenderScene::getInstance(RenderInstanceID id) const { return Data->instances.Get(id); }
+const RenderMeshBatch* RenderScene::getMeshBatch(RenderMeshBatchID id) const { return Data->meshBatches.Get(id); }
 RenderLightID          RenderScene::findLight(Entity entity) const
 {
     const RenderEntityIndex* pIndex = hmgetp_null(Data->pLightIndices, entity);
@@ -686,8 +686,8 @@ RenderCameraID RenderScene::findCamera(Entity entity) const
     const RenderEntityIndex* pIndex = hmgetp_null(Data->pCameraIndices, entity);
     return pIndex ? Data->cameraEntities[pIndex->value].id : RenderCameraID{};
 }
-const RenderLight*    RenderScene::getLight(RenderLightID id) const { return Data->lights.get(id); }
-const RenderCamera*   RenderScene::getCamera(RenderCameraID id) const { return Data->cameras.get(id); }
+const RenderLight*    RenderScene::getLight(RenderLightID id) const { return Data->lights.Get(id); }
+const RenderCamera*   RenderScene::getCamera(RenderCameraID id) const { return Data->cameras.Get(id); }
 Span<RenderPrimitive> RenderScene::getPrimitives() const { return { Data->primitives.values.GetData(), Data->primitives.values.Size() }; }
 Span<RenderInstance>  RenderScene::getInstances() const { return { Data->instances.values.GetData(), Data->instances.values.Size() }; }
 Span<RenderMeshBatch> RenderScene::getMeshBatches() const { return { Data->meshBatches.values.GetData(), Data->meshBatches.values.Size() }; }

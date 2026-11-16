@@ -4865,7 +4865,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
 
     indexUpdateDesc->Size = geom->indexCount * *indexStride;
 
-    // We need to check for pCpuMappedAddress because when we allocate a custom ResourceHeap with GPU_ONLY memory we don't get any CPU
+    // We need to check for pCpuMappedAddress because when we allocate a custom ResourceHeap with GPU_ONLY memory we don't Get any CPU
     // mapped address and we need staging memory
     if (gUma && indexUpdateDesc->pBuffer->pCpuMappedAddress)
     {
@@ -4917,7 +4917,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
 
         vertexUpdateDesc[i].Size = Size;
 
-        // We need to check for pCpuMappedAddress because when we allocate a custom ResourceHeap with GPU_ONLY memory we don't get any CPU
+        // We need to check for pCpuMappedAddress because when we allocate a custom ResourceHeap with GPU_ONLY memory we don't Get any CPU
         // mapped address and we need staging memory
         if (gUma && vertexUpdateDesc[i].pBuffer->pCpuMappedAddress)
         {
@@ -6239,7 +6239,7 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
         const uint32_t textureCount = pTextureSet->textureCount;
         for (uint32_t j = 0; j < textureCount; ++j)
         {
-            // Try to get the texture from the global cache
+            // Try to Get the texture from the global cache
             const uint32_t textureIndex = pMaterialDesc->pTextureIds[pTextureSet->pTextureIdxs[j]];
             ASSERT(textureIndex < pLib->maxMaterialTextures);
 

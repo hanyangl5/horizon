@@ -27,7 +27,7 @@
 
 #include "Platform/IOperatingSystem.h"
 
-// IOS Simulator paths can get a bit longer then 256 bytes
+// IOS Simulator paths can Get a bit longer then 256 bytes
 #ifdef TARGET_IOS_SIMULATOR
 #define FS_MAX_PATH 320
 #else
@@ -223,7 +223,7 @@ extern "C"
         // Only Archive FS supports it currently.
         bool (*GetFileUid)(IFileSystem* FileSystem, ResourceDirectory rd, const char* name, uint64_t* outUid);
 
-        // Open file using unique identifier. Use GetFileUid to get uid.
+        // Open file using unique identifier. Use GetFileUid to Get uid.
         bool (*OpenByUid)(IFileSystem* FileSystem, uint64_t uid, FileMode fm, FileStream* pOut);
 
         // Creates virtual address space of file.

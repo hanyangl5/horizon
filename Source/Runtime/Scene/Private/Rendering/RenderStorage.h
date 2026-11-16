@@ -90,7 +90,7 @@ public:
     }
     void remove(ID id)
     {
-        ASSERT(get(id));
+        ASSERT(Get(id));
         const uint32_t position = positions[id.index];
         const uint32_t last = active[active.Size() - 1];
         active[position] = last;
@@ -104,7 +104,7 @@ public:
         pendingActive = true;
         markDirty(id.index);
     }
-    const T* get(ID id) const
+    const T* Get(ID id) const
     {
         return id.IsValid() && id.index < values.Size() && values[id.index].id == id ? &values[id.index] : nullptr;
     }

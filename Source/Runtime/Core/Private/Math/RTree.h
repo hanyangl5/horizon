@@ -722,7 +722,7 @@ extern "C"
 
             // Move outer nodes to free locations if not working on outer nodes
             // pTree[treeIndex] + pTree[siblingIndex] going to be free locations
-            // get "leafNodes * 2 (-1)" left and right and move to free space
+            // Get "leafNodes * 2 (-1)" left and right and move to free space
             // update parent leftOrFirst location
             if (pRTree->leafNodes * 2 != treeIndex && pRTree->leafNodes * 2 != siblingIndex)
             {

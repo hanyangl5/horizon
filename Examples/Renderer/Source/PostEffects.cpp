@@ -213,7 +213,7 @@ void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& Scene
                                                     .outputIndex = initializeDependencies.store(&AdaptedLuminance[1]) };
         Commands.SetPipeline(InitializePipeline);
         Commands.SetRootConstants(Initialize);
-        Commands.Dispatch(1, 1, 1, initializeDependencies.get());
+        Commands.Dispatch(1, 1, 1, initializeDependencies.Get());
         ExposureInitialized = true;
     }
     hz::DependencyList         MeteringDependencies;
@@ -221,7 +221,7 @@ void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& Scene
                                              .luminanceOutputIndex = MeteringDependencies.store(&Luminance[0]) };
     Commands.SetPipeline(MeteringPipeline);
     Commands.SetRootConstants(Metering);
-    Commands.Dispatch(MeteringSize / 16, MeteringSize / 16, 1, MeteringDependencies.get());
+    Commands.Dispatch(MeteringSize / 16, MeteringSize / 16, 1, MeteringDependencies.Get());
     Commands.SetPipeline(ReducePipeline);
     for (uint32_t Level = 1; Level < LuminanceLevels; ++Level)
     {
@@ -230,7 +230,7 @@ void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& Scene
         const PostLuminanceConstants Reduce = { .inputIndex = reduceDependencies.sample(&Luminance[Level - 1]),
                                                 .outputIndex = reduceDependencies.store(&Luminance[Level]) };
         Commands.SetRootConstants(Reduce);
-        Commands.Dispatch((Size + 15) / 16, (Size + 15) / 16, 1, reduceDependencies.get());
+        Commands.Dispatch((Size + 15) / 16, (Size + 15) / 16, 1, reduceDependencies.Get());
     }
     const bool BloomReady = PrepareBloomChain();
     if (BloomReady)
@@ -306,7 +306,7 @@ void PostEffects::RunAdaptation(hz::CommandList& Commands, float DeltaSeconds)
     };
     Commands.SetPipeline(AdaptationPipeline);
     Commands.SetRootConstants(Constants);
-    Commands.Dispatch(1, 1, 1, Dependencies.get());
+    Commands.Dispatch(1, 1, 1, Dependencies.Get());
 }
 
 void PostEffects::ToneMap(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget)
@@ -338,7 +338,7 @@ void PostEffects::ToneMap(hz::CommandList& Commands, const hz::GPUTexture& Scene
     };
     Commands.BeginRendering(
         { .colorAttachments = { { .pTexture = &RenderTarget, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
-        Dependencies.get());
+        Dependencies.Get());
     Commands.SetViewport(0, 0, (float)Width, (float)Height);
     Commands.SetScissor(0, 0, Width, Height);
     Commands.SetPipeline(ToneMapPipeline);

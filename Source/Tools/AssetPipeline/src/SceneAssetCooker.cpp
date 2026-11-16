@@ -18,7 +18,7 @@ public:
     ~JsonDocument() { cJSON_Delete(pValue); }
     JsonDocument(const JsonDocument&) = delete;
     JsonDocument& operator=(const JsonDocument&) = delete;
-    cJSON*        get() const { return pValue; }
+    cJSON*        Get() const { return pValue; }
 
 private:
     cJSON* pValue;
@@ -160,7 +160,7 @@ static void addSourceKey(cJSON* pObject, const cgltf_data& data, const cgltf_ext
     if (extras.end_offset <= extras.start_offset)
         return;
     const JsonDocument json(cJSON_ParseWithLength(data.json + extras.start_offset, extras.end_offset - extras.start_offset));
-    const char*        pKey = text(json.get(), "horizonId");
+    const char*        pKey = text(json.Get(), "horizonId");
     if (*pKey)
         cJSON_AddStringToObject(pObject, "sourceKey", pKey);
 }
@@ -377,23 +377,23 @@ bool SceneAssetCooker::isCurrent(const char* pContentHash) const
     const JsonDocument asset(readJson(outputDirectory, assetFile));
     char               value[17];
     snprintf(value, sizeof(value), "%016llx", (unsigned long long)hash);
-    const cJSON* pVersion = cJSON_GetObjectItemCaseSensitive(asset.get(), "version");
-    const bool   current = metadata.get() && cJSON_IsNumber(pVersion) && pVersion->valuedouble == 1 &&
-                         strcmp(text(asset.get(), "format"), "Horizon.SceneAsset") == 0 &&
-                         strcmp(text(asset.get(), "contentHash"), pContentHash) == 0 &&
-                         strcmp(text(asset.get(), "identityHash"), value) == 0;
+    const cJSON* pVersion = cJSON_GetObjectItemCaseSensitive(asset.Get(), "version");
+    const bool   current = metadata.Get() && cJSON_IsNumber(pVersion) && pVersion->valuedouble == 1 &&
+                         strcmp(text(asset.Get(), "format"), "Horizon.SceneAsset") == 0 &&
+                         strcmp(text(asset.Get(), "contentHash"), pContentHash) == 0 &&
+                         strcmp(text(asset.Get(), "identityHash"), value) == 0;
     if (!current)
         return false;
     hz::AssetCatalog catalog;
     hz::Array<char>  expected, actual;
-    if (!buildCatalog(asset.get(), assetFile, expected) || !catalog.load(outputDirectory, catalogFile) || !catalog.serialize(actual) ||
+    if (!buildCatalog(asset.Get(), assetFile, expected) || !catalog.load(outputDirectory, catalogFile) || !catalog.serialize(actual) ||
         expected.Size() != actual.Size() || memcmp(expected.GetData(), actual.GetData(), actual.Size()))
         return false;
-    const cJSON* pTextures = cJSON_GetObjectItemCaseSensitive(asset.get(), "textures");
+    const cJSON* pTextures = cJSON_GetObjectItemCaseSensitive(asset.Get(), "textures");
     for (const cJSON* pTexture = pTextures ? pTextures->child : nullptr; pTexture; pTexture = pTexture->next)
         if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pTexture, "cooked")) && !FileExists(outputDirectory, text(pTexture, "path")))
             return false;
-    const cJSON* pRecords = cJSON_GetObjectItemCaseSensitive(metadata.get(), "assets");
+    const cJSON* pRecords = cJSON_GetObjectItemCaseSensitive(metadata.Get(), "assets");
     for (const cJSON* pRecord = pRecords ? pRecords->child : nullptr; pRecord; pRecord = pRecord->next)
     {
         if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pRecord, "missing")) || !*text(pRecord, "source"))
@@ -403,7 +403,7 @@ bool SceneAssetCooker::isCurrent(const char* pContentHash) const
             return false;
         const JsonDocument registered(readJson(sourceDirectory, path));
         const char*        pVariant = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(pRecord, "srgb")) ? "srgb" : "linear";
-        if (!validTextureIdentity(registered.get()) || strcmp(text(registered.get(), pVariant), text(pRecord, "id")) != 0)
+        if (!validTextureIdentity(registered.Get()) || strcmp(text(registered.Get(), pVariant), text(pRecord, "id")) != 0)
             return false;
     }
     return true;
@@ -638,7 +638,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
         materials[i] = identity(i < data.materials_count ? "material" : "DefaultMaterial", material.name, data, material.extras);
         // Texture array indices are not identity evidence.
         const JsonDocument signature(createMaterial(data, material, { textures.GetData(), textures.Size() }, true));
-        char*              pText = cJSON_PrintUnformatted(signature.get());
+        char*              pText = cJSON_PrintUnformatted(signature.Get());
         addHash(materials[i], "signature", hashBytes(pText, strlen(pText)));
         cJSON_free(pText);
         cJSON_AddItemToArray(pRecords, materials[i]);

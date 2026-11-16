@@ -825,7 +825,7 @@ struct BufferDesc
     BufferCreationFlags Flags;
     /// What Type of queue the buffer is owned by
     QueueType           QueueType;
-    /// What state will the buffer get created in
+    /// What state will the buffer Get created in
     ResourceState       StartState;
     /// Format of the buffer (applicable to typed storage buffers (Buffer<T>)
     hz::Format          Format;
@@ -897,7 +897,7 @@ struct TextureDesc
     uint32_t             SampleQuality;
     ///  image Format
     hz::Format           Format;
-    /// What state will the texture get created in
+    /// What state will the texture Get created in
     ResourceState        StartState;
     /// Descriptor creation
     DescriptorType       Descriptors;
@@ -956,7 +956,7 @@ struct RenderTargetDesc
     SampleCount          SampleCount;
     /// Internal image Format
     hz::Format           Format;
-    /// What state will the texture get created in
+    /// What state will the texture Get created in
     ResourceState        StartState;
     /// Optimized Clear value (recommended to use this same value when clearing the rendertarget)
     ClearValue           ClearValue;

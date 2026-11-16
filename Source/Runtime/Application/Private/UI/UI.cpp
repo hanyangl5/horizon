@@ -3518,7 +3518,7 @@ void uiOnButton(uint32_t actionId, bool press, const float2* pVec)
     }
 
     // Note that for keyboard keys, we only set them to true here if they are pressed because we may have a press/release
-    // happening in one frame and it would never get registered.  Instead, unpressed are deferred at the end of update().
+    // happening in one frame and it would never Get registered.  Instead, unpressed are deferred at the end of update().
     // This scenario occurs with mobile soft (on-screen) keyboards.
     case UISystemInputActions::UI_ACTION_KEY_TAB:
         if (press)

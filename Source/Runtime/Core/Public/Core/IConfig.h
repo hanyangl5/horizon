@@ -290,7 +290,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //   contains the Assert/Logging/Memory functionality
 //   - FORGE_RENDERER_API: is used to expose Renderer functionality, wich usually only the Engine needs access to (the Game should leverage
 //   the Engine and never call the Renderer).
-//                         This define allows to Hidden Renderer functionality to the Game, so that if someone tries to use it it'll get a
+//                         This define allows to Hidden Renderer functionality to the Game, so that if someone tries to use it it'll Get a
 //                         linker error.
 #define FORGE_API
 #define FORGE_RENDERER_API

@@ -219,7 +219,7 @@ void WorldHierarchy::update()
     dirtyRoots.Clear();
 }
 
-const WorldTransform* WorldHierarchy::get(ecs_entity_t entity) const
+const WorldTransform* WorldHierarchy::Get(ecs_entity_t entity) const
 {
     world.checkThread();
     ASSERT(!structureDirty && dirtyRoots.Empty());
@@ -307,10 +307,10 @@ bool WorldHierarchy::setParent(ecs_entity_t entity, ecs_entity_t parent, bool ke
     if (keepWorld)
     {
         update();
-        Matrix4 local = get(entity)->current;
+        Matrix4 local = Get(entity)->current;
         if (parent)
         {
-            const Matrix4& parentWorld = get(parent)->current;
+            const Matrix4& parentWorld = Get(parent)->current;
             const float    det = (float)determinant(parentWorld);
             if (!isfinite(det) || det == 0.0f)
             {
@@ -399,7 +399,7 @@ bool                  World::destroySubtree(Entity entity) { return isAlive(enti
 void                  World::updateTransforms() { pImpl->pHierarchy->update(); }
 const WorldTransform* World::getWorldTransform(Entity entity) const
 {
-    return isAlive(entity) ? pImpl->pHierarchy->get(entity.value) : nullptr;
+    return isAlive(entity) ? pImpl->pHierarchy->Get(entity.value) : nullptr;
 }
 void World::commitTransforms() { pImpl->pHierarchy->commit(); }
 void World::resetTransformHistory(Entity root)

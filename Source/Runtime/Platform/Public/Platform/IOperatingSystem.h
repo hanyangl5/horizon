@@ -286,7 +286,7 @@ typedef enum ThermalStatus
     ThermalStatusError = -1,         // There was an error retrieving thermal status
 
     // Note: These enum names are taken from Android, we might want to rename them or create our own
-    ThermalStatusNone = 0,     // Means we didn't get any thermal status data yet (maybe device doesn't support it)
+    ThermalStatusNone = 0,     // Means we didn't Get any thermal status data yet (maybe device doesn't support it)
     ThermalStatusLight = 1,    // iOS Nominal
     ThermalStatusModerate = 2, // iOS Fair
     ThermalStatusSevere = 3,   // iOS Serious

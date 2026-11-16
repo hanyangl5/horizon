@@ -653,7 +653,7 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
     assetManager.shutdown();
     EXPECT_TRUE(context.IsComplete(submission));
     EXPECT_EQ(assetManager.getCount(), 0u);
-    const uint32_t* pPixel = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    const uint32_t* pPixel = (const uint32_t*)readback.Get()->pCpuMappedAddress;
     ASSERT_NE(pPixel, nullptr);
     EXPECT_EQ(pPixel[0], 255u);
     EXPECT_EQ(pPixel[1], 128u);
@@ -763,7 +763,7 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     commands.Dispatch(1, 1, 1, { .sampledTextures = { &targets[3] }, .storageBuffers = { &output } });
     commands.CopyBuffer(readback, 0, output, 0, 16);
     context.Wait(context.Submit(commands));
-    const uint32_t* pixel = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    const uint32_t* pixel = (const uint32_t*)readback.Get()->pCpuMappedAddress;
     ASSERT_EQ(pixel[3], 7u); // The sampled pixel was covered by the triangle.
     const uint32_t packed = pixel[0] | (pixel[1] << 8) | (pixel[2] << 16);
     const float    motion = (float)(packed & 0xfff) / 4095.0f * 2 - 1;
@@ -892,7 +892,7 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
             }
             commands.CopyBuffer(readback, 300, statistics, 0, 16);
             context.Wait(context.Submit(commands));
-            const uint32_t* data = (const uint32_t*)readback.get()->pCpuMappedAddress;
+            const uint32_t* data = (const uint32_t*)readback.Get()->pCpuMappedAddress;
             ASSERT_NE(data, nullptr);
             for (uint32_t i = 0; i < 5; ++i)
             {
@@ -1092,7 +1092,7 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     assetManager.shutdown();
     EXPECT_EQ(assetManager.getCount(), 0u);
     EXPECT_TRUE(context.IsComplete(submission));
-    const float* pVertices = (const float*)readback.get()->pCpuMappedAddress;
+    const float* pVertices = (const float*)readback.Get()->pCpuMappedAddress;
     EXPECT_FLOAT_EQ(pVertices[0], -1);
     EXPECT_FLOAT_EQ(pVertices[4], -5);
     EXPECT_FLOAT_EQ(pVertices[8], -2);
@@ -1268,7 +1268,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
         context.Wait(submission);
         if (pass < 3)
         {
-            const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
+            const uint32_t* values = (const uint32_t*)readback.Get()->pCpuMappedAddress;
             for (uint32_t i = 0; i < 4; ++i)
             {
                 EXPECT_EQ(values[i], expected[i]) << "pass " << pass << ", ray " << i;
@@ -1325,7 +1325,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     EXPECT_TRUE(context.IsComplete(submission));
     const uint32_t expectedIndices[] = { 0, 1, 2 };
     const float    expectedPositions[] = { -1, 2, 3, 4, -5, 6, 0, 1, -2 };
-    const uint8_t* bytes = (const uint8_t*)readback.get()->pCpuMappedAddress;
+    const uint8_t* bytes = (const uint8_t*)readback.Get()->pCpuMappedAddress;
     EXPECT_EQ(memcmp(bytes, expectedIndices, sizeof(expectedIndices)), 0);
     EXPECT_EQ(memcmp(bytes + sizeof(expectedIndices), expectedPositions, sizeof(expectedPositions)), 0);
 }
@@ -1349,11 +1349,11 @@ TEST_F(AssetManagerTest, WorldBindingsRetainSharedMeshesAndReleaseRemovedCompone
     hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
     ASSERT_EQ(bindings.getCount(), 2u);
-    const hz::AssetHandle mesh = bindings.get(a)->mesh;
-    EXPECT_EQ(bindings.get(b)->mesh, mesh);
+    const hz::AssetHandle mesh = bindings.Get(a)->mesh;
+    EXPECT_EQ(bindings.Get(b)->mesh, mesh);
     assetManager.update();
     bindings.update();
-    EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
+    EXPECT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Pending);
     EXPECT_EQ(loader.begun, 1u);
     const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
@@ -1366,7 +1366,7 @@ TEST_F(AssetManagerTest, WorldBindingsRetainSharedMeshesAndReleaseRemovedCompone
     }
     ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
     bindings.update();
-    EXPECT_EQ(bindings.get(a), nullptr);
+    EXPECT_EQ(bindings.Get(a), nullptr);
     EXPECT_EQ(bindings.getCount(), 1u);
     EXPECT_EQ(assetManager.getState(mesh), hz::AssetState::LoadingCPU);
     ASSERT_TRUE(world.destroyEntity(b));
@@ -1398,13 +1398,13 @@ TEST_F(AssetManagerTest, WorldBindingsSwapMeshesWithoutRetiringSharedAssets)
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &second));
     hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
-    const hz::AssetHandle meshA = bindings.get(a)->mesh, meshB = bindings.get(b)->mesh;
+    const hz::AssetHandle meshA = bindings.Get(a)->mesh, meshB = bindings.Get(b)->mesh;
     assetManager.update();
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &second));
     ASSERT_TRUE(world.setComponent(b, hz::SceneTypes::meshRenderer, &first));
     bindings.update();
-    EXPECT_EQ(bindings.get(a)->mesh, meshB);
-    EXPECT_EQ(bindings.get(b)->mesh, meshA);
+    EXPECT_EQ(bindings.Get(a)->mesh, meshB);
+    EXPECT_EQ(bindings.Get(b)->mesh, meshA);
     EXPECT_EQ(assetManager.getState(meshA), hz::AssetState::LoadingCPU);
     EXPECT_EQ(assetManager.getState(meshB), hz::AssetState::LoadingCPU);
     EXPECT_EQ(loader.begun, 2u);
@@ -1415,14 +1415,14 @@ TEST_F(AssetManagerTest, WorldBindingsSwapMeshesWithoutRetiringSharedAssets)
     EXPECT_NE(replacement, a);
     ASSERT_TRUE(world.setComponent(replacement, hz::SceneTypes::meshRenderer, &second));
     bindings.update();
-    EXPECT_EQ(bindings.get(a), nullptr);
-    EXPECT_EQ(bindings.get(replacement)->state, hz::AssetBindingState::Pending);
-    EXPECT_FALSE(bindings.get(replacement)->mesh.IsValid());
+    EXPECT_EQ(bindings.Get(a), nullptr);
+    EXPECT_EQ(bindings.Get(replacement)->state, hz::AssetBindingState::Pending);
+    EXPECT_FALSE(bindings.Get(replacement)->mesh.IsValid());
     loader.jobs[2]->ready = true;
     assetManager.update();
     bindings.update();
-    EXPECT_TRUE(bindings.get(replacement)->mesh.IsValid());
-    EXPECT_NE(bindings.get(replacement)->mesh, meshB);
+    EXPECT_TRUE(bindings.Get(replacement)->mesh.IsValid());
+    EXPECT_NE(bindings.Get(replacement)->mesh, meshB);
     bindings.Clear();
     EXPECT_EQ(bindings.getCount(), 0u);
     EXPECT_EQ(assetManager.getState(meshA), hz::AssetState::Retiring);
@@ -1816,7 +1816,7 @@ TEST_F(AssetManagerTest, WorldBindingsKeepFailedRequestsIdleUntilRebuilt)
     ASSERT_TRUE(world.setComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
     hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
-    ASSERT_EQ(bindings.get(entity)->state, hz::AssetBindingState::Failed);
+    ASSERT_EQ(bindings.Get(entity)->state, hz::AssetBindingState::Failed);
     ASSERT_TRUE(
         catalog.add({ .id = assetID(1), .Type = hz::AssetType::Mesh, .pSourcePath = "scene.gltf", .location = { .pPath = "scene.bin" } }));
     const MemoryTrackingStats before = GetMemoryTrackingStats();
@@ -1831,8 +1831,8 @@ TEST_F(AssetManagerTest, WorldBindingsKeepFailedRequestsIdleUntilRebuilt)
     EXPECT_EQ(assetManager.getCount(), 0u);
     bindings.Clear();
     bindings.update();
-    EXPECT_EQ(bindings.get(entity)->state, hz::AssetBindingState::Pending);
-    EXPECT_TRUE(bindings.get(entity)->mesh.IsValid());
+    EXPECT_EQ(bindings.Get(entity)->state, hz::AssetBindingState::Pending);
+    EXPECT_TRUE(bindings.Get(entity)->mesh.IsValid());
     EXPECT_EQ(assetManager.getCount(), 1u);
 }
 
@@ -1876,21 +1876,21 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     hz::WorldAssetBindings bindings(world, assetManager);
     bindings.update();
-    const hz::AssetHandle mesh = bindings.get(a)->mesh;
-    EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
+    const hz::AssetHandle mesh = bindings.Get(a)->mesh;
+    EXPECT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Pending);
     Wait(assetManager, mesh);
     bindings.update();
     const hz::AssetHandle overrideMaterial = assetManager.find(alternate);
     ASSERT_TRUE(overrideMaterial.IsValid());
     Wait(assetManager, overrideMaterial);
     bindings.update();
-    ASSERT_EQ(bindings.get(a)->state, hz::AssetBindingState::Ready);
-    ASSERT_EQ(bindings.get(b)->state, hz::AssetBindingState::Ready);
-    ASSERT_EQ(bindings.get(a)->materials.Count, 2u);
-    EXPECT_EQ(bindings.get(a)->materials.Data[0].asset, scene.getMaterials().Data[0].id);
-    EXPECT_EQ(bindings.get(a)->materials.Data[1].asset, alternate);
-    EXPECT_EQ(bindings.get(b)->materials.Data[1].asset, scene.getMaterials().Data[0].id);
-    EXPECT_EQ(bindings.get(a)->materials.Data[1].Handle, overrideMaterial);
+    ASSERT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Ready);
+    ASSERT_EQ(bindings.Get(b)->state, hz::AssetBindingState::Ready);
+    ASSERT_EQ(bindings.Get(a)->materials.Count, 2u);
+    EXPECT_EQ(bindings.Get(a)->materials.Data[0].asset, scene.getMaterials().Data[0].id);
+    EXPECT_EQ(bindings.Get(a)->materials.Data[1].asset, alternate);
+    EXPECT_EQ(bindings.Get(b)->materials.Data[1].asset, scene.getMaterials().Data[0].id);
+    EXPECT_EQ(bindings.Get(a)->materials.Data[1].Handle, overrideMaterial);
 
     const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
@@ -1908,31 +1908,31 @@ TEST_F(TypedAssetLiveTest, WorldBindingsResolveSubmeshMaterialsAndDeferReleasedP
     renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = alternate });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
-    ASSERT_EQ(bindings.get(a)->state, hz::AssetBindingState::Ready);
-    EXPECT_EQ(bindings.get(a)->materials.Data[0].Handle, overrideMaterial);
-    EXPECT_EQ(bindings.get(a)->materials.Data[1].Handle, overrideMaterial);
+    ASSERT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Ready);
+    EXPECT_EQ(bindings.Get(a)->materials.Data[0].Handle, overrideMaterial);
+    EXPECT_EQ(bindings.Get(a)->materials.Data[1].Handle, overrideMaterial);
 
     const hz::MeshRenderer pendingRenderer = { .mesh = scene.getMeshes().Data[1].id };
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &pendingRenderer));
     bindings.update();
-    EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Pending);
-    EXPECT_EQ(bindings.get(a)->materials.Count, 0u);
+    EXPECT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Pending);
+    EXPECT_EQ(bindings.Get(a)->materials.Count, 0u);
     assetManager.update();
     EXPECT_EQ(assetManager.getState(overrideMaterial), hz::AssetState::Retiring);
 
     renderer.overrides[0].submesh = 99;
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
-    EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Failed);
+    EXPECT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Failed);
     renderer.overrides[0].submesh = renderer.overrides[1].submesh;
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
-    EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Failed);
+    EXPECT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Failed);
     renderer.overrides.Clear();
     renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000001), .material = scene.getTextures().Data[0].id });
     ASSERT_TRUE(world.setComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     bindings.update();
-    EXPECT_EQ(bindings.get(a)->state, hz::AssetBindingState::Failed);
+    EXPECT_EQ(bindings.Get(a)->state, hz::AssetBindingState::Failed);
 
     ASSERT_TRUE(world.removeComponent(a, hz::SceneTypes::meshRenderer));
     ASSERT_TRUE(world.destroyEntity(b));
@@ -2165,7 +2165,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
                                                                 .usage = MemoryUsageGpuToCpu,
                                                                 .StartState = ResourceStateCopyDest,
                                                                 .Flags = BufferCreationFlagPersistentMapBit });
-    const uint8_t*            pBytes = (const uint8_t*)readback.get()->pCpuMappedAddress;
+    const uint8_t*            pBytes = (const uint8_t*)readback.Get()->pCpuMappedAddress;
     const hz::RenderInstance& copiedInstance = *(const hz::RenderInstance*)pBytes;
     const hz::GpuMeshData&    copiedMesh = *(const hz::GpuMeshData*)(pBytes + 256);
     const GpuSceneCopy        instanceCopy = { .table = &hz::GpuSceneBuffers::instances,
@@ -2356,7 +2356,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
                                                               .usage = MemoryUsageGpuToCpu,
                                                               .StartState = ResourceStateCopyDest,
                                                               .Flags = BufferCreationFlagPersistentMapBit });
-    const uint8_t*          pBytes = (const uint8_t*)readback.get()->pCpuMappedAddress;
+    const uint8_t*          pBytes = (const uint8_t*)readback.Get()->pCpuMappedAddress;
     const hz::RenderCamera& copiedCamera = *(const hz::RenderCamera*)pBytes;
     const hz::RenderLight&  copiedLight = *(const hz::RenderLight*)(pBytes + 512);
     const uint32_t*         pActive = (const uint32_t*)(pBytes + 1000);
@@ -2503,7 +2503,7 @@ TEST_F(AssetManagerTest, GpuSceneUploadsSparseChangesForOneHundredThousandEntiti
                                                                 .usage = MemoryUsageGpuToCpu,
                                                                 .StartState = ResourceStateCopyDest,
                                                                 .Flags = BufferCreationFlagPersistentMapBit });
-    const hz::RenderInstance& copied = *(const hz::RenderInstance*)readback.get()->pCpuMappedAddress;
+    const hz::RenderInstance& copied = *(const hz::RenderInstance*)readback.Get()->pCpuMappedAddress;
     const int64_t             fullStart = GetUSec(true);
     renderGpuSceneFrame(context, gpu, readback, {});
     const int64_t fullUSec = GetUSec(true) - fullStart;
@@ -2644,7 +2644,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         assetManager.update();
         EXPECT_EQ(assetManager.getCount(), 0u);
         EXPECT_EQ(assetManager.getMesh(oldMesh), nullptr);
-        const hz::RenderInstance* copied = (const hz::RenderInstance*)readback.get()->pCpuMappedAddress;
+        const hz::RenderInstance* copied = (const hz::RenderInstance*)readback.Get()->pCpuMappedAddress;
         EXPECT_EQ(copied->entityGuid, firstID);
         EXPECT_FLOAT_EQ((float)copied->current.getElem(3, 0), 6);
         EXPECT_FLOAT_EQ((float)copied->previous.getElem(3, 0), 6);
@@ -2922,7 +2922,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     commands.Dispatch(1, 1, 1, { .sampledTextures = { &targets[2] }, .storageBuffers = { &output } });
     commands.CopyBuffer(readback, 0, output, 0, 32);
     context.Wait(context.Submit(commands));
-    const uint32_t* pixels = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    const uint32_t* pixels = (const uint32_t*)readback.Get()->pCpuMappedAddress;
     ASSERT_NE(pixels, nullptr);
     EXPECT_EQ(pixels[0], 255u);
     EXPECT_EQ(pixels[1], 0u);
@@ -3029,7 +3029,7 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
     const auto    validateDevice = [&](const char* phase)
     {
         ID3D12Device* device = nullptr;
-        readback.get()->dx.pResource->GetDevice(IID_PPV_ARGS(&device));
+        readback.Get()->dx.pResource->GetDevice(IID_PPV_ARGS(&device));
         if (!device)
         {
             return E_FAIL;
@@ -3132,7 +3132,7 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
     // Queue several frames through one TLAS, including refit after an earlier trace, before waiting.
     context.Wait(submission);
     ASSERT_EQ(validateDevice("Queued TLAS updates and traces"), S_OK);
-    const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    const uint32_t* values = (const uint32_t*)readback.Get()->pCpuMappedAddress;
     ASSERT_NE(values, nullptr);
     for (uint32_t pass = 0; pass < 5; ++pass)
     {
@@ -3370,7 +3370,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
         commands.Dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
         commands.CopyBuffer(readback, 0, output, 0, 16);
         context.Wait(context.Submit(commands));
-        const float* values = (const float*)readback.get()->pCpuMappedAddress;
+        const float* values = (const float*)readback.Get()->pCpuMappedAddress;
         ASSERT_NE(values, nullptr);
         EXPECT_NEAR(values[0], test.red, 1e-5f);
         EXPECT_NEAR(values[1], test.green, 1e-5f);
@@ -3398,14 +3398,14 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     lit.Dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
     lit.CopyBuffer(readback, 0, output, 0, 16);
     context.Wait(context.Submit(lit));
-    const float* litColor = (const float*)readback.get()->pCpuMappedAddress;
+    const float* litColor = (const float*)readback.Get()->pCpuMappedAddress;
     const float expectedLighting = (0.96f + 0.04f / 4.0f) / 3.14159265359f;
     for (uint32_t channel = 0; channel < 3; ++channel)
     {
         EXPECT_NEAR(litColor[channel], expectedLighting, 1e-4f);
     }
     ID3D12Device* device = nullptr;
-    ASSERT_EQ(output.get()->dx.pResource->GetDevice(IID_PPV_ARGS(&device)), S_OK);
+    ASSERT_EQ(output.Get()->dx.pResource->GetDevice(IID_PPV_ARGS(&device)), S_OK);
     EXPECT_EQ(device->GetDeviceRemovedReason(), S_OK);
     ID3D12InfoQueue* info = nullptr;
     if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&info))))
@@ -3591,7 +3591,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         commands.Dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
         commands.CopyBuffer(readback, 0, output, 0, 16);
         context.Wait(context.Submit(commands));
-        const float* values = (const float*)readback.get()->pCpuMappedAddress;
+        const float* values = (const float*)readback.Get()->pCpuMappedAddress;
         ASSERT_NE(values, nullptr);
         EXPECT_FLOAT_EQ(values[0], constants.ao || (constants.alphaMethod != 0 && scenario == 1) ? 1.0f : 0.0f);
         EXPECT_FLOAT_EQ(values[1], constants.ao ? 0.0f : 1.0f);
@@ -3656,7 +3656,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         commands.Dispatch(1, 1, 1, { .sampledTextures = { &shadowDepth }, .storageBuffers = { &output } });
         commands.CopyBuffer(readback, 0, output, 0, 16);
         context.Wait(context.Submit(commands));
-        const float* values = (const float*)readback.get()->pCpuMappedAddress;
+        const float* values = (const float*)readback.Get()->pCpuMappedAddress;
         ASSERT_NE(values, nullptr);
         EXPECT_NEAR(values[0], scenario == 1 ? 1.0f : 0.5f, 2e-5f);
     }
@@ -3824,7 +3824,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         commands.CopyBuffer(readback, 0, pixels, 0, 64 * 16);
         commands.CopyBuffer(readback, 64 * 16, counters, 0, 16);
         context.Wait(context.Submit(commands));
-        const float*    color = (const float*)readback.get()->pCpuMappedAddress;
+        const float*    color = (const float*)readback.Get()->pCpuMappedAddress;
         const uint32_t* stats = (const uint32_t*)((const uint8_t*)color + 64 * 16);
         EXPECT_EQ(stats[0], scenario == 2 ? 64u : 128u);
         EXPECT_EQ(stats[1], scenario == 3 ? 127u : 0u);
@@ -4122,7 +4122,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     commands.CopyBuffer(readback, 0, output, 0, 256 * 16);
 
     context.Wait(context.Submit(commands));
-    const float* values = (const float*)readback.get()->pCpuMappedAddress;
+    const float* values = (const float*)readback.Get()->pCpuMappedAddress;
     ASSERT_NE(values, nullptr);
     for (uint32_t x = 0; x < 2; ++x)
     {
@@ -4331,7 +4331,7 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
         commands.Dispatch(1, 1, 1, { .sampledTextures = { &targets[1] }, .storageBuffers = { &output } });
         commands.CopyBuffer(readback, 16 * 16, output, 0, 16 * 16);
         context.Wait(context.Submit(commands));
-        const float* pixels = (const float*)readback.get()->pCpuMappedAddress;
+        const float* pixels = (const float*)readback.Get()->pCpuMappedAddress;
         ASSERT_NE(pixels, nullptr);
         uint32_t coverage = 0;
         for (uint32_t i = 0; i < 16; ++i)

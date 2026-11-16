@@ -1898,7 +1898,7 @@ void util_enumerate_gpus(IDXGIFactory6* dxgiFactory, uint32_t* pGpuCount, GpuDes
                             pGpuDesc->revisionId = desc.Revision;
                             size_t converted = 0;
                             wcstombs_s(&converted, pGpuDesc->name, desc.Description, MAX_GPU_VENDOR_STRING_LENGTH);
-                            // get preset for current gpu description
+                            // Get preset for current gpu description
                             pGpuDesc->preset = getGPUPresetLevel(pGpuDesc->vendorId, pGpuDesc->deviceId,
                                                                  getGPUVendorName(pGpuDesc->vendorId), pGpuDesc->name);
                         }
@@ -1976,13 +1976,13 @@ void QueryGPUSettings(ID3D12Device* pDevice, const GpuDesc* pGpuDesc, GPUSetting
     gpuSettings.gpuVendorPreset.vendorId = pGpuDesc->vendorId;
     // assign Revision ID
     gpuSettings.gpuVendorPreset.revisionId = pGpuDesc->revisionId;
-    // get name from api
+    // Get name from api
     strncpy(gpuSettings.gpuVendorPreset.gpuName, pGpuDesc->name, MAX_GPU_VENDOR_STRING_LENGTH);
-    // get preset
+    // Get preset
     gpuSettings.gpuVendorPreset.presetLevel = pGpuDesc->preset;
-    // get VRAM
+    // Get VRAM
     gpuSettings.vram = pGpuDesc->dedicatedVideoMemory;
-    // get wave lane Count
+    // Get wave lane Count
     gpuSettings.waveLaneCount = pGpuDesc->featureDataOptions1.WaveLaneCountMin;
     gpuSettings.waveOpsSupported = pGpuDesc->featureDataOptions1.WaveOps ? true : false;
     gpuSettings.int64ShaderOpsSupported = pGpuDesc->featureDataOptions1.Int64ShaderOps ? true : false;
@@ -3769,7 +3769,7 @@ void d3d12_addResourceHeap(Renderer* pRenderer, const ResourceHeapDesc* pDesc, R
         ASSERT(resource);
         pHeap->dx.ptr = resource->GetGPUVirtualAddress();
 
-        // We just needed to create this resource to get the address to the memory
+        // We just needed to create this resource to Get the address to the memory
         resource->Release();
     }
 #endif
@@ -6378,7 +6378,7 @@ void d3d12_acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphor
     ASSERT(pRenderer);
     ASSERT(pSwapChainImageIndex);
 
-    // get latest backbuffer image
+    // Get latest backbuffer image
     HRESULT hr = hook_acquire_next_image(pRenderer->dx.pDevice, pSwapChain);
     if (FAILED(hr))
     {

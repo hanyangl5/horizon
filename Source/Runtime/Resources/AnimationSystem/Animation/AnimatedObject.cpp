@@ -160,7 +160,7 @@ void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
 
 bool AnimatedObject::Update(float dt)
 {
-    // sample the current animation to get localTrans
+    // sample the current animation to Get localTrans
     if (!animation->Sample(dt, localTrans))
         return false;
 

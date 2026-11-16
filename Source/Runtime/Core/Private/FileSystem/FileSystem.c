@@ -788,7 +788,7 @@ bool OpenStreamFromPath(ResourceDirectory resourceDir, const char* fileName, Fil
     if (!io)
     {
         LOGF(Error,
-             "Trying to get an unset resource directory '%d' to open stream for '%s', make sure the resourceDirectory is set on start of "
+             "Trying to Get an unset resource directory '%d' to open stream for '%s', make sure the resourceDirectory is set on start of "
              "the application",
              resourceDir, fileName ? fileName : "<NULL>");
         return false;
@@ -996,7 +996,7 @@ const char* GetResourceDirectory(ResourceDirectory resourceDir)
     if (!dir->FileSystem)
     {
         LOGF_IF(Error, !dir->path[0],
-                "Trying to get an unset resource directory '%d', make sure the resourceDirectory is set on start of the application",
+                "Trying to Get an unset resource directory '%d', make sure the resourceDirectory is set on start of the application",
                 resourceDir);
         ASSERT(dir->path[0] != 0);
     }
@@ -1198,7 +1198,7 @@ struct BunyArHashTable* bunyArHashTableConstruct(uint64_t nodeCount, const struc
                     if (salt > ((uint64_t)1 << 63) - 1)
                     {
                         // Also avoids deadloop, although not sure how many
-                        // years it takes to get there
+                        // years it takes to Get there
                         goto NEXT_SEED;
                     }
 

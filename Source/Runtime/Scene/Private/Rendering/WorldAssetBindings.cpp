@@ -290,7 +290,7 @@ WorldAssetBindings::~WorldAssetBindings() { MemDelete(Data); }
 void                    WorldAssetBindings::update() { Data->update(); }
 void                    WorldAssetBindings::Clear() { Data->Clear(); }
 uint32_t                WorldAssetBindings::getCount() const { return Data->bindings.Size(); }
-const MeshAssetBinding* WorldAssetBindings::get(Entity entity) const
+const MeshAssetBinding* WorldAssetBindings::Get(Entity entity) const
 {
     const WorldBindingIndex* pIndex = hmgetp_null(Data->pIndices, entity);
     return pIndex ? &Data->bindings[pIndex->value]->view : nullptr;

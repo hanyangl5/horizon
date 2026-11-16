@@ -152,7 +152,7 @@ private:
 
     uint32_t rootConstantIndex = 0;
 
-    // Buffer pointers that will get updated for each batch to be rendered
+    // Buffer pointers that will Get updated for each batch to be rendered
     Buffer** projViewUniformBufferJoints = NULL;
     Buffer** projViewUniformBufferBones = NULL;
 

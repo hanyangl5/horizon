@@ -188,7 +188,7 @@ public:
     GPUBuffer(const GPUBuffer&) = delete;
     GPUBuffer& operator=(const GPUBuffer&) = delete;
     bool       IsValid() const { return pBuffer != nullptr; }
-    Buffer*    get() const { return pBuffer; }
+    Buffer*    Get() const { return pBuffer; }
     uint64_t   getSize() const { return Size; }
     uint32_t   GetSrvIndex() const { return getBufferSrvIndex(pBuffer); }
     uint32_t   GetUavIndex() const { return getBufferUavIndex(pBuffer); }
@@ -218,7 +218,7 @@ public:
     GPUTexture(const GPUTexture&) = delete;
     GPUTexture&   operator=(const GPUTexture&) = delete;
     bool          IsValid() const { return pTexture != nullptr; }
-    Texture*      get() const { return pTexture; }
+    Texture*      Get() const { return pTexture; }
     uint32_t      GetSrvIndex() const { return getTextureSrvIndex(pTexture); }
     uint32_t      GetUavIndex(uint32_t mip = 0) const { return getTextureUavIndex(pTexture, mip); }
     RenderTarget* renderTarget() const { return pRenderTarget; }
@@ -251,7 +251,7 @@ public:
     GPUSampler(const GPUSampler&) = delete;
     GPUSampler& operator=(const GPUSampler&) = delete;
     bool        IsValid() const { return pSampler != nullptr; }
-    Sampler*    get() const { return pSampler; }
+    Sampler*    Get() const { return pSampler; }
     uint32_t    GetIndex() const { return getSamplerIndex(pSampler); }
 
 private:
@@ -273,7 +273,7 @@ public:
     GPUShader(const GPUShader&) = delete;
     GPUShader& operator=(const GPUShader&) = delete;
     bool       IsValid() const { return pShader != nullptr; }
-    Shader*    get() const { return pShader; }
+    Shader*    Get() const { return pShader; }
 
 private:
     GPUShader(RenderContext*, Shader*);
@@ -294,7 +294,7 @@ public:
     GPUPipeline(const GPUPipeline&) = delete;
     GPUPipeline& operator=(const GPUPipeline&) = delete;
     bool         IsValid() const { return pPipeline != nullptr; }
-    Pipeline*    get() const { return pPipeline; }
+    Pipeline*    Get() const { return pPipeline; }
 
 private:
     GPUPipeline(RenderContext*, Pipeline*, RootSignature*, GPUShader&&, CommandSignature* = nullptr);
@@ -374,7 +374,7 @@ public:
         else
             ASSERT(false);
     }
-    Dependencies get() const
+    Dependencies Get() const
     {
         return { .sampledTextures = { sampledTextures, sampledCount },
                  .storageTextures = { storageTextures, storageCount },

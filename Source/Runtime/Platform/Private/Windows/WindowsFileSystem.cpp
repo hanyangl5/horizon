@@ -328,7 +328,7 @@ static ssize_t ioWindowsFsGetSize(FileStream* fs)
     LARGE_INTEGER fileSize = {};
     if (GetFileSizeEx(stream->Handle, &fileSize))
         return (ssize_t)fileSize.QuadPart;
-    LOGF(Error, "Failed to get file size: %s", WindowsErrorString().c_str());
+    LOGF(Error, "Failed to Get file size: %s", WindowsErrorString().c_str());
     return -1;
 }
 

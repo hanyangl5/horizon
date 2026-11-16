@@ -31,7 +31,7 @@
 #if defined(EXTERNAL_RENDERER_CONFIG_FILEPATH)
 #include EXTERNAL_RENDERER_CONFIG_FILEPATH
 #elif defined(EXTERNAL_RENDERER_CONFIG_FILEPATH_NO_STRING)
-// When invoking clanng from FastBuild the EXTERNAL_CONFIG_FILEPATH define doesn't get expanded to a string,
+// When invoking clanng from FastBuild the EXTERNAL_CONFIG_FILEPATH define doesn't Get expanded to a string,
 // quotes are removed, that's why we add this variation of the macro that turns the define back into a valid string
 #define TF_EXTERNAL_CONFIG_STRINGIFY2(x) #x
 #define TF_EXTERNAL_CONFIG_STRINGIFY(x)  TF_EXTERNAL_CONFIG_STRINGIFY2(x)

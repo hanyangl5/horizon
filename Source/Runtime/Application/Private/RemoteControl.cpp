@@ -550,7 +550,7 @@
 //             socketDestroy(&pRemoteAppServer->mServerListenSocket);
 //         }
 //         // If there is currently an active client connected we need to send a disconnect message first,
-//         // so we leave the serverListenSocket open. It will get destroyed after sending the disconnect message
+//         // so we leave the serverListenSocket open. It will Get destroyed after sending the disconnect message
 
 //         if (pRemoteAppServer->mServerThread)
 //         {

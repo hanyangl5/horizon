@@ -46,7 +46,7 @@ bool initCpuInfo(CpuInfo* outCpuInfo)
 
     const char* simdName = "Unknown";
 
-    // get cpu data
+    // Get cpu data
     info = GetX86Info();
 
     if (result)
