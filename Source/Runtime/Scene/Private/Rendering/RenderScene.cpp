@@ -511,13 +511,13 @@ public:
         lights.finishUpdate();
         cameras.finishUpdate();
         mergeRenderRanges(indicesDirty, indicesRanges);
-        if (primitives.getChanges().ranges.Count || instances.getChanges().ranges.Count || meshBatches.getChanges().ranges.Count ||
-            lights.getChanges().ranges.Count || cameras.getChanges().ranges.Count || !indicesRanges.Empty())
+        if (primitives.GetChanges().ranges.Count || instances.GetChanges().ranges.Count || meshBatches.GetChanges().ranges.Count ||
+            lights.GetChanges().ranges.Count || cameras.GetChanges().ranges.Count || !indicesRanges.Empty())
         {
             ++revision;
         }
     }
-    RenderSceneUploads getPendingUploads()
+    RenderSceneUploads GetPendingUploads()
     {
         primitives.getPending(uploadRanges[0]);
         instances.getPending(uploadRanges[1]);
@@ -537,7 +537,7 @@ public:
                  .activeLights = lights.isActivePending(),
                  .activeCameras = cameras.isActivePending() };
     }
-    void acknowledgeUploads()
+    void AcknowledgeUploads()
     {
         primitives.clearPending();
         instances.clearPending();
@@ -550,9 +550,9 @@ public:
         }
         indicesPending.Clear();
     }
-    void commitHistory()
+    void CommitHistory()
     {
-        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::commitHistory");
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::CommitHistory");
         for (uint32_t index : historyPending)
         {
             RenderHistory& history = instanceHistory[index];
@@ -653,50 +653,50 @@ void RenderScene::Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint
     Data->textureReleases.Reserve(lightCount);
 }
 void               RenderScene::Update() { Data->Update(); }
-uint64_t           RenderScene::getRevision() const { return Data->revision; }
-RenderSceneUploads RenderScene::getPendingUploads() { return Data->getPendingUploads(); }
-void               RenderScene::acknowledgeUploads() { Data->acknowledgeUploads(); }
-void               RenderScene::commitHistory() { Data->commitHistory(); }
-void               RenderScene::setFrameLocked(bool locked) { Data->frameLocked = locked; }
+uint64_t           RenderScene::GetRevision() const { return Data->revision; }
+RenderSceneUploads RenderScene::GetPendingUploads() { return Data->GetPendingUploads(); }
+void               RenderScene::AcknowledgeUploads() { Data->AcknowledgeUploads(); }
+void               RenderScene::CommitHistory() { Data->CommitHistory(); }
+void               RenderScene::SetFrameLocked(bool locked) { Data->frameLocked = locked; }
 void               RenderScene::markDirty(Entity entity) { Data->markDirty(entity); }
-RenderSceneChanges RenderScene::getChanges() const
+RenderSceneChanges RenderScene::GetChanges() const
 {
-    return { .primitives = Data->primitives.getChanges(),
-             .instances = Data->instances.getChanges(),
-             .meshBatches = Data->meshBatches.getChanges(),
-             .lights = Data->lights.getChanges(),
-             .cameras = Data->cameras.getChanges(),
+    return { .primitives = Data->primitives.GetChanges(),
+             .instances = Data->instances.GetChanges(),
+             .meshBatches = Data->meshBatches.GetChanges(),
+             .lights = Data->lights.GetChanges(),
+             .cameras = Data->cameras.GetChanges(),
              .instanceIndices = { Data->indicesRanges.GetData(), Data->indicesRanges.Size() } };
 }
-RenderPrimitiveID RenderScene::findPrimitive(Entity entity) const
+RenderPrimitiveID RenderScene::FindPrimitive(Entity entity) const
 {
     const RenderEntityIndex* pIndex = hmgetp_null(Data->pIndices, entity);
     return pIndex ? Data->entities[pIndex->value].primitive : RenderPrimitiveID{};
 }
-const RenderPrimitive* RenderScene::getPrimitive(RenderPrimitiveID id) const { return Data->primitives.Get(id); }
-const RenderInstance*  RenderScene::getInstance(RenderInstanceID id) const { return Data->instances.Get(id); }
-const RenderMeshBatch* RenderScene::getMeshBatch(RenderMeshBatchID id) const { return Data->meshBatches.Get(id); }
-RenderLightID          RenderScene::findLight(Entity entity) const
+const RenderPrimitive* RenderScene::GetPrimitive(RenderPrimitiveID id) const { return Data->primitives.Get(id); }
+const RenderInstance*  RenderScene::GetInstance(RenderInstanceID id) const { return Data->instances.Get(id); }
+const RenderMeshBatch* RenderScene::GetMeshBatch(RenderMeshBatchID id) const { return Data->meshBatches.Get(id); }
+RenderLightID          RenderScene::FindLight(Entity entity) const
 {
     const RenderEntityIndex* pIndex = hmgetp_null(Data->pLightIndices, entity);
     return pIndex ? Data->lightEntities[pIndex->value].id : RenderLightID{};
 }
-RenderCameraID RenderScene::findCamera(Entity entity) const
+RenderCameraID RenderScene::FindCamera(Entity entity) const
 {
     const RenderEntityIndex* pIndex = hmgetp_null(Data->pCameraIndices, entity);
     return pIndex ? Data->cameraEntities[pIndex->value].id : RenderCameraID{};
 }
-const RenderLight*    RenderScene::getLight(RenderLightID id) const { return Data->lights.Get(id); }
-const RenderCamera*   RenderScene::getCamera(RenderCameraID id) const { return Data->cameras.Get(id); }
-Span<RenderPrimitive> RenderScene::getPrimitives() const { return { Data->primitives.values.GetData(), Data->primitives.values.Size() }; }
-Span<RenderInstance>  RenderScene::getInstances() const { return { Data->instances.values.GetData(), Data->instances.values.Size() }; }
-Span<RenderMeshBatch> RenderScene::getMeshBatches() const { return { Data->meshBatches.values.GetData(), Data->meshBatches.values.Size() }; }
-Span<RenderLight>     RenderScene::getLights() const { return { Data->lights.values.GetData(), Data->lights.values.Size() }; }
-Span<RenderCamera>    RenderScene::getCameras() const { return { Data->cameras.values.GetData(), Data->cameras.values.Size() }; }
-Span<uint32_t> RenderScene::getActivePrimitives() const { return { Data->primitives.active.GetData(), Data->primitives.active.Size() }; }
-Span<uint32_t> RenderScene::getActiveInstances() const { return { Data->instances.active.GetData(), Data->instances.active.Size() }; }
-Span<uint32_t> RenderScene::getActiveMeshBatches() const { return { Data->meshBatches.active.GetData(), Data->meshBatches.active.Size() }; }
-Span<uint32_t> RenderScene::getActiveLights() const { return { Data->lights.active.GetData(), Data->lights.active.Size() }; }
-Span<uint32_t> RenderScene::getActiveCameras() const { return { Data->cameras.active.GetData(), Data->cameras.active.Size() }; }
-Span<uint32_t> RenderScene::getInstanceIndices() const { return { Data->instanceIndices.GetData(), Data->instanceIndices.Size() }; }
+const RenderLight*    RenderScene::GetLight(RenderLightID id) const { return Data->lights.Get(id); }
+const RenderCamera*   RenderScene::GetCamera(RenderCameraID id) const { return Data->cameras.Get(id); }
+Span<RenderPrimitive> RenderScene::GetPrimitives() const { return { Data->primitives.values.GetData(), Data->primitives.values.Size() }; }
+Span<RenderInstance>  RenderScene::GetInstances() const { return { Data->instances.values.GetData(), Data->instances.values.Size() }; }
+Span<RenderMeshBatch> RenderScene::GetMeshBatches() const { return { Data->meshBatches.values.GetData(), Data->meshBatches.values.Size() }; }
+Span<RenderLight>     RenderScene::GetLights() const { return { Data->lights.values.GetData(), Data->lights.values.Size() }; }
+Span<RenderCamera>    RenderScene::GetCameras() const { return { Data->cameras.values.GetData(), Data->cameras.values.Size() }; }
+Span<uint32_t> RenderScene::GetActivePrimitives() const { return { Data->primitives.active.GetData(), Data->primitives.active.Size() }; }
+Span<uint32_t> RenderScene::GetActiveInstances() const { return { Data->instances.active.GetData(), Data->instances.active.Size() }; }
+Span<uint32_t> RenderScene::GetActiveMeshBatches() const { return { Data->meshBatches.active.GetData(), Data->meshBatches.active.Size() }; }
+Span<uint32_t> RenderScene::GetActiveLights() const { return { Data->lights.active.GetData(), Data->lights.active.Size() }; }
+Span<uint32_t> RenderScene::GetActiveCameras() const { return { Data->cameras.active.GetData(), Data->cameras.active.Size() }; }
+Span<uint32_t> RenderScene::GetInstanceIndices() const { return { Data->instanceIndices.GetData(), Data->instanceIndices.Size() }; }
 } // namespace hz

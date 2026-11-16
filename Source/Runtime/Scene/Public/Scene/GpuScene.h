@@ -44,18 +44,18 @@ public:
 
     void                   Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
     // Updates the scene and stages its changes. Returns false without waiting when every frame is still in GPU use.
-    // Do not Update the scene or Reset history until endFrame or cancelFrame.
-    bool                   beginFrame();
+    // Do not Update the scene or Reset history until EndFrame or CancelFrame.
+    bool                   BeginFrame();
     // Record before any pass that reads the buffers.
-    void                   upload(CommandList& commands);
+    void                   Upload(CommandList& commands);
     // Marks the staged changes as uploaded and advances render history.
-    void                   endFrame(SubmitHandle submission);
+    void                   EndFrame(SubmitHandle submission);
     // Keeps the changes pending for the next frame.
-    void                   cancelFrame();
-    // Buffers may be replaced by beginFrame when tables grow.
-    const GpuSceneBuffers& getBuffers() const;
+    void                   CancelFrame();
+    // Buffers may be replaced by BeginFrame when tables grow.
+    const GpuSceneBuffers& GetBuffers() const;
     // The asset tables uploaded by the current frame.
-    const GpuAssetTables&  getAssetTables() const;
+    const GpuAssetTables&  GetAssetTables() const;
 
 private:
     GpuSceneData* Data = nullptr;

@@ -73,7 +73,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
         {
             continue;
         }
-        const Matrix4&                    Transform = View.Scene.getInstances().Data[Draw.instance].current;
+        const Matrix4&                    Transform = View.Scene.GetInstances().Data[Draw.instance].current;
         hz::AccelerationStructureInstance Instance = {
             .pBottom = &BottomLevelAS[Draws.GetGeometryIndex(DrawIndex)],
             .instanceId = DrawIndex,

@@ -516,7 +516,7 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
     io.Fonts->Build();
     io.Fonts->GetTexDataAsRGBA32(&pixels, &Width, &Height, &bytesPerPixel);
 
-    // At this point you've got the texture data and you need to upload that your your graphic system:
+    // At this point you've got the texture data and you need to Upload that your your graphic system:
     // After we have created the texture, store its pointer/identifier (_in whichever Format your engine uses_) in 'io.Fonts->TexID'.
     // This will be passed back to your via the renderer. Basically ImTextureID == void*. Read FAQ below for details about ImTextureID.
     Texture*        pTexture = NULL;

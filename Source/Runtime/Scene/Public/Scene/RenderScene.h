@@ -137,7 +137,7 @@ struct RenderSceneChanges
 class RenderSceneData;
 class GpuScene;
 
-// Changes accumulated across updates since the GPU scene last acknowledged an upload.
+// Changes accumulated across updates since the GPU scene last acknowledged an Upload.
 struct RenderSceneUploads
 {
     Span<RenderRange> primitives;
@@ -165,46 +165,46 @@ public:
     void               Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
     // Runs after asset manager loading/mutation. Updates World transforms and bindings without advancing history.
     void               Update();
-    uint64_t           getRevision() const;
+    uint64_t           GetRevision() const;
     // Only the latest Update.
-    RenderSceneChanges getChanges() const;
+    RenderSceneChanges GetChanges() const;
     // Returned spans expire on the next call or Update.
-    RenderSceneUploads getPendingUploads();
+    RenderSceneUploads GetPendingUploads();
     // The next submitted frame renders previous == current for the entity, or for every entity when invalid.
     void               markDirty(Entity entity = {});
 
-    RenderPrimitiveID      findPrimitive(Entity entity) const;
-    const RenderPrimitive* getPrimitive(RenderPrimitiveID id) const;
-    const RenderInstance*  getInstance(RenderInstanceID id) const;
-    const RenderMeshBatch* getMeshBatch(RenderMeshBatchID id) const;
-    RenderLightID          findLight(Entity entity) const;
-    RenderCameraID         findCamera(Entity entity) const;
-    const RenderLight*     getLight(RenderLightID id) const;
-    const RenderCamera*    getCamera(RenderCameraID id) const;
+    RenderPrimitiveID      FindPrimitive(Entity entity) const;
+    const RenderPrimitive* GetPrimitive(RenderPrimitiveID id) const;
+    const RenderInstance*  GetInstance(RenderInstanceID id) const;
+    const RenderMeshBatch* GetMeshBatch(RenderMeshBatchID id) const;
+    RenderLightID          FindLight(Entity entity) const;
+    RenderCameraID         FindCamera(Entity entity) const;
+    const RenderLight*     GetLight(RenderLightID id) const;
+    const RenderCamera*    GetCamera(RenderCameraID id) const;
 
     // CPU extraction views expire at the next Update. Mesh/material handles are borrowed.
     // Iterate active lists; sparse arrays include holes. These views do not pin assets for GPU work.
     // Slot order follows sparse allocation, not insertion or Entity order: consumers that need deterministic
     // output (transparency sorting, screenshots) must Sort by their own key instead of relying on index order.
-    Span<RenderPrimitive> getPrimitives() const;
-    Span<RenderInstance>  getInstances() const;
-    Span<RenderMeshBatch> getMeshBatches() const;
-    Span<RenderLight>     getLights() const;
-    Span<RenderCamera>    getCameras() const;
-    Span<uint32_t>        getActivePrimitives() const;
-    Span<uint32_t>        getActiveInstances() const;
-    Span<uint32_t>        getActiveMeshBatches() const;
-    Span<uint32_t>        getActiveLights() const;
-    Span<uint32_t>        getActiveCameras() const;
-    Span<uint32_t>        getInstanceIndices() const;
+    Span<RenderPrimitive> GetPrimitives() const;
+    Span<RenderInstance>  GetInstances() const;
+    Span<RenderMeshBatch> GetMeshBatches() const;
+    Span<RenderLight>     GetLights() const;
+    Span<RenderCamera>    GetCameras() const;
+    Span<uint32_t>        GetActivePrimitives() const;
+    Span<uint32_t>        GetActiveInstances() const;
+    Span<uint32_t>        GetActiveMeshBatches() const;
+    Span<uint32_t>        GetActiveLights() const;
+    Span<uint32_t>        GetActiveCameras() const;
+    Span<uint32_t>        GetInstanceIndices() const;
 
 private:
     friend class GpuScene;
     // Set while a GpuScene frame is open; Update() and markDirty() must not run then.
-    void             setFrameLocked(bool locked);
-    void             acknowledgeUploads();
+    void             SetFrameLocked(bool locked);
+    void             AcknowledgeUploads();
     // Records the current transforms and lenses as submitted, so the next Update renders them as previous.
-    void             commitHistory();
+    void             CommitHistory();
     RenderSceneData* Data = nullptr;
 };
 } // namespace hz

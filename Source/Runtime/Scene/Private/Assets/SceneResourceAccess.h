@@ -5,7 +5,7 @@
 
 namespace hz
 {
-// Adopt ResourceLoader outputs after their upload token has completed.
+// Adopt ResourceLoader outputs after their Upload token has completed.
 struct SceneResourceAccess
 {
     static GPUBuffer take(RenderContext* pContext, Buffer*& pBuffer, ResourceState state)

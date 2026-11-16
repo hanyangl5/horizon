@@ -181,7 +181,7 @@ enum ResourceMemoryUsage : uint32_t
     MemoryUsageCpuToGpu = 3,
     /// Memory will be used for writing on device and readback on host.
     MemoryUsageGpuToCpu = 4,
-    /// CPU-visible GPU-local upload memory. On D3D12 this maps to GPU_UPLOAD heaps when ReBAR is supported.
+    /// CPU-visible GPU-local Upload memory. On D3D12 this maps to GPU_UPLOAD heaps when ReBAR is supported.
     MemoryUsageGpuUpload = 5,
     MemoryUsageCount,
     MemoryUsageMaxEnum = 0x7FFFFFFF
@@ -819,7 +819,7 @@ struct BufferDesc
     uint32_t            alignment;
     /// Debug name used in gpu profile
     const char*         Name;
-    /// Decides which memory heap buffer will use (default, upload, readback)
+    /// Decides which memory heap buffer will use (default, Upload, readback)
     ResourceMemoryUsage MemoryUsage;
     /// Creation Flags of the buffer
     BufferCreationFlags Flags;

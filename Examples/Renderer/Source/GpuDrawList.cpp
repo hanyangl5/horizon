@@ -35,7 +35,7 @@ static_assert(sizeof(CullingConstants) == 9 * sizeof(uint32_t));
 void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameBuffer, const SceneView& View, bool Culling)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::Prepare");
-    const hz::GpuAssetTables& Tables = View.GpuScene.getAssetTables();
+    const hz::GpuAssetTables& Tables = View.GpuScene.GetAssetTables();
     if (MaterialRevision != Tables.revision)
     {
         MaterialIds.Resize(Tables.materials.Count);
@@ -61,10 +61,10 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
             GeometryChanged = true;
         }
     };
-    for (uint32_t MeshBatchIndex : View.Scene.getActiveMeshBatches())
+    for (uint32_t MeshBatchIndex : View.Scene.GetActiveMeshBatches())
     {
-        const hz::RenderMeshBatch& Draw = View.Scene.getMeshBatches().Data[MeshBatchIndex];
-        const hz::RenderPrimitive& Primitive = View.Scene.getPrimitives().Data[Draw.primitive.index];
+        const hz::RenderMeshBatch& Draw = View.Scene.GetMeshBatches().Data[MeshBatchIndex];
+        const hz::RenderPrimitive& Primitive = View.Scene.GetPrimitives().Data[Draw.primitive.index];
         const hz::GpuMeshData*     Mesh = Tables.GetMesh(Draw.mesh.mesh);
         const hz::GpuMaterialData* Material = Tables.GetMaterial(Draw.material);
         if (!Primitive.instanceCount || !Mesh || !Material)
@@ -100,7 +100,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
         for (uint32_t Index = 0; Index < Primitive.instanceCount; ++Index)
         {
             GeometryIndices.PushBack(GeometryIndex);
-            DrawData.PushBack({ .instance = View.Scene.getInstanceIndices().Data[Primitive.instanceOffset + Index],
+            DrawData.PushBack({ .instance = View.Scene.GetInstanceIndices().Data[Primitive.instanceOffset + Index],
                                 .material = Draw.material.index,
                                 .materialId = MaterialIds[Draw.material.index],
                                 .alphaMode = Material->alphaMode,
@@ -166,7 +166,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
     Commands.SetPipeline(Pipeline);
     const CullingConstants Binding = { .frameIndex = FrameBuffer.GetSrvIndex(),
                                        .drawsIndex = CurrentFrame.DrawData.GetSrvIndex(),
-                                       .instancesIndex = View.GpuScene.getBuffers().instances.GetSrvIndex(),
+                                       .instancesIndex = View.GpuScene.GetBuffers().instances.GetSrvIndex(),
                                        .opaqueIndex = CurrentFrame.Opaque.GetUavIndex(),
                                        .transparentIndex = CurrentFrame.Transparent.GetUavIndex(),
                                        .statisticsIndex = CurrentFrame.Statistics.GetUavIndex(),
@@ -175,7 +175,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
                                        .shadowsIndex = CurrentFrame.Shadow.GetUavIndex() };
     Commands.SetRootConstants(Binding);
     Commands.Dispatch((CurrentFrame.Count + 63) / 64, 1, 1,
-                      { .buffers = { &FrameBuffer, &CurrentFrame.DrawData, &View.GpuScene.getBuffers().instances },
+                      { .buffers = { &FrameBuffer, &CurrentFrame.DrawData, &View.GpuScene.GetBuffers().instances },
                         .storageBuffers = { &CurrentFrame.Opaque, &CurrentFrame.Transparent, &CurrentFrame.Statistics,
                                             &CurrentFrame.Shadow } });
     Commands.EndGpuTimestamp();
@@ -188,7 +188,7 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
     Textures.Clear();
     Buffers.PushBack(&Frame);
     Buffers.PushBack(&GetDrawData(View.FrameIndex));
-    const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
+    const hz::GpuSceneBuffers& Gpu = View.GpuScene.GetBuffers();
     if (Gpu.instances.IsValid())
     {
         Buffers.PushBack(&Gpu.instances);
@@ -201,7 +201,7 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
     {
         Buffers.PushBack(&Gpu.textures);
     }
-    const hz::GpuAssetTables& Tables = View.GpuScene.getAssetTables();
+    const hz::GpuAssetTables& Tables = View.GpuScene.GetAssetTables();
     const hz::GPUBuffer*      Previous = nullptr;
     for (const hz::GpuMeshData& MeshData : Tables.meshes)
     {

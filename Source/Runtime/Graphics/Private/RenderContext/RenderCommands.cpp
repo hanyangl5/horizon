@@ -329,7 +329,7 @@ Buffer* hz::CommandList::CreateUploadBuffer(uint64_t Size)
 {
     const ::BufferDesc desc = {
         .Size = Size,
-        .Name = "CommandList upload buffer",
+        .Name = "CommandList Upload buffer",
         .MemoryUsage = MemoryUsageCpuToGpu,
         .Flags = BufferCreationFlagPersistentMapBit,
         .QueueType = QueueTypeGraphics,
@@ -424,8 +424,8 @@ void hz::CommandList::FillBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, u
     }
     else
     {
-        Buffer* upload = CreateUploadBuffer(Size);
-        fill(upload->pCpuMappedAddress);
+        Buffer* Upload = CreateUploadBuffer(Size);
+        fill(Upload->pCpuMappedAddress);
 
         const ResourceState dstState = dst.state;
         BufferBarrier       dstBarrier = { .pBuffer = dst.pBuffer };
@@ -436,7 +436,7 @@ void hz::CommandList::FillBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, u
             Barrier(1, &dstBarrier, 0, nullptr, 0, nullptr);
             dst.state = ResourceStateCopyDest;
         }
-        cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, upload, 0, Size);
+        cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, Upload, 0, Size);
         if (dst.state != dstState)
         {
             dstBarrier.currentState = dst.state;
@@ -455,8 +455,8 @@ void hz::CommandList::UpdateBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset,
     }
     else
     {
-        Buffer* upload = CreateUploadBuffer(Size);
-        memcpy(upload->pCpuMappedAddress, Data, (size_t)Size);
+        Buffer* Upload = CreateUploadBuffer(Size);
+        memcpy(Upload->pCpuMappedAddress, Data, (size_t)Size);
 
         const ResourceState dstState = dst.state;
         BufferBarrier       dstBarrier = { .pBuffer = dst.pBuffer };
@@ -467,7 +467,7 @@ void hz::CommandList::UpdateBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset,
             Barrier(1, &dstBarrier, 0, nullptr, 0, nullptr);
             dst.state = ResourceStateCopyDest;
         }
-        cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, upload, 0, Size);
+        cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, Upload, 0, Size);
         if (dst.state != dstState)
         {
             dstBarrier.currentState = dst.state;

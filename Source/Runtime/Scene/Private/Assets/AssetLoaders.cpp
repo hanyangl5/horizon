@@ -385,7 +385,7 @@ AssetLoadStatus AssetGeometry::poll()
         return AssetLoadStatus::Pending;
     if (!uploadSucceeded || !pUpload)
     {
-        LOGF(Error, "Geometry upload failed: '%s'", pPath);
+        LOGF(Error, "Geometry Upload failed: '%s'", pPath);
         return AssetLoadStatus::Failed;
     }
     if (!boundsQueued)

@@ -121,7 +121,7 @@ public:
             pending.PushBack(index);
         }
     }
-    // Entries changed since the last clearPending(), accumulated across updates for GPU upload.
+    // Entries changed since the last clearPending(), accumulated across updates for GPU Upload.
     void getPending(Array<RenderRange>& output) { mergeRenderRanges(pending, output); }
     bool isActivePending() const { return pendingActive; }
     void clearPending()
@@ -134,7 +134,7 @@ public:
         pendingActive = false;
     }
     void          finishUpdate() { mergeRenderRanges(dirty, ranges); }
-    RenderChanges getChanges() const
+    RenderChanges GetChanges() const
     {
         return { .created = { created.GetData(), created.Size() },
                  .removed = { removed.GetData(), removed.Size() },

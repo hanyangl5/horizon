@@ -154,7 +154,7 @@ private:
         Scene->Reserve(Asset->GetNodes().Count, Asset->GetNodes().Count, 1, 1);
         Scene->Update();
         LOGF(Info, "World ready: %u render primitives, %u instances, %u mesh batches, %u materials, %u textures",
-             Scene->getActivePrimitives().Count, Scene->getActiveInstances().Count, Scene->getActiveMeshBatches().Count,
+             Scene->GetActivePrimitives().Count, Scene->GetActiveInstances().Count, Scene->GetActiveMeshBatches().Count,
              Asset->GetMaterials().Count, Asset->GetTextures().Count);
         AssetManager->Release(Handle);
         return true;
@@ -166,7 +166,7 @@ private:
             .Context = Context.Get(),
             .Scene = Scene.Get(),
             .AssetManager = AssetManager.Get(),
-            .Camera = Scene->findCamera(CameraEntity),
+            .Camera = Scene->FindCamera(CameraEntity),
         };
         Passes = hz::MakeUnique<RenderPasses>(Desc);
         ASSERT(Passes);
@@ -268,10 +268,10 @@ private:
     {
         hz::RenderBounds Bounds;
         bool             HasBounds = false;
-        for (uint32_t Index : Scene->getActiveInstances())
+        for (uint32_t Index : Scene->GetActiveInstances())
         {
-            const hz::RenderInstance& Instance = Scene->getInstances().Data[Index];
-            if (!Scene->getPrimitive(Instance.primitive)->instanceCount)
+            const hz::RenderInstance& Instance = Scene->GetInstances().Data[Index];
+            if (!Scene->GetPrimitive(Instance.primitive)->instanceCount)
             {
                 continue;
             }

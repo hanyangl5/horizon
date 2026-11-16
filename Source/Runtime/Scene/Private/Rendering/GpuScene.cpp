@@ -101,9 +101,9 @@ public:
         }
     }
 
-    bool beginFrame()
+    bool BeginFrame()
     {
-        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::beginFrame");
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::BeginFrame");
         ASSERT(!open);
         current = UINT32_MAX;
         for (uint32_t i = 0; i < frames.Size() && current == UINT32_MAX; ++i)
@@ -120,20 +120,20 @@ public:
         }
         scene.Update();
         assets = assetManager.GetGpuTables();
-        const RenderSceneUploads uploads = scene.getPendingUploads();
+        const RenderSceneUploads uploads = scene.GetPendingUploads();
         const bool               assetsChanged = assets.revision != uploadedRevision;
         const GpuTableSource     sources[] = {
-            source(scene.getPrimitives(), uploads.primitives),
-            source(scene.getInstances(), uploads.instances),
-            source(scene.getMeshBatches(), uploads.meshBatches),
-            source(scene.getInstanceIndices(), uploads.instanceIndices),
-            source(scene.getActivePrimitives(), {}, uploads.activePrimitives),
-            source(scene.getActiveInstances(), {}, uploads.activeInstances),
-            source(scene.getActiveMeshBatches(), {}, uploads.activeMeshBatches),
-            source(scene.getLights(), uploads.lights),
-            source(scene.getCameras(), uploads.cameras),
-            source(scene.getActiveLights(), {}, uploads.activeLights),
-            source(scene.getActiveCameras(), {}, uploads.activeCameras),
+            source(scene.GetPrimitives(), uploads.primitives),
+            source(scene.GetInstances(), uploads.instances),
+            source(scene.GetMeshBatches(), uploads.meshBatches),
+            source(scene.GetInstanceIndices(), uploads.instanceIndices),
+            source(scene.GetActivePrimitives(), {}, uploads.activePrimitives),
+            source(scene.GetActiveInstances(), {}, uploads.activeInstances),
+            source(scene.GetActiveMeshBatches(), {}, uploads.activeMeshBatches),
+            source(scene.GetLights(), uploads.lights),
+            source(scene.GetCameras(), uploads.cameras),
+            source(scene.GetActiveLights(), {}, uploads.activeLights),
+            source(scene.GetActiveCameras(), {}, uploads.activeCameras),
             source(assets.meshes, {}, assetsChanged),
             source(assets.vertexStreams, {}, assetsChanged),
             source(assets.submeshes, {}, assetsChanged),
@@ -237,19 +237,19 @@ void GpuScene::Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_
     }
 }
 
-bool GpuScene::beginFrame()
+bool GpuScene::BeginFrame()
 {
-    if (!Data->beginFrame())
+    if (!Data->BeginFrame())
     {
         return false;
     }
-    Data->scene.setFrameLocked(true);
+    Data->scene.SetFrameLocked(true);
     return true;
 }
 
-void GpuScene::upload(CommandList& commands)
+void GpuScene::Upload(CommandList& commands)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::upload");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::Upload");
     ASSERT(Data->open && !Data->recorded);
     const GpuSceneFrame& frame = Data->frames[Data->current];
     for (const GpuTable& table : Data->tables)
@@ -262,14 +262,14 @@ void GpuScene::upload(CommandList& commands)
     Data->recorded = true;
 }
 
-void GpuScene::endFrame(SubmitHandle submission)
+void GpuScene::EndFrame(SubmitHandle submission)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::endFrame");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::EndFrame");
     ASSERT(Data->open && Data->recorded && submission.IsValid());
     Data->frames[Data->current].submission = submission;
-    Data->scene.setFrameLocked(false);
-    Data->scene.acknowledgeUploads();
-    Data->scene.commitHistory();
+    Data->scene.SetFrameLocked(false);
+    Data->scene.AcknowledgeUploads();
+    Data->scene.CommitHistory();
     Data->uploadedRevision = Data->assets.revision;
     for (GpuTable& table : Data->tables)
     {
@@ -279,13 +279,13 @@ void GpuScene::endFrame(SubmitHandle submission)
     Data->open = false;
 }
 
-void GpuScene::cancelFrame()
+void GpuScene::CancelFrame()
 {
     ASSERT(Data->open);
-    Data->scene.setFrameLocked(false);
+    Data->scene.SetFrameLocked(false);
     Data->open = false;
 }
 
-const GpuSceneBuffers& GpuScene::getBuffers() const { return Data->buffers; }
-const GpuAssetTables&  GpuScene::getAssetTables() const { return Data->assets; }
+const GpuSceneBuffers& GpuScene::GetBuffers() const { return Data->buffers; }
+const GpuAssetTables&  GpuScene::GetAssetTables() const { return Data->assets; }
 } // namespace hz

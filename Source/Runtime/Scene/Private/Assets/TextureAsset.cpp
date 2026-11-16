@@ -64,7 +64,7 @@ public:
     static void destroyRequest(void* pJob, void*) { MemDelete((TextureRequest*)pJob); }
     static void destroyPayload(void* pPayload, void*) { MemDelete((TextureAsset*)pPayload); }
 
-    static void upload(void* pPayload, const AssetManager&, Span<AssetHandle>, void* User)
+    static void Upload(void* pPayload, const AssetManager&, Span<AssetHandle>, void* User)
     {
         TextureAssetLoaderData& loader = *(TextureAssetLoaderData*)User;
         TextureAssetData&       data = *((TextureAsset*)pPayload)->Data;
@@ -92,7 +92,7 @@ public:
             return AssetLoadStatus::Pending;
         if (!data.uploadSucceeded || !data.pUpload)
         {
-            LOGF(Error, "TextureAsset upload failed: '%s'", data.entry.location.pPath);
+            LOGF(Error, "TextureAsset Upload failed: '%s'", data.entry.location.pPath);
             return AssetLoadStatus::Failed;
         }
         data.texture = SceneResourceAccess::take(&((TextureAssetLoaderData*)User)->context, data.pUpload);
@@ -124,7 +124,7 @@ AssetLoader TextureAssetLoader::GetLoader()
              .pPoll = TextureAssetLoaderData::poll,
              .pDestroyRequest = TextureAssetLoaderData::destroyRequest,
              .pDestroyPayload = TextureAssetLoaderData::destroyPayload,
-             .pUpload = TextureAssetLoaderData::upload,
+             .pUpload = TextureAssetLoaderData::Upload,
              .pPollUpload = TextureAssetLoaderData::pollUpload,
              .pWaitUpload = TextureAssetLoaderData::waitUpload };
 }

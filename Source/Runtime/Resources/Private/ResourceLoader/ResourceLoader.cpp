@@ -4515,7 +4515,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
         util_get_surface_size(fmt, texture->Width, texture->Height, texture->Depth, rowAlignment, sliceAlignment,
                               texUpdateDesc.baseMipLevel, texUpdateDesc.MipLevels, texUpdateDesc.baseArrayLayer, texUpdateDesc.layerCount);
 
-    MappedMemoryRange upload = dataAlreadyFilled ? texUpdateDesc.range : allocateStagingMemory(pCopyEngine, requiredSize, sliceAlignment);
+    MappedMemoryRange Upload = dataAlreadyFilled ? texUpdateDesc.range : allocateStagingMemory(pCopyEngine, requiredSize, sliceAlignment);
     uint64_t          offset = 0;
 
     Cmd* cmd = texUpdateDesc.pCmd ? texUpdateDesc.pCmd : acquireCmd(pCopyEngine);
@@ -4525,7 +4525,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
         cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
     }
 
-    // #TODO: Investigate - ReadStream crashes if we pass the upload buffer mapped address. Allocating temporary buffer as a workaround. Does NX
+    // #TODO: Investigate - ReadStream crashes if we pass the Upload buffer mapped address. Allocating temporary buffer as a workaround. Does NX
     // support loading from disk to GPU shared memory?
 #ifdef NX64
     void* nxTempBuffer = NULL;
@@ -4546,7 +4546,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
     }
 #endif
 
-    if (!upload.Data)
+    if (!Upload.Data)
     {
         if (stream.FileSystem)
             CloseStream(&stream);
@@ -4599,7 +4599,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                 uint32_t subSlicePitch = round_up(subRowPitch * numRows, sliceAlignment);
                 uint32_t subNumRows = numRows;
                 uint32_t subDepth = d;
-                uint8_t* data = upload.Data + offset;
+                uint8_t* data = Upload.Data + offset;
 
                 if (!dataAlreadyFilled)
                 {
@@ -4620,10 +4620,10 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                 SubresourceDataDesc subresourceDesc = {};
                 subresourceDesc.arrayLayer = layer;
                 subresourceDesc.mipLevel = mip;
-                subresourceDesc.srcOffset = upload.offset + offset;
+                subresourceDesc.srcOffset = Upload.offset + offset;
                 subresourceDesc.rowPitch = subRowPitch;
                 subresourceDesc.slicePitch = subSlicePitch;
-                cmdUpdateSubresource(cmd, texture, upload.pBuffer, &subresourceDesc);
+                cmdUpdateSubresource(cmd, texture, Upload.pBuffer, &subresourceDesc);
                 offset += subDepth * subSlicePitch;
             }
         }
@@ -6288,7 +6288,7 @@ void removeMaterial(Material* pMaterial)
     ASSERT(pMaterial && pMaterial->pDesc);
 
     // We Wait for all material related requests before we unload this material.
-    // This is needed in case pMaterial resources are still queued to upload to the GPU.
+    // This is needed in case pMaterial resources are still queued to Upload to the GPU.
     // A better approach might be to store one sync token per Request (but that might me a lot of SyncTokens), to be decided in the future
     waitForToken(&pLib->syncToken);
 
@@ -6576,7 +6576,7 @@ void removeResource(Geometry* pGeom)
     }
     else
     {
-        // Buffers may have been transferred to another owner after upload.
+        // Buffers may have been transferred to another owner after Upload.
         if (pGeom->pIndexBuffer)
             removeResource(pGeom->pIndexBuffer);
 

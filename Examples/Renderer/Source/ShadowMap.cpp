@@ -80,9 +80,9 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     Vector3 Z(0, 1, 0);
     Data.lightDirection = Vector4(0, -1, 0, 0);
     Data.shadowEnabled = 0;
-    for (uint32_t MeshBatchIndex : View.Scene.getActiveLights())
+    for (uint32_t MeshBatchIndex : View.Scene.GetActiveLights())
     {
-        const hz::RenderLight& Light = View.Scene.getLights().Data[MeshBatchIndex];
+        const hz::RenderLight& Light = View.Scene.GetLights().Data[MeshBatchIndex];
         if (!Light.ready || Light.Type != hz::LightType::Directional)
         {
             continue;
@@ -99,10 +99,10 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     const Matrix4 LightView = orthoInverse(Matrix4(Vector4(X, 0), Vector4(Y, 0), Vector4(Z, 0), Vector4(0, 0, 0, 1)));
     float         Minimum[3] = { FLT_MAX, FLT_MAX, FLT_MAX }, Maximum[3] = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
     bool          HasBounds = false;
-    for (uint32_t MeshBatchIndex : View.Scene.getActiveInstances())
+    for (uint32_t MeshBatchIndex : View.Scene.GetActiveInstances())
     {
-        const hz::RenderInstance& Instance = View.Scene.getInstances().Data[MeshBatchIndex];
-        if (!View.Scene.getPrimitives().Data[Instance.primitive.index].instanceCount)
+        const hz::RenderInstance& Instance = View.Scene.GetInstances().Data[MeshBatchIndex];
+        if (!View.Scene.GetPrimitives().Data[Instance.primitive.index].instanceCount)
         {
             continue;
         }
@@ -163,7 +163,7 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     Commands.SetPipeline(Pipeline);
     Commands.SetViewport(0, 0, (float)Resolution, (float)Resolution);
     Commands.SetScissor(0, 0, Resolution, Resolution);
-    const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
+    const hz::GpuSceneBuffers& Gpu = View.GpuScene.GetBuffers();
     const ShadowBindingConstants Binding = {
         .frameIndex = ShadowFrames[Backing].GetSrvIndex(),
         .instancesIndex = Gpu.instances.IsValid() ? Gpu.instances.GetSrvIndex() : UINT32_MAX,

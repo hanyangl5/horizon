@@ -6082,7 +6082,7 @@ void d3d12_cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarri
         Buffer*                 pBuffer = pTransBarrier->pBuffer;
 
         // Only transition GPU visible resources.
-        // Note: General CPU_TO_GPU resources have to stay in generic read state. They are created in upload heap.
+        // Note: General CPU_TO_GPU resources have to stay in generic read state. They are created in Upload heap.
         // There is one corner case: CPU_TO_GPU resources with UAV usage can have state transition. And they are created in custom heap.
         if (pBuffer->MemoryUsage == MemoryUsageGpuOnly || pBuffer->MemoryUsage == MemoryUsageGpuToCpu ||
             (pBuffer->MemoryUsage == MemoryUsageCpuToGpu && (pBuffer->Descriptors & DescriptorTypeRwBuffer)) ||

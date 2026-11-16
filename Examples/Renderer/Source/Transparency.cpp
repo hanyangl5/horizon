@@ -144,7 +144,7 @@ const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz:
         Commands.SetViewport(0, 0, (float)Width, (float)Height);
         Commands.SetScissor(0, 0, Width, Height);
         Commands.SetPipeline(GatherPipeline);
-        const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
+        const hz::GpuSceneBuffers& Gpu = View.GpuScene.GetBuffers();
         Constants.instancesIndex = Gpu.instances.GetSrvIndex();
         Constants.materialsIndex = Gpu.materials.GetSrvIndex();
         Constants.texturesIndex = Gpu.textures.GetSrvIndex();

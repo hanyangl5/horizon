@@ -150,11 +150,11 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         MarkDirty();
     }
     PreviousSettings = Settings;
-    if (AssetRevision != View.GpuScene.getAssetTables().revision)
+    if (AssetRevision != View.GpuScene.GetAssetTables().revision)
     {
         MarkDirty();
     }
-    AssetRevision = View.GpuScene.getAssetTables().revision;
+    AssetRevision = View.GpuScene.GetAssetTables().revision;
     Commands.BeginGpuTimestamp("RT Acceleration Structures");
     RayScene->Update(Commands, View, Draws);
     Commands.EndGpuTimestamp();
@@ -165,8 +165,8 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
                                 .frame = Frame.GetSrvIndex(),
                                 .lighting = Lighting.LightingFrame->GetSrvIndex(),
                                 .draws = DrawData.GetSrvIndex(),
-                                .materials = View.GpuScene.getBuffers().materials.GetSrvIndex(),
-                                .textures = View.GpuScene.getBuffers().textures.GetSrvIndex(),
+                                .materials = View.GpuScene.GetBuffers().materials.GetSrvIndex(),
+                                .textures = View.GpuScene.GetBuffers().textures.GetSrvIndex(),
                                 .sampler = MaterialSampler.GetIndex(),
                                 .tlas = TLAS.IsValid() ? TLAS.GetSrvIndex() : UINT32_MAX,
                                 .normal = GBuffer.NormalMaterial->GetSrvIndex(),

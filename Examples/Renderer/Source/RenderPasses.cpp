@@ -90,7 +90,7 @@ void GBuffer::Resize(uint32_t Width, uint32_t Height)
 void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const SceneView& View, const GpuDrawList& Draws)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GBuffer::execute");
-    const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
+    const hz::GpuSceneBuffers& Gpu = View.GpuScene.GetBuffers();
     const ClearValue           Black = {};
     Cmd.BeginGpuTimestamp("Geometry");
     Cmd.BeginRendering({
@@ -284,13 +284,13 @@ void RenderPasses::Execute()
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::waitForFrame");
         Context.Wait(ConstantBuffer.Submission);
     }
-    if (!GpuSceneData.beginFrame())
+    if (!GpuSceneData.BeginFrame())
     {
         return;
     }
     NextFrame = (NextFrame + 1) % FrameConstants.Size();
     const SceneView         View = { .Scene = Scene, .GpuScene = GpuSceneData, .Assets = Assets, .FrameIndex = FrameIndex };
-    const hz::RenderCamera* Camera = Scene.getCamera(CameraId);
+    const hz::RenderCamera* Camera = Scene.GetCamera(CameraId);
     ASSERT(Camera);
     const hz::RenderCamera& CameraState = *Camera;
     const float             AspectInverse = (float)Context.GetHeight() / (float)Context.GetWidth();
@@ -304,7 +304,7 @@ void RenderPasses::Execute()
     const bool              Updated = Context.UpdateBuffer(Frame, 0, &FrameValues, sizeof(FrameValues));
     ASSERT(Updated);
     hz::CommandList& Commands = Context.AcquireCommandList();
-    GpuSceneData.upload(Commands);
+    GpuSceneData.Upload(Commands);
     Draws.Prepare(Commands, Frame, View);
     // Frame shape the passes depend on; the shadow pass publishes its intensity once it ran.
     Shadows->Data.environmentMipCount = Environment->GetPrefilteredMipCount();
@@ -335,5 +335,5 @@ void RenderPasses::Execute()
     }
     ASSERT(FrameState.Color && FrameState.Backbuffer);
     ConstantBuffer.Submission = Context.Submit(Commands, FrameState.Backbuffer);
-    GpuSceneData.endFrame(ConstantBuffer.Submission);
+    GpuSceneData.EndFrame(ConstantBuffer.Submission);
 }

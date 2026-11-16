@@ -232,9 +232,9 @@ void CommandList::BuildAccelerationStructure(GPUAccelerationStructure& structure
         {
             ASSERT(bottom && bottom->built);
         }
-        Buffer* upload = CreateUploadBuffer((uint64_t)data.instances.Size() * sizeof(RaytracingInstanceData));
-        memcpy(upload->pCpuMappedAddress, data.instances.GetData(), data.instances.Size() * sizeof(RaytracingInstanceData));
-        desc.pInstanceBuffer = upload;
+        Buffer* Upload = CreateUploadBuffer((uint64_t)data.instances.Size() * sizeof(RaytracingInstanceData));
+        memcpy(Upload->pCpuMappedAddress, data.instances.GetData(), data.instances.Size() * sizeof(RaytracingInstanceData));
+        desc.pInstanceBuffer = Upload;
         desc.instanceCount = data.instances.Size();
         data.builtCount = data.instances.Size();
     }

@@ -51,12 +51,12 @@ public:
     hz::AssetLoader getGpuLoader()
     {
         hz::AssetLoader loader = GetLoader();
-        loader.pUpload = upload;
+        loader.pUpload = Upload;
         loader.pPollUpload = pollUpload;
         loader.pWaitUpload = waitUpload;
         return loader;
     }
-    static void upload(void*, const hz::AssetManager& assetManager, hz::Span<hz::AssetHandle> dependencies, void* User)
+    static void Upload(void*, const hz::AssetManager& assetManager, hz::Span<hz::AssetHandle> dependencies, void* User)
     {
         ++((TestAssetLoader*)User)->uploads;
         for (hz::AssetHandle dependency : dependencies)
@@ -1229,11 +1229,11 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
             ASSERT_TRUE(world.DestroyEntity(entities[3]));
         }
 
-        ASSERT_TRUE(gpu.beginFrame());
+        ASSERT_TRUE(gpu.BeginFrame());
         const SceneView  view = { .Scene = scene, .GpuScene = gpu, .Assets = assetManager, .FrameIndex = pass % 3 };
         hz::CommandList& commands = context.AcquireCommandList();
 
-        gpu.upload(commands);
+        gpu.Upload(commands);
         draws.Prepare(commands, frame, view);
         rayScene.Update(commands, view, draws);
         EXPECT_EQ(rayScene.GetSceneTLAS().GetInstanceCount(), pass < 3 ? 3 - pass : 0);
@@ -1246,7 +1246,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
             for (uint32_t i = 0; i < prepared.Count; ++i)
             {
                 const GpuDrawData& Draw = prepared.Data[i];
-                const float        x = (float)scene.getInstances().Data[Draw.instance].current.getTranslation().getX();
+                const float        x = (float)scene.GetInstances().Data[Draw.instance].current.getTranslation().getX();
                 for (uint32_t j = 0; j < 4; ++j)
                 {
                     if (x == offsets[j] && Draw.alphaMode != uint32_t(hz::MaterialAlphaMode::Blend))
@@ -1264,7 +1264,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
         }
 
         const hz::SubmitHandle submission = context.Submit(commands);
-        gpu.endFrame(submission);
+        gpu.EndFrame(submission);
         context.Wait(submission);
         if (pass < 3)
         {
@@ -1447,19 +1447,19 @@ TEST_F(AssetManagerTest, RenderSceneKeepsPendingEntriesAndRejectsReusedGeneratio
     ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::meshRenderer, &renderer));
     scene.Update();
     assetManager.Update();
-    const hz::RenderPrimitiveID first = scene.findPrimitive(a), second = scene.findPrimitive(b);
+    const hz::RenderPrimitiveID first = scene.FindPrimitive(a), second = scene.FindPrimitive(b);
     ASSERT_TRUE(first.IsValid());
     ASSERT_TRUE(second.IsValid());
-    EXPECT_EQ(scene.getActivePrimitives().Count, 2u);
-    EXPECT_EQ(scene.getActiveInstances().Count, 2u);
-    EXPECT_EQ(scene.getActiveMeshBatches().Count, 0u);
-    EXPECT_EQ(scene.getPrimitive(first)->instanceCount, 0u);
-    ASSERT_EQ(scene.getChanges().instanceIndices.Count, 1u);
-    EXPECT_EQ(scene.getChanges().instanceIndices.Data[0].Count, 2u);
-    for (uint32_t index : scene.getInstanceIndices())
+    EXPECT_EQ(scene.GetActivePrimitives().Count, 2u);
+    EXPECT_EQ(scene.GetActiveInstances().Count, 2u);
+    EXPECT_EQ(scene.GetActiveMeshBatches().Count, 0u);
+    EXPECT_EQ(scene.GetPrimitive(first)->instanceCount, 0u);
+    ASSERT_EQ(scene.GetChanges().instanceIndices.Count, 1u);
+    EXPECT_EQ(scene.GetChanges().instanceIndices.Data[0].Count, 2u);
+    for (uint32_t index : scene.GetInstanceIndices())
         EXPECT_EQ(index, UINT32_MAX);
-    const hz::RenderInstanceID instance = scene.getInstances().Data[first.index].id;
-    const uint64_t             revision = scene.getRevision();
+    const hz::RenderInstanceID instance = scene.GetInstances().Data[first.index].id;
+    const uint64_t             revision = scene.GetRevision();
     const MemoryTrackingStats  before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
         scene.Update();
@@ -1469,30 +1469,30 @@ TEST_F(AssetManagerTest, RenderSceneKeepsPendingEntriesAndRejectsReusedGeneratio
         EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
         EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
-    EXPECT_EQ(scene.getRevision(), revision);
-    EXPECT_EQ(scene.getChanges().primitives.ranges.Count, 0u);
-    EXPECT_EQ(scene.getChanges().instances.ranges.Count, 0u);
+    EXPECT_EQ(scene.GetRevision(), revision);
+    EXPECT_EQ(scene.GetChanges().primitives.ranges.Count, 0u);
+    EXPECT_EQ(scene.GetChanges().instances.ranges.Count, 0u);
     ASSERT_TRUE(world.RemoveComponent(a, hz::SceneTypes::meshRenderer));
     scene.Update();
-    EXPECT_EQ(scene.getPrimitive(first), nullptr);
-    EXPECT_EQ(scene.getInstance(instance), nullptr);
-    EXPECT_FALSE(scene.findPrimitive(a).IsValid());
-    EXPECT_EQ(scene.findPrimitive(b), second);
-    ASSERT_EQ(scene.getChanges().primitives.removed.Count, 1u);
-    EXPECT_EQ(scene.getChanges().primitives.removed.Data[0], first.index);
-    EXPECT_TRUE(scene.getChanges().primitives.activeList);
+    EXPECT_EQ(scene.GetPrimitive(first), nullptr);
+    EXPECT_EQ(scene.GetInstance(instance), nullptr);
+    EXPECT_FALSE(scene.FindPrimitive(a).IsValid());
+    EXPECT_EQ(scene.FindPrimitive(b), second);
+    ASSERT_EQ(scene.GetChanges().primitives.removed.Count, 1u);
+    EXPECT_EQ(scene.GetChanges().primitives.removed.Data[0], first.index);
+    EXPECT_TRUE(scene.GetChanges().primitives.activeList);
     ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.Update();
-    const hz::RenderPrimitiveID replacement = scene.findPrimitive(a);
+    const hz::RenderPrimitiveID replacement = scene.FindPrimitive(a);
     EXPECT_EQ(replacement.index, first.index);
     EXPECT_NE(replacement.generation, first.generation);
-    EXPECT_EQ(scene.getPrimitive(first), nullptr);
-    EXPECT_EQ(scene.getInstance(instance), nullptr);
+    EXPECT_EQ(scene.GetPrimitive(first), nullptr);
+    EXPECT_EQ(scene.GetInstance(instance), nullptr);
     ASSERT_TRUE(world.DestroyEntity(b));
     scene.Update();
-    EXPECT_EQ(scene.getPrimitive(second), nullptr);
-    EXPECT_EQ(scene.getActivePrimitives().Count, 1u);
-    EXPECT_EQ(scene.getPrimitives().Count, 2u);
+    EXPECT_EQ(scene.GetPrimitive(second), nullptr);
+    EXPECT_EQ(scene.GetActivePrimitives().Count, 1u);
+    EXPECT_EQ(scene.GetPrimitives().Count, 2u);
 }
 
 TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocating)
@@ -1524,7 +1524,7 @@ TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocatin
     scene.Update();
     const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (hz::Entity entity : entities)
-        if ((scene.findPrimitive(entity).index % 2) == 0)
+        if ((scene.FindPrimitive(entity).index % 2) == 0)
         {
             const hz::LocalTransform transform = { .translation = Vector3(2, 0, 0) };
             ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
@@ -1536,15 +1536,15 @@ TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocatin
         EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
         EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
-    ASSERT_EQ(scene.getChanges().instances.ranges.Count, 20u);
+    ASSERT_EQ(scene.GetChanges().instances.ranges.Count, 20u);
     for (uint32_t i = 0; i < 20; ++i)
     {
-        EXPECT_EQ(scene.getChanges().instances.ranges.Data[i].first, i * 2);
-        EXPECT_EQ(scene.getChanges().instances.ranges.Data[i].Count, 1u);
+        EXPECT_EQ(scene.GetChanges().instances.ranges.Data[i].first, i * 2);
+        EXPECT_EQ(scene.GetChanges().instances.ranges.Data[i].Count, 1u);
     }
-    EXPECT_FALSE(scene.getChanges().instances.activeList);
-    EXPECT_EQ(scene.getChanges().primitives.ranges.Count, 0u);
-    EXPECT_EQ(scene.getChanges().instanceIndices.Count, 0u);
+    EXPECT_FALSE(scene.GetChanges().instances.activeList);
+    EXPECT_EQ(scene.GetChanges().primitives.ranges.Count, 0u);
+    EXPECT_EQ(scene.GetChanges().instanceIndices.Count, 0u);
 }
 
 TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
@@ -1566,7 +1566,7 @@ TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
     scene.Update();
-    const hz::RenderSceneUploads initial = scene.getPendingUploads();
+    const hz::RenderSceneUploads initial = scene.GetPendingUploads();
     EXPECT_EQ(initial.primitives.Count, 1u);
     EXPECT_EQ(initial.instances.Count, 1u);
     EXPECT_EQ(initial.instanceIndices.Count, 1u);
@@ -1579,10 +1579,10 @@ TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
         ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
         scene.Update();
     }
-    // getChanges() covers only the latest Update; pending uploads keep everything not yet acknowledged.
-    EXPECT_EQ(scene.getChanges().primitives.ranges.Count, 0u);
-    EXPECT_FALSE(scene.getChanges().primitives.activeList);
-    const hz::RenderSceneUploads moved = scene.getPendingUploads();
+    // GetChanges() covers only the latest Update; pending uploads keep everything not yet acknowledged.
+    EXPECT_EQ(scene.GetChanges().primitives.ranges.Count, 0u);
+    EXPECT_FALSE(scene.GetChanges().primitives.activeList);
+    const hz::RenderSceneUploads moved = scene.GetPendingUploads();
     ASSERT_EQ(moved.instances.Count, 1u);
     EXPECT_EQ(moved.instances.Data[0].first, 0u);
     EXPECT_EQ(moved.instances.Data[0].Count, 1u);
@@ -1590,7 +1590,7 @@ TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
     EXPECT_TRUE(moved.activePrimitives);
     ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::meshRenderer));
     scene.Update();
-    const hz::RenderSceneUploads removal = scene.getPendingUploads();
+    const hz::RenderSceneUploads removal = scene.GetPendingUploads();
     EXPECT_TRUE(removal.activePrimitives);
     EXPECT_TRUE(removal.activeInstances);
     EXPECT_FALSE(removal.activeMeshBatches);
@@ -1640,11 +1640,11 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
         ASSERT_TRUE(world.setParent(entities[i], parent, false));
     }
     scene.Update();
-    EXPECT_EQ(scene.getActiveLights().Count, 9u);
-    EXPECT_EQ(scene.getActiveCameras().Count, 9u);
+    EXPECT_EQ(scene.GetActiveLights().Count, 9u);
+    EXPECT_EQ(scene.GetActiveCameras().Count, 9u);
     for (uint32_t i = 0; i < 9; ++i)
     {
-        const hz::RenderLight* extracted = scene.getLight(scene.findLight(entities[i]));
+        const hz::RenderLight* extracted = scene.GetLight(scene.FindLight(entities[i]));
         ASSERT_NE(extracted, nullptr);
         EXPECT_EQ(extracted->entityGuid, world.GetEntityGuid(entities[i]));
         EXPECT_EQ(extracted->Type, (hz::LightType)i);
@@ -1666,7 +1666,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
         EXPECT_EQ(extracted->twoSided, 1u);
         EXPECT_FLOAT_EQ((float)extracted->transform.getElem(1, 0), 0.5f);
         EXPECT_FLOAT_EQ((float)extracted->transform.getElem(3, 0), 13);
-        const hz::RenderCamera* camera = scene.getCamera(scene.findCamera(entities[i]));
+        const hz::RenderCamera* camera = scene.GetCamera(scene.FindCamera(entities[i]));
         ASSERT_NE(camera, nullptr);
         EXPECT_EQ(camera->entityGuid, extracted->entityGuid);
         EXPECT_FLOAT_EQ((float)camera->current.getElem(3, 2), 42);
@@ -1675,11 +1675,11 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
         EXPECT_FLOAT_EQ(camera->lens.nearPlane, 0.2f);
         EXPECT_FLOAT_EQ(camera->lens.farPlane, 500);
     }
-    const uint64_t            initial = scene.getRevision();
+    const uint64_t            initial = scene.GetRevision();
     const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
         scene.Update();
-    EXPECT_EQ(scene.getRevision(), initial);
+    EXPECT_EQ(scene.GetRevision(), initial);
     // Change every other entity, then keep nonadjacent camera/light ranges separate.
     transform.translation = Vector3(2, 3, 4);
     lens.verticalFov = 0.6f;
@@ -1689,8 +1689,8 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
         ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::camera, &lens));
     }
     scene.Update();
-    const hz::RenderSceneChanges changes = scene.getChanges();
-    EXPECT_GT(scene.getRevision(), initial);
+    const hz::RenderSceneChanges changes = scene.GetChanges();
+    EXPECT_GT(scene.GetRevision(), initial);
     EXPECT_EQ(changes.lights.ranges.Count, 5u);
     EXPECT_EQ(changes.cameras.ranges.Count, 5u);
     EXPECT_FALSE(changes.lights.activeList);
@@ -1701,31 +1701,31 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
         EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
         EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
-    const hz::RenderLightID  oldLight = scene.findLight(entities[0]);
-    const hz::RenderCameraID oldCamera = scene.findCamera(entities[0]);
+    const hz::RenderLightID  oldLight = scene.FindLight(entities[0]);
+    const hz::RenderCameraID oldCamera = scene.FindCamera(entities[0]);
     ASSERT_TRUE(world.RemoveComponent(entities[0], hz::SceneTypes::light));
     ASSERT_TRUE(world.RemoveComponent(entities[0], hz::SceneTypes::camera));
     scene.Update();
-    EXPECT_EQ(scene.getLight(oldLight), nullptr);
-    EXPECT_EQ(scene.getCamera(oldCamera), nullptr);
-    EXPECT_FALSE(scene.findLight(entities[0]).IsValid());
-    EXPECT_FALSE(scene.findCamera(entities[0]).IsValid());
-    EXPECT_TRUE(scene.getChanges().lights.activeList);
-    EXPECT_TRUE(scene.getChanges().cameras.activeList);
+    EXPECT_EQ(scene.GetLight(oldLight), nullptr);
+    EXPECT_EQ(scene.GetCamera(oldCamera), nullptr);
+    EXPECT_FALSE(scene.FindLight(entities[0]).IsValid());
+    EXPECT_FALSE(scene.FindCamera(entities[0]).IsValid());
+    EXPECT_TRUE(scene.GetChanges().lights.activeList);
+    EXPECT_TRUE(scene.GetChanges().cameras.activeList);
     ASSERT_TRUE(world.SetComponent(entities[0], hz::SceneTypes::light, &light));
     ASSERT_TRUE(world.SetComponent(entities[0], hz::SceneTypes::camera, &lens));
     scene.Update();
-    EXPECT_EQ(scene.findLight(entities[0]).index, oldLight.index);
-    EXPECT_NE(scene.findLight(entities[0]).generation, oldLight.generation);
-    EXPECT_EQ(scene.findCamera(entities[0]).index, oldCamera.index);
-    EXPECT_NE(scene.findCamera(entities[0]).generation, oldCamera.generation);
-    const hz::RenderCamera* replacement = scene.getCamera(scene.findCamera(entities[0]));
+    EXPECT_EQ(scene.FindLight(entities[0]).index, oldLight.index);
+    EXPECT_NE(scene.FindLight(entities[0]).generation, oldLight.generation);
+    EXPECT_EQ(scene.FindCamera(entities[0]).index, oldCamera.index);
+    EXPECT_NE(scene.FindCamera(entities[0]).generation, oldCamera.generation);
+    const hz::RenderCamera* replacement = scene.GetCamera(scene.FindCamera(entities[0]));
     EXPECT_FLOAT_EQ(replacement->previousLens.verticalFov, 0.6f);
     EXPECT_FLOAT_EQ((float)replacement->previous.getElem(3, 0), 15.5f);
     ASSERT_TRUE(world.DestroySubtree(parent));
     scene.Update();
-    EXPECT_EQ(scene.getActiveLights().Count, 0u);
-    EXPECT_EQ(scene.getActiveCameras().Count, 0u);
+    EXPECT_EQ(scene.GetActiveLights().Count, 0u);
+    EXPECT_EQ(scene.GetActiveCameras().Count, 0u);
 }
 
 TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLeaseHandoffs)
@@ -1747,17 +1747,17 @@ TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLease
     hz::Light        light = { .Type = hz::LightType::Dome, .texture = assetID(1) };
     ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::light, &light));
     scene.Update();
-    const hz::RenderLightID id = scene.findLight(a);
+    const hz::RenderLightID id = scene.FindLight(a);
     const hz::AssetHandle   Handle = assetManager.Find(light.texture);
     ASSERT_TRUE(Handle.IsValid());
     assetManager.Update();
-    EXPECT_EQ(scene.getLight(id)->ready, 0u);
-    EXPECT_FALSE(scene.getLight(id)->texture.IsValid());
+    EXPECT_EQ(scene.GetLight(id)->ready, 0u);
+    EXPECT_FALSE(scene.GetLight(id)->texture.IsValid());
     light.Type = hz::LightType::Point;
     ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::light, &light));
     scene.Update();
-    EXPECT_EQ(scene.getLight(scene.findLight(b))->ready, 1u);
-    EXPECT_FALSE(scene.getLight(scene.findLight(b))->texture.IsValid());
+    EXPECT_EQ(scene.GetLight(scene.FindLight(b))->ready, 1u);
+    EXPECT_FALSE(scene.GetLight(scene.FindLight(b))->texture.IsValid());
     // Move the only lease from a to b in one Update, without retiring the texture.
     ASSERT_TRUE(world.RemoveComponent(a, hz::SceneTypes::light));
     light.Type = hz::LightType::Rect;
@@ -1770,7 +1770,7 @@ TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLease
     loader.jobs[1]->ready = true;
     assetManager.Update();
     scene.Update();
-    EXPECT_EQ(scene.getLight(scene.findLight(b))->ready, 0u);
+    EXPECT_EQ(scene.GetLight(scene.FindLight(b))->ready, 0u);
     for (uint32_t i = 0; i < 20; ++i)
     {
         assetManager.Update();
@@ -1782,12 +1782,12 @@ TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLease
     scene.Update();
     assetManager.Update();
     EXPECT_FALSE(assetManager.Find(assetID(1)).IsValid());
-    EXPECT_EQ(scene.getLight(scene.findLight(b))->ready, 0u);
+    EXPECT_EQ(scene.GetLight(scene.FindLight(b))->ready, 0u);
     scene.Update();
     light.texture = {};
     ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::light, &light));
     scene.Update();
-    EXPECT_EQ(scene.getLight(scene.findLight(b))->ready, 1u);
+    EXPECT_EQ(scene.GetLight(scene.FindLight(b))->ready, 1u);
     EXPECT_EQ(assetManager.GetCount(), 0u);
     // A Ready payload of another Type must never become a GPU texture reference.
     loader.ready = true;
@@ -1797,8 +1797,8 @@ TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLease
     assetManager.Update();
     scene.Update();
     EXPECT_EQ(assetManager.GetState(assetManager.Find(light.texture)), hz::AssetState::Ready);
-    EXPECT_EQ(scene.getLight(scene.findLight(b))->ready, 0u);
-    EXPECT_FALSE(scene.getLight(scene.findLight(b))->texture.IsValid());
+    EXPECT_EQ(scene.GetLight(scene.FindLight(b))->ready, 0u);
+    EXPECT_FALSE(scene.GetLight(scene.FindLight(b))->texture.IsValid());
 }
 
 TEST_F(AssetManagerTest, WorldBindingsKeepFailedRequestsIdleUntilRebuilt)
@@ -1991,16 +1991,16 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     local.setTranslation(Vector3(10, 20, 30));
     ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::localMatrix, &local));
     scene.Update();
-    const hz::RenderPrimitiveID primitive = scene.findPrimitive(a);
+    const hz::RenderPrimitiveID primitive = scene.FindPrimitive(a);
     Wait(assetManager, assetManager.Find(renderer.mesh));
     scene.Update();
-    ASSERT_EQ(scene.getPrimitive(primitive)->instanceCount, 1u);
-    EXPECT_EQ(scene.findPrimitive(a), primitive);
-    ASSERT_EQ(scene.getActiveMeshBatches().Count, 4u);
-    ASSERT_EQ(scene.getChanges().meshBatches.created.Count, 4u);
-    const uint32_t             instanceIndex = scene.getInstanceIndices().Data[scene.getPrimitive(primitive)->instanceOffset];
-    const hz::RenderInstanceID instanceID = scene.getInstances().Data[instanceIndex].id;
-    const hz::RenderInstance*  instance = scene.getInstance(instanceID);
+    ASSERT_EQ(scene.GetPrimitive(primitive)->instanceCount, 1u);
+    EXPECT_EQ(scene.FindPrimitive(a), primitive);
+    ASSERT_EQ(scene.GetActiveMeshBatches().Count, 4u);
+    ASSERT_EQ(scene.GetChanges().meshBatches.created.Count, 4u);
+    const uint32_t             instanceIndex = scene.GetInstanceIndices().Data[scene.GetPrimitive(primitive)->instanceOffset];
+    const hz::RenderInstanceID instanceID = scene.GetInstances().Data[instanceIndex].id;
+    const hz::RenderInstance*  instance = scene.GetInstance(instanceID);
     ASSERT_NE(instance, nullptr);
     EXPECT_EQ(instance->entityGuid, identity);
     EXPECT_EQ(instance->primitive, primitive);
@@ -2011,17 +2011,17 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_FLOAT_EQ(instance->bounds.minimum[2], 29);
     EXPECT_FLOAT_EQ(instance->bounds.maximum[2], 33);
     hz::Array<hz::RenderMeshBatchID> meshBatchIDs;
-    for (uint32_t index : scene.getActiveMeshBatches())
-        if (scene.getMeshBatches().Data[index].primitive == primitive)
-            meshBatchIDs.PushBack(scene.getMeshBatches().Data[index].id);
+    for (uint32_t index : scene.GetActiveMeshBatches())
+        if (scene.GetMeshBatches().Data[index].primitive == primitive)
+            meshBatchIDs.PushBack(scene.GetMeshBatches().Data[index].id);
     ASSERT_EQ(meshBatchIDs.Size(), 2u);
-    EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[0])->submesh, UINT64_C(0x8000000000000001));
-    EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1])->submesh, UINT64_C(0x8000000000000003));
-    const hz::GpuMaterialID original = scene.getMeshBatch(meshBatchIDs[0])->material;
+    EXPECT_EQ(scene.GetMeshBatch(meshBatchIDs[0])->submesh, UINT64_C(0x8000000000000001));
+    EXPECT_EQ(scene.GetMeshBatch(meshBatchIDs[1])->submesh, UINT64_C(0x8000000000000003));
+    const hz::GpuMaterialID original = scene.GetMeshBatch(meshBatchIDs[0])->material;
 
     world.CommitTransforms();
     scene.Update();
-    const uint64_t            revision = scene.getRevision();
+    const uint64_t            revision = scene.GetRevision();
     const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (uint32_t i = 0; i < 100; ++i)
         scene.Update();
@@ -2031,71 +2031,71 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
         EXPECT_EQ(before.TotalAllocationCount, after.TotalAllocationCount);
         EXPECT_EQ(before.ReallocationCount, after.ReallocationCount);
     }
-    EXPECT_EQ(scene.getRevision(), revision);
-    EXPECT_EQ(scene.getChanges().meshBatches.ranges.Count, 0u);
+    EXPECT_EQ(scene.GetRevision(), revision);
+    EXPECT_EQ(scene.GetChanges().meshBatches.ranges.Count, 0u);
     local.setTranslation(Vector3(11, 20, 30));
     ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::localMatrix, &local));
     scene.Update();
-    EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->current.getElem(3, 0), 11);
-    EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->previous.getElem(3, 0), 11);
-    EXPECT_EQ(scene.getChanges().primitives.ranges.Count, 0u);
-    EXPECT_EQ(scene.getChanges().meshBatches.ranges.Count, 0u);
-    ASSERT_EQ(scene.getChanges().instances.ranges.Count, 1u);
-    EXPECT_EQ(scene.getChanges().instances.ranges.Data[0].first, instanceIndex);
-    EXPECT_EQ(scene.getChanges().instances.ranges.Data[0].Count, 1u);
+    EXPECT_FLOAT_EQ((float)scene.GetInstance(instanceID)->current.getElem(3, 0), 11);
+    EXPECT_FLOAT_EQ((float)scene.GetInstance(instanceID)->previous.getElem(3, 0), 11);
+    EXPECT_EQ(scene.GetChanges().primitives.ranges.Count, 0u);
+    EXPECT_EQ(scene.GetChanges().meshBatches.ranges.Count, 0u);
+    ASSERT_EQ(scene.GetChanges().instances.ranges.Count, 1u);
+    EXPECT_EQ(scene.GetChanges().instances.ranges.Data[0].first, instanceIndex);
+    EXPECT_EQ(scene.GetChanges().instances.ranges.Data[0].Count, 1u);
     scene.Update();
-    EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->previous.getElem(3, 0), 11);
+    EXPECT_FLOAT_EQ((float)scene.GetInstance(instanceID)->previous.getElem(3, 0), 11);
     scene.markDirty(a);
     scene.Update();
-    EXPECT_FLOAT_EQ((float)scene.getInstance(instanceID)->previous.getElem(3, 0), 11);
-    EXPECT_EQ(scene.getChanges().instances.ranges.Count, 0u);
+    EXPECT_FLOAT_EQ((float)scene.GetInstance(instanceID)->previous.getElem(3, 0), 11);
+    EXPECT_EQ(scene.GetChanges().instances.ranges.Count, 0u);
 
     renderer.overrides.PushBack({ .submesh = UINT64_C(0x8000000000000003), .material = alternate });
     ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.Update();
-    EXPECT_EQ(scene.getPrimitive(primitive)->instanceCount, 0u);
-    EXPECT_NE(scene.getMeshBatch(meshBatchIDs[0]), nullptr);
-    EXPECT_NE(scene.getMeshBatch(meshBatchIDs[1]), nullptr);
-    EXPECT_FALSE(scene.getMeshBatch(meshBatchIDs[1])->material.IsValid());
+    EXPECT_EQ(scene.GetPrimitive(primitive)->instanceCount, 0u);
+    EXPECT_NE(scene.GetMeshBatch(meshBatchIDs[0]), nullptr);
+    EXPECT_NE(scene.GetMeshBatch(meshBatchIDs[1]), nullptr);
+    EXPECT_FALSE(scene.GetMeshBatch(meshBatchIDs[1])->material.IsValid());
     Wait(assetManager, assetManager.Find(alternate));
     scene.Update();
-    EXPECT_EQ(scene.getPrimitive(primitive)->instanceCount, 1u);
-    EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[0])->material, original);
+    EXPECT_EQ(scene.GetPrimitive(primitive)->instanceCount, 1u);
+    EXPECT_EQ(scene.GetMeshBatch(meshBatchIDs[0])->material, original);
     const hz::AssetHandle alternateHandle = assetManager.Find(alternate);
-    EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1])->material,
+    EXPECT_EQ(scene.GetMeshBatch(meshBatchIDs[1])->material,
               (hz::GpuMaterialID{ .index = alternateHandle.index, .generation = alternateHandle.generation }));
-    EXPECT_EQ(scene.getChanges().meshBatches.created.Count, 0u);
+    EXPECT_EQ(scene.GetChanges().meshBatches.created.Count, 0u);
     renderer.overrides.Clear();
     ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     scene.Update();
-    EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1])->material, original);
-    EXPECT_EQ(scene.getChanges().primitives.ranges.Count, 0u);
-    ASSERT_EQ(scene.getChanges().meshBatches.ranges.Count, 1u);
-    EXPECT_EQ(scene.getChanges().meshBatches.ranges.Data[0].first, meshBatchIDs[1].index);
-    EXPECT_EQ(scene.getChanges().meshBatches.ranges.Data[0].Count, 1u);
+    EXPECT_EQ(scene.GetMeshBatch(meshBatchIDs[1])->material, original);
+    EXPECT_EQ(scene.GetChanges().primitives.ranges.Count, 0u);
+    ASSERT_EQ(scene.GetChanges().meshBatches.ranges.Count, 1u);
+    EXPECT_EQ(scene.GetChanges().meshBatches.ranges.Data[0].first, meshBatchIDs[1].index);
+    EXPECT_EQ(scene.GetChanges().meshBatches.ranges.Data[0].Count, 1u);
 
     ASSERT_TRUE(world.DestroyEntity(a));
     scene.Update();
-    EXPECT_EQ(scene.getPrimitive(primitive), nullptr);
-    EXPECT_EQ(scene.getInstance(instanceID), nullptr);
-    EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[0]), nullptr);
-    EXPECT_EQ(scene.getMeshBatch(meshBatchIDs[1]), nullptr);
-    EXPECT_EQ(scene.getInstanceIndices().Data[primitive.index], UINT32_MAX);
-    EXPECT_EQ(scene.getActiveMeshBatches().Count, 2u);
-    const hz::RenderPrimitiveID survivor = scene.findPrimitive(b);
-    const uint32_t              survivingInstance = scene.getInstanceIndices().Data[scene.getPrimitive(survivor)->instanceOffset];
-    EXPECT_EQ(scene.getInstances().Data[survivingInstance].primitive, survivor);
+    EXPECT_EQ(scene.GetPrimitive(primitive), nullptr);
+    EXPECT_EQ(scene.GetInstance(instanceID), nullptr);
+    EXPECT_EQ(scene.GetMeshBatch(meshBatchIDs[0]), nullptr);
+    EXPECT_EQ(scene.GetMeshBatch(meshBatchIDs[1]), nullptr);
+    EXPECT_EQ(scene.GetInstanceIndices().Data[primitive.index], UINT32_MAX);
+    EXPECT_EQ(scene.GetActiveMeshBatches().Count, 2u);
+    const hz::RenderPrimitiveID survivor = scene.FindPrimitive(b);
+    const uint32_t              survivingInstance = scene.GetInstanceIndices().Data[scene.GetPrimitive(survivor)->instanceOffset];
+    EXPECT_EQ(scene.GetInstances().Data[survivingInstance].primitive, survivor);
     const hz::Entity replacement = world.CreatePersistentEntity(identity);
     ASSERT_TRUE(world.SetComponent(replacement, hz::SceneTypes::meshRenderer, &renderer));
     scene.Update();
-    const hz::RenderPrimitiveID reused = scene.findPrimitive(replacement);
+    const hz::RenderPrimitiveID reused = scene.FindPrimitive(replacement);
     EXPECT_EQ(reused.index, primitive.index);
     EXPECT_NE(reused.generation, primitive.generation);
-    EXPECT_EQ(scene.getActiveMeshBatches().Count, 4u);
+    EXPECT_EQ(scene.GetActiveMeshBatches().Count, 4u);
     for (hz::RenderMeshBatchID old : meshBatchIDs)
     {
-        EXPECT_EQ(scene.getMeshBatch(old), nullptr);
-        EXPECT_NE(scene.getMeshBatches().Data[old.index].id.generation, old.generation);
+        EXPECT_EQ(scene.GetMeshBatch(old), nullptr);
+        EXPECT_NE(scene.GetMeshBatches().Data[old.index].id.generation, old.generation);
     }
 }
 
@@ -2110,13 +2110,13 @@ struct GpuSceneCopy
 // Uploads one GpuScene frame, copies table bytes into the readback buffer and waits for the GPU.
 static void renderGpuSceneFrame(hz::RenderContext& context, hz::GpuScene& gpu, const hz::GPUBuffer& readback, hz::Span<GpuSceneCopy> copies)
 {
-    ASSERT_TRUE(gpu.beginFrame());
+    ASSERT_TRUE(gpu.BeginFrame());
     hz::CommandList& commands = context.AcquireCommandList();
-    gpu.upload(commands);
+    gpu.Upload(commands);
     for (const GpuSceneCopy& copy : copies)
-        commands.CopyBuffer(readback, copy.dstOffset, gpu.getBuffers().*copy.table, copy.srcOffset, copy.Size);
+        commands.CopyBuffer(readback, copy.dstOffset, gpu.GetBuffers().*copy.table, copy.srcOffset, copy.Size);
     const hz::SubmitHandle submission = context.Submit(commands);
-    gpu.endFrame(submission);
+    gpu.EndFrame(submission);
     context.Wait(submission);
 }
 
@@ -2149,15 +2149,15 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     const hz::AssetHandle meshHandle = assetManager.Find(renderer.mesh);
     Wait(assetManager, meshHandle);
     scene.Update();
-    const hz::RenderPrimitiveID primitive = scene.findPrimitive(a);
-    const hz::GpuMeshID         meshID = scene.getPrimitive(primitive)->mesh;
-    const uint32_t              instanceIndex = scene.getInstanceIndices().Data[scene.getPrimitive(primitive)->instanceOffset];
+    const hz::RenderPrimitiveID primitive = scene.FindPrimitive(a);
+    const hz::GpuMeshID         meshID = scene.GetPrimitive(primitive)->mesh;
+    const uint32_t              instanceIndex = scene.GetInstanceIndices().Data[scene.GetPrimitive(primitive)->instanceOffset];
     hz::RenderMeshBatchID       meshBatchID;
-    for (uint32_t index : scene.getActiveMeshBatches())
-        if (scene.getMeshBatches().Data[index].primitive == primitive)
-            meshBatchID = scene.getMeshBatches().Data[index].id;
+    for (uint32_t index : scene.GetActiveMeshBatches())
+        if (scene.GetMeshBatches().Data[index].primitive == primitive)
+            meshBatchID = scene.GetMeshBatches().Data[index].id;
     ASSERT_TRUE(meshBatchID.IsValid());
-    const hz::GpuMaterialID materialID = scene.getMeshBatch(meshBatchID)->material;
+    const hz::GpuMaterialID materialID = scene.GetMeshBatch(meshBatchID)->material;
     const uint32_t textureSrv = assetManager.GetTexture(assetManager.Find(assets.GetTextures().Data[0].id))->GetTexture().GetSrvIndex();
 
     hz::GpuScene              gpu(scene, assetManager, context);
@@ -2184,7 +2184,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
                  .Size = sizeof(hz::GpuMaterialData) },
     };
     renderGpuSceneFrame(context, gpu, readback, firstCopies);
-    EXPECT_EQ(copiedInstance.id, scene.getInstances().Data[instanceIndex].id);
+    EXPECT_EQ(copiedInstance.id, scene.GetInstances().Data[instanceIndex].id);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 1);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 1);
     EXPECT_EQ(copiedMesh.id, meshID);
@@ -2195,13 +2195,13 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     EXPECT_EQ(copiedMaterial.id, materialID);
     EXPECT_FLOAT_EQ(copiedMaterial.roughnessFactor, 0.8f);
     EXPECT_EQ(copiedMaterial.baseColorTexture, textureSrv);
-    const hz::RenderSceneUploads acknowledged = scene.getPendingUploads();
+    const hz::RenderSceneUploads acknowledged = scene.GetPendingUploads();
     EXPECT_EQ(acknowledged.primitives.Count + acknowledged.instances.Count + acknowledged.meshBatches.Count +
                   acknowledged.instanceIndices.Count,
               0u);
     EXPECT_FALSE(acknowledged.activePrimitives || acknowledged.activeInstances || acknowledged.activeMeshBatches);
 
-    // Unchanged tables persist on the GPU without another upload.
+    // Unchanged tables persist on the GPU without another Upload.
     transform.translation = Vector3(2, 0, 0);
     ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::localTransform, &transform));
     const GpuSceneCopy movedCopies[] = {
@@ -2222,8 +2222,8 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     // A cancelled frame keeps its changes pending and does not advance history.
     transform.translation = Vector3(3, 0, 0);
     ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::localTransform, &transform));
-    ASSERT_TRUE(gpu.beginFrame());
-    gpu.cancelFrame();
+    ASSERT_TRUE(gpu.BeginFrame());
+    gpu.CancelFrame();
     renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
     EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 3);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 2);
@@ -2276,16 +2276,16 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
           .Size = sizeof(uint32_t) },
     };
     renderGpuSceneFrame(context, gpu, readback, activeCopies);
-    EXPECT_EQ(scene.getActivePrimitives().Count, 1u);
-    EXPECT_EQ(((const uint32_t*)pBytes)[0], scene.findPrimitive(b).index);
+    EXPECT_EQ(scene.GetActivePrimitives().Count, 1u);
+    EXPECT_EQ(((const uint32_t*)pBytes)[0], scene.FindPrimitive(b).index);
     EXPECT_EQ(((const uint32_t*)pBytes)[1], UINT32_MAX);
     ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::meshRenderer, &renderer));
     renderGpuSceneFrame(context, gpu, readback, { &instanceCopy, 1 });
-    const hz::RenderPrimitiveID reused = scene.findPrimitive(a);
+    const hz::RenderPrimitiveID reused = scene.FindPrimitive(a);
     EXPECT_EQ(reused.index, primitive.index);
     EXPECT_NE(reused.generation, primitive.generation);
-    ASSERT_EQ(scene.getInstanceIndices().Data[reused.index], instanceIndex);
-    EXPECT_EQ(copiedInstance.id, scene.getInstances().Data[instanceIndex].id);
+    ASSERT_EQ(scene.GetInstanceIndices().Data[reused.index], instanceIndex);
+    EXPECT_EQ(copiedInstance.id, scene.GetInstances().Data[instanceIndex].id);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.current), 300);
     EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 300);
 
@@ -2293,7 +2293,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     ASSERT_TRUE(world.RemoveComponent(a, hz::SceneTypes::meshRenderer));
     ASSERT_TRUE(world.RemoveComponent(b, hz::SceneTypes::meshRenderer));
     renderGpuSceneFrame(context, gpu, readback, { &meshCopy, 1 });
-    EXPECT_EQ(scene.getActivePrimitives().Count, 0u);
+    EXPECT_EQ(scene.GetActivePrimitives().Count, 0u);
     EXPECT_FALSE(copiedMesh.id.IsValid());
     assetManager.Update();
     EXPECT_EQ(assetManager.GetCount(), 0u);
@@ -2304,9 +2304,9 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     const hz::AssetHandle reloaded = assetManager.Find(renderer.mesh);
     Wait(assetManager, reloaded);
     renderGpuSceneFrame(context, gpu, readback, { &meshCopy, 1 });
-    EXPECT_NE(scene.getPrimitive(scene.findPrimitive(a))->mesh, meshID);
+    EXPECT_NE(scene.GetPrimitive(scene.FindPrimitive(a))->mesh, meshID);
     EXPECT_NE(copiedMesh.id, meshID);
-    EXPECT_EQ(scene.getActiveMeshBatches().Count, 1u);
+    EXPECT_EQ(scene.GetActiveMeshBatches().Count, 1u);
 }
 
 TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissionTextures)
@@ -2335,20 +2335,20 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::camera, &lens));
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
     scene.Update();
-    const hz::RenderLightID  lightID = scene.findLight(entity);
-    const hz::RenderCameraID cameraID = scene.findCamera(entity);
+    const hz::RenderLightID  lightID = scene.FindLight(entity);
+    const hz::RenderCameraID cameraID = scene.FindCamera(entity);
     const hz::AssetHandle    textureHandle = assetManager.Find(light.texture);
-    EXPECT_EQ(scene.getLight(lightID)->ready, 0u);
+    EXPECT_EQ(scene.GetLight(lightID)->ready, 0u);
     Wait(assetManager, textureHandle);
     scene.Update();
-    EXPECT_EQ(scene.getLight(lightID)->ready, 0u); // Mesh emitter still has no mesh.
-    EXPECT_TRUE(scene.getLight(lightID)->texture.IsValid());
+    EXPECT_EQ(scene.GetLight(lightID)->ready, 0u); // Mesh emitter still has no mesh.
+    EXPECT_TRUE(scene.GetLight(lightID)->texture.IsValid());
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
     scene.Update();
     Wait(assetManager, assetManager.Find(renderer.mesh));
     scene.Update();
-    ASSERT_EQ(scene.getLight(lightID)->ready, 1u);
-    EXPECT_EQ(scene.getLight(lightID)->primitive, scene.findPrimitive(entity));
+    ASSERT_EQ(scene.GetLight(lightID)->ready, 1u);
+    EXPECT_EQ(scene.GetLight(lightID)->primitive, scene.FindPrimitive(entity));
 
     hz::GpuScene gpu(scene, assetManager, context);
     gpu.Reserve(1, 1, 1, 1);
@@ -2380,7 +2380,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     EXPECT_EQ(copiedLight.id, lightID);
     EXPECT_FLOAT_EQ(copiedLight.intensity, 4);
     EXPECT_EQ(copiedLight.ready, 1u);
-    EXPECT_EQ(copiedLight.texture, scene.getLight(lightID)->texture);
+    EXPECT_EQ(copiedLight.texture, scene.GetLight(lightID)->texture);
     EXPECT_EQ(pActive[0], lightID.index);
     EXPECT_EQ(pActive[1], cameraID.index);
 
@@ -2434,9 +2434,9 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::meshRenderer));
     renderGpuSceneFrame(context, gpu, readback, copies);
     assetManager.Update();
-    EXPECT_EQ(scene.findLight(entity), lightID);
+    EXPECT_EQ(scene.FindLight(entity), lightID);
     EXPECT_EQ(copiedLight.ready, 0u);
-    EXPECT_FALSE(scene.getLight(lightID)->primitive.IsValid());
+    EXPECT_FALSE(scene.GetLight(lightID)->primitive.IsValid());
     EXPECT_EQ(assetManager.GetState(textureHandle), hz::AssetState::Ready);
 
     light.Type = hz::LightType::Dome;
@@ -2451,8 +2451,8 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
                                        .dstOffset = 768,
                                        .Size = sizeof(hz::GpuTextureData) };
     renderGpuSceneFrame(context, gpu, readback, { &textureCopy, 1 });
-    EXPECT_EQ(scene.getActiveLights().Count, 0u);
-    EXPECT_EQ(scene.getActiveCameras().Count, 0u);
+    EXPECT_EQ(scene.GetActiveLights().Count, 0u);
+    EXPECT_EQ(scene.GetActiveCameras().Count, 0u);
     EXPECT_FALSE(((const hz::GpuTextureData*)(pBytes + 768))->id.IsValid());
     assetManager.Update();
     EXPECT_EQ(assetManager.GetCount(), 0u);
@@ -2461,11 +2461,11 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::light, &light));
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::camera, &lens));
     renderGpuSceneFrame(context, gpu, readback, copies);
-    const hz::RenderCameraID reusedCamera = scene.findCamera(entity);
+    const hz::RenderCameraID reusedCamera = scene.FindCamera(entity);
     EXPECT_EQ(reusedCamera.index, cameraID.index);
     EXPECT_NE(reusedCamera.generation, cameraID.generation);
-    EXPECT_EQ(scene.findLight(entity).index, lightID.index);
-    EXPECT_NE(scene.findLight(entity).generation, lightID.generation);
+    EXPECT_EQ(scene.FindLight(entity).index, lightID.index);
+    EXPECT_NE(scene.FindLight(entity).generation, lightID.generation);
     EXPECT_EQ(copiedCamera.id, reusedCamera);
     EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 100);
 }
@@ -2518,19 +2518,19 @@ TEST_F(AssetManagerTest, GpuSceneUploadsSparseChangesForOneHundredThousandEntiti
             ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::localTransform, &transform));
         }
         // Primitive and instance slots are allocated together, so their indices match.
-        const uint32_t     instance = scene.findPrimitive(entities[frame]).index;
+        const uint32_t     instance = scene.FindPrimitive(entities[frame]).index;
         const GpuSceneCopy copy = { .table = &hz::GpuSceneBuffers::instances,
                                     .srcOffset = sizeof(hz::RenderInstance) * instance,
                                     .Size = sizeof(hz::RenderInstance) };
         const int64_t      start = GetUSec(true);
         renderGpuSceneFrame(context, gpu, readback, { &copy, 1 });
         sparseUSec += GetUSec(true) - start;
-        ASSERT_EQ(scene.getInstances().Data[instance].primitive, scene.findPrimitive(entities[frame]));
+        ASSERT_EQ(scene.GetInstances().Data[instance].primitive, scene.FindPrimitive(entities[frame]));
         EXPECT_FLOAT_EQ((float)copied.current.getElem(3, 1), (float)frame + 1);
-        EXPECT_EQ(scene.getChanges().instances.ranges.Count, kEntityCount / kStride);
+        EXPECT_EQ(scene.GetChanges().instances.ranges.Count, kEntityCount / kStride);
     }
     // Telemetry only; timings vary across machines.
-    printf("GpuScene %u entities: full upload frame %.2f ms, 1%% sparse frame %.2f ms\n", kEntityCount, fullUSec / 1000.0,
+    printf("GpuScene %u entities: full Upload frame %.2f ms, 1%% sparse frame %.2f ms\n", kEntityCount, fullUSec / 1000.0,
            sparseUSec / 10000.0);
 }
 
@@ -2591,7 +2591,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     ASSERT_TRUE(saved.Serialize(original));
     hz::UniquePtr<hz::RenderScene> scene = hz::MakeUnique<hz::RenderScene>(*world, assetManager);
     scene->Update();
-    ASSERT_EQ(scene->getActiveMeshBatches().Count, 2u);
+    ASSERT_EQ(scene->GetActiveMeshBatches().Count, 2u);
     ASSERT_TRUE(assetManager.Release(source));
     hz::UniquePtr<hz::GpuScene> gpu = hz::MakeUnique<hz::GpuScene>(*scene, assetManager, context);
     hz::GPUBuffer                readback = context.CreateBuffer({ .Size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData) + 36,
@@ -2612,30 +2612,30 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         EXPECT_EQ(meshRenderer->mesh, renderer.mesh);
         EXPECT_EQ(meshRenderer->overrides[0].submesh, renderer.overrides[0].submesh);
         EXPECT_EQ(meshRenderer->overrides[0].material, renderer.overrides[0].material);
-        ASSERT_TRUE(gpu->beginFrame());
-        ASSERT_EQ(scene->getActiveMeshBatches().Count, 2u);
-        const hz::RenderPrimitiveID primitiveID = scene->findPrimitive(entity);
-        const hz::RenderPrimitive&  primitive = *scene->getPrimitive(primitiveID);
-        const uint32_t              instance = scene->getInstanceIndices().Data[primitive.instanceOffset];
+        ASSERT_TRUE(gpu->BeginFrame());
+        ASSERT_EQ(scene->GetActiveMeshBatches().Count, 2u);
+        const hz::RenderPrimitiveID primitiveID = scene->FindPrimitive(entity);
+        const hz::RenderPrimitive&  primitive = *scene->GetPrimitive(primitiveID);
+        const uint32_t              instance = scene->GetInstanceIndices().Data[primitive.instanceOffset];
         const hz::RenderMeshBatch*  meshBatch = nullptr;
-        for (uint32_t index : scene->getActiveMeshBatches())
-            if (scene->getMeshBatches().Data[index].primitive == primitiveID)
-                meshBatch = &scene->getMeshBatches().Data[index];
+        for (uint32_t index : scene->GetActiveMeshBatches())
+            if (scene->GetMeshBatches().Data[index].primitive == primitiveID)
+                meshBatch = &scene->GetMeshBatches().Data[index];
         ASSERT_NE(meshBatch, nullptr);
         EXPECT_EQ(meshBatch->submesh, renderer.overrides[0].submesh);
-        const hz::GpuMaterialData* material = gpu->getAssetTables().GetMaterial(meshBatch->material);
+        const hz::GpuMaterialData* material = gpu->GetAssetTables().GetMaterial(meshBatch->material);
         ASSERT_NE(material, nullptr);
         EXPECT_NE(material->baseColorTexture, UINT32_MAX);
         const hz::MeshAsset* mesh = assetManager.GetMesh(assetManager.Find(renderer.mesh));
         ASSERT_NE(mesh, nullptr);
         hz::CommandList& commands = context.AcquireCommandList();
-        gpu->upload(commands);
-        commands.CopyBuffer(readback, 0, gpu->getBuffers().instances, instance * sizeof(hz::RenderInstance), sizeof(hz::RenderInstance));
-        commands.CopyBuffer(readback, sizeof(hz::RenderInstance), gpu->getBuffers().materials,
+        gpu->Upload(commands);
+        commands.CopyBuffer(readback, 0, gpu->GetBuffers().instances, instance * sizeof(hz::RenderInstance), sizeof(hz::RenderInstance));
+        commands.CopyBuffer(readback, sizeof(hz::RenderInstance), gpu->GetBuffers().materials,
                             meshBatch->material.index * sizeof(hz::GpuMaterialData), sizeof(hz::GpuMaterialData));
         commands.CopyBuffer(readback, sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData), mesh->GetVertexBuffer(0), 0, 36);
         const hz::SubmitHandle submission = context.Submit(commands);
-        gpu->endFrame(submission);
+        gpu->EndFrame(submission);
         // Destroying the GPU scene, bindings and World does not Wait; buffers and payloads retire after the frame.
         gpu = nullptr;
         scene = nullptr;
@@ -3948,7 +3948,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     const PeakFrame   peakCamera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 2, 1) };
     LightingFrameData peakLight;
     peakLight.lightDirection = Vector4(0, 0, -1, 100000);
-    const auto upload = [&](const void* data, uint32_t Size)
+    const auto Upload = [&](const void* data, uint32_t Size)
     {
         return context.CreateBuffer({ .Size = Size,
                                       .ElementCount = 1,
@@ -3959,7 +3959,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                       .StartState = ResourceStateShaderResource,
                                       .Descriptors = DescriptorTypeBuffer });
     };
-    hz::GPUBuffer    peakFrame = upload(&peakCamera, sizeof(peakCamera)), peakLighting = upload(&peakLight, sizeof(peakLight));
+    hz::GPUBuffer    peakFrame = Upload(&peakCamera, sizeof(peakCamera)), peakLighting = Upload(&peakLight, sizeof(peakLight));
     hz::CommandList& commands = context.AcquireCommandList();
     const auto       Clear = [&](const hz::GPUTexture& texture, float value)
     {
