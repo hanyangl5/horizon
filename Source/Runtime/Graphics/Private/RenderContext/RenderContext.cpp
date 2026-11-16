@@ -35,7 +35,7 @@ RenderContext::RenderContext(const ContextDesc& input)
         return;
     }
 
-    suspended = !input.width || !input.height;
+    suspended = !input.Width || !input.Height;
     if (desc.enablePipelineCache)
     {
         initPipelineCache();
@@ -101,7 +101,7 @@ uint64_t RenderContext::getPendingUseId() const
 
 bool RenderContext::isResourceUseComplete(uint64_t useId) const { return useId < getPendingUseId(); }
 
-void RenderContext::deferResource(ResourceType type, void* resource, void* secondary, void* tertiary)
+void RenderContext::deferResource(ResourceType Type, void* resource, void* secondary, void* tertiary)
 {
     if (resource)
     {
@@ -109,7 +109,7 @@ void RenderContext::deferResource(ResourceType type, void* resource, void* secon
                                             .secondary = secondary,
                                             .tertiary = tertiary,
                                             .useId = getResourceUseId(),
-                                            .type = type };
+                                            .Type = Type };
         arrpush(deferredResources, deferred);
     }
 }
@@ -129,7 +129,7 @@ void RenderContext::collectDeferredResources()
         }
         ASSERT(resourceCount);
         --resourceCount;
-        switch (resource.type)
+        switch (resource.Type)
         {
         case ResourceType::Buffer:
             removeResource((Buffer*)resource.resource);
@@ -184,16 +184,16 @@ bool RenderContext::initDevice()
         return false;
 
     QueueDesc queueDesc = {
-        .type = QueueTypeGraphics,
+        .Type = QueueTypeGraphics,
         .flag = QUEUE_FLAG_NONE,
         .priority = QUEUE_PRIORITY_NORMAL,
-        .pName = "RenderContext Graphics Queue",
+        .Name = "RenderContext Graphics Queue",
     };
     addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
     if (!pGraphicsQueue)
         return false;
 
-    IndirectArgumentDescriptor drawArgument = { .type = INDIRECT_DRAW };
+    IndirectArgumentDescriptor drawArgument = { .Type = INDIRECT_DRAW };
     CommandSignatureDesc       drawSignatureDesc = {
         .pArgDescs = &drawArgument,
         .indirectArgCount = 1,
@@ -201,7 +201,7 @@ bool RenderContext::initDevice()
     };
     addIndirectCommandSignature(pRenderer, &drawSignatureDesc, &pDrawIndirectSignature);
 
-    IndirectArgumentDescriptor drawIndexedArgument = { .type = INDIRECT_DRAW_INDEX };
+    IndirectArgumentDescriptor drawIndexedArgument = { .Type = INDIRECT_DRAW_INDEX };
     CommandSignatureDesc       drawIndexedSignatureDesc = {
         .pArgDescs = &drawIndexedArgument,
         .indirectArgCount = 1,
@@ -209,7 +209,7 @@ bool RenderContext::initDevice()
     };
     addIndirectCommandSignature(pRenderer, &drawIndexedSignatureDesc, &pDrawIndexedIndirectSignature);
 
-    IndirectArgumentDescriptor dispatchArgument = { .type = INDIRECT_DISPATCH };
+    IndirectArgumentDescriptor dispatchArgument = { .Type = INDIRECT_DISPATCH };
     CommandSignatureDesc       dispatchSignatureDesc = {
         .pArgDescs = &dispatchArgument,
         .indirectArgCount = 1,
@@ -278,8 +278,8 @@ bool RenderContext::createSwapChain()
         .ppPresentQueues = queues,
         .presentQueueCount = 1,
         .imageCount = desc.imageCount,
-        .width = desc.width,
-        .height = desc.height,
+        .Width = desc.Width,
+        .Height = desc.Height,
         .colorFormat = desc.colorFormat,
         .enableVsync = desc.enableVSync,
         .colorSpace = desc.colorSpace,
@@ -327,7 +327,7 @@ bool RenderContext::createSwapChain()
     addSwapChain(pRenderer, &swapDesc, &pSwapChain);
     if (pSwapChain)
     {
-        desc.colorFormat = pSwapChain->format;
+        desc.colorFormat = pSwapChain->Format;
         desc.colorSpace = pSwapChain->colorSpace;
         hdrDisplayInfo = pSwapChain->hdrDisplayInfo;
         hdrMetadata = pSwapChain->hdrMetadata;
@@ -475,20 +475,20 @@ void RenderContext::destroyDevice(bool waitForGpu)
     }
 }
 
-bool RenderContext::resize(uint32_t width, uint32_t height)
+bool RenderContext::resize(uint32_t Width, uint32_t Height)
 {
     for (const CommandResources& resources : commandResources)
     {
         ASSERT(!resources.commands.pCmd);
     }
     ASSERT(!imageAcquired);
-    if (!suspended && desc.width == width && desc.height == height)
+    if (!suspended && desc.Width == Width && desc.Height == Height)
         return true;
 
     destroySwapChain();
-    desc.width = width;
-    desc.height = height;
-    suspended = !width || !height;
+    desc.Width = Width;
+    desc.Height = Height;
+    suspended = !Width || !Height;
     if (suspended)
         return true;
 
@@ -654,8 +654,8 @@ bool RenderContext::isComplete(SubmitHandle Handle) const
     return status != FenceStatusIncomplete;
 }
 
-uint32_t              RenderContext::getWidth() const { return desc.width; }
-uint32_t              RenderContext::getHeight() const { return desc.height; }
+uint32_t              RenderContext::getWidth() const { return desc.Width; }
+uint32_t              RenderContext::getHeight() const { return desc.Height; }
 hz::Format            RenderContext::getColorFormat() const { return desc.colorFormat; }
 bool                  RenderContext::isHDREnabled() const { return outputMode != OUTPUT_MODE_SDR; }
 OutputMode            RenderContext::getOutputMode() const { return outputMode; }

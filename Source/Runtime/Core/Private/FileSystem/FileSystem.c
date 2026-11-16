@@ -627,7 +627,7 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t Size)
         if (!newBuffer)
         {
             LOGF(Error,
-                 "Failed to reallocate memory stream buffer with new Capacity "
+                 "Failed to reallocate memory stream buffer with new capacity "
                  "%llu.",
                  (unsigned long long)newCapacity);
             return 0;
@@ -1038,7 +1038,7 @@ void SetResourceDirectoryPath(IFileSystem* FileSystem, ResourceMount mount, Reso
 }
 
 /************************************************************************/
-// MARK: - Archive format definitions
+// MARK: - Archive Format definitions
 /************************************************************************/
 
 static uint64_t archiveHashMurmur2_64(void const* key, size_t len, uint64_t seed)
@@ -1288,9 +1288,9 @@ uint64_t bunyArHashTableLookup(const struct BunyArHashTable* ht, const char* nam
     return index;
 }
 
-const char* bunyArFormatName(enum BunyArFileFormat format)
+const char* bunyArFormatName(enum BunyArFileFormat Format)
 {
-    switch (format)
+    switch (Format)
     {
     case BUNYAR_FILE_FORMAT_RAW:
         return "raw";
@@ -1603,7 +1603,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
             {
                 LOGF(Error,
                      "Archive contains file with wrong name length %llu when "
-                     "limit is %i and node name Size is %llu: '%s'",
+                     "limit is %i and node name size is %llu: '%s'",
                      (unsigned long long)strLen, BUNYAR_FILE_NAME_LENGTH_MAX, (unsigned long long)node->namePointer.Size, name);
 
                 node->namePointer.Size = (uint32_t)strLen;
@@ -1824,14 +1824,14 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
 
     struct BunyArBlockFormatHeader blocksHeader = { 0 };
 
-    switch (node->format)
+    switch (node->Format)
     {
     case BUNYAR_FILE_FORMAT_RAW:
     {
         if (node->originalFileSize == node->filePointer.Size)
             break;
 
-        LOGF(Error, "Archive contains raw file '%s' with corrupted Size (%llu vs %llu)", archive->nodeNames + node->namePointer.offset,
+        LOGF(Error, "Archive contains raw file '%s' with corrupted size (%llu vs %llu)", archive->nodeNames + node->namePointer.offset,
              (unsigned long long)node->originalFileSize, (unsigned long long)node->filePointer.Size);
         return false;
     }
@@ -1849,7 +1849,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
 
         if (blocksHeader.blockSize == 0)
         {
-            LOGF(Error, "Archive file '%s' is stored with 0 block Size", archive->nodeNames + node->namePointer.offset);
+            LOGF(Error, "Archive file '%s' is stored with 0 block size", archive->nodeNames + node->namePointer.offset);
             return false;
         }
 
@@ -1860,7 +1860,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     default:
     {
         LOGF(Error, "Archive contains file '%s' written with unsupported format %llu", archive->nodeNames + node->namePointer.offset,
-             (unsigned long long)node->format);
+             (unsigned long long)node->Format);
         return false;
     }
     }
@@ -1888,7 +1888,7 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
         return false;
     }
 
-    switch (node->format)
+    switch (node->Format)
     {
     case BUNYAR_FILE_FORMAT_ZSTD_BLOCKS:
     {
@@ -1978,7 +1978,7 @@ static bool bunyArReadBlockToBuffer(struct BunyArMetadata* archive, struct BunyA
     const char* error = NULL;
 
     // this function fills readSize and writeSize
-    switch (fs->node->format)
+    switch (fs->node->Format)
     {
     case BUNYAR_FILE_FORMAT_LZ4_BLOCKS:
     {
@@ -2039,7 +2039,7 @@ static size_t ioArchiveFsRead(FileStream* pFile, void* outputBuffer, size_t outp
     struct BunyArMetadata*   archive = getFsArchive(pFile->FileSystem);
     struct BunyArNode*       node = fs->node;
 
-    switch (node->format)
+    switch (node->Format)
     {
     case BUNYAR_FILE_FORMAT_RAW:
     {
@@ -2085,7 +2085,7 @@ static size_t ioArchiveFsRead(FileStream* pFile, void* outputBuffer, size_t outp
 
                 if (blockSize != blockInfo.Size)
                 {
-                    LOGF(Error, "Raw black Size is wrong (%llu vs %llu)", (unsigned long long)blockSize,
+                    LOGF(Error, "Raw black size is wrong (%llu vs %llu)", (unsigned long long)blockSize,
                          (unsigned long long)blockInfo.Size);
                     break;
                 }
@@ -2139,7 +2139,7 @@ static size_t ioArchiveFsRead(FileStream* pFile, void* outputBuffer, size_t outp
         return outputSize - sizeToWrite;
     }
     default:
-        // we can't be here, because format is checked on file opening
+        // we can't be here, because Format is checked on file opening
         return 0;
     }
 }
@@ -2198,7 +2198,7 @@ static bool ioArchiveMemoryMap(FileStream* fs, size_t* outSize, void const** out
         return false;
 
     struct BunyArNode* node = stream->node;
-    if (node->format != BUNYAR_FILE_FORMAT_RAW)
+    if (node->Format != BUNYAR_FILE_FORMAT_RAW)
         return false;
 
     *outSize = node->filePointer.Size;
@@ -2255,7 +2255,7 @@ bool GetArchiveNodeDescription(IFileSystem* fs, uint64_t nodeId, struct BunyArNo
     outInfo->name = archive->nodeNames + node->namePointer.offset;
     outInfo->fileSize = node->originalFileSize;
     outInfo->compressedSize = node->filePointer.Size;
-    outInfo->format = (enum BunyArFileFormat)node->format;
+    outInfo->Format = (enum BunyArFileFormat)node->Format;
 
     return true;
 }

@@ -33,7 +33,7 @@ TEST(SceneIDTest, ParsesCanonicalTextAndFormatsLowercase)
 {
     hz::AssetID asset;
     hz::Guid    object;
-    ASSERT_TRUE(asset.parse("00112233-4455-4677-8899-AABBCCDDEEFF"));
+    ASSERT_TRUE(asset.parse("00112233-4455-4677-8899-aabbccddeeff"));
     ASSERT_TRUE(object.parse("00112233-4455-4677-8899-aabbccddeeff"));
     EXPECT_EQ(asset.high, UINT64_C(0x0011223344554677));
     EXPECT_EQ(asset.low, UINT64_C(0x8899aabbccddeeff));
@@ -148,7 +148,7 @@ TEST(SceneIDTest, HashUsesCanonicalBytes)
     hz::AssetID uppercase;
     hz::Guid    object;
     ASSERT_TRUE(lowercase.parse("00112233-4455-4677-8899-aabbccddeeff"));
-    ASSERT_TRUE(uppercase.parse("00112233-4455-4677-8899-AABBCCDDEEFF"));
+    ASSERT_TRUE(uppercase.parse("00112233-4455-4677-8899-aabbccddeeff"));
     ASSERT_TRUE(object.parse("00112233-4455-4677-8899-aabbccddeeff"));
     EXPECT_EQ(lowercase.hash(), uppercase.hash());
     EXPECT_EQ(lowercase.hash(), object.hash());

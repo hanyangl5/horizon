@@ -165,11 +165,11 @@ static void addSourceKey(cJSON* pObject, const cgltf_data& data, const cgltf_ext
         cJSON_AddStringToObject(pObject, "sourceKey", pKey);
 }
 
-static cJSON* identity(const char* pKind, const char* pName, const cgltf_data& data, const cgltf_extras& extras)
+static cJSON* identity(const char* pKind, const char* Name, const cgltf_data& data, const cgltf_extras& extras)
 {
     cJSON* pRecord = cJSON_CreateObject();
     cJSON_AddStringToObject(pRecord, "kind", pKind);
-    cJSON_AddStringToObject(pRecord, "name", pName ? pName : "");
+    cJSON_AddStringToObject(pRecord, "name", Name ? Name : "");
     addSourceKey(pRecord, data, extras);
     cJSON_AddBoolToObject(pRecord, "missing", false);
     return pRecord;
@@ -220,9 +220,9 @@ static bool matchIdentities(cJSON* pOld, cJSON* pNew, bool submeshes = false)
             matches[index] = uniqueMatch(pOld, pNew, pRecord, "sourceKey");
         else
         {
-            cJSON* pName = uniqueMatch(pOld, pNew, pRecord, "name");
+            cJSON* Name = uniqueMatch(pOld, pNew, pRecord, "name");
             cJSON* pSignature = uniqueMatch(pOld, pNew, pRecord, "signature");
-            matches[index] = pName && pSignature && pName != pSignature ? nullptr : (pSignature ? pSignature : pName);
+            matches[index] = Name && pSignature && Name != pSignature ? nullptr : (pSignature ? pSignature : Name);
             if (matches[index] && *text(matches[index], "sourceKey"))
                 matches[index] = nullptr;
         }
@@ -635,7 +635,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     for (uint32_t i = 0; i < materials.Size(); ++i)
     {
         const cgltf_material& material = i < data.materials_count ? data.materials[i] : defaultMaterial;
-        materials[i] = identity(i < data.materials_count ? "Material" : "DefaultMaterial", material.name, data, material.extras);
+        materials[i] = identity(i < data.materials_count ? "material" : "DefaultMaterial", material.name, data, material.extras);
         // Texture array indices are not identity evidence.
         const JsonDocument signature(createMaterial(data, material, { textures.GetData(), textures.Size() }, true));
         char*              pText = cJSON_PrintUnformatted(signature.get());
@@ -646,7 +646,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     for (uint32_t i = 0; i < meshes.Size(); ++i)
     {
         const cgltf_mesh& mesh = data.meshes[i];
-        meshes[i] = identity("Mesh", mesh.name, data, mesh.extras);
+        meshes[i] = identity("mesh", mesh.name, data, mesh.extras);
         cJSON*              pSubmeshes = cJSON_AddArrayToObject(meshes[i], "submeshes");
         hz::Array<uint64_t> hashes((uint32_t)mesh.primitives_count);
         for (uint32_t j = 0; j < hashes.Size(); ++j)

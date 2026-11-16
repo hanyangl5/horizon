@@ -20,7 +20,7 @@ public:
     TextureEncoder(const TextureEncoder&) = delete;
     TextureEncoder& operator=(const TextureEncoder&) = delete;
 
-    bool encode(const uint8_t* pBytes, size_t Size, bool srgb, const char* pName, DirectX::Blob& dds) const;
+    bool encode(const uint8_t* pBytes, size_t Size, bool srgb, const char* Name, DirectX::Blob& dds) const;
 
 private:
     HRESULT             comResult;
@@ -133,7 +133,7 @@ TextureEncoder::~TextureEncoder()
     }
 }
 
-bool TextureEncoder::encode(const uint8_t* pBytes, size_t Size, bool srgb, const char* pName, DirectX::Blob& dds) const
+bool TextureEncoder::encode(const uint8_t* pBytes, size_t Size, bool srgb, const char* Name, DirectX::Blob& dds) const
 {
     if (!pFactory)
         return false;
@@ -155,10 +155,10 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t Size, bool srgb, const
         DirectX::CompressOptions options = { .threshold = DirectX::TEX_THRESHOLD_DEFAULT,
                                              .alphaWeight = DirectX::TEX_ALPHA_WEIGHT_DEFAULT };
 #if defined(_OPENMP)
-        options.flags = DirectX::TEX_COMPRESS_PARALLEL;
+        options.Flags = DirectX::TEX_COMPRESS_PARALLEL;
 #endif
         const int64_t start = GetUSec(true);
-        LOGF(Info, "Compress '%s': %zux%zu, BC7, %zu mip levels (%s)", pName, pInput->GetMetadata().width, pInput->GetMetadata().height,
+        LOGF(Info, "Compress '%s': %zux%zu, BC7, %zu mip levels (%s)", Name, pInput->GetMetadata().width, pInput->GetMetadata().height,
              pInput->GetImageCount(),
              pDevice                                          ? "GPU"
              : options.flags & DirectX::TEX_COMPRESS_PARALLEL ? "parallel"
@@ -174,26 +174,26 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t Size, bool srgb, const
             current = TF_MIN(current, total);
             if (current != lastProgress)
             {
-                LOGF(Info, "Compress '%s': %zu/%zu mip levels", pName, current, total);
+                LOGF(Info, "Compress '%s': %zu/%zu mip levels", Name, current, total);
             }
             lastProgress = current;
             return true;
         };
-        const DXGI_FORMAT format = srgb ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
-        result = pDevice ? DirectX::CompressEx(pDevice, pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(), format,
+        const DXGI_FORMAT Format = srgb ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM;
+        result = pDevice ? DirectX::CompressEx(pDevice, pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(), Format,
                                                options, compressed, progress)
-                         : DirectX::CompressEx(pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(), format, options,
+                         : DirectX::CompressEx(pInput->GetImages(), pInput->GetImageCount(), pInput->GetMetadata(), Format, options,
                                                compressed, progress);
         if (SUCCEEDED(result))
         {
-            LOGF(Info, "Compressed '%s' in %.2f seconds", pName, (GetUSec(true) - start) / 1000000.0);
+            LOGF(Info, "Compressed '%s' in %.2f seconds", Name, (GetUSec(true) - start) / 1000000.0);
         }
     }
     if (SUCCEEDED(result))
         result = DirectX::SaveToDDSMemory(compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(),
                                           DirectX::DDS_FLAGS_FORCE_DX10_EXT, dds);
     if (FAILED(result))
-        LOGF(Error, "DirectXTex texture cook failed for '%s' (HRESULT 0x%08x)", pName, (unsigned)result);
+        LOGF(Error, "DirectXTex texture cook failed for '%s' (HRESULT 0x%08x)", Name, (unsigned)result);
     return SUCCEEDED(result);
 }
 #endif

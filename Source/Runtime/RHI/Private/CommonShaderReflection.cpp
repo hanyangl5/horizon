@@ -38,7 +38,7 @@ static bool ShaderResourceCmp(ShaderResource* a, ShaderResource* b)
 {
     bool isSame = true;
 
-    isSame = isSame && (a->type == b->type);
+    isSame = isSame && (a->Type == b->Type);
     isSame = isSame && (a->set == b->set);
     isSame = isSame && (a->reg == b->reg);
 

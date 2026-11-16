@@ -15,7 +15,7 @@ public:
     WorldHierarchy& operator=(const WorldHierarchy&) = delete;
 
     void                  invalidateStructure() { structureDirty = true; }
-    bool                  prepareLocalChange(ecs_entity_t entity, TypeID type, bool adding);
+    bool                  prepareLocalChange(ecs_entity_t entity, TypeID Type, bool adding);
     void                  finishDeferredChanges();
     bool                  setParent(ecs_entity_t entity, ecs_entity_t parent, bool keepWorld);
     bool                  destroy(ecs_entity_t entity, bool subtree);

@@ -85,7 +85,7 @@ public:
         for (const SceneAssetTexture& texture : scene.getTextures())
             entries.PushBack(
                 { .id = texture.id,
-                  .type = AssetType::Texture,
+                  .Type = AssetType::Texture,
                   .pSourcePath = texture.pSource,
                   .location = { .pPath = texture.pPath, .root = texture.cooked ? AssetPathRoot::Cooked : AssetPathRoot::Source },
                   .srgb = texture.srgb });
@@ -98,7 +98,7 @@ public:
             addDependency(material.metallicRoughnessTexture);
             addDependency(material.emissiveTexture);
             entries.PushBack({ .id = material.id,
-                               .type = AssetType::Material,
+                               .Type = AssetType::Material,
                                .pSourcePath = scene.getSource(),
                                .location = { .pPath = pPath, .elementIndex = index++ },
                                .dependencies = finishDependencies(start) });
@@ -110,7 +110,7 @@ public:
             for (const SceneAssetSubmesh& submesh : mesh.submeshes)
                 addDependency(submesh.material);
             entries.PushBack({ .id = mesh.id,
-                               .type = AssetType::Mesh,
+                               .Type = AssetType::Mesh,
                                .pSourcePath = scene.getSource(),
                                .location = { .pPath = pPath, .elementIndex = index++ },
                                .dependencies = finishDependencies(start) });
@@ -119,7 +119,7 @@ public:
         for (const SceneAssetNode& node : scene.getNodes())
             addDependency(node.mesh);
         entries.PushBack({ .id = scene.getID(),
-                           .type = AssetType::Scene,
+                           .Type = AssetType::Scene,
                            .pSourcePath = scene.getSource(),
                            .location = { .pPath = pPath },
                            .dependencies = finishDependencies(start) });
@@ -153,7 +153,7 @@ private:
 
 static bool sameEntry(const AssetCatalogEntry& a, const AssetCatalogEntry& b)
 {
-    if (a.type != b.type || a.location.root != b.location.root || a.location.elementIndex != b.location.elementIndex || a.srgb != b.srgb ||
+    if (a.Type != b.Type || a.location.root != b.location.root || a.location.elementIndex != b.location.elementIndex || a.srgb != b.srgb ||
         strcmp(a.pSourcePath, b.pSourcePath) || strcmp(a.location.pPath, b.location.pPath) || a.dependencies.Count != b.dependencies.Count)
         return false;
     for (uint32_t i = 0; i < a.dependencies.Count; ++i)
@@ -198,7 +198,7 @@ bool AssetCatalog::replace(const AssetCatalogEntry& entry) { return set(entry, t
 
 bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
 {
-    if (!entry.id.isValid() || entry.type > AssetType::Texture || entry.location.root > AssetPathRoot::Cooked ||
+    if (!entry.id.isValid() || entry.Type > AssetType::Texture || entry.location.root > AssetPathRoot::Cooked ||
         !validPath(entry.pSourcePath) || !validPath(entry.location.pPath) || (entry.dependencies.Count && !entry.dependencies.Data))
     {
         LOGF(Error, "Invalid AssetCatalog entry");
@@ -217,7 +217,7 @@ bool AssetCatalog::set(const AssetCatalogEntry& entry, bool replaceExisting)
     {
         if (sameEntry(*pExisting, normalized))
             return true;
-        if (!replaceExisting || pExisting->type != entry.type)
+        if (!replaceExisting || pExisting->Type != entry.Type)
         {
             LOGF(Error, "Conflicting AssetCatalog entry from '%s'", entry.pSourcePath);
             return false;
@@ -276,7 +276,7 @@ const AssetCatalogEntry* AssetCatalog::findScene(const char* pCookedScenePath) c
     for (ptrdiff_t i = 0; i < hmlen(Data->pIndices); ++i)
     {
         const AssetCatalogEntry* pEntry = Data->pIndices[i].value;
-        if (pEntry->type == AssetType::Scene && pEntry->location.root == AssetPathRoot::Cooked &&
+        if (pEntry->Type == AssetType::Scene && pEntry->location.root == AssetPathRoot::Cooked &&
             !strcmp(pEntry->location.pPath, pCookedScenePath))
             return pEntry;
     }
@@ -329,9 +329,9 @@ public:
     cJSON* pRoot = nullptr;
 };
 
-static const char* catalogString(const cJSON* pObject, const char* pName)
+static const char* catalogString(const cJSON* pObject, const char* Name)
 {
-    const cJSON* pValue = cJSON_GetObjectItemCaseSensitive(pObject, pName);
+    const cJSON* pValue = cJSON_GetObjectItemCaseSensitive(pObject, Name);
     return cJSON_IsString(pValue) ? pValue->valuestring : nullptr;
 }
 
@@ -378,7 +378,7 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
     for (const cJSON* pEntry = pEntries->child; pEntry; pEntry = pEntry->next)
     {
         AssetCatalogEntry entry;
-        uint32_t          type = 0, root = 0;
+        uint32_t          Type = 0, root = 0;
         const char*       pID = catalogString(pEntry, "id");
         const cJSON*      pIndex = cJSON_GetObjectItemCaseSensitive(pEntry, "elementIndex");
         const cJSON*      pSrgb = cJSON_GetObjectItemCaseSensitive(pEntry, "srgb");
@@ -386,12 +386,12 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
         entry.pSourcePath = catalogString(pEntry, "source");
         entry.location.pPath = catalogString(pEntry, "path");
         if (!uniqueFields(pEntry) || !pID || !entry.id.parse(pID) || catalog.find(entry.id) ||
-            !catalogNumber(cJSON_GetObjectItemCaseSensitive(pEntry, "type"), type) || type > (uint32_t)AssetType::Texture ||
+            !catalogNumber(cJSON_GetObjectItemCaseSensitive(pEntry, "type"), Type) || Type > (uint32_t)AssetType::Texture ||
             !catalogNumber(cJSON_GetObjectItemCaseSensitive(pEntry, "root"), root) || root > (uint32_t)AssetPathRoot::Cooked ||
             (!cJSON_IsNull(pIndex) && !catalogNumber(pIndex, entry.location.elementIndex)) || !cJSON_IsBool(pSrgb) ||
             !cJSON_IsArray(pDependencies))
             return false;
-        entry.type = (AssetType)type;
+        entry.Type = (AssetType)Type;
         entry.location.root = (AssetPathRoot)root;
         entry.srgb = cJSON_IsTrue(pSrgb);
         dependencies.Clear();
@@ -422,7 +422,7 @@ bool AssetCatalog::parse(Span<char> json)
         {
             const AssetCatalogEntry& entry = *candidate.Data->pIndices[i].value;
             const AssetCatalogEntry* pExisting = find(entry.id);
-            if (pExisting && pExisting->type != entry.type)
+            if (pExisting && pExisting->Type != entry.Type)
             {
                 LOGF(Error, "AssetCatalog replacement cannot change an AssetID's type");
                 return false;
@@ -457,7 +457,7 @@ bool AssetCatalog::load(ResourceDirectory directory, const char* pFileName)
     if (Size <= 0 || Size > 64 * 1024 * 1024)
     {
         CloseStream(&stream);
-        LOGF(Error, "Invalid AssetCatalog file Size: '%s'", pFileName);
+        LOGF(Error, "Invalid AssetCatalog file size: '%s'", pFileName);
         return false;
     }
     Array<char>  json((uint32_t)Size);
@@ -499,7 +499,7 @@ bool AssetCatalog::serialize(Array<char>& json) const
         char id[kIDStringCapacity];
         pEntry->id.toString(id);
         cJSON_AddStringToObject(pValue, "id", id);
-        cJSON_AddNumberToObject(pValue, "type", (uint32_t)pEntry->type);
+        cJSON_AddNumberToObject(pValue, "type", (uint32_t)pEntry->Type);
         cJSON_AddStringToObject(pValue, "source", pEntry->pSourcePath);
         cJSON_AddStringToObject(pValue, "path", pEntry->location.pPath);
         cJSON_AddNumberToObject(pValue, "root", (uint32_t)pEntry->location.root);

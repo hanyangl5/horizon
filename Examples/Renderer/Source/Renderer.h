@@ -30,9 +30,9 @@ constexpr bool EnableGpuValidation = false;
 const VertexLayout SceneVertexLayout = {
     .bindings = { { .stride = 12 }, { .stride = 4 }, { .stride = 4 } },
     .attribs = {
-        { .semantic = SEMANTIC_POSITION, .format = hz::Format::R32G32B32_SFLOAT, .binding = 0, .location = 0 },
-        { .semantic = SEMANTIC_NORMAL, .format = hz::Format::R32_UINT, .binding = 1, .location = 1 },
-        { .semantic = SEMANTIC_TEXCOORD0, .format = hz::Format::R32_UINT, .binding = 2, .location = 2 },
+        { .semantic = SEMANTIC_POSITION, .Format = hz::Format::R32G32B32_SFLOAT, .binding = 0, .location = 0 },
+        { .semantic = SEMANTIC_NORMAL, .Format = hz::Format::R32_UINT, .binding = 1, .location = 1 },
+        { .semantic = SEMANTIC_TEXCOORD0, .Format = hz::Format::R32_UINT, .binding = 2, .location = 2 },
     },
     .bindingCount = 3, .attribCount = 3,
 };
@@ -42,8 +42,8 @@ class RendererApp final: public IApp
 public:
     RendererApp()
     {
-        settings.width = 3840;
-        settings.height = 2160;
+        settings.Width = 3840;
+        settings.Height = 2160;
         settings.vSyncEnabled = true;
         settings.showPlatformUI = false;
     }
@@ -198,11 +198,11 @@ public:
 
     bool Load(ReloadDesc* Reload) override
     {
-        if (!(Reload->type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
+        if (!(Reload->Type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
         {
             return true;
         }
-        const uint32_t Width = (uint32_t)settings.width, Height = (uint32_t)settings.height;
+        const uint32_t Width = (uint32_t)settings.Width, Height = (uint32_t)settings.Height;
         if (!Context->resize(Width, Height))
         {
             LOGF(Error, "Failed to resize RenderContext to %ux%u", Width, Height);
@@ -217,7 +217,7 @@ public:
     void Update(float DeltaTime) override
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Renderer::Update");
-        Camera->update(DeltaTime, (uint32_t)settings.width, (uint32_t)settings.height, settings.focused);
+        Camera->update(DeltaTime, (uint32_t)settings.Width, (uint32_t)settings.Height, settings.focused);
         const Matrix4 Pose = Camera->getWorldMatrix();
         const bool    Updated = World->setComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose);
         ASSERT(Updated);
@@ -306,7 +306,7 @@ private:
         const float           SunAngle = 26.0f * PI / 180.0f;
         const Vector3         Z(-sinf(SunAngle), cosf(SunAngle), 0);
         const Vector3         X = normalize(cross(Vector3(0, 1, 0), Z));
-        const hz::Light       Sun = { .type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 1000 };
+        const hz::Light       Sun = { .Type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 1000 };
         const Matrix4         SunPose = Matrix4(Vector4(X, 0), Vector4(cross(Z, X), 0), Vector4(Z, 0), Vector4(0, 0, 0, 1));
         const hz::Entity      SunEntity = World->createPersistentEntity();
         const bool            Created = World->setComponent(CameraEntity, hz::SceneTypes::camera, &CameraData) &&

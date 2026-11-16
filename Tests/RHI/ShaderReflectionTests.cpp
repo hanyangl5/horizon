@@ -34,10 +34,10 @@ uint32_t findVariableIndexByName(const PipelineReflection& reflection, const cha
     return UINT32_MAX;
 }
 
-ShaderResource makeResource(DescriptorType type, uint32_t set, uint32_t reg, ShaderStage stage, const char* name)
+ShaderResource makeResource(DescriptorType Type, uint32_t set, uint32_t reg, ShaderStage stage, const char* name)
 {
     return {
-        .type = type,
+        .Type = Type,
         .set = set,
         .reg = reg,
         .Size = 1,

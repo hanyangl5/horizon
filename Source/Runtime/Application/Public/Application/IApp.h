@@ -97,10 +97,10 @@ public:
 
     struct Settings
     {
-        /// Window width
-        int32_t width = -1;
-        /// Window height
-        int32_t height = -1;
+        /// Window Width
+        int32_t Width = -1;
+        /// Window Height
+        int32_t Height = -1;
         /// monitor index
         int32_t monitorIndex = -1;
         /// x position for window

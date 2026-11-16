@@ -139,7 +139,7 @@ typedef enum WindowHandleType
 
 typedef struct WindowHandle
 {
-    WindowHandleType type;
+    WindowHandleType Type;
 
 #if defined(_WIN32)
     HWND window;
@@ -234,8 +234,8 @@ typedef struct WindowDesc
 
 typedef struct Resolution
 {
-    uint32_t width;
-    uint32_t height;
+    uint32_t Width;
+    uint32_t Height;
 } Resolution;
 
 // Monitor data
@@ -304,9 +304,9 @@ inline int GetRectHeight(const RectDesc* rect) { return rect->bottom - rect->top
 FORGE_API void OpenWindow(const char* app_name, WindowDesc* winDesc);
 FORGE_API void ClosePlatformWindow(WindowDesc* winDesc);
 FORGE_API void SetWindowRect(WindowDesc* winDesc, const RectDesc* rect);
-FORGE_API void SetWindowSize(WindowDesc* winDesc, unsigned width, unsigned height);
-FORGE_API void SetWindowed(WindowDesc* winDesc, unsigned width, unsigned height);
-FORGE_API void SetBorderless(WindowDesc* winDesc, unsigned width, unsigned height);
+FORGE_API void SetWindowSize(WindowDesc* winDesc, unsigned Width, unsigned Height);
+FORGE_API void SetWindowed(WindowDesc* winDesc, unsigned Width, unsigned Height);
+FORGE_API void SetBorderless(WindowDesc* winDesc, unsigned Width, unsigned Height);
 FORGE_API void SetFullscreen(WindowDesc* winDesc);
 FORGE_API void MakeWindowVisible(WindowDesc* winDesc);
 FORGE_API void HideWindow(WindowDesc* winDesc);
@@ -380,7 +380,7 @@ typedef enum ResetType
 
 typedef struct ResetDesc
 {
-    ResetType type;
+    ResetType Type;
 } ResetDesc;
 
 FORGE_API void RequestReset(const ResetDesc* pResetDesc);
@@ -399,7 +399,7 @@ COMPILE_ASSERT(RELOAD_TYPE_COUNT == 3);
 
 typedef struct ReloadDesc
 {
-    ReloadType type;
+    ReloadType Type;
 } ReloadDesc;
 
 #if defined(ANDROID)

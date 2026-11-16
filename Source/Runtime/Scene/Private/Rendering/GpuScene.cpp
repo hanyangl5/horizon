@@ -10,7 +10,7 @@ namespace hz
 struct GpuTable
 {
     GPUBuffer*              pBuffer = nullptr;
-    const char*             pName = "";
+    const char*             Name = "";
     uint32_t                stride = 0;
     uint64_t                Capacity = 0;
     // Set when the buffer is new, so the next submitted frame must write the whole table.
@@ -85,7 +85,7 @@ public:
                       TF_ARRAY_COUNT(names) == kGpuTableCount);
         for (uint32_t i = 0; i < kGpuTableCount; ++i)
         {
-            tables[i] = { .pBuffer = pBuffers[i], .pName = names[i], .stride = strides[i] };
+            tables[i] = { .pBuffer = pBuffers[i], .Name = names[i], .stride = strides[i] };
         }
     }
     ~GpuSceneData()
@@ -152,11 +152,11 @@ public:
                 table.Capacity = growCapacity(table.Capacity, Size);
                 context.deferRelease(std::move(*table.pBuffer));
                 *table.pBuffer = context.createBuffer({ .Size = table.Capacity,
-                                                        .elementCount = (uint32_t)(table.Capacity / 4),
-                                                        .pName = table.pName,
+                                                        .ElementCount = (uint32_t)(table.Capacity / 4),
+                                                        .Name = table.Name,
                                                         .usage = MemoryUsageGpuOnly,
-                                                        .startState = ResourceStateShaderResource,
-                                                        .descriptors = DescriptorTypeBufferRaw });
+                                                        .StartState = ResourceStateShaderResource,
+                                                        .Descriptors = DescriptorTypeBufferRaw });
                 ASSERT(table.pBuffer->isValid());
                 table.full = true;
             }
@@ -186,10 +186,10 @@ public:
                 frame.Capacity = growCapacity(frame.Capacity, staged);
                 context.deferRelease(std::move(frame.staging));
                 frame.staging = context.createBuffer({ .Size = frame.Capacity,
-                                                       .pName = "GpuScene.Staging",
+                                                       .Name = "GpuScene.Staging",
                                                        .usage = MemoryUsageCpuToGpu,
-                                                       .startState = ResourceStateGenericRead,
-                                                       .flags = BufferCreationFlagPersistentMapBit });
+                                                       .StartState = ResourceStateGenericRead,
+                                                       .Flags = BufferCreationFlagPersistentMapBit });
                 ASSERT(frame.staging.isValid());
             }
             for (uint32_t i = 0; i < kGpuTableCount; ++i)

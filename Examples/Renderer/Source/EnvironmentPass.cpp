@@ -12,13 +12,13 @@ EnvironmentPass::EnvironmentPass(hz::RenderContext& Context, hz::Format ColorFor
         .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                         .pFileName = "Skybox.slang" },
-        .depth = { .depthTest = true, .depthWrite = false, .depthFunc = CMP_LEQUAL },
-        .colorTargets = { { .format = ColorFormat } },
+        .Depth = { .depthTest = true, .depthWrite = false, .depthFunc = CMP_LEQUAL },
+        .colorTargets = { { .Format = ColorFormat } },
         .depthStencilFormat = DepthFormat,
-        .pName = "Renderer.Skybox",
+        .Name = "Renderer.Skybox",
     });
     Sampler = Context.createSampler(
-        { .addressU = AddressModeClampToEdge, .addressV = AddressModeClampToEdge, .addressW = AddressModeClampToEdge });
+        { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .AddressW = AddressModeClampToEdge });
     ASSERT(Pipeline.isValid() && Sampler.isValid());
 }
 
@@ -79,7 +79,7 @@ static_assert(sizeof(SkyboxConstants) == 3 * sizeof(uint32_t) + sizeof(float));
 void EnvironmentPass::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Color,
                               const hz::GPUTexture& Depth, float Intensity) const
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("EnvironmentPass::Execute");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("EnvironmentPass::execute");
     ASSERT(IsValid());
     hz::DependencyList    Dependencies;
     const SkyboxConstants Constants = { .frameIndex = Dependencies.read(Frame),

@@ -75,10 +75,10 @@ static bool wndValidateWindowPos(int32_t x, int32_t y)
     return true;
 }
 
-static bool wndValidateWindowSize(int32_t width, int32_t height)
+static bool wndValidateWindowSize(int32_t Width, int32_t Height)
 {
     RectDesc windowRect = pWindowRef->WindowedRect;
-    if ((abs(GetRectWidth(&windowRect) - width) > 1) || (abs(GetRectHeight(&windowRect) - height) > 1))
+    if ((abs(GetRectWidth(&windowRect) - Width) > 1) || (abs(GetRectHeight(&windowRect) - Height) > 1))
         return false;
     return true;
 }
@@ -339,7 +339,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
         dpiScale = dpiScaleArray[0];
     }
 
-    Vector2 UIPosition = { pApp->settings.width * 0.775f, pApp->settings.height * 0.01f };
+    Vector2 UIPosition = { pApp->settings.Width * 0.775f, pApp->settings.Height * 0.01f };
     Vector2 UIPanelSize = Vector2(400.f, 750.f) / dpiScale;
 
     UIComponentDesc uiDesc = {};
@@ -455,7 +455,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget WindowedRectWidget = {};
     WindowedRectWidget.pText = &pWindowRef->pWindowedRectLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "WindowedRect");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &WindowedRectWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -463,7 +463,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget FullscreenRectWidget = {};
     FullscreenRectWidget.pText = &pWindowRef->pFullscreenRectLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "FullscreenRect");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &FullscreenRectWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -471,7 +471,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget ClientRectWidget = {};
     ClientRectWidget.pText = &pWindowRef->pClientRectLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "ClientRect");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &ClientRectWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -479,7 +479,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget WndWidget = {};
     WndWidget.pText = &pWindowRef->pWndLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "Wnd");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &WndWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -487,7 +487,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget FullscreenWidget = {};
     FullscreenWidget.pText = &pWindowRef->pFullscreenLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "Fullscreen");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &FullscreenWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -495,7 +495,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget CursorCapturedWidget = {};
     CursorCapturedWidget.pText = &pWindowRef->pCursorCapturedLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "CursorCaptured");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &CursorCapturedWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -503,7 +503,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget IconifiedWidget = {};
     IconifiedWidget.pText = &pWindowRef->pIconifiedLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "Iconified");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &IconifiedWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -511,7 +511,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget MaximizedWidget = {};
     MaximizedWidget.pText = &pWindowRef->pMaximizedLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "Maximized");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &MaximizedWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -519,7 +519,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget MinimizedWidget = {};
     MinimizedWidget.pText = &pWindowRef->pMinimizedLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "Minimized");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &MinimizedWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -527,7 +527,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget NoResizeFrameWidget = {};
     NoResizeFrameWidget.pText = &pWindowRef->pNoResizeFrameLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "NoResizeFrame");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &NoResizeFrameWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -535,7 +535,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget BorderlessWindowWidget = {};
     BorderlessWindowWidget.pText = &pWindowRef->pBorderlessWindowLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "BorderlessWindow");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &BorderlessWindowWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -543,7 +543,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget OverrideDefaultPositionWidget = {};
     OverrideDefaultPositionWidget.pText = &pWindowRef->pOverrideDefaultPositionLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "OverrideDefaultPosition");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &OverrideDefaultPositionWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -551,7 +551,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget CenteredWidget = {};
     CenteredWidget.pText = &pWindowRef->pCenteredLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "Centered");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &CenteredWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -559,7 +559,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget ForceLowDPIWidget = {};
     ForceLowDPIWidget.pText = &pWindowRef->pForceLowDPILabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "ForceLowDPI");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &ForceLowDPIWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -567,7 +567,7 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
     TextboxWidget WindowModeWidget = {};
     WindowModeWidget.pText = &pWindowRef->pWindowModeLabel;
-    windowDetailsWidgets[windowDetailsWidgetCount].type = WIDGET_TYPE_TEXTBOX;
+    windowDetailsWidgets[windowDetailsWidgetCount].Type = WIDGET_TYPE_TEXTBOX;
     strcpy(windowDetailsWidgets[windowDetailsWidgetCount].label, "WindowMode");
     windowDetailsWidgets[windowDetailsWidgetCount].pWidget = &WindowModeWidget;
     windowDetailsWidgetGroup[windowDetailsWidgetCount] = &windowDetailsWidgets[windowDetailsWidgetCount];
@@ -617,11 +617,11 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
         snprintf(buffer, 10, "%u", monitor->Dpi[0]);
         strcat(monitorLabel, buffer);
-        strcat(monitorLabel, " Dpi; ");
+        strcat(monitorLabel, " dpi; ");
 
         snprintf(buffer, 10, "%u", (unsigned)arrlen(monitor->Resolutions));
         strcat(monitorLabel, buffer);
-        strcat(monitorLabel, " Resolutions)");
+        strcat(monitorLabel, " resolutions)");
 
         UIWidget**         monitorWidgets = (UIWidget**)MemAllocate(arrlen(monitor->Resolutions) * sizeof(UIWidget*));
         UIWidget*          monitorWidgetsBases = (UIWidget*)MemAllocate(arrlen(monitor->Resolutions) * sizeof(UIWidget));
@@ -640,17 +640,17 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
 
             monitorWidgets[j] = &monitorWidgetsBases[j];
             monitorWidgetsBases[j] = UIWidget{};
-            monitorWidgetsBases[j].type = WIDGET_TYPE_RADIO_BUTTON;
+            monitorWidgetsBases[j].Type = WIDGET_TYPE_RADIO_BUTTON;
             monitorWidgetsBases[j].pWidget = &radioWidgets[j];
 
-            snprintf(monitorWidgetsBases[j].label, MAX_LABEL_STR_LENGTH, "%u", res.width);
+            snprintf(monitorWidgetsBases[j].label, MAX_LABEL_STR_LENGTH, "%u", res.Width);
             strcat(monitorWidgetsBases[j].label, "x");
 
-            char height[10];
-            snprintf(height, 10, "%u", res.height);
-            strcat(monitorWidgetsBases[j].label, height);
+            char Height[10];
+            snprintf(Height, 10, "%u", res.Height);
+            strcat(monitorWidgetsBases[j].label, Height);
 
-            if (monitor->DefaultResolution.width == res.width && monitor->DefaultResolution.height == res.height)
+            if (monitor->DefaultResolution.Width == res.Width && monitor->DefaultResolution.Height == res.Height)
             {
                 strcat(monitorWidgetsBases[j].label, " (native)");
                 pWindowRef->CurrentResolution[i] = (int32_t)j;
@@ -691,28 +691,28 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
     LabelWidget lCursorInWindow;
     strcpy(inputControlsWidgets[CONTROLS_INSIDE_WINDOW_LABEL_WIDGET]->label, "Cursor inside window?");
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_LABEL_WIDGET]->pWidget = &lCursorInWindow;
-    inputControlsWidgets[CONTROLS_INSIDE_WINDOW_LABEL_WIDGET]->type = WIDGET_TYPE_LABEL;
+    inputControlsWidgets[CONTROLS_INSIDE_WINDOW_LABEL_WIDGET]->Type = WIDGET_TYPE_LABEL;
 
     RadioButtonWidget rCursorInsideRectFalse;
     rCursorInsideRectFalse.Data = &pWindowRef->CursorInsideWindow;
     rCursorInsideRectFalse.radioId = 0;
     strcpy(inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->label, "No");
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->pWidget = &rCursorInsideRectFalse;
-    inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->type = WIDGET_TYPE_RADIO_BUTTON;
+    inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->Type = WIDGET_TYPE_RADIO_BUTTON;
 
     RadioButtonWidget rCursorInsideRectTrue;
     rCursorInsideRectTrue.Data = &pWindowRef->CursorInsideWindow;
     rCursorInsideRectTrue.radioId = 1;
     strcpy(inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->label, "Yes");
     inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->pWidget = &rCursorInsideRectTrue;
-    inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->type = WIDGET_TYPE_RADIO_BUTTON;
+    inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->Type = WIDGET_TYPE_RADIO_BUTTON;
 
     CheckboxWidget bClipCursor;
     bClipCursor.Data = &pWindowRef->CursorCaptureRequested;
 
     strcpy(inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET]->label, "Capture cursor");
     inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET]->pWidget = &bClipCursor;
-    inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET]->type = WIDGET_TYPE_CHECKBOX;
+    inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET]->Type = WIDGET_TYPE_CHECKBOX;
     uiSetWidgetOnEditedCallback(inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET], nullptr, wndUpdateCaptureCursor);
 
     (uiCreateComponentWidget(pWindowControlsComponent, "Cursor", &inputControlsWidget, WIDGET_TYPE_COLLAPSING_HEADER));

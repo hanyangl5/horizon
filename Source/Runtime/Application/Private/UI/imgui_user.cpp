@@ -32,7 +32,7 @@
 
 namespace ImGui
 {
-int KnobFloat(const char* label, float* value_p, const float& step, const float& minv, const float& maxv, const char* format,
+int KnobFloat(const char* label, float* value_p, const float& step, const float& minv, const float& maxv, const char* Format,
               const float& minimumHitRadius, bool doubleTapForText, bool spawnText)
 {
     ImGuiWindow* window = GetCurrentWindow();
@@ -85,7 +85,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     {
         if (spawnText)
         {
-            int retValue = (int)TempInputScalar(inner_bb, id, label, ImGuiDataType_Float, value_p, format);
+            int retValue = (int)TempInputScalar(inner_bb, id, label, ImGuiDataType_Float, value_p, Format);
 
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             // Bottom Label (X, Y, Z, W) Goes Below Knob
@@ -172,7 +172,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
 
     // Display current value (Final value after knob increments)
     char textval[32];
-    ImFormatString(textval, IM_ARRAYSIZE(textval), format, value_p[0]);
+    ImFormatString(textval, IM_ARRAYSIZE(textval), Format, value_p[0]);
 
     uint32_t    col32 = ImGui::GetColorU32(isActive ? ImGuiCol_FrameBgActive : hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
     uint32_t    col32line = ImGui::GetColorU32(ImGuiCol_SliderGrabActive);
@@ -213,7 +213,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
 }
 
 int KnobFloatN(const char* label, float* value_p, const int& components, const float& step, const float& minv, const float& maxv,
-               const char* format, const float& minimumHitRadius, float windowWidthRatio, bool doubleTapForText, bool spawnText,
+               const char* Format, const float& minimumHitRadius, float windowWidthRatio, bool doubleTapForText, bool spawnText,
                float framePaddingScale)
 {
     ImGuiWindow* window = GetCurrentWindow();
@@ -234,7 +234,7 @@ int KnobFloatN(const char* label, float* value_p, const int& components, const f
     float extraFramePadding = GetStyle().FramePadding.x * framePaddingScale;
     float itemSpacing = GetStyle().ItemSpacing.x * 3;
 
-    // Scale the content based on how much of the width we would like to fill
+    // Scale the content based on how much of the Width we would like to fill
     float contentWidth = window->Size.x - GetStyle().FrameBorderSize - GetStyle().ScrollbarSize - itemSpacing - extraFramePadding;
 
     // Compute final Size multipler > 0 to avoid undefined behavior
@@ -249,7 +249,7 @@ int KnobFloatN(const char* label, float* value_p, const int& components, const f
     for (int i = 0; i < components; i++)
     {
         PushID(i);
-        int currValue = KnobFloat(componentNames[i % 4], value_p, step, minv, maxv, format, minimumHitRadius, doubleTapForText, spawnText);
+        int currValue = KnobFloat(componentNames[i % 4], value_p, step, minv, maxv, Format, minimumHitRadius, doubleTapForText, spawnText);
         if (value_changed == 0)
             value_changed = currValue > 1 ? currValue + i : currValue;
         SameLine(0, itemSpacing);

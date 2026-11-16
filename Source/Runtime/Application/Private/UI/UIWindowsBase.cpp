@@ -260,7 +260,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
 
     // VSYNC CONTROL
     UIComponentDesc uiDesc = {};
-    uiDesc.startPosition = Vector2(pSettings->width * 0.7f, pSettings->height * 0.8f);
+    uiDesc.startPosition = Vector2(pSettings->Width * 0.7f, pSettings->Height * 0.8f);
     uiCreateComponent("VSync Control", &uiDesc, &pToggleVSyncComponent);
 
     CheckboxWidget checkbox;
@@ -273,7 +273,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
     // RELOAD CONTROL
     uiDesc = {};
-    uiDesc.startPosition = Vector2(pSettings->width * 0.7f, pSettings->height * 0.9f);
+    uiDesc.startPosition = Vector2(pSettings->Width * 0.7f, pSettings->Height * 0.9f);
     uiCreateComponent("Reload Control", &uiDesc, &pReloadShaderComponent);
 
     platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
@@ -281,7 +281,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
 
     // API SWITCHING
     uiDesc = {};
-    uiDesc.startPosition = Vector2(pSettings->width * 0.6f, pSettings->height * 0.01f);
+    uiDesc.startPosition = Vector2(pSettings->Width * 0.6f, pSettings->Height * 0.01f);
     uiCreateComponent("Graphics Control", &uiDesc, &pAPISwitchingComponent);
 
     static const char* pApiNames[] = { "D3D12" };
@@ -442,20 +442,20 @@ int WindowsMain(int argc, char** argv, IApp* app)
         pSettings->monitorIndex = 0;
     }
 
-    if (pSettings->width <= 0 || pSettings->height <= 0)
+    if (pSettings->Width <= 0 || pSettings->Height <= 0)
     {
         RectDesc rect = {};
 
         GetRecommendedResolution(&rect);
-        pSettings->width = GetRectWidth(&rect);
-        pSettings->height = GetRectHeight(&rect);
+        pSettings->Width = GetRectWidth(&rect);
+        pSettings->Height = GetRectHeight(&rect);
     }
 
     MonitorDesc* monitor = GetMonitor(pSettings->monitorIndex);
     ASSERT(monitor != nullptr);
 
     gWindow->ClientRect = { (int)pSettings->windowX + monitor->MonitorRect.left, (int)pSettings->windowY + monitor->MonitorRect.top,
-                            (int)pSettings->width, (int)pSettings->height };
+                            (int)pSettings->Width, (int)pSettings->Height };
 
     gWindow->WindowedRect = gWindow->ClientRect;
     gWindow->Fullscreen = pSettings->Fullscreen;
@@ -470,8 +470,8 @@ int WindowsMain(int argc, char** argv, IApp* app)
     if (!pSettings->externalWindow)
         OpenWindow(pApp->GetName(), gWindow);
 
-    pSettings->width = gWindow->Fullscreen ? GetRectWidth(&gWindow->FullscreenRect) : GetRectWidth(&gWindow->ClientRect);
-    pSettings->height = gWindow->Fullscreen ? GetRectHeight(&gWindow->FullscreenRect) : GetRectHeight(&gWindow->ClientRect);
+    pSettings->Width = gWindow->Fullscreen ? GetRectWidth(&gWindow->FullscreenRect) : GetRectWidth(&gWindow->ClientRect);
+    pSettings->Height = gWindow->Fullscreen ? GetRectHeight(&gWindow->FullscreenRect) : GetRectHeight(&gWindow->ClientRect);
 
     pApp->pCommandLine = GetCommandLineA();
 
@@ -593,9 +593,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
         }
         baseSubsystemAppDrawn = false;
 
-        if (gResetDescriptor.type != ResetTypeNone)
+        if (gResetDescriptor.Type != ResetTypeNone)
         {
-            if (gResetDescriptor.type & ResetTypeDeviceLost)
+            if (gResetDescriptor.Type & ResetTypeDeviceLost)
             {
                 ErrorMessagePopup(
                     "Graphics Device Lost",
@@ -604,13 +604,13 @@ int WindowsMain(int argc, char** argv, IApp* app)
                     &pApp->pWindow->Handle, NULL);
             }
 
-            if (gResetDescriptor.type & ResetTypeGraphicCardSwitch)
+            if (gResetDescriptor.Type & ResetTypeGraphicCardSwitch)
             {
                 ASSERT(gPlatformParameters.selectedGpuIndex < gPlatformParameters.availableGpuCount);
                 gPlatformParameters.preferedGpuId = gPlatformParameters.pAvailableGpuIds[gPlatformParameters.selectedGpuIndex];
             }
 
-            gReloadDescriptor.type = RELOAD_TYPE_ALL;
+            gReloadDescriptor.Type = RELOAD_TYPE_ALL;
             pApp->Unload(&gReloadDescriptor);
             pApp->Exit();
 
@@ -649,11 +649,11 @@ int WindowsMain(int argc, char** argv, IApp* app)
                 LOGF(LogLevel::Info, "Application Reset %fms", GetTimerMSec(&t, false) / 1000.0f);
             }
 
-            gResetDescriptor.type = ResetTypeNone;
+            gResetDescriptor.Type = ResetTypeNone;
             continue;
         }
 
-        if (gReloadDescriptor.type != RELOAD_TYPE_ALL)
+        if (gReloadDescriptor.Type != RELOAD_TYPE_ALL)
         {
             Timer t;
             InitTimer(&t);
@@ -663,7 +663,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
                 return EXIT_FAILURE;
 
             LOGF(LogLevel::Info, "Application Reload %fms", GetTimerMSec(&t, false) / 1000.0f);
-            gReloadDescriptor.type = RELOAD_TYPE_ALL;
+            gReloadDescriptor.Type = RELOAD_TYPE_ALL;
             continue;
         }
 
@@ -710,7 +710,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
     //     }
     // #endif
 
-    gReloadDescriptor.type = RELOAD_TYPE_ALL;
+    gReloadDescriptor.Type = RELOAD_TYPE_ALL;
     pApp->settings.quit = true;
     pApp->Unload(&gReloadDescriptor);
     pApp->Exit();

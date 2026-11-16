@@ -81,7 +81,7 @@ public:
     void SetTimeRatio(float timeRatio);
 
 private:
-    // Sets the various blend parameters based on the type of blend set
+    // Sets the various blend parameters based on the Type of blend set
     void UpdateBlendParameters();
 
     // Blend the sampled clips together based on their blend parameters

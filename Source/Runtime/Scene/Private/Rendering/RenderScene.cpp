@@ -31,10 +31,10 @@ static bool equalLens(const Camera& a, const Camera& b)
 }
 static bool equalLight(const RenderLight& a, const RenderLight& b)
 {
-    return a.entityGuid == b.entityGuid && equalMatrix(a.transform, b.transform) && a.type == b.type && a.color[0] == b.color[0] &&
+    return a.entityGuid == b.entityGuid && equalMatrix(a.transform, b.transform) && a.Type == b.Type && a.color[0] == b.color[0] &&
            a.color[1] == b.color[1] && a.color[2] == b.color[2] && a.intensity == b.intensity && a.range == b.range &&
            a.innerConeAngle == b.innerConeAngle && a.outerConeAngle == b.outerConeAngle && a.exposure == b.exposure &&
-           a.angularDiameter == b.angularDiameter && a.width == b.width && a.height == b.height && a.radius == b.radius &&
+           a.angularDiameter == b.angularDiameter && a.Width == b.Width && a.Height == b.Height && a.radius == b.radius &&
            a.length == b.length && a.colorTemperature == b.colorTemperature && a.enableColorTemperature == b.enableColorTemperature &&
            a.normalize == b.normalize && a.twoSided == b.twoSided && a.texture == b.texture && a.primitive == b.primitive &&
            a.ready == b.ready;
@@ -136,7 +136,7 @@ public:
         RenderLightEntity& lightEntity = data.lightEntities[pIndex->value];
         lightEntity.seen = true;
         const Light&  light = *(const Light*)fields.Data[0];
-        const AssetID textureID = light.type >= LightType::Rect ? light.texture : AssetID{};
+        const AssetID textureID = light.Type >= LightType::Rect ? light.texture : AssetID{};
         if (lightEntity.textureID != textureID)
         {
             if (lightEntity.texture.isValid())
@@ -182,7 +182,7 @@ public:
                 .id = entity.id,
                 .entityGuid = world.getEntityGuid(entity.entity),
                 .transform = world.getWorldTransform(entity.entity)->current,
-                .type = source.type,
+                .Type = source.Type,
                 .color = { (float)source.color.getX(), (float)source.color.getY(), (float)source.color.getZ() },
                 .intensity = source.intensity,
                 .range = source.range,
@@ -190,8 +190,8 @@ public:
                 .outerConeAngle = source.outerConeAngle,
                 .exposure = source.exposure,
                 .angularDiameter = source.angularDiameter,
-                .width = source.width,
-                .height = source.height,
+                .Width = source.Width,
+                .Height = source.Height,
                 .radius = source.radius,
                 .length = source.length,
                 .colorTemperature = source.colorTemperature,
@@ -202,7 +202,7 @@ public:
             };
             if (entity.textureID.isValid() && next.ready)
                 next.texture = { .index = entity.texture.index, .generation = entity.texture.generation };
-            if (source.type == LightType::Mesh)
+            if (source.Type == LightType::Mesh)
             {
                 const RenderEntityIndex* pIndex = hmgetp_null(pIndices, entity.entity);
                 if (pIndex)

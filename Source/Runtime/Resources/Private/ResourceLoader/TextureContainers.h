@@ -39,7 +39,7 @@
 /************************************************************************/
 // Surface Utils
 /************************************************************************/
-static inline bool util_get_surface_info(uint32_t width, uint32_t height, hz::Format fmt, uint32_t* outNumBytes, uint32_t* outRowBytes,
+static inline bool util_get_surface_info(uint32_t Width, uint32_t Height, hz::Format fmt, uint32_t* outNumBytes, uint32_t* outRowBytes,
                                          uint32_t* outNumRows)
 {
     uint64_t numBytes = 0;
@@ -58,13 +58,13 @@ static inline bool util_get_surface_info(uint32_t width, uint32_t height, hz::Fo
         uint32_t blockHeight = TinyImageFormat_HeightOfBlock((TinyImageFormat)fmt);
         uint32_t numBlocksWide = 0;
         uint32_t numBlocksHigh = 0;
-        if (width > 0)
+        if (Width > 0)
         {
-            numBlocksWide = max(1U, (width + (blockWidth - 1)) / blockWidth);
+            numBlocksWide = max(1U, (Width + (blockWidth - 1)) / blockWidth);
         }
-        if (height > 0)
+        if (Height > 0)
         {
-            numBlocksHigh = max(1u, (height + (blockHeight - 1)) / blockHeight);
+            numBlocksHigh = max(1u, (Height + (blockHeight - 1)) / blockHeight);
         }
 
         rowBytes = numBlocksWide * (bpp >> 3);
@@ -75,9 +75,9 @@ static inline bool util_get_surface_info(uint32_t width, uint32_t height, hz::Fo
     {
         LOGF(Error, "Not implemented");
         return false;
-        // rowBytes = ((uint64_t(width) + 1u) >> 1) * bpe;
-        // numRows = uint64_t(height);
-        // numBytes = rowBytes * height;
+        // rowBytes = ((uint64_t(Width) + 1u) >> 1) * bpe;
+        // numRows = uint64_t(Height);
+        // numBytes = rowBytes * Height;
     }
     else if (planar)
     {
@@ -85,8 +85,8 @@ static inline bool util_get_surface_info(uint32_t width, uint32_t height, hz::Fo
 
         for (uint32_t i = 0; i < numOfPlanes; ++i)
         {
-            numBytes += TinyImageFormat_PlaneWidth((TinyImageFormat)fmt, i, width) *
-                        TinyImageFormat_PlaneHeight((TinyImageFormat)fmt, i, height) *
+            numBytes += TinyImageFormat_PlaneWidth((TinyImageFormat)fmt, i, Width) *
+                        TinyImageFormat_PlaneHeight((TinyImageFormat)fmt, i, Height) *
                         TinyImageFormat_PlaneSizeOfBlock((TinyImageFormat)fmt, i);
         }
 
@@ -98,9 +98,9 @@ static inline bool util_get_surface_info(uint32_t width, uint32_t height, hz::Fo
         if (!bpp)
             return false;
 
-        rowBytes = ((uint64_t)width * bpp + 7u) / 8u; // round up to nearest byte
-        numRows = (uint64_t)height;
-        numBytes = rowBytes * height;
+        rowBytes = ((uint64_t)Width * bpp + 7u) / 8u; // round up to nearest byte
+        numRows = (uint64_t)Height;
+        numBytes = rowBytes * Height;
     }
 
     if (numBytes > UINT32_MAX || rowBytes > UINT32_MAX || numRows > UINT32_MAX) //-V560
@@ -122,23 +122,23 @@ static inline bool util_get_surface_info(uint32_t width, uint32_t height, hz::Fo
     return true;
 }
 
-static inline uint32_t util_get_surface_size(hz::Format format, uint32_t width, uint32_t height, uint32_t depth, uint32_t rowStride,
-                                             uint32_t sliceStride, uint32_t baseMipLevel, uint32_t mipLevels, uint32_t baseArrayLayer,
+static inline uint32_t util_get_surface_size(hz::Format Format, uint32_t Width, uint32_t Height, uint32_t Depth, uint32_t rowStride,
+                                             uint32_t sliceStride, uint32_t baseMipLevel, uint32_t MipLevels, uint32_t baseArrayLayer,
                                              uint32_t arrayLayers)
 {
     uint32_t requiredSize = 0;
     for (uint32_t s = baseArrayLayer; s < baseArrayLayer + arrayLayers; ++s)
     {
-        uint32_t w = width;
-        uint32_t h = height;
-        uint32_t d = depth;
+        uint32_t w = Width;
+        uint32_t h = Height;
+        uint32_t d = Depth;
 
-        for (uint32_t m = baseMipLevel; m < baseMipLevel + mipLevels; ++m)
+        for (uint32_t m = baseMipLevel; m < baseMipLevel + MipLevels; ++m)
         {
             uint32_t rowBytes = 0;
             uint32_t numRows = 0;
 
-            if (!util_get_surface_info(w, h, format, NULL, &rowBytes, &numRows))
+            if (!util_get_surface_info(w, h, Format, NULL, &rowBytes, &numRows))
             {
                 return 0;
             }
@@ -225,16 +225,16 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     }
 
     TextureDesc& textureDesc = *pOutDesc;
-    textureDesc.width = TinyDDS_Width(ctx);
-    textureDesc.height = TinyDDS_Height(ctx);
-    textureDesc.depth = max(1U, TinyDDS_Depth(ctx));
-    textureDesc.arraySize = max(1U, TinyDDS_ArraySlices(ctx));
-    textureDesc.mipLevels = max(1U, TinyDDS_NumberOfMipmaps(ctx));
-    textureDesc.format = (hz::Format)TinyImageFormat_FromTinyDDSFormat(TinyDDS_GetFormat(ctx));
-    textureDesc.descriptors = DescriptorTypeTexture;
-    textureDesc.sampleCount = SAMPLE_COUNT_1;
+    textureDesc.Width = TinyDDS_Width(ctx);
+    textureDesc.Height = TinyDDS_Height(ctx);
+    textureDesc.Depth = max(1U, TinyDDS_Depth(ctx));
+    textureDesc.ArraySize = max(1U, TinyDDS_ArraySlices(ctx));
+    textureDesc.MipLevels = max(1U, TinyDDS_NumberOfMipmaps(ctx));
+    textureDesc.Format = (hz::Format)TinyImageFormat_FromTinyDDSFormat(TinyDDS_GetFormat(ctx));
+    textureDesc.Descriptors = DescriptorTypeTexture;
+    textureDesc.SampleCount = SAMPLE_COUNT_1;
 
-    if (textureDesc.format == hz::Format::UNDEFINED)
+    if (textureDesc.Format == hz::Format::UNDEFINED)
     {
         TinyDDS_DestroyContext(ctx);
         return false;
@@ -242,8 +242,8 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 
     if (TinyDDS_IsCubemap(ctx))
     {
-        textureDesc.arraySize *= 6;
-        textureDesc.descriptors |= DescriptorTypeTextureCube;
+        textureDesc.ArraySize *= 6;
+        textureDesc.Descriptors |= DescriptorTypeTextureCube;
     }
 
     TinyDDS_DestroyContext(ctx);
@@ -290,16 +290,16 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     }
 
     TextureDesc& textureDesc = *pOutDesc;
-    textureDesc.width = TinyKtx_Width(ctx);
-    textureDesc.height = TinyKtx_Height(ctx);
-    textureDesc.depth = max(1U, TinyKtx_Depth(ctx));
-    textureDesc.arraySize = max(1U, TinyKtx_ArraySlices(ctx));
-    textureDesc.mipLevels = max(1U, TinyKtx_NumberOfMipmaps(ctx));
-    textureDesc.format = (hz::Format)TinyImageFormat_FromTinyKtxFormat(TinyKtx_GetFormat(ctx));
-    textureDesc.descriptors = DescriptorTypeTexture;
-    textureDesc.sampleCount = SAMPLE_COUNT_1;
+    textureDesc.Width = TinyKtx_Width(ctx);
+    textureDesc.Height = TinyKtx_Height(ctx);
+    textureDesc.Depth = max(1U, TinyKtx_Depth(ctx));
+    textureDesc.ArraySize = max(1U, TinyKtx_ArraySlices(ctx));
+    textureDesc.MipLevels = max(1U, TinyKtx_NumberOfMipmaps(ctx));
+    textureDesc.Format = (hz::Format)TinyImageFormat_FromTinyKtxFormat(TinyKtx_GetFormat(ctx));
+    textureDesc.Descriptors = DescriptorTypeTexture;
+    textureDesc.SampleCount = SAMPLE_COUNT_1;
 
-    if (textureDesc.format == hz::Format::UNDEFINED)
+    if (textureDesc.Format == hz::Format::UNDEFINED)
     {
         TinyKtx_DestroyContext(ctx);
         return false;
@@ -307,8 +307,8 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 
     if (TinyKtx_IsCubemap(ctx))
     {
-        textureDesc.arraySize *= 6;
-        textureDesc.descriptors |= DescriptorTypeTextureCube;
+        textureDesc.ArraySize *= 6;
+        textureDesc.Descriptors |= DescriptorTypeTextureCube;
     }
 
     TinyKtx_DestroyContext(ctx);

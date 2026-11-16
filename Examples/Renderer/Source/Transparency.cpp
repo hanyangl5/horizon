@@ -40,18 +40,18 @@ Transparency::Transparency(hz::RenderContext& Context, hz::Format DepthFormat): 
 {
     ClearPipeline = Context.createComputePipeline(
         { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearMain" } }, .pFileName = "Transparency.slang" },
-          .pName = "Renderer.OIT.Clear" });
+          .Name = "Renderer.OIT.Clear" });
     GatherPipeline =
         Context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
                                                                      { .stage = ShaderStageFrag, .pEntryPoint = "PSTransparent" } },
                                                          .pFileName = "Transparency.slang" },
-                                         .depth = { .depthTest = true, .depthWrite = false, .depthFunc = CMP_LEQUAL },
+                                         .Depth = { .depthTest = true, .depthWrite = false, .depthFunc = CMP_LEQUAL },
                                          .depthStencilFormat = DepthFormat,
                                          .indirectDrawId = true,
-                                         .pName = "Renderer.OIT.Gather" });
+                                         .Name = "Renderer.OIT.Gather" });
     ResolvePipeline = Context.createComputePipeline(
         { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ResolveMain" } }, .pFileName = "Transparency.slang" },
-          .pName = "Renderer.OIT.Resolve" });
+          .Name = "Renderer.OIT.Resolve" });
     SurfaceSampler = Context.createSampler();
     ASSERT(ClearPipeline.isValid() && GatherPipeline.isValid() && ResolvePipeline.isValid() && SurfaceSampler.isValid());
 }
@@ -64,32 +64,32 @@ void Transparency::Resize(uint32_t NewWidth, uint32_t NewHeight, uint32_t Fragme
     const uint64_t Capacity = uint64_t(Width) * Height * FragmentsPerPixel;
     ASSERT(Capacity <= UINT32_MAX / 16);
     MaxNodes = (uint32_t)Capacity;
-    Heads = Context.createTexture({ .width = Width,
-                                    .height = Height,
-                                    .format = hz::Format::R32_UINT,
-                                    .startState = ResourceStateUnorderedAccess,
-                                    .descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
-                                    .flags = TextureCreationFlagForce2D,
-                                    .pName = "Renderer.OIT.Heads" });
-    Color = Context.createTexture({ .width = Width,
-                                    .height = Height,
-                                    .format = hz::Format::R32G32B32A32_SFLOAT,
-                                    .startState = ResourceStateUnorderedAccess,
-                                    .descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
-                                    .flags = TextureCreationFlagForce2D,
-                                    .pName = "Renderer.OIT.Resolved" });
+    Heads = Context.createTexture({ .Width = Width,
+                                    .Height = Height,
+                                    .Format = hz::Format::R32_UINT,
+                                    .StartState = ResourceStateUnorderedAccess,
+                                    .Descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
+                                    .Flags = TextureCreationFlagForce2D,
+                                    .Name = "Renderer.OIT.Heads" });
+    Color = Context.createTexture({ .Width = Width,
+                                    .Height = Height,
+                                    .Format = hz::Format::R32G32B32A32_SFLOAT,
+                                    .StartState = ResourceStateUnorderedAccess,
+                                    .Descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
+                                    .Flags = TextureCreationFlagForce2D,
+                                    .Name = "Renderer.OIT.Resolved" });
     Nodes = Context.createBuffer({ .Size = Capacity * 16,
-                                   .elementCount = MaxNodes * 4,
-                                   .pName = "Renderer.OIT.Nodes",
+                                   .ElementCount = MaxNodes * 4,
+                                   .Name = "Renderer.OIT.Nodes",
                                    .usage = MemoryUsageGpuOnly,
-                                   .startState = ResourceStateUnorderedAccess,
-                                   .descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
+                                   .StartState = ResourceStateUnorderedAccess,
+                                   .Descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
     Counters = Context.createBuffer({ .Size = 16,
-                                      .elementCount = 4,
-                                      .pName = "Renderer.OIT.Counters",
+                                      .ElementCount = 4,
+                                      .Name = "Renderer.OIT.Counters",
                                       .usage = MemoryUsageGpuOnly,
-                                      .startState = ResourceStateUnorderedAccess,
-                                      .descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
+                                      .StartState = ResourceStateUnorderedAccess,
+                                      .Descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
     ASSERT(Heads.isValid() && Color.isValid() && Nodes.isValid() && Counters.isValid());
 }
 
@@ -97,7 +97,7 @@ const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz:
                                             const SceneView& View, const GpuDrawList& Draws, const LightingResources& Lighting,
                                             const hz::GPUTexture& OpaqueColor)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Transparency::Execute");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Transparency::execute");
     ASSERT(Width && Height && Lighting.LightingFrame && Lighting.EnvironmentSampler);
     TransparencyConstants Constants = { .frameIndex = Frame.getSrvIndex(),
                                         .oitHeadsIndex = Heads.getUavIndex(),

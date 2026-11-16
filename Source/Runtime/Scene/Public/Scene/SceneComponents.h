@@ -9,7 +9,7 @@ namespace hz
 {
 namespace SceneTypes
 {
-// Persistent schema IDs; renaming a type must not change its ID.
+// Persistent schema IDs; renaming a Type must not change its ID.
 constexpr uint64_t entityIdentity = 1;
 constexpr uint64_t name = 2;
 constexpr uint64_t localTransform = 3;
@@ -74,7 +74,7 @@ enum class LightType : int32_t
 // Lengths are local-space meters, angles are radians, color is scene-linear RGB.
 struct Light
 {
-    LightType type = LightType::Point;
+    LightType Type = LightType::Point;
     Vector3   color = Vector3(1.0f);
     // Point/Spot: W/sr; Directional: W/m^2; Dome/area: W/(m^2 sr).
     // Normalized area lights instead specify total power in W, before texture modulation.
@@ -84,8 +84,8 @@ struct Light
     float     outerConeAngle = 0.785398163f;
     float     exposure = 0.0f;        // Emission multiplier: 2^exposure.
     float     angularDiameter = 0.0f; // Directional: full cone angle; 0 is a delta light.
-    float     width = 1.0f;           // Rect spans local X/Y and emits along -Z.
-    float     height = 1.0f;
+    float     Width = 1.0f;           // Rect spans local X/Y and emits along -Z.
+    float     Height = 1.0f;
     float     radius = 0.5f;              // Disk (XY, -Z), Sphere, or Cylinder.
     float     length = 1.0f;              // Cylinder along local Y, emitting from its side without end caps.
     AssetID   texture;                    // Linear emission map; Dome uses latitude-longitude, Mesh uses mesh UVs.

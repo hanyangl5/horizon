@@ -75,7 +75,7 @@ static bool invalidField(const char* pField)
     return false;
 }
 
-static const cJSON* field(const cJSON* pObject, const char* pName) { return cJSON_GetObjectItemCaseSensitive(pObject, pName); }
+static const cJSON* field(const cJSON* pObject, const char* Name) { return cJSON_GetObjectItemCaseSensitive(pObject, Name); }
 
 static bool readFloat(const cJSON* pValue, float& output, float minimum = -FLT_MAX, float maximum = FLT_MAX)
 {
@@ -85,16 +85,16 @@ static bool readFloat(const cJSON* pValue, float& output, float minimum = -FLT_M
     return true;
 }
 
-static bool readFloats(const cJSON* pObject, const char* pName, float* pOutput, uint32_t Count, float minimum = -FLT_MAX,
+static bool readFloats(const cJSON* pObject, const char* Name, float* pOutput, uint32_t Count, float minimum = -FLT_MAX,
                        float maximum = FLT_MAX)
 {
-    const cJSON* pArray = field(pObject, pName);
+    const cJSON* pArray = field(pObject, Name);
     if (!cJSON_IsArray(pArray) || cJSON_GetArraySize(pArray) != (int)Count)
-        return invalidField(pName);
+        return invalidField(Name);
     uint32_t index = 0;
     for (const cJSON* pValue = pArray->child; pValue; pValue = pValue->next)
         if (!readFloat(pValue, pOutput[index++], minimum, maximum))
-            return invalidField(pName);
+            return invalidField(Name);
     return true;
 }
 
@@ -200,7 +200,7 @@ bool SceneAssetReader::readMaterials(const cJSON* pArray)
     for (const cJSON* pItem = pArray->child; pItem; pItem = pItem->next)
     {
         SceneAssetMaterial material;
-        if (!readID(pItem, material.id, AssetKind::Material) || !readString(pItem, "name", material.pName) ||
+        if (!readID(pItem, material.id, AssetKind::Material) || !readString(pItem, "name", material.Name) ||
             !readReference(pItem, "baseColorTexture", material.baseColorTexture, AssetKind::Texture) ||
             !readReference(pItem, "normalTexture", material.normalTexture, AssetKind::Texture) ||
             !readReference(pItem, "metallicRoughnessTexture", material.metallicRoughnessTexture, AssetKind::Texture) ||
@@ -237,7 +237,7 @@ bool SceneAssetReader::readMeshes(const cJSON* pArray)
     for (const cJSON* pItem = pArray->child; pItem; pItem = pItem->next)
     {
         SceneAssetMesh mesh;
-        if (!readID(pItem, mesh.id, AssetKind::Mesh) || !readString(pItem, "name", mesh.pName) ||
+        if (!readID(pItem, mesh.id, AssetKind::Mesh) || !readString(pItem, "name", mesh.Name) ||
             !readString(pItem, "geometry", mesh.pGeometry, true))
             return false;
         const uint32_t first = data.submeshes.Size();
@@ -301,7 +301,7 @@ bool SceneAssetReader::readNodes(const cJSON* pArray)
     for (const cJSON* pItem = pArray->child; pItem; pItem = pItem->next)
     {
         SceneAssetNode node;
-        if (!readString(pItem, "name", node.pName) || !readReference(pItem, "mesh", node.mesh, AssetKind::Mesh, true))
+        if (!readString(pItem, "name", node.Name) || !readReference(pItem, "mesh", node.mesh, AssetKind::Mesh, true))
             return false;
         if (!readInteger(field(pItem, "parent"), -1, (double)Count - 1))
             return invalidField("nodes.parent");
@@ -456,7 +456,7 @@ Entity SceneAsset::instantiate(World& world, Entity parent) const
             if (!entity.isValid())
                 break;
             entities.PushBack(entity);
-            copyName(name, node.pName);
+            copyName(name, node.Name);
             copied &= world.setComponent(entity, SceneTypes::name, &name);
             copied &= node.hasMatrix ? world.setComponent(entity, SceneTypes::localMatrix, &node.matrix)
                                      : world.setComponent(entity, SceneTypes::localTransform, &node.transform);

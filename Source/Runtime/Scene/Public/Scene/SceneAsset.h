@@ -26,7 +26,7 @@ enum class MaterialAlphaMode : uint32_t
 struct SceneAssetMaterial
 {
     AssetID           id;
-    const char*       pName = "";
+    const char*       Name = "";
     AssetID           baseColorTexture;
     AssetID           normalTexture;
     AssetID           metallicRoughnessTexture;
@@ -50,14 +50,14 @@ struct SceneAssetSubmesh
 struct SceneAssetMesh
 {
     AssetID                 id;
-    const char*             pName = "";
+    const char*             Name = "";
     const char*             pGeometry = "";
     Span<SceneAssetSubmesh> submeshes;
 };
 
 struct SceneAssetNode
 {
-    const char*    pName = "";
+    const char*    Name = "";
     uint32_t       parent = UINT32_MAX;
     AssetID        mesh;
     LocalTransform transform;

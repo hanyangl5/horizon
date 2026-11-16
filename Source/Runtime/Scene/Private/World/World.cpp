@@ -65,30 +65,30 @@ static void initWorldOS()
 
 void WorldImpl::constructComponents(void* pDestination, int32_t Count, const ecs_type_info_t* pInfo)
 {
-    const TypeDesc& type = *(const TypeDesc*)pInfo->hooks.ctx;
+    const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < Count; ++i)
-        type.construct((uint8_t*)pDestination + (size_t)i * type.Size);
+        Type.construct((uint8_t*)pDestination + (size_t)i * Type.Size);
 }
 
 void WorldImpl::destroyComponents(void* pValue, int32_t Count, const ecs_type_info_t* pInfo)
 {
-    const TypeDesc& type = *(const TypeDesc*)pInfo->hooks.ctx;
+    const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < Count; ++i)
-        type.destroy((uint8_t*)pValue + (size_t)i * type.Size);
+        Type.destroy((uint8_t*)pValue + (size_t)i * Type.Size);
 }
 
 void WorldImpl::copyConstructComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
 {
-    const TypeDesc& type = *(const TypeDesc*)pInfo->hooks.ctx;
+    const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < Count; ++i)
-        type.copyConstruct((uint8_t*)pDestination + (size_t)i * type.Size, (const uint8_t*)pSource + (size_t)i * type.Size);
+        Type.copyConstruct((uint8_t*)pDestination + (size_t)i * Type.Size, (const uint8_t*)pSource + (size_t)i * Type.Size);
 }
 
 void WorldImpl::moveConstructComponents(void* pDestination, void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
 {
-    const TypeDesc& type = *(const TypeDesc*)pInfo->hooks.ctx;
+    const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < Count; ++i)
-        type.moveConstruct((uint8_t*)pDestination + (size_t)i * type.Size, (uint8_t*)pSource + (size_t)i * type.Size);
+        Type.moveConstruct((uint8_t*)pDestination + (size_t)i * Type.Size, (uint8_t*)pSource + (size_t)i * Type.Size);
 }
 
 void WorldImpl::copyComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
@@ -122,7 +122,7 @@ WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& entityGuid
     for (uint32_t i = 0; i < registry.Size(); ++i)
     {
         const TypeDesc*         pType = registry.getTypeAt(i);
-        const ecs_entity_desc_t entityDesc = { .name = pType->pName, .sep = "", .use_low_id = true };
+        const ecs_entity_desc_t entityDesc = { .name = pType->Name, .sep = "", .use_low_id = true };
         const ecs_component_desc_t desc = {
             .entity = ecs_entity_init(pWorld, &entityDesc),
             .type = {
@@ -185,55 +185,55 @@ bool World::isAlive(Entity entity) const
     return owns(entity) && entity.isValid() && ecs_is_alive(pImpl->pWorld, entity.value);
 }
 
-bool World::addComponent(Entity entity, TypeID type)
+bool World::addComponent(Entity entity, TypeID Type)
 {
-    if (type == SceneTypes::entityIdentity)
+    if (Type == SceneTypes::entityIdentity)
     {
         LOGF(Error, "EntityIdentity is managed by World::createPersistentEntity");
         return false;
     }
     if (!isAlive(entity))
         return false;
-    const WorldType* pType = pImpl->findType(type);
+    const WorldType* pType = pImpl->findType(Type);
     if (!pType)
         return false;
-    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
+    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
         return false;
     ecs_add_id(pImpl->pWorld, entity.value, pType->component);
     return true;
 }
 
-bool World::removeComponent(Entity entity, TypeID type)
+bool World::removeComponent(Entity entity, TypeID Type)
 {
-    if (type == SceneTypes::entityIdentity)
+    if (Type == SceneTypes::entityIdentity)
     {
         LOGF(Error, "EntityIdentity cannot be removed from a live entity");
         return false;
     }
     if (!isAlive(entity))
         return false;
-    const WorldType* pType = pImpl->findType(type);
+    const WorldType* pType = pImpl->findType(Type);
     if (!pType)
         return false;
-    pImpl->pHierarchy->prepareLocalChange(entity.value, type, false);
+    pImpl->pHierarchy->prepareLocalChange(entity.value, Type, false);
     ecs_remove_id(pImpl->pWorld, entity.value, pType->component);
     return true;
 }
 
-bool World::setComponent(Entity entity, TypeID type, const void* pValue)
+bool World::setComponent(Entity entity, TypeID Type, const void* pValue)
 {
     ASSERT(pValue);
-    if (type == SceneTypes::entityIdentity)
+    if (Type == SceneTypes::entityIdentity)
     {
         LOGF(Error, "EntityIdentity cannot be changed after entity creation");
         return false;
     }
     if (!isAlive(entity))
         return false;
-    const WorldType* pType = pImpl->findType(type);
+    const WorldType* pType = pImpl->findType(Type);
     if (!pType)
         return false;
-    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, type, true))
+    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
         return false;
     if (!ecs_has_id(pImpl->pWorld, entity.value, pType->component) && !ecs_is_deferred(pImpl->pWorld))
     {
@@ -250,11 +250,11 @@ bool World::setComponent(Entity entity, TypeID type, const void* pValue)
     return true;
 }
 
-const void* World::getComponent(Entity entity, TypeID type) const
+const void* World::getComponent(Entity entity, TypeID Type) const
 {
     if (!isAlive(entity))
         return nullptr;
-    const WorldType* pType = pImpl->findType(type);
+    const WorldType* pType = pImpl->findType(Type);
     return pType ? ecs_get_id(pImpl->pWorld, entity.value, pType->component) : nullptr;
 }
 

@@ -181,13 +181,13 @@ void onResize(WindowDesc* wnd, int32_t newSizeX, int32_t newSizeY, bool Maximize
     }
 
     pWindowAppRef->settings.Fullscreen = wnd->Fullscreen;
-    if (pWindowAppRef->settings.width == newSizeX && pWindowAppRef->settings.height == newSizeY)
+    if (pWindowAppRef->settings.Width == newSizeX && pWindowAppRef->settings.Height == newSizeY)
     {
         return;
     }
 
-    pWindowAppRef->settings.width = newSizeX;
-    pWindowAppRef->settings.height = newSizeY;
+    pWindowAppRef->settings.Width = newSizeX;
+    pWindowAppRef->settings.Height = newSizeY;
     wnd->Maximized = Maximized;
     wnd->Minimized = false;
 
@@ -204,7 +204,7 @@ void onResize(WindowDesc* wnd, int32_t newSizeX, int32_t newSizeY, bool Maximize
     wnd->WindowHeight = rect.bottom - rect.top;
 
     ReloadDesc reloadDesc;
-    reloadDesc.type = RELOAD_TYPE_RESIZE;
+    reloadDesc.Type = RELOAD_TYPE_RESIZE;
     RequestReload(&reloadDesc);
 }
 
@@ -410,11 +410,11 @@ void collectMonitorInfo()
         devMode.dmFields = DM_PELSHEIGHT | DM_PELSWIDTH;
 
         EnumDisplaySettingsW(pMonitor->AdapterName, ENUM_CURRENT_SETTINGS, &devMode);
-        pMonitor->DefaultResolution.height = devMode.dmPelsHeight;
-        pMonitor->DefaultResolution.width = devMode.dmPelsWidth;
+        pMonitor->DefaultResolution.Height = devMode.dmPelsHeight;
+        pMonitor->DefaultResolution.Width = devMode.dmPelsWidth;
 
-        pMonitor->Dpi[0] = (uint32_t)((pMonitor->DefaultResolution.width * 25.4) / pMonitor->PhysicalSize[0]);
-        pMonitor->Dpi[1] = (uint32_t)((pMonitor->DefaultResolution.height * 25.4) / pMonitor->PhysicalSize[1]);
+        pMonitor->Dpi[0] = (uint32_t)((pMonitor->DefaultResolution.Width * 25.4) / pMonitor->PhysicalSize[0]);
+        pMonitor->Dpi[1] = (uint32_t)((pMonitor->DefaultResolution.Height * 25.4) / pMonitor->PhysicalSize[1]);
 
         Resolution* Resolutions = NULL;
         DWORD       current = 0;
@@ -426,7 +426,7 @@ void collectMonitorInfo()
             bool duplicate = false;
             for (ptrdiff_t i = 0; i < arrlen(Resolutions); ++i)
             {
-                if (Resolutions[i].width == (uint32_t)devMode.dmPelsWidth && Resolutions[i].height == (uint32_t)devMode.dmPelsHeight)
+                if (Resolutions[i].Width == (uint32_t)devMode.dmPelsWidth && Resolutions[i].Height == (uint32_t)devMode.dmPelsHeight)
                 {
                     duplicate = true;
                     break;
@@ -437,8 +437,8 @@ void collectMonitorInfo()
                 continue;
 
             Resolution videoMode = {};
-            videoMode.height = devMode.dmPelsHeight;
-            videoMode.width = devMode.dmPelsWidth;
+            videoMode.Height = devMode.dmPelsHeight;
+            videoMode.Width = devMode.dmPelsWidth;
             arrpush(Resolutions, videoMode);
         }
         Sort(
@@ -448,10 +448,10 @@ void collectMonitorInfo()
                 UNREF_PARAM(User);
                 Resolution* pLhs = (Resolution*)lhs;
                 Resolution* pRhs = (Resolution*)rhs;
-                if (pLhs->height == pRhs->height)
-                    return pLhs->width < pRhs->width;
+                if (pLhs->Height == pRhs->Height)
+                    return pLhs->Width < pRhs->Width;
 
-                return pLhs->height < pRhs->height;
+                return pLhs->Height < pRhs->Height;
             },
             NULL);
 
@@ -596,7 +596,7 @@ void OpenWindow(const char* app_name, WindowDesc* winDesc)
 
     if (hwnd != NULL)
     {
-        winDesc->Handle.type = WindowHandleTypeWin32;
+        winDesc->Handle.Type = WindowHandleTypeWin32;
         winDesc->Handle.window = hwnd;
 
         GetClientRect(hwnd, &rect);
@@ -698,13 +698,13 @@ void SetWindowRect(WindowDesc* winDesc, const RectDesc* rect)
     }
 }
 
-void SetWindowSize(WindowDesc* winDesc, unsigned width, unsigned height)
+void SetWindowSize(WindowDesc* winDesc, unsigned Width, unsigned Height)
 {
     RectDesc newWindowRect;
     newWindowRect.left = winDesc->WindowedRect.left;
     newWindowRect.top = winDesc->WindowedRect.top;
-    newWindowRect.right = newWindowRect.left + (int32_t)width;
-    newWindowRect.bottom = newWindowRect.top + (int32_t)height;
+    newWindowRect.right = newWindowRect.left + (int32_t)Width;
+    newWindowRect.bottom = newWindowRect.top + (int32_t)Height;
 
     SetWindowRect(winDesc, &newWindowRect);
 }
@@ -762,10 +762,10 @@ void toggleFullscreen(WindowDesc* winDesc)
     }
 }
 
-void SetWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
+void SetWindowed(WindowDesc* winDesc, unsigned Width, unsigned Height)
 {
-    UNREF_PARAM(width);
-    UNREF_PARAM(height);
+    UNREF_PARAM(Width);
+    UNREF_PARAM(Height);
     winDesc->Maximized = false;
 
     if (winDesc->Fullscreen)
@@ -779,19 +779,19 @@ void SetWindowed(WindowDesc* winDesc, unsigned width, unsigned height)
     winDesc->Mode = WindowMode::WindowModeWindowed;
 }
 
-void SetBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
+void SetBorderless(WindowDesc* winDesc, unsigned Width, unsigned Height)
 {
     if (winDesc->Fullscreen)
     {
         toggleFullscreen(winDesc);
         if (!winDesc->Borderless)
-            toggleBorderless(winDesc, width, height);
+            toggleBorderless(winDesc, Width, Height);
         winDesc->Mode = WindowMode::WindowModeBorderless;
     }
     else if (!winDesc->Borderless)
     {
         winDesc->Mode = WindowMode::WindowModeBorderless;
-        toggleBorderless(winDesc, width, height);
+        toggleBorderless(winDesc, Width, Height);
         if (!winDesc->Borderless)
             winDesc->Mode = WindowMode::WindowModeWindowed;
     }
@@ -1008,8 +1008,8 @@ void SetResolution(const MonitorDesc* pMonitor, const Resolution* pMode)
 {
     DEVMODEW devMode = {};
     devMode.dmSize = sizeof(DEVMODEW);
-    devMode.dmPelsHeight = pMode->height;
-    devMode.dmPelsWidth = pMode->width;
+    devMode.dmPelsHeight = pMode->Height;
+    devMode.dmPelsWidth = pMode->Width;
     devMode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
 
     ChangeDisplaySettingsExW(pMonitor->AdapterName, &devMode, NULL, CDS_FULLSCREEN, NULL);
@@ -1077,7 +1077,7 @@ bool IsResolutionSupported(const MonitorDesc* pMonitor, const Resolution* pRes)
 {
     for (ptrdiff_t i = 0; i < arrlen(pMonitor->Resolutions); ++i)
     {
-        if (pMonitor->Resolutions[i].width == pRes->width && pMonitor->Resolutions[i].height == pRes->height)
+        if (pMonitor->Resolutions[i].Width == pRes->Width && pMonitor->Resolutions[i].Height == pRes->Height)
             return true;
     }
 

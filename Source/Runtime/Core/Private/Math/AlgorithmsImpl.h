@@ -39,91 +39,91 @@
  *
  * Interface functions:
  *
- * attrs void Sort<type> (type* Data, size_t memberCount)
+ * attrs void Sort<Type> (Type* Data, size_t memberCount)
  *	regular Sort
  *	if Size < QUICKSORT_THRESHOLD
  *		use insertion Sort
  *	else
  *		use quick Sort
  *
- * attrs void StableSort<type> (type* pArr, size_t memberCount)
+ * attrs void StableSort<Type> (Type* pArr, size_t memberCount)
  *	stable Sort (uses insertion Sort)
  *	NOTE: 2-3 times slower than regular Sort for big arrays
  *
- * attrs size_t Partition<type> (type* pArr, size_t pivot, size_t memberCount)
+ * attrs size_t Partition<Type> (Type* pArr, size_t pivot, size_t memberCount)
  *	partitions array around the pivot(similar to std::nth_element)
  *
  * Implementation functions:
  *
- * attrs void simplSort<type> (type* pArr, size_t memberCount)
+ * attrs void simplSort<Type> (Type* pArr, size_t memberCount)
  *	Sort used for small arrays (used in StableSort)
  *
- * attrs type* partitionImpl<type> (type* pBegin, type* pEnd, type* pPivot)
+ * attrs Type* partitionImpl<Type> (Type* pBegin, Type* pEnd, Type* pPivot)
  *	implementation function for Partition
  *
- * attrs void quickSortImpl<type> (type* pBegin, type* pEnd, type* tmp)
+ * attrs void quickSortImpl<Type> (Type* pBegin, Type* pEnd, Type* tmp)
  *	implementation function for Sort
  *
  */
-#define DEFINE_SORT_ALGORITHMS_FOR_TYPE(attrs, type, lessFn)                                                    \
-    DEFINE_SIMPLE_SORT_FUNCTION(attrs, CONCAT(simpleSort, type), type, lessFn)                                  \
-    DEFINE_INSERTION_SORT_FUNCTION(attrs, CONCAT(StableSort, type), type, lessFn, CONCAT(simpleSort, type))     \
-    DEFINE_PARTITION_IMPL_FUNCTION(attrs, CONCAT(partitionImpl, type), type, lessFn)                            \
-    DEFINE_PARTITION_FUNCTION(attrs, CONCAT(Partition, type), type, lessFn, CONCAT(partitionImpl, type))        \
-    DEFINE_QUICK_SORT_IMPL_FUNCTION(attrs, CONCAT(quickSortImpl, type), type, lessFn, CONCAT(StableSort, type), \
-                                    CONCAT(partitionImpl, type))                                                \
-    DEFINE_QUICK_SORT_FUNCTION(attrs, CONCAT(Sort, type), type, CONCAT(quickSortImpl, type))
+#define DEFINE_SORT_ALGORITHMS_FOR_TYPE(attrs, Type, lessFn)                                                    \
+    DEFINE_SIMPLE_SORT_FUNCTION(attrs, CONCAT(simpleSort, Type), Type, lessFn)                                  \
+    DEFINE_INSERTION_SORT_FUNCTION(attrs, CONCAT(StableSort, Type), Type, lessFn, CONCAT(simpleSort, Type))     \
+    DEFINE_PARTITION_IMPL_FUNCTION(attrs, CONCAT(partitionImpl, Type), Type, lessFn)                            \
+    DEFINE_PARTITION_FUNCTION(attrs, CONCAT(Partition, Type), Type, lessFn, CONCAT(partitionImpl, Type))        \
+    DEFINE_QUICK_SORT_IMPL_FUNCTION(attrs, CONCAT(quickSortImpl, Type), Type, lessFn, CONCAT(StableSort, Type), \
+                                    CONCAT(partitionImpl, Type))                                                \
+    DEFINE_QUICK_SORT_FUNCTION(attrs, CONCAT(Sort, Type), Type, CONCAT(quickSortImpl, Type))
 
-#define DEFINE_SIMPLE_SORT_FUNCTION(attrs, fnName, type, lessFn)                                                                           \
-    attrs void fnName(type* pArr, size_t memberCount)                                                                                      \
+#define DEFINE_SIMPLE_SORT_FUNCTION(attrs, fnName, Type, lessFn)                                                                           \
+    attrs void fnName(Type* pArr, size_t memberCount)                                                                                      \
     {                                                                                                                                      \
-        SIMPLE_SORT_IMPL(fnName, type, pArr, memberCount, lessFn, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_STRUCT, PTR_INC_NUMERIC, \
+        SIMPLE_SORT_IMPL(fnName, Type, pArr, memberCount, lessFn, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_STRUCT, PTR_INC_NUMERIC, \
                          PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)                                                                                 \
     }
 
-#define DEFINE_INSERTION_SORT_FUNCTION(attrs, fnName, type, lessFn, simpleSortFn)                                                  \
-    attrs void fnName(type* pArr, size_t memberCount)                                                                              \
+#define DEFINE_INSERTION_SORT_FUNCTION(attrs, fnName, Type, lessFn, simpleSortFn)                                                  \
+    attrs void fnName(Type* pArr, size_t memberCount)                                                                              \
     {                                                                                                                              \
-        INSERTION_SORT_IMPL(type, pArr, memberCount, simpleSortFn, lessFn, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_STRUCT, \
+        INSERTION_SORT_IMPL(Type, pArr, memberCount, simpleSortFn, lessFn, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_STRUCT, \
                             PTR_INC_NUMERIC, PTR_DEC_NUMERIC, PTR_ADD_NUMERIC, PTR_SUB_NUMERIC)                                    \
     }
-#define DEFINE_PARTITION_IMPL_FUNCTION(attrs, fnName, type, lessFn)                                                                 \
-    attrs type* fnName(type* pBegin, type* pEnd, type* pPivot)                                                                      \
+#define DEFINE_PARTITION_IMPL_FUNCTION(attrs, fnName, Type, lessFn)                                                                 \
+    attrs Type* fnName(Type* pBegin, Type* pEnd, Type* pPivot)                                                                      \
     {                                                                                                                               \
-        PARTITION_IMPL(type, pBegin, pEnd, pPivot, lessFn, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_STRUCT, PTR_INC_NUMERIC, \
+        PARTITION_IMPL(Type, pBegin, pEnd, pPivot, lessFn, CREATE_TEMP_NUMERIC, DESTROY_TEMP_NUMERIC, COPY_STRUCT, PTR_INC_NUMERIC, \
                        PTR_SUB_NUMERIC)                                                                                             \
     }
-#define DEFINE_PARTITION_FUNCTION(attrs, fnName, type, lessFn, partitionImplFn) \
-    attrs size_t fnName(type* pArr, size_t pivot, size_t memberCount)           \
+#define DEFINE_PARTITION_FUNCTION(attrs, fnName, Type, lessFn, partitionImplFn) \
+    attrs size_t fnName(Type* pArr, size_t pivot, size_t memberCount)           \
     {                                                                           \
         if (memberCount == 0)                                                   \
             return 0;                                                           \
-        type* pPivot = partitionImplFn(pArr, pArr + memberCount, pArr + pivot); \
+        Type* pPivot = partitionImplFn(pArr, pArr + memberCount, pArr + pivot); \
         ASSERT(pPivot&& pArr);                                                  \
         return pPivot && pArr ? pPivot - pArr : 0;                              \
     }
 
-#define DEFINE_QUICK_SORT_IMPL_FUNCTION(attrs, fnName, type, lessFn, fallbackSort, partitionImpl)                          \
-    attrs void fnName(type* pBegin, type* pEnd, type* tmp)                                                                 \
+#define DEFINE_QUICK_SORT_IMPL_FUNCTION(attrs, fnName, Type, lessFn, fallbackSort, partitionImpl)                          \
+    attrs void fnName(Type* pBegin, Type* pEnd, Type* tmp)                                                                 \
     {                                                                                                                      \
-        QUICKSORT_IMPL(type, pBegin, pEnd, tmp, fnName, fallbackSort, partitionImpl, lessFn, COPY_STRUCT, PTR_ADD_NUMERIC, \
+        QUICKSORT_IMPL(Type, pBegin, pEnd, tmp, fnName, fallbackSort, partitionImpl, lessFn, COPY_STRUCT, PTR_ADD_NUMERIC, \
                        PTR_SUB_NUMERIC, PTR_DIFF_NUMERIC)                                                                  \
     }
 
-#define DEFINE_QUICK_SORT_FUNCTION(attrs, fnName, type, quickSortImplFn) \
-    attrs void fnName(type* Data, size_t memberCount)                   \
+#define DEFINE_QUICK_SORT_FUNCTION(attrs, fnName, Type, quickSortImplFn) \
+    attrs void fnName(Type* Data, size_t memberCount)                   \
     {                                                                    \
-        type tmp;                                                        \
+        Type tmp;                                                        \
         quickSortImplFn(Data, Data + memberCount, &tmp);               \
     }
 
 #define CONCAT(x, y)      CONCAT_IMPL(x, y)
 #define CONCAT_IMPL(x, y) x##y
 
-#define CREATE_TEMP_NUMERIC(type, name) \
-    type  CONCAT(name, Buf);            \
-    type* name = &CONCAT(name, Buf)
-#define CREATE_TEMP_GENERIC(type, name)                    \
+#define CREATE_TEMP_NUMERIC(Type, name) \
+    Type  CONCAT(name, Buf);            \
+    Type* name = &CONCAT(name, Buf)
+#define CREATE_TEMP_GENERIC(Type, name)                    \
     ALIGNAS(8) char CONCAT(name, Buf)[TMP_BUF_STACK_SIZE]; \
     char*           name = CONCAT(name, Buf);              \
     if (memberSize > sizeof(CONCAT(name, Buf)))            \
@@ -187,8 +187,8 @@
     }                                                                    \
     (void)0
 
-#define SIMPLE_SORT_IMPL(SIMPLE_SORT_FN, type, pArr, memberCount, LESS, CREATE_TEMP, DESTROY_TEMP, COPY, PTR_INC, PTR_ADD, PTR_SUB) \
-    CREATE_TEMP(type, tmp);                                                                                                         \
+#define SIMPLE_SORT_IMPL(SIMPLE_SORT_FN, Type, pArr, memberCount, LESS, CREATE_TEMP, DESTROY_TEMP, COPY, PTR_INC, PTR_ADD, PTR_SUB) \
+    CREATE_TEMP(Type, tmp);                                                                                                         \
     switch (memberCount)                                                                                                            \
     {                                                                                                                               \
     case 0:                                                                                                                         \
@@ -207,7 +207,7 @@
         break;                                                                                                                      \
     }                                                                                                                               \
                                                                                                                                     \
-    for (type* pCurrent = PTR_ADD(pArr, memberCount - 1); pCurrent > pArr && LESS(pCurrent, PTR_SUB(pCurrent, 1));                  \
+    for (Type* pCurrent = PTR_ADD(pArr, memberCount - 1); pCurrent > pArr && LESS(pCurrent, PTR_SUB(pCurrent, 1));                  \
          pCurrent = PTR_SUB(pCurrent, 1))                                                                                           \
     {                                                                                                                               \
         SWAP(pCurrent, PTR_SUB(pCurrent, 1), tmp, COPY);                                                                            \
@@ -216,22 +216,22 @@
 
 // INSERTION SORT (stable Sort)
 // TODO: Optimize for large arrays (shell Sort can be used)
-#define INSERTION_SORT_IMPL(type, pArr, memberCount, SIMPLE_SORT, LESS, CREATE_TEMP, DESTROY_TEMP, COPY, PTR_INC, PTR_DEC, PTR_ADD, \
+#define INSERTION_SORT_IMPL(Type, pArr, memberCount, SIMPLE_SORT, LESS, CREATE_TEMP, DESTROY_TEMP, COPY, PTR_INC, PTR_DEC, PTR_ADD, \
                             PTR_SUB)                                                                                                \
-    CREATE_TEMP(type, tmp);                                                                                                         \
+    CREATE_TEMP(Type, tmp);                                                                                                         \
     if (memberCount <= SIMPLESORT_THRESHOLD)                                                                                        \
     {                                                                                                                               \
         SIMPLE_SORT(pArr, memberCount);                                                                                             \
         return;                                                                                                                     \
     }                                                                                                                               \
-    type* pBegin = pArr;                                                                                                            \
-    type* pEnd = PTR_ADD(pBegin, memberCount);                                                                                      \
-    type* pPrev = pBegin;                                                                                                           \
+    Type* pBegin = pArr;                                                                                                            \
+    Type* pEnd = PTR_ADD(pBegin, memberCount);                                                                                      \
+    Type* pPrev = pBegin;                                                                                                           \
                                                                                                                                     \
-    for (type* pCurrent = PTR_ADD(pBegin, 1); pCurrent != pEnd; PTR_INC(pCurrent), PTR_INC(pPrev))                                  \
+    for (Type* pCurrent = PTR_ADD(pBegin, 1); pCurrent != pEnd; PTR_INC(pCurrent), PTR_INC(pPrev))                                  \
     {                                                                                                                               \
-        type* pTmpCurrent = pCurrent;                                                                                               \
-        type* pTmpPrev = pPrev;                                                                                                     \
+        Type* pTmpCurrent = pCurrent;                                                                                               \
+        Type* pTmpPrev = pPrev;                                                                                                     \
         COPY(tmp, pTmpCurrent);                                                                                                     \
         for (; pTmpCurrent != pBegin && LESS(tmp, pTmpPrev); PTR_DEC(pTmpCurrent), PTR_DEC(pTmpPrev))                               \
             COPY(pTmpCurrent, pTmpPrev);                                                                                            \
@@ -241,17 +241,17 @@
 
 // PARTITION
 
-#define PARTITION_IMPL(type, pBegin, pEnd, pPivot, LESS, CREATE_TEMP, DESTROY_TEMP, COPY, PTR_INC, PTR_SUB) \
+#define PARTITION_IMPL(Type, pBegin, pEnd, pPivot, LESS, CREATE_TEMP, DESTROY_TEMP, COPY, PTR_INC, PTR_SUB) \
     if (pBegin == pEnd)                                                                                     \
         return NULL;                                                                                        \
                                                                                                             \
-    CREATE_TEMP(type, tmp);                                                                                 \
+    CREATE_TEMP(Type, tmp);                                                                                 \
                                                                                                             \
-    type* pLast = PTR_SUB(pEnd, 1);                                                                         \
+    Type* pLast = PTR_SUB(pEnd, 1);                                                                         \
     SWAP(pPivot, pLast, tmp, COPY);                                                                         \
                                                                                                             \
-    type* pNewPivot = pBegin;                                                                               \
-    for (type* pCurrent = pBegin; pCurrent < pLast; PTR_INC(pCurrent))                                      \
+    Type* pNewPivot = pBegin;                                                                               \
+    for (Type* pCurrent = pBegin; pCurrent < pLast; PTR_INC(pCurrent))                                      \
     {                                                                                                       \
         if (LESS(pCurrent, pLast))                                                                          \
         {                                                                                                   \
@@ -267,14 +267,14 @@
     return pNewPivot;
 
 // Picks middle element out of 5 elements and sorts them
-#define PICK_PIVOT_AND_SORT(type, pBegin, pEnd, pRes, memberCount, tmp, LESS, PTR_ADD, PTR_SUB, COPY, PTR_DIFF) \
+#define PICK_PIVOT_AND_SORT(Type, pBegin, pEnd, pRes, memberCount, tmp, LESS, PTR_ADD, PTR_SUB, COPY, PTR_DIFF) \
     {                                                                                                           \
-        type*  p0 = pBegin;                                                                                     \
-        type*  p4 = PTR_SUB(pEnd, 1);                                                                           \
+        Type*  p0 = pBegin;                                                                                     \
+        Type*  p4 = PTR_SUB(pEnd, 1);                                                                           \
         size_t halfSize = memberCount / 2;                                                                      \
-        type*  p2 = PTR_ADD(pBegin, halfSize);                                                                  \
-        type*  p1 = PTR_ADD(p0, PTR_DIFF(p2, p0) / 2);                                                          \
-        type*  p3 = PTR_ADD(p2, PTR_DIFF(p2, p0) / 2);                                                          \
+        Type*  p2 = PTR_ADD(pBegin, halfSize);                                                                  \
+        Type*  p1 = PTR_ADD(p0, PTR_DIFF(p2, p0) / 2);                                                          \
+        Type*  p3 = PTR_ADD(p2, PTR_DIFF(p2, p0) / 2);                                                          \
                                                                                                                 \
         if (LESS(p2, p0))                                                                                       \
             SWAP(p0, p2, tmp, COPY);                                                                            \
@@ -315,7 +315,7 @@
     }                                                                                                           \
     ((void)0)
 
-#define QUICKSORT_IMPL(type, pBegin, pEnd, tmp, QUICKSORT_IMPL_FN, FALLBACK_SORT, PARTITION_IMPL_FN, LESS, COPY, PTR_ADD, PTR_SUB, \
+#define QUICKSORT_IMPL(Type, pBegin, pEnd, tmp, QUICKSORT_IMPL_FN, FALLBACK_SORT, PARTITION_IMPL_FN, LESS, COPY, PTR_ADD, PTR_SUB, \
                        PTR_DIFF)                                                                                                   \
     size_t memberCount = PTR_DIFF(pEnd, pBegin);                                                                                   \
     if (memberCount <= QUICKSORT_THRESHOLD)                                                                                        \
@@ -324,8 +324,8 @@
         return;                                                                                                                    \
     }                                                                                                                              \
                                                                                                                                    \
-    type* pPivot;                                                                                                                  \
-    PICK_PIVOT_AND_SORT(type, pBegin, pEnd, pPivot, memberCount, tmp, LESS, PTR_ADD, PTR_SUB, COPY, PTR_DIFF);                     \
+    Type* pPivot;                                                                                                                  \
+    PICK_PIVOT_AND_SORT(Type, pBegin, pEnd, pPivot, memberCount, tmp, LESS, PTR_ADD, PTR_SUB, COPY, PTR_DIFF);                     \
                                                                                                                                    \
     pPivot = PARTITION_IMPL_FN(pBegin, pEnd, pPivot);                                                                              \
     QUICKSORT_IMPL_FN(pBegin, pPivot, tmp);                                                                                        \

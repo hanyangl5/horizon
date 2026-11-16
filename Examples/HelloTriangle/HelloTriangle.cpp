@@ -55,8 +55,8 @@ class HelloTriangleApp final: public IApp
 public:
     HelloTriangleApp()
     {
-        settings.width = 1280;
-        settings.height = 720;
+        settings.Width = 1280;
+        settings.Height = 720;
         settings.vSyncEnabled = true;
         settings.showPlatformUI = false;
     }
@@ -68,8 +68,8 @@ public:
         hz::ContextDesc contextDesc = {
             .pAppName = GetName(),
             .windowHandle = pWindow->Handle,
-            .width = 0,
-            .height = 0,
+            .Width = 0,
+            .Height = 0,
             .imageCount = 3,
             .colorFormat = kSurfaceFormat,
             .colorSpace = ColorSpaceSdrSrgb,
@@ -95,12 +95,12 @@ public:
     bool Load(ReloadDesc* pReloadDesc) override
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Load", kCpuProfileColor);
-        if (!(pReloadDesc->type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
+        if (!(pReloadDesc->Type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
             return true;
 
-        const uint32_t width = (uint32_t)settings.width;
-        const uint32_t height = (uint32_t)settings.height;
-        if (!context->resize(width, height))
+        const uint32_t Width = (uint32_t)settings.Width;
+        const uint32_t Height = (uint32_t)settings.Height;
+        if (!context->resize(Width, Height))
             return false;
         return true;
     }
@@ -125,7 +125,7 @@ public:
                 .pTexture = &backbuffer,
                 .loadAction = LoadActionClear,
                 .storeAction = StoreActionStore,
-                .clearValue = { .r = 0.05f, .g = 0.06f, .b = 0.08f, .a = 1.0f },
+                .ClearValue = { .r = 0.05f, .g = 0.06f, .b = 0.08f, .a = 1.0f },
             } },
         });
         commands.beginGpuTimestamp("Triangle Pass");
@@ -146,13 +146,13 @@ private:
     {
         resources->vertexBuffer = context->createBuffer({
             .Size = sizeof(kTriangleVertices),
-            .elementCount = sizeof(kTriangleVertices) / sizeof(uint32_t),
-            .pName = "HelloTriangle.VertexBuffer",
+            .ElementCount = sizeof(kTriangleVertices) / sizeof(uint32_t),
+            .Name = "HelloTriangle.VertexBuffer",
             .pInitialData = kTriangleVertices,
             .initialDataSize = sizeof(kTriangleVertices),
             .usage = MemoryUsageGpuOnly,
-            .startState = ResourceStateVertexAndConstantBuffer,
-            .descriptors = DescriptorTypeBufferRaw | DescriptorTypeVertexBuffer,
+            .StartState = ResourceStateVertexAndConstantBuffer,
+            .Descriptors = DescriptorTypeBufferRaw | DescriptorTypeVertexBuffer,
         });
         ASSERT(resources->vertexBuffer.isValid());
 
@@ -164,29 +164,29 @@ private:
                     .pSource = kHelloTriangleShader,
                     .sourceSize = (uint32_t)(sizeof(kHelloTriangleShader) - 1),
                     .pEntryPoint = "VSMain",
-                    .pName = "HelloTriangleVS",
+                    .Name = "HelloTriangleVS",
                 },
                 {
                     .stage = ShaderStageFrag,
                     .pSource = kHelloTriangleShader,
                     .sourceSize = (uint32_t)(sizeof(kHelloTriangleShader) - 1),
                     .pEntryPoint = "PSMain",
-                    .pName = "HelloTrianglePS",
+                    .Name = "HelloTrianglePS",
                 }},
             },
             .vertexLayout = {
                 .bindings = { { .stride = sizeof(Vertex), .rate = VERTEX_BINDING_RATE_VERTEX } },
                 .attribs = {
-                    { .semantic = SEMANTIC_POSITION, .format = hz::Format::R32G32_SFLOAT, .binding = 0, .location = 0,
+                    { .semantic = SEMANTIC_POSITION, .Format = hz::Format::R32G32_SFLOAT, .binding = 0, .location = 0,
                       .offset = (uint32_t)offsetof(Vertex, position) },
-                    { .semantic = SEMANTIC_COLOR, .format = hz::Format::R32G32B32_SFLOAT, .binding = 0, .location = 1,
+                    { .semantic = SEMANTIC_COLOR, .Format = hz::Format::R32G32B32_SFLOAT, .binding = 0, .location = 1,
                       .offset = (uint32_t)offsetof(Vertex, color) },
                 },
                 .bindingCount = 1,
                 .attribCount = 2,
             },
-            .colorTargets = { { .format = kSurfaceFormat } },
-            .pName = "HelloTriangle.Pipeline",
+            .colorTargets = { { .Format = kSurfaceFormat } },
+            .Name = "HelloTriangle.Pipeline",
         });
         ASSERT(resources->pipeline.isValid());
         return true;

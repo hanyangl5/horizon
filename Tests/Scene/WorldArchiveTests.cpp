@@ -48,9 +48,9 @@ protected:
         return "{\"id\":\"" + uuid(object) + "\",\"parent\":" + (parent ? "\"" + uuid(parent) + "\"" : "null") +
                ",\"name\":null,\"components\":[" + components + "]}";
     }
-    static std::string component(const char* type, const char* name, uint32_t version, const std::string& properties)
+    static std::string component(const char* Type, const char* name, uint32_t version, const std::string& properties)
     {
-        return "{\"type\":\"" + std::string(type) + "\",\"name\":\"" + name + "\",\"version\":" + std::to_string(version) +
+        return "{\"type\":\"" + std::string(Type) + "\",\"name\":\"" + name + "\",\"version\":" + std::to_string(version) +
                ",\"properties\":" + properties + "}";
     }
     MemoryTrackingStats initial = {};
@@ -77,7 +77,7 @@ TEST_F(WorldArchiveTest, RoundTripsComponentsHierarchyAndStableOrdering)
     hz::MeshRenderer mesh = { .mesh = { .high = 2, .low = 1 } };
     mesh.overrides.PushBack({ .submesh = UINT64_C(18446744073709551615), .material = { .high = 2, .low = 2 } });
     ASSERT_TRUE(world.setComponent(child, hz::SceneTypes::meshRenderer, &mesh));
-    hz::Light light = { .type = hz::LightType::Rect, .intensity = 100.125f };
+    hz::Light light = { .Type = hz::LightType::Rect, .intensity = 100.125f };
     ASSERT_TRUE(world.setComponent(child, hz::SceneTypes::light, &light));
     ASSERT_TRUE(world.addComponent(child, hz::SceneTypes::camera));
     hz::WorldArchive archive;
@@ -205,28 +205,28 @@ struct MigratingComponent
 };
 static const hz::PropertyDesc migratingProperties[] = {
     { .id = 4,
-      .pName = "label",
+      .Name = "label",
       .kind = hz::PropertyKind::String,
       .offset = offsetof(MigratingComponent, label),
       .Size = sizeof(MigratingComponent::label) },
     { .id = 3,
-      .pName = "reference",
+      .Name = "reference",
       .kind = hz::PropertyKind::EntityReference,
       .offset = offsetof(MigratingComponent, reference),
       .Size = sizeof(hz::Guid) },
     { .id = 2,
-      .pName = "precise",
+      .Name = "precise",
       .kind = hz::PropertyKind::UnsignedInteger,
       .offset = offsetof(MigratingComponent, precise),
       .Size = sizeof(uint64_t) },
     { .id = 1,
-      .pName = "value",
+      .Name = "value",
       .kind = hz::PropertyKind::SignedInteger,
       .offset = offsetof(MigratingComponent, value),
       .Size = sizeof(int32_t) },
 };
 static const hz::TypeDesc migratingType = { .id = 99,
-                                            .pName = "Migrating",
+                                            .Name = "Migrating",
                                             .version = 3,
                                             .Size = sizeof(MigratingComponent),
                                             .alignment = alignof(MigratingComponent),
@@ -256,8 +256,8 @@ TEST_F(WorldArchiveTest, MigratesAdjacentVersionsAndResolvesForwardEntityReferen
     hz::WorldArchive  archive;
     ASSERT_TRUE(parse(archive, json));
     hz::UniquePtr<hz::World>    target;
-    const hz::ComponentMigration migrations[] = { { .type = 99, .fromVersion = 1, .pMigrate = migrateOne },
-                                                  { .type = 99, .fromVersion = 2, .pMigrate = migrateTwo } };
+    const hz::ComponentMigration migrations[] = { { .Type = 99, .fromVersion = 1, .pMigrate = migrateOne },
+                                                  { .Type = 99, .fromVersion = 2, .pMigrate = migrateTwo } };
     EXPECT_FALSE(archive.instantiate(types, target));
     EXPECT_FALSE(archive.instantiate(types, target, { migrations, 1 }));
     EXPECT_FALSE(target);
@@ -355,7 +355,7 @@ TEST_F(WorldArchiveTest, RejectsEmbeddedNullsProducedByMigration)
     const std::string         json = envelope(entityJson(1, component("0000000000000063", "Migrating", 2, R"({"value":7})")));
     hz::WorldArchive          archive;
     ASSERT_TRUE(parse(archive, json));
-    const hz::ComponentMigration migration = { .type = 99, .fromVersion = 2, .pMigrate = migrateNull };
+    const hz::ComponentMigration migration = { .Type = 99, .fromVersion = 2, .pMigrate = migrateNull };
     EXPECT_FALSE(archive.instantiate(types, target, { &migration, 1 }));
     EXPECT_EQ(target.Get(), pOriginal);
     EXPECT_TRUE(target->isAlive(original));

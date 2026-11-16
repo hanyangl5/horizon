@@ -74,30 +74,30 @@ static uint32_t BloomLevelSize(uint32_t Size, uint32_t Level)
 PostEffects::PostEffects(hz::RenderContext& Context): Context(Context)
 {
     Sampler = Context.createSampler(
-        { .addressU = AddressModeClampToEdge, .addressV = AddressModeClampToEdge, .addressW = AddressModeClampToEdge });
+        { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .AddressW = AddressModeClampToEdge });
     MeteringPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } }, .pFileName = "PostMetering.slang" },
-        .pName = "Renderer.HDR.Metering",
+        .Name = "Renderer.HDR.Metering",
     });
     ReducePipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSReduce" } }, .pFileName = "PostLuminance.slang" },
-        .pName = "Renderer.HDR.ReduceLuminance",
+        .Name = "Renderer.HDR.ReduceLuminance",
     });
     InitializePipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSInitialize" } }, .pFileName = "PostLuminance.slang" },
-        .pName = "Renderer.HDR.InitializeExposure",
+        .Name = "Renderer.HDR.InitializeExposure",
     });
     AdaptationPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSAdapt" } }, .pFileName = "PostLuminance.slang" },
-        .pName = "Renderer.HDR.Adaptation",
+        .Name = "Renderer.HDR.Adaptation",
     });
     BloomDownsamplePipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomDownsample.slang" },
-        .pName = "Renderer.HDR.BloomDownsample",
+        .Name = "Renderer.HDR.BloomDownsample",
     });
     BloomUpsamplePipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomUpsample.slang" },
-        .pName = "Renderer.HDR.BloomUpsample",
+        .Name = "Renderer.HDR.BloomUpsample",
     });
     ASSERT(Sampler.isValid() && MeteringPipeline.isValid() && ReducePipeline.isValid() && InitializePipeline.isValid() &&
            AdaptationPipeline.isValid() && BloomDownsamplePipeline.isValid() && BloomUpsamplePipeline.isValid());
@@ -109,13 +109,13 @@ bool PostEffects::PrepareBloomChain()
     bool                 Valid = true;
     for (uint32_t Level = 0; Level < BloomLevels; ++Level)
     {
-        const hz::TextureDesc Desc = { .width = BloomLevelSize(BloomWidth, Level),
-                                       .height = BloomLevelSize(BloomHeight, Level),
-                                       .format = hz::Format::R16G16B16A16_SFLOAT,
-                                       .startState = ResourceStateUnorderedAccess,
-                                       .descriptors = Views,
-                                       .flags = TextureCreationFlagForce2D,
-                                       .pName = "Renderer.HDR.Bloom" };
+        const hz::TextureDesc Desc = { .Width = BloomLevelSize(BloomWidth, Level),
+                                       .Height = BloomLevelSize(BloomHeight, Level),
+                                       .Format = hz::Format::R16G16B16A16_SFLOAT,
+                                       .StartState = ResourceStateUnorderedAccess,
+                                       .Descriptors = Views,
+                                       .Flags = TextureCreationFlagForce2D,
+                                       .Name = "Renderer.HDR.Bloom" };
         BloomDown[Level] = Context.acquireTransient(Desc);
         Valid &= BloomDown[Level] != nullptr;
         if (Level + 1 < BloomLevels)
@@ -158,27 +158,27 @@ void PostEffects::Resize(uint32_t Width, uint32_t Height)
     // Bloom follows the render Size so the glare keeps its screen-space radius instead of a fixed 512 texel image.
     BloomWidth = Width > 1 ? Width / 2 : 1;
     BloomHeight = Height > 1 ? Height / 2 : 1;
-    hz::TextureDesc Desc = { .format = hz::Format::R16G16B16A16_SFLOAT,
-                             .startState = ResourceStateUnorderedAccess,
-                             .descriptors = Views,
-                             .flags = TextureCreationFlagForce2D };
+    hz::TextureDesc Desc = { .Format = hz::Format::R16G16B16A16_SFLOAT,
+                             .StartState = ResourceStateUnorderedAccess,
+                             .Descriptors = Views,
+                             .Flags = TextureCreationFlagForce2D };
     bool            Valid = true;
     // Parked targets of the previous Size never match again, so drop them once the GPU is idle.
     Context.purgeTransients();
     // Independent images let Dependencies describe every reduction without mixed SRV/UAV mip states.
-    Desc.format = hz::Format::R16_SFLOAT;
-    Desc.width = Desc.height = MeteringSize;
-    Desc.pName = "Renderer.HDR.LogLuminance";
+    Desc.Format = hz::Format::R16_SFLOAT;
+    Desc.Width = Desc.Height = MeteringSize;
+    Desc.Name = "Renderer.HDR.LogLuminance";
     for (hz::GPUTexture& Texture : Luminance)
     {
         Texture = Context.createTexture(Desc);
         Valid &= Texture.isValid();
-        Desc.width = Desc.width > 1 ? Desc.width / 2 : 1;
-        Desc.height = Desc.height > 1 ? Desc.height / 2 : 1;
+        Desc.Width = Desc.Width > 1 ? Desc.Width / 2 : 1;
+        Desc.Height = Desc.Height > 1 ? Desc.Height / 2 : 1;
     }
-    Desc.width = Desc.height = 1;
-    Desc.format = hz::Format::R32_SFLOAT;
-    Desc.pName = "Renderer.HDR.AdaptedLuminance";
+    Desc.Width = Desc.Height = 1;
+    Desc.Format = hz::Format::R32_SFLOAT;
+    Desc.Name = "Renderer.HDR.AdaptedLuminance";
     for (hz::GPUTexture& Texture : AdaptedLuminance)
     {
         Texture = Context.createTexture(Desc);
@@ -191,8 +191,8 @@ void PostEffects::Resize(uint32_t Width, uint32_t Height)
             .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
                                         { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                             .pFileName = "PostToneMap.slang" },
-            .colorTargets = { { .format = Context.getColorFormat() } },
-            .pName = "Renderer.HDR.ToneMap",
+            .colorTargets = { { .Format = Context.getColorFormat() } },
+            .Name = "Renderer.HDR.ToneMap",
         });
     }
     AdaptedIndex = 0;
@@ -203,7 +203,7 @@ void PostEffects::Resize(uint32_t Width, uint32_t Height)
 void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget,
                           float DeltaSeconds)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("PostEffects::Execute");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("PostEffects::execute");
     ASSERT(SceneColor.isValid() && RenderTarget.isValid() && Width && Height);
     Commands.beginGpuTimestamp("HDR");
     if (!ExposureInitialized)

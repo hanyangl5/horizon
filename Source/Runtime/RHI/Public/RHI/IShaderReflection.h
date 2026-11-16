@@ -60,7 +60,7 @@ struct VertexInput
 struct ShaderResource
 {
     // resource Type
-    DescriptorType type;
+    DescriptorType Type;
 
     // The resource set for binding frequency
     uint32_t set;

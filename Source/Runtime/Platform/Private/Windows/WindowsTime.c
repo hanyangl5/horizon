@@ -26,10 +26,10 @@
 
 #include <stdint.h>
 #include <time.h>
-// clang-format off
+// clang-Format off
 #include <windows.h>
 #include <timeapi.h>
-// clang-format on
+// clang-Format on
 
 #include "Core/ILog.h"
 #include "Core/IThread.h"

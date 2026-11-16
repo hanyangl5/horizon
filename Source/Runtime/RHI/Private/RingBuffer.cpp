@@ -37,13 +37,13 @@ void addGPURingBuffer(Renderer* pRenderer, const BufferDesc* pBufferDesc, GPURin
     pRingBuffer->bufferAlignment = sizeof(float[4]);
     BufferLoadDesc loadDesc = {};
     loadDesc.desc = *pBufferDesc;
-    loadDesc.desc.pName = "GPURingBuffer";
+    loadDesc.desc.Name = "GPURingBuffer";
     loadDesc.ppBuffer = &pRingBuffer->pBuffer;
     addResource(&loadDesc, NULL);
 }
 
 void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBufferSize, GPURingBuffer* pRingBuffer, bool const ownMemory,
-                             ResourceMemoryUsage memoryUsage)
+                             ResourceMemoryUsage MemoryUsage)
 {
     *pRingBuffer = {};
     pRingBuffer->pRenderer = pRenderer;
@@ -54,16 +54,16 @@ void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBuffer
     pRingBuffer->maxBufferSize = maxUniformBufferSize;
 
     BufferDesc ubDesc = {};
-    ubDesc.descriptors = DescriptorTypeUniformBuffer;
-    ubDesc.memoryUsage = memoryUsage;
-    ubDesc.flags =
-        (ubDesc.memoryUsage != MemoryUsageGpuOnly ? BufferCreationFlagPersistentMapBit : BufferCreationFlagNone) |
+    ubDesc.Descriptors = DescriptorTypeUniformBuffer;
+    ubDesc.MemoryUsage = MemoryUsage;
+    ubDesc.Flags =
+        (ubDesc.MemoryUsage != MemoryUsageGpuOnly ? BufferCreationFlagPersistentMapBit : BufferCreationFlagNone) |
         BufferCreationFlagNoDescriptorViewCreation;
 
     if (ownMemory)
-        ubDesc.flags |= BufferCreationFlagOwnMemoryBit;
+        ubDesc.Flags |= BufferCreationFlagOwnMemoryBit;
     ubDesc.Size = maxUniformBufferSize;
-    ubDesc.pName = "UniformGPURingBuffer";
+    ubDesc.Name = "UniformGPURingBuffer";
     BufferLoadDesc loadDesc = {};
     loadDesc.desc = ubDesc;
     loadDesc.ppBuffer = &pRingBuffer->pBuffer;
@@ -117,7 +117,7 @@ void addGpuCmdRing(Renderer* pRenderer, const GpuCmdRingDesc* pDesc, GpuCmdRing*
 #ifdef ENABLE_GRAPHICS_DEBUG
             static char buffer[MAX_DEBUG_NAME_LENGTH];
             snprintf(buffer, sizeof(buffer), "GpuCmdRing Pool %u Cmd %u", pool, cmd);
-            cmdDesc.pName = buffer;
+            cmdDesc.Name = buffer;
 #endif // ENABLE_GRAPHICS_DEBUG
             addCmd(pRenderer, &cmdDesc, &pOut->pCmds[pool][cmd]);
 

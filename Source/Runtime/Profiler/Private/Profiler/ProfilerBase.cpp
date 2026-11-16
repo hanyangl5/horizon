@@ -60,15 +60,15 @@ static TracyCZoneCtx unpackTracyZoneCtx(uint64_t packed)
     return ctx;
 }
 
-static void formatTracyCpuProfileName(char* pBuffer, size_t bufferSize, const char* pGroup, const char* pName)
+static void formatTracyCpuProfileName(char* pBuffer, size_t bufferSize, const char* pGroup, const char* Name)
 {
-    if (pGroup && pGroup[0] && pName && pName[0])
+    if (pGroup && pGroup[0] && Name && Name[0])
     {
-        snprintf(pBuffer, bufferSize, "%s/%s", pGroup, pName);
+        snprintf(pBuffer, bufferSize, "%s/%s", pGroup, Name);
     }
     else
     {
-        snprintf(pBuffer, bufferSize, "%s", pName && pName[0] ? pName : (pGroup && pGroup[0] ? pGroup : "CPU"));
+        snprintf(pBuffer, bufferSize, "%s", Name && Name[0] ? Name : (pGroup && pGroup[0] ? pGroup : "CPU"));
     }
 }
 
@@ -214,7 +214,7 @@ void cpuProfileLeave(ProfileToken nToken, uint64_t nTick)
 #endif
 }
 
-ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t nColor)
+ProfileToken getCpuProfileToken(const char* pGroup, const char* Name, uint32_t nColor)
 {
 #if defined(ENABLE_PROFILER)
     TracyCpuProfileToken* pToken = (TracyCpuProfileToken*)MemAllocate(sizeof(*pToken));
@@ -222,7 +222,7 @@ ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t 
     if (!pToken)
         return PROFILE_INVALID_TOKEN;
 
-    formatTracyCpuProfileName(pToken->name, sizeof(pToken->name), pGroup, pName);
+    formatTracyCpuProfileName(pToken->name, sizeof(pToken->name), pGroup, Name);
 
     pToken->sourceLocation.name = pToken->name;
     pToken->sourceLocation.function = "cpuProfileEnter";
@@ -232,7 +232,7 @@ ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t 
     return (ProfileToken)pToken;
 #else
     UNREF_PARAM(pGroup);
-    UNREF_PARAM(pName);
+    UNREF_PARAM(Name);
     UNREF_PARAM(nColor);
     return PROFILE_INVALID_TOKEN;
 #endif
@@ -250,11 +250,11 @@ void removeCpuProfileToken(ProfileToken nToken)
 #endif
 }
 
-uint64_t cpuProfileEnterNamed(const char* pGroup, const char* pName, uint32_t nColor)
+uint64_t cpuProfileEnterNamed(const char* pGroup, const char* Name, uint32_t nColor)
 {
 #if defined(ENABLE_PROFILER)
     char name[256];
-    formatTracyCpuProfileName(name, sizeof(name), pGroup, pName);
+    formatTracyCpuProfileName(name, sizeof(name), pGroup, Name);
 
     const char* function = "cpuProfileEnterNamed";
     const char* file = "Profiler/IProfiler.h";
@@ -262,40 +262,40 @@ uint64_t cpuProfileEnterNamed(const char* pGroup, const char* pName, uint32_t nC
     return packTracyZoneCtx(___tracy_emit_zone_begin_alloc_callstack(sourceLocation, TRACY_CALLSTACK, true));
 #else
     UNREF_PARAM(pGroup);
-    UNREF_PARAM(pName);
+    UNREF_PARAM(Name);
     UNREF_PARAM(nColor);
     return 0;
 #endif
 }
 
-float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThreadID)
+float getCpuProfileTime(const char* pGroup, const char* Name, ThreadID* pThreadID)
 {
     UNREF_PARAM(pGroup);
-    UNREF_PARAM(pName);
+    UNREF_PARAM(Name);
     UNREF_PARAM(pThreadID);
     return -1.0f;
 }
 
-float getCpuProfileAvgTime(const char* pGroup, const char* pName, ThreadID* pThreadID)
+float getCpuProfileAvgTime(const char* pGroup, const char* Name, ThreadID* pThreadID)
 {
     UNREF_PARAM(pGroup);
-    UNREF_PARAM(pName);
+    UNREF_PARAM(Name);
     UNREF_PARAM(pThreadID);
     return -1.0f;
 }
 
-float getCpuProfileMinTime(const char* pGroup, const char* pName, ThreadID* pThreadID)
+float getCpuProfileMinTime(const char* pGroup, const char* Name, ThreadID* pThreadID)
 {
     UNREF_PARAM(pGroup);
-    UNREF_PARAM(pName);
+    UNREF_PARAM(Name);
     UNREF_PARAM(pThreadID);
     return -1.0f;
 }
 
-float getCpuProfileMaxTime(const char* pGroup, const char* pName, ThreadID* pThreadID)
+float getCpuProfileMaxTime(const char* pGroup, const char* Name, ThreadID* pThreadID)
 {
     UNREF_PARAM(pGroup);
-    UNREF_PARAM(pName);
+    UNREF_PARAM(Name);
     UNREF_PARAM(pThreadID);
     return -1.0f;
 }

@@ -77,7 +77,7 @@ TEST(CoreLogTest, CallbackReceivesFormattedAndRawMessages)
     EXPECT_EQ(capture.closeCount, 1);
 }
 
-// Verifies that human-readable log helpers format representative Size and time values.
+// Verifies that human-readable log helpers Format representative Size and time values.
 TEST(CoreLogTest, HumanReadableHelpersFormatExpectedUnits)
 {
     EXPECT_STREQ(HumanReadableSize(999).str, "999B");

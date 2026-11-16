@@ -48,7 +48,7 @@ public:
         if (Size <= 0 || Size > 64 * 1024 * 1024)
         {
             CloseStream(&stream);
-            LOGF(Error, "Invalid SceneAsset file Size for '%s'", entry.location.pPath);
+            LOGF(Error, "Invalid SceneAsset file size for '%s'", entry.location.pPath);
             return false;
         }
         Array<char>  json((uint32_t)Size);
@@ -112,7 +112,7 @@ public:
     static void* begin(const AssetCatalogEntry& entry, AssetHandle, void* User)
     {
         SceneAssetLoaderData* pLoader = (SceneAssetLoaderData*)User;
-        if (!pLoader->threads || entry.type != AssetType::Scene || entry.location.root != AssetPathRoot::Cooked ||
+        if (!pLoader->threads || entry.Type != AssetType::Scene || entry.location.root != AssetPathRoot::Cooked ||
             entry.location.elementIndex != UINT32_MAX)
         {
             LOGF(Error, "Cannot schedule SceneAsset '%s'", entry.location.pPath);

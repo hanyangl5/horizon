@@ -78,10 +78,10 @@ public:
         return asset.pEntry && asset.generation == Handle.generation ? &asset : nullptr;
     }
 
-    const void* getPayload(AssetHandle Handle, AssetType type)
+    const void* getPayload(AssetHandle Handle, AssetType Type)
     {
         const ManagedAsset* pAsset = find(Handle);
-        return pAsset && pAsset->state == AssetState::Ready && pAsset->pEntry->type == type ? pAsset->pPayload : nullptr;
+        return pAsset && pAsset->state == AssetState::Ready && pAsset->pEntry->Type == Type ? pAsset->pPayload : nullptr;
     }
 
     void queueRetirement(uint32_t index)
@@ -111,7 +111,7 @@ public:
         {
             return AssetError::UnknownAsset;
         }
-        if (!loaders[(uint32_t)pEntry->type].pBegin)
+        if (!loaders[(uint32_t)pEntry->Type].pBegin)
         {
             return AssetError::MissingLoader;
         }
@@ -193,7 +193,7 @@ public:
     {
         if (asset.pPayload)
         {
-            loaders[(uint32_t)asset.pEntry->type].pDestroyPayload(asset.pPayload, loaders[(uint32_t)asset.pEntry->type].UserData);
+            loaders[(uint32_t)asset.pEntry->Type].pDestroyPayload(asset.pPayload, loaders[(uint32_t)asset.pEntry->Type].UserData);
             asset.pPayload = nullptr;
         }
     }
@@ -268,7 +268,7 @@ public:
                     fail(asset, AssetError::DependencyFailed, "A dependency failed to load");
             }
         }
-        const AssetLoader& loader = loaders[(uint32_t)asset.pEntry->type];
+        const AssetLoader& loader = loaders[(uint32_t)asset.pEntry->Type];
         if (asset.state == AssetState::Queued)
         {
             asset.pRequest = loader.pBegin(*asset.pEntry, { .index = index, .generation = asset.generation }, loader.UserData);
@@ -355,7 +355,7 @@ public:
         return true;
     }
 
-    // Marks one asset for the next GPU table update. Materials bake texture descriptors into their entry,
+    // Marks one asset for the next GPU table update. Materials bake texture Descriptors into their entry,
     // so any texture change invalidates every material.
     void markTableDirty(uint32_t index)
     {
@@ -365,11 +365,11 @@ public:
         asset.tableDirty = true;
         tableDirty.PushBack(index);
         ++tableRevision;
-        if (asset.pEntry && asset.pEntry->type == AssetType::Texture)
+        if (asset.pEntry && asset.pEntry->Type == AssetType::Texture)
         {
             for (uint32_t i = 0; i < assets.Size(); ++i)
             {
-                if (assets[i].pEntry && assets[i].pEntry->type == AssetType::Material)
+                if (assets[i].pEntry && assets[i].pEntry->Type == AssetType::Material)
                     markTableDirty(i);
             }
         }
@@ -394,12 +394,12 @@ public:
             clearTableEntry(index);
             return;
         }
-        if (asset.pEntry->type == AssetType::Texture)
+        if (asset.pEntry->Type == AssetType::Texture)
         {
             textures[index] = { .id = { .index = index, .generation = asset.generation },
                                 .srv = ((const TextureAsset*)asset.pPayload)->getTexture().getSrvIndex() };
         }
-        else if (asset.pEntry->type == AssetType::Mesh)
+        else if (asset.pEntry->Type == AssetType::Mesh)
         {
             const MeshAsset& mesh = *(const MeshAsset*)asset.pPayload;
             tableGarbage += meshes[index].submeshCount + meshes[index].vertexStreamCount;
@@ -421,7 +421,7 @@ public:
                                      .vertexOffset = (int32_t)args.vertexOffset });
             }
         }
-        else if (asset.pEntry->type == AssetType::Material)
+        else if (asset.pEntry->Type == AssetType::Material)
         {
             const SceneAssetMaterial& material = ((const MaterialAsset*)asset.pPayload)->getDescription();
             GpuMaterialData&          mapping = materials[index];
@@ -516,12 +516,12 @@ AssetManager::~AssetManager()
     MemDelete(Data);
 }
 
-void AssetManager::setLoader(AssetType type, const AssetLoader& loader)
+void AssetManager::setLoader(AssetType Type, const AssetLoader& loader)
 {
-    ASSERT(type <= AssetType::Texture && !getCount() && !Data->shuttingDown);
+    ASSERT(Type <= AssetType::Texture && !getCount() && !Data->shuttingDown);
     ASSERT(loader.pBegin && loader.pPoll && loader.pDestroyRequest && loader.pDestroyPayload);
     ASSERT((loader.pUpload && loader.pPollUpload && loader.pWaitUpload) || (!loader.pUpload && !loader.pPollUpload && !loader.pWaitUpload));
-    Data->loaders[(uint32_t)type] = loader;
+    Data->loaders[(uint32_t)Type] = loader;
 }
 
 AssetHandle AssetManager::request(AssetID id, AssetError* pError)
@@ -642,13 +642,13 @@ void AssetManager::shutdown()
         }
         if (asset.pRequest)
         {
-            const AssetLoader& loader = Data->loaders[(uint32_t)asset.pEntry->type];
+            const AssetLoader& loader = Data->loaders[(uint32_t)asset.pEntry->Type];
             loader.pDestroyRequest(asset.pRequest, loader.UserData);
             asset.pRequest = nullptr;
         }
         if (asset.uploading)
         {
-            const AssetLoader& loader = Data->loaders[(uint32_t)asset.pEntry->type];
+            const AssetLoader& loader = Data->loaders[(uint32_t)asset.pEntry->Type];
             loader.pWaitUpload(asset.pPayload, loader.UserData);
             asset.uploading = false;
         }

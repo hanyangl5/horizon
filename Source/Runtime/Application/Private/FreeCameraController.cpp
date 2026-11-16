@@ -119,10 +119,10 @@ FreeCameraController::~FreeCameraController()
     exitCameraController(pCamera);
 }
 
-void FreeCameraController::update(float deltaTime, uint32_t width, uint32_t height, bool focused)
+void FreeCameraController::update(float deltaTime, uint32_t Width, uint32_t Height, bool focused)
 {
     look = float2(0.0f);
-    UpdateInputSystem(deltaTime, width, height);
+    UpdateInputSystem(deltaTime, Width, Height);
     if (!focused)
     {
         captured = false;

@@ -75,10 +75,10 @@ static bool wndValidateWindowPos(int32_t x, int32_t y)
     return true;
 }
 
-static bool wndValidateWindowSize(int32_t width, int32_t height)
+static bool wndValidateWindowSize(int32_t Width, int32_t Height)
 {
     RectDesc windowRect = pWindowRef->WindowedRect;
-    if ((abs(GetRectWidth(&windowRect) - width) > 1) || (abs(GetRectHeight(&windowRect) - height) > 1))
+    if ((abs(GetRectWidth(&windowRect) - Width) > 1) || (abs(GetRectHeight(&windowRect) - Height) > 1))
         return false;
     return true;
 }

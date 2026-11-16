@@ -75,10 +75,10 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 
     // Initialize all the buffer that will be used for each batch per each frame index
     BufferLoadDesc ubDesc = {};
-    ubDesc.desc.descriptors = DescriptorTypeUniformBuffer;
-    ubDesc.desc.memoryUsage = MemoryUsageCpuToGpu;
+    ubDesc.desc.Descriptors = DescriptorTypeUniformBuffer;
+    ubDesc.desc.MemoryUsage = MemoryUsageCpuToGpu;
     ubDesc.desc.Size = sizeof(UniformSkeletonBlock);
-    ubDesc.desc.flags = BufferCreationFlagPersistentMapBit | skeletonRenderDesc.creationFlag;
+    ubDesc.desc.Flags = BufferCreationFlagPersistentMapBit | skeletonRenderDesc.creationFlag;
     ubDesc.Data = NULL;
 
     for (uint32_t i = 0; i < frameCount; ++i)
@@ -169,12 +169,12 @@ void SkeletonBatcher::Load(const SkeletonBatcherLoadDesc* pDesc)
         jointLayout.bindingCount = 1;
         jointLayout.attribCount = 2;
         jointLayout.attribs[0].semantic = SEMANTIC_POSITION;
-        jointLayout.attribs[0].format = hz::Format::R32G32B32_SFLOAT;
+        jointLayout.attribs[0].Format = hz::Format::R32G32B32_SFLOAT;
         jointLayout.attribs[0].binding = 0;
         jointLayout.attribs[0].location = 0;
         jointLayout.attribs[0].offset = 0;
         jointLayout.attribs[1].semantic = SEMANTIC_NORMAL;
-        jointLayout.attribs[1].format = hz::Format::R32G32B32_SFLOAT;
+        jointLayout.attribs[1].Format = hz::Format::R32G32B32_SFLOAT;
         jointLayout.attribs[1].binding = 0;
         jointLayout.attribs[1].location = 1;
         jointLayout.attribs[1].offset = 3 * sizeof(float);
@@ -183,17 +183,17 @@ void SkeletonBatcher::Load(const SkeletonBatcherLoadDesc* pDesc)
         boneVertexLayout.bindingCount = 1;
         boneVertexLayout.attribCount = 3;
         boneVertexLayout.attribs[0].semantic = SEMANTIC_POSITION;
-        boneVertexLayout.attribs[0].format = hz::Format::R32G32B32_SFLOAT;
+        boneVertexLayout.attribs[0].Format = hz::Format::R32G32B32_SFLOAT;
         boneVertexLayout.attribs[0].binding = 0;
         boneVertexLayout.attribs[0].location = 0;
         boneVertexLayout.attribs[0].offset = 0;
         boneVertexLayout.attribs[1].semantic = SEMANTIC_NORMAL;
-        boneVertexLayout.attribs[1].format = hz::Format::R32G32B32_SFLOAT;
+        boneVertexLayout.attribs[1].Format = hz::Format::R32G32B32_SFLOAT;
         boneVertexLayout.attribs[1].binding = 0;
         boneVertexLayout.attribs[1].location = 1;
         boneVertexLayout.attribs[1].offset = 3 * sizeof(float);
         boneVertexLayout.attribs[2].semantic = SEMANTIC_JOINTS;
-        boneVertexLayout.attribs[2].format = hz::Format::R16G16B16A16_UINT;
+        boneVertexLayout.attribs[2].Format = hz::Format::R16G16B16A16_UINT;
         boneVertexLayout.attribs[2].binding = 0;
         boneVertexLayout.attribs[2].location = 2;
         boneVertexLayout.attribs[2].offset = 6 * sizeof(float);
@@ -207,7 +207,7 @@ void SkeletonBatcher::Load(const SkeletonBatcherLoadDesc* pDesc)
         depthStateDesc.depthFunc = CMP_GEQUAL;
 
         PipelineDesc desc = {};
-        desc.type = PIPELINE_TYPE_GRAPHICS;
+        desc.Type = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& pipelineSettings = desc.graphicsDesc;
         if (jointMeshType == Cube)
         {
@@ -220,8 +220,8 @@ void SkeletonBatcher::Load(const SkeletonBatcherLoadDesc* pDesc)
         pipelineSettings.renderTargetCount = 1;
         pipelineSettings.pDepthState = &depthStateDesc;
         pipelineSettings.pColorFormats = (hz::Format*)&pDesc->colorFormat;
-        pipelineSettings.sampleCount = pDesc->sampleCount;
-        pipelineSettings.sampleQuality = pDesc->sampleQuality;
+        pipelineSettings.SampleCount = pDesc->SampleCount;
+        pipelineSettings.SampleQuality = pDesc->SampleQuality;
         pipelineSettings.depthStencilFormat = pDesc->depthFormat;
         pipelineSettings.pRootSignature = rootSignature;
 

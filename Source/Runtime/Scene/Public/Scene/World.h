@@ -22,7 +22,7 @@ public:
 private:
     friend class World;
     friend class WorldQuery;
-    // Two 64-bit fields keep the type padding-free: hash maps key on the raw bytes.
+    // Two 64-bit fields keep the Type padding-free: hash maps key on the raw bytes.
     explicit Entity(uint64_t value, uint64_t world): value(value), world(world) {}
     uint64_t value = 0;
     uint64_t world = 0;
@@ -54,7 +54,7 @@ private:
 class World
 {
 public:
-    // Registers the types currently in registry; descriptors must outlive the World.
+    // Registers the types currently in registry; Descriptors must outlive the World.
     explicit World(const TypeRegistry& registry, const IDGenerator& entityGuids = {});
     ~World();
     World(const World&) = delete;
@@ -82,20 +82,20 @@ public:
     void                  commitTransforms();
     void                  resetTransformHistory(Entity root = {});
 
-    bool        addComponent(Entity entity, TypeID type);
-    bool        removeComponent(Entity entity, TypeID type);
+    bool        addComponent(Entity entity, TypeID Type);
+    bool        removeComponent(Entity entity, TypeID Type);
     // Copies the value. During defer, existing components update immediately; new components wait for commit.
-    bool        setComponent(Entity entity, TypeID type, const void* pValue);
+    bool        setComponent(Entity entity, TypeID Type, const void* pValue);
     // Read-only storage view. References expire on structural changes; owning values can change on setComponent.
-    const void* getComponent(Entity entity, TypeID type) const;
+    const void* getComponent(Entity entity, TypeID Type) const;
 
     // Edits require an existing component and take effect immediately, including during defer.
-    bool setProperty(Entity entity, TypeID type, PropertyID property, const PropertyValue& value);
-    bool resizeArray(Entity entity, TypeID type, PropertyID property, uint32_t Count);
-    // pValue points to an element of the reflected array type, including when inserting from this array.
-    bool insertArrayElement(Entity entity, TypeID type, PropertyID property, uint32_t index, const void* pValue);
-    bool removeArrayElement(Entity entity, TypeID type, PropertyID property, uint32_t index);
-    bool setArrayElementProperty(Entity entity, TypeID type, PropertyID property, uint32_t index, PropertyID elementProperty,
+    bool setProperty(Entity entity, TypeID Type, PropertyID property, const PropertyValue& value);
+    bool resizeArray(Entity entity, TypeID Type, PropertyID property, uint32_t Count);
+    // pValue points to an element of the reflected array Type, including when inserting from this array.
+    bool insertArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index, const void* pValue);
+    bool removeArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index);
+    bool setArrayElementProperty(Entity entity, TypeID Type, PropertyID property, uint32_t index, PropertyID elementProperty,
                                  const PropertyValue& value);
 
     // Defers structural changes until the outermost scope ends. World must outlive its scopes and queries.
@@ -124,7 +124,7 @@ public:
     WorldQuery& operator=(const WorldQuery&) = delete;
     bool        isValid() const;
 
-    // Fields follow the requested type order. Returning false stops iteration. Structural changes are deferred.
+    // Fields follow the requested Type order. Returning false stops iteration. Structural changes are deferred.
     void each(bool (*pCallback)(Entity entity, Span<const void*> fields, void* UserData), void* UserData = nullptr);
 
 private:

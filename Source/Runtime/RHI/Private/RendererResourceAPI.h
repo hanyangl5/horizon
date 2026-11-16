@@ -156,9 +156,9 @@ struct SubresourceDataDesc;
 //     TEXTURE_LAYOUT_RENDER_TARGET = 2,
 //     // UAV layout.
 //     TEXTURE_LAYOUT_UNORDERED_ACCESS = 3,
-//     // Writable depth/stencil layout.
+//     // Writable Depth/stencil layout.
 //     TEXTURE_LAYOUT_DEPTH_STENCIL_WRITE = 4,
-//     // Read-only depth/stencil layout.
+//     // Read-only Depth/stencil layout.
 //     TEXTURE_LAYOUT_DEPTH_STENCIL_READ = 5,
 //     // Shader resource layout.
 //     TEXTURE_LAYOUT_SHADER_RESOURCE = 6,
@@ -245,7 +245,7 @@ struct SubresourceDataDesc;
 //     ResourceState_2 mUsageAfter;
 //     uint64_t             offset;
 //     uint64_t             Size;
-//     BarrierFlags         flags = BARRIER_FLAG_NONE;
+//     BarrierFlags         Flags = BARRIER_FLAG_NONE;
 // };
 
 // struct TextureBarrier2
@@ -260,7 +260,7 @@ struct SubresourceDataDesc;
 //     uint16_t             mArrayLayerCount;
 //     uint8_t              mPlaneSlice;
 //     uint8_t              mPlaneSliceCount;
-//     BarrierFlags         flags = BARRIER_FLAG_NONE;
+//     BarrierFlags         Flags = BARRIER_FLAG_NONE;
 // };
 
 // struct RenderTargetBarrier2
@@ -275,7 +275,7 @@ struct SubresourceDataDesc;
 //     uint16_t             mArrayLayerCount;
 //     uint8_t              mPlaneSlice;
 //     uint8_t              mPlaneSliceCount;
-//     BarrierFlags         flags = BARRIER_FLAG_NONE;
+//     BarrierFlags         Flags = BARRIER_FLAG_NONE;
 // };
 
 // struct BarrierDesc

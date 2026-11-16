@@ -186,7 +186,7 @@ typedef pthread_t ThreadHandle;
         PERFORMANCE_STATS_FLAG_CORE_USAGE_PERCENTAGE = 0x0,
     } PerformanceStatsFlags;
 
-    FORGE_API int              InitPerformanceStats(PerformanceStatsFlags flags);
+    FORGE_API int              InitPerformanceStats(PerformanceStatsFlags Flags);
     FORGE_API void             UpdatePerformanceStats(void);
     FORGE_API PerformanceStats GetPerformanceStats(void);
     FORGE_API void             ExitPerformanceStats(void);

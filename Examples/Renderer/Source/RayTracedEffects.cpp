@@ -13,7 +13,7 @@ struct RTConstants
     uint32_t sampler;
     uint32_t tlas;
     uint32_t normal;
-    uint32_t depth;
+    uint32_t Depth;
     uint32_t output;
     uint32_t blueNoise;
     uint32_t environment;
@@ -36,7 +36,7 @@ struct RTDenoiseConstants
     uint32_t frame;
     uint32_t input;
     uint32_t history;
-    uint32_t depth;
+    uint32_t Depth;
     uint32_t previousDepth;
     uint32_t output;
     uint32_t sampler;
@@ -55,37 +55,37 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
     }
     RayScene = hz::MakeUnique<RayTracingScene>(Context);
     Sampler = Context.createSampler(
-        { .addressU = AddressModeClampToEdge, .addressV = AddressModeClampToEdge, .addressW = AddressModeClampToEdge });
+        { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .AddressW = AddressModeClampToEdge });
     MaterialSampler = Context.createSampler();
     ShadowPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "RTShadowAO.slang" },
-        .pName = "Renderer.RT.ShadowAO",
+        .Name = "Renderer.RT.ShadowAO",
     });
     TemporalPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } },
                         .pFileName = "rt_denoise_temporal.comp.slang" },
-        .pName = "Renderer.RT.Temporal",
+        .Name = "Renderer.RT.Temporal",
     });
     SpatialPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_spatial.comp.slang" },
-        .pName = "Renderer.RT.Spatial",
+        .Name = "Renderer.RT.Spatial",
     });
     AtrousPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_atrous.comp.slang" },
-        .pName = "Renderer.RT.Atrous",
+        .Name = "Renderer.RT.Atrous",
     });
     DepthCopyPipeline = Context.createComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSCopyDepth" } }, .pFileName = "RTDenoise.slang" },
-        .pName = "Renderer.RT.DepthHistory",
+        .Name = "Renderer.RT.DepthHistory",
     });
     ReflectionPipeline = Context.createRayTracingPipeline({
         .pFileName = "RTReflection.slang",
         .pRayGeneration = "rayGenMain",
         .missShaders = { "missMain" },
-        .hitGroups = { { .pName = "ReflectionHit", .pClosestHit = "closestHitMain", .pAnyHit = "anyHitFoliage" } },
+        .hitGroups = { { .Name = "ReflectionHit", .pClosestHit = "closestHitMain", .pAnyHit = "anyHitFoliage" } },
         .payloadSize = 16,
         .maxRecursionDepth = 2,
-        .pName = "Renderer.RT.Reflection",
+        .Name = "Renderer.RT.Reflection",
     });
     ASSERT(Sampler.isValid() && MaterialSampler.isValid() && ShadowPipeline.isValid() && TemporalPipeline.isValid() &&
            SpatialPipeline.isValid() && AtrousPipeline.isValid() && DepthCopyPipeline.isValid() && ReflectionPipeline.isValid());
@@ -103,26 +103,26 @@ void RayTracedEffects::Resize(uint32_t Width, uint32_t Height)
     this->Width = Width;
     this->Height = Height;
     const DescriptorType Views = DescriptorType(DescriptorTypeTexture | DescriptorTypeRwTexture);
-    hz::TextureDesc      Desc = { .width = Width,
-                                  .height = Height,
-                                  .format = hz::Format::R8G8_UNORM,
-                                  .startState = ResourceStateUnorderedAccess,
-                                  .descriptors = Views,
-                                  .flags = TextureCreationFlagForce2D,
-                                  .pName = "Renderer.RT.ShadowAO" };
+    hz::TextureDesc      Desc = { .Width = Width,
+                                  .Height = Height,
+                                  .Format = hz::Format::R8G8_UNORM,
+                                  .StartState = ResourceStateUnorderedAccess,
+                                  .Descriptors = Views,
+                                  .Flags = TextureCreationFlagForce2D,
+                                  .Name = "Renderer.RT.ShadowAO" };
     Result = Context.createTexture(Desc);
-    Desc.pName = "Renderer.RT.DenoiseScratch";
+    Desc.Name = "Renderer.RT.DenoiseScratch";
     Scratch = Context.createTexture(Desc);
-    Desc.pName = "Renderer.RT.History";
+    Desc.Name = "Renderer.RT.History";
     for (hz::GPUTexture& Texture : History)
     {
         Texture = Context.createTexture(Desc);
     }
-    Desc.format = hz::Format::R32_SFLOAT;
-    Desc.pName = "Renderer.RT.PreviousDepth";
+    Desc.Format = hz::Format::R32_SFLOAT;
+    Desc.Name = "Renderer.RT.PreviousDepth";
     PreviousDepth = Context.createTexture(Desc);
-    Desc.format = hz::Format::R32G32B32A32_SFLOAT;
-    Desc.pName = "Renderer.RT.Reflection";
+    Desc.Format = hz::Format::R32G32B32A32_SFLOAT;
+    Desc.Name = "Renderer.RT.Reflection";
     Reflection = Context.createTexture(Desc);
     if (!BlueNoise.isValid())
     {
@@ -139,7 +139,7 @@ void RayTracedEffects::MarkDirty() { MarkedDirty = true; }
 void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const SceneView& View,
                                const GpuDrawList& Draws, const LightingResources& Lighting)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RayTracedEffects::Execute");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RayTracedEffects::execute");
     if (!Supported)
     {
         return;
@@ -170,7 +170,7 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
                                 .sampler = MaterialSampler.getIndex(),
                                 .tlas = TLAS.isValid() ? TLAS.getSrvIndex() : UINT32_MAX,
                                 .normal = GBuffer.NormalMaterial->getSrvIndex(),
-                                .depth = GBuffer.Depth->getSrvIndex(),
+                                .Depth = GBuffer.Depth->getSrvIndex(),
                                 .output = Result.getUavIndex(),
                                 .blueNoise = BlueNoise.getSrvIndex(),
                                 .environment = Index(Lighting.Environment),
@@ -206,7 +206,7 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         .frame = Frame.getSrvIndex(),
         .input = Result.getSrvIndex(),
         .history = History[Previous].getSrvIndex(),
-        .depth = GBuffer.Depth->getSrvIndex(),
+        .Depth = GBuffer.Depth->getSrvIndex(),
         .previousDepth = PreviousDepth.getSrvIndex(),
         .output = History[Current].getUavIndex(),
         .sampler = Sampler.getIndex(),

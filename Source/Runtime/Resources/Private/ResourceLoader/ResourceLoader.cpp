@@ -1934,7 +1934,7 @@
 //     case TIF_DXGI_FORMAT_ASTC_12X12_UNORM_SRGB:
 //         return TIF_DXGI_FORMAT_ASTC_12X12_TYPELESS;
 
-//         // typeless just return the input format
+//         // typeless just return the input Format
 //     case TIF_DXGI_FORMAT_ASTC_4X4_TYPELESS:
 //     case TIF_DXGI_FORMAT_ASTC_5X4_TYPELESS:
 //     case TIF_DXGI_FORMAT_ASTC_5X5_TYPELESS:
@@ -3158,9 +3158,9 @@
 // } TinyImageFormat_GL_FORMAT;
 // #endif
 
-// #define FT(fmt, type, intfmt, Size)             \
+// #define FT(fmt, Type, intfmt, Size)             \
 //     *glformat = TIF_GL_FORMAT_##fmt;            \
-//     *gltype = TIF_GL_TYPE_##type;               \
+//     *gltype = TIF_GL_TYPE_##Type;               \
 //     *glinternalformat = TIF_GL_FORMAT_##intfmt; \
 //     *typesize = Size;                           \
 //     return;
@@ -3847,7 +3847,7 @@ bool isUma() { return gUma; }
 
 #define STRICT_QUEUE_TYPE_BARRIERS
 
-// Can only issue certain resource state barriers on particular queue type
+// Can only issue certain resource state barriers on particular queue Type
 static inline bool StrictQueueTypeBarriers() { return true; }
 
 // Need to issue barriers when doing texture copy operations
@@ -3873,14 +3873,14 @@ static inline ResourceState ResourceStartState(bool uav)
 static inline ResourceState ResourceStartState(const BufferDesc* pDesc)
 {
     // Host visible (Upload Heap)
-    if (pDesc->memoryUsage == MemoryUsageCpuOnly || pDesc->memoryUsage == MemoryUsageCpuToGpu)
+    if (pDesc->MemoryUsage == MemoryUsageCpuOnly || pDesc->MemoryUsage == MemoryUsageCpuToGpu)
     {
         return ResourceStateGenericRead;
     }
     // Device Local (Default Heap)
-    else if (pDesc->memoryUsage == MemoryUsageGpuOnly)
+    else if (pDesc->MemoryUsage == MemoryUsageGpuOnly)
     {
-        DescriptorType usage = (DescriptorType)pDesc->descriptors;
+        DescriptorType usage = (DescriptorType)pDesc->Descriptors;
         ResourceState  ret = ResourceStateUndefined;
 
         // Try to limit number of states used overall to avoid sync complexities
@@ -3925,7 +3925,7 @@ struct BufferLoadDescInternal
     uint64_t      dataSize;
     Buffer*       pSrcBuffer;
     uint64_t      srcOffset;
-    ResourceState startState;
+    ResourceState StartState;
     bool          forceReset;
 };
 
@@ -3939,13 +3939,13 @@ struct TextureLoadDescInternal
         {
             const char*          pFileName;
             Sampler*             pYcbcrSampler;
-            TextureCreationFlags flags;
+            TextureCreationFlags Flags;
             TextureContainerType container;
             ResourceDirectory    resourceDirectory;
         };
         struct
         {
-            ResourceState startState;
+            ResourceState StartState;
         };
     };
     bool forceReset;
@@ -3958,7 +3958,7 @@ struct TextureUpdateDescInternal
     Cmd*              pCmd;
     MappedMemoryRange range;
     uint32_t          baseMipLevel;
-    uint32_t          mipLevels;
+    uint32_t          MipLevels;
     uint32_t          baseArrayLayer;
     uint32_t          layerCount;
     PreMipStepFn      pPreMipFunc;
@@ -3993,7 +3993,7 @@ struct CopyEngineDesc
 {
     uint64_t    Size;
     const char* pQueueName;
-    QueueType   queueType;
+    QueueType   QueueType;
     uint32_t    bufferCount;
 };
 
@@ -4037,13 +4037,13 @@ enum UploadFunctionResult : uint32_t
 
 struct UpdateRequest
 {
-    UpdateRequest(const BufferLoadDescInternal& buffer): type(UPDATE_REQUEST_LOAD_BUFFER), bufLoadDesc(buffer) {}
-    UpdateRequest(const TextureLoadDescInternal& texture): type(UPDATE_REQUEST_LOAD_TEXTURE), texLoadDesc(texture) {}
-    UpdateRequest(const GeometryLoadDesc& geom): type(UPDATE_REQUEST_LOAD_GEOMETRY), geomLoadDesc(geom) {}
-    UpdateRequest(const TextureBarrier& barrier): type(UPDATE_REQUEST_TEXTURE_BARRIER), textureBarrier(barrier) {}
-    UpdateRequest(const TextureCopyDesc& texture): type(UPDATE_REQUEST_COPY_TEXTURE), texCopyDesc(texture) {}
+    UpdateRequest(const BufferLoadDescInternal& buffer): Type(UPDATE_REQUEST_LOAD_BUFFER), bufLoadDesc(buffer) {}
+    UpdateRequest(const TextureLoadDescInternal& texture): Type(UPDATE_REQUEST_LOAD_TEXTURE), texLoadDesc(texture) {}
+    UpdateRequest(const GeometryLoadDesc& geom): Type(UPDATE_REQUEST_LOAD_GEOMETRY), geomLoadDesc(geom) {}
+    UpdateRequest(const TextureBarrier& barrier): Type(UPDATE_REQUEST_TEXTURE_BARRIER), textureBarrier(barrier) {}
+    UpdateRequest(const TextureCopyDesc& texture): Type(UPDATE_REQUEST_COPY_TEXTURE), texCopyDesc(texture) {}
 
-    UpdateRequestType type = UPDATE_REQUEST_INVALID;
+    UpdateRequestType Type = UPDATE_REQUEST_INVALID;
     uint64_t          waitIndex = 0;
     union
     {
@@ -4122,7 +4122,7 @@ static void* allocShaderByteCode(ShaderByteCodeBuffer* pShaderByteCodeBuffer, ui
     }
     else
     {
-        LOGF(Info, "Loading shader bytecode in heap memory (%s - %u bytes) (Stack total Size: %u, Free Size: %u)", filename,
+        LOGF(Info, "Loading shader bytecode in heap memory (%s - %u bytes) (Stack total size: %u, Free size: %u)", filename,
              (uint32_t)(Size + alignment), pShaderByteCodeBuffer->kStackSize,
              pShaderByteCodeBuffer->kStackSize - pShaderByteCodeBuffer->stackUsed);
         pOutMemory = MemAllocateAligned(alignment, Size);
@@ -4166,16 +4166,16 @@ static MappedMemoryRange allocateUploadMemory(Renderer* pRenderer, uint64_t memo
     BufferDesc bufferDesc = {};
     bufferDesc.Size = memoryRequirement;
     bufferDesc.alignment = alignment;
-    bufferDesc.memoryUsage = MemoryUsageCpuOnly;
-    bufferDesc.flags = BufferCreationFlagPersistentMapBit;
-    bufferDesc.pName = "temporary staging buffer";
+    bufferDesc.MemoryUsage = MemoryUsageCpuOnly;
+    bufferDesc.Flags = BufferCreationFlagPersistentMapBit;
+    bufferDesc.Name = "temporary staging buffer";
     addBuffer(pRenderer, &bufferDesc, &buffer);
     return { (uint8_t*)buffer->pCpuMappedAddress, buffer, 0, memoryRequirement, MAPPED_RANGE_FLAG_TEMP_BUFFER };
 }
 
 static void setupCopyEngine(Renderer* pRenderer, CopyEngineDesc* pDesc, CopyEngine* pCopyEngine)
 {
-    QueueDesc desc = { pDesc->queueType, QUEUE_FLAG_NONE, QUEUE_PRIORITY_NORMAL, pDesc->pQueueName };
+    QueueDesc desc = { pDesc->QueueType, QUEUE_FLAG_NONE, QUEUE_PRIORITY_NORMAL, pDesc->pQueueName };
     addQueue(pRenderer, &desc, &pCopyEngine->pQueue);
 
     const uint64_t maxBlockSize = 32;
@@ -4199,7 +4199,7 @@ static void setupCopyEngine(Renderer* pRenderer, CopyEngineDesc* pDesc, CopyEngi
         static char buffer[MAX_DEBUG_NAME_LENGTH];
         const char* engineName = pDesc->pQueueName ? pDesc->pQueueName : "Unnamed";
         snprintf(buffer, sizeof(buffer), "%s CopyEngine buffer %u Cmd", engineName, i);
-        cmdDesc.pName = buffer;
+        cmdDesc.Name = buffer;
 #endif // ENABLE_GRAPHICS_DEBUG
         addCmd(pRenderer, &cmdDesc, &resourceSet.pCmd);
 
@@ -4298,7 +4298,7 @@ static Cmd* acquireCmd(CopyEngine* pCopyEngine)
         resetCmdPool(pResourceLoader->pRenderer, resourceSet.pCmdPool);
         beginCmd(resourceSet.pCmd);
         cmdBeginDebugMarker(resourceSet.pCmd, 1.0f, 0.5f, 0.1f,
-                            QueueTypeTransfer == pCopyEngine->pQueue->type ? "Copy Cmd" : "Upload Cmd");
+                            QueueTypeTransfer == pCopyEngine->pQueue->Type ? "Copy Cmd" : "Upload Cmd");
         pCopyEngine->isRecording = true;
     }
     return resourceSet.pCmd;
@@ -4306,7 +4306,7 @@ static Cmd* acquireCmd(CopyEngine* pCopyEngine)
 
 static Cmd* acquirePostCopyBarrierCmd(CopyEngine* pCopyEngine)
 {
-    if (!StrictQueueTypeBarriers() || pCopyEngine->pQueue->type != QueueTypeTransfer)
+    if (!StrictQueueTypeBarriers() || pCopyEngine->pQueue->Type != QueueTypeTransfer)
     {
         return acquireCmd(pCopyEngine);
     }
@@ -4379,7 +4379,7 @@ static MappedMemoryRange allocateStagingMemory(CopyEngine* pCopyEngine, uint64_t
         MappedMemoryRange range = allocateUploadMemory(pResourceLoader->pRenderer, memoryRequirement, alignment);
         LOADER_LOGF(
             LogLevel::Info,
-            "Allocating temporary staging buffer. Required allocation Size of %llu is larger than the staging buffer Capacity of %llu",
+            "Allocating temporary staging buffer. Required allocation size of %llu is larger than the staging buffer capacity of %llu",
             memoryRequirement, Size);
         arrpush(pResourceSet->tempBuffers, range.pBuffer);
         return range;
@@ -4412,7 +4412,7 @@ static UploadFunctionResult updateBuffer(Renderer* pRenderer, CopyEngine* pCopyE
 {
     UNREF_PARAM(pRenderer);
     Buffer* pBuffer = bufUpdateDesc.pBuffer;
-    ASSERT(MemoryUsageGpuOnly == pBuffer->memoryUsage);
+    ASSERT(MemoryUsageGpuOnly == pBuffer->MemoryUsage);
 
     Cmd* pCmd = acquireCmd(pCopyEngine);
 
@@ -4489,9 +4489,9 @@ static UploadFunctionResult loadBuffer(Renderer* pRenderer, CopyEngine* pCopyEng
     UploadFunctionResult res = updateBuffer(pRenderer, pCopyEngine, updateDesc);
     if (UPLOAD_FUNCTION_RESULT_COMPLETED == res)
     {
-        if (IssueBufferCopyBarriers() && loadDesc.startState != ResourceStateCopyDest)
+        if (IssueBufferCopyBarriers() && loadDesc.StartState != ResourceStateCopyDest)
         {
-            BufferBarrier barrier = { loadDesc.pBuffer, ResourceStateCopyDest, loadDesc.startState };
+            BufferBarrier barrier = { loadDesc.pBuffer, ResourceStateCopyDest, loadDesc.StartState };
             Cmd*          cmd = acquirePostCopyBarrierCmd(pCopyEngine);
             cmdResourceBarrier(cmd, 1, &barrier, 0, NULL, 0, NULL);
         }
@@ -4506,14 +4506,14 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
     // All that is left to do is record and execute the Copy commands
     bool             dataAlreadyFilled = texUpdateDesc.range.pBuffer ? true : false;
     Texture*         texture = texUpdateDesc.pTexture;
-    const hz::Format fmt = texture->format;
+    const hz::Format fmt = texture->Format;
     FileStream       stream = texUpdateDesc.stream;
 
     const uint32_t sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
     const uint32_t rowAlignment = util_get_texture_row_alignment(pRenderer);
     const uint64_t requiredSize =
-        util_get_surface_size(fmt, texture->width, texture->height, texture->depth, rowAlignment, sliceAlignment,
-                              texUpdateDesc.baseMipLevel, texUpdateDesc.mipLevels, texUpdateDesc.baseArrayLayer, texUpdateDesc.layerCount);
+        util_get_surface_size(fmt, texture->Width, texture->Height, texture->Depth, rowAlignment, sliceAlignment,
+                              texUpdateDesc.baseMipLevel, texUpdateDesc.MipLevels, texUpdateDesc.baseArrayLayer, texUpdateDesc.layerCount);
 
     MappedMemoryRange upload = dataAlreadyFilled ? texUpdateDesc.range : allocateStagingMemory(pCopyEngine, requiredSize, sliceAlignment);
     uint64_t          offset = 0;
@@ -4554,11 +4554,11 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
     }
 
     uint32_t firstStart = texUpdateDesc.mipsAfterSlice ? texUpdateDesc.baseMipLevel : texUpdateDesc.baseArrayLayer;
-    uint32_t firstEnd = texUpdateDesc.mipsAfterSlice ? (texUpdateDesc.baseMipLevel + texUpdateDesc.mipLevels)
+    uint32_t firstEnd = texUpdateDesc.mipsAfterSlice ? (texUpdateDesc.baseMipLevel + texUpdateDesc.MipLevels)
                                                      : (texUpdateDesc.baseArrayLayer + texUpdateDesc.layerCount);
     uint32_t secondStart = texUpdateDesc.mipsAfterSlice ? texUpdateDesc.baseArrayLayer : texUpdateDesc.baseMipLevel;
     uint32_t secondEnd = texUpdateDesc.mipsAfterSlice ? (texUpdateDesc.baseArrayLayer + texUpdateDesc.layerCount)
-                                                      : (texUpdateDesc.baseMipLevel + texUpdateDesc.mipLevels);
+                                                      : (texUpdateDesc.baseMipLevel + texUpdateDesc.MipLevels);
 
     for (uint32_t p = 0; p < 1; ++p)
     {
@@ -4579,9 +4579,9 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                 uint32_t mip = texUpdateDesc.mipsAfterSlice ? j : i;
                 uint32_t layer = texUpdateDesc.mipsAfterSlice ? i : j;
 
-                uint32_t w = MipReduce(texture->width, mip);
-                uint32_t h = MipReduce(texture->height, mip);
-                uint32_t d = MipReduce(texture->depth, mip);
+                uint32_t w = MipReduce(texture->Width, mip);
+                uint32_t h = MipReduce(texture->Height, mip);
+                uint32_t d = MipReduce(texture->Depth, mip);
 
                 uint32_t numBytes = 0;
                 uint32_t rowBytes = 0;
@@ -4659,26 +4659,26 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
         }
 
-        hz::Format        fmt = texture->format;
+        hz::Format        fmt = texture->Format;
         const uint32_t    sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
         const uint32_t    rowAlignment = util_get_texture_row_alignment(pRenderer);
-        const uint64_t    requiredSize = util_get_surface_size(fmt, texture->width, texture->height, texture->depth, rowAlignment,
-                                                            sliceAlignment, 0, texture->mipLevels, 0, texture->arraySizeMinusOne + 1u);
+        const uint64_t    requiredSize = util_get_surface_size(fmt, texture->Width, texture->Height, texture->Depth, rowAlignment,
+                                                            sliceAlignment, 0, texture->MipLevels, 0, texture->arraySizeMinusOne + 1u);
         MappedMemoryRange range = allocateStagingMemory(pCopyEngine, requiredSize, sliceAlignment);
         memset(range.Data, 0, range.Size);
 
         // Zero out all subresources
         TextureUpdateDescInternal updateDesc = {};
         updateDesc.layerCount = texture->arraySizeMinusOne + 1u;
-        updateDesc.mipLevels = texture->mipLevels;
+        updateDesc.MipLevels = texture->MipLevels;
         updateDesc.pTexture = texture;
         updateDesc.range = range;
         updateDesc.currentState = ResourceStateCopyDest;
         updateTexture(pRenderer, pCopyEngine, updateDesc);
 
-        if (IssueTextureCopyBarriers() && pTextureDesc->startState != ResourceStateCopyDest)
+        if (IssueTextureCopyBarriers() && pTextureDesc->StartState != ResourceStateCopyDest)
         {
-            TextureBarrier barrier = { texture, ResourceStateCopyDest, pTextureDesc->startState };
+            TextureBarrier barrier = { texture, ResourceStateCopyDest, pTextureDesc->StartState };
             Cmd*           cmd = acquirePostCopyBarrierCmd(pCopyEngine);
             cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
         }
@@ -4686,7 +4686,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         return UPLOAD_FUNCTION_RESULT_COMPLETED;
     }
 
-    ASSERT((((pTextureDesc->flags & TextureCreationFlagSrgb) == 0) || (pTextureDesc->pFileName != NULL)) &&
+    ASSERT((((pTextureDesc->Flags & TextureCreationFlagSrgb) == 0) || (pTextureDesc->pFileName != NULL)) &&
            "Only textures loaded from file can have TextureCreationFlagSrgb. "
            "Please change format of the provided texture if you need srgb format.");
 
@@ -4704,10 +4704,10 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         }
 
         TextureDesc textureDesc = {};
-        textureDesc.pName = pTextureDesc->pFileName;
-        textureDesc.flags |= pTextureDesc->flags;
+        textureDesc.Name = pTextureDesc->pFileName;
+        textureDesc.Flags |= pTextureDesc->Flags;
 
-        // Validate that we have found the file format now
+        // Validate that we have found the file Format now
         ASSERT(container != TEXTURE_CONTAINER_DEFAULT); //-V547
         if (TEXTURE_CONTAINER_DEFAULT == container)     //-V547
         {
@@ -4752,8 +4752,8 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         {
             // D3D12 requires block-aligned base dimensions for BC textures. Preserve the exact
             // texel of the 1x1 BC5 normal maps emitted by some glTF exporters as an RG8 texture.
-            if (textureDesc.width == 1 && textureDesc.height == 1 && textureDesc.depth == 1 && textureDesc.arraySize == 1 &&
-                textureDesc.mipLevels == 1 && textureDesc.format == hz::Format::DXBC5_UNORM)
+            if (textureDesc.Width == 1 && textureDesc.Height == 1 && textureDesc.Depth == 1 && textureDesc.ArraySize == 1 &&
+                textureDesc.MipLevels == 1 && textureDesc.Format == hz::Format::DXBC5_UNORM)
             {
                 uint8_t    block[16] = {};
                 const bool read = ReadFromStream(&stream, block, sizeof(block)) == sizeof(block);
@@ -4764,22 +4764,22 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                 singleTexelNormal[1] = decodeBC5SingleTexelChannel(block + 8);
                 if (!OpenStreamFromMemory(singleTexelNormal, sizeof(singleTexelNormal), FileModeRead, false, &stream))
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
-                textureDesc.format = hz::Format::R8G8_UNORM;
+                textureDesc.Format = hz::Format::R8G8_UNORM;
             }
             // Copy queues implicitly promote from COMMON and decay back after submission.
-            textureDesc.startState = pCopyEngine->pQueue->type == QueueTypeTransfer ? ResourceStateCommon : ResourceStateCopyDest;
+            textureDesc.StartState = pCopyEngine->pQueue->Type == QueueTypeTransfer ? ResourceStateCommon : ResourceStateCopyDest;
 
-            if (pTextureDesc->flags & TextureCreationFlagSrgb)
+            if (pTextureDesc->Flags & TextureCreationFlagSrgb)
             {
-                hz::Format srgbFormat = (hz::Format)TinyImageFormat_ToSRGB((TinyImageFormat)textureDesc.format);
+                hz::Format srgbFormat = (hz::Format)TinyImageFormat_ToSRGB((TinyImageFormat)textureDesc.Format);
                 if (srgbFormat != hz::Format::UNDEFINED)
-                    textureDesc.format = srgbFormat;
+                    textureDesc.Format = srgbFormat;
                 else
                 {
                     LOGF(Warning,
                          "Trying to load '%s' image using SRGB profile. "
                          "But image has '%s' format, which doesn't have SRGB counterpart.",
-                         pTextureDesc->pFileName, TinyImageFormat_Name((TinyImageFormat)textureDesc.format));
+                         pTextureDesc->pFileName, TinyImageFormat_Name((TinyImageFormat)textureDesc.Format));
                 }
             }
 
@@ -4788,9 +4788,9 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             updateDesc.stream = stream;
             updateDesc.pTexture = *pTextureDesc->ppTexture;
             updateDesc.baseMipLevel = 0;
-            updateDesc.mipLevels = textureDesc.mipLevels;
+            updateDesc.MipLevels = textureDesc.MipLevels;
             updateDesc.baseArrayLayer = 0;
-            updateDesc.layerCount = textureDesc.arraySize;
+            updateDesc.layerCount = textureDesc.ArraySize;
             updateDesc.currentState = ResourceStateCopyDest;
 
             if (IssueExplicitInitialStateBarrier())
@@ -4805,7 +4805,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             if (IssueTextureCopyBarriers() && UPLOAD_FUNCTION_RESULT_COMPLETED == res)
             {
                 TextureBarrier barrier = { *pTextureDesc->ppTexture,
-                                           pCopyEngine->pQueue->type == QueueTypeTransfer ? ResourceStateCommon
+                                           pCopyEngine->pQueue->Type == QueueTypeTransfer ? ResourceStateCommon
                                                                                             : ResourceStateCopyDest,
                                            ResourceStateShaderResource };
                 Cmd*           cmd = acquirePostCopyBarrierCmd(pCopyEngine);
@@ -4827,7 +4827,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
                                    BufferUpdateDesc indexUpdateDesc[1])
 {
     UNREF_PARAM(pCopyEngine);
-    bool     structuredBuffers = (pDesc->flags & GEOMETRY_LOAD_FLAG_STRUCTURED_BUFFERS) > 0;
+    bool     structuredBuffers = (pDesc->Flags & GEOMETRY_LOAD_FLAG_STRUCTURED_BUFFERS) > 0;
     uint32_t indexBufferSize = *indexStride * geom->indexCount;
 
     if (pDesc->pGeometryBuffer)
@@ -4846,18 +4846,18 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
     else
     {
         BufferDesc loadDesc = {};
-        loadDesc.descriptors =
+        loadDesc.Descriptors =
             DescriptorTypeIndexBuffer | (structuredBuffers ? (DescriptorTypeBuffer | DescriptorTypeRwBuffer)
                                                               : (DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw));
-        loadDesc.flags |= (pDesc->flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
+        loadDesc.Flags |= (pDesc->Flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
                               ? (BufferCreationFlagShaderDeviceAddress | BufferCreationFlagAccelerationStructureBuildInput)
                               : BufferCreationFlagNone;
         // RAW loads read 32-bit words, including an odd final 16-bit index.
         loadDesc.Size = structuredBuffers ? indexBufferSize : round_up(indexBufferSize, (uint32_t)sizeof(uint32_t));
-        loadDesc.elementCount = (uint32_t)(loadDesc.Size / (structuredBuffers ? *indexStride : sizeof(uint32_t)));
-        loadDesc.structStride = *indexStride;
-        loadDesc.memoryUsage = MemoryUsageGpuOnly;
-        loadDesc.startState = gUma ? gIndexBufferState : ResourceStateCopyDest;
+        loadDesc.ElementCount = (uint32_t)(loadDesc.Size / (structuredBuffers ? *indexStride : sizeof(uint32_t)));
+        loadDesc.StructStride = *indexStride;
+        loadDesc.MemoryUsage = MemoryUsageGpuOnly;
+        loadDesc.StartState = gUma ? gIndexBufferState : ResourceStateCopyDest;
         addBuffer(pRenderer, &loadDesc, &geom->pIndexBuffer);
         indexUpdateDesc->pBuffer = geom->pIndexBuffer;
         indexUpdateDesc->dstOffset = 0;
@@ -4895,20 +4895,20 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
         else
         {
             BufferDesc vertexBufferDesc = {};
-            vertexBufferDesc.descriptors =
+            vertexBufferDesc.Descriptors =
                 DescriptorTypeVertexBuffer | (structuredBuffers ? (DescriptorTypeBuffer | DescriptorTypeRwBuffer)
                                                                    : (DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw));
-            vertexBufferDesc.flags |=
-                (pDesc->flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
+            vertexBufferDesc.Flags |=
+                (pDesc->Flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
                     ? (BufferCreationFlagShaderDeviceAddress | BufferCreationFlagAccelerationStructureBuildInput)
                     : BufferCreationFlagNone;
             vertexBufferDesc.Size = Size;
-            vertexBufferDesc.elementCount =
+            vertexBufferDesc.ElementCount =
                 (uint32_t)(vertexBufferDesc.Size / (structuredBuffers ? geom->vertexStrides[i] : sizeof(uint32_t)));
-            vertexBufferDesc.structStride = geom->vertexStrides[i];
-            vertexBufferDesc.memoryUsage = MemoryUsageGpuOnly;
-            vertexBufferDesc.startState = gUma ? gVertexBufferState : ResourceStateCopyDest;
-            vertexBufferDesc.pName = "VertexBuffer";
+            vertexBufferDesc.StructStride = geom->vertexStrides[i];
+            vertexBufferDesc.MemoryUsage = MemoryUsageGpuOnly;
+            vertexBufferDesc.StartState = gUma ? gVertexBufferState : ResourceStateCopyDest;
+            vertexBufferDesc.Name = "VertexBuffer";
             addBuffer(pRenderer, &vertexBufferDesc, &geom->pVertexBuffers[bufferCounter]);
 
             vertexUpdateDesc[i].pBuffer = geom->pVertexBuffers[bufferCounter];
@@ -5008,7 +5008,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         requiredShadowSize += (uint64_t)reader.pShadow->vertexStrides[i] * reader.pShadow->attributeCount[i];
         if (reader.pShadow->attributeCount[i] > geom->vertexCount)
         {
-            LOGF(Error, "Invalid Geometry attribute Count in '%s'", pDesc->pFileName);
+            LOGF(Error, "Invalid Geometry attribute count in '%s'", pDesc->pFileName);
             return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
         }
     }
@@ -5094,7 +5094,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     {
         const VertexAttrib* attr = &pDesc->pVertexLayout->attribs[i];
 
-        const uint32_t dstFormatSize = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)attr->format) / 8;
+        const uint32_t dstFormatSize = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)attr->Format) / 8;
 
         if (defaultTexcoordSemantic == SEMANTIC_UNDEFINED) // #nocheckin Revisit this if statement
         {
@@ -5188,7 +5188,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     }
 
     // If the user doesn't want the shadowed data we don't need it any more
-    if ((pDesc->flags & GEOMETRY_LOAD_FLAG_SHADOWED) != GEOMETRY_LOAD_FLAG_SHADOWED)
+    if ((pDesc->Flags & GEOMETRY_LOAD_FLAG_SHADOWED) != GEOMETRY_LOAD_FLAG_SHADOWED)
     {
         MemDeallocate(geomData->pShadow);
         geomData->pShadow = nullptr;
@@ -5242,7 +5242,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
         ASSERT(indexUpdateDesc.pMappedData);
         memcpy(indexUpdateDesc.internal.mappedRange.Data, indexUpdateDesc.pMappedData, indexUpdateDesc.Size);
         MemDeallocate(indexUpdateDesc.pMappedData);
-        if (indexUpdateDesc.internal.mappedRange.flags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
+        if (indexUpdateDesc.internal.mappedRange.Flags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
         {
             setBufferName(pRenderer, indexUpdateDesc.internal.mappedRange.pBuffer, pDesc->pFileName);
         }
@@ -5264,7 +5264,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
                 ASSERT(vertexUpdateDesc[i].pMappedData);
                 memcpy(vertexUpdateDesc[i].internal.mappedRange.Data, vertexUpdateDesc[i].pMappedData, vertexUpdateDesc[i].Size);
                 MemDeallocate(vertexUpdateDesc[i].pMappedData);
-                if (vertexUpdateDesc[i].internal.mappedRange.flags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
+                if (vertexUpdateDesc[i].internal.mappedRange.Flags & MAPPED_RANGE_FLAG_TEMP_BUFFER)
                 {
                     setBufferName(pRenderer, vertexUpdateDesc[i].internal.mappedRange.pBuffer, pDesc->pFileName);
                 }
@@ -5288,7 +5288,7 @@ static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 {
     UNREF_PARAM(pRenderer);
     Texture*         texture = pTextureCopy.pTexture;
-    const hz::Format fmt = texture->format;
+    const hz::Format fmt = texture->Format;
 
     Cmd* cmd = acquireCmd(pCopyEngine);
 
@@ -5297,14 +5297,14 @@ static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 
     TextureBarrier barrier = { texture, pTextureCopy.textureState, ResourceStateCopySource };
     barrier.acquire = 1;
-    barrier.queueType = pTextureCopy.queueType;
+    barrier.QueueType = pTextureCopy.QueueType;
     cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
 
     uint32_t numBytes = 0;
     uint32_t rowBytes = 0;
     uint32_t numRows = 0;
 
-    bool ret = util_get_surface_info(texture->width, texture->height, fmt, &numBytes, &rowBytes, &numRows);
+    bool ret = util_get_surface_info(texture->Width, texture->Height, fmt, &numBytes, &rowBytes, &numRows);
     if (!ret)
     {
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
@@ -5324,7 +5324,7 @@ static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 
     barrier = { texture, ResourceStateCopySource, pTextureCopy.textureState };
     barrier.release = 1;
-    barrier.queueType = pTextureCopy.queueType;
+    barrier.QueueType = pTextureCopy.QueueType;
     cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
 
     return UPLOAD_FUNCTION_RESULT_COMPLETED;
@@ -5404,7 +5404,7 @@ static void streamerThreadFunc(void* pThreadData)
                 Cmd*          cmd = acquireCmd(pCopyEngine);
 
                 UploadFunctionResult result = UPLOAD_FUNCTION_RESULT_COMPLETED;
-                switch (updateState.type)
+                switch (updateState.Type)
                 {
                 case UPDATE_REQUEST_TEXTURE_BARRIER:
                     cmdResourceBarrier(cmd, 0, NULL, 1, &updateState.textureBarrier, 0, NULL);
@@ -5518,14 +5518,14 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
 
     CopyEngineDesc desc = {};
     desc.bufferCount = pLoader->desc.bufferCount;
-    desc.queueType = QueueTypeGraphics;
+    desc.QueueType = QueueTypeGraphics;
     desc.Size = pLoader->desc.bufferSize;
     desc.pQueueName = "UPLOAD";
     setupCopyEngine(pLoader->pRenderer, &desc, &pLoader->uploadEngine);
 
     desc = {};
     desc.bufferCount = pLoader->desc.bufferCount;
-    desc.queueType = QueueTypeTransfer;
+    desc.QueueType = QueueTypeTransfer;
     desc.Size = pLoader->desc.bufferSize;
     desc.pQueueName = "COPY";
     setupCopyEngine(pLoader->pRenderer, &desc, &pLoader->copyEngine);
@@ -5548,7 +5548,7 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
 #ifdef ENABLE_GRAPHICS_DEBUG
             static char buffer[MAX_DEBUG_NAME_LENGTH];
             snprintf(buffer, sizeof(buffer), "Strict Queue buffer %u Cmd", b);
-            cmdDesc.pName = buffer;
+            cmdDesc.Name = buffer;
 #endif // ENABLE_GRAPHICS_DEBUG
             addCmd(pLoader->pRenderer, &cmdDesc, &resourceSet.pPostCopyBarrierCmd);
             addFence(pLoader->pRenderer, &resourceSet.pPostCopyBarrierFence);
@@ -6100,11 +6100,11 @@ static void parseMaterial(const char* pFileBuffer, uint64_t fileSize, Material**
                         pMaterialDesc->pTextureNames[textureIdxInMaterial] =
                             materialParseAndStoreString(pMaterialDesc, pLine, &textureLineOffset);
 
-                        // Move to flags
+                        // Move to Flags
                         textureLineOffset += 1; // Skip space
-                        const int32_t flags = atoi(pLine + textureLineOffset);
-                        ASSERT(flags < 256);
-                        pMaterialDesc->pTextureFlags[textureIdxInMaterial] = (uint8_t)flags;
+                        const int32_t Flags = atoi(pLine + textureLineOffset);
+                        ASSERT(Flags < 256);
+                        pMaterialDesc->pTextureFlags[textureIdxInMaterial] = (uint8_t)Flags;
 
                         // Move to global ID
                         while (pLine[textureLineOffset++] != ' ')
@@ -6422,28 +6422,28 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
                     "addResource : BufferLoadDesc(%s)::Data is non NULL but token is NULL. It is undefined behavior if Data is freed "
                     "before the buffer load has completed on the ResourceLoader thread. Use waitForAllResourceLoads before freeing Data "
                     "when explicit token was not passed",
-                    pBufferDesc->desc.pName ? pBufferDesc->desc.pName : "Unnamed");
+                    pBufferDesc->desc.Name ? pBufferDesc->desc.Name : "Unnamed");
     }
 
-    ResourceState startState = pBufferDesc->desc.startState;
-    if (MemoryUsageGpuOnly == pBufferDesc->desc.memoryUsage && !pBufferDesc->desc.startState)
+    ResourceState StartState = pBufferDesc->desc.StartState;
+    if (MemoryUsageGpuOnly == pBufferDesc->desc.MemoryUsage && !pBufferDesc->desc.StartState)
     {
-        startState = ResourceStartState(&pBufferDesc->desc);
+        StartState = ResourceStartState(&pBufferDesc->desc);
         LOADER_LOGF(Warning, "Buffer start state not provided. Determined the start state as (%u) based on the provided BufferDesc",
-                    (uint32_t)pBufferDesc->desc.startState);
+                    (uint32_t)pBufferDesc->desc.StartState);
     }
 
     Renderer*  pRenderer = pResourceLoader->pRenderer;
     const bool update = pBufferDesc->Data || pBufferDesc->forceReset;
-    const bool gpuUpdate = pBufferDesc->desc.memoryUsage == MemoryUsageGpuOnly && update && !gUma;
+    const bool gpuUpdate = pBufferDesc->desc.MemoryUsage == MemoryUsageGpuOnly && update && !gUma;
 
     if (gpuUpdate)
     {
-        pBufferDesc->desc.startState = ResourceStateCopyDest;
+        pBufferDesc->desc.StartState = ResourceStateCopyDest;
     }
     else
     {
-        pBufferDesc->desc.startState = startState;
+        pBufferDesc->desc.StartState = StartState;
     }
 
     const uint64_t bufferSize = pBufferDesc->desc.Size;
@@ -6453,11 +6453,11 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
     {
         BufferLoadDescInternal loadDesc = {};
         loadDesc.forceReset = pBufferDesc->forceReset;
-        loadDesc.startState = startState;
+        loadDesc.StartState = StartState;
         loadDesc.pBuffer = *pBufferDesc->ppBuffer;
         loadDesc.Data = pBufferDesc->Data;
         loadDesc.dataSize = bufferSize;
-        if (gpuUpdate && MemoryUsageGpuOnly == loadDesc.pBuffer->memoryUsage)
+        if (gpuUpdate && MemoryUsageGpuOnly == loadDesc.pBuffer->MemoryUsage)
         {
             loadDesc.pSrcBuffer = pBufferDesc->pSrcBuffer;
             loadDesc.srcOffset = pBufferDesc->srcOffset;
@@ -6485,17 +6485,17 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 
     if (!pTextureDesc->pFileName && pTextureDesc->pDesc)
     {
-        ASSERT(pTextureDesc->pDesc->startState);
+        ASSERT(pTextureDesc->pDesc->StartState);
 
         TextureDesc textureDesc = *pTextureDesc->pDesc;
 #if defined(GFX_DRIVER_MANAGED_VIDEO_MEMORY)
         if (pTextureDesc->forceReset)
         {
             // If we are going to mem zero using staging buffer set start state to copy dest to avoid one barrier in the beginning
-            textureDesc.startState = ResourceStateCopyDest;
+            textureDesc.StartState = ResourceStateCopyDest;
         }
 #endif
-        // If texture is supposed to be filled later (UAV / Update later / ...) proceed with the startState provided by the user in the
+        // If texture is supposed to be filled later (UAV / Update later / ...) proceed with the StartState provided by the user in the
         // texture description
         addTexture(pResourceLoader->pRenderer, &textureDesc, pTextureDesc->ppTexture);
 
@@ -6505,20 +6505,20 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
             loadDesc.ppTexture = pTextureDesc->ppTexture;
             loadDesc.forceReset = true;
             loadDesc.pSuccess = pTextureDesc->pSuccess;
-            loadDesc.startState = pTextureDesc->pDesc->startState;
+            loadDesc.StartState = pTextureDesc->pDesc->StartState;
             queueTextureLoad(pResourceLoader, &loadDesc, token);
             return;
         }
 
         if (IssueExplicitInitialStateBarrier())
         {
-            ResourceState startState = pTextureDesc->pDesc->startState;
+            ResourceState StartState = pTextureDesc->pDesc->StartState;
             // Check whether this is required (user specified a state other than undefined / common)
-            if (startState == ResourceStateUndefined || startState == ResourceStateCommon) //-V560
+            if (StartState == ResourceStateUndefined || StartState == ResourceStateCommon) //-V560
             {
-                startState = ResourceStartState(pTextureDesc->pDesc->descriptors & DescriptorTypeRwTexture);
+                StartState = ResourceStartState(pTextureDesc->pDesc->Descriptors & DescriptorTypeRwTexture);
             }
-            queueTextureBarrier(pResourceLoader, *pTextureDesc->ppTexture, startState, token);
+            queueTextureBarrier(pResourceLoader, *pTextureDesc->ppTexture, StartState, token);
         }
         if (pTextureDesc->pSuccess)
             *pTextureDesc->pSuccess = *pTextureDesc->ppTexture != nullptr;
@@ -6530,7 +6530,7 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
         loadDesc.container = pTextureDesc->container;
         loadDesc.pSuccess = pTextureDesc->pSuccess;
         loadDesc.resourceDirectory = pTextureDesc->resourceDirectory;
-        loadDesc.flags = pTextureDesc->creationFlag;
+        loadDesc.Flags = pTextureDesc->creationFlag;
         loadDesc.pFileName = pTextureDesc->pFileName;
         loadDesc.pYcbcrSampler = pTextureDesc->pYcbcrSampler;
         queueTextureLoad(pResourceLoader, &loadDesc, token);
@@ -6631,7 +6631,7 @@ static void removeBufferChunkAllocator(BufferChunkAllocator* pBuffer)
 
     if (pBuffer->pBuffer)
     {
-        ASSERT(arrlen(pBuffer->unusedChunks) == 1 && "Expecting just one chunk since the buffer is completely Empty");
+        ASSERT(arrlen(pBuffer->unusedChunks) == 1 && "Expecting just one chunk since the buffer is completely empty");
 
         // We are checking that the unnused chunk offset is 0 because we currently assume that a BufferChunkAllocator covers the entire
         // buffer, but we could change this to allow to have several BufferChunkAllocators over the same buffer, each working on a fixed
@@ -6650,7 +6650,7 @@ static void removeBufferChunkAllocator(BufferChunkAllocator* pBuffer)
         //       We would also need to consider if we want to expose the add/removeBufferChunkAllocator interface to the user and let him
         //       allocate the BufferChunkAllocator or we want to include this splitting logic in addGeometryBuffer.
         ASSERT(pBuffer->unusedChunks && (pBuffer->unusedChunks[0].offset == 0) && (pBuffer->unusedChunks[0].Size == pBuffer->Size) &&
-               "Expecting just one chunk since the buffer is completely Empty");
+               "Expecting just one chunk since the buffer is completely empty");
 
         arrfree(pBuffer->unusedChunks);
     }
@@ -6658,7 +6658,7 @@ static void removeBufferChunkAllocator(BufferChunkAllocator* pBuffer)
 
 void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
 {
-    DescriptorType flags = DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw;
+    DescriptorType Flags = DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw;
 
     GeometryBuffer* pBuffer = (GeometryBuffer*)MemCallocate(1, sizeof *pBuffer);
 
@@ -6674,15 +6674,15 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
     Buffer* pIndexBuffer = NULL;
     Buffer* pVertexBuffer = NULL;
 
-    loadDesc.desc.memoryUsage = MemoryUsageGpuOnly;
+    loadDesc.desc.MemoryUsage = MemoryUsageGpuOnly;
     loadDesc.desc.Size = pDesc->indicesSize;
     loadDesc.ppBuffer = &pIndexBuffer;
-    loadDesc.desc.descriptors = DescriptorTypeIndexBuffer | flags;
-    loadDesc.desc.structStride = sizeof(uint32_t);
-    loadDesc.desc.elementCount = (uint32_t)(loadDesc.desc.Size / loadDesc.desc.structStride);
-    loadDesc.desc.startState = gUma ? gIndexBufferState : pDesc->startState;
-    loadDesc.desc.pName = pDesc->pNameIndexBuffer ? pDesc->pNameIndexBuffer : "GeometryBuffer Indices (unnamed)";
-    loadDesc.desc.pPlacement = pDesc->pIndicesPlacement;
+    loadDesc.desc.Descriptors = DescriptorTypeIndexBuffer | Flags;
+    loadDesc.desc.StructStride = sizeof(uint32_t);
+    loadDesc.desc.ElementCount = (uint32_t)(loadDesc.desc.Size / loadDesc.desc.StructStride);
+    loadDesc.desc.StartState = gUma ? gIndexBufferState : pDesc->StartState;
+    loadDesc.desc.Name = pDesc->pNameIndexBuffer ? pDesc->pNameIndexBuffer : "GeometryBuffer Indices (unnamed)";
+    loadDesc.desc.Placement = pDesc->pIndicesPlacement;
     addResource(&loadDesc, nullptr);
 
     BufferChunkAllocatorDesc allocDesc = { pIndexBuffer };
@@ -6695,12 +6695,12 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
 
         loadDesc.desc.Size = pDesc->verticesSizes[i];
         loadDesc.ppBuffer = &pVertexBuffer;
-        loadDesc.desc.descriptors = DescriptorTypeVertexBuffer | flags;
-        loadDesc.desc.structStride = sizeof(uint32_t);
-        loadDesc.desc.elementCount = (uint32_t)(loadDesc.desc.Size / loadDesc.desc.structStride);
-        loadDesc.desc.startState = gUma ? gVertexBufferState : pDesc->startState;
-        loadDesc.desc.pName = pDesc->pNamesVertexBuffers[i] ? pDesc->pNamesVertexBuffers[i] : "GeometryBuffer Vertices (unnamed)";
-        loadDesc.desc.pPlacement = pDesc->pVerticesPlacements[i];
+        loadDesc.desc.Descriptors = DescriptorTypeVertexBuffer | Flags;
+        loadDesc.desc.StructStride = sizeof(uint32_t);
+        loadDesc.desc.ElementCount = (uint32_t)(loadDesc.desc.Size / loadDesc.desc.StructStride);
+        loadDesc.desc.StartState = gUma ? gVertexBufferState : pDesc->StartState;
+        loadDesc.desc.Name = pDesc->pNamesVertexBuffers[i] ? pDesc->pNamesVertexBuffers[i] : "GeometryBuffer Vertices (unnamed)";
+        loadDesc.desc.Placement = pDesc->pVerticesPlacements[i];
         addResource(&loadDesc, nullptr);
 
         allocDesc = { pVertexBuffer };
@@ -6900,11 +6900,11 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
     uint64_t Size = pBufferUpdate->Size > 0 ? pBufferUpdate->Size : (pBufferUpdate->pBuffer->Size - pBufferUpdate->dstOffset);
     ASSERT(pBufferUpdate->dstOffset + Size <= pBuffer->Size);
 
-    ResourceMemoryUsage memoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->memoryUsage;
-    if (gUma || memoryUsage != MemoryUsageGpuOnly)
+    ResourceMemoryUsage MemoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->MemoryUsage;
+    if (gUma || MemoryUsage != MemoryUsageGpuOnly)
     {
         ASSERTMSG(!pBufferUpdate->pSrcBuffer, "No point in staging buffer when we are directly writing into dst buffer. "
-                                              "If this is not a GPU_ONLY buffer you can use use isUma() to Handle this case, no need to "
+                                              "If this is not a GPU_ONLY buffer you can use use isUma() to handle this case, no need to "
                                               "create this staging buffer on the App side.");
         bool map = !pBuffer->pCpuMappedAddress;
         if (map)
@@ -6914,7 +6914,7 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
 
         pBufferUpdate->internal.mappedRange = { (uint8_t*)pBuffer->pCpuMappedAddress + pBufferUpdate->dstOffset, pBuffer };
         pBufferUpdate->pMappedData = pBufferUpdate->internal.mappedRange.Data;
-        pBufferUpdate->internal.mappedRange.flags = map ? MAPPED_RANGE_FLAG_UNMAP_BUFFER : 0;
+        pBufferUpdate->internal.mappedRange.Flags = map ? MAPPED_RANGE_FLAG_UNMAP_BUFFER : 0;
     }
     else
     {
@@ -6945,13 +6945,13 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
 
 void endUpdateResource(BufferUpdateDesc* pBufferUpdate)
 {
-    if (pBufferUpdate->internal.mappedRange.flags & MAPPED_RANGE_FLAG_UNMAP_BUFFER)
+    if (pBufferUpdate->internal.mappedRange.Flags & MAPPED_RANGE_FLAG_UNMAP_BUFFER)
     {
         unmapBuffer(pResourceLoader->pRenderer, pBufferUpdate->pBuffer);
     }
 
-    ResourceMemoryUsage memoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->memoryUsage;
-    if (!gUma && memoryUsage == MemoryUsageGpuOnly)
+    ResourceMemoryUsage MemoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->MemoryUsage;
+    if (!gUma && MemoryUsage == MemoryUsageGpuOnly)
     {
         MutexLock   lock(pResourceLoader->uploadEngineMutex);
         CopyEngine* pCopyEngine = &pResourceLoader->uploadEngine;
@@ -6967,11 +6967,11 @@ TextureSubresourceUpdate TextureUpdateDesc::getSubresourceUpdateDesc(uint32_t mi
 {
     TextureSubresourceUpdate ret = {};
     Texture*                 texture = pTexture;
-    const hz::Format         fmt = texture->format;
+    const hz::Format         fmt = texture->Format;
     Renderer*                pRenderer = pResourceLoader->pRenderer;
     const uint32_t           sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
 
-    bool success = util_get_surface_info(MipReduce(texture->width, mip), MipReduce(texture->height, mip), fmt, &ret.srcSliceStride,
+    bool success = util_get_surface_info(MipReduce(texture->Width, mip), MipReduce(texture->Height, mip), fmt, &ret.srcSliceStride,
                                          &ret.srcRowStride, &ret.rowCount);
     ASSERT(success);
     UNREF_PARAM(success);
@@ -6985,10 +6985,10 @@ TextureSubresourceUpdate TextureUpdateDesc::getSubresourceUpdateDesc(uint32_t mi
         uint32_t srcSliceStride = 0;
         uint32_t srcRowStride = 0;
         uint32_t rowCount = 0;
-        success = util_get_surface_info(MipReduce(texture->width, i), MipReduce(texture->height, i), fmt, &srcSliceStride, &srcRowStride,
+        success = util_get_surface_info(MipReduce(texture->Width, i), MipReduce(texture->Height, i), fmt, &srcSliceStride, &srcRowStride,
                                         &rowCount);
         ASSERT(success);
-        uint32_t d = MipReduce(texture->depth, i);
+        uint32_t d = MipReduce(texture->Depth, i);
 
         uint32_t dstRowStride = round_up(srcRowStride, util_get_texture_row_alignment(pRenderer));
         uint32_t dstSliceStride = round_up(dstRowStride * rowCount, sliceAlignment);
@@ -7001,15 +7001,15 @@ TextureSubresourceUpdate TextureUpdateDesc::getSubresourceUpdateDesc(uint32_t mi
 void beginUpdateResource(TextureUpdateDesc* pTextureUpdate)
 {
     const Texture*   texture = pTextureUpdate->pTexture;
-    const hz::Format fmt = texture->format;
+    const hz::Format fmt = texture->Format;
     Renderer*        pRenderer = pResourceLoader->pRenderer;
     const uint32_t   sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
-    pTextureUpdate->mipLevels = max(1u, pTextureUpdate->mipLevels);
+    pTextureUpdate->MipLevels = max(1u, pTextureUpdate->MipLevels);
     pTextureUpdate->layerCount = max(1u, pTextureUpdate->layerCount);
 
     const uint32_t rowAlignment = util_get_texture_row_alignment(pRenderer);
-    const uint64_t requiredSize = util_get_surface_size(fmt, texture->width, texture->height, texture->depth, rowAlignment, sliceAlignment,
-                                                        pTextureUpdate->baseMipLevel, pTextureUpdate->mipLevels,
+    const uint64_t requiredSize = util_get_surface_size(fmt, texture->Width, texture->Height, texture->Depth, rowAlignment, sliceAlignment,
+                                                        pTextureUpdate->baseMipLevel, pTextureUpdate->MipLevels,
                                                         pTextureUpdate->baseArrayLayer, pTextureUpdate->layerCount);
 
     // We need to use a staging buffer.
@@ -7026,15 +7026,15 @@ void beginUpdateResource(TextureUpdateDesc* pTextureUpdate)
     pTextureUpdate->internal.mappedRange = range;
 
     // Pre-calculate stride for the mip chain. Will be used in getSubresourceUpdateDesc
-    for (uint32_t mip = pTextureUpdate->baseMipLevel; mip < pTextureUpdate->mipLevels; ++mip)
+    for (uint32_t mip = pTextureUpdate->baseMipLevel; mip < pTextureUpdate->MipLevels; ++mip)
     {
         uint32_t srcSliceStride = 0;
         uint32_t srcRowStride = 0;
         uint32_t rowCount = 0;
-        bool     success = util_get_surface_info(MipReduce(texture->width, mip), MipReduce(texture->height, mip), fmt, &srcSliceStride,
+        bool     success = util_get_surface_info(MipReduce(texture->Width, mip), MipReduce(texture->Height, mip), fmt, &srcSliceStride,
                                              &srcRowStride, &rowCount);
         ASSERT(success);
-        uint32_t d = MipReduce(texture->depth, mip);
+        uint32_t d = MipReduce(texture->Depth, mip);
 
         uint32_t dstRowStride = round_up(srcRowStride, util_get_texture_row_alignment(pRenderer));
         uint32_t dstSliceStride = round_up(dstRowStride * rowCount, sliceAlignment);
@@ -7049,7 +7049,7 @@ void endUpdateResource(TextureUpdateDesc* pTextureUpdate)
     desc.range = pTextureUpdate->internal.mappedRange;
     desc.pCmd = pTextureUpdate->pCmd;
     desc.baseMipLevel = pTextureUpdate->baseMipLevel;
-    desc.mipLevels = pTextureUpdate->mipLevels;
+    desc.MipLevels = pTextureUpdate->MipLevels;
     desc.baseArrayLayer = pTextureUpdate->baseArrayLayer;
     desc.layerCount = pTextureUpdate->layerCount;
     desc.currentState = pTextureUpdate->currentState;
@@ -7330,7 +7330,7 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
         }
 
         binaryDesc.stages |= stage;
-        pStage->pName = fileName;
+        pStage->Name = fileName;
 #if defined(QUEST_VR)
         binaryDesc.isMultiviewVR |= metadata.useMultiView;
 #endif
@@ -7396,7 +7396,7 @@ void addShaderSrc(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppS
         }
 
         binaryDesc.stages |= stage;
-        pStage->pName = fileName;
+        pStage->Name = fileName;
         if (pDesc->stages[i].pEntryPointName)
             pStage->pEntryPoint = pDesc->stages[i].pEntryPointName;
         else
@@ -7449,7 +7449,7 @@ void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, 
     }
 
     PipelineCacheDesc desc = {};
-    desc.flags = pDesc->flags;
+    desc.Flags = pDesc->Flags;
     desc.Data = data;
     desc.Size = dataSize;
     addPipelineCache(pRenderer, &desc, ppPipelineCache);

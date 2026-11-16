@@ -20,8 +20,8 @@ cJSON* parseWorldJson(Span<char> json);
 bool   validWorldJsonStrings(Span<char> json);
 bool   uniqueWorldFields(const cJSON* pObject);
 bool   worldVersion(const cJSON* pValue, uint32_t& version);
-cJSON* writeWorldProperties(const TypeDesc& type, const void* pValue);
-bool   readWorldProperties(const TypeDesc& type, const cJSON* pObject, void* pValue);
-bool   validateWorldReferences(const TypeDesc& type, const void* pValue, const World& world);
-bool   normalizeWorldComponent(TypeID type, void* pValue, bool sortOverrides);
+cJSON* writeWorldProperties(const TypeDesc& Type, const void* pValue);
+bool   readWorldProperties(const TypeDesc& Type, const cJSON* pObject, void* pValue);
+bool   validateWorldReferences(const TypeDesc& Type, const void* pValue, const World& world);
+bool   normalizeWorldComponent(TypeID Type, void* pValue, bool sortOverrides);
 } // namespace hz

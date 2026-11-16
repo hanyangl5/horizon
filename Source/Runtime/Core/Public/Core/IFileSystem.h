@@ -466,7 +466,7 @@ extern "C"
     bool CreateResourceDirectory(ResourceDirectory resourceDir);
 
     /************************************************************************/
-    // MARK: - Buny Archive format definitions
+    // MARK: - Buny Archive Format definitions
     /************************************************************************/
 
     // Buny Archive File structure description:
@@ -485,7 +485,7 @@ extern "C"
         BUNYAR_FILE_FORMAT_RAW = 0,
 
         // File is splitted to N X-Size blocks.
-        // Leading data in a "blocks" format is represented by
+        // Leading data in a "blocks" Format is represented by
         // BunyArBlockFormatHeader and BunyArBlockPointer table.
         // Table allows to seek through file quickly, while block Size
         // is large enough for compression to be effective.
@@ -534,7 +534,7 @@ extern "C"
         struct BunyArVersion version;
 
         // 0, reserved
-        uint64_t flags;
+        uint64_t Flags;
 
         // nodeCount = nodesPointer.Size / sizeof(BunyArNode)
         struct BunyArPointer64 nodesPointer;
@@ -553,7 +553,7 @@ extern "C"
     struct BunyArNode
     {
         // BunyArFileFormat
-        uint64_t format;
+        uint64_t Format;
 
         // Original Size of file compressed into an archive.
         // Also exact Size of the file after reading from an archive
@@ -584,7 +584,7 @@ extern "C"
         // BunyArBlockPointer blockPointers[blockCount];
     };
 
-// Block pointer represents format, offset, and Size of the block
+// Block pointer represents Format, offset, and Size of the block
 // 1 + 40 + 23
 // 1  bit   boolean set when block is compressed
 // 40 bits  block offset, max offset is 1024GB-1B
@@ -660,10 +660,10 @@ extern "C"
         const char*           name;
         uint64_t              fileSize;
         uint64_t              compressedSize;
-        enum BunyArFileFormat format;
+        enum BunyArFileFormat Format;
     };
 
-    FORGE_API const char* bunyArFormatName(enum BunyArFileFormat format);
+    FORGE_API const char* bunyArFormatName(enum BunyArFileFormat Format);
 
     FORGE_API void GetArchiveDescription(IFileSystem* pArchive, struct BunyArDescription* outInfo);
 

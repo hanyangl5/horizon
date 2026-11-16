@@ -42,7 +42,7 @@
     }
 #endif
 
-extern DXGI_FORMAT           util_to_dx12_swapchain_format(hz::Format format);
+extern DXGI_FORMAT           util_to_dx12_swapchain_format(hz::Format Format);
 extern DXGI_COLOR_SPACE_TYPE util_to_dx12_colorspace(ColorSpace colorspace);
 
 HMODULE hook_get_d3d12_module_handle() { return GetModuleHandle(TEXT("d3d12.dll")); }
@@ -110,9 +110,9 @@ HRESULT hook_create_compute_pipeline_state(ID3D12Device* pDevice, const D3D12_CO
 void hook_remove_pipeline(Pipeline* pPipeline) { SAFE_RELEASE(pPipeline->dx.pPipelineState); }
 
 HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE*,
-                                  D3D12_RESOURCE_STATES state, uint32_t flags, Buffer* pBuffer)
+                                  D3D12_RESOURCE_STATES state, uint32_t Flags, Buffer* pBuffer)
 {
-    if (!(flags & BufferCreationFlagMarker))
+    if (!(Flags & BufferCreationFlagMarker))
     {
         return E_NOINTERFACE;
     }
@@ -155,21 +155,21 @@ HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC
 }
 
 HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE* pClearValue,
-                                  D3D12_RESOURCE_STATES startState, uint32_t flags, Texture* pOutTexture)
+                                  D3D12_RESOURCE_STATES StartState, uint32_t Flags, Texture* pOutTexture)
 {
     UNREF_PARAM(pRenderer);
     UNREF_PARAM(pDesc);
-    UNREF_PARAM(startState);
-    UNREF_PARAM(flags);
+    UNREF_PARAM(StartState);
+    UNREF_PARAM(Flags);
     UNREF_PARAM(pClearValue);
     UNREF_PARAM(pOutTexture);
     return E_NOINTERFACE;
 }
 
-HRESULT hook_add_placed_resource(Renderer* pRenderer, const ResourcePlacement* pPlacement, const D3D12_RESOURCE_DESC* pDesc,
-                                 const D3D12_CLEAR_VALUE* pClearValue, D3D12_RESOURCE_STATES startState, ID3D12Resource** ppOutResource)
+HRESULT hook_add_placed_resource(Renderer* pRenderer, const ResourcePlacement* Placement, const D3D12_RESOURCE_DESC* pDesc,
+                                 const D3D12_CLEAR_VALUE* pClearValue, D3D12_RESOURCE_STATES StartState, ID3D12Resource** ppOutResource)
 {
-    return pRenderer->dx.pDevice->CreatePlacedResource(pPlacement->pHeap->dx.pHeap, pPlacement->offset, pDesc, startState, pClearValue,
+    return pRenderer->dx.pDevice->CreatePlacedResource(Placement->pHeap->dx.pHeap, Placement->offset, pDesc, StartState, pClearValue,
                                                        IID_PPV_ARGS(ppOutResource));
 }
 
@@ -253,11 +253,11 @@ hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const Swap
     if (ColorSpaceSdrSrgb == colorSpace)
         return hz::Format::B8G8R8A8_SRGB;
 
-    hz::Format format = hz::Format::UNDEFINED;
+    hz::Format Format = hz::Format::UNDEFINED;
     if (ColorSpaceP2020 == colorSpace)
-        format = hz::Format::R10G10B10A2_UNORM;
+        Format = hz::Format::R10G10B10A2_UNORM;
     if (ColorSpaceExtendedSrgb == colorSpace)
-        format = hz::Format::R16G16B16A16_SFLOAT;
+        Format = hz::Format::R16G16B16A16_SFLOAT;
 
     DXGI_OUTPUT_DESC1 desc1 = {};
     if (!hook_get_output_desc(pRenderer, &pDesc->windowHandle, &desc1))
@@ -269,7 +269,7 @@ hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const Swap
         DXGI_SWAP_CHAIN_DESC1 desc = {};
         desc.Width = 1;
         desc.Height = 1;
-        desc.Format = util_to_dx12_swapchain_format(format);
+        desc.Format = util_to_dx12_swapchain_format(Format);
         desc.Stereo = false;
         desc.SampleDesc.Count = 1; // If multisampling is needed, we'll resolve it later
         desc.SampleDesc.Quality = 0;
@@ -293,7 +293,7 @@ hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const Swap
         if (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)
         {
             tmpSwapchain3->Release();
-            return format;
+            return Format;
         }
         tmpSwapchain3->Release();
     }
@@ -307,7 +307,7 @@ HRESULT hook_acquire_next_image(ID3D12Device*, SwapChain*) { return S_OK; }
 
 HRESULT hook_queue_present(Queue*, SwapChain* pSwapChain, uint32_t)
 {
-    return pSwapChain->dx.pSwapChain->Present(pSwapChain->dx.syncInterval, pSwapChain->dx.flags);
+    return pSwapChain->dx.pSwapChain->Present(pSwapChain->dx.syncInterval, pSwapChain->dx.Flags);
 }
 
 void hook_dispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)

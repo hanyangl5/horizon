@@ -61,11 +61,11 @@ void WorldHierarchy::markTransformDirty(ecs_entity_t entity)
     }
 }
 
-bool WorldHierarchy::prepareLocalChange(ecs_entity_t entity, TypeID type, bool adding)
+bool WorldHierarchy::prepareLocalChange(ecs_entity_t entity, TypeID Type, bool adding)
 {
-    if (type != SceneTypes::localTransform && type != SceneTypes::localMatrix)
+    if (Type != SceneTypes::localTransform && Type != SceneTypes::localMatrix)
         return true;
-    const uint32_t    bit = type == SceneTypes::localTransform ? 1u : 2u;
+    const uint32_t    bit = Type == SceneTypes::localTransform ? 1u : 2u;
     const LocalState* pPending = hmgetp_null(pPendingLocals, entity);
     const uint32_t    mask = pPending ? pPending->value
                                       : ((transformType && ecs_has_id(world.pWorld, entity, transformType) ? 1u : 0u) |

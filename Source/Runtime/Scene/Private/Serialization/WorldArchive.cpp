@@ -21,10 +21,10 @@ public:
     Guid        id;
     Array<char> text;
 };
-static const cJSON* field(const cJSON* pObject, const char* pName) { return cJSON_GetObjectItemCaseSensitive(pObject, pName); }
-static const char*  stringField(const cJSON* pObject, const char* pName)
+static const cJSON* field(const cJSON* pObject, const char* Name) { return cJSON_GetObjectItemCaseSensitive(pObject, Name); }
+static const char*  stringField(const cJSON* pObject, const char* Name)
 {
-    const cJSON* pValue = field(pObject, pName);
+    const cJSON* pValue = field(pObject, Name);
     return cJSON_IsString(pValue) ? pValue->valuestring : nullptr;
 }
 static bool readID(const cJSON* pValue, Guid& id, bool nullable = false)
@@ -36,21 +36,21 @@ static bool readID(const cJSON* pValue, Guid& id, bool nullable = false)
     }
     return cJSON_IsString(pValue) && id.parse(pValue->valuestring) && id.isValid();
 }
-static void addID(cJSON* pObject, const char* pName, Guid id)
+static void addID(cJSON* pObject, const char* Name, Guid id)
 {
     char text[kIDStringCapacity];
     id.toString(text);
-    cJSON_AddItemToObject(pObject, pName, id.isValid() ? cJSON_CreateString(text) : cJSON_CreateNull());
+    cJSON_AddItemToObject(pObject, Name, id.isValid() ? cJSON_CreateString(text) : cJSON_CreateNull());
 }
-static bool typeID(const cJSON* pComponent, TypeID& type)
+static bool typeID(const cJSON* pComponent, TypeID& Type)
 {
     const char* pText = stringField(pComponent, "type");
     if (!pText || strlen(pText) != 16)
     {
         return false;
     }
-    const std::from_chars_result result = std::from_chars(pText, pText + 16, type, 16);
-    return result.ec == std::errc{} && result.ptr == pText + 16 && type != 0;
+    const std::from_chars_result result = std::from_chars(pText, pText + 16, Type, 16);
+    return result.ec == std::errc{} && result.ptr == pText + 16 && Type != 0;
 }
 static int compareGuids(const void* pA, const void* pB)
 {
@@ -156,12 +156,12 @@ bool WorldArchive::capture(World& world, Guid id)
         cJSON_AddItemToArray(pEntities, pEntityJson);
         addID(pEntityJson, "id", guid);
         addID(pEntityJson, "parent", parentID);
-        const Name* pName = (const Name*)world.getComponent(entity, SceneTypes::name);
-        if (pName && !memchr(pName->value, 0, sizeof(pName->value)))
+        const Name* NameComponent = (const Name*)world.getComponent(entity, SceneTypes::name);
+        if (NameComponent && !memchr(NameComponent->value, 0, sizeof(NameComponent->value)))
         {
             return false;
         }
-        cJSON_AddItemToObject(pEntityJson, "name", pName ? cJSON_CreateString(pName->value) : cJSON_CreateNull());
+        cJSON_AddItemToObject(pEntityJson, "name", NameComponent ? cJSON_CreateString(NameComponent->value) : cJSON_CreateNull());
         cJSON* pComponents = cJSON_AddArrayToObject(pEntityJson, "components");
         for (const TypeDesc* pType : types)
         {
@@ -172,7 +172,7 @@ bool WorldArchive::capture(World& world, Guid id)
             }
             if (!normalizeWorldComponent(pType->id, (void*)pValue, false) || !validateWorldReferences(*pType, pValue, world))
             {
-                LOGF(Error, "Cannot save invalid '%s' component", pType->pName);
+                LOGF(Error, "Cannot save invalid '%s' component", pType->Name);
                 return false;
             }
             cJSON* pProperties = writeWorldProperties(*pType, pValue);
@@ -182,10 +182,10 @@ bool WorldArchive::capture(World& world, Guid id)
             }
             cJSON* pComponent = cJSON_CreateObject();
             cJSON_AddItemToArray(pComponents, pComponent);
-            char type[17];
-            snprintf(type, sizeof(type), "%016llx", (unsigned long long)pType->id);
-            cJSON_AddStringToObject(pComponent, "type", type);
-            cJSON_AddStringToObject(pComponent, "name", pType->pName);
+            char Type[17];
+            snprintf(Type, sizeof(Type), "%016llx", (unsigned long long)pType->id);
+            cJSON_AddStringToObject(pComponent, "type", Type);
+            cJSON_AddStringToObject(pComponent, "name", pType->Name);
             cJSON_AddNumberToObject(pComponent, "version", pType->version);
             cJSON_AddItemToObject(pComponent, "properties", pProperties);
         }
@@ -203,13 +203,13 @@ bool WorldArchive::capture(World& world, Guid id)
 class ComponentValue
 {
 public:
-    explicit ComponentValue(const TypeDesc& type): type(type), pValue(MemAllocateAligned(type.alignment, type.Size)) { type.construct(pValue); }
+    explicit ComponentValue(const TypeDesc& Type): Type(Type), pValue(MemAllocateAligned(Type.alignment, Type.Size)) { Type.construct(pValue); }
     ~ComponentValue()
     {
-        type.destroy(pValue);
+        Type.destroy(pValue);
         MemDeallocate(pValue);
     }
-    const TypeDesc& type;
+    const TypeDesc& Type;
     void*           pValue;
 };
 struct WorldLoadNode
@@ -235,10 +235,10 @@ public:
         for (const cJSON* pEntityJson = pEntities->child; pEntityJson; pEntityJson = pEntityJson->next)
         {
             WorldLoadNode node = { .pEntityJson = pEntityJson };
-            const cJSON*  pName = field(pEntityJson, "name");
+            const cJSON*  NameField = field(pEntityJson, "name");
             if (!uniqueWorldFields(pEntityJson) || !readID(field(pEntityJson, "id"), node.id) ||
                 !readID(field(pEntityJson, "parent"), node.parent, true) || hmgetp_null(pIndices, node.id) ||
-                (!cJSON_IsNull(pName) && (!cJSON_IsString(pName) || strlen(pName->valuestring) >= sizeof(Name::value))) ||
+                (!cJSON_IsNull(NameField) && (!cJSON_IsString(NameField) || strlen(NameField->valuestring) >= sizeof(Name::value))) ||
                 !cJSON_IsArray(field(pEntityJson, "components")))
             {
                 return false;
@@ -248,10 +248,10 @@ public:
             {
                 return false;
             }
-            if (cJSON_IsString(pName))
+            if (cJSON_IsString(NameField))
             {
                 Name name;
-                strcpy(name.value, pName->valuestring);
+                strcpy(name.value, NameField->valuestring);
                 if (!world.setComponent(node.entity, SceneTypes::name, &name))
                 {
                     return false;
@@ -301,21 +301,21 @@ public:
     Array<uint32_t>      order;
     WorldNodeIndex*      pIndices = nullptr;
 };
-static bool loadComponent(const cJSON* pComponent, const TypeDesc& type, uint32_t version, Span<ComponentMigration> migrations,
+static bool loadComponent(const cJSON* pComponent, const TypeDesc& Type, uint32_t version, Span<ComponentMigration> migrations,
                           World& world, Entity entity)
 {
     const cJSON* pProperties = field(pComponent, "properties");
-    if (version > type.version)
+    if (version > Type.version)
     {
         return false;
     }
     JsonValue migrated;
-    while (version < type.version)
+    while (version < Type.version)
     {
         const ComponentMigration* pMigration = nullptr;
         for (const ComponentMigration& migration : migrations)
         {
-            if (migration.type == type.id && migration.fromVersion == version)
+            if (migration.Type == Type.id && migration.fromVersion == version)
             {
                 pMigration = &migration;
             }
@@ -350,9 +350,9 @@ static bool loadComponent(const cJSON* pComponent, const TypeDesc& type, uint32_
         }
         ++version;
     }
-    ComponentValue value(type);
-    return readWorldProperties(type, pProperties, value.pValue) && normalizeWorldComponent(type.id, value.pValue, true) &&
-           validateWorldReferences(type, value.pValue, world) && world.setComponent(entity, type.id, value.pValue);
+    ComponentValue value(Type);
+    return readWorldProperties(Type, pProperties, value.pValue) && normalizeWorldComponent(Type.id, value.pValue, true) &&
+           validateWorldReferences(Type, value.pValue, world) && world.setComponent(entity, Type.id, value.pValue);
 }
 bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& target, Span<ComponentMigration> migrations,
                                const IDGenerator& entityGuids) const
@@ -368,13 +368,13 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
     for (uint32_t i = 0; i < migrations.Count; ++i)
     {
         const ComponentMigration& entry = migrations.Data[i];
-        if (!entry.type || !entry.fromVersion || !entry.pMigrate)
+        if (!entry.Type || !entry.fromVersion || !entry.pMigrate)
         {
             return false;
         }
         for (uint32_t j = 0; j < i; ++j)
         {
-            if (entry.type == migrations.Data[j].type && entry.fromVersion == migrations.Data[j].fromVersion)
+            if (entry.Type == migrations.Data[j].Type && entry.fromVersion == migrations.Data[j].fromVersion)
             {
                 return false;
             }
@@ -442,7 +442,7 @@ bool WorldArchive::load(ResourceDirectory directory, const char* pFileName)
     if (Size <= 0 || Size > 64 * 1024 * 1024)
     {
         CloseStream(&stream);
-        LOGF(Error, "Invalid World archive Size: '%s'", pFileName);
+        LOGF(Error, "Invalid World archive size: '%s'", pFileName);
         return false;
     }
     Array<char>  bytes((uint32_t)Size);

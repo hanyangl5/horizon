@@ -82,8 +82,8 @@ typedef struct SkeletonBatcherLoadDesc
     ReloadType  loadType;
     hz::Format  colorFormat;
     hz::Format  depthFormat;
-    SampleCount sampleCount;
-    uint32_t    sampleQuality;
+    SampleCount SampleCount;
+    uint32_t    SampleQuality;
 } SkeletonBatcherLoadDesc;
 
 // Allows for efficiently instance rendering all joints and bones of all skeletons in the scene

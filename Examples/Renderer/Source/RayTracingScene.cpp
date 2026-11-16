@@ -58,8 +58,8 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
     if (TopLevelAS.getInstanceCount() != InstanceCount)
     {
         TopLevelAS = Context.createAccelerationStructure({
-            .type = ACCELERATION_STRUCTURE_TYPE_TOP,
-            .flags = AccelerationStructureBuildFlags(ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE |
+            .Type = ACCELERATION_STRUCTURE_TYPE_TOP,
+            .Flags = AccelerationStructureBuildFlags(ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE |
                                                      ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE),
             .instanceCount = InstanceCount,
         });
@@ -77,7 +77,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
         hz::AccelerationStructureInstance Instance = {
             .pBottom = &BottomLevelAS[Draws.GetGeometryIndex(DrawIndex)],
             .instanceId = DrawIndex,
-            .flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE,
+            .Flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE,
         };
         for (uint32_t Row = 0; Row < 3; ++Row)
         {

@@ -16,7 +16,7 @@ class WorldArchiveData;
 
 struct ComponentMigration
 {
-    TypeID   type = 0;
+    TypeID   Type = 0;
     uint32_t fromVersion = 0;
     // Transform the properties JSON object from v to v+1. Output excludes or includes one terminating null.
     bool (*pMigrate)(Span<char> properties, Array<char>& output) = nullptr;

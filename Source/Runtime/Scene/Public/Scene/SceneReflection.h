@@ -39,7 +39,7 @@ struct TypeDesc;
 
 struct EnumValue
 {
-    const char* pName = nullptr;
+    const char* Name = nullptr;
     int32_t     value = 0;
 };
 
@@ -57,11 +57,11 @@ struct ArrayOperations
 struct PropertyDesc
 {
     PropertyID             id = 0;
-    const char*            pName = nullptr;
+    const char*            Name = nullptr;
     PropertyKind           kind = PropertyKind::Boolean;
     uint32_t               offset = 0;
     uint32_t               Size = 0;
-    uint32_t               flags = PROPERTY_SERIALIZED;
+    uint32_t               Flags = PROPERTY_SERIALIZED;
     const TypeDesc*        pElementType = nullptr;
     const ArrayOperations* pArrayOperations = nullptr;
     Span<EnumValue>        enumValues;
@@ -82,7 +82,7 @@ struct TypeLifecycle
 struct TypeDesc
 {
     TypeID             id = 0;
-    const char*        pName = nullptr;
+    const char*        Name = nullptr;
     uint32_t           version = 1;
     uint32_t           Size = 0;
     uint32_t           alignment = 1;
@@ -110,7 +110,7 @@ public:
     bool            registerTypes(Span<TypeDesc> types);
     bool            registerBuiltins();
     const TypeDesc* getType(TypeID id) const;
-    const TypeDesc* getType(const char* pName) const;
+    const TypeDesc* getType(const char* Name) const;
     const TypeDesc* getTypeAt(uint32_t index) const;
     uint32_t        Size() const;
 

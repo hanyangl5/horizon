@@ -84,7 +84,7 @@ struct AccelerationStructureInstanceDesc
     uint32_t                           instanceID;
     uint32_t                           instanceMask;
     uint32_t                           instanceContributionToHitGroupIndex;
-    AccelerationStructureInstanceFlags flags;
+    AccelerationStructureInstanceFlags Flags;
 };
 
 struct AccelerationStructureGeometryDesc
@@ -98,7 +98,7 @@ struct AccelerationStructureGeometryDesc
     uint64_t                           indexOffset;
     uint32_t                           indexCount;
     IndexType                          indexType;
-    AccelerationStructureGeometryFlags flags;
+    AccelerationStructureGeometryFlags Flags;
 };
 /************************************************************************/
 //	  Bottom Level Structures define the geometry data such as vertex buffers, index buffers
@@ -121,8 +121,8 @@ struct AccelerationStructureDescTop
 
 struct AccelerationStructureDesc
 {
-    AccelerationStructureType       type;
-    AccelerationStructureBuildFlags flags;
+    AccelerationStructureType       Type;
+    AccelerationStructureBuildFlags Flags;
     union
     {
         AccelerationStructureDescBottom bottom;
@@ -165,7 +165,7 @@ static_assert(sizeof(RaytracingInstanceData) == 64);
 
 struct RaytracingHitGroupDesc
 {
-    const char* pName;
+    const char* Name;
     const char* pClosestHit;
     const char* pAnyHit;
     const char* pIntersection;
@@ -190,4 +190,4 @@ FORGE_RENDERER_API void FORGE_CALLCONV           addRaytracingPipeline(Raytracin
 FORGE_RENDERER_API void FORGE_CALLCONV           removeRaytracingPipeline(Raytracing*, RaytracingPipeline*);
 FORGE_RENDERER_API RootSignature* FORGE_CALLCONV getRaytracingPipelineRootSignature(RaytracingPipeline*);
 FORGE_RENDERER_API void FORGE_CALLCONV           cmdBindRaytracingPipeline(Cmd*, RaytracingPipeline*);
-FORGE_RENDERER_API void FORGE_CALLCONV           cmdTraceRays(Cmd*, RaytracingPipeline*, uint32_t width, uint32_t height, uint32_t depth);
+FORGE_RENDERER_API void FORGE_CALLCONV           cmdTraceRays(Cmd*, RaytracingPipeline*, uint32_t Width, uint32_t Height, uint32_t Depth);

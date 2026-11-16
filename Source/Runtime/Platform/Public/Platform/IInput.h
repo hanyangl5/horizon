@@ -388,7 +388,7 @@ enum TouchScreenArea
     AREA_FULL,
 };
 
-// The type of action mapping
+// The Type of action mapping
 typedef enum InputActionMappingType
 {
     // A normal action mapping (ex. exit action -> esc button)
@@ -408,20 +408,20 @@ typedef enum InputActionMappingType
 typedef enum InputActionMappingDeviceTarget
 {
     INPUT_ACTION_MAPPING_TARGET_ALL = 0,
-    INPUT_ACTION_MAPPING_TARGET_CONTROLLER, // Supported action mapping type: INPUT_ACTION_MAPPING_NORMAL, INPUT_ACTION_MAPPING_COMPOSITE,
+    INPUT_ACTION_MAPPING_TARGET_CONTROLLER, // Supported action mapping Type: INPUT_ACTION_MAPPING_NORMAL, INPUT_ACTION_MAPPING_COMPOSITE,
                                             // INPUT_ACTION_MAPPING_COMBO
-    INPUT_ACTION_MAPPING_TARGET_KEYBOARD,   // Supported action mapping type: INPUT_ACTION_MAPPING_NORMAL, INPUT_ACTION_MAPPING_COMPOSITE,
+    INPUT_ACTION_MAPPING_TARGET_KEYBOARD,   // Supported action mapping Type: INPUT_ACTION_MAPPING_NORMAL, INPUT_ACTION_MAPPING_COMPOSITE,
                                             // INPUT_ACTION_MAPPING_COMBO
-    INPUT_ACTION_MAPPING_TARGET_MOUSE,      // Supported action mapping type: INPUT_ACTION_MAPPING_NORMAL, INPUT_ACTION_MAPPING_COMPOSITE,
+    INPUT_ACTION_MAPPING_TARGET_MOUSE,      // Supported action mapping Type: INPUT_ACTION_MAPPING_NORMAL, INPUT_ACTION_MAPPING_COMPOSITE,
                                             // INPUT_ACTION_MAPPING_COMBO
-    INPUT_ACTION_MAPPING_TARGET_TOUCH,      // Supported action mapping type: INPUT_ACTION_MAPPING_NORMAL (for basic touch detection),
+    INPUT_ACTION_MAPPING_TARGET_TOUCH,      // Supported action mapping Type: INPUT_ACTION_MAPPING_NORMAL (for basic touch detection),
                                             // INPUT_ACTION_MAPPING_TOUCH_GESTURE, INPUT_ACTION_MAPPING_TOUCH_VIRTUAL_JOYSTICK
 } InputActionMappingDeviceTarget;
 
 // An action mapping description.  Used to define action mappings to be provided to the input system.
 typedef struct ActionMappingDesc
 { //-V802 : Very user-facing struct, and order is highly important to convenience
-    // The type of the action mapping
+    // The Type of the action mapping
     InputActionMappingType actionMappingType = INPUT_ACTION_MAPPING_NORMAL;
 
     // Type of device this action targets
@@ -537,9 +537,9 @@ typedef struct UISystemInputActions
 } UISystemInputActions;
 
 // By default, the input system will create default action mappings.  The following enums declare the names (and unique IDs) for these
-// actions.  These default actions are generic to map to multiple type of devices. On the application side, similar action mappings can be
+// actions.  These default actions are generic to map to multiple Type of devices. On the application side, similar action mappings can be
 // data-driven to then be provided to the input system as the current action mappings to use.  Furthermore, the application could have
-// different sets of action mappings for different type of devices (controller, keyboard, mouse). Depending on the current state of the
+// different sets of action mappings for different Type of devices (controller, keyboard, mouse). Depending on the current state of the
 // application, a different app-specific action mappings could be made active with the input system. For example, the application could have
 // action mappings for:
 // - UI actions, where an action "SELECT" could map to button A
@@ -721,7 +721,7 @@ typedef struct InputSystemDesc
 
 FORGE_API bool InitInputSystem(InputSystemDesc* pDesc);
 FORGE_API void ExitInputSystem();
-FORGE_API void UpdateInputSystem(float deltaTime, uint32_t width, uint32_t height);
+FORGE_API void UpdateInputSystem(float deltaTime, uint32_t Width, uint32_t Height);
 
 // Input action (callbacks) functionalities //////////////////
 /* Adds a new action (callback) for a specific (or all) device target(s)
@@ -757,7 +757,7 @@ FORGE_API void AddDefaultActionMappings();
 FORGE_API bool SetEnableCaptureInput(bool enable);
 
 /// Used to enable/disable text input for non-keyboard setups (virtual keyboards for console/mobile, ...)
-FORGE_API void SetVirtualKeyboard(uint32_t type);
+FORGE_API void SetVirtualKeyboard(uint32_t Type);
 
 FORGE_API void SetDeadZone(unsigned int controllerIndex, float deadZoneSize);
 FORGE_API void SetLedColor(int gamePadIndex, uint8_t r, uint8_t g, uint8_t b);

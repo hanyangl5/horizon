@@ -34,13 +34,13 @@ struct AccelerationStructureInstance
     uint32_t                           instanceId = 0;
     uint32_t                           mask = 0xff;
     uint32_t                           hitGroupOffset = 0;
-    AccelerationStructureInstanceFlags flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_NONE;
+    AccelerationStructureInstanceFlags Flags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_NONE;
 };
 
 struct AccelerationStructureDesc
 {
-    AccelerationStructureType           type = ACCELERATION_STRUCTURE_TYPE_BOTTOM;
-    AccelerationStructureBuildFlags     flags = ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+    AccelerationStructureType           Type = ACCELERATION_STRUCTURE_TYPE_BOTTOM;
+    AccelerationStructureBuildFlags     Flags = ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
     Span<AccelerationStructureGeometry> geometries;
     Span<AccelerationStructureInstance> instances;
     // Allocate a TLAS before filling its instances with setInstance().
@@ -72,7 +72,7 @@ private:
 
 struct RayTracingHitGroup
 {
-    const char* pName = nullptr;
+    const char* Name = nullptr;
     const char* pClosestHit = nullptr;
     const char* pAnyHit = nullptr;
     const char* pIntersection = nullptr;
@@ -89,7 +89,7 @@ struct RayTracingPipelineDesc
     uint32_t                 attributeSize = 8;
     uint32_t                 maxRecursionDepth = 2;
     uint32_t                 rootConstantSize = 128;
-    const char*              pName = nullptr;
+    const char*              Name = nullptr;
 };
 
 class GPURayTracingPipeline

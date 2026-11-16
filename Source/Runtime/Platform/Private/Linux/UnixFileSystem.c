@@ -182,7 +182,7 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
     }
     else
     {
-        LOGF(Error, "Failed to get Size for file '%s': %s", filePath, strerror(errno));
+        LOGF(Error, "Failed to get size for file '%s': %s", filePath, strerror(errno));
     }
 
     fs->mode = mode;

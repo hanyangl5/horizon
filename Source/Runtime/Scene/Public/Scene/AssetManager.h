@@ -59,7 +59,7 @@ class AssetManager;
 
 // Loader callbacks run on the asset manager's owning thread. begin/poll/upload must not wait for IO or GPU work.
 // A terminal poll transfers its payload to the asset manager, including partial failure results.
-// Callbacks may query dependencies, but must not mutate the asset manager. Payload type matches the registered AssetType.
+// Callbacks may query dependencies, but must not mutate the asset manager. Payload Type matches the registered AssetType.
 struct AssetLoader
 {
     void* UserData = nullptr;
@@ -91,7 +91,7 @@ public:
     AssetManager(const AssetManager&) = delete;
     AssetManager& operator=(const AssetManager&) = delete;
 
-    void                 setLoader(AssetType type, const AssetLoader& loader);
+    void                 setLoader(AssetType Type, const AssetLoader& loader);
     AssetHandle          request(AssetID id, AssetError* pError = nullptr);
     bool                 release(AssetHandle Handle);
     void                 update();

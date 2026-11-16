@@ -55,8 +55,8 @@ typedef struct FontSystemLoadDesc
     ReloadType     loadType;
     hz::Format     colorFormat;
     hz::Format     depthFormat;
-    uint32_t       width;
-    uint32_t       height;
+    uint32_t       Width;
+    uint32_t       Height;
     uint32_t       cullMode;         // enum CullMode
     uint32_t       depthCompareMode; // enum CompareMode
 } FontSystemLoadDesc;

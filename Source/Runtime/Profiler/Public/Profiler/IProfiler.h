@@ -123,7 +123,7 @@ FORGE_API void cmdBeginGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken, bo
 // Preferred time to call this function is right before calling endCmd
 FORGE_API void cmdEndGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken);
 
-FORGE_API ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, ProfileToken nProfileToken, const char* pName, bool bUseMarker = true);
+FORGE_API ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, ProfileToken nProfileToken, const char* Name, bool bUseMarker = true);
 
 FORGE_API void cmdEndGpuTimestampQuery(Cmd* pCmd, ProfileToken nProfileToken);
 
@@ -141,9 +141,9 @@ FORGE_API uint64_t cpuProfileEnter(ProfileToken nToken);
 
 FORGE_API void cpuProfileLeave(ProfileToken nToken, uint64_t nTick);
 
-FORGE_API ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t nColor);
+FORGE_API ProfileToken getCpuProfileToken(const char* pGroup, const char* Name, uint32_t nColor);
 FORGE_API void         removeCpuProfileToken(ProfileToken nToken);
-FORGE_API uint64_t     cpuProfileEnterNamed(const char* pGroup, const char* pName, uint32_t nColor);
+FORGE_API uint64_t     cpuProfileEnterNamed(const char* pGroup, const char* Name, uint32_t nColor);
 
 struct CpuProfileScopeMarker
 {
@@ -166,10 +166,10 @@ struct CpuProfileScopeMarker
     CpuProfileScopeMarker PROFILER_CONCAT(marker, __LINE__)(PROFILER_CONCAT(cpuProfileToken, __LINE__))
 
 // Cpu times in milliseconds
-FORGE_API float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThreadID = NULL);
-FORGE_API float getCpuProfileAvgTime(const char* pGroup, const char* pName, ThreadID* pThreadID = NULL);
-FORGE_API float getCpuProfileMinTime(const char* pGroup, const char* pName, ThreadID* pThreadID = NULL);
-FORGE_API float getCpuProfileMaxTime(const char* pGroup, const char* pName, ThreadID* pThreadID = NULL);
+FORGE_API float getCpuProfileTime(const char* pGroup, const char* Name, ThreadID* pThreadID = NULL);
+FORGE_API float getCpuProfileAvgTime(const char* pGroup, const char* Name, ThreadID* pThreadID = NULL);
+FORGE_API float getCpuProfileMinTime(const char* pGroup, const char* Name, ThreadID* pThreadID = NULL);
+FORGE_API float getCpuProfileMaxTime(const char* pGroup, const char* Name, ThreadID* pThreadID = NULL);
 
 FORGE_API float getCpuFrameTime();
 FORGE_API float getCpuAvgFrameTime();

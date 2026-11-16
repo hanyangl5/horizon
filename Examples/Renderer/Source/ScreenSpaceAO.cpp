@@ -24,11 +24,11 @@ ScreenSpaceAO::ScreenSpaceAO(hz::RenderContext& Context): Context(Context)
 {
     AOPipeline = Context.createComputePipeline(
         { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } }, .pFileName = "ScreenSpaceAO.slang" },
-          .pName = "Renderer.SSAO" });
+          .Name = "Renderer.SSAO" });
     BlurPipeline = Context.createComputePipeline(
         { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "BlurMain" } }, .pFileName = "ScreenSpaceAO.slang" },
-          .pName = "Renderer.SSAO.Blur" });
-    RotationSampler = Context.createSampler({ .addressU = AddressModeRepeat, .addressV = AddressModeRepeat });
+          .Name = "Renderer.SSAO.Blur" });
+    RotationSampler = Context.createSampler({ .AddressU = AddressModeRepeat, .AddressV = AddressModeRepeat });
     ASSERT(AOPipeline.isValid() && BlurPipeline.isValid() && RotationSampler.isValid());
 }
 
@@ -47,13 +47,13 @@ bool ScreenSpaceAO::Resize(uint32_t NewWidth, uint32_t NewHeight)
     }
     Width = NewWidth;
     Height = NewHeight;
-    const hz::TextureDesc Desc = { .width = Width,
-                                   .height = Height,
-                                   .format = hz::Format::R8G8B8A8_UNORM,
-                                   .startState = ResourceStateUnorderedAccess,
-                                   .descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
-                                   .flags = TextureCreationFlagForce2D,
-                                   .pName = "Renderer.SSAO" };
+    const hz::TextureDesc Desc = { .Width = Width,
+                                   .Height = Height,
+                                   .Format = hz::Format::R8G8B8A8_UNORM,
+                                   .StartState = ResourceStateUnorderedAccess,
+                                   .Descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
+                                   .Flags = TextureCreationFlagForce2D,
+                                   .Name = "Renderer.SSAO" };
     Occlusion = Context.createTexture(Desc);
     for (hz::GPUTexture& Texture : Blur)
     {
@@ -67,9 +67,9 @@ bool ScreenSpaceAO::Resize(uint32_t NewWidth, uint32_t NewHeight)
 const hz::GPUTexture& ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
                                              const hz::GPUSampler& Sampler)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ScreenSpaceAO::Execute");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ScreenSpaceAO::execute");
     ASSERT(Width && Height && Frame.isValid() && Depth.isValid() && Sampler.isValid());
-    // The Cookbook kernel and bilateral blur use depth; the deferred pass multiplies the result into indirect light.
+    // The Cookbook kernel and bilateral blur use Depth; the deferred pass multiplies the result into indirect light.
     hz::DependencyList        Dependencies;
     const ScreenSpaceAOConstants Constants = { .frameIndex = Dependencies.read(Frame),
                                                .depthIndex = Dependencies.sample(&Depth),

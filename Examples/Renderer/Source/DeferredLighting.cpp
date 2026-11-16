@@ -33,20 +33,20 @@ DeferredLighting::DeferredLighting(hz::RenderContext& Context): Context(Context)
     Pipeline = Context.createGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
                                                                            { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                                                                .pFileName = "DeferredLighting.slang" },
-                                                .colorTargets = { { .format = hz::Format::R32G32B32A32_SFLOAT } },
-                                                .pName = "Renderer.DeferredLighting" });
+                                                .colorTargets = { { .Format = hz::Format::R32G32B32A32_SFLOAT } },
+                                                .Name = "Renderer.DeferredLighting" });
     ASSERT(Pipeline.isValid());
 }
 void DeferredLighting::Resize(uint32_t Width, uint32_t Height)
 {
-    Color = Context.createTexture({ .width = Width,
-                                    .height = Height,
-                                    .format = hz::Format::R32G32B32A32_SFLOAT,
-                                    .startState = ResourceStateRenderTarget,
-                                    .descriptors = DescriptorTypeTexture,
-                                    .flags = TextureCreationFlagForce2D,
+    Color = Context.createTexture({ .Width = Width,
+                                    .Height = Height,
+                                    .Format = hz::Format::R32G32B32A32_SFLOAT,
+                                    .StartState = ResourceStateRenderTarget,
+                                    .Descriptors = DescriptorTypeTexture,
+                                    .Flags = TextureCreationFlagForce2D,
                                     .renderTarget = true,
-                                    .pName = "Renderer.DeferredLighting.Color" });
+                                    .Name = "Renderer.DeferredLighting.Color" });
     ASSERT(Color.isValid());
 }
 const hz::GPUTexture& DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,

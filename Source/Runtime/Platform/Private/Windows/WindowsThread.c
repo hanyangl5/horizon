@@ -247,9 +247,9 @@ unsigned int GetNumCpuCores(void)
 // Performance stats functions
 #if defined(ENABLE_THREAD_PERFORMANCE_STATS)
 
-int InitPerformanceStats(PerformanceStatsFlags flags)
+int InitPerformanceStats(PerformanceStatsFlags Flags)
 {
-    UNREF_PARAM(flags);
+    UNREF_PARAM(Flags);
 #if defined(XBOX)
     for (uint32_t i = 0; i < GetNumCpuCores(); ++i)
     {

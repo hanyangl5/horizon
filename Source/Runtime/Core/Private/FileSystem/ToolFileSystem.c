@@ -311,7 +311,7 @@ bool DirectoryIteratorNext(FsDirectoryIterator iterator, struct FsDirectoryItera
             break;
 
         case DT_LNK:     // link to file, needed to resolve
-        case DT_UNKNOWN: // filesystem doesn't support getting type from dirent
+        case DT_UNKNOWN: // filesystem doesn't support getting Type from dirent
         {
             struct stat st = { 0 };
             if (stat(entry->d_name, &st))

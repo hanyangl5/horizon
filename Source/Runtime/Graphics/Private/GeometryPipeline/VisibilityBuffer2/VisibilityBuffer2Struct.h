@@ -89,7 +89,7 @@ STRUCT(FilterBatchData)
 STRUCT(CullingViewPort)
 {
     DATA(float2, windowSize, None);
-    DATA(uint, sampleCount, None);
+    DATA(uint, SampleCount, None);
     DATA(uint, pad, None);
 };
 

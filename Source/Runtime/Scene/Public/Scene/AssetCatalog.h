@@ -32,7 +32,7 @@ struct AssetLocation
 struct AssetCatalogEntry
 {
     AssetID       id;
-    AssetType     type = AssetType::Scene;
+    AssetType     Type = AssetType::Scene;
     const char*   pSourcePath = "";
     AssetLocation location;
     Span<AssetID> dependencies;
@@ -60,7 +60,7 @@ public:
     bool                     merge(const AssetCatalog& other);
     bool                     replace(const AssetCatalogEntry& entry);
     bool                     remove(AssetID id);
-    // Atomic full replacement from the current-format index. Failed reads leave the catalog unchanged.
+    // Atomic full replacement from the current-Format index. Failed reads leave the catalog unchanged.
     bool                     parse(Span<char> json);
     bool                     load(ResourceDirectory directory, const char* pFileName);
     bool                     serialize(Array<char>& json) const;

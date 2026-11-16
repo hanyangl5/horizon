@@ -47,7 +47,7 @@
 // typedef struct RemoteCommandHeader
 // {
 //     uint32_t                 Size = 0;
-//     RemoteControlMessageType type = REMOTE_MESSAGE_INVALID;
+//     RemoteControlMessageType Type = REMOTE_MESSAGE_INVALID;
 //     uint8_t                  padding[3] = { 0, 0, 0 };
 // } RemoteCommandHeader;
 
@@ -90,9 +90,9 @@
 // typedef struct alignas(8) RemoteCommandUserInterfaceTexture
 // {
 //     RemoteCommandHeader mHeader = RemoteCommandHeader{ sizeof(RemoteCommandUserInterfaceTexture), REMOTE_MESSAGE_TEXTURE };
-//     uint32_t            format;
-//     uint32_t            width;
-//     uint32_t            height;
+//     uint32_t            Format;
+//     uint32_t            Width;
+//     uint32_t            Height;
 //     uint32_t            mTextureSize;
 //     uint64_t            textureId;
 // } RemoteCommandUserInterfaceTextureCommand;
@@ -246,7 +246,7 @@
 // {
 //     RemoteCommandHeader remoteCommandHeader = {};
 //     remoteCommandHeader.Size = sizeof(remoteCommandHeader);
-//     remoteCommandHeader.type = REMOTE_MESSAGE_PING;
+//     remoteCommandHeader.Type = REMOTE_MESSAGE_PING;
 
 //     return bufferedSend(socket, (unsigned char*)&remoteCommandHeader, sizeof(remoteCommandHeader));
 // }
@@ -255,7 +255,7 @@
 // {
 //     RemoteCommandHeader remoteCommandHeader = {};
 //     remoteCommandHeader.Size = sizeof(remoteCommandHeader);
-//     remoteCommandHeader.type = REMOTE_MESSAGE_DISCONNECT;
+//     remoteCommandHeader.Type = REMOTE_MESSAGE_DISCONNECT;
 
 //     return bufferedSend(socket, (unsigned char*)&remoteCommandHeader, sizeof(remoteCommandHeader));
 // }
@@ -417,7 +417,7 @@
 
 //         if (receivedHeader)
 //         {
-//             switch (remoteCommandHeader.type)
+//             switch (remoteCommandHeader.Type)
 //             {
 //             case REMOTE_MESSAGE_INPUT:
 //             {
@@ -623,7 +623,7 @@
 //     swap_buffers(&pRemoteAppServer->mAwaitingSendDrawData);
 // }
 
-// void remoteControlSendTexture(TinyImageFormat format, uint64_t textureId, uint32_t width, uint32_t height, uint32_t Size,
+// void remoteControlSendTexture(TinyImageFormat Format, uint64_t textureId, uint32_t Width, uint32_t Height, uint32_t Size,
 //                               unsigned char* ptr)
 // {
 //     if (!pRemoteAppServer || pRemoteAppServer->mServerConnectionSocket == SOCKET_INVALID)
@@ -635,10 +635,10 @@
 //     RemoteCommandUserInterfaceTexture textureCommand = {};
 //     textureCommand.mHeader = RemoteCommandHeader{ (uint32_t)sizeof(RemoteCommandUserInterfaceTexture) + Size, REMOTE_MESSAGE_TEXTURE };
 //     textureCommand.textureId = textureId;
-//     textureCommand.width = width;
-//     textureCommand.height = height;
+//     textureCommand.Width = Width;
+//     textureCommand.Height = Height;
 //     textureCommand.mTextureSize = Size;
-//     textureCommand.format = format;
+//     textureCommand.Format = Format;
 
 //     memcpy(data, &textureCommand, sizeof(RemoteCommandUserInterfaceTexture));
 //     memcpy(data + sizeof(RemoteCommandUserInterfaceTexture), ptr, Size);
@@ -801,7 +801,7 @@
 
 //         if (receivedHeader)
 //         {
-//             switch (remoteCommandHeader.type)
+//             switch (remoteCommandHeader.Type)
 //             {
 //             case REMOTE_MESSAGE_DRAW:
 //             {
@@ -952,15 +952,15 @@
 //         TextureLoadDesc loadDesc = {};
 //         TextureDesc     desc = {};
 
-//         desc.width = textureData->width;
-//         desc.height = textureData->height;
-//         desc.depth = 1;
-//         desc.arraySize = 1;
-//         desc.mipLevels = 1;
-//         desc.format = (TinyImageFormat)textureData->format;
-//         desc.startState = ResourceStateNonPixelShaderResource | ResourceStatePixelShaderResource;
-//         desc.descriptors = DescriptorTypeTexture;
-//         desc.sampleCount = SAMPLE_COUNT_1;
+//         desc.Width = textureData->Width;
+//         desc.Height = textureData->Height;
+//         desc.Depth = 1;
+//         desc.ArraySize = 1;
+//         desc.MipLevels = 1;
+//         desc.Format = (TinyImageFormat)textureData->Format;
+//         desc.StartState = ResourceStateNonPixelShaderResource | ResourceStatePixelShaderResource;
+//         desc.Descriptors = DescriptorTypeTexture;
+//         desc.SampleCount = SAMPLE_COUNT_1;
 //         loadDesc.pDesc = &desc;
 //         loadDesc.ppTexture = &texture;
 

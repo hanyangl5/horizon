@@ -731,7 +731,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
 
         struct TypePair
         {
-            cgltf_type           type;
+            cgltf_type           Type;
             cgltf_component_type comp;
         };
         const TypePair vertexTypes[] = {
@@ -814,7 +814,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
 
         for (uint32_t j = 0; j < Count; ++j)
         {
-            views[j].type = (j ? cgltf_buffer_view_type_vertices : cgltf_buffer_view_type_indices);
+            views[j].Type = (j ? cgltf_buffer_view_type_vertices : cgltf_buffer_view_type_indices);
             views[j].buffer = &buffer;
             views[j].offset = offset;
             views[j].Size = vertexCounts[j] * vertexStrides[j];
@@ -822,7 +822,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
             accessors[j].stride = vertexStrides[j];
             accessors[j].Count = vertexCounts[j];
             accessors[j].offset = 0;
-            accessors[j].type = vertexTypes[j].type;
+            accessors[j].Type = vertexTypes[j].Type;
             accessors[j].buffer_view = &views[j];
 
             attribs[j].name = (char*)vertexNames[j];
@@ -842,7 +842,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
         prim.indices = accessors;
         prim.attributes_count = Count - 1;
         prim.attributes = attribs + 1;
-        prim.type = cgltf_primitive_type_triangles;
+        prim.Type = cgltf_primitive_type_triangles;
 
         mesh.primitives_count = 1;
         mesh.primitives = &prim;
@@ -851,7 +851,7 @@ bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParam
         snprintf(extras, sizeof extras, "{ \"%s\" : %d, \"%s\" : %d }", "mVertexCountPerStrand", tressFXAsset.m_numVerticesPerStrand,
                  "mGuideCountPerStrand", tressFXAsset.m_numGuideStrands);
 
-        char       generator[] = "TressFX";
+        char       generator[] = "tressfx";
         cgltf_data data = {};
         data.asset.generator = generator;
         data.buffers_count = 1;
@@ -1437,9 +1437,9 @@ bool CreateRuntimeAnimations(ResourceDirectory resourceDirInput, const char* ani
 }
 #endif
 
-static inline constexpr ShaderSemantic util_cgltf_attrib_type_to_semantic(cgltf_attribute_type type, uint32_t index)
+static inline constexpr ShaderSemantic util_cgltf_attrib_type_to_semantic(cgltf_attribute_type Type, uint32_t index)
 {
-    switch (type)
+    switch (Type)
     {
     case cgltf_attribute_type_position:
         return SEMANTIC_POSITION;
@@ -1460,9 +1460,9 @@ static inline constexpr ShaderSemantic util_cgltf_attrib_type_to_semantic(cgltf_
     }
 }
 
-static inline constexpr hz::Format util_cgltf_type_to_image_format(cgltf_type type, cgltf_component_type compType)
+static inline constexpr hz::Format util_cgltf_type_to_image_format(cgltf_type Type, cgltf_component_type compType)
 {
-    switch (type)
+    switch (Type)
     {
     case cgltf_type_scalar:
         if (cgltf_component_type_r_8 == compType)
@@ -2093,20 +2093,20 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 }
             }
 
-            const uint32_t dstFormatSize = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)attr->format) >> 3;
+            const uint32_t dstFormatSize = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)attr->Format) >> 3;
             const uint32_t srcFormatSize = (uint32_t)cgltfAttr->data->stride; //-V522
 
             const uint32_t thisAttrStride = dstFormatSize ? dstFormatSize : srcFormatSize;
             ASSERT(vertexAttrStrides[attr->semantic] == 0);
             vertexAttrStrides[attr->semantic] = thisAttrStride;
 
-            // Compare vertex attrib format to the gltf attrib type
-            // Select a packing function if dst format is packed version
+            // Compare vertex attrib Format to the gltf attrib Type
+            // Select a packing function if dst Format is packed version
             // Texcoords - Pack float2 to half2
             // Directions - Pack float3 to float2 to unorm2x16 (Normal, Tangent)
             // Position - No packing yet
             const hz::Format srcFormat = util_cgltf_type_to_image_format(cgltfAttr->data->type, cgltfAttr->data->component_type);
-            const hz::Format dstFormat = attr->format == hz::Format::UNDEFINED ? srcFormat : attr->format;
+            const hz::Format dstFormat = attr->Format == hz::Format::UNDEFINED ? srcFormat : attr->Format;
 
             if (dstFormat != srcFormat)
             {
@@ -2134,7 +2134,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                         vertexPacking[attr->semantic] = util_unpack_uint8_to_uint16_joints;
                     else
                     {
-                        LOGF(Error, "Joint Size doesn't match");
+                        LOGF(Error, "Joint size doesn't match");
                         ASSERT(false);
                     }
                     break;
@@ -2874,32 +2874,32 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
         {
             vertexLayout.attribCount = 6;
             vertexLayout.attribs[0].semantic = SEMANTIC_POSITION;
-            vertexLayout.attribs[0].format = hz::Format::R32G32B32_SFLOAT;
+            vertexLayout.attribs[0].Format = hz::Format::R32G32B32_SFLOAT;
             vertexLayout.attribs[0].binding = 0;
             vertexLayout.attribs[0].location = 0;
             vertexLayout.attribs[0].offset = 0;
             vertexLayout.attribs[1].semantic = SEMANTIC_NORMAL;
-            vertexLayout.attribs[1].format = hz::Format::R32_UINT;
+            vertexLayout.attribs[1].Format = hz::Format::R32_UINT;
             vertexLayout.attribs[1].binding = 1;
             vertexLayout.attribs[1].location = 1;
             vertexLayout.attribs[1].offset = 0;
             vertexLayout.attribs[2].semantic = SEMANTIC_TANGENT;
-            vertexLayout.attribs[2].format = hz::Format::R32_UINT;
+            vertexLayout.attribs[2].Format = hz::Format::R32_UINT;
             vertexLayout.attribs[2].binding = 2;
             vertexLayout.attribs[2].location = 2;
             vertexLayout.attribs[2].offset = 0;
             vertexLayout.attribs[3].semantic = SEMANTIC_TEXCOORD0;
-            vertexLayout.attribs[3].format = hz::Format::R32_UINT;
+            vertexLayout.attribs[3].Format = hz::Format::R32_UINT;
             vertexLayout.attribs[3].binding = 3;
             vertexLayout.attribs[3].location = 3;
             vertexLayout.attribs[3].offset = 0;
             vertexLayout.attribs[4].semantic = SEMANTIC_JOINTS;
-            vertexLayout.attribs[4].format = hz::Format::R16G16B16A16_UINT;
+            vertexLayout.attribs[4].Format = hz::Format::R16G16B16A16_UINT;
             vertexLayout.attribs[4].binding = 4;
             vertexLayout.attribs[4].location = 4;
             vertexLayout.attribs[4].offset = 0;
             vertexLayout.attribs[5].semantic = SEMANTIC_WEIGHTS;
-            vertexLayout.attribs[5].format = hz::Format::R32G32B32A32_SFLOAT;
+            vertexLayout.attribs[5].Format = hz::Format::R32G32B32A32_SFLOAT;
             vertexLayout.attribs[5].binding = 5;
             vertexLayout.attribs[5].location = 5;
             vertexLayout.attribs[5].offset = 0;
@@ -3155,7 +3155,7 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
         return result;
     }
 
-    // if reached, the used processed type wasn't included
+    // if reached, the used processed Type wasn't included
     ASSERT(false);
     return 0;
 }

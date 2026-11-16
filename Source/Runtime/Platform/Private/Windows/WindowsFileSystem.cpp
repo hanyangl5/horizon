@@ -27,11 +27,11 @@
 #include <functional>
 
 #if !defined(XBOX)
-// clang-format off
+// clang-Format off
 #include "shlobj.h"
 #include "commdlg.h"
 #include <WinBase.h>
-// clang-format on
+// clang-Format on
 #endif
 #include <io.h>
 #include <stdio.h>
@@ -297,7 +297,7 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
         stream->Handle = (HANDLE)_get_osfhandle(_fileno(fp));
         if (stream->Handle == INVALID_HANDLE_VALUE)
         {
-            LOGF(LogLevel::Error, "Error getting file Handle for %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
+            LOGF(LogLevel::Error, "Error getting file handle for %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
             fclose(fp);
             return false;
         }
@@ -328,7 +328,7 @@ static ssize_t ioWindowsFsGetSize(FileStream* fs)
     LARGE_INTEGER fileSize = {};
     if (GetFileSizeEx(stream->Handle, &fileSize))
         return (ssize_t)fileSize.QuadPart;
-    LOGF(Error, "Failed to get file Size: %s", WindowsErrorString().c_str());
+    LOGF(Error, "Failed to get file size: %s", WindowsErrorString().c_str());
     return -1;
 }
 

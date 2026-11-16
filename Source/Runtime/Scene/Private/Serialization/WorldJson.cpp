@@ -70,7 +70,7 @@ bool worldVersion(const cJSON* pValue, uint32_t& version)
     version = (uint32_t)pValue->valuedouble;
     return true;
 }
-static bool serialized(const PropertyDesc& property) { return (property.flags & PROPERTY_SERIALIZED) != 0; }
+static bool serialized(const PropertyDesc& property) { return (property.Flags & PROPERTY_SERIALIZED) != 0; }
 static int  compareProperties(const void* pA, const void* pB)
 {
     const PropertyID a = (*(const PropertyDesc* const*)pA)->id;
@@ -153,7 +153,7 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
     case PropertyKind::Enum:
         for (const EnumValue& entry : property.enumValues)
             if (entry.value == signedValue(pValue, property.Size))
-                return cJSON_CreateString(entry.pName);
+                return cJSON_CreateString(entry.Name);
         return nullptr;
     case PropertyKind::AssetReference:
     {
@@ -209,10 +209,10 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
     }
     }
 }
-cJSON* writeWorldProperties(const TypeDesc& type, const void* pValue)
+cJSON* writeWorldProperties(const TypeDesc& Type, const void* pValue)
 {
     Array<const PropertyDesc*> properties;
-    for (const PropertyDesc& property : type.properties)
+    for (const PropertyDesc& property : Type.properties)
         if (serialized(property))
             properties.PushBack(&property);
     if (!properties.Empty())
@@ -223,10 +223,10 @@ cJSON* writeWorldProperties(const TypeDesc& type, const void* pValue)
         cJSON* pField = writeProperty(*pProperty, (const uint8_t*)pValue + pProperty->offset);
         if (!pField)
         {
-            LOGF(Error, "Cannot serialize property '%s.%s'", type.pName, pProperty->pName);
+            LOGF(Error, "Cannot serialize property '%s.%s'", Type.Name, pProperty->Name);
             return nullptr;
         }
-        cJSON_AddItemToObject(object.pValue, pProperty->pName, pField);
+        cJSON_AddItemToObject(object.pValue, pProperty->Name, pField);
     }
     cJSON* pResult = object.pValue;
     object.pValue = nullptr;
@@ -291,7 +291,7 @@ static bool readProperty(const PropertyDesc& property, const cJSON* pJson, void*
         if (!cJSON_IsString(pJson))
             return false;
         for (const EnumValue& entry : property.enumValues)
-            if (!strcmp(entry.pName, pJson->valuestring))
+            if (!strcmp(entry.Name, pJson->valuestring))
             {
                 memcpy(pValue, &entry.value, sizeof(entry.value));
                 return true;
@@ -350,24 +350,24 @@ static bool readProperty(const PropertyDesc& property, const cJSON* pJson, void*
     }
     }
 }
-bool readWorldProperties(const TypeDesc& type, const cJSON* pObject, void* pValue)
+bool readWorldProperties(const TypeDesc& Type, const cJSON* pObject, void* pValue)
 {
     if (!uniqueWorldFields(pObject))
         return false;
     for (const cJSON* pField = pObject->child; pField; pField = pField->next)
     {
-        const PropertyDesc* pProperty = type.getProperty(pField->string);
+        const PropertyDesc* pProperty = Type.getProperty(pField->string);
         if (!pProperty || !serialized(*pProperty) || !readProperty(*pProperty, pField, (uint8_t*)pValue + pProperty->offset))
         {
-            LOGF(Error, "Invalid serialized property '%s.%s'", type.pName, pField->string);
+            LOGF(Error, "Invalid serialized property '%s.%s'", Type.Name, pField->string);
             return false;
         }
     }
     return true;
 }
-bool validateWorldReferences(const TypeDesc& type, const void* pValue, const World& world)
+bool validateWorldReferences(const TypeDesc& Type, const void* pValue, const World& world)
 {
-    for (const PropertyDesc& property : type.properties)
+    for (const PropertyDesc& property : Type.properties)
     {
         if (!serialized(property))
             continue;
@@ -388,16 +388,16 @@ bool validateWorldReferences(const TypeDesc& type, const void* pValue, const Wor
     }
     return true;
 }
-bool normalizeWorldComponent(TypeID type, void* pValue, bool sortOverrides)
+bool normalizeWorldComponent(TypeID Type, void* pValue, bool sortOverrides)
 {
-    if (type == SceneTypes::camera)
+    if (Type == SceneTypes::camera)
     {
         const Camera& camera = *(const Camera*)pValue;
         if (!isfinite(camera.verticalFov) || camera.verticalFov <= 0.0f || camera.verticalFov >= 3.141592654f ||
             !isfinite(camera.nearPlane) || !isfinite(camera.farPlane) || camera.nearPlane <= 0.0f || camera.farPlane <= camera.nearPlane)
             return false;
     }
-    if (type == SceneTypes::meshRenderer)
+    if (Type == SceneTypes::meshRenderer)
     {
         Array<MaterialOverride>& overrides = ((MeshRenderer*)pValue)->overrides;
         if (sortOverrides && !overrides.Empty())
@@ -406,14 +406,14 @@ bool normalizeWorldComponent(TypeID type, void* pValue, bool sortOverrides)
             if (!overrides[i].submesh || !overrides[i].material.isValid() || (i && overrides[i - 1].submesh >= overrides[i].submesh))
                 return false;
     }
-    if (type == SceneTypes::localTransform)
+    if (Type == SceneTypes::localTransform)
     {
         const Quat& rotation = ((const LocalTransform*)pValue)->rotation;
         const float norm = (float)dot(rotation, rotation);
         if (!isfinite(norm) || fabsf(norm - 1.0f) > 0.001f)
             return false;
     }
-    if (type == SceneTypes::localMatrix)
+    if (Type == SceneTypes::localMatrix)
     {
         Matrix4* matrix = (Matrix4*)pValue;
         for (uint32_t column = 0; column < 4; ++column)

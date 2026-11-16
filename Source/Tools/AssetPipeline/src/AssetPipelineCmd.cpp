@@ -36,7 +36,7 @@ const AssetPipelineProcessCommand gAssetPipelineCommands[] = {
 void PrintHelp()
 {
     printf("Asset Pipeline\n");
-    printf("\n-command [flags]\n");
+    printf("\n-command [Flags]\n");
     printf("\nCommands:\n");
     printf("\n\t%s\t\t(unavailable: Ozz API migration required)\n", gAssetPipelineCommands[PROCESS_ANIMATIONS].mCommandString);
     printf("\n\t%s\t(unavailable: TressFX is not vendored)\n", gAssetPipelineCommands[PROCESS_TFX].mCommandString);

@@ -38,11 +38,11 @@ private:
     friend class WorldHierarchy;
     friend class WorldArchive;
 
-    const WorldType* findType(TypeID type) { return hmgetp_null(pTypes, type); }
+    const WorldType* findType(TypeID Type) { return hmgetp_null(pTypes, Type); }
     void             checkThread() const { ASSERT(thread == GetCurrentThreadID()); }
     void             finishGuidChanges();
-    void*            findEditableProperty(ecs_entity_t entity, TypeID type, PropertyID property, const PropertyDesc*& pProperty);
-    void             notifyPropertyChange(ecs_entity_t entity, TypeID type);
+    void*            findEditableProperty(ecs_entity_t entity, TypeID Type, PropertyID property, const PropertyDesc*& pProperty);
+    void             notifyPropertyChange(ecs_entity_t entity, TypeID Type);
     static void      removeEntityGuids(ecs_iter_t* pIterator);
 
     static void constructComponents(void* pDestination, int32_t Count, const ecs_type_info_t* pInfo);

@@ -236,7 +236,7 @@ void WriteLogVaList(uint32_t level, const char* filename, int line_number, const
     uint32_t log_levels[LEVELS_LOG];
     uint32_t log_level_count = 0;
 
-    // Check flags
+    // Check Flags
     for (uint32_t i = 0; i < sizeof(logLevelPrefixes) / sizeof(logLevelPrefixes[0]); ++i)
     {
         Prefix* it = &logLevelPrefixes[i];

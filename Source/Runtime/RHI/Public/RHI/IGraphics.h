@@ -196,7 +196,7 @@ struct PlatformParameters
     uint32_t    pAvailableGpuIds[MAX_MULTIPLE_GPUS];
     uint32_t    availableGpuCount;
     uint32_t    selectedGpuIndex;
-    // Could add swap chain Size, render target format, ...
+    // Could add swap chain Size, render target Format, ...
     uint32_t    preferedGpuId;
 };
 
@@ -297,7 +297,7 @@ enum DescriptorType : uint32_t
     DescriptorTypeRenderTargetMipSlices = (DescriptorTypeIndirectBuffer << 2),
     /// RTV / DSV per array slice
     DescriptorTypeRenderTargetArraySlices = (DescriptorTypeRenderTargetMipSlices << 1),
-    /// RTV / DSV per depth slice
+    /// RTV / DSV per Depth slice
     DescriptorTypeRenderTargetDepthSlices = (DescriptorTypeRenderTargetArraySlices << 1),
     DescriptorTypeIndirectCommandBuffer = (DescriptorTypeRenderTargetDepthSlices << 1),
     /// Raytracing acceleration structure
@@ -534,7 +534,7 @@ typedef union ClearValue
     };
     struct
     {
-        float    depth;
+        float    Depth;
         uint32_t stencil;
     };
 } ClearValue;
@@ -549,7 +549,7 @@ enum BufferCreationFlags : uint32_t
     BufferCreationFlagPersistentMapBit = 0x2,
     /// Use ESRAM to store this buffer
     BufferCreationFlagEsram = 0x4,
-    /// Flag to specify not to allocate descriptors for the resource
+    /// Flag to specify not to allocate Descriptors for the resource
     BufferCreationFlagNoDescriptorViewCreation = 0x8,
 
     BufferCreationFlagAccelerationStructureBuildInput = 0x10,
@@ -578,9 +578,9 @@ enum TextureCreationFlags : uint32_t
     TextureCreationFlagOnTile = 0x20,
     /// Prevent compression meta data from generating (XBox)
     TextureCreationFlagNoCompression = 0x40,
-    /// Force 2D instead of automatically determining dimension based on width, height, depth
+    /// Force 2D instead of automatically determining dimension based on Width, Height, Depth
     TextureCreationFlagForce2D = 0x80,
-    /// Force 3D instead of automatically determining dimension based on width, height, depth
+    /// Force 3D instead of automatically determining dimension based on Width, Height, Depth
     TextureCreationFlagForce3D = 0x100,
     /// Display target
     TextureCreationFlagAllowDisplayTarget = 0x200,
@@ -649,7 +649,7 @@ struct TextureBarrier
     uint8_t       endOnly : 1;
     uint8_t       acquire : 1;
     uint8_t       release : 1;
-    uint8_t       queueType : 5;
+    uint8_t       QueueType : 5;
     /// Specifiy whether following barrier targets particular subresource
     uint8_t       subresourceBarrier : 1;
     /// Following values are ignored if subresourceBarrier is false
@@ -666,7 +666,7 @@ struct RenderTargetBarrier
     uint8_t       endOnly : 1;
     uint8_t       acquire : 1;
     uint8_t       release : 1;
-    uint8_t       queueType : 5;
+    uint8_t       QueueType : 5;
     /// Specifiy whether following barrier targets particular subresource
     uint8_t       subresourceBarrier : 1;
     /// Following values are ignored if subresourceBarrier is false
@@ -690,8 +690,8 @@ enum QueryType : uint32_t
 
 struct QueryPoolDesc
 {
-    const char* pName;
-    QueryType   type;
+    const char* Name;
+    QueryType   Type;
     uint32_t    queryCount;
 };
 
@@ -706,7 +706,7 @@ struct QueryPool
     {
         ID3D12QueryHeap* pQueryHeap;
         Buffer*          pReadbackBuffer;
-        D3D12_QUERY_TYPE type;
+        D3D12_QUERY_TYPE Type;
     } dx;
     uint32_t Count;
     uint32_t stride;
@@ -770,11 +770,11 @@ struct ResourceHeapDesc
     uint64_t Size;
     uint64_t alignment;
 
-    ResourceMemoryUsage       memoryUsage;
-    DescriptorType            descriptors;
-    ResourceHeapCreationFlags flags;
+    ResourceMemoryUsage       MemoryUsage;
+    DescriptorType            Descriptors;
+    ResourceHeapCreationFlags Flags;
 
-    const char* pName;
+    const char* Name;
 };
 
 struct alignas(64) ResourceHeap
@@ -804,33 +804,33 @@ struct ResourcePlacement
 struct BufferDesc
 {
     /// Optional placement (addBuffer will place/bind buffer in this memory instead of allocating space)
-    ResourcePlacement*  pPlacement;
+    ResourcePlacement*  Placement;
     /// Size of the buffer (in bytes)
     uint64_t            Size;
     /// Set this to specify a counter buffer for this buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
-    struct Buffer*      pCounterBuffer;
+    struct Buffer*      CounterBuffer;
     /// Index of the first element accessible by the SRV/UAV (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
-    uint32_t            firstElement;
+    uint32_t            FirstElement;
     /// Number of elements in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
-    uint32_t            elementCount;
+    uint32_t            ElementCount;
     /// Size of each element (in bytes) in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
-    uint32_t            structStride;
+    uint32_t            StructStride;
     /// Alignment
     uint32_t            alignment;
     /// Debug name used in gpu profile
-    const char*         pName;
+    const char*         Name;
     /// Decides which memory heap buffer will use (default, upload, readback)
-    ResourceMemoryUsage memoryUsage;
-    /// Creation flags of the buffer
-    BufferCreationFlags flags;
-    /// What type of queue the buffer is owned by
-    QueueType           queueType;
+    ResourceMemoryUsage MemoryUsage;
+    /// Creation Flags of the buffer
+    BufferCreationFlags Flags;
+    /// What Type of queue the buffer is owned by
+    QueueType           QueueType;
     /// What state will the buffer get created in
-    ResourceState       startState;
+    ResourceState       StartState;
     /// Format of the buffer (applicable to typed storage buffers (Buffer<T>)
-    hz::Format          format;
+    hz::Format          Format;
     /// Flags specifying the suitable usage of this buffer (Uniform buffer, Vertex Buffer, Index Buffer,...)
-    DescriptorType      descriptors;
+    DescriptorType      Descriptors;
 };
 
 struct alignas(64) Buffer
@@ -842,11 +842,11 @@ struct alignas(64) Buffer
         /// GPU Address - Cache to avoid calls to ID3D12Resource::GetGpuVirtualAddress
         D3D12_GPU_VIRTUAL_ADDRESS gpuAddress;
         /// Descriptor Handle of the CBV in a CPU visible descriptor heap (applicable to BUFFER_USAGE_UNIFORM)
-        DxDescriptorID            descriptors;
+        DxDescriptorID            Descriptors;
         DxDescriptorID            gpuDescriptors;
-        /// Offset from descriptors for srv descriptor Handle
+        /// Offset from Descriptors for srv descriptor Handle
         uint8_t                   srvDescriptorOffset;
-        /// Offset from descriptors for uav descriptor Handle
+        /// Offset from Descriptors for uav descriptor Handle
         uint8_t                   uavDescriptorOffset;
         uint8_t                   markerBuffer : 1;
         /// Native Handle of the underlying resource
@@ -859,8 +859,8 @@ struct alignas(64) Buffer
         };
     } dx;
     uint64_t Size : 32;
-    uint64_t descriptors : 20;
-    uint64_t memoryUsage : 3;
+    uint64_t Descriptors : 20;
+    uint64_t MemoryUsage : 3;
     uint64_t memoryTrackingMode : 2;
     uint64_t memoryTrackingPool : 3;
 };
@@ -871,36 +871,36 @@ static_assert(sizeof(Buffer) == 8 * sizeof(uint64_t));
 struct TextureDesc
 {
     /// Optional placement (addTexture will place/bind buffer in this memory instead of allocating space)
-    ResourcePlacement*   pPlacement;
+    ResourcePlacement*   Placement;
     /// Optimized Clear value (recommended to use this same value when clearing the rendertarget)
-    ClearValue           clearValue;
+    ClearValue           ClearValue;
     /// Pointer to native texture Handle if the texture does not own underlying resource
-    const void*          pNativeHandle;
+    const void*          NativeHandle;
     /// Debug name used in gpu profile
-    const char*          pName;
-    /// Texture creation flags (decides memory allocation strategy, sharing access,...)
-    TextureCreationFlags flags;
+    const char*          Name;
+    /// Texture creation Flags (decides memory allocation strategy, sharing access,...)
+    TextureCreationFlags Flags;
     /// Width
-    uint32_t             width;
+    uint32_t             Width;
     /// Height
-    uint32_t             height;
-    /// Depth (Should be 1 if not a type is not TEXTURE_TYPE_3D)
-    uint32_t             depth;
+    uint32_t             Height;
+    /// Depth (Should be 1 if not a Type is not TEXTURE_TYPE_3D)
+    uint32_t             Depth;
     /// Texture array Size (Should be 1 if texture is not a texture array or cubemap)
-    uint32_t             arraySize;
+    uint32_t             ArraySize;
     /// Number of mip levels
-    uint32_t             mipLevels;
+    uint32_t             MipLevels;
     /// Number of multisamples per pixel (currently Textures created with mUsage TEXTURE_USAGE_SAMPLED_IMAGE only support SAMPLE_COUNT_1)
-    SampleCount          sampleCount;
+    SampleCount          SampleCount;
     /// The image quality level. The higher the quality, the lower the performance. The valid range is between zero and the value
-    /// appropriate for sampleCount
-    uint32_t             sampleQuality;
-    ///  image format
-    hz::Format           format;
+    /// appropriate for SampleCount
+    uint32_t             SampleQuality;
+    ///  image Format
+    hz::Format           Format;
     /// What state will the texture get created in
-    ResourceState        startState;
+    ResourceState        StartState;
     /// Descriptor creation
-    DescriptorType       descriptors;
+    DescriptorType       Descriptors;
 };
 
 struct alignas(64) Texture
@@ -908,7 +908,7 @@ struct alignas(64) Texture
     struct
     {
         /// Descriptor Handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
-        DxDescriptorID       descriptors;
+        DxDescriptorID       Descriptors;
         DxDescriptorID       gpuDescriptors;
         /// Native Handle of the underlying resource
         ID3D12Resource*      pResource;
@@ -918,15 +918,15 @@ struct alignas(64) Texture
         uint32_t             uavStartIndex;
     } dx;
     /// Current state of the buffer
-    uint32_t   width : 16;
-    uint32_t   height : 16;
-    uint32_t   depth : 16;
-    uint32_t   mipLevels : 5;
+    uint32_t   Width : 16;
+    uint32_t   Height : 16;
+    uint32_t   Depth : 16;
+    uint32_t   MipLevels : 5;
     uint32_t   arraySizeMinusOne : 11;
-    hz::Format format : 8;
+    hz::Format Format : 8;
     /// Flags specifying which aspects (COLOR,DEPTH,STENCIL) are included in the pImageView
     uint32_t   aspectMask : 4;
-    uint32_t   sampleCount : 5;
+    uint32_t   SampleCount : 5;
     uint32_t   uav : 1;
     /// This value will be false if the underlying resource is not owned by the texture (swapchain textures,...)
     uint32_t   ownsImage : 1;
@@ -939,35 +939,35 @@ static_assert(sizeof(Texture) == 8 * sizeof(uint64_t));
 struct RenderTargetDesc
 {
     /// Optional placement (addRenderTarget will place/bind buffer in this memory instead of allocating space)
-    ResourcePlacement*   pPlacement;
-    /// Texture creation flags (decides memory allocation strategy, sharing access,...)
-    TextureCreationFlags flags;
+    ResourcePlacement*   Placement;
+    /// Texture creation Flags (decides memory allocation strategy, sharing access,...)
+    TextureCreationFlags Flags;
     /// Width
-    uint32_t             width;
+    uint32_t             Width;
     /// Height
-    uint32_t             height;
-    /// Depth (Should be 1 if not a type is not TEXTURE_TYPE_3D)
-    uint32_t             depth;
+    uint32_t             Height;
+    /// Depth (Should be 1 if not a Type is not TEXTURE_TYPE_3D)
+    uint32_t             Depth;
     /// Texture array Size (Should be 1 if texture is not a texture array or cubemap)
-    uint32_t             arraySize;
+    uint32_t             ArraySize;
     /// Number of mip levels
-    uint32_t             mipLevels;
+    uint32_t             MipLevels;
     /// MSAA
-    SampleCount          sampleCount;
-    /// Internal image format
-    hz::Format           format;
+    SampleCount          SampleCount;
+    /// Internal image Format
+    hz::Format           Format;
     /// What state will the texture get created in
-    ResourceState        startState;
+    ResourceState        StartState;
     /// Optimized Clear value (recommended to use this same value when clearing the rendertarget)
-    ClearValue           clearValue;
+    ClearValue           ClearValue;
     /// The image quality level. The higher the quality, the lower the performance. The valid range is between zero and the value
-    /// appropriate for sampleCount
-    uint32_t             sampleQuality;
+    /// appropriate for SampleCount
+    uint32_t             SampleQuality;
     /// Descriptor creation
-    DescriptorType       descriptors;
-    const void*          pNativeHandle;
+    DescriptorType       Descriptors;
+    const void*          NativeHandle;
     /// Debug name used in gpu profile
-    const char*          pName;
+    const char*          Name;
     /// Reserved for multi-node APIs. The current renderer path uses node 0 only.
 };
 
@@ -976,21 +976,21 @@ struct alignas(64) RenderTarget
     Texture* pTexture;
     struct
     {
-        DxDescriptorID descriptors;
+        DxDescriptorID Descriptors;
     } dx;
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
     RenderTarget* pResolveAttachment;
 #endif
-    ClearValue  clearValue;
-    uint32_t    arraySize : 16;
-    uint32_t    depth : 16;
-    uint32_t    width : 16;
-    uint32_t    height : 16;
-    uint32_t    descriptors : 20;
-    uint32_t    mipLevels : 10;
-    uint32_t    sampleQuality : 5;
-    hz::Format  format;
-    SampleCount sampleCount;
+    ClearValue  ClearValue;
+    uint32_t    ArraySize : 16;
+    uint32_t    Depth : 16;
+    uint32_t    Width : 16;
+    uint32_t    Height : 16;
+    uint32_t    Descriptors : 20;
+    uint32_t    MipLevels : 10;
+    uint32_t    SampleQuality : 5;
+    hz::Format  Format;
+    SampleCount SampleCount;
     bool        vrMultiview;
     bool        vrFoveatedRendering;
 };
@@ -1004,18 +1004,18 @@ struct SampleLocations
 
 struct SamplerDesc
 {
-    FilterType  minFilter;
-    FilterType  magFilter;
-    MipMapMode  mipMapMode;
-    AddressMode addressU;
-    AddressMode addressV;
-    AddressMode addressW;
-    float       mipLodBias;
-    bool        setLodRange;
-    float       minLod;
-    float       maxLod;
-    float       maxAnisotropy;
-    CompareMode compareFunc;
+    FilterType  MinFilter;
+    FilterType  MagFilter;
+    MipMapMode  MipMapMode;
+    AddressMode AddressU;
+    AddressMode AddressV;
+    AddressMode AddressW;
+    float       MipLodBias;
+    bool        SetLodRange;
+    float       MinLod;
+    float       MaxLod;
+    float       MaxAnisotropy;
+    CompareMode CompareFunc;
 };
 
 struct alignas(16) Sampler
@@ -1033,19 +1033,19 @@ static_assert(sizeof(Sampler) == 8 * sizeof(uint64_t));
 
 inline uint32_t getBufferSrvIndex(const Buffer* pBuffer)
 {
-    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->descriptors & DescriptorTypeBuffer));
+    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->Descriptors & DescriptorTypeBuffer));
     return (uint32_t)pBuffer->dx.gpuDescriptors + pBuffer->dx.srvDescriptorOffset;
 }
 
 inline uint32_t getBufferUavIndex(const Buffer* pBuffer)
 {
-    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->descriptors & DescriptorTypeRwBuffer));
+    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->Descriptors & DescriptorTypeRwBuffer));
     return (uint32_t)pBuffer->dx.gpuDescriptors + pBuffer->dx.uavDescriptorOffset;
 }
 
 inline uint32_t getBufferCbvIndex(const Buffer* pBuffer)
 {
-    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->descriptors & DescriptorTypeUniformBuffer));
+    ASSERT(pBuffer && pBuffer->dx.gpuDescriptors >= 0 && (pBuffer->Descriptors & DescriptorTypeUniformBuffer));
     return (uint32_t)pBuffer->dx.gpuDescriptors;
 }
 
@@ -1057,7 +1057,7 @@ inline uint32_t getTextureSrvIndex(const Texture* pTexture)
 
 inline uint32_t getTextureUavIndex(const Texture* pTexture, uint32_t mip = 0)
 {
-    ASSERT(pTexture && pTexture->dx.gpuDescriptors >= 0 && pTexture->uav && mip < pTexture->mipLevels);
+    ASSERT(pTexture && pTexture->dx.gpuDescriptors >= 0 && pTexture->uav && mip < pTexture->MipLevels);
     return (uint32_t)pTexture->dx.gpuDescriptors + pTexture->dx.uavStartIndex + mip;
 }
 
@@ -1070,8 +1070,8 @@ inline uint32_t getSamplerIndex(const Sampler* pSampler)
 /// Data structure holding the layout for a descriptor
 struct alignas(16) DescriptorInfo
 {
-    const char* pName;
-    uint32_t    type;
+    const char* Name;
+    uint32_t    Type;
     uint32_t    Size;
     uint32_t    handleIndex;
 };
@@ -1088,16 +1088,16 @@ struct RootSignatureDesc
 {
     Shader**           ppShaders;
     uint32_t           shaderCount;
-    RootSignatureFlags flags;
+    RootSignatureFlags Flags;
 };
 
 struct alignas(64) RootSignature
 {
-    /// Number of descriptors declared in the root signature layout
+    /// Number of Descriptors declared in the root signature layout
     uint32_t            descriptorCount;
     /// Graphics or Compute
     PipelineType        pipelineType;
-    /// Array of all descriptors declared in the root signature layout
+    /// Array of all Descriptors declared in the root signature layout
     DescriptorInfo*     pDescriptors;
     /// Translates hash of descriptor name to descriptor index in pDescriptors array
     DescriptorIndexMap* pDescriptorNameToIndexMap;
@@ -1126,7 +1126,7 @@ struct CmdDesc
     CmdPool* pPool;
     bool     secondary;
 #ifdef ENABLE_GRAPHICS_DEBUG
-    const char* pName;
+    const char* Name;
 #endif // ENABLE_GRAPHICS_DEBUG
 };
 
@@ -1143,7 +1143,7 @@ struct MarkerDesc
     Buffer*     pBuffer;
     uint32_t    offset;
     uint32_t    value;
-    MarkerFlags flags;
+    MarkerFlags Flags;
 };
 
 #if !defined(PROSPERO)
@@ -1174,7 +1174,7 @@ struct alignas(64) Cmd
 
         // Command buffer state
         const RootSignature* pBoundRootSignature;
-        uint32_t             type : 3;
+        uint32_t             Type : 3;
         CmdPool*             pCmdPool;
     } dx;
     Renderer* pRenderer;
@@ -1214,10 +1214,10 @@ struct Semaphore
 
 struct QueueDesc
 {
-    QueueType     type;
+    QueueType     Type;
     QueueFlag     flag;
     QueuePriority priority;
-    const char*   pName;
+    const char*   Name;
 };
 
 struct Queue
@@ -1231,7 +1231,7 @@ struct Queue
         Renderer* pRenderer;
 #endif
     } dx;
-    uint32_t type : 3;
+    uint32_t Type : 3;
 };
 
 struct ShaderConstant
@@ -1243,7 +1243,7 @@ struct ShaderConstant
 
 struct BinaryShaderStageDesc
 {
-    const char* pName;
+    const char* Name;
     /// Byte code array
     void*       pByteCode;
     uint32_t    byteCodeSize;
@@ -1270,7 +1270,7 @@ struct BinaryShaderDesc
 
 struct ShaderSrcStageDesc
 {
-    const char* pName;
+    const char* Name;
     /// Byte code array
     void*       pByteCode;
     uint32_t    byteCodeSize;
@@ -1382,7 +1382,7 @@ struct VertexAttrib
     ShaderSemantic semantic;
     uint32_t       semanticNameLength;
     char           semanticName[MAX_SEMANTIC_NAME_LENGTH];
-    hz::Format     format;
+    hz::Format     Format;
     uint32_t       binding;
     uint32_t       location;
     uint32_t       offset;
@@ -1410,8 +1410,8 @@ struct GraphicsPipelineDesc
     StoreActionType* pColorResolveActions;
 #endif
     uint32_t          renderTargetCount;
-    SampleCount       sampleCount;
-    uint32_t          sampleQuality;
+    SampleCount       SampleCount;
+    uint32_t          SampleQuality;
     hz::Format        depthStencilFormat;
     PrimitiveTopology primitiveTopo;
     bool              supportIndirectCommandBuffer;
@@ -1434,8 +1434,8 @@ struct PipelineDesc
     };
     PipelineCache* pCache;
     void*          pPipelineExtensions;
-    const char*    pName;
-    PipelineType   type;
+    const char*    Name;
+    PipelineType   Type;
     uint32_t       extensionCount;
 };
 
@@ -1445,7 +1445,7 @@ struct alignas(64) Pipeline
     {
         ID3D12PipelineState*   pPipelineState;
         const RootSignature*   pRootSignature;
-        PipelineType           type;
+        PipelineType           Type;
         D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
     } dx;
 };
@@ -1465,7 +1465,7 @@ struct PipelineCacheDesc
     void*              Data;
     /// Initial pipeline cache Size
     size_t             Size;
-    PipelineCacheFlags flags;
+    PipelineCacheFlags Flags;
 };
 
 struct PipelineCache
@@ -1517,15 +1517,15 @@ struct SwapChainDesc
     /// Number of backbuffers in this swapchain
     uint32_t               imageCount;
     /// Width of the swapchain
-    uint32_t               width;
+    uint32_t               Width;
     /// Height of the swapchain
-    uint32_t               height;
-    /// Color format of the swapchain
+    uint32_t               Height;
+    /// Color Format of the swapchain
     hz::Format             colorFormat;
     /// Clear value
     ClearValue             colorClearValue;
-    /// Swapchain creation flags
-    SwapChainCreationFlags flags;
+    /// Swapchain creation Flags
+    SwapChainCreationFlags Flags;
     /// Set whether swap chain will be presented using vsync
     bool                   enableVsync;
     /// We can toggle to using FLIP model if app desires.
@@ -1547,12 +1547,12 @@ struct SwapChain
         IDXGISwapChain3* pSwapChain;
         /// Sync interval to specify how interval for vsync
         uint32_t         syncInterval : 3;
-        uint32_t         flags : 10;
+        uint32_t         Flags : 10;
     } dx;
     uint32_t       imageCount : 8;
     uint32_t       enableVsync : 1;
     ColorSpace     colorSpace : 4;
-    hz::Format     format : 8;
+    hz::Format     Format : 8;
     HDRDisplayInfo hdrDisplayInfo;
     HDRMetadata    hdrMetadata;
 };
@@ -1748,7 +1748,7 @@ struct alignas(64) Renderer
 #endif
     struct RendererContext* pContext;
     const struct GpuInfo*   pGpu;
-    const char*             pName;
+    const char*             Name;
     RendererApi             rendererApi;
     uint32_t                shaderTarget : 4;
     uint32_t                ownsContext : 1;
@@ -1832,7 +1832,7 @@ struct DirectStorageQueueDesc
     DirectStorageSourceType sourceType;
     uint16_t                Capacity;
     DirectStoragePriority   priority;
-    const char*             pName;
+    const char*             Name;
 };
 
 struct DirectStorageBufferRequest
@@ -1847,7 +1847,7 @@ struct DirectStorageBufferRequest
     uint32_t                       uncompressedSize;
     uint64_t                       cancellationTag;
     DirectStorageCompressionFormat compressionFormat;
-    const char*                    pName;
+    const char*                    Name;
 };
 
 struct DirectStorageTextureRequest
@@ -1861,25 +1861,25 @@ struct DirectStorageTextureRequest
     uint32_t                       x;
     uint32_t                       y;
     uint32_t                       z;
-    uint32_t                       width;
-    uint32_t                       height;
-    uint32_t                       depth;
+    uint32_t                       Width;
+    uint32_t                       Height;
+    uint32_t                       Depth;
     uint32_t                       uncompressedSize;
     uint64_t                       cancellationTag;
     DirectStorageCompressionFormat compressionFormat;
-    const char*                    pName;
+    const char*                    Name;
 };
 
 // Indirect command structure define
 struct IndirectArgument
 {
-    IndirectArgumentType type;
+    IndirectArgumentType Type;
     uint32_t             offset;
 };
 
 struct IndirectArgumentDescriptor
 {
-    IndirectArgumentType type;
+    IndirectArgumentType Type;
     uint32_t             index;
     uint32_t             byteSize;
     uint32_t             rootConstantDestOffsetIn32BitValues;
@@ -1929,7 +1929,7 @@ struct BindRenderTargetDesc
     RenderTarget*   pRenderTarget;
     LoadActionType  loadAction;
     StoreActionType storeAction;
-    ClearValue      clearValue;
+    ClearValue      ClearValue;
     LoadActionType  loadActionStencil;
     StoreActionType storeActionStencil;
     uint32_t        arraySlice;
@@ -1946,7 +1946,7 @@ struct BindDepthTargetDesc
     LoadActionType  loadActionStencil;
     StoreActionType storeAction;
     StoreActionType storeActionStencil;
-    ClearValue      clearValue;
+    ClearValue      ClearValue;
     uint32_t        arraySlice;
     uint32_t        mipSlice : 10;
     uint32_t        overrideClearValue : 1;
@@ -1963,7 +1963,7 @@ struct BindRenderTargetsDesc
     uint32_t             extent[2];
 };
 
-// clang-format off
+// clang-Format off
 // Utilities functions
 FORGE_RENDERER_API void setRendererInitializationError(const char* reason);
 FORGE_RENDERER_API bool hasRendererInitializationError(const char** outReason);
@@ -2020,7 +2020,7 @@ FORGE_RENDERER_API void FORGE_CALLCONV removeShader(Renderer* pRenderer, Shader*
 
 FORGE_RENDERER_API void FORGE_CALLCONV addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pDesc, RootSignature** ppRootSignature);
 FORGE_RENDERER_API void FORGE_CALLCONV removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature);
-FORGE_RENDERER_API uint32_t FORGE_CALLCONV getDescriptorIndexFromName(const RootSignature* pRootSignature, const char* pName);
+FORGE_RENDERER_API uint32_t FORGE_CALLCONV getDescriptorIndexFromName(const RootSignature* pRootSignature, const char* Name);
 
 // pipeline functions
 FORGE_RENDERER_API void FORGE_CALLCONV addPipeline(Renderer* pRenderer, const PipelineDesc* pPipelineSettings, Pipeline** ppPipeline);
@@ -2039,8 +2039,8 @@ FORGE_RENDERER_API void FORGE_CALLCONV beginCmd(Cmd* pCmd);
 FORGE_RENDERER_API void FORGE_CALLCONV endCmd(Cmd* pCmd);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdSetSampleLocations(Cmd* pCmd, SampleCount samplesCount, uint32_t gridSizeX, uint32_t gridSizeY, SampleLocations* plocations);
-FORGE_RENDERER_API void FORGE_CALLCONV cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth);
-FORGE_RENDERER_API void FORGE_CALLCONV cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+FORGE_RENDERER_API void FORGE_CALLCONV cmdSetViewport(Cmd* pCmd, float x, float y, float Width, float Height, float minDepth, float maxDepth);
+FORGE_RENDERER_API void FORGE_CALLCONV cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t Width, uint32_t Height);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex,
@@ -2079,7 +2079,7 @@ FORGE_RENDERER_API void FORGE_CALLCONV removeDirectStorageQueue(DirectStorageQue
 FORGE_RENDERER_API HRESULT FORGE_CALLCONV openDirectStorageFile(DirectStorage* pDirectStorage, const wchar_t* pPath,
                                                                DirectStorageFile** ppFile);
 FORGE_RENDERER_API void FORGE_CALLCONV closeDirectStorageFile(DirectStorageFile* pFile);
-FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t Capacity, const char* pName,
+FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t Capacity, const char* Name,
                                                                      DirectStorageStatusArray** ppStatusArray);
 FORGE_RENDERER_API void FORGE_CALLCONV removeDirectStorageStatusArray(DirectStorageStatusArray* pStatusArray);
 FORGE_RENDERER_API bool FORGE_CALLCONV isDirectStorageStatusComplete(DirectStorageStatusArray* pStatusArray, uint32_t index);
@@ -2093,10 +2093,10 @@ FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueStatus(DirectStorageQ
 FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueSignal(DirectStorageQueue* pQueue, Fence* pFence, uint64_t value);
 FORGE_RENDERER_API void FORGE_CALLCONV directStorageSubmit(DirectStorageQueue* pQueue);
 
-//Returns the recommended format for the swapchain.
-//If true is passed for the hintHDR parameter, it will return an HDR format IF the platform supports it
-//If false is passed or the platform does not support HDR a non HDR format is returned.
-//If true is passed for the hintSrgb parameter, it will return format that is will do gamma correction automatically
+//Returns the recommended Format for the swapchain.
+//If true is passed for the hintHDR parameter, it will return an HDR Format IF the platform supports it
+//If false is passed or the platform does not support HDR a non HDR Format is returned.
+//If true is passed for the hintSrgb parameter, it will return Format that is will do gamma correction automatically
 //If false is passed for the hintSrgb parameter the gamma correction should be done as a postprocess step before submitting image to swapchain
 FORGE_RENDERER_API hz::Format FORGE_CALLCONV getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace);
 FORGE_RENDERER_API uint32_t FORGE_CALLCONV getRecommendedSwapchainImageCount(Renderer* pRenderer, const WindowHandle* hwnd);
@@ -2104,7 +2104,7 @@ FORGE_RENDERER_API uint32_t FORGE_CALLCONV getRecommendedSwapchainImageCount(Ren
 //indirect Draw functions
 FORGE_RENDERER_API void FORGE_CALLCONV addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature);
 FORGE_RENDERER_API void FORGE_CALLCONV removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature);
-FORGE_RENDERER_API void FORGE_CALLCONV cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, unsigned int maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* pCounterBuffer, uint64_t counterBufferOffset);
+FORGE_RENDERER_API void FORGE_CALLCONV cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, unsigned int maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* CounterBuffer, uint64_t counterBufferOffset);
 
 /************************************************************************/
 // GPU Query Interface
@@ -2126,17 +2126,17 @@ FORGE_RENDERER_API void FORGE_CALLCONV freeMemoryStats(Renderer* pRenderer, char
 /************************************************************************/
 // Debug Marker Interface
 /************************************************************************/
-FORGE_RENDERER_API void FORGE_CALLCONV cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName);
+FORGE_RENDERER_API void FORGE_CALLCONV cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* Name);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdEndDebugMarker(Cmd* pCmd);
-FORGE_RENDERER_API void FORGE_CALLCONV cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName);
+FORGE_RENDERER_API void FORGE_CALLCONV cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* Name);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc);
 /************************************************************************/
 // Resource Debug Naming Interface
 /************************************************************************/
-FORGE_RENDERER_API void FORGE_CALLCONV setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName);
-FORGE_RENDERER_API void FORGE_CALLCONV setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName);
-FORGE_RENDERER_API void FORGE_CALLCONV setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* pName);
-FORGE_RENDERER_API void FORGE_CALLCONV setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* pName);
+FORGE_RENDERER_API void FORGE_CALLCONV setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* Name);
+FORGE_RENDERER_API void FORGE_CALLCONV setTextureName(Renderer* pRenderer, Texture* pTexture, const char* Name);
+FORGE_RENDERER_API void FORGE_CALLCONV setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* Name);
+FORGE_RENDERER_API void FORGE_CALLCONV setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* Name);
 /************************************************************************/
 /************************************************************************/
-// clang-format on
+// clang-Format on

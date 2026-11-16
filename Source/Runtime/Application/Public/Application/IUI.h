@@ -99,7 +99,7 @@ enum WidgetType
 
 typedef struct UIWidget
 {
-    WidgetType type = {};      // Type of the underlying widget
+    WidgetType Type = {};      // Type of the underlying widget
     void*      pWidget = NULL; // Underlying widget
 
     void*          pOnHoverUserData = NULL;
@@ -190,7 +190,7 @@ typedef struct ButtonWidget
 
 typedef struct SliderFloatWidget
 {
-    char   format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
+    char   Format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
     float* Data = NULL;
     float  min = 0.f;
     float  max = 0.f;
@@ -199,7 +199,7 @@ typedef struct SliderFloatWidget
 
 typedef struct SliderFloat2Widget
 {
-    char    format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
+    char    Format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
     float2* Data = NULL;
     float2  min = float2(0.f, 0.f);
     float2  max = float2(0.f, 0.f);
@@ -208,7 +208,7 @@ typedef struct SliderFloat2Widget
 
 typedef struct SliderFloat3Widget
 {
-    char    format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
+    char    Format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
     float3* Data = NULL;
     float3  min = float3(0.f, 0.f, 0.f);
     float3  max = float3(0.f, 0.f, 0.f);
@@ -217,7 +217,7 @@ typedef struct SliderFloat3Widget
 
 typedef struct SliderFloat4Widget
 {
-    char    format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
+    char    Format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
     float4* Data = NULL;
     float4  min = float4(0.f, 0.f, 0.f, 0.f);
     float4  max = float4(0.f, 0.f, 0.f, 0.f);
@@ -226,7 +226,7 @@ typedef struct SliderFloat4Widget
 
 typedef struct SliderIntWidget
 {
-    char     format[MAX_FORMAT_STR_LENGTH] = { "%d" };
+    char     Format[MAX_FORMAT_STR_LENGTH] = { "%d" };
     int32_t* Data = NULL;
     int32_t  min = 0;
     int32_t  max = 0;
@@ -235,7 +235,7 @@ typedef struct SliderIntWidget
 
 typedef struct SliderUintWidget
 {
-    char      format[MAX_FORMAT_STR_LENGTH] = { "%u" };
+    char      Format[MAX_FORMAT_STR_LENGTH] = { "%u" };
     uint32_t* Data = NULL;
     uint32_t  min = 0;
     uint32_t  max = 0;
@@ -324,7 +324,7 @@ typedef void (*TextboxCallback)(bool* keysDown);
 typedef struct TextboxWidget
 {
     bstring*        pText = NULL;
-    unsigned char   flags = UI_TEXT_AUTOSELECT_ALL;
+    unsigned char   Flags = UI_TEXT_AUTOSELECT_ALL;
     TextboxCallback pCallback = NULL;
 } TextboxWidget;
 
@@ -332,7 +332,7 @@ typedef struct DynamicTextWidget
 {
     bstring*      pText = NULL;
     float4*       pColor = NULL;
-    unsigned char flags = 0;
+    unsigned char Flags = 0;
 } DynamicTextWidget;
 
 typedef struct FilledRectWidget
@@ -437,7 +437,7 @@ typedef struct UIComponent
 
     // defaults to GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE
     // on mobile, GUI_COMPONENT_FLAGS_START_COLLAPSED is also set
-    int32_t flags = 0;
+    int32_t Flags = 0;
 
     bool active = false;
 
@@ -482,8 +482,8 @@ typedef struct UserInterfaceLoadDesc
     PipelineCache* pCache;
     uint32_t       loadType; // enum ReloadType
     hz::Format     colorFormat;
-    uint32_t       width;
-    uint32_t       height;
+    uint32_t       Width;
+    uint32_t       Height;
     uint32_t       displayWidth;
     uint32_t       displayHeight;
 } UserInterfaceLoadDesc;
@@ -558,7 +558,7 @@ inline void uiSetCollapsingHeaderWidgetCollapsed(CollapsingHeaderWidget* pWidget
 /****************************************************************************/
 
 /// Create an independent set of widgets which can be dynamically added to a UI Component
-FORGE_API UIWidget* uiCreateDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, const void* pWidget, WidgetType type);
+FORGE_API UIWidget* uiCreateDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, const void* pWidget, WidgetType Type);
 
 /// Free memory associated with a set of dynamic UI widgets
 FORGE_API void uiDestroyDynamicWidgets(DynamicUIWidgets* pDynamicUI);
@@ -586,7 +586,7 @@ FORGE_API void uiSetComponentActive(UIComponent* pGuiComponent, bool active);
 
 /// Create a Widget to be assigned to a given UI Component
 /// User is NOT responsible for freeing this memory at application exit
-FORGE_API UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType type, //-V1071
+FORGE_API UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType Type, //-V1071
                                             bool clone = true);
 
 /// Destroy and free memory associated with a Widget
@@ -606,7 +606,7 @@ FORGE_API void uiDestroyAllComponentWidgets(UIComponent* pGui);
 // app code while the UI Master Switch is disabled.
 
 /// Assign "GuiComponentFlags" enum values to a given UI Component
-FORGE_API void uiSetComponentFlags(UIComponent* pGui, int32_t flags);
+FORGE_API void uiSetComponentFlags(UIComponent* pGui, int32_t Flags);
 
 /// Set whether or not a given Widget is intended to be "deferrred"
 FORGE_API void uiSetWidgetDeferred(UIWidget* pWidget, bool deferred);
@@ -645,7 +645,7 @@ FORGE_API void uiSetSameLine(UIWidget* pGuiComponent, bool sameLine);
 /// Returns whether or not the UI is currently "focused" by the cursor
 FORGE_API bool uiIsFocused();
 
-/// Callback function to share any type of input data w/ ImGUI.
+/// Callback function to share any Type of input data w/ ImGUI.
 FORGE_API void uiOnInput(uint32_t actionId, bool buttonPress, const float2* pMousePos, const float2* pStick);
 
 /// Callback function to share text entry data w/ ImGUI

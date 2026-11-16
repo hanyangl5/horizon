@@ -16,8 +16,8 @@ class AccelerationStructureData
 public:
     RenderContext*                       pContext = nullptr;
     AccelerationStructure*               pStructure = nullptr;
-    AccelerationStructureType            type = ACCELERATION_STRUCTURE_TYPE_BOTTOM;
-    AccelerationStructureBuildFlags      flags = ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
+    AccelerationStructureType            Type = ACCELERATION_STRUCTURE_TYPE_BOTTOM;
+    AccelerationStructureBuildFlags      Flags = ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
     Array<const GPUBuffer*>              inputs;
     Array<RaytracingInstanceData>        instances;
     Array<AccelerationStructureData*>    bottoms;
@@ -27,9 +27,9 @@ public:
         ASSERT(index < instances.Size() && instance.pBottom && instance.pBottom->isValid());
         ASSERT(instance.instanceId < (1u << 24) && instance.mask < (1u << 8) && instance.hitGroupOffset < (1u << 24));
         AccelerationStructureData* bottom = instance.pBottom->Data;
-        ASSERT(bottom->pContext == pContext && bottom->type == ACCELERATION_STRUCTURE_TYPE_BOTTOM);
+        ASSERT(bottom->pContext == pContext && bottom->Type == ACCELERATION_STRUCTURE_TYPE_BOTTOM);
         RaytracingInstanceData next = { .instanceIdAndMask = instance.instanceId | (instance.mask << 24),
-                                        .hitGroupAndFlags = instance.hitGroupOffset | ((uint32_t)instance.flags << 24),
+                                        .hitGroupAndFlags = instance.hitGroupOffset | ((uint32_t)instance.Flags << 24),
                                         .address = getAccelerationStructureGpuAddress(bottom->pStructure) };
         memcpy(next.transform, instance.transform, sizeof(next.transform));
         dirty |= memcmp(&instances[index], &next, sizeof(next)) != 0;
@@ -95,7 +95,7 @@ uint32_t GPUAccelerationStructure::getInstanceCount() const { return Data ? Data
 
 void GPUAccelerationStructure::setInstance(uint32_t index, const AccelerationStructureInstance& instance)
 {
-    ASSERT(Data && Data->type == ACCELERATION_STRUCTURE_TYPE_TOP);
+    ASSERT(Data && Data->Type == ACCELERATION_STRUCTURE_TYPE_TOP);
     Data->setInstance(index, instance);
 }
 
@@ -133,15 +133,15 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
         LOGF(Error, "Ray tracing is not supported by the selected device");
         return {};
     }
-    ASSERT(!(input.flags & ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE));
+    ASSERT(!(input.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE));
     AccelerationStructureData* data = MemNew(AccelerationStructureData);
     data->pContext = this;
-    data->type = input.type;
-    data->flags = input.flags;
-    ::AccelerationStructureDesc                desc = { .type = input.type, .flags = input.flags };
+    data->Type = input.Type;
+    data->Flags = input.Flags;
+    ::AccelerationStructureDesc                desc = { .Type = input.Type, .Flags = input.Flags };
     Array<::AccelerationStructureGeometryDesc> geometries;
     Array<::AccelerationStructureInstanceDesc> instances;
-    if (input.type == ACCELERATION_STRUCTURE_TYPE_BOTTOM)
+    if (input.Type == ACCELERATION_STRUCTURE_TYPE_BOTTOM)
     {
         ASSERT(input.geometries.Count);
         for (const AccelerationStructureGeometry& geometry : input.geometries)
@@ -156,7 +156,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
                                   .indexOffset = geometry.indexOffset,
                                   .indexCount = geometry.indexCount,
                                   .indexType = geometry.indexType,
-                                  .flags = geometry.opaque ? ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE
+                                  .Flags = geometry.opaque ? ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE
                                                            : ACCELERATION_STRUCTURE_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION });
             data->inputs.PushBack(geometry.pVertexBuffer);
             if (geometry.pIndexBuffer)
@@ -183,7 +183,7 @@ GPUAccelerationStructure RenderContext::createAccelerationStructure(const Accele
                                                            .instanceID = instance.instanceId,
                                                            .instanceMask = instance.mask,
                                                            .instanceContributionToHitGroupIndex = instance.hitGroupOffset,
-                                                           .flags = instance.flags };
+                                                           .Flags = instance.Flags };
             memcpy(native.transform, instance.transform, sizeof(native.transform));
             instances.PushBack(native);
         }
@@ -213,9 +213,9 @@ void CommandList::buildAccelerationStructure(GPUAccelerationStructure& structure
     ASSERT(structure.isValid());
     AccelerationStructureData& data = *structure.Data;
     ASSERT(data.pContext == pContext);
-    ASSERT(!update || (data.built && (data.flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE)));
+    ASSERT(!update || (data.built && (data.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE)));
     RaytracingBuildASDesc desc = { .pAccelerationStructure = data.pStructure, .issueRWBarrier = true, .update = update };
-    if (data.type == ACCELERATION_STRUCTURE_TYPE_BOTTOM)
+    if (data.Type == ACCELERATION_STRUCTURE_TYPE_BOTTOM)
     {
         arrsetlen(bufferBarriers, 0);
         addBufferBarriers({ data.inputs.GetData(), data.inputs.Size() }, false);
@@ -247,11 +247,11 @@ void CommandList::updateAccelerationStructure(GPUAccelerationStructure& structur
 {
     ASSERT(structure.isValid() && structure.Data->pContext == pContext);
     AccelerationStructureData& data = *structure.Data;
-    ASSERT(data.type == ACCELERATION_STRUCTURE_TYPE_TOP);
+    ASSERT(data.Type == ACCELERATION_STRUCTURE_TYPE_TOP);
     if (data.dirty)
     {
         const bool update =
-            data.built && (data.flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE) && data.instances.Size() == data.builtCount;
+            data.built && (data.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE) && data.instances.Size() == data.builtCount;
         buildAccelerationStructure(structure, {}, update);
     }
 }
@@ -385,7 +385,7 @@ GPURayTracingPipeline RenderContext::createRayTracingPipeline(const RayTracingPi
         addRayEntry(entries, group.pAnyHit, SLANG_STAGE_ANY_HIT);
         addRayEntry(entries, group.pIntersection, SLANG_STAGE_INTERSECTION);
         groups.PushBack(
-            { .pName = group.pName, .pClosestHit = group.pClosestHit, .pAnyHit = group.pAnyHit, .pIntersection = group.pIntersection });
+            { .Name = group.Name, .pClosestHit = group.pClosestHit, .pAnyHit = group.pAnyHit, .pIntersection = group.pIntersection });
     }
     Array<Slang::ComPtr<slang::IEntryPoint>> entryPoints(entries.Size());
     Array<slang::IComponentType*>            components;
@@ -438,11 +438,11 @@ void CommandList::setPipeline(const GPURayTracingPipeline& pipeline)
     pCurrentDrawIndirectSignature = nullptr;
     cmdBindRaytracingPipeline(pCmd, pipeline.pPipeline);
 }
-void CommandList::traceRays(const GPURayTracingPipeline& pipeline, uint32_t width, uint32_t height, uint32_t depth,
+void CommandList::traceRays(const GPURayTracingPipeline& pipeline, uint32_t Width, uint32_t Height, uint32_t Depth,
                             const Dependencies& dependencies)
 {
-    ASSERT(pipeline.isValid() && width && height && depth);
+    ASSERT(pipeline.isValid() && Width && Height && Depth);
     barrier(dependencies, nullptr);
-    cmdTraceRays(pCmd, pipeline.pPipeline, width, height, depth);
+    cmdTraceRays(pCmd, pipeline.pPipeline, Width, Height, Depth);
 }
 } // namespace hz

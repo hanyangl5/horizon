@@ -31,7 +31,7 @@
 typedef struct BufferAllocatorPlotWidget
 {
     float2      Size = float2(0.f, 0.f);
-    const char* pName = NULL;
+    const char* Name = NULL;
     int64_t*    pValues = NULL;
 } BufferAllocatorPlotWidget;
 
@@ -100,7 +100,7 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
                     rb = -rb;
 
                 long long Size = rb - lb;
-                SetTooltip("[%lli;%lli) %lli; [%s;%s) %s; free chunk Count: %lli", lb, rb, Size, HumanReadableSize(lb).str,
+                SetTooltip("[%lli;%lli) %lli; [%s;%s) %s; free chunk count: %lli", lb, rb, Size, HumanReadableSize(lb).str,
                            HumanReadableSize(rb).str, HumanReadableSize(Size).str, intensity);
             }
             idx_hovered = v_idx;
@@ -193,16 +193,16 @@ static void internalProcessBufferAllocatorPlotWidget(void* UserData)
 
     unsigned char labelBuf[MAX_LABEL_STR_LENGTH];
     bstring       label = bemptyfromarr(labelBuf);
-    bformat(&label, "%s##%p", pPlotWidget->pName, values);
+    bformat(&label, "%s##%p", pPlotWidget->Name, values);
     ASSERT(!bownsdata(&label));
 
     char title[1024];
 
-    size_t tlen = strlen(pPlotWidget->pName);
+    size_t tlen = strlen(pPlotWidget->Name);
 
     if (tlen > 1023)
         tlen = 1023;
-    memcpy(title, pPlotWidget->pName, tlen);
+    memcpy(title, pPlotWidget->Name, tlen);
     title[tlen] = 0;
 
     if (tlen < 900)
@@ -238,13 +238,13 @@ static inline uint64_t histogramPointOffsetAproximation(uint32_t point, uint32_t
 
 /// Update data from BufferChunkAllocator once
 /// Caller takes care of race conditions
-/// Widget must be of type CustomWidget and UserData needs to point to BufferAllocatorPlotWidget. If you created the widget using
+/// Widget must be of Type CustomWidget and UserData needs to point to BufferAllocatorPlotWidget. If you created the widget using
 /// uiCreateBufferChunkAllocatorPlotWidget it's okay
 static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, float2 Size, struct BufferChunkAllocator* data)
 {
     ASSERT(pWidget);
-    ASSERT(pWidget->type == WIDGET_TYPE_CUSTOM);
-    if (pWidget->type != WIDGET_TYPE_CUSTOM) //-V547
+    ASSERT(pWidget->Type == WIDGET_TYPE_CUSTOM);
+    if (pWidget->Type != WIDGET_TYPE_CUSTOM) //-V547
         return;
 
     CustomWidget*              pCustomWidget = (CustomWidget*)pWidget->pWidget;

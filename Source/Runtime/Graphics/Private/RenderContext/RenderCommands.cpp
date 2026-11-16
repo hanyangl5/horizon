@@ -52,11 +52,11 @@ void hz::CommandList::addBufferBarriers(hz::Span<const hz::GPUBuffer*> buffers, 
         if (!storage)
         {
             state = ResourceStateShaderResource;
-            if (buffer->descriptors & (DescriptorTypeVertexBuffer | DescriptorTypeUniformBuffer))
+            if (buffer->Descriptors & (DescriptorTypeVertexBuffer | DescriptorTypeUniformBuffer))
                 state |= ResourceStateVertexAndConstantBuffer;
-            if (buffer->descriptors & DescriptorTypeIndexBuffer)
+            if (buffer->Descriptors & DescriptorTypeIndexBuffer)
                 state |= ResourceStateIndexBuffer;
-            if (buffer->descriptors & DescriptorTypeIndirectBuffer)
+            if (buffer->Descriptors & DescriptorTypeIndirectBuffer)
                 state |= ResourceStateIndirectArgument;
         }
         if (buffer->state != state || storage)
@@ -216,7 +216,7 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
             .pRenderTarget = input.pTexture->pRenderTarget,
             .loadAction = input.loadAction,
             .storeAction = input.storeAction,
-            .clearValue = input.clearValue,
+            .ClearValue = input.ClearValue,
             .overrideClearValue = input.loadAction == LoadActionClear,
         };
     }
@@ -228,10 +228,10 @@ void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::D
         bind.depthStencil = {
             .pDepthStencil = input.pTexture->pRenderTarget,
             .loadAction = input.loadAction,
-            .loadActionStencil = TinyImageFormat_HasStencil((TinyImageFormat)input.pTexture->pRenderTarget->format) ? input.loadAction
+            .loadActionStencil = TinyImageFormat_HasStencil((TinyImageFormat)input.pTexture->pRenderTarget->Format) ? input.loadAction
                                                                                                                     : LoadActionDontCare,
             .storeAction = input.storeAction,
-            .clearValue = input.clearValue,
+            .ClearValue = input.ClearValue,
             .overrideClearValue = input.loadAction == LoadActionClear,
         };
     }
@@ -261,9 +261,9 @@ void hz::CommandList::setVertexBuffer(uint32_t bindingIndex, const hz::GPUBuffer
     cmdBindVertexBuffer(pCmd, vertexBufferCount, pVertexBuffers, vertexStrides, vertexOffsets);
 }
 
-void hz::CommandList::setIndexBuffer(const hz::GPUBuffer& buffer, uint64_t offset, IndexType type)
+void hz::CommandList::setIndexBuffer(const hz::GPUBuffer& buffer, uint64_t offset, IndexType Type)
 {
-    cmdBindIndexBuffer(pCmd, buffer.pBuffer, type, offset);
+    cmdBindIndexBuffer(pCmd, buffer.pBuffer, Type, offset);
 }
 
 void hz::CommandList::setViewport(float x, float y, float w, float h, float minD, float maxD)
@@ -329,11 +329,11 @@ Buffer* hz::CommandList::createUploadBuffer(uint64_t Size)
 {
     const ::BufferDesc desc = {
         .Size = Size,
-        .pName = "CommandList upload buffer",
-        .memoryUsage = MemoryUsageCpuToGpu,
-        .flags = BufferCreationFlagPersistentMapBit,
-        .queueType = QueueTypeGraphics,
-        .startState = ResourceStateGenericRead,
+        .Name = "CommandList upload buffer",
+        .MemoryUsage = MemoryUsageCpuToGpu,
+        .Flags = BufferCreationFlagPersistentMapBit,
+        .QueueType = QueueTypeGraphics,
+        .StartState = ResourceStateGenericRead,
     };
     Buffer* buffer = nullptr;
     addBuffer(pContext->pRenderer, &desc, &buffer);

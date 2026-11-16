@@ -43,7 +43,7 @@ public:
 
     static void* begin(const AssetCatalogEntry& entry, AssetHandle, void*)
     {
-        if (entry.type != AssetType::Texture || entry.location.elementIndex != UINT32_MAX)
+        if (entry.Type != AssetType::Texture || entry.location.elementIndex != UINT32_MAX)
         {
             LOGF(Error, "Invalid TextureAsset location '%s'", entry.location.pPath);
             return nullptr;

@@ -84,7 +84,7 @@ void initScreenshotInterface(Renderer* pRenderer, Queue* pGraphicsQueue)
     CmdDesc cmdDesc = {};
     cmdDesc.pPool = pCmdPool;
 #ifdef ENABLE_GRAPHICS_DEBUG
-    cmdDesc.pName = "Screenshot Cmd";
+    cmdDesc.Name = "Screenshot Cmd";
 #endif // ENABLE_GRAPHICS_DEBUG
     addCmd(pRenderer, &cmdDesc, &gCmd);
 
@@ -110,12 +110,12 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
     // Add a staging buffer.
     Buffer*    buffer = 0;
     BufferDesc bufferDesc = {};
-    bufferDesc.descriptors = DescriptorTypeBuffer;
-    bufferDesc.memoryUsage = MemoryUsageGpuToCpu;
+    bufferDesc.Descriptors = DescriptorTypeBuffer;
+    bufferDesc.MemoryUsage = MemoryUsageGpuToCpu;
     bufferDesc.Size = padded_size;
-    bufferDesc.flags = BufferCreationFlagNoDescriptorViewCreation | BufferCreationFlagPersistentMapBit;
-    bufferDesc.startState = ResourceStateCopyDest;
-    bufferDesc.format = pRenderTarget->format;
+    bufferDesc.Flags = BufferCreationFlagNoDescriptorViewCreation | BufferCreationFlagPersistentMapBit;
+    bufferDesc.StartState = ResourceStateCopyDest;
+    bufferDesc.Format = pRenderTarget->Format;
     addBuffer(pRenderer, &bufferDesc, &buffer);
 
     beginCmd(pCmd);
@@ -209,9 +209,9 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     waitQueueIdle(pCmdPool->pQueue);
 
     // Allocate temp space
-    uint16_t byteSize = (uint16_t)TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pRenderTarget->format) / 8;
-    uint8_t  channelCount = (uint8_t)TinyImageFormat_ChannelCount((TinyImageFormat)pRenderTarget->format);
-    uint32_t Size = pRenderTarget->width * pRenderTarget->height * max((uint16_t)4U, byteSize);
+    uint16_t byteSize = (uint16_t)TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pRenderTarget->Format) / 8;
+    uint8_t  channelCount = (uint8_t)TinyImageFormat_ChannelCount((TinyImageFormat)pRenderTarget->Format);
+    uint32_t Size = pRenderTarget->Width * pRenderTarget->Height * max((uint16_t)4U, byteSize);
     uint8_t* alloc = (uint8_t*)MemAllocate(Size);
 
     resetCmdPool(pRendererRef, pCmdPool);
@@ -228,35 +228,35 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     if (ColorSpaceSdrSrgb < pSwapChain->colorSpace)
     {
         // decode pixels
-        ASSERT(TinyImageFormat_CanDecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->format));
+        ASSERT(TinyImageFormat_CanDecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->Format));
         TinyImageFormat_FetchInput fetchInput = { { (void*)alloc } };
-        uint32_t                   floatBufferSize = pRenderTarget->width * pRenderTarget->height * sizeof(float4);
+        uint32_t                   floatBufferSize = pRenderTarget->Width * pRenderTarget->Height * sizeof(float4);
         float*                     pDecoded = (float*)MemAllocate(floatBufferSize);
-        const bool                 result = TinyImageFormat_DecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->format, &fetchInput,
-                                                                 pRenderTarget->width * pRenderTarget->height, pDecoded);
+        const bool                 result = TinyImageFormat_DecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->Format, &fetchInput,
+                                                                 pRenderTarget->Width * pRenderTarget->Height, pDecoded);
         ASSERT(result);
 
         pEncoded = MemAllocate(floatBufferSize);
         stbiw_ctx ctx = { (uint8_t*)pEncoded };
-        stbi_write_hdr_to_func(stbiw_func, &ctx, pRenderTarget->width, pRenderTarget->height, 4, pDecoded);
+        stbi_write_hdr_to_func(stbiw_func, &ctx, pRenderTarget->Width, pRenderTarget->Height, 4, pDecoded);
         MemDeallocate(pDecoded);
         encodedSize = ctx.offset;
     }
     else
     {
         // Flip the BGRA to RGBA
-        const bool flipRedBlueChannel = forceFlipRedBlue || !(pRenderTarget->format == hz::Format::R8G8B8A8_UNORM ||
-                                                              pRenderTarget->format == hz::Format::R8G8B8A8_SRGB);
+        const bool flipRedBlueChannel = forceFlipRedBlue || !(pRenderTarget->Format == hz::Format::R8G8B8A8_UNORM ||
+                                                              pRenderTarget->Format == hz::Format::R8G8B8A8_SRGB);
 
         if (flipRedBlueChannel)
         {
             int8_t* imageData = ((int8_t*)alloc);
 
-            for (uint32_t h = 0; h < pRenderTarget->height; ++h)
+            for (uint32_t h = 0; h < pRenderTarget->Height; ++h)
             {
-                for (uint32_t w = 0; w < pRenderTarget->width; ++w)
+                for (uint32_t w = 0; w < pRenderTarget->Width; ++w)
                 {
-                    uint32_t pixelIndex = (h * pRenderTarget->width + w) * channelCount;
+                    uint32_t pixelIndex = (h * pRenderTarget->Width + w) * channelCount;
                     int8_t*  pixel = imageData + pixelIndex;
 
                     // Swap blue and red.
@@ -271,7 +271,7 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
         {
             uint8_t* imageData = ((uint8_t*)alloc);
 
-            for (uint32_t i = 0; i < pRenderTarget->width * pRenderTarget->height; i++)
+            for (uint32_t i = 0; i < pRenderTarget->Width * pRenderTarget->Height; i++)
             {
                 void* dst = &imageData[i * 3]; // RGB
                 void* src = &imageData[i * 4]; // RGBA
@@ -284,8 +284,8 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
 
         // Convert image data to png. Use global stbi_write_png_compression_level to configure compression level
         stbi_write_png_compression_level = 4; // Default is 8, which takes longer to process
-        pEncoded = stbi_write_png_to_mem((unsigned char*)alloc, pRenderTarget->width * byteSize, pRenderTarget->width,
-                                         pRenderTarget->height, channelCount, &encodedSize);
+        pEncoded = stbi_write_png_to_mem((unsigned char*)alloc, pRenderTarget->Width * byteSize, pRenderTarget->Width,
+                                         pRenderTarget->Height, channelCount, &encodedSize);
     }
 
     // Save screenshot to disk.

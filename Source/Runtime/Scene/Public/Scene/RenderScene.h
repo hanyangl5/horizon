@@ -80,7 +80,7 @@ struct RenderLight
     Guid              entityGuid;
     // Preserve scale/shear; emitting dimensions remain in local space.
     Matrix4           transform = Matrix4::identity();
-    LightType         type = LightType::Point;
+    LightType         Type = LightType::Point;
     float             color[3] = { 1, 1, 1 };
     float             intensity = 1;
     float             range = 0;
@@ -88,8 +88,8 @@ struct RenderLight
     float             outerConeAngle = 0.785398163f;
     float             exposure = 0;
     float             angularDiameter = 0;
-    float             width = 1;
-    float             height = 1;
+    float             Width = 1;
+    float             Height = 1;
     float             radius = 0.5f;
     float             length = 1;
     float             colorTemperature = 6500;

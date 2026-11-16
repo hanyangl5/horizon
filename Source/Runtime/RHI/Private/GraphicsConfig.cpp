@@ -1461,7 +1461,7 @@ bool parseConfigLine(const char* pLine, const char* pInVendorName, const char* p
     {
         LOGF(Warning,
              "GPU config requires VendorName, DeviceName and PresetLevel. "
-             "Following line has invalid format:\n'%s'",
+             "Following line has invalid Format:\n'%s'",
              pOrigLine);
         return false;
     }

@@ -9,33 +9,33 @@
 
 namespace hz
 {
-static bool validName(const char* pName) { return pName && *pName; }
+static bool validName(const char* Name) { return Name && *Name; }
 static bool validAlignment(uint32_t alignment) { return alignment && !(alignment & (alignment - 1)); }
 
-static bool validProperties(const TypeDesc& type, bool arrayElement)
+static bool validProperties(const TypeDesc& Type, bool arrayElement)
 {
-    if (!type.id || !validName(type.pName) || !type.version || !type.Size || !validAlignment(type.alignment) ||
-        type.Size % type.alignment || (type.properties.Count && !type.properties.Data))
+    if (!Type.id || !validName(Type.Name) || !Type.version || !Type.Size || !validAlignment(Type.alignment) ||
+        Type.Size % Type.alignment || (Type.properties.Count && !Type.properties.Data))
         return false;
-    const TypeLifecycle& ops = type.lifecycle;
-    if (!type.triviallyCopyable && (!ops.pConstruct || !ops.pDestroy || !ops.pCopyConstruct || !ops.pMoveConstruct))
+    const TypeLifecycle& ops = Type.lifecycle;
+    if (!Type.triviallyCopyable && (!ops.pConstruct || !ops.pDestroy || !ops.pCopyConstruct || !ops.pMoveConstruct))
         return false;
     if (ops.pDestroy && (!ops.pConstruct || !ops.pCopyConstruct || !ops.pMoveConstruct))
         return false;
-    if (arrayElement && (!type.triviallyCopyable || ops.pDestroy || !type.properties.Count))
+    if (arrayElement && (!Type.triviallyCopyable || ops.pDestroy || !Type.properties.Count))
         return false;
 
-    for (uint32_t i = 0; i < type.properties.Count; ++i)
+    for (uint32_t i = 0; i < Type.properties.Count; ++i)
     {
-        const PropertyDesc& property = type.properties.Data[i];
-        if (!property.id || !validName(property.pName) || !property.Size || property.offset > type.Size ||
-            property.Size > type.Size - property.offset ||
-            (property.flags & ~(PROPERTY_SERIALIZED | PROPERTY_TRANSIENT | PROPERTY_READ_ONLY | PROPERTY_EDITOR_ONLY)) ||
-            ((property.flags & PROPERTY_SERIALIZED) && (property.flags & PROPERTY_TRANSIENT)))
+        const PropertyDesc& property = Type.properties.Data[i];
+        if (!property.id || !validName(property.Name) || !property.Size || property.offset > Type.Size ||
+            property.Size > Type.Size - property.offset ||
+            (property.Flags & ~(PROPERTY_SERIALIZED | PROPERTY_TRANSIENT | PROPERTY_READ_ONLY | PROPERTY_EDITOR_ONLY)) ||
+            ((property.Flags & PROPERTY_SERIALIZED) && (property.Flags & PROPERTY_TRANSIENT)))
             return false;
         for (uint32_t j = 0; j < i; ++j)
         {
-            if (property.id == type.properties.Data[j].id || !strcmp(property.pName, type.properties.Data[j].pName))
+            if (property.id == Type.properties.Data[j].id || !strcmp(property.Name, Type.properties.Data[j].Name))
                 return false;
         }
         if (property.kind != PropertyKind::Array && (property.pElementType || property.pArrayOperations))
@@ -86,11 +86,11 @@ static bool validProperties(const TypeDesc& type, bool arrayElement)
             for (uint32_t j = 0; j < property.enumValues.Count; ++j)
             {
                 const EnumValue& value = property.enumValues.Data[j];
-                if (!validName(value.pName))
+                if (!validName(value.Name))
                     return false;
                 for (uint32_t k = 0; k < j; ++k)
                 {
-                    if (value.value == property.enumValues.Data[k].value || !strcmp(value.pName, property.enumValues.Data[k].pName))
+                    if (value.value == property.enumValues.Data[k].value || !strcmp(value.Name, property.enumValues.Data[k].Name))
                         return false;
                 }
             }
@@ -98,9 +98,9 @@ static bool validProperties(const TypeDesc& type, bool arrayElement)
         case PropertyKind::Array:
         {
             const ArrayOperations* pArray = property.pArrayOperations;
-            if (arrayElement || type.triviallyCopyable || !property.pElementType || !pArray ||
+            if (arrayElement || Type.triviallyCopyable || !property.pElementType || !pArray ||
                 !validProperties(*property.pElementType, true) || !validAlignment(pArray->alignment) ||
-                type.alignment < pArray->alignment || property.offset % pArray->alignment || property.Size != pArray->Size ||
+                Type.alignment < pArray->alignment || property.offset % pArray->alignment || property.Size != pArray->Size ||
                 !pArray->pCount || !pArray->Data || !pArray->pResize || !pArray->pInsert || !pArray->pRemove)
                 return false;
             break;
@@ -124,7 +124,7 @@ const PropertyDesc* TypeDesc::getProperty(const char* pPropertyName) const
 {
     ASSERT(pPropertyName);
     for (const PropertyDesc& desc : properties)
-        if (!strcmp(desc.pName, pPropertyName))
+        if (!strcmp(desc.Name, pPropertyName))
             return &desc;
     return nullptr;
 }
@@ -174,11 +174,11 @@ const TypeDesc* TypeRegistry::getType(TypeID id) const
     return nullptr;
 }
 
-const TypeDesc* TypeRegistry::getType(const char* pName) const
+const TypeDesc* TypeRegistry::getType(const char* Name) const
 {
-    ASSERT(pName);
+    ASSERT(Name);
     for (uint32_t i = 0; i < Size(); ++i)
-        if (!strcmp(ppTypes[i]->pName, pName))
+        if (!strcmp(ppTypes[i]->Name, Name))
             return ppTypes[i];
     return nullptr;
 }
@@ -194,24 +194,24 @@ bool TypeRegistry::registerTypes(Span<TypeDesc> types)
     ASSERT(types.Data || !types.Count);
     for (uint32_t i = 0; i < types.Count; ++i)
     {
-        const TypeDesc& type = types.Data[i];
-        if (!validProperties(type, false))
+        const TypeDesc& Type = types.Data[i];
+        if (!validProperties(Type, false))
         {
-            LOGF(Error, "Invalid reflection metadata for type '%s'", type.pName ? type.pName : "<unnamed>");
+            LOGF(Error, "Invalid reflection metadata for type '%s'", Type.Name ? Type.Name : "<unnamed>");
             return false;
         }
-        bool duplicate = getType(type.id) || getType(type.pName);
+        bool duplicate = getType(Type.id) || getType(Type.Name);
         for (uint32_t j = 0; j < i; ++j)
-            duplicate |= type.id == types.Data[j].id || !strcmp(type.pName, types.Data[j].pName);
+            duplicate |= Type.id == types.Data[j].id || !strcmp(Type.Name, types.Data[j].Name);
         if (duplicate)
         {
-            LOGF(Error, "Duplicate reflection type '%s'", type.pName);
+            LOGF(Error, "Duplicate reflection type '%s'", Type.Name);
             return false;
         }
     }
     arrsetcap(ppTypes, Size() + types.Count);
-    for (const TypeDesc& type : types)
-        arrpush(ppTypes, &type);
+    for (const TypeDesc& Type : types)
+        arrpush(ppTypes, &Type);
     return true;
 }
 } // namespace hz

@@ -24,38 +24,38 @@ ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(C
                                                                 .slopeScaledDepthBias = 2.0f,
                                                                 .fillMode = FILL_MODE_SOLID,
                                                                 .frontFace = FRONT_FACE_CCW },
-                                                .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
+                                                .Depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
                                                 .depthStencilFormat = hz::Format::D16_UNORM,
                                                 .indirectDrawId = true,
-                                                .pName = "Renderer.ShadowMap" });
-    Depth = Context.createTexture({ .width = Resolution,
-                                    .height = Resolution,
-                                    .format = hz::Format::D16_UNORM,
-                                    .startState = ResourceStateDepthWrite,
-                                    .descriptors = DescriptorTypeTexture,
+                                                .Name = "Renderer.ShadowMap" });
+    Depth = Context.createTexture({ .Width = Resolution,
+                                    .Height = Resolution,
+                                    .Format = hz::Format::D16_UNORM,
+                                    .StartState = ResourceStateDepthWrite,
+                                    .Descriptors = DescriptorTypeTexture,
                                     .renderTarget = true,
-                                    .pName = "Renderer.ShadowMap" });
+                                    .Name = "Renderer.ShadowMap" });
     Sampler = Context.createSampler(
-        { .addressU = AddressModeClampToEdge, .addressV = AddressModeClampToEdge, .compareFunc = CMP_LEQUAL });
+        { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .CompareFunc = CMP_LEQUAL });
     SurfaceSampler = Context.createSampler();
     for (uint32_t Index = 0; Index < ShadowFrames.Size(); ++Index)
     {
         ShadowFrames[Index] = Context.createBuffer({ .Size = 208,
-                                                     .elementCount = 1,
-                                                     .structStride = 208,
-                                                     .pName = "Renderer.ShadowCamera",
+                                                     .ElementCount = 1,
+                                                     .StructStride = 208,
+                                                     .Name = "Renderer.ShadowCamera",
                                                      .usage = MemoryUsageCpuToGpu,
-                                                     .startState = ResourceStateShaderResource,
-                                                     .descriptors = DescriptorTypeBuffer,
-                                                     .flags = BufferCreationFlagPersistentMapBit });
+                                                     .StartState = ResourceStateShaderResource,
+                                                     .Descriptors = DescriptorTypeBuffer,
+                                                     .Flags = BufferCreationFlagPersistentMapBit });
         LightingFrames[Index] = Context.createBuffer({ .Size = sizeof(LightingFrameData),
-                                                       .elementCount = 1,
-                                                       .structStride = sizeof(LightingFrameData),
-                                                       .pName = "Renderer.LightingFrame",
+                                                       .ElementCount = 1,
+                                                       .StructStride = sizeof(LightingFrameData),
+                                                       .Name = "Renderer.LightingFrame",
                                                        .usage = MemoryUsageCpuToGpu,
-                                                       .startState = ResourceStateShaderResource,
-                                                       .descriptors = DescriptorTypeBuffer,
-                                                       .flags = BufferCreationFlagPersistentMapBit });
+                                                       .StartState = ResourceStateShaderResource,
+                                                       .Descriptors = DescriptorTypeBuffer,
+                                                       .Flags = BufferCreationFlagPersistentMapBit });
     }
     ASSERT(Pipeline.isValid() && Depth.isValid() && Sampler.isValid());
 }
@@ -83,7 +83,7 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     for (uint32_t MeshBatchIndex : View.Scene.getActiveLights())
     {
         const hz::RenderLight& Light = View.Scene.getLights().Data[MeshBatchIndex];
-        if (!Light.ready || Light.type != hz::LightType::Directional)
+        if (!Light.ready || Light.Type != hz::LightType::Directional)
         {
             continue;
         }
@@ -158,7 +158,7 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     Commands.beginRendering({ .depthAttachment = { .pTexture = &Depth,
                                                    .loadAction = LoadActionClear,
                                                    .storeAction = StoreActionStore,
-                                                   .clearValue = { .depth = 1 } } },
+                                                   .ClearValue = { .Depth = 1 } } },
                             Draws.GetDependencies(ShadowFrames[Backing], View, &Draws.GetShadowCommands(Backing)));
     Commands.setPipeline(Pipeline);
     Commands.setViewport(0, 0, (float)Resolution, (float)Resolution);

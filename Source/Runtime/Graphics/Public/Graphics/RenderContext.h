@@ -31,47 +31,47 @@ struct SceneResourceAccess;
 struct BufferDesc
 {
     uint64_t            Size = 0;
-    uint32_t            elementCount = 0;
-    uint32_t            structStride = 0;
-    const char*         pName = nullptr;
+    uint32_t            ElementCount = 0;
+    uint32_t            StructStride = 0;
+    const char*         Name = nullptr;
     const void*         pInitialData = nullptr;
     uint64_t            initialDataSize = 0;
     ResourceMemoryUsage usage = MemoryUsageUnknown;
-    ResourceState       startState = ResourceStateUndefined;
-    DescriptorType      descriptors = DescriptorTypeUndefined;
-    BufferCreationFlags flags = BufferCreationFlagNone;
+    ResourceState       StartState = ResourceStateUndefined;
+    DescriptorType      Descriptors = DescriptorTypeUndefined;
+    BufferCreationFlags Flags = BufferCreationFlagNone;
 };
 
 struct TextureDesc
 {
-    uint32_t             width = 0;
-    uint32_t             height = 0;
-    uint32_t             depth = 1;
-    uint32_t             arraySize = 1;
-    uint32_t             mipLevels = 1;
-    SampleCount          sampleCount = SAMPLE_COUNT_1;
-    hz::Format           format = hz::Format::UNDEFINED;
-    ResourceState        startState = ResourceStateUndefined;
-    DescriptorType       descriptors = DescriptorTypeUndefined;
-    TextureCreationFlags flags = TextureCreationFlagNone;
+    uint32_t             Width = 0;
+    uint32_t             Height = 0;
+    uint32_t             Depth = 1;
+    uint32_t             ArraySize = 1;
+    uint32_t             MipLevels = 1;
+    SampleCount          SampleCount = SAMPLE_COUNT_1;
+    hz::Format           Format = hz::Format::UNDEFINED;
+    ResourceState        StartState = ResourceStateUndefined;
+    DescriptorType       Descriptors = DescriptorTypeUndefined;
+    TextureCreationFlags Flags = TextureCreationFlagNone;
     bool                 renderTarget = false;
-    const char*          pName = nullptr;
+    const char*          Name = nullptr;
 };
 
 struct SamplerDesc
 {
-    FilterType  minFilter = FILTER_LINEAR;
-    FilterType  magFilter = FILTER_LINEAR;
-    MipMapMode  mipMapMode = MIPMAP_MODE_LINEAR;
-    AddressMode addressU = AddressModeRepeat;
-    AddressMode addressV = AddressModeRepeat;
-    AddressMode addressW = AddressModeRepeat;
-    float       mipLodBias = 0.0f;
-    bool        setLodRange = false;
-    float       minLod = 0.0f;
-    float       maxLod = 0.0f;
-    float       maxAnisotropy = 0.0f;
-    CompareMode compareFunc = CMP_NEVER;
+    FilterType  MinFilter = FILTER_LINEAR;
+    FilterType  MagFilter = FILTER_LINEAR;
+    MipMapMode  MipMapMode = MIPMAP_MODE_LINEAR;
+    AddressMode AddressU = AddressModeRepeat;
+    AddressMode AddressV = AddressModeRepeat;
+    AddressMode AddressW = AddressModeRepeat;
+    float       MipLodBias = 0.0f;
+    bool        SetLodRange = false;
+    float       MinLod = 0.0f;
+    float       MaxLod = 0.0f;
+    float       MaxAnisotropy = 0.0f;
+    CompareMode CompareFunc = CMP_NEVER;
 };
 
 struct ShaderStageDesc
@@ -80,7 +80,7 @@ struct ShaderStageDesc
     const void* pSource = nullptr;
     uint32_t    sourceSize = 0;
     const char* pEntryPoint = "main";
-    const char* pName = nullptr;
+    const char* Name = nullptr;
 };
 
 enum class ShaderLanguage
@@ -100,7 +100,7 @@ struct ShaderDesc
 
 struct ColorTargetDesc
 {
-    Format        format = Format::UNDEFINED;
+    Format        Format = Format::UNDEFINED;
     BlendConstant srcFactor = BC_ONE;
     BlendConstant dstFactor = BC_ZERO;
     BlendConstant srcAlphaFactor = BC_ONE;
@@ -115,20 +115,20 @@ struct GraphicsPipelineDesc
     ShaderDesc            shaderDesc = {};
     VertexLayout          vertexLayout = {};
     RasterizerStateDesc   rasterizer = { .cullMode = CULL_MODE_NONE, .fillMode = FILL_MODE_SOLID, .frontFace = FRONT_FACE_CCW };
-    DepthStateDesc        depth = { .depthTest = false, .depthWrite = false, .depthFunc = CMP_ALWAYS };
+    DepthStateDesc        Depth = { .depthTest = false, .depthWrite = false, .depthFunc = CMP_ALWAYS };
     Span<ColorTargetDesc> colorTargets = {};
     bool                  alphaToCoverage = false;
     hz::Format            depthStencilFormat = hz::Format::UNDEFINED;
     PrimitiveTopology     topology = PRIMITIVE_TOPO_TRI_LIST;
-    SampleCount           sampleCount = SAMPLE_COUNT_1;
+    SampleCount           SampleCount = SAMPLE_COUNT_1;
     bool                  indirectDrawId = false;
-    const char*           pName = nullptr;
+    const char*           Name = nullptr;
 };
 
 struct ComputePipelineDesc
 {
     ShaderDesc  shaderDesc = {};
-    const char* pName = nullptr;
+    const char* Name = nullptr;
 };
 
 struct ColorAttachment
@@ -136,7 +136,7 @@ struct ColorAttachment
     const GPUTexture* pTexture;
     LoadActionType    loadAction;
     StoreActionType   storeAction;
-    ClearValue        clearValue;
+    ClearValue        ClearValue;
 };
 
 struct DepthAttachment
@@ -144,7 +144,7 @@ struct DepthAttachment
     const GPUTexture* pTexture;
     LoadActionType    loadAction;
     StoreActionType   storeAction;
-    ClearValue        clearValue;
+    ClearValue        ClearValue;
 };
 
 struct RenderPassDesc
@@ -164,8 +164,8 @@ struct ContextDesc
 {
     const char*  pAppName;
     WindowHandle windowHandle;
-    uint32_t     width;
-    uint32_t     height;
+    uint32_t     Width;
+    uint32_t     Height;
     uint32_t     imageCount;
     hz::Format   colorFormat;
     ColorSpace   colorSpace;
@@ -201,7 +201,7 @@ private:
     Buffer*               pBuffer = nullptr;
     uint64_t              Size = 0;
     ResourceMemoryUsage   usage = MemoryUsageUnknown;
-    DescriptorType        descriptors = DescriptorTypeUndefined;
+    DescriptorType        Descriptors = DescriptorTypeUndefined;
     mutable ResourceState state = ResourceStateUndefined;
     friend struct SceneResourceAccess;
     friend class CommandList;
@@ -416,11 +416,11 @@ public:
     void setPipeline(const GPURayTracingPipeline&);
     void buildAccelerationStructure(GPUAccelerationStructure&, Span<AccelerationStructureInstance> instances = {}, bool update = false);
     void updateAccelerationStructure(GPUAccelerationStructure&);
-    void traceRays(const GPURayTracingPipeline&, uint32_t width, uint32_t height, uint32_t depth = 1, const Dependencies& = {});
+    void traceRays(const GPURayTracingPipeline&, uint32_t Width, uint32_t Height, uint32_t Depth = 1, const Dependencies& = {});
     void setVertexBuffer(uint32_t bindingIndex, const GPUBuffer&, uint64_t offset, uint32_t stride);
     void setIndexBuffer(const GPUBuffer&, uint64_t offset, IndexType);
-    void setViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f);
-    void setScissor(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+    void setViewport(float x, float y, float Width, float Height, float minDepth = 0.0f, float maxDepth = 1.0f);
+    void setScissor(uint32_t x, uint32_t y, uint32_t Width, uint32_t Height);
     void setRootConstant(Span<const uint32_t> values, uint32_t offsetIn32BitValues = 0);
     // Typed block form. T must mirror the shader constant block field for field, in declaration order.
     template<typename T>
@@ -503,7 +503,7 @@ public:
     // Persists the driver-owned pipeline cache; call once the startup pipelines exist.
     void savePipelineCache();
 
-    bool                  resize(uint32_t width, uint32_t height);
+    bool                  resize(uint32_t Width, uint32_t Height);
     bool                  setVSync(bool enabled);
     CommandList&          acquireCommandList();
     SubmitHandle          submit(CommandList&, const GPUTexture* pPresent = nullptr);
@@ -528,7 +528,7 @@ public:
     // Handle alive between frames, so its resource state survives; releaseTransient parks it again.
     GPUTexture* acquireTransient(const TextureDesc&);
     void        releaseTransient(GPUTexture* pTexture);
-    // Destroys parked targets, for example when the render Size changes and their descriptors no longer
+    // Destroys parked targets, for example when the render Size changes and their Descriptors no longer
     // match. Call after waiting for the GPU; targets still in use are kept.
     void        purgeTransients();
     GPUTexture               loadTexture(ResourceDirectory, const char* pFileName, TextureCreationFlags = TextureCreationFlagNone);
@@ -561,9 +561,9 @@ private:
         void*        secondary = nullptr;
         void*        tertiary = nullptr;
         uint64_t useId = 0;
-        ResourceType type = ResourceType::Buffer;
+        ResourceType Type = ResourceType::Buffer;
     };
-    void deferResource(ResourceType type, void* resource, void* secondary = nullptr, void* tertiary = nullptr);
+    void deferResource(ResourceType Type, void* resource, void* secondary = nullptr, void* tertiary = nullptr);
     void releaseAccelerationStructure(AccelerationStructureData*);
     void destroyAccelerationStructure(AccelerationStructureData*);
     void releaseTransientSlots();

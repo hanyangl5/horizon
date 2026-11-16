@@ -41,21 +41,21 @@ GBuffer::GBuffer(hz::RenderContext& Context): Context(Context)
     Pipeline = Context.createGraphicsPipeline({
     .shaderDesc = {
         .stages = {
-            { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect", .pName = "Renderer.GeometryVS" },
-            { .stage = ShaderStageFrag, .pEntryPoint = "PSMain", .pName = "Renderer.GeometryPS" },
+            { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect", .Name = "Renderer.GeometryVS" },
+            { .stage = ShaderStageFrag, .pEntryPoint = "PSMain", .Name = "Renderer.GeometryPS" },
         },
         .pFileName = "Geometry.slang",
     },
-    .depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
+    .Depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
     .colorTargets = {
-        { .format = GBufferFormats[0] },
-        { .format = GBufferFormats[1] },
-        { .format = GBufferFormats[2] },
-        { .format = GBufferFormats[3] },
+        { .Format = GBufferFormats[0] },
+        { .Format = GBufferFormats[1] },
+        { .Format = GBufferFormats[2] },
+        { .Format = GBufferFormats[3] },
     },
     .depthStencilFormat = DepthFormat,
     .indirectDrawId = true,
-    .pName = "Renderer.GeometryPipeline",
+    .Name = "Renderer.GeometryPipeline",
 });
 
     Sampler = Context.createSampler();
@@ -67,43 +67,43 @@ void GBuffer::Resize(uint32_t Width, uint32_t Height)
     this->Width = Width;
     this->Height = Height;
     hz::TextureDesc TargetDesc = {
-        .width = Width,
-        .height = Height,
-        .startState = ResourceStateRenderTarget,
-        .descriptors = DescriptorTypeTexture,
-        .flags = TextureCreationFlagForce2D,
+        .Width = Width,
+        .Height = Height,
+        .StartState = ResourceStateRenderTarget,
+        .Descriptors = DescriptorTypeTexture,
+        .Flags = TextureCreationFlagForce2D,
         .renderTarget = true,
     };
     for (uint32_t Index = 0; Index < TextureCount; ++Index)
     {
-        TargetDesc.format = GBufferFormats[Index];
-        TargetDesc.pName = GBufferNames[Index];
+        TargetDesc.Format = GBufferFormats[Index];
+        TargetDesc.Name = GBufferNames[Index];
         Textures[Index] = Context.createTexture(TargetDesc);
     }
 
-    TargetDesc.format = DepthFormat;
-    TargetDesc.startState = ResourceStateDepthWrite;
-    TargetDesc.pName = "Renderer.Depth";
+    TargetDesc.Format = DepthFormat;
+    TargetDesc.StartState = ResourceStateDepthWrite;
+    TargetDesc.Name = "Renderer.Depth";
     Depth = Context.createTexture(TargetDesc);
 }
 
 void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const SceneView& View, const GpuDrawList& Draws)
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GBuffer::Execute");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GBuffer::execute");
     const hz::GpuSceneBuffers& Gpu = View.GpuScene.getBuffers();
     const ClearValue           Black = {};
     Cmd.beginGpuTimestamp("Geometry");
     Cmd.beginRendering({
         .colorAttachments =  {
-            { .pTexture = &Textures[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .clearValue = Black },
-            { .pTexture = &Textures[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .clearValue = Black },
-            { .pTexture = &Textures[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .clearValue = Black },
-            { .pTexture = &Textures[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .clearValue = Black },
+            { .pTexture = &Textures[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .ClearValue = Black },
+            { .pTexture = &Textures[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .ClearValue = Black },
+            { .pTexture = &Textures[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .ClearValue = Black },
+            { .pTexture = &Textures[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .ClearValue = Black },
         } ,
         .depthAttachment = { .pTexture = &Depth,
                              .loadAction = LoadActionClear,
                              .storeAction = StoreActionStore,
-                             .clearValue = { .depth = 1.0f } },
+                             .ClearValue = { .Depth = 1.0f } },
     }, Draws.GetDependencies(Frame, View, &Draws.GetCommands(View.FrameIndex)));
     Cmd.setViewport(0, 0, (float)Width, (float)Height);
     Cmd.setScissor(0, 0, Width, Height);
@@ -215,18 +215,18 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     AddPass({ .Name = "Transparency", .Execute = ExecuteTransparency, .UserData = Transparency.Get(), .Enabled = &EnableTransparency });
     AddPass({ .Name = "Post", .Execute = ExecutePost, .UserData = PostProcessing.Get() });
 
-    LinearSampler = Context.createSampler({ .addressU = AddressModeClampToEdge, .addressV = AddressModeClampToEdge });
+    LinearSampler = Context.createSampler({ .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge });
     for (FrameConstantBuffer& ConstantBuffer : FrameConstants)
     {
         hz::GPUBuffer& Buffer = ConstantBuffer.Buffer;
         Buffer = Context.createBuffer({ .Size = sizeof(FrameData),
-                                        .elementCount = 1,
-                                        .structStride = sizeof(FrameData),
-                                        .pName = "Renderer.Frame",
+                                        .ElementCount = 1,
+                                        .StructStride = sizeof(FrameData),
+                                        .Name = "Renderer.Frame",
                                         .usage = MemoryUsageCpuToGpu,
-                                        .startState = ResourceStateShaderResource,
-                                        .descriptors = DescriptorTypeBuffer,
-                                        .flags = BufferCreationFlagPersistentMapBit });
+                                        .StartState = ResourceStateShaderResource,
+                                        .Descriptors = DescriptorTypeBuffer,
+                                        .Flags = BufferCreationFlagPersistentMapBit });
         ASSERT(Buffer.isValid());
     }
 }
@@ -269,7 +269,7 @@ static Matrix4 CameraViewProjection(const Matrix4& Pose, const hz::Camera& Lens,
 
 void RenderPasses::Execute()
 {
-    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::Execute");
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::execute");
     if (Context.isSuspended())
     {
         return;

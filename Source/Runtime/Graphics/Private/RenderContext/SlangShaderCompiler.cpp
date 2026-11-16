@@ -158,7 +158,7 @@ bool loadShaderCache(uint64_t key, const ShaderSrcDesc& source, BinaryShaderDesc
         {
             if (kCachedStages[stageIndex] != (ShaderStage)pStage->stage)
                 continue;
-            stageDescs[stageIndex]->pName = sourceStages[stageIndex]->pName;
+            stageDescs[stageIndex]->Name = sourceStages[stageIndex]->Name;
             stageDescs[stageIndex]->pEntryPoint = pEntryPoint;
             stageDescs[stageIndex]->pByteCode = pByteCode;
             stageDescs[stageIndex]->byteCodeSize = pStage->byteCodeSize;
@@ -275,7 +275,7 @@ Shader* RenderContext::createSlangShader(const ShaderSrcDesc& input)
             snprintf(moduleName, sizeof(moduleName), "HorizonShader%u", moduleCount);
             Slang::ComPtr<ISlangBlob> source;
             source.attach(slang_createBlob(sources[i]->pByteCode, sources[i]->byteCodeSize));
-            modules[moduleIndex] = session->loadModuleFromSource(moduleName, sources[i]->pName, source, diagnostics.writeRef());
+            modules[moduleIndex] = session->loadModuleFromSource(moduleName, sources[i]->Name, source, diagnostics.writeRef());
             if (!checkSlangResult(modules[moduleIndex] ? SLANG_OK : SLANG_FAIL, "module loading", diagnostics))
                 return nullptr;
             moduleSources[moduleCount++] = sources[i];
@@ -311,7 +311,7 @@ Shader* RenderContext::createSlangShader(const ShaderSrcDesc& input)
         if (!checkSlangResult(linkedProgram->getEntryPointCode(entryPointIndex++, 0, bytecode[i].writeRef(), diagnostics.writeRef()),
                               "DXIL generation", diagnostics))
             return nullptr;
-        outputs[i]->pName = sources[i]->pName;
+        outputs[i]->Name = sources[i]->Name;
         outputs[i]->pByteCode = (void*)bytecode[i]->getBufferPointer();
         outputs[i]->byteCodeSize = (uint32_t)bytecode[i]->getBufferSize();
         outputs[i]->pEntryPoint = sources[i]->pEntryPoint;

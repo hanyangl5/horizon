@@ -253,7 +253,7 @@ struct ProcessAnimationsParams
 typedef void (*GLTFReadExtrasCallback)(uint32_t meshIdx, uint32_t meshCount, const char* jsonData, const uint32_t jsonDataLength,
                                        void* UserData);
 
-// Callback used to let the user write into the binary mesh asset any custom fields/flags that were imported
+// Callback used to let the user write into the binary mesh asset any custom fields/Flags that were imported
 // from the gltf file.
 // This callback is invoked twice:
 //     1. pDst being nullptr: the user should just write the Size it requires to write all data into pOutSize.

@@ -40,7 +40,7 @@ typedef struct MappedMemoryRange
     Buffer*  pBuffer;
     uint64_t offset;
     uint64_t Size;
-    uint32_t flags;
+    uint32_t Flags;
 } MappedMemoryRange;
 
 typedef enum TextureContainerType
@@ -100,9 +100,9 @@ typedef struct TextureLoadDesc
     };
     /// Filename without extension. Extension will be determined based on container
     const char*          pFileName;
-    /// Following is ignored if pDesc != NULL.  pDesc->flags will be considered instead.
+    /// Following is ignored if pDesc != NULL.  pDesc->Flags will be considered instead.
     TextureCreationFlags creationFlag;
-    /// The texture file format (dds/ktx/...)
+    /// The texture file Format (dds/ktx/...)
     TextureContainerType container;
     ResourceDirectory    resourceDirectory = DirectoryTextures;
     // Optional result storage, readable after the associated SyncToken completes.
@@ -199,7 +199,7 @@ typedef struct Geometry
 
     /// Number of vertex buffers in this geometry
     uint32_t vertexBufferCount : 8;
-    /// Index type (32 or 16 bit)
+    /// Index Type (32 or 16 bit)
     uint32_t indexType : 2;
     /// Number of draw args in the geometry
     uint32_t drawArgCount : 22;
@@ -216,8 +216,8 @@ typedef struct Geometry
     uint32_t pad[20];
 } Geometry;
 
-static_assert(sizeof(Geometry) == 352, "If Geometry Size changes we need to rebuild all custom binary meshes");
-static_assert(sizeof(Geometry) % 16 == 0, "Geometry Size must be a multiple of 16");
+static_assert(sizeof(Geometry) == 352, "If Geometry size changes we need to rebuild all custom binary meshes");
+static_assert(sizeof(Geometry) % 16 == 0, "Geometry size must be a multiple of 16");
 
 // Outputs data that's only needed in the CPU side, OTOH the Geometry object holds GPU related information and buffers
 typedef struct GeometryData
@@ -247,7 +247,7 @@ typedef struct GeometryData
         uint32_t attributeCount[MAX_SEMANTICS];
     };
 
-    /// Shadow copy of the geometry vertex and index data if requested through the load flags
+    /// Shadow copy of the geometry vertex and index data if requested through the load Flags
     ShadowData* pShadow;
 
     /// The array of joint inverse bind-pose matrices ( object-space )
@@ -273,7 +273,7 @@ typedef struct GeometryData
     uint32_t pad1[5];
 } GeometryData;
 
-static_assert(sizeof(GeometryData) % 16 == 0, "GeometryData Size must be a multiple of 16");
+static_assert(sizeof(GeometryData) % 16 == 0, "GeometryData size must be a multiple of 16");
 
 typedef enum GeometryLoadFlags
 {
@@ -289,7 +289,7 @@ MAKE_ENUM_FLAG(uint32_t, GeometryLoadFlags)
 
 typedef struct GeometryBufferLoadDesc
 {
-    ResourceState startState;
+    ResourceState StartState;
 
     const char* pNameIndexBuffer;
     const char* pNamesVertexBuffers[MAX_VERTEX_BINDINGS];
@@ -320,8 +320,8 @@ typedef struct GeometryLoadDesc
 
     /// Filename of geometry container
     const char*         pFileName;
-    /// Loading flags
-    GeometryLoadFlags   flags;
+    /// Loading Flags
+    GeometryLoadFlags   Flags;
     /// Specifies how to arrange the vertex data loaded from the file into GPU memory
     const VertexLayout* pVertexLayout;
 
@@ -373,7 +373,7 @@ typedef struct TextureSubresourceUpdate
     uint32_t dstRowStride;
     /// Number of rows in this slice of the texture
     uint32_t rowCount;
-    /// Src row stride for convenience (rowCount * width * texture format Size)
+    /// Src row stride for convenience (rowCount * Width * texture Format Size)
     uint32_t srcRowStride;
     /// Size of each slice in destination including padding - Use for offsetting dst data updating 3D textures
     uint32_t dstSliceStride;
@@ -388,7 +388,7 @@ typedef struct TextureSubresourceUpdate
     /// for (uint32_t r = 0; r < update.rowCount; ++r)
     ///     memcpy(update.pMappedData + r * update.dstRowStride, srcPixels + r * update.srcRowStride, update.srcRowStride);
     /// 3D
-    /// for (uint32_t z = 0; z < depth; ++z)
+    /// for (uint32_t z = 0; z < Depth; ++z)
     /// {
     ///     uint8_t* dstData = update.pMappedData + update.dstSliceStride * z;
     ///     uint8_t* srcData = srcPixels + update.srcSliceStride * z;
@@ -404,7 +404,7 @@ typedef struct TextureUpdateDesc
 {
     Texture*      pTexture;
     uint32_t      baseMipLevel;
-    uint32_t      mipLevels;
+    uint32_t      MipLevels;
     uint32_t      baseArrayLayer;
     uint32_t      layerCount;
     ResourceState currentState;
@@ -433,7 +433,7 @@ typedef struct TextureCopyDesc
     /// Current texture state.
     ResourceState textureState;
     /// Queue the texture is copied from.
-    QueueType     queueType;
+    QueueType     QueueType;
     uint64_t      bufferOffset;
 } TextureCopyDesc;
 
@@ -455,7 +455,7 @@ typedef struct ShaderLoadDesc
 typedef struct PipelineCacheLoadDesc
 {
     const char*        pFileName;
-    PipelineCacheFlags flags;
+    PipelineCacheFlags Flags;
 } PipelineCacheLoadDesc;
 
 typedef struct PipelineCacheSaveDesc

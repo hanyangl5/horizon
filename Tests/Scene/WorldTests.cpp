@@ -461,15 +461,15 @@ TEST_F(SceneWorldTest, PropertyEditsValidateBeforeWriting)
     EXPECT_EQ(world.getEntityGuid(entity), id);
     const hz::Light* pLight = (const hz::Light*)world.getComponent(entity, hz::SceneTypes::light);
     EXPECT_FLOAT_EQ(pLight->intensity, 1.0f);
-    EXPECT_EQ(pLight->type, hz::LightType::Point);
+    EXPECT_EQ(pLight->Type, hz::LightType::Point);
     EXPECT_FALSE(pLight->enableColorTemperature);
     ASSERT_TRUE(world.setProperty(entity, hz::SceneTypes::light, 3, value));
     const hz::LightType lightType = hz::LightType::Rect;
     ASSERT_TRUE(world.setProperty(entity, hz::SceneTypes::light, 1,
                                   { .kind = hz::PropertyKind::Enum, .Data = &lightType, .Size = sizeof(lightType) }));
-    EXPECT_EQ(pLight->type, lightType);
+    EXPECT_EQ(pLight->Type, lightType);
     EXPECT_FLOAT_EQ(pLight->intensity, intensity);
-    EXPECT_FLOAT_EQ(pLight->width, 1.0f);
+    EXPECT_FLOAT_EQ(pLight->Width, 1.0f);
     ASSERT_TRUE(world.destroyEntity(entity));
     EXPECT_FALSE(world.setProperty(entity, hz::SceneTypes::light, 3, value));
 }
@@ -488,17 +488,17 @@ TEST_F(SceneWorldTest, StringEditsHandleBoundsAndAliasing)
     text[sizeof(text) - 1] = 0;
     ASSERT_TRUE(
         world.setProperty(entity, hz::SceneTypes::name, 1, { .kind = hz::PropertyKind::String, .Data = text, .Size = sizeof(text) }));
-    const hz::Name* pName = (const hz::Name*)world.getComponent(entity, hz::SceneTypes::name);
-    EXPECT_STREQ(pName->value, text);
+    const hz::Name* Name = (const hz::Name*)world.getComponent(entity, hz::SceneTypes::name);
+    EXPECT_STREQ(Name->value, text);
     EXPECT_FALSE(
         world.setProperty(entity, hz::SceneTypes::name, 1, { .kind = hz::PropertyKind::String, .Data = text, .Size = sizeof(text) + 1 }));
     ASSERT_TRUE(world.setProperty(entity, hz::SceneTypes::name, 1,
-                                  { .kind = hz::PropertyKind::String, .Data = pName->value + sizeof(text) - 3, .Size = 3 }));
-    EXPECT_STREQ(pName->value, "xx");
+                                  { .kind = hz::PropertyKind::String, .Data = Name->value + sizeof(text) - 3, .Size = 3 }));
+    EXPECT_STREQ(Name->value, "xx");
     for (uint32_t i = 2; i < sizeof(text); ++i)
-        EXPECT_EQ(pName->value[i], 0);
+        EXPECT_EQ(Name->value[i], 0);
     ASSERT_TRUE(world.setProperty(entity, hz::SceneTypes::name, 1, { .kind = hz::PropertyKind::String, .Data = "", .Size = 1 }));
-    EXPECT_STREQ(pName->value, "");
+    EXPECT_STREQ(Name->value, "");
 }
 
 TEST_F(SceneWorldTest, ArrayEditsPreserveOwnershipAndValidateIndices)
@@ -559,19 +559,19 @@ TEST_F(SceneWorldTest, ArrayEditsRespectContainerAndElementReadOnlyFlags)
     hz::PropertyDesc    properties[] = { meshType.properties.Data[0], meshType.properties.Data[1] };
     hz::TypeDesc        elementType = *properties[1].pElementType;
     hz::PropertyDesc    elementProperties[] = { elementType.properties.Data[0], elementType.properties.Data[1] };
-    elementProperties[1].flags |= hz::PROPERTY_READ_ONLY;
+    elementProperties[1].Flags |= hz::PROPERTY_READ_ONLY;
     elementType.properties = elementProperties;
     properties[1].pElementType = &elementType;
-    properties[0].flags |= hz::PROPERTY_READ_ONLY;
+    properties[0].Flags |= hz::PROPERTY_READ_ONLY;
     hz::TypeDesc editable = meshType;
     editable.id = 100;
-    editable.pName = "TestEditableArray";
+    editable.Name = "TestEditableArray";
     editable.properties = properties;
     hz::PropertyDesc lockedProperties[] = { properties[0], properties[1] };
-    lockedProperties[1].flags |= hz::PROPERTY_READ_ONLY;
+    lockedProperties[1].Flags |= hz::PROPERTY_READ_ONLY;
     hz::TypeDesc locked = editable;
     locked.id = 101;
-    locked.pName = "TestLockedArray";
+    locked.Name = "TestLockedArray";
     locked.properties = lockedProperties;
     const hz::TypeDesc customTypes[] = { editable, locked };
     ASSERT_TRUE(types.registerTypes(customTypes));

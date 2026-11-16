@@ -62,14 +62,14 @@ inline float3x3 adjoint(CONST_REF(float3x3) m)
 // Adjoint matrix is the same as transpose(inverse(m)) as long as the model matrix doesn't have shears.
 inline float3x3 adjoint_float4x4(CONST_REF(float4x4) m) { return adjoint(to_f3x3(m)); }
 
-inline float linearizeDepth(float depth, float nearPlane, float farPlane)
+inline float linearizeDepth(float Depth, float nearPlane, float farPlane)
 {
-    return (nearPlane * farPlane) / (farPlane + depth * (nearPlane - farPlane));
+    return (nearPlane * farPlane) / (farPlane + Depth * (nearPlane - farPlane));
 }
 
-inline float linearizeDepthReverseZ(float depth, float nearPlane, float farPlane)
+inline float linearizeDepthReverseZ(float Depth, float nearPlane, float farPlane)
 {
-    return (nearPlane * farPlane) / (nearPlane + depth * (farPlane - nearPlane));
+    return (nearPlane * farPlane) / (nearPlane + Depth * (farPlane - nearPlane));
 }
 
 inline float2 octWrap_float2(float2 v)

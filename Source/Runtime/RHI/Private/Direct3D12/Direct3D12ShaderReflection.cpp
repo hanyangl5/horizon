@@ -127,7 +127,7 @@ void fill_shader_resources(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADE
 
             uint32_t len = (uint32_t)strlen(bindDesc.Name);
 
-            reflection.pShaderResources[i].type = sD3D12_TO_DESCRIPTOR[bindDesc.Type];
+            reflection.pShaderResources[i].Type = sD3D12_TO_DESCRIPTOR[bindDesc.Type];
             reflection.pShaderResources[i].set = bindDesc.Space;
             reflection.pShaderResources[i].reg = bindDesc.BindPoint;
             reflection.pShaderResources[i].Size = bindDesc.BindCount;
@@ -139,12 +139,12 @@ void fill_shader_resources(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADE
             // RWTyped is considered as DescriptorTypeTexture by default so we Handle the case for RWBuffer here
             if (bindDesc.Type == D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_RWTYPED && bindDesc.Dimension == D3D_SRV_DIMENSION_BUFFER)
             {
-                reflection.pShaderResources[i].type = DescriptorTypeRwBuffer;
+                reflection.pShaderResources[i].Type = DescriptorTypeRwBuffer;
             }
             // Buffer<> is considered as DescriptorTypeTexture by default so we Handle the case for Buffer<> here
             if (bindDesc.Type == D3D_SHADER_INPUT_TYPE::D3D_SIT_TEXTURE && bindDesc.Dimension == D3D_SRV_DIMENSION_BUFFER)
             {
-                reflection.pShaderResources[i].type = DescriptorTypeBuffer;
+                reflection.pShaderResources[i].Type = DescriptorTypeBuffer;
             }
 
             // Copy over the name

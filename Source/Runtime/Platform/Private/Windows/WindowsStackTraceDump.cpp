@@ -93,7 +93,7 @@ void WindowsStackTrace::Log(const char* fmt, ...)
         int         charsWritten = vsnprintf(fmtBuf, sizeof(fmtBuf), fmt, args);
         if (charsWritten < 0)
         {
-            // Some kind of formatting error occurred, just print the format string instead
+            // Some kind of formatting error occurred, just print the Format string instead
             outputBuf = fmt;
         }
         else

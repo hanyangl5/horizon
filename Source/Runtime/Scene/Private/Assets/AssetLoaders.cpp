@@ -156,7 +156,7 @@ public:
     static void* begin(const AssetCatalogEntry& entry, AssetHandle, void* User)
     {
         AssetLoadersData& loader = *(AssetLoadersData*)User;
-        if (!loader.threads || (entry.type != AssetType::Mesh && entry.type != AssetType::Material) ||
+        if (!loader.threads || (entry.Type != AssetType::Mesh && entry.Type != AssetType::Material) ||
             entry.location.root != AssetPathRoot::Cooked || entry.location.elementIndex == UINT32_MAX)
         {
             LOGF(Error, "Invalid Mesh/Material location '%s'", entry.location.pPath);
@@ -194,7 +194,7 @@ public:
         const SceneAsset& scene = request.pSource->scene;
         const uint32_t    index = request.entry.location.elementIndex;
         Array<AssetID>    dependencies;
-        if (request.entry.type == AssetType::Material)
+        if (request.entry.Type == AssetType::Material)
         {
             if (index >= scene.getMaterials().Count || scene.getMaterials().Data[index].id != request.entry.id)
                 return invalid(request);
@@ -317,7 +317,7 @@ AssetGeometry::AssetGeometry(AssetLoadersData& owner, const char* pFile): owner(
     GeometryLoadDesc load = { .ppGeometry = &pUpload,
                               .ppGeometryData = &pShadow,
                               .pFileName = pPath,
-                              .flags = GEOMETRY_LOAD_FLAG_SHADOWED,
+                              .Flags = GEOMETRY_LOAD_FLAG_SHADOWED,
                               .pVertexLayout = &owner.desc.vertexLayout,
                               .resourceDirectory = owner.desc.cookedDirectory,
                               .pSuccess = &uploadSucceeded };

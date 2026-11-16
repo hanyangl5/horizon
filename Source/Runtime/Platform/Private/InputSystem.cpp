@@ -157,7 +157,7 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     SyncToken       token = {};
     loadDesc.pFileName = pDesc->pJoystickTexture;
     loadDesc.ppTexture = &gVirtualJoystick->pTexture;
-    // Textures representing color should be stored in SRGB or HDR format
+    // Textures representing color should be stored in SRGB or HDR Format
     loadDesc.creationFlag = TextureCreationFlagSrgb;
     addResource(&loadDesc, &token);
     waitForToken(&token);
@@ -183,9 +183,9 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     // Resources
     /************************************************************************/
     BufferLoadDesc vbDesc = {};
-    vbDesc.desc.descriptors = DescriptorTypeVertexBuffer;
-    vbDesc.desc.memoryUsage = MemoryUsageCpuToGpu;
-    vbDesc.desc.flags = BufferCreationFlagPersistentMapBit;
+    vbDesc.desc.Descriptors = DescriptorTypeVertexBuffer;
+    vbDesc.desc.MemoryUsage = MemoryUsageCpuToGpu;
+    vbDesc.desc.Flags = BufferCreationFlagPersistentMapBit;
     vbDesc.desc.Size = 128 * 4 * sizeof(float4);
     vbDesc.ppBuffer = &gVirtualJoystick->pMeshBuffer;
     addResource(&vbDesc, NULL);
@@ -212,13 +212,13 @@ void exitVirtualJoystick(VirtualJoystick** ppVirtualJoystick)
     *ppVirtualJoystick = NULL;
 }
 
-bool loadVirtualJoystick(ReloadType loadType, hz::Format colorFormat, uint32_t width, uint32_t height, uint32_t displayWidth,
+bool loadVirtualJoystick(ReloadType loadType, hz::Format colorFormat, uint32_t Width, uint32_t Height, uint32_t displayWidth,
                          uint32_t displayHeight)
 {
     UNREF_PARAM(loadType);
     UNREF_PARAM(colorFormat);
-    UNREF_PARAM(width);
-    UNREF_PARAM(height);
+    UNREF_PARAM(Width);
+    UNREF_PARAM(Height);
     UNREF_PARAM(displayWidth);
     UNREF_PARAM(displayHeight);
 #if TOUCH_INPUT
@@ -250,13 +250,13 @@ bool loadVirtualJoystick(ReloadType loadType, hz::Format colorFormat, uint32_t w
         vertexLayout.bindingCount = 1;
         vertexLayout.attribCount = 2;
         vertexLayout.attribs[0].semantic = SEMANTIC_POSITION;
-        vertexLayout.attribs[0].format = hz::Format::R32G32_SFLOAT;
+        vertexLayout.attribs[0].Format = hz::Format::R32G32_SFLOAT;
         vertexLayout.attribs[0].binding = 0;
         vertexLayout.attribs[0].location = 0;
         vertexLayout.attribs[0].offset = 0;
 
         vertexLayout.attribs[1].semantic = SEMANTIC_TEXCOORD0;
-        vertexLayout.attribs[1].format = hz::Format::R32G32_SFLOAT;
+        vertexLayout.attribs[1].Format = hz::Format::R32G32_SFLOAT;
         vertexLayout.attribs[1].binding = 0;
         vertexLayout.attribs[1].location = 1;
         vertexLayout.attribs[1].offset = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)hz::Format::R32G32_SFLOAT) / 8;
@@ -279,13 +279,13 @@ bool loadVirtualJoystick(ReloadType loadType, hz::Format colorFormat, uint32_t w
         rasterizerStateDesc.scissor = true;
 
         PipelineDesc desc = {};
-        desc.type = PIPELINE_TYPE_GRAPHICS;
+        desc.Type = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& pipelineDesc = desc.graphicsDesc;
         pipelineDesc.primitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
         pipelineDesc.depthStencilFormat = hz::Format::UNDEFINED;
         pipelineDesc.renderTargetCount = 1;
-        pipelineDesc.sampleCount = SAMPLE_COUNT_1;
-        pipelineDesc.sampleQuality = 0;
+        pipelineDesc.SampleCount = SAMPLE_COUNT_1;
+        pipelineDesc.SampleQuality = 0;
         pipelineDesc.pBlendState = &blendStateDesc;
         pipelineDesc.pColorFormats = &colorFormat;
         pipelineDesc.pDepthState = &depthStateDesc;
@@ -298,10 +298,10 @@ bool loadVirtualJoystick(ReloadType loadType, hz::Format colorFormat, uint32_t w
 
     if (loadType & RELOAD_TYPE_RESIZE)
     {
-        gVirtualJoystick->renderSize[0] = (float)width;
-        gVirtualJoystick->renderSize[1] = (float)height;
-        gVirtualJoystick->renderScale[0] = (float)width / (float)displayWidth;
-        gVirtualJoystick->renderScale[1] = (float)height / (float)displayHeight;
+        gVirtualJoystick->renderSize[0] = (float)Width;
+        gVirtualJoystick->renderSize[1] = (float)Height;
+        gVirtualJoystick->renderScale[0] = (float)Width / (float)displayWidth;
+        gVirtualJoystick->renderScale[1] = (float)Height / (float)displayHeight;
     }
 #endif
     return true;
@@ -485,7 +485,7 @@ struct InputSystemImpl: public gainput::InputListener
     struct IControl
     {
         InputActionDesc  action;
-        InputControlType type;
+        InputControlType Type;
     };
 
     struct CompositeControl: public IControl
@@ -495,7 +495,7 @@ struct InputSystemImpl: public gainput::InputListener
             memset((void*)this, 0, sizeof(*this));
             this->composite = composite;
             memcpy(this->controls, controls, sizeof(this->controls));
-            type = CONTROL_COMPOSITE;
+            Type = CONTROL_COMPOSITE;
         }
         float2   value;
         uint32_t controls[4];
@@ -512,7 +512,7 @@ struct InputSystemImpl: public gainput::InputListener
             memset((void*)this, 0, sizeof(*this));
             startButton = start;
             this->target = target;
-            type = CONTROL_FLOAT;
+            Type = CONTROL_FLOAT;
             this->delta = (1 << (uint8_t)raw) | (uint8_t)delta;
             scale = 1;
             scaleByDT = false;
@@ -536,7 +536,7 @@ struct InputSystemImpl: public gainput::InputListener
             startButton = start;
             this->target = target;
             axisCount = axis;
-            type = CONTROL_AXIS;
+            Type = CONTROL_AXIS;
         }
         float3   value;
         float3   newValue;
@@ -878,7 +878,7 @@ struct InputSystemImpl: public gainput::InputListener
 
     // ----- Runtime
 
-    void Update(float deltaTime, uint32_t width, uint32_t height)
+    void Update(float deltaTime, uint32_t Width, uint32_t Height)
     {
         ASSERT(pInputManager);
 
@@ -888,7 +888,7 @@ struct InputSystemImpl: public gainput::InputListener
         {
             IControl* control = controls[touchDeviceID][gainput::Touch0Down][i];
 
-            if (control->type != CONTROL_GESTURE)
+            if (control->Type != CONTROL_GESTURE)
                 continue;
 
             GestureControl* pControl = (GestureControl*)control;
@@ -1031,7 +1031,7 @@ struct InputSystemImpl: public gainput::InputListener
         }
 
         // update gainput manager
-        pInputManager->SetDisplaySize(width, height);
+        pInputManager->SetDisplaySize(Width, Height);
         pInputManager->Update(deltaTime);
 
 #if defined(__linux__) && !defined(__ANDROID__) && !defined(GAINPUT_PLATFORM_GGP)
@@ -1082,7 +1082,7 @@ struct InputSystemImpl: public gainput::InputListener
                     IControl* pControl = AllocateControl<IControl>(index);
                     ASSERT(pControl);
 
-                    pControl->type = CONTROL_BUTTON;
+                    pControl->Type = CONTROL_BUTTON;
                     pControl->action = action;
                     arrpush(controls[index][pActionMappingDesc->deviceButtons[0]], pControl);
                 }
@@ -1095,7 +1095,7 @@ struct InputSystemImpl: public gainput::InputListener
                     ASSERT(pControl);
 
                     memset((void*)pControl, 0, sizeof(*pControl));
-                    pControl->type = CONTROL_AXIS;
+                    pControl->Type = CONTROL_AXIS;
                     pControl->action = action;
                     pControl->startButton = (uint16_t)pActionMappingDesc->deviceButtons[0];
                     pControl->axisCount = pActionMappingDesc->numAxis;
@@ -1117,7 +1117,7 @@ struct InputSystemImpl: public gainput::InputListener
                 pControl->controls[1] = pActionMappingDesc->deviceButtons[1];
                 pControl->controls[2] = pActionMappingDesc->deviceButtons[2];
                 pControl->controls[3] = pActionMappingDesc->deviceButtons[3];
-                pControl->type = CONTROL_COMPOSITE;
+                pControl->Type = CONTROL_COMPOSITE;
                 pControl->action = action;
                 for (uint32_t i = 0; i < pControl->composite; ++i)
                     arrpush(controls[index][pControl->controls[i]], pControl);
@@ -1129,7 +1129,7 @@ struct InputSystemImpl: public gainput::InputListener
                 ComboControl* pControl = AllocateControl<ComboControl>(index);
                 ASSERT(pControl);
 
-                pControl->type = CONTROL_COMBO;
+                pControl->Type = CONTROL_COMBO;
                 pControl->action = action;
                 pControl->pressButton = (uint16_t)pActionMappingDesc->deviceButtons[0];
                 pControl->triggerButton = (uint16_t)pActionMappingDesc->deviceButtons[1];
@@ -1152,7 +1152,7 @@ struct InputSystemImpl: public gainput::InputListener
                 IControl* pControl = AllocateControl<IControl>(keyboardDeviceID);
                 ASSERT(pControl);
 
-                pControl->type = CONTROL_BUTTON;
+                pControl->Type = CONTROL_BUTTON;
                 pControl->action = action;
                 arrpush(controls[keyboardDeviceID][pActionMappingDesc->deviceButtons[0]], pControl);
 
@@ -1169,7 +1169,7 @@ struct InputSystemImpl: public gainput::InputListener
                 pControl->controls[1] = pActionMappingDesc->deviceButtons[1];
                 pControl->controls[2] = pActionMappingDesc->deviceButtons[2];
                 pControl->controls[3] = pActionMappingDesc->deviceButtons[3];
-                pControl->type = CONTROL_COMPOSITE;
+                pControl->Type = CONTROL_COMPOSITE;
                 pControl->action = action;
                 for (uint32_t i = 0; i < pControl->composite; ++i)
                     arrpush(controls[keyboardDeviceID][pControl->controls[i]], pControl);
@@ -1181,7 +1181,7 @@ struct InputSystemImpl: public gainput::InputListener
                 ComboControl* pControl = AllocateControl<ComboControl>(keyboardDeviceID);
                 ASSERT(pControl);
 
-                pControl->type = CONTROL_COMBO;
+                pControl->Type = CONTROL_COMBO;
                 pControl->action = action;
                 pControl->pressButton = (uint16_t)pActionMappingDesc->deviceButtons[0];
                 pControl->triggerButton = (uint16_t)pActionMappingDesc->deviceButtons[1];
@@ -1206,7 +1206,7 @@ struct InputSystemImpl: public gainput::InputListener
                     IControl* pControl = AllocateControl<IControl>(mouseDeviceID);
                     ASSERT(pControl);
 
-                    pControl->type = CONTROL_BUTTON;
+                    pControl->Type = CONTROL_BUTTON;
                     pControl->action = action;
                     arrpush(controls[mouseDeviceID][pActionMappingDesc->deviceButtons[0]], pControl);
                 }
@@ -1219,7 +1219,7 @@ struct InputSystemImpl: public gainput::InputListener
                     ASSERT(pControl);
 
                     memset((void*)pControl, 0, sizeof(*pControl));
-                    pControl->type = CONTROL_FLOAT;
+                    pControl->Type = CONTROL_FLOAT;
                     pControl->startButton = (uint16_t)pActionMappingDesc->deviceButtons[0];
                     pControl->target = (pActionMappingDesc->numAxis == 2 ? (1 << 1) | 1 : 1);
                     pControl->delta = pActionMappingDesc->delta ? (1 << 1) | 1 : 0;
@@ -1246,7 +1246,7 @@ struct InputSystemImpl: public gainput::InputListener
                 pControl->controls[1] = pActionMappingDesc->deviceButtons[1];
                 pControl->controls[2] = pActionMappingDesc->deviceButtons[2];
                 pControl->controls[3] = pActionMappingDesc->deviceButtons[3];
-                pControl->type = CONTROL_COMPOSITE;
+                pControl->Type = CONTROL_COMPOSITE;
                 pControl->action = action;
                 for (uint32_t i = 0; i < pControl->composite; ++i)
                     arrpush(controls[mouseDeviceID][pControl->controls[i]], pControl);
@@ -1258,7 +1258,7 @@ struct InputSystemImpl: public gainput::InputListener
                 ComboControl* pControl = AllocateControl<ComboControl>(mouseDeviceID);
                 ASSERT(pControl);
 
-                pControl->type = CONTROL_COMBO;
+                pControl->Type = CONTROL_COMBO;
                 pControl->action = action;
                 pControl->pressButton = (uint16_t)pActionMappingDesc->deviceButtons[0];
                 pControl->triggerButton = (uint16_t)pActionMappingDesc->deviceButtons[1];
@@ -1284,7 +1284,7 @@ struct InputSystemImpl: public gainput::InputListener
                     IControl* pControl = AllocateControl<IControl>(touchDeviceID);
                     ASSERT(pControl);
 
-                    pControl->type = CONTROL_BUTTON;
+                    pControl->Type = CONTROL_BUTTON;
                     pControl->action = action;
                     arrpush(controls[touchDeviceID][TOUCH_DOWN(pActionMappingDesc->userId)], pControl);
                 }
@@ -1297,7 +1297,7 @@ struct InputSystemImpl: public gainput::InputListener
                     ASSERT(pControl);
 
                     memset((void*)pControl, 0, sizeof(*pControl));
-                    pControl->type = CONTROL_FLOAT;
+                    pControl->Type = CONTROL_FLOAT;
                     pControl->startButton = pActionMappingDesc->deviceButtons[0];
                     pControl->target = (pActionMappingDesc->numAxis == 2 ? (1 << 1) | 1 : 1);
                     pControl->delta = pActionMappingDesc->delta ? (1 << 1) | 1 : 0;
@@ -1333,7 +1333,7 @@ struct InputSystemImpl: public gainput::InputListener
                 GestureControl* pControl = AllocateControl<GestureControl>(touchDeviceID);
                 ASSERT(pControl);
 
-                pControl->type = CONTROL_GESTURE;
+                pControl->Type = CONTROL_GESTURE;
                 pControl->action = action;
                 pControl->performed = 0;
 
@@ -1390,7 +1390,7 @@ struct InputSystemImpl: public gainput::InputListener
                 VirtualJoystickControl* pControl = AllocateControl<VirtualJoystickControl>(touchDeviceID);
                 ASSERT(pControl);
 
-                pControl->type = CONTROL_VIRTUAL_JOYSTICK;
+                pControl->Type = CONTROL_VIRTUAL_JOYSTICK;
                 pControl->action = action;
                 pControl->outsideRadius = pActionMappingDesc->outsideRadius;
                 pControl->deadzone = pActionMappingDesc->deadzone;
@@ -1590,7 +1590,7 @@ struct InputSystemImpl: public gainput::InputListener
                 case INPUT_ACTION_MAPPING_TARGET_TOUCH:
                 {
                     index = touchDeviceID;
-                    // Ensure the proper action mapping type is used
+                    // Ensure the proper action mapping Type is used
                     ASSERT(INPUT_ACTION_MAPPING_NORMAL == pActionMappingDesc->actionMappingType ||
                            INPUT_ACTION_MAPPING_TOUCH_VIRTUAL_JOYSTICK == pActionMappingDesc->actionMappingType ||
                            INPUT_ACTION_MAPPING_TOUCH_GESTURE == pActionMappingDesc->actionMappingType);
@@ -1617,7 +1617,7 @@ struct InputSystemImpl: public gainput::InputListener
                     // (GLOBAL_INPUT_ACTION_ANY_BUTTON_ACTION)
                     if (pActionMappingDesc->actionId > UISystemInputActions::UI_ACTION_START_ID_)
                     {
-                        // Ensure the type is INPUT_ACTION_MAPPING_NORMAL
+                        // Ensure the Type is INPUT_ACTION_MAPPING_NORMAL
                         ASSERT(INPUT_ACTION_MAPPING_NORMAL == pActionMappingDesc->actionMappingType);
 
                         InputActionDesc actionDesc;
@@ -1708,7 +1708,7 @@ struct InputSystemImpl: public gainput::InputListener
                                           UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin)];
 #else
             NSView*              mainView = (__bridge NSView*)view;
-            float                retinScale = ((CAMetalLayer*)(mainView.layer)).drawableSize.width / mainView.frame.Size.width;
+            float                retinScale = ((CAMetalLayer*)(mainView.layer)).drawableSize.Width / mainView.frame.Size.Width;
             // Use view.window.contentLayoutRect instead of view.frame as a frame to avoid capturing inputs over title bar
             GainputMacInputView* newView = [[GainputMacInputView alloc] initWithFrame:mainView.window.contentLayoutRect
                                                                                window:mainView.window
@@ -1776,24 +1776,24 @@ struct InputSystemImpl: public gainput::InputListener
         return false;
     }
 
-    void SetVirtualKeyboard(uint32_t type)
+    void SetVirtualKeyboard(uint32_t Type)
     {
-        UNREF_PARAM(type);
+        UNREF_PARAM(Type);
 #ifdef TARGET_IOS
         if (!pGainputView)
             return;
 
-        if ((type > 0) != virtualKeyboardActive)
-            virtualKeyboardActive = (type > 0);
+        if ((Type > 0) != virtualKeyboardActive)
+            virtualKeyboardActive = (Type > 0);
         else
             return;
 
         GainputView* view = (__bridge GainputView*)(pGainputView);
-        [view SetVirtualKeyboard:type];
+        [view SetVirtualKeyboard:Type];
 #elif defined(__ANDROID__)
-        if ((type > 0) != virtualKeyboardActive)
+        if ((Type > 0) != virtualKeyboardActive)
         {
-            virtualKeyboardActive = (type > 0);
+            virtualKeyboardActive = (Type > 0);
 
             /* Note: native activity's API for soft input (ANativeActivity_showSoftInput & ANativeActivity_hideSoftInput) do not work.
              *       So we do it manually using JNI.
@@ -1925,14 +1925,14 @@ struct InputSystemImpl: public gainput::InputListener
                 if (!executeNext)
                     return true;
 
-                const InputControlType type = control->type;
+                const InputControlType Type = control->Type;
                 const InputActionDesc* pDesc = &control->action;
                 ctx.UserData = pDesc->UserData;
                 ctx.actionId = pDesc->actionId;
                 ctx.userId = pDesc->userId;
                 ASSERT(ctx.actionId != UINT_MAX);
 
-                switch (type)
+                switch (Type)
                 {
                 case CONTROL_BUTTON:
                 {
@@ -2425,7 +2425,7 @@ struct InputSystemImpl: public gainput::InputListener
                 if (!executeNext)
                     return true;
 
-                const InputControlType type = control->type;
+                const InputControlType Type = control->Type;
                 const InputActionDesc* pDesc = &control->action;
                 InputActionContext     ctx = {};
                 ctx.deviceType = (uint8_t)pDeviceTypes[device];
@@ -2435,7 +2435,7 @@ struct InputSystemImpl: public gainput::InputListener
                 ctx.pPosition = pPosition;
                 ctx.userId = pDesc->userId;
 
-                switch (type)
+                switch (Type)
                 {
                 case CONTROL_FLOAT:
                 {
@@ -3049,15 +3049,15 @@ void ExitInputSystem()
 #endif
 }
 
-void UpdateInputSystem(float deltaTime, uint32_t width, uint32_t height)
+void UpdateInputSystem(float deltaTime, uint32_t Width, uint32_t Height)
 {
     UNREF_PARAM(deltaTime);
-    UNREF_PARAM(width);
-    UNREF_PARAM(height);
+    UNREF_PARAM(Width);
+    UNREF_PARAM(Height);
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
 #if !defined(AUTOMATED_TESTING)
-    pInputSystem->Update(deltaTime, width, height);
+    pInputSystem->Update(deltaTime, Width, Height);
 #endif
 #endif
 }
@@ -3441,12 +3441,12 @@ bool SetEnableCaptureInput(bool enable)
 #endif
 }
 
-void SetVirtualKeyboard(uint32_t type)
+void SetVirtualKeyboard(uint32_t Type)
 {
 #ifdef ENABLE_FORGE_INPUT
     ASSERT(pInputSystem);
 
-    pInputSystem->SetVirtualKeyboard(type);
+    pInputSystem->SetVirtualKeyboard(Type);
 #endif
 }
 
