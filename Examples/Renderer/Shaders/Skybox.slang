@@ -17,8 +17,8 @@ static const uint   indices[36] = {
 
 struct PSInput
 {
-    float4 position: SV_Position;
-    float3 dir: TEXCOORD0;
+    float4 Position: SV_Position;
+    float3 Dir: TEXCOORD0;
 };
 
 PSInput VSMain(uint vertexId : SV_VertexID)
@@ -27,9 +27,9 @@ PSInput VSMain(uint vertexId : SV_VertexID)
     int                         idx = indices[vertexId];
     PSInput                     output;
     // Center the cube on the eye to discard view translation while preserving camera rotation.
-    output.position = mul(frame[0].viewProjection, float4(pos[idx] + frame[0].eye.xyz, 1.0));
-    output.position.z = output.position.w;
-    output.dir = pos[idx].xyz;
+    output.Position = mul(frame[0].viewProjection, float4(pos[idx] + frame[0].eye.xyz, 1.0));
+    output.Position.z = output.Position.w;
+    output.Dir = pos[idx].xyz;
     return output;
 }
 
@@ -37,6 +37,6 @@ float4 PSMain(PSInput input): SV_Target0
 {
     TextureCube<float4> environment = ResourceDescriptorHeap[environmentIndex];
     SamplerState        surfaceSampler = SamplerDescriptorHeap[samplerIndex];
-    float3              sky = float3(-input.dir.x, input.dir.y, -input.dir.z);
+    float3              sky = float3(-input.Dir.x, input.Dir.y, -input.Dir.z);
     return float4(environment.Sample(surfaceSampler, sky).rgb * max(intensity, 0.0), 1);
 }

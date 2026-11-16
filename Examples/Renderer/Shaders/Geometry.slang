@@ -42,32 +42,32 @@ float4x4 LoadMatrix(ByteAddressBuffer buffer, uint offset)
                               asfloat(buffer.Load4(offset + 48))));
 }
 
-float3 TransformNormal(float4x4 world, float3 normal)
+float3 TransformNormal(float4x4 world, float3 Normal)
 {
     const float3 x = float3(world[0][0], world[1][0], world[2][0]);
     const float3 y = float3(world[0][1], world[1][1], world[2][1]);
     const float3 z = float3(world[0][2], world[1][2], world[2][2]);
-    const float3 cofactor = cross(y, z) * normal.x + cross(z, x) * normal.y + cross(x, y) * normal.z;
+    const float3 cofactor = cross(y, z) * Normal.x + cross(z, x) * Normal.y + cross(x, y) * Normal.z;
     return normalize(cofactor * (dot(x, cross(y, z)) < 0.0 ? -1.0 : 1.0));
 }
 
 struct PSInput
 {
-    float4                position: SV_Position;
-    float3                worldPosition: TEXCOORD0;
-    float3                normal: TEXCOORD1;
-    float2                uv: TEXCOORD2;
-    float4                currentClip: TEXCOORD3;
-    float4                previousClip: TEXCOORD4;
-    nointerpolation uint2 materialData: TEXCOORD5;
+    float4                Position: SV_Position;
+    float3                WorldPosition: TEXCOORD0;
+    float3                Normal: TEXCOORD1;
+    float2                Uv: TEXCOORD2;
+    float4                CurrentClip: TEXCOORD3;
+    float4                PreviousClip: TEXCOORD4;
+    nointerpolation uint2 MaterialData: TEXCOORD5;
 };
 
 struct PSOutput
 {
-    float4 emissive: SV_Target0;
-    float4 normalMaterial: SV_Target1;
-    float4 baseColorMetallic: SV_Target2;
-    float4 motionMaterialId: SV_Target3;
+    float4 Emissive: SV_Target0;
+    float4 NormalMaterial: SV_Target1;
+    float4 BaseColorMetallic: SV_Target2;
+    float4 MotionMaterialId: SV_Target3;
 };
 
 PSInput BuildVertex(uint vertexId, uint instance, uint material, uint id, uint positionBuffer, uint normalBuffer, uint uvBuffer)
@@ -77,20 +77,20 @@ PSInput BuildVertex(uint vertexId, uint instance, uint material, uint id, uint p
     ByteAddressBuffer           Positions = ResourceDescriptorHeap[NonUniformResourceIndex(positionBuffer)];
     ByteAddressBuffer           Normals = ResourceDescriptorHeap[NonUniformResourceIndex(normalBuffer)];
     ByteAddressBuffer           Texcoords = ResourceDescriptorHeap[NonUniformResourceIndex(uvBuffer)];
-    float3                      position = asfloat(Positions.Load3(vertexId * sizeof(float3)));
-    uint                        normal = Normals.Load(vertexId * 4);
-    uint                        uv = Texcoords.Load(vertexId * 4);
+    float3                      Position = asfloat(Positions.Load3(vertexId * sizeof(float3)));
+    uint                        Normal = Normals.Load(vertexId * 4);
+    uint                        Uv = Texcoords.Load(vertexId * 4);
     const float4x4              world = LoadMatrix(Instances, instance * 192 + 32);
     const float4x4              previousWorld = LoadMatrix(Instances, instance * 192 + 96);
-    float4                      worldPosition = mul(world, float4(position, 1.0));
+    float4                      WorldPosition = mul(world, float4(Position, 1.0));
     PSInput                     output;
-    output.currentClip = mul(Frame[0].viewProjection, worldPosition);
-    output.previousClip = mul(Frame[0].previousViewProjection, mul(previousWorld, float4(position, 1.0)));
-    output.position = output.currentClip;
-    output.worldPosition = worldPosition.xyz;
-    output.normal = TransformNormal(world, decodeVertexNormal(normal));
-    output.uv = float2(f16tof32(uv & 0xffffu), f16tof32(uv >> 16));
-    output.materialData = uint2(material, id);
+    output.CurrentClip = mul(Frame[0].viewProjection, WorldPosition);
+    output.PreviousClip = mul(Frame[0].previousViewProjection, mul(previousWorld, float4(Position, 1.0)));
+    output.Position = output.CurrentClip;
+    output.WorldPosition = WorldPosition.xyz;
+    output.Normal = TransformNormal(world, decodeVertexNormal(Normal));
+    output.Uv = float2(f16tof32(Uv & 0xffffu), f16tof32(Uv >> 16));
+    output.MaterialData = uint2(material, id);
     return output;
 }
 
@@ -113,12 +113,12 @@ PSInput VSIndirect(uint vertexId : SV_VertexID)
     return BuildVertex(uint(int(index) + asint(geometry.z)), object.x, object.y, object.z, buffers.x, buffers.y, buffers.z);
 }
 
-float3x3 CotangentFrame(float3 N, float3 p, float2 uv)
+float3x3 CotangentFrame(float3 N, float3 p, float2 Uv)
 {
     float3 dp1 = ddx(p);
     float3 dp2 = ddy(p);
-    float2 duv1 = ddx(uv);
-    float2 duv2 = ddy(uv);
+    float2 duv1 = ddx(Uv);
+    float2 duv2 = ddy(Uv);
 
     float3 dp2perp = cross(dp2, N);
     float3 dp1perp = cross(N, dp1);
@@ -134,10 +134,10 @@ float3x3 CotangentFrame(float3 N, float3 p, float2 uv)
     return transpose(float3x3(T * invmax, B * invmax, N));
 }
 
-float3 PerturbNormal(float3 n, float3 v, float3 normalSample, float2 uv)
+float3 PerturbNormal(float3 n, float3 v, float3 normalSample, float2 Uv)
 {
     float3   map = normalize(2.0 * normalSample - float3(1.0));
-    float3x3 TBN = CotangentFrame(n, v, uv);
+    float3x3 TBN = CotangentFrame(n, v, Uv);
     float3 perturbed = mul(TBN, map);
     return dot(perturbed, perturbed) > 1e-20 ? normalize(perturbed) : n;
 }
@@ -165,30 +165,30 @@ PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
 {
     SamplerState      SurfaceSampler = SamplerDescriptorHeap[samplerIndex];
     ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
-    GpuMaterialData   material = materials.Load<GpuMaterialData>(input.materialData.x * sizeof(GpuMaterialData));
+    GpuMaterialData   material = materials.Load<GpuMaterialData>(input.MaterialData.x * sizeof(GpuMaterialData));
 
     float4 baseColor = material.baseColorFactor;
     if (material.baseColorTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> BaseColor = ResourceDescriptorHeap[NonUniformResourceIndex(material.baseColorTexture)];
-        baseColor *= BaseColor.Sample(SurfaceSampler, input.uv);
+        baseColor *= BaseColor.Sample(SurfaceSampler, input.Uv);
     }
     if (material.alphaMode == 1)
     {
-        RunAlphaTest(baseColor.a, material.alphaCutoff / max(32.0 * fwidth(float(input.uv.x)), 1.0), input.position.xy);
+        RunAlphaTest(baseColor.a, material.alphaCutoff / max(32.0 * fwidth(float(input.Uv.x)), 1.0), input.Position.xy);
     }
 
-    float3 n = normalize(input.normal);
+    float3 n = normalize(input.Normal);
     if (material.normalTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> NormalMap = ResourceDescriptorHeap[NonUniformResourceIndex(material.normalTexture)];
-        float3            normalSample = NormalMap.Sample(SurfaceSampler, input.uv).xyz;
-        // Bistro uses BC5 normal maps: reconstruct Z before the reference RGB normal mapping.
+        float3            normalSample = NormalMap.Sample(SurfaceSampler, input.Uv).xyz;
+        // Bistro uses BC5 Normal maps: reconstruct Z before the reference RGB Normal mapping.
         float2 normalXY = normalSample.xy * 2.0 - 1.0;
         normalSample.z = 0.5 + 0.5 * sqrt(saturate(1.0 - dot(normalXY, normalXY)));
         if (length(normalSample) > 0.5)
         {
-            n = PerturbNormal(n, input.worldPosition, normalSample, input.uv);
+            n = PerturbNormal(n, input.WorldPosition, normalSample, input.Uv);
         }
     }
 
@@ -199,31 +199,31 @@ PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
     if (material.metallicRoughnessTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> MetallicRoughness = ResourceDescriptorHeap[NonUniformResourceIndex(material.metallicRoughnessTexture)];
-        float4            metallicRoughness = MetallicRoughness.Sample(SurfaceSampler, input.uv);
+        float4            metallicRoughness = MetallicRoughness.Sample(SurfaceSampler, input.Uv);
         roughness *= metallicRoughness.g;
         metallic *= metallicRoughness.b;
     }
     roughness = saturate(roughness);
     metallic = saturate(metallic);
 
-    float3 emissive = material.emissiveFactor;
+    float3 Emissive = material.emissiveFactor;
     if (material.emissiveTexture != INVALID_TEXTURE)
     {
-        Texture2D<float4> Emissive = ResourceDescriptorHeap[NonUniformResourceIndex(material.emissiveTexture)];
-        emissive *= Emissive.Sample(SurfaceSampler, input.uv).rgb;
+        Texture2D<float4> EmissiveTexture = ResourceDescriptorHeap[NonUniformResourceIndex(material.emissiveTexture)];
+        Emissive *= EmissiveTexture.Sample(SurfaceSampler, input.Uv).rgb;
     }
 
-    float2 currentNdc = input.currentClip.xy / input.currentClip.w;
-    float2 previousNdc = input.previousClip.xy / input.previousClip.w;
+    float2 currentNdc = input.CurrentClip.xy / input.CurrentClip.w;
+    float2 previousNdc = input.PreviousClip.xy / input.PreviousClip.w;
     float2 motion = (currentNdc - previousNdc) * float2(0.5, -0.5);
 
     // Disney/UE default: Specular 0.5 maps to a dielectric F0 of 0.04.
     float2 packedMaterial = packMaterialProperties(roughness, 0.5);
 
     PSOutput output;
-    output.emissive = float4(emissive, 0.0);
-    output.normalMaterial = float4(encodeOctNormal(n), packedMaterial.x, packedMaterial.y);
-    output.baseColorMetallic = float4(baseColor.rgb, metallic);
-    output.motionMaterialId = float4(encodeMotionVector(motion), min(input.materialData.y, 255u) / 255.0);
+    output.Emissive = float4(Emissive, 0.0);
+    output.NormalMaterial = float4(encodeOctNormal(n), packedMaterial.x, packedMaterial.y);
+    output.BaseColorMetallic = float4(baseColor.rgb, metallic);
+    output.MotionMaterialId = float4(encodeMotionVector(motion), min(input.MaterialData.y, 255u) / 255.0);
     return output;
 }

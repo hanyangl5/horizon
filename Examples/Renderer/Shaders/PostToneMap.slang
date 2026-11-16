@@ -27,17 +27,17 @@ cbuffer RootConstant0
 
 struct PostToneInput
 {
-    float4 position: SV_Position;
-    float2 uv: TEXCOORD0;
+    float4 Position: SV_Position;
+    float2 Uv: TEXCOORD0;
 };
 
 [shader("vertex")]
 PostToneInput VSMain(uint vertexId : SV_VertexID)
 {
-    float2        uv = float2((vertexId << 1) & 2, vertexId & 2);
+    float2        Uv = float2((vertexId << 1) & 2, vertexId & 2);
     PostToneInput output;
-    output.position = float4(uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
-    output.uv = uv;
+    output.Position = float4(Uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
+    output.Uv = Uv;
     return output;
 }
 
@@ -98,11 +98,11 @@ float4 PSMain(PostToneInput input): SV_Target0
     Texture2D<float>  Luminance = ResourceDescriptorHeap[adaptedLuminanceIndex];
     Texture2D<float4> bloom = ResourceDescriptorHeap[bloomIndex];
     SamplerState      clampSampler = SamplerDescriptorHeap[samplerIndex];
-    float3            color = sceneColor.SampleLevel(clampSampler, input.uv, 0).rgb;
+    float3            color = sceneColor.SampleLevel(clampSampler, input.Uv, 0).rgb;
     float3            bloomColor = float3(0.0);
     if (bloomStrength > 0.0)
     {
-        bloomColor = bloom.SampleLevel(clampSampler, input.uv, 0).rgb;
+        bloomColor = bloom.SampleLevel(clampSampler, input.Uv, 0).rgb;
     }
     float avgLuminance = Luminance.Load(int3(0, 0, 0));
     float scale = toneMapping != 0 ? ExposureScale(avgLuminance, exposure) : exposure;

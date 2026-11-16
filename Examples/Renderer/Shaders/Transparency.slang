@@ -24,14 +24,14 @@ void ClearMain(uint3 id : SV_DispatchThreadID)
 
 struct OITNode
 {
-    uint2 color;
-    float depth;
-    uint next;
+    uint2 Color;
+    float Depth;
+    uint Next;
 };
 
-uint2 PackFragment(float3 color, float alpha)
+uint2 PackFragment(float3 Color, float alpha)
 {
-    const float4 value = float4(color, alpha);
+    const float4 value = float4(Color, alpha);
     const uint4  packed = f32tof16(value);
     return uint2(packed.x | (packed.y << 16), packed.z | (packed.w << 16));
 }
@@ -43,7 +43,7 @@ float4 UnpackFragment(uint2 packed)
 [earlydepthstencil] void PSTransparent(PSInput input, bool frontFace : SV_IsFrontFace)
 {
     ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
-    GpuMaterialData   mat = materials.Load<GpuMaterialData>(input.materialData.x * sizeof(GpuMaterialData));
+    GpuMaterialData   mat = materials.Load<GpuMaterialData>(input.MaterialData.x * sizeof(GpuMaterialData));
     if (mat.alphaMode != 2)
     {
         return;
@@ -53,26 +53,26 @@ float4 UnpackFragment(uint2 packed)
     if (mat.emissiveTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(mat.emissiveTexture)];
-        emissiveColor *= texture.Sample(sampler, input.uv);
+        emissiveColor *= texture.Sample(sampler, input.Uv);
     }
     float4 baseColor = mat.baseColorFactor;
     if (mat.baseColorTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(mat.baseColorTexture)];
-        baseColor *= texture.Sample(sampler, input.uv);
+        baseColor *= texture.Sample(sampler, input.Uv);
     }
 
-    float3 n = normalize(input.normal);
+    float3 n = normalize(input.Normal);
     if (mat.normalTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(mat.normalTexture)];
-        float3            normalSample = texture.Sample(sampler, input.uv).xyz;
+        float3            normalSample = texture.Sample(sampler, input.Uv).xyz;
         // Bistro uses BC5 normal maps: reconstruct Z before the reference RGB normal mapping.
         float2            normalXY = normalSample.xy * 2.0 - 1.0;
         normalSample.z = 0.5 + 0.5 * sqrt(saturate(1.0 - dot(normalXY, normalXY)));
         if (length(normalSample) > 0.5)
         {
-            n = PerturbNormal(n, input.worldPosition, normalSample, input.uv);
+            n = PerturbNormal(n, input.WorldPosition, normalSample, input.Uv);
         }
     }
 
@@ -84,7 +84,7 @@ float4 UnpackFragment(uint2 packed)
     // fragment, so its value describes a different point and would darken glass in front of a shadowed wall.
     LightingBindings shadowBindings = { shadowMapIndex,          shadowSamplerIndex, INVALID_TEXTURE, INVALID_TEXTURE, INVALID_TEXTURE,
                                        environmentSamplerIndex, INVALID_TEXTURE,    INVALID_TEXTURE };
-    const float      visibility = shadowVisibility(input.worldPosition, light, shadowBindings);
+    const float      visibility = shadowVisibility(input.WorldPosition, light, shadowBindings);
 
     const float4 f0 = float4(0.04);
     float3       sky = float3(-n.x, n.y, -n.z);
@@ -101,7 +101,7 @@ float4 UnpackFragment(uint2 packed)
         if (environmentIndex != INVALID_TEXTURE)
         {
             TextureCube<float4> texture = ResourceDescriptorHeap[environmentIndex];
-            float3              v = normalize(frame[0].eye.xyz - input.worldPosition);
+            float3              v = normalize(frame[0].eye.xyz - input.WorldPosition);
             float3              reflection = reflect(v, n);
             reflection = float3(reflection.x, -reflection.y, reflection.z);
             colorRefl = texture.SampleLevel(environmentSampler, reflection, 0).rgb * max(light.environmentIntensity, 0.0);
@@ -111,9 +111,9 @@ float4 UnpackFragment(uint2 packed)
                       float4(NdotL * visibility * max(light.lightDirection.w, 0.0) * max(light.lightColor.rgb, 0.0) / M_PI, 0.0)) *
                      baseColor * (float4(1.0) - f0);
 
-    float3 v = normalize(frame[0].eye.xyz - input.worldPosition);
+    float3 v = normalize(frame[0].eye.xyz - input.WorldPosition);
     float3 kS = fresnelSchlickRoughness(clamp(dot(n, v), 0.0, 1.0), f0.rgb, 0.1);
-    float3 color = emissiveColor.rgb + diffuse.rgb + colorRefl * kS;
+    float3 Color = emissiveColor.rgb + diffuse.rgb + colorRefl * kS;
 
     // Horizon's glTF material stores the final blend alpha in baseColor.
     float alpha = clamp(baseColor.a, 0.0, 1.0);
@@ -127,10 +127,10 @@ float4 UnpackFragment(uint2 packed)
         {
             RWTexture2D<uint> heads = ResourceDescriptorHeap[oitHeadsIndex];
             uint              prevIndex;
-            InterlockedExchange(heads[uint2(input.position.xy)], index, prevIndex);
-            uint2               packedColor = PackFragment(color, alpha);
+            InterlockedExchange(heads[uint2(input.Position.xy)], index, prevIndex);
+            uint2               packedColor = PackFragment(Color, alpha);
             RWByteAddressBuffer nodes = ResourceDescriptorHeap[oitNodesIndex];
-            nodes.Store4(index * sizeof(OITNode), uint4(packedColor, asuint(input.position.z), prevIndex));
+            nodes.Store4(index * sizeof(OITNode), uint4(packedColor, asuint(input.Position.z), prevIndex));
         }
         else
         {
@@ -142,9 +142,9 @@ float4 UnpackFragment(uint2 packed)
 
 struct TransparentFragment
 {
-    half4 color;
-    float depth;
-    uint  next;
+    half4 Color;
+    float Depth;
+    uint  Next;
 };
 
 [numthreads(8, 8, 1)]
@@ -166,11 +166,11 @@ void ResolveMain(uint3 id : SV_DispatchThreadID)
     {
         uint4 packed = nodes.Load4(idx * sizeof(OITNode));
         OITNode node = { packed.xy, asfloat(packed.z), packed.w };
-        frags[numFragments].color = half4(UnpackFragment(node.color));
-        frags[numFragments].depth = node.depth;
-        frags[numFragments].next = node.next;
+        frags[numFragments].Color = half4(UnpackFragment(node.Color));
+        frags[numFragments].Depth = node.Depth;
+        frags[numFragments].Next = node.Next;
         numFragments++;
-        idx = node.next;
+        idx = node.Next;
     }
     if (idx != 0xffffffffu)
     {
@@ -183,7 +183,7 @@ void ResolveMain(uint3 id : SV_DispatchThreadID)
     {
         TransparentFragment toInsert = frags[i];
         uint                j = i;
-        while (j > 0 && toInsert.depth > frags[j - 1].depth)
+        while (j > 0 && toInsert.Depth > frags[j - 1].Depth)
         {
             frags[j] = frags[j - 1];
             j--;
@@ -192,15 +192,15 @@ void ResolveMain(uint3 id : SV_DispatchThreadID)
     }
 
     Texture2D<float4> opaque = ResourceDescriptorHeap[oitOpaqueIndex];
-    float4            color = opaque.Load(int3(id.xy, 0));
+    float4            Color = opaque.Load(int3(id.xy, 0));
     for (uint i = 0; i < numFragments; i++)
     {
-        color = lerp(color, float4(frags[i].color), clamp(float(frags[i].color.a + oitOpacityBoost), 0.0, 1.0));
+        Color = lerp(Color, float4(frags[i].Color), clamp(float(frags[i].Color.a + oitOpacityBoost), 0.0, 1.0));
     }
     if (oitShowHeatmap > 0 && numFragments > 0)
     {
-        color = (1.0 + sin(5.0 * oitTime)) * float4(float3(numFragments + 1, numFragments + 1, 0), 0.0) / 16.0;
+        Color = (1.0 + sin(5.0 * oitTime)) * float4(float3(numFragments + 1, numFragments + 1, 0), 0.0) / 16.0;
     }
     RWTexture2D<float4> output = ResourceDescriptorHeap[oitOutputIndex];
-    output[id.xy] = color;
+    output[id.xy] = Color;
 }

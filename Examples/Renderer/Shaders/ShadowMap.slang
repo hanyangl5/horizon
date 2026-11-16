@@ -3,7 +3,7 @@
 void PSShadow(PSInput input)
 {
     ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
-    GpuMaterialData   material = materials.Load<GpuMaterialData>(input.materialData.x * sizeof(GpuMaterialData));
+    GpuMaterialData   material = materials.Load<GpuMaterialData>(input.MaterialData.x * sizeof(GpuMaterialData));
     if (material.alphaMode == 1)
     {
         float alpha = material.baseColorFactor.a;
@@ -11,7 +11,7 @@ void PSShadow(PSInput input)
         {
             Texture2D<float4> base = ResourceDescriptorHeap[NonUniformResourceIndex(material.baseColorTexture)];
             SamplerState      sampler = SamplerDescriptorHeap[samplerIndex];
-            alpha *= base.Sample(sampler, input.uv).a;
+            alpha *= base.Sample(sampler, input.Uv).a;
         }
         clip(alpha - material.alphaCutoff);
     }
