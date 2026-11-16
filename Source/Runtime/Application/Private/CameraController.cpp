@@ -39,33 +39,33 @@ public:
         movementSpeed{ 1.0f }, rotationSpeed{ 1.0f }
     {
     }
-    void setMotionParameters(const CameraMotionParameters&) override;
+    void SetMotionParameters(const CameraMotionParameters&) override;
 
-    Matrix4 getViewMatrix() const override;
-    Vector3 getViewPosition() const override;
-    Vector2 getRotationXY() const override { return viewRotation; }
+    Matrix4 GetViewMatrix() const override;
+    Vector3 GetViewPosition() const override;
+    Vector2 GetRotationXY() const override { return viewRotation; }
 
-    void moveTo(const Vector3& location) override;
-    void lookAt(const Vector3& lookAt) override;
-    void setViewRotationXY(const Vector2& v) override { viewRotation = v; }
+    void MoveTo(const Vector3& location) override;
+    void LookAt(const Vector3& LookAt) override;
+    void SetViewRotationXY(const Vector2& v) override { viewRotation = v; }
 
-    void resetView() override
+    void ResetView() override
     {
-        moveTo(startPosition);
-        lookAt(startLookAt);
+        MoveTo(startPosition);
+        LookAt(startLookAt);
     }
-    void onMove(const float2& vec) override
+    void OnMove(const float2& vec) override
     {
         dx = vec[0];
         dz = vec[1];
     }
-    void onMoveY(float y) override { dy = y; }
-    void onRotate(const float2& vec) override
+    void OnMoveY(float y) override { dy = y; }
+    void OnRotate(const float2& vec) override
     {
         drx = -vec[1];
         dry = vec[0];
     }
-    void onZoom(const float2& vec) override { zoom = vec[1]; }
+    void OnZoom(const float2& vec) override { zoom = vec[1]; }
 
     void Update(float deltaTime) override;
 
@@ -90,11 +90,11 @@ public:
     float zoom = 0.0f;
 };
 
-ICameraController* initFpsCameraController(const Vector3& startPosition, const Vector3& startLookAt)
+ICameraController* InitFpsCameraController(const Vector3& startPosition, const Vector3& startLookAt)
 {
     FpsCameraController* cc = MemPlacementNew<FpsCameraController>(MemCallocate(1, sizeof(FpsCameraController)));
-    cc->moveTo(startPosition);
-    cc->lookAt(startLookAt);
+    cc->MoveTo(startPosition);
+    cc->LookAt(startLookAt);
 
     cc->startPosition = startPosition;
     cc->startLookAt = startLookAt;
@@ -103,13 +103,13 @@ ICameraController* initFpsCameraController(const Vector3& startPosition, const V
 }
 
 // TODO: Move to common file
-void exitCameraController(ICameraController* pCamera)
+void ExitCameraController(ICameraController* pCamera)
 {
     pCamera->~ICameraController();
     MemDeallocate(pCamera);
 }
 
-void FpsCameraController::setMotionParameters(const CameraMotionParameters& cmp)
+void FpsCameraController::SetMotionParameters(const CameraMotionParameters& cmp)
 {
     acceleration = cmp.acceleration;
     deceleration = cmp.braking;
@@ -189,7 +189,7 @@ void FpsCameraController::Update(float deltaTime)
     }
 }
 
-Matrix4 FpsCameraController::getViewMatrix() const
+Matrix4 FpsCameraController::GetViewMatrix() const
 {
     Matrix4 r = Matrix4::rotationXY(-viewRotation.getX(), -viewRotation.getY());
 #if defined(QUEST_VR)
@@ -202,17 +202,17 @@ Matrix4 FpsCameraController::getViewMatrix() const
     return r;
 }
 
-Vector3 FpsCameraController::getViewPosition() const { return viewPosition; }
+Vector3 FpsCameraController::GetViewPosition() const { return viewPosition; }
 
-void FpsCameraController::moveTo(const Vector3& location)
+void FpsCameraController::MoveTo(const Vector3& location)
 {
     viewPosition = location;
     currentVelocity = Vector3(0);
 }
 
-void FpsCameraController::lookAt(const Vector3& lookAt)
+void FpsCameraController::LookAt(const Vector3& LookAt)
 {
-    Vector3 lookDir = normalize(lookAt - viewPosition);
+    Vector3 lookDir = normalize(LookAt - viewPosition);
 
     float y = lookDir.getY();
     viewRotation.setX(-asinf(y));
@@ -233,7 +233,7 @@ class GuiCameraController: public ICameraController
 {
 public:
     GuiCameraController(): viewRotation{ 0 }, viewPosition{ 0 }, velocity{ 0 }, maxSpeed{ 1.0f } {}
-    void setMotionParameters(const CameraMotionParameters& cmp) override { maxSpeed = cmp.maxSpeed; }
+    void SetMotionParameters(const CameraMotionParameters& cmp) override { maxSpeed = cmp.maxSpeed; }
 
     void Update(float deltaTime) override
     {
@@ -241,7 +241,7 @@ public:
         velocity = Vector3{ 0 };
     }
 
-    Matrix4 getViewMatrix() const override
+    Matrix4 GetViewMatrix() const override
     {
         Matrix4 r{ Matrix4::rotationXY(-viewRotation.getX(), -viewRotation.getY()) };
         Vector4 t = r * Vector4(-viewPosition, 1.0f);
@@ -249,13 +249,13 @@ public:
         return r;
     }
 
-    Vector3 getViewPosition() const override { return viewPosition; }
+    Vector3 GetViewPosition() const override { return viewPosition; }
 
-    void moveTo(const Vector3& location) override { viewPosition = location; }
+    void MoveTo(const Vector3& location) override { viewPosition = location; }
 
-    void lookAt(const Vector3& lookAt) override
+    void LookAt(const Vector3& LookAt) override
     {
-        Vector3 lookDir = normalize(lookAt - viewPosition);
+        Vector3 lookDir = normalize(LookAt - viewPosition);
 
         float y = lookDir.getY();
         viewRotation.setX(-asinf(y));
@@ -272,19 +272,19 @@ public:
         }
     }
 
-    void setViewRotationXY(const Vector2& v) override { viewRotation = v; }
+    void SetViewRotationXY(const Vector2& v) override { viewRotation = v; }
 
-    Vector2 getRotationXY() const override { return viewRotation; }
+    Vector2 GetRotationXY() const override { return viewRotation; }
 
-    void resetView() override
+    void ResetView() override
     {
-        moveTo(startPosition);
-        lookAt(startLookAt);
+        MoveTo(startPosition);
+        LookAt(startLookAt);
     }
-    void onMove(const float2& vec) override { UNREF_PARAM(vec); }
-    void onMoveY(float y) override { UNREF_PARAM(y); }
-    void onRotate(const float2& vec) override { UNREF_PARAM(vec); }
-    void onZoom(const float2& vec) override { UNREF_PARAM(vec); }
+    void OnMove(const float2& vec) override { UNREF_PARAM(vec); }
+    void OnMoveY(float y) override { UNREF_PARAM(y); }
+    void OnRotate(const float2& vec) override { UNREF_PARAM(vec); }
+    void OnZoom(const float2& vec) override { UNREF_PARAM(vec); }
 
     // We put viewRotation at first becuase viewPosition is 16 bytes aligned. We have vtable pointer 8 bytes + Vector2(8 bytes). This avoids
     // unnecessary padding.
@@ -296,11 +296,11 @@ public:
     Vector3 startLookAt;
 };
 
-ICameraController* initGuiCameraController(const Vector3& startPosition, const Vector3& startLookAt)
+ICameraController* InitGuiCameraController(const Vector3& startPosition, const Vector3& startLookAt)
 {
     GuiCameraController* cc = MemPlacementNew<GuiCameraController>(MemCallocate(1, sizeof(GuiCameraController)));
-    cc->moveTo(startPosition);
-    cc->lookAt(startLookAt);
+    cc->MoveTo(startPosition);
+    cc->LookAt(startLookAt);
     cc->startPosition = startPosition;
     cc->startLookAt = startLookAt;
     return cc;
@@ -322,7 +322,7 @@ CameraMatrix::CameraMatrix(const CameraMatrix& mat)
 #endif
 }
 
-void CameraMatrix::applyProjectionSampleOffset(float xOffset, float yOffset)
+void CameraMatrix::ApplyProjectionSampleOffset(float xOffset, float yOffset)
 {
     leftEye[2][0] += xOffset;
     leftEye[2][1] += yOffset;

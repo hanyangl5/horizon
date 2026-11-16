@@ -623,7 +623,7 @@ bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams
                 LOGF(Error, "Couldn't Load Skeleton for mesh '%s' in %s. Skipping asset and all it's animations", skeletonInputFile,
                      skeletonOutput);
                 success = false;
-                continue; // TODO: We could Add a parameter so that the user can select whether to stop processing more assets or not when
+                continue; // TODO: We could Add a parameter so that the user can select whether to Stop processing more assets or not when
                           // encountering an error
             }
             ozz::io::IArchive archive(&file);

@@ -218,7 +218,7 @@ public:
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Renderer::Update");
         Camera->Update(DeltaTime, (uint32_t)settings.Width, (uint32_t)settings.Height, settings.focused);
-        const Matrix4 Pose = Camera->getWorldMatrix();
+        const Matrix4 Pose = Camera->GetWorldMatrix();
         const bool    Updated = World->SetComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose);
         ASSERT(Updated);
         AssetManager->Update();
@@ -294,14 +294,14 @@ private:
         const FreeCameraControllerDesc Desc = {
             .pWindow = pWindow,
             .position = Vector3(-25, 8, -9),
-            .lookAt = Vector3(CenterX, Bounds.minimum[1] + 4.0f, CenterZ),
+            .LookAt = Vector3(CenterX, Bounds.minimum[1] + 4.0f, CenterZ),
             .motion = { .maxSpeed = 8.0f, .acceleration = 40.0f, .braking = 60.0f },
             .boostMultiplier = 4.0f,
         };
         Camera = hz::MakeUnique<FreeCameraController>(Desc);
         CameraEntity = World->CreatePersistentEntity();
         const hz::Camera      CameraData = { .verticalFov = PI / 3.0f };
-        const Matrix4         Pose = Camera->getWorldMatrix();
+        const Matrix4         Pose = Camera->GetWorldMatrix();
         // Cookbook theta=90, phi=-26; both scene imports preserve the same Y-up basis.
         const float           SunAngle = 26.0f * PI / 180.0f;
         const Vector3         Z(-sinf(SunAngle), cosf(SunAngle), 0);

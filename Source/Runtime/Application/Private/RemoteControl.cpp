@@ -357,7 +357,7 @@
 //     if (pRemoteAppServer->mDisconnect)
 //     {
 //         sendDisconnect(socket);
-//         // Ensure the client receives the disconnect and stop gracefully.
+//         // Ensure the client receives the disconnect and Stop gracefully.
 //         ThreadSleep(100);
 //         return false;
 //     }
@@ -764,7 +764,7 @@
 //     if (pRemoteControlClient->mDisconnect)
 //     {
 //         sendDisconnect(socket);
-//         // Ensure the server receives the disconnect and stop gracefully.
+//         // Ensure the server receives the disconnect and Stop gracefully.
 //         ThreadSleep(100);
 //         return false;
 //     }

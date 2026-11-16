@@ -64,8 +64,8 @@ struct ThreadSystemData
 
     tfrg_atomic32_t references_Atomic;
 
-    bool stopAbandon; // stop even if tasks are scheduled
-    bool stop;
+    bool stopAbandon; // Stop even if tasks are scheduled
+    bool Stop;
 };
 
 static void threadSystemCleanup(struct ThreadSystemData* t)
@@ -108,7 +108,7 @@ static struct ThreadSystemTask getTask(struct ThreadSystemData* t, uint64_t tid)
             break;
         }
 
-        if (t->stop)
+        if (t->Stop)
             break;
 
         if (!idleSet && tid != UINT64_MAX)
@@ -166,7 +166,7 @@ static void taskThreadFunc(void* threadUserData)
         }
 
         task = getTask(t, tid);
-        if (t->stop && !task.func)
+        if (t->Stop && !task.func)
             break;
     }
 
@@ -252,7 +252,7 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
         if (InitThread(&threadDesc, t->threads + ti))
             continue;
 
-        t->stop = true;
+        t->Stop = true;
         t->stopAbandon = true;
 
         releaseThreadSystemHandle(t);
@@ -272,7 +272,7 @@ void threadSystemExit(ThreadSystem* thandle, const struct ThreadSystemExitDesc* 
     *thandle = NULL;
 
     LockMutex(&t->mutex);
-    t->stop = true;
+    t->Stop = true;
     if (desc->abandonTasks)
         t->stopAbandon = true;
     BroadcastConditionVariable(&t->conditionTasks);

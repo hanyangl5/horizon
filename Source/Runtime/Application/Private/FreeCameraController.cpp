@@ -18,15 +18,15 @@ enum CameraAction : uint32_t
 };
 }
 
-void FreeCameraController::stop()
+void FreeCameraController::Stop()
 {
     movement = float2(0.0f);
     look = float2(0.0f);
     vertical = 0.0f;
-    pCamera->moveTo(pCamera->getViewPosition());
+    pCamera->MoveTo(pCamera->GetViewPosition());
 }
 
-bool FreeCameraController::onInput(InputActionContext* pInput)
+bool FreeCameraController::OnInput(InputActionContext* pInput)
 {
     FreeCameraController* pController = (FreeCameraController*)pInput->UserData;
     const bool            ended = pInput->phase == INPUT_ACTION_PHASE_CANCELED || pInput->phase == INPUT_ACTION_PHASE_ENDED;
@@ -52,8 +52,8 @@ bool FreeCameraController::onInput(InputActionContext* pInput)
     case Reset:
         if (pInput->phase == INPUT_ACTION_PHASE_STARTED)
         {
-            pController->pCamera->resetView();
-            pController->stop();
+            pController->pCamera->ResetView();
+            pController->Stop();
         }
         break;
     case Release:
@@ -70,7 +70,7 @@ bool FreeCameraController::onInput(InputActionContext* pInput)
 FreeCameraController::FreeCameraController(const FreeCameraControllerDesc& desc)
 {
     ASSERT(desc.pWindow);
-    pCamera = initFpsCameraController(desc.position, desc.lookAt);
+    pCamera = InitFpsCameraController(desc.position, desc.LookAt);
     motion = desc.motion;
     boostMultiplier = desc.boostMultiplier;
     ASSERT(pCamera);
@@ -107,7 +107,7 @@ FreeCameraController::FreeCameraController(const FreeCameraControllerDesc& desc)
     AddActionMappings(mappings, TF_ARRAY_COUNT(mappings), INPUT_ACTION_MAPPING_TARGET_ALL);
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(mappings); ++i)
     {
-        const InputActionDesc action = { .actionId = mappings[i].actionId, .pFunction = onInput, .UserData = this };
+        const InputActionDesc action = { .actionId = mappings[i].actionId, .pFunction = OnInput, .UserData = this };
         AddInputAction(&action);
     }
 }
@@ -116,7 +116,7 @@ FreeCameraController::~FreeCameraController()
 {
     SetEnableCaptureInput(false);
     ExitInputSystem();
-    exitCameraController(pCamera);
+    ExitCameraController(pCamera);
 }
 
 void FreeCameraController::Update(float deltaTime, uint32_t Width, uint32_t Height, bool focused)
@@ -128,27 +128,27 @@ void FreeCameraController::Update(float deltaTime, uint32_t Width, uint32_t Heig
         captured = false;
         boost = false;
         SetEnableCaptureInput(false);
-        stop();
+        Stop();
     }
 
     CameraMotionParameters currentMotion = motion;
     if (boost)
         currentMotion.movementSpeed *= boostMultiplier;
-    pCamera->setMotionParameters(currentMotion);
-    pCamera->onMove(float2(-movement.x, movement.y));
-    pCamera->onMoveY(vertical);
-    pCamera->onRotate(float2(-look.x, look.y));
+    pCamera->SetMotionParameters(currentMotion);
+    pCamera->OnMove(float2(-movement.x, movement.y));
+    pCamera->OnMoveY(vertical);
+    pCamera->OnRotate(float2(-look.x, look.y));
     pCamera->Update(TF_MIN(deltaTime, 0.1f));
 
-    Vector2 rotation = pCamera->getRotationXY();
+    Vector2 rotation = pCamera->GetRotationXY();
     rotation.setX(TF_MAX(-1.553343f, TF_MIN(1.553343f, (float)rotation.getX())));
-    pCamera->setViewRotationXY(rotation);
+    pCamera->SetViewRotationXY(rotation);
 }
 
-Matrix4 FreeCameraController::getViewMatrix() const { return pCamera->getViewMatrix(); }
-Matrix4 FreeCameraController::getWorldMatrix() const
+Matrix4 FreeCameraController::GetViewMatrix() const { return pCamera->GetViewMatrix(); }
+Matrix4 FreeCameraController::GetWorldMatrix() const
 {
-    return orthoInverse(Matrix4::scale(Vector3(-1.0f, 1.0f, -1.0f)) * pCamera->getViewMatrix());
+    return orthoInverse(Matrix4::scale(Vector3(-1.0f, 1.0f, -1.0f)) * pCamera->GetViewMatrix());
 }
 
-Vector3 FreeCameraController::getPosition() const { return pCamera->getViewPosition(); }
+Vector3 FreeCameraController::GetPosition() const { return pCamera->GetViewPosition(); }

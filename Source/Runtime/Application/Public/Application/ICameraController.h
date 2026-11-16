@@ -48,34 +48,34 @@ class ICameraController
 {
 public:
     virtual ~ICameraController() {}
-    virtual void setMotionParameters(const CameraMotionParameters&) = 0;
+    virtual void SetMotionParameters(const CameraMotionParameters&) = 0;
     virtual void Update(float deltaTime) = 0;
 
     // there are also implicit dependencies on the keyboard state.
 
-    virtual Matrix4 getViewMatrix() const = 0;
-    virtual Vector3 getViewPosition() const = 0;
-    virtual Vector2 getRotationXY() const = 0;
-    virtual void    moveTo(const Vector3& location) = 0;
-    virtual void    lookAt(const Vector3& lookAt) = 0;
-    virtual void    setViewRotationXY(const Vector2& v) = 0;
-    virtual void resetView() = 0;
+    virtual Matrix4 GetViewMatrix() const = 0;
+    virtual Vector3 GetViewPosition() const = 0;
+    virtual Vector2 GetRotationXY() const = 0;
+    virtual void    MoveTo(const Vector3& location) = 0;
+    virtual void    LookAt(const Vector3& LookAt) = 0;
+    virtual void    SetViewRotationXY(const Vector2& v) = 0;
+    virtual void ResetView() = 0;
 
-    virtual void onMove(const float2& vec) = 0;
-    virtual void onMoveY(float y) = 0;
-    virtual void onRotate(const float2& vec) = 0;
-    virtual void onZoom(const float2& vec) = 0;
+    virtual void OnMove(const float2& vec) = 0;
+    virtual void OnMoveY(float y) = 0;
+    virtual void OnRotate(const float2& vec) = 0;
+    virtual void OnZoom(const float2& vec) = 0;
 };
 
-/// \c initGuiCameraController assumes that the camera is not rotated around the look direction;
+/// \c InitGuiCameraController assumes that the camera is not rotated around the look direction;
 /// in its matrix, \c Z points at \c startLookAt and \c X is horizontal.
-FORGE_API ICameraController* initGuiCameraController(const Vector3& startPosition, const Vector3& startLookAt);
+FORGE_API ICameraController* InitGuiCameraController(const Vector3& startPosition, const Vector3& startLookAt);
 
-/// \c initFpsCameraController does basic FPS-style god mode navigation; MemDeallocate-look is constrained
+/// \c InitFpsCameraController does basic FPS-style god mode navigation; MemDeallocate-look is constrained
 /// to about +/- 88 degrees and WASD translates in the camera's local XZ plane.
-FORGE_API ICameraController* initFpsCameraController(const Vector3& startPosition, const Vector3& startLookAt);
+FORGE_API ICameraController* InitFpsCameraController(const Vector3& startPosition, const Vector3& startLookAt);
 
-FORGE_API void exitCameraController(ICameraController* pCamera);
+FORGE_API void ExitCameraController(ICameraController* pCamera);
 
 class FORGE_API CameraMatrix
 {
@@ -89,7 +89,7 @@ public:
     inline const CameraMatrix  operator*(const CameraMatrix& mat) const;
 
     // Applies offsets to the projection matrices (useful when needing to jitter the camera for techniques like TAA)
-    void applyProjectionSampleOffset(float xOffset, float yOffset);
+    void ApplyProjectionSampleOffset(float xOffset, float yOffset);
 
     static inline const CameraMatrix inverse(const CameraMatrix& mat);
     static inline const CameraMatrix transpose(const CameraMatrix& mat);
