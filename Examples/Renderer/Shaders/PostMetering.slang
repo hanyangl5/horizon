@@ -42,5 +42,5 @@ void CSMain(uint3 dispatchId : SV_DispatchThreadID)
     }
     color /= footprint.x * footprint.y;
     // Mip averaging in log space yields a geometric mean for exposure metering.
-    luminanceOutput[dispatchId.xy] = log2(max(luminance(color), 0.0001));
+    luminanceOutput[dispatchId.xy] = log2(max(Luminance(color), 0.0001));
 }

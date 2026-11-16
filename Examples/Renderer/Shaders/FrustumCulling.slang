@@ -26,7 +26,7 @@ struct AABB
 #define Box_max_y box.pt[4]
 #define Box_max_z box.pt[5]
 
-bool isAABBinFrustum(AABB box, float4x4 vp, float4x4 inverseVP)
+bool IsAABBInFrustum(AABB box, float4x4 vp, float4x4 inverseVP)
 {
     float4 planes[6] = { vp[3] + vp[0], vp[3] - vp[0], vp[3] + vp[1], vp[3] - vp[1], vp[2], vp[3] - vp[2] };
     float4 corners[8];
@@ -142,7 +142,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float3                      minimum = asfloat(instances.Load3(boundsOffset));
     float3                      maximum = asfloat(instances.Load3(boundsOffset + 12));
     AABB                        box = { { minimum.x, minimum.y, minimum.z, maximum.x, maximum.y, maximum.z } };
-    bool keep = cullingEnabled == 0 || isAABBinFrustum(box, frames[0].viewProjection, frames[0].inverseViewProjection);
+    bool keep = cullingEnabled == 0 || IsAABBInFrustum(box, frames[0].viewProjection, frames[0].inverseViewProjection);
     opaque.Store(id.x * 20, id.x);
     opaque.Store4(id.x * 20 + 4, uint4(indexCount, keep && object.w != 2 ? 1 : 0, 0, 0));
     transparent.Store(id.x * 20, id.x);

@@ -29,13 +29,13 @@ struct OITNode
     uint next;
 };
 
-uint2 packFragment(float3 color, float alpha)
+uint2 PackFragment(float3 color, float alpha)
 {
     const float4 value = float4(color, alpha);
     const uint4  packed = f32tof16(value);
     return uint2(packed.x | (packed.y << 16), packed.z | (packed.w << 16));
 }
-float4 unpackFragment(uint2 packed)
+float4 UnpackFragment(uint2 packed)
 {
     return float4(f16tof32(packed.x & 0xffffu), f16tof32(packed.x >> 16), f16tof32(packed.y & 0xffffu), f16tof32(packed.y >> 16));
 }
@@ -72,7 +72,7 @@ float4 unpackFragment(uint2 packed)
         normalSample.z = 0.5 + 0.5 * sqrt(saturate(1.0 - dot(normalXY, normalXY)));
         if (length(normalSample) > 0.5)
         {
-            n = perturbNormal(n, input.worldPosition, normalSample, input.uv);
+            n = PerturbNormal(n, input.worldPosition, normalSample, input.uv);
         }
     }
 
@@ -128,7 +128,7 @@ float4 unpackFragment(uint2 packed)
             RWTexture2D<uint> heads = ResourceDescriptorHeap[oitHeadsIndex];
             uint              prevIndex;
             InterlockedExchange(heads[uint2(input.position.xy)], index, prevIndex);
-            uint2               packedColor = packFragment(color, alpha);
+            uint2               packedColor = PackFragment(color, alpha);
             RWByteAddressBuffer nodes = ResourceDescriptorHeap[oitNodesIndex];
             nodes.Store4(index * sizeof(OITNode), uint4(packedColor, asuint(input.position.z), prevIndex));
         }
@@ -166,7 +166,7 @@ void ResolveMain(uint3 id : SV_DispatchThreadID)
     {
         uint4 packed = nodes.Load4(idx * sizeof(OITNode));
         OITNode node = { packed.xy, asfloat(packed.z), packed.w };
-        frags[numFragments].color = half4(unpackFragment(node.color));
+        frags[numFragments].color = half4(UnpackFragment(node.color));
         frags[numFragments].depth = node.depth;
         frags[numFragments].next = node.next;
         numFragments++;

@@ -1,6 +1,6 @@
 #include "RTShared.slang"
 
-half traceRTAO(float3 p, float3 n, float2 pixel, RaytracingAccelerationStructure scene)
+half TraceRTAO(float3 p, float3 n, float2 pixel, RaytracingAccelerationStructure scene)
 {
     float3x3 basis = getTangentBasis(n);
 
@@ -152,7 +152,7 @@ void main(uint3 thread : SV_DispatchThreadID)
 
     if (aoEnabled != 0)
     {
-        ao = traceRTAO(worldPos, n, pixel, scene);
+        ao = TraceRTAO(worldPos, n, pixel, scene);
     }
 
     output[thread.xy] = float2(shadow, ao);

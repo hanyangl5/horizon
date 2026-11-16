@@ -41,14 +41,14 @@ PostToneInput VSMain(uint vertexId : SV_VertexID)
     return output;
 }
 
-float3 reinhard2(float3 v, float maxWhite)
+float3 Reinhard2(float3 v, float maxWhite)
 {
-    float l_old = luminance(v);
+    float l_old = Luminance(v);
     float l_new = l_old * (1.0 + (l_old / (maxWhite * maxWhite))) / (1.0 + l_old);
     return v * (l_new / max(l_old, 0.0001));
 }
 
-float3 uchimura(float3 x, float P, float a, float m, float l, float c, float b)
+float3 Uchimura(float3 x, float P, float a, float m, float l, float c, float b)
 {
     float l0 = ((P - m) * l) / a;
     float L0 = m - m / a;
@@ -95,7 +95,7 @@ float3 PBRNeutralToneMapping(float3 color, float startCompression, float desatur
 float4 PSMain(PostToneInput input): SV_Target0
 {
     Texture2D<float4> sceneColor = ResourceDescriptorHeap[sceneColorIndex];
-    Texture2D<float>  luminance = ResourceDescriptorHeap[adaptedLuminanceIndex];
+    Texture2D<float>  Luminance = ResourceDescriptorHeap[adaptedLuminanceIndex];
     Texture2D<float4> bloom = ResourceDescriptorHeap[bloomIndex];
     SamplerState      clampSampler = SamplerDescriptorHeap[samplerIndex];
     float3            color = sceneColor.SampleLevel(clampSampler, input.uv, 0).rgb;
@@ -104,17 +104,17 @@ float4 PSMain(PostToneInput input): SV_Target0
     {
         bloomColor = bloom.SampleLevel(clampSampler, input.uv, 0).rgb;
     }
-    float avgLuminance = luminance.Load(int3(0, 0, 0));
-    float scale = toneMapping != 0 ? exposureScale(avgLuminance, exposure) : exposure;
+    float avgLuminance = Luminance.Load(int3(0, 0, 0));
+    float scale = toneMapping != 0 ? ExposureScale(avgLuminance, exposure) : exposure;
     color = color * scale + bloomStrength * bloomColor;
 
     if (toneMapping == 1)
     {
-        color = reinhard2(color, maxWhite);
+        color = Reinhard2(color, maxWhite);
     }
     if (toneMapping == 2)
     {
-        color = uchimura(color, P, a, m, l, c, b);
+        color = Uchimura(color, P, a, m, l, c, b);
     }
     if (toneMapping == 3)
     {
@@ -122,12 +122,12 @@ float4 PSMain(PostToneInput input): SV_Target0
     }
     if (outputMode == 0)
     {
-        return float4(encodeSRGB != 0 ? linearToSRGB(color) : color, 1.0);
+        return float4(encodeSRGB != 0 ? LinearToSRGB(color) : color, 1.0);
     }
-    float3 nits = toneMapHDR(color, paperWhiteNits, peakNits);
+    float3 nits = ToneMapHDR(color, paperWhiteNits, peakNits);
     if (outputMode == 2)
     {
         return float4(nits / 80.0, 1.0);
     }
-    return float4(linearNitsToPQ(min(rec709ToRec2020(nits), peakNits)), 1.0);
+    return float4(LinearNitsToPQ(min(Rec709ToRec2020(nits), peakNits)), 1.0);
 }

@@ -35,10 +35,10 @@ void CSMain(uint3 dispatchId : SV_DispatchThreadID)
     if (threshold != 0)
     {
         float averageLuminance = adapted.Load(int3(0, 0, 0));
-        float scale = autoExposure != 0 ? exposureScale(averageLuminance, exposure) : exposure;
+        float scale = autoExposure != 0 ? ExposureScale(averageLuminance, exposure) : exposure;
         color *= scale;
         // Soft knee around an exposure-relative threshold of 1; a 2x2 average still keeps subpixel highlights.
-        float exposedLuminance = max(luminance(color), 0.0001);
+        float exposedLuminance = max(Luminance(color), 0.0001);
         float knee = clamp(exposedLuminance - 0.5, 0.0, 1.0);
         color *= max(exposedLuminance - 1.0, knee * knee * 0.5) / exposedLuminance;
     }

@@ -3,7 +3,7 @@ static const float2 kCrossOffsets[4] = { float2(1.0, 0.0), float2(-1.0, 0.0), fl
 
 static const float2 kDiagonalOffsets[4] = { float2(1.0, 1.0), float2(-1.0, 1.0), float2(1.0, -1.0), float2(-1.0, -1.0) };
 
-float edgeWeightFast(float centerDepth, float sampleDepth) { return exp2(-abs(sampleDepth - centerDepth) / max(depthThreshold, 1e-6)); }
+float EdgeWeightFast(float centerDepth, float sampleDepth) { return exp2(-abs(sampleDepth - centerDepth) / max(depthThreshold, 1e-6)); }
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
@@ -36,7 +36,7 @@ void main(uint3 dispatchId : SV_DispatchThreadID)
         half2  sampleColor = half2(textureBindless2D(inputIndex, samplerIndex, sampleUV).rg);
         float  sampleDepth = textureBindless2D(depthIndex, samplerIndex, sampleUV).r;
 
-        float w = 0.125 * edgeWeightFast(centerDepth, sampleDepth);
+        float w = 0.125 * EdgeWeightFast(centerDepth, sampleDepth);
         sumColor += sampleColor * half(w);
         totalWeight += w;
     }

@@ -35,14 +35,14 @@ cbuffer RootConstant0
 
 #include "Material.slang"
 
-float4x4 loadMatrix(ByteAddressBuffer buffer, uint offset)
+float4x4 LoadMatrix(ByteAddressBuffer buffer, uint offset)
 {
     // Runtime matrices store four columns; construct then transpose HLSL's row vectors.
     return transpose(float4x4(asfloat(buffer.Load4(offset)), asfloat(buffer.Load4(offset + 16)), asfloat(buffer.Load4(offset + 32)),
                               asfloat(buffer.Load4(offset + 48))));
 }
 
-float3 transformNormal(float4x4 world, float3 normal)
+float3 TransformNormal(float4x4 world, float3 normal)
 {
     const float3 x = float3(world[0][0], world[1][0], world[2][0]);
     const float3 y = float3(world[0][1], world[1][1], world[2][1]);
@@ -70,7 +70,7 @@ struct PSOutput
     float4 motionMaterialId: SV_Target3;
 };
 
-PSInput buildVertex(uint vertexId, uint instance, uint material, uint id, uint positionBuffer, uint normalBuffer, uint uvBuffer)
+PSInput BuildVertex(uint vertexId, uint instance, uint material, uint id, uint positionBuffer, uint normalBuffer, uint uvBuffer)
 {
     StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[frameIndex];
     ByteAddressBuffer           Instances = ResourceDescriptorHeap[instancesIndex];
@@ -80,15 +80,15 @@ PSInput buildVertex(uint vertexId, uint instance, uint material, uint id, uint p
     float3                      position = asfloat(Positions.Load3(vertexId * sizeof(float3)));
     uint                        normal = Normals.Load(vertexId * 4);
     uint                        uv = Texcoords.Load(vertexId * 4);
-    const float4x4              world = loadMatrix(Instances, instance * 192 + 32);
-    const float4x4              previousWorld = loadMatrix(Instances, instance * 192 + 96);
+    const float4x4              world = LoadMatrix(Instances, instance * 192 + 32);
+    const float4x4              previousWorld = LoadMatrix(Instances, instance * 192 + 96);
     float4                      worldPosition = mul(world, float4(position, 1.0));
     PSInput                     output;
     output.currentClip = mul(Frame[0].viewProjection, worldPosition);
     output.previousClip = mul(Frame[0].previousViewProjection, mul(previousWorld, float4(position, 1.0)));
     output.position = output.currentClip;
     output.worldPosition = worldPosition.xyz;
-    output.normal = transformNormal(world, decodeVertexNormal(normal));
+    output.normal = TransformNormal(world, decodeVertexNormal(normal));
     output.uv = float2(f16tof32(uv & 0xffffu), f16tof32(uv >> 16));
     output.materialData = uint2(material, id);
     return output;
@@ -96,7 +96,7 @@ PSInput buildVertex(uint vertexId, uint instance, uint material, uint id, uint p
 
 PSInput VSMain(uint vertexId : SV_VertexID)
 {
-    return buildVertex(vertexId, instanceIndex, materialIndex, materialId, positionsIndex, normalsIndex, texcoordsIndex);
+    return BuildVertex(vertexId, instanceIndex, materialIndex, materialId, positionsIndex, normalsIndex, texcoordsIndex);
 }
 
 PSInput VSIndirect(uint vertexId : SV_VertexID)
@@ -110,10 +110,10 @@ PSInput VSIndirect(uint vertexId : SV_VertexID)
     uint              indexPosition = (geometry.y + vertexId) * geometry.x;
     uint              packed = indices.Load(indexPosition & ~3u);
     uint              index = geometry.x == 2 ? ((packed >> ((indexPosition & 2u) * 8u)) & 0xffffu) : packed;
-    return buildVertex(uint(int(index) + asint(geometry.z)), object.x, object.y, object.z, buffers.x, buffers.y, buffers.z);
+    return BuildVertex(uint(int(index) + asint(geometry.z)), object.x, object.y, object.z, buffers.x, buffers.y, buffers.z);
 }
 
-float3x3 cotangentFrame(float3 N, float3 p, float2 uv)
+float3x3 CotangentFrame(float3 N, float3 p, float2 uv)
 {
     float3 dp1 = ddx(p);
     float3 dp2 = ddy(p);
@@ -134,15 +134,15 @@ float3x3 cotangentFrame(float3 N, float3 p, float2 uv)
     return transpose(float3x3(T * invmax, B * invmax, N));
 }
 
-float3 perturbNormal(float3 n, float3 v, float3 normalSample, float2 uv)
+float3 PerturbNormal(float3 n, float3 v, float3 normalSample, float2 uv)
 {
     float3   map = normalize(2.0 * normalSample - float3(1.0));
-    float3x3 TBN = cotangentFrame(n, v, uv);
+    float3x3 TBN = CotangentFrame(n, v, uv);
     float3 perturbed = mul(TBN, map);
     return dot(perturbed, perturbed) > 1e-20 ? normalize(perturbed) : n;
 }
 
-void runAlphaTest(float alpha, float alphaThreshold, float2 pixel)
+void RunAlphaTest(float alpha, float alphaThreshold, float2 pixel)
 {
     if (alphaThreshold > 0.0)
     {
@@ -175,7 +175,7 @@ PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
     }
     if (material.alphaMode == 1)
     {
-        runAlphaTest(baseColor.a, material.alphaCutoff / max(32.0 * fwidth(float(input.uv.x)), 1.0), input.position.xy);
+        RunAlphaTest(baseColor.a, material.alphaCutoff / max(32.0 * fwidth(float(input.uv.x)), 1.0), input.position.xy);
     }
 
     float3 n = normalize(input.normal);
@@ -188,7 +188,7 @@ PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
         normalSample.z = 0.5 + 0.5 * sqrt(saturate(1.0 - dot(normalXY, normalXY)));
         if (length(normalSample) > 0.5)
         {
-            n = perturbNormal(n, input.worldPosition, normalSample, input.uv);
+            n = PerturbNormal(n, input.worldPosition, normalSample, input.uv);
         }
     }
 

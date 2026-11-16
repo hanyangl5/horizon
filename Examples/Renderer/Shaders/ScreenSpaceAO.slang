@@ -21,7 +21,7 @@ cbuffer RootConstant0
 static const float3 offsets[8] = { float3(-0.5, -0.5, -0.5), float3(0.5, -0.5, -0.5), float3(-0.5, 0.5, -0.5), float3(0.5, 0.5, -0.5),
                                    float3(-0.5, -0.5, 0.5),  float3(0.5, -0.5, 0.5),  float3(-0.5, 0.5, 0.5),  float3(0.5, 0.5, 0.5) };
 
-float scaleZ(float smpl, float2 inverseProjection)
+float ScaleZ(float smpl, float2 inverseProjection)
 {
     // For an affine camera pose, inverse(VP)'s last row is inverse(P)'s last row.
     // Preserve the Cookbook's negative view-space Z without hard-coding the camera's near/far planes.
@@ -52,7 +52,7 @@ void CSMain(uint3 dispatchId : SV_DispatchThreadID)
         return;
     }
 
-    const float  Z = scaleZ(depthTexture.SampleLevel(sampler, uv, 0), inverseProjection);
+    const float  Z = ScaleZ(depthTexture.SampleLevel(sampler, uv, 0), inverseProjection);
     const float3 plane = rotations.SampleLevel(noiseSampler, xy / 4.0, 0).xyz - float3(1.0);
 
     float att = 0.0;
@@ -60,7 +60,7 @@ void CSMain(uint3 dispatchId : SV_DispatchThreadID)
     for (int i = 0; i < 8; i++)
     {
         float3 rSample = reflect(offsets[i], plane);
-        float  zSample = scaleZ(depthTexture.SampleLevel(sampler, uv + radius * rSample.xy / Z, 0), inverseProjection);
+        float  zSample = ScaleZ(depthTexture.SampleLevel(sampler, uv + radius * rSample.xy / Z, 0), inverseProjection);
         float  dist = max(zSample - Z, 0.0) / distanceScale;
         float  occl = 15.0 * max(dist * (2.0 - dist), 0.0);
         att += 1.0 / (1.0 + occl * occl);
