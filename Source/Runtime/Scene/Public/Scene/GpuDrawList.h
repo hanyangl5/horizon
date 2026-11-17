@@ -1,8 +1,11 @@
 #pragma once
 #include "Core/IContainer.h"
 #include "Graphics/RenderContext.h"
-#include "SceneView.h"
+#include "Scene/SceneAsset.h"
+#include "Scene/SceneView.h"
 
+namespace hz
+{
 // Uploaded to shaders as-is, so the fields keep the shader's names.
 struct GpuDrawData
 {
@@ -38,11 +41,11 @@ struct DrawListID
     bool     IsValid() const { return index != UINT32_MAX; }
 };
 
-constexpr uint32_t DrawListAlphaMode(hz::MaterialAlphaMode Mode) { return 1u << (uint32_t)Mode; }
+constexpr uint32_t DrawListAlphaMode(MaterialAlphaMode Mode) { return 1u << (uint32_t)Mode; }
 
 struct DrawGeometry
 {
-    hz::GpuSubmeshRef Mesh;
+    GpuSubmeshRef Mesh;
     bool              Opaque = true;
     uint32_t          PreviousIndex = UINT32_MAX; // Geometry index in the preceding revision.
 };
@@ -54,52 +57,53 @@ class GpuDrawList
 public:
     static constexpr uint32_t MaxLists = 8;
 
-    explicit GpuDrawList(hz::RenderContext& Context);
+    explicit GpuDrawList(RenderContext& Context);
     // Lists are registered at initialization.
     DrawListID            AddList(const DrawListFilter& Filter);
     // Builds and uploads this frame's draw data. The lists stay unwritten until a culling pass fills them.
     void                  Prepare(const SceneView&);
     // Draw indices refer to the complete draw data.
-    hz::Span<GpuDrawData>  GetDraws() const { return { DrawData.GetData(), DrawData.Size() }; }
-    hz::Span<DrawGeometry> GetGeometries() const { return { Geometries.GetData(), Geometries.Size() }; }
+    Span<GpuDrawData>  GetDraws() const { return { DrawData.GetData(), DrawData.Size() }; }
+    Span<DrawGeometry> GetGeometries() const { return { Geometries.GetData(), Geometries.Size() }; }
     uint32_t               GetGeometryIndex(uint32_t DrawIndex) const { return GeometryIndices[DrawIndex]; }
     uint64_t               GetGeometryRevision() const { return GeometryRevision; }
-    const hz::GPUBuffer&   GetDrawData(uint32_t Backing) const { return Frames[Backing].DrawData; }
-    const hz::GPUBuffer&   GetCommands(uint32_t Backing, DrawListID List) const { return Frames[Backing].Lists[List.index]; }
+    const GPUBuffer&   GetDrawData(uint32_t Backing) const { return Frames[Backing].DrawData; }
+    const GPUBuffer&   GetCommands(uint32_t Backing, DrawListID List) const { return Frames[Backing].Lists[List.index]; }
     // The renderer's standard lists, registered at construction.
     DrawListID             GetOpaqueList() const { return OpaqueList; }
     DrawListID             GetTransparentList() const { return TransparentList; }
     DrawListID             GetShadowCasterList() const { return ShadowCasterList; }
-    hz::Dependencies     GetDependencies(const hz::GPUBuffer& Frame, const SceneView& View,
-                                         const hz::GPUBuffer* Indirect = nullptr) const;
+    Dependencies     GetDependencies(const GPUBuffer& Frame, const SceneView& View,
+                                         const GPUBuffer* Indirect = nullptr) const;
     // The registered filters with each list's UAV index filled in, one DrawListFilter per list.
-    const hz::GPUBuffer& GetFilters(uint32_t Backing) const { return Frames[Backing].Filters; }
+    const GPUBuffer& GetFilters(uint32_t Backing) const { return Frames[Backing].Filters; }
     uint32_t             GetListCount() const { return ListCount; }
     uint32_t             GetCount(uint32_t Backing) const { return Frames[Backing].Count; }
 
 private:
     struct Frame
     {
-        hz::GPUBuffer                           DrawData;
-        hz::FixedArray<hz::GPUBuffer, MaxLists> Lists;
-        hz::GPUBuffer                           Filters;
+        GPUBuffer                           DrawData;
+        FixedArray<GPUBuffer, MaxLists> Lists;
+        GPUBuffer                           Filters;
         uint32_t                                Capacity = 0;
         uint32_t                                Count = 0;
     };
-    hz::FixedArray<DrawListFilter, MaxLists> Filters;
+    FixedArray<DrawListFilter, MaxLists> Filters;
     uint32_t                                 ListCount = 0;
     DrawListID                               OpaqueList;
     DrawListID                               TransparentList;
     DrawListID                               ShadowCasterList;
-    hz::RenderContext&                       Context;
-    hz::FixedArray<Frame, 3>                 Frames;
-    hz::Array<GpuDrawData>                   DrawData;
-    hz::Array<DrawGeometry>                  Geometries;
-    hz::Array<uint32_t>                      GeometryIndices;
+    RenderContext&                       Context;
+    FixedArray<Frame, 3>                 Frames;
+    Array<GpuDrawData>                   DrawData;
+    Array<DrawGeometry>                  Geometries;
+    Array<uint32_t>                      GeometryIndices;
     uint64_t                                 GeometryRevision = 0;
-    hz::Array<uint32_t>                      MaterialIds;
+    Array<uint32_t>                      MaterialIds;
     uint64_t                                 MaterialRevision = 0;
-    mutable hz::Array<const hz::GPUBuffer*>  Buffers;
-    mutable hz::Array<const hz::GPUTexture*> Textures;
-    mutable const hz::GPUBuffer*             IndirectDependency = nullptr;
+    mutable Array<const GPUBuffer*>  Buffers;
+    mutable Array<const GPUTexture*> Textures;
+    mutable const GPUBuffer*             IndirectDependency = nullptr;
 };
+} // namespace hz

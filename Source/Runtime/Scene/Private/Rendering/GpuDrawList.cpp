@@ -1,14 +1,17 @@
-#include "GpuDrawList.h"
+#include "Scene/GpuDrawList.h"
 #include "Profiler/IProfiler.h"
 #include "Core/ILog.h"
 #include "Scene/MeshAsset.h"
 #include "Scene/TextureAsset.h"
 
-GpuDrawList::GpuDrawList(hz::RenderContext& Context): Context(Context)
+namespace hz
 {
-    const uint32_t Opaque = DrawListAlphaMode(hz::MaterialAlphaMode::Opaque) | DrawListAlphaMode(hz::MaterialAlphaMode::Mask);
+
+GpuDrawList::GpuDrawList(RenderContext& Context): Context(Context)
+{
+    const uint32_t Opaque = DrawListAlphaMode(MaterialAlphaMode::Opaque) | DrawListAlphaMode(MaterialAlphaMode::Mask);
     OpaqueList = AddList({ .alphaModes = Opaque });
-    TransparentList = AddList({ .alphaModes = DrawListAlphaMode(hz::MaterialAlphaMode::Blend) });
+    TransparentList = AddList({ .alphaModes = DrawListAlphaMode(MaterialAlphaMode::Blend) });
     ShadowCasterList = AddList({ .alphaModes = Opaque, .frustumCull = 0 });
 }
 
@@ -27,7 +30,7 @@ DrawListID GpuDrawList::AddList(const DrawListFilter& Filter)
 void GpuDrawList::Prepare(const SceneView& View)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::Prepare");
-    const hz::GpuAssetTables& Tables = View.GpuScene.GetAssetTables();
+    const GpuAssetTables& Tables = View.GpuScene.GetAssetTables();
     if (MaterialRevision != Tables.revision)
     {
         MaterialIds.Resize(Tables.materials.Count);
@@ -55,20 +58,20 @@ void GpuDrawList::Prepare(const SceneView& View)
     };
     for (uint32_t MeshBatchIndex : View.Scene.GetActiveMeshBatches())
     {
-        const hz::RenderMeshBatch& Draw = View.Scene.GetMeshBatches().Data[MeshBatchIndex];
-        const hz::RenderPrimitive& Primitive = View.Scene.GetPrimitives().Data[Draw.primitive.index];
-        const hz::GpuMeshData*     Mesh = Tables.GetMesh(Draw.mesh.mesh);
-        const hz::GpuMaterialData* Material = Tables.GetMaterial(Draw.material);
+        const RenderMeshBatch& Draw = View.Scene.GetMeshBatches().Data[MeshBatchIndex];
+        const RenderPrimitive& Primitive = View.Scene.GetPrimitives().Data[Draw.primitive.index];
+        const GpuMeshData*     Mesh = Tables.GetMesh(Draw.mesh.mesh);
+        const GpuMaterialData* Material = Tables.GetMaterial(Draw.material);
         if (!Primitive.instanceCount || !Mesh || !Material)
         {
             continue;
         }
         ASSERT(Mesh->vertexStreamCount == 3 && Primitive.id == Draw.primitive);
-        const hz::GpuSubmeshData& Submesh = Tables.submeshes.Data[Mesh->submeshOffset + Draw.mesh.submeshIndex];
+        const GpuSubmeshData& Submesh = Tables.submeshes.Data[Mesh->submeshOffset + Draw.mesh.submeshIndex];
         uint32_t                  GeometryIndex = UINT32_MAX;
-        if (Material->alphaMode != uint32_t(hz::MaterialAlphaMode::Blend))
+        if (Material->alphaMode != uint32_t(MaterialAlphaMode::Blend))
         {
-            const bool Opaque = Material->alphaMode == uint32_t(hz::MaterialAlphaMode::Opaque);
+            const bool Opaque = Material->alphaMode == uint32_t(MaterialAlphaMode::Opaque);
             GeometryIndex = 0;
             while (GeometryIndex < Geometries.Size() &&
                    (Geometries[GeometryIndex].Mesh != Draw.mesh || Geometries[GeometryIndex].Opaque != Opaque))
@@ -127,7 +130,7 @@ void GpuDrawList::Prepare(const SceneView& View)
                                                        .StartState = ResourceStateShaderResource,
                                                        .Descriptors = DescriptorTypeBufferRaw,
                                                        .Flags = BufferCreationFlagPersistentMapBit });
-        const hz::BufferDesc Arguments = { .Size = uint64_t(CurrentFrame.Capacity) * 20,
+        const BufferDesc Arguments = { .Size = uint64_t(CurrentFrame.Capacity) * 20,
                                            .ElementCount = CurrentFrame.Capacity * 5,
                                            .Name = "Renderer.IndirectDraws",
                                            .usage = MemoryUsageGpuOnly,
@@ -161,14 +164,14 @@ void GpuDrawList::Prepare(const SceneView& View)
     ASSERT(Uploaded);
 }
 
-hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const SceneView& View,
-                                             const hz::GPUBuffer* Indirect) const
+Dependencies GpuDrawList::GetDependencies(const GPUBuffer& Frame, const SceneView& View,
+                                             const GPUBuffer* Indirect) const
 {
     Buffers.Clear();
     Textures.Clear();
     Buffers.PushBack(&Frame);
     Buffers.PushBack(&GetDrawData(View.FrameIndex));
-    const hz::GpuSceneBuffers& Gpu = View.GpuScene.GetBuffers();
+    const GpuSceneBuffers& Gpu = View.GpuScene.GetBuffers();
     if (Gpu.instances.IsValid())
     {
         Buffers.PushBack(&Gpu.instances);
@@ -181,15 +184,15 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
     {
         Buffers.PushBack(&Gpu.textures);
     }
-    const hz::GpuAssetTables& Tables = View.GpuScene.GetAssetTables();
-    const hz::GPUBuffer*      Previous = nullptr;
-    for (const hz::GpuMeshData& MeshData : Tables.meshes)
+    const GpuAssetTables& Tables = View.GpuScene.GetAssetTables();
+    const GPUBuffer*      Previous = nullptr;
+    for (const GpuMeshData& MeshData : Tables.meshes)
     {
         if (!MeshData.id.IsValid())
         {
             continue;
         }
-        const hz::MeshAsset* Mesh = View.Assets.GetMesh({ .index = MeshData.id.index, .generation = MeshData.id.generation });
+        const MeshAsset* Mesh = View.Assets.GetMesh({ .index = MeshData.id.index, .generation = MeshData.id.generation });
         ASSERT(Mesh);
         if (&Mesh->GetIndexBuffer() == Previous)
         {
@@ -202,7 +205,7 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
             Buffers.PushBack(&Mesh->GetVertexBuffer(Index));
         }
     }
-    for (const hz::GpuTextureData& TextureData : Tables.textures)
+    for (const GpuTextureData& TextureData : Tables.textures)
     {
         if (TextureData.id.IsValid())
         {
@@ -215,3 +218,4 @@ hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const 
              .buffers = { Buffers.GetData(), Buffers.Size() },
              .indirectBuffers = { &IndirectDependency, Indirect ? 1u : 0u } };
 }
+} // namespace hz

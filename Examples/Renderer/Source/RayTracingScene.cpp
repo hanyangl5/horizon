@@ -1,17 +1,17 @@
 #include "RayTracingScene.h"
-#include "GpuDrawList.h"
+#include "Scene/GpuDrawList.h"
 #include "Scene/MeshAsset.h"
 
-void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, const GpuDrawList& Draws)
+void RayTracingScene::Update(hz::CommandList& Commands, const hz::SceneView& View, const hz::GpuDrawList& Draws)
 {
-    const hz::Span<DrawGeometry> Geometries = Draws.GetGeometries();
+    const hz::Span<hz::DrawGeometry> Geometries = Draws.GetGeometries();
     if (GeometryRevision != Draws.GetGeometryRevision())
     {
         hz::Array<hz::GPUAccelerationStructure> Previous = std::move(BottomLevelAS);
         BottomLevelAS.Resize(Geometries.Count);
         for (uint32_t Index = 0; Index < Geometries.Count; ++Index)
         {
-            const DrawGeometry& Source = Geometries.Data[Index];
+            const hz::DrawGeometry& Source = Geometries.Data[Index];
             if (GeometryRevision + 1 == Draws.GetGeometryRevision() && Source.PreviousIndex < Previous.Size())
             {
                 BottomLevelAS[Index] = std::move(Previous[Source.PreviousIndex]);
@@ -44,9 +44,9 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
         GeometryRevision = Draws.GetGeometryRevision();
     }
 
-    const hz::Span<GpuDrawData> Prepared = Draws.GetDraws();
+    const hz::Span<hz::GpuDrawData> Prepared = Draws.GetDraws();
     uint32_t                    InstanceCount = 0;
-    for (const GpuDrawData& Draw : Prepared)
+    for (const hz::GpuDrawData& Draw : Prepared)
     {
         InstanceCount += Draw.alphaMode != uint32_t(hz::MaterialAlphaMode::Blend);
     }
@@ -68,7 +68,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const SceneView& View, c
     uint32_t InstanceIndex = 0;
     for (uint32_t DrawIndex = 0; DrawIndex < Prepared.Count; ++DrawIndex)
     {
-        const GpuDrawData& Draw = Prepared.Data[DrawIndex];
+        const hz::GpuDrawData& Draw = Prepared.Data[DrawIndex];
         if (Draw.alphaMode == uint32_t(hz::MaterialAlphaMode::Blend))
         {
             continue;

@@ -5,7 +5,7 @@
 #include "Core/IUniquePtr.h"
 #include "Graphics/FrameGraph.h"
 #include "Graphics/RenderContext.h"
-#include "GpuDrawList.h"
+#include "Scene/GpuDrawList.h"
 #include "FrustumCulling.h"
 #include "PostEffects.h"
 #include "ScreenSpaceAO.h"
@@ -29,7 +29,7 @@ public:
     static constexpr uint32_t TextureCount = 4;
 
     GBuffer(hz::RenderContext& Context);
-    void Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const SceneView& View, const GpuDrawList& Draws,
+    void Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
                  const hz::GPUTexture* const (&Textures)[TextureCount], const hz::GPUTexture& Depth);
 
     hz::GPUPipeline Pipeline;
@@ -109,7 +109,7 @@ private:
     hz::UniquePtr<Transparency>     Transparency;
     hz::UniquePtr<RayTracedEffects> RayTracing;
     hz::GPUSampler                   LinearSampler;
-    GpuDrawList                      Draws;
+    hz::GpuDrawList                      Draws;
     float                            DeltaSeconds = 1.0f / 60.0f;
     hz::FixedArray<FrameConstantBuffer, 3> FrameConstants;
     uint32_t                              NextFrame = 0;

@@ -62,7 +62,7 @@ GBuffer::GBuffer(hz::RenderContext& Context)
     ASSERT(Pipeline.IsValid() && Sampler.IsValid());
 }
 
-void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const SceneView& View, const GpuDrawList& Draws,
+void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
                       const hz::GPUTexture* const (&Textures)[TextureCount], const hz::GPUTexture& Depth)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GBuffer::execute");
@@ -107,9 +107,9 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const Sc
 // Per-frame inputs the frame graph passes read; graph-owned textures are looked up through Targets.
 struct FrameInputs
 {
-    GpuDrawList&          Draws;
+    hz::GpuDrawList&          Draws;
     const hz::GPUBuffer&  Frame;
-    const SceneView&      View;
+    const hz::SceneView&      View;
     hz::GPUSampler&       LinearSampler;
     const RenderTargets&  Targets;
     LightingResources     Lighting = {};
@@ -482,7 +482,7 @@ void RenderPasses::Execute()
         return;
     }
     NextFrame = (NextFrame + 1) % FrameConstants.Size();
-    const SceneView         View = { .Scene = Scene, .GpuScene = GpuSceneData, .Assets = Assets, .FrameIndex = FrameIndex };
+    const hz::SceneView         View = { .Scene = Scene, .GpuScene = GpuSceneData, .Assets = Assets, .FrameIndex = FrameIndex };
     const hz::RenderCamera* Camera = Scene.GetCamera(CameraId);
     ASSERT(Camera);
     const hz::RenderCamera& CameraState = *Camera;

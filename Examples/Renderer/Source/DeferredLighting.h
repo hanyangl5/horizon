@@ -2,7 +2,7 @@
 
 #include "Core/IMath.h"
 #include "Graphics/RenderContext.h"
-#include "SceneView.h"
+#include "Scene/SceneView.h"
 
 // Shared CPU/Slang layout, 144 bytes. Direction follows emitted rays; w is perpendicular illuminance in lux.
 // Fields mirror the shader block, so they keep the shader's names.

@@ -57,8 +57,8 @@ Transparency::Transparency(hz::RenderContext& Context, hz::Format DepthFormat)
     ASSERT(ClearPipeline.IsValid() && GatherPipeline.IsValid() && ResolvePipeline.IsValid() && SurfaceSampler.IsValid());
 }
 
-void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth, const SceneView& View,
-                           const GpuDrawList& Draws, const LightingResources& Lighting, const hz::GPUTexture& OpaqueColor,
+void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth, const hz::SceneView& View,
+                           const hz::GpuDrawList& Draws, const LightingResources& Lighting, const hz::GPUTexture& OpaqueColor,
                            const TransparencyTargets& Targets)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Transparency::execute");

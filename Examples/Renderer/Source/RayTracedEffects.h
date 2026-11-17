@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DeferredLighting.h"
-#include "GpuDrawList.h"
+#include "Scene/GpuDrawList.h"
 #include "Core/IUniquePtr.h"
 
 struct RayTracedEffectsSettings
@@ -56,8 +56,8 @@ public:
     bool Load();
 
     void MarkDirty();
-    void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const SceneView& View,
-                 const GpuDrawList& Draws, const LightingResources& Lighting, const RayTracedEffectsTargets& Targets);
+    void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const hz::SceneView& View,
+                 const hz::GpuDrawList& Draws, const LightingResources& Lighting, const RayTracedEffectsTargets& Targets);
     bool IsSupported() const { return Supported; }
     RayTracedEffectsSettings Settings;
 

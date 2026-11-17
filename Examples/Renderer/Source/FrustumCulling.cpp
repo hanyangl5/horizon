@@ -41,7 +41,7 @@ FrustumCulling::FrustumCulling(hz::RenderContext& Context)
     ASSERT(Pipeline.IsValid() && ClearPipeline.IsValid());
 }
 
-void FrustumCulling::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const SceneView& View, const GpuDrawList& Draws,
+void FrustumCulling::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
                              bool Culling)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("FrustumCulling::Execute");
@@ -69,7 +69,7 @@ void FrustumCulling::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fra
                                        .drawCount = Count,
                                        .cullingEnabled = Culling ? 1u : 0u };
     Commands.SetRootConstants(Binding);
-    const hz::GPUBuffer* Outputs[GpuDrawList::MaxLists + 1] = { &Stats };
+    const hz::GPUBuffer* Outputs[hz::GpuDrawList::MaxLists + 1] = { &Stats };
     for (uint32_t List = 0; List < ListCount; ++List)
         Outputs[List + 1] = &Draws.GetCommands(Backing, { List });
     Commands.Dispatch((Count + 63) / 64, 1, 1,

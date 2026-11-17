@@ -1,7 +1,7 @@
 // GPU tests of the Examples/Renderer shaders and passes, built on the shared asset fixtures.
 #include "AssetTestFixtures.h"
 #include "../../Examples/Renderer/Source/DeferredLighting.h"
-#include "../../Examples/Renderer/Source/GpuDrawList.h"
+#include "Scene/GpuDrawList.h"
 #include "../../Examples/Renderer/Source/FrustumCulling.h"
 #include "../../Examples/Renderer/Source/RayTracingScene.h"
 #include <cmath>
@@ -197,14 +197,14 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingFillsFilteredDrawLists)
                                                        .StartState = ResourceStateUnorderedAccess,
                                                        .Descriptors = DescriptorTypeRwBufferRaw });
     // Opaque and masked, blended, uncullable casters, and opaque draws whose material has tag bit 2.
-    const uint32_t opaqueModes = DrawListAlphaMode(hz::MaterialAlphaMode::Opaque) | DrawListAlphaMode(hz::MaterialAlphaMode::Mask);
-    DrawListFilter filters[ListCount] = { { .alphaModes = opaqueModes },
-                                          { .alphaModes = DrawListAlphaMode(hz::MaterialAlphaMode::Blend) },
+    const uint32_t opaqueModes = hz::DrawListAlphaMode(hz::MaterialAlphaMode::Opaque) | hz::DrawListAlphaMode(hz::MaterialAlphaMode::Mask);
+    hz::DrawListFilter filters[ListCount] = { { .alphaModes = opaqueModes },
+                                          { .alphaModes = hz::DrawListAlphaMode(hz::MaterialAlphaMode::Blend) },
                                           { .alphaModes = opaqueModes, .frustumCull = 0 },
                                           { .alphaModes = opaqueModes, .requiredTags = 4 } };
     for (uint32_t i = 0; i < ListCount; ++i)
         filters[i].commandsIndex = outputs[i].GetUavIndex();
-    hz::GPUBuffer  filterBuffer = input(filters, sizeof(filters), sizeof(DrawListFilter));
+    hz::GPUBuffer  filterBuffer = input(filters, sizeof(filters), sizeof(hz::DrawListFilter));
     hz::GPUBuffer  readback = context.CreateBuffer({ .Size = ListCount * 100 + 16,
                                                      .usage = MemoryUsageGpuToCpu,
                                                      .StartState = ResourceStateCopyDest,
@@ -347,7 +347,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderSources, shaders.string().c_str());
 
-    GpuDrawList     draws(context);
+    hz::GpuDrawList     draws(context);
     FrustumCulling  culling(context);
     RayTracingScene rayScene(context);
 
@@ -412,7 +412,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
         }
 
         ASSERT_TRUE(gpu.BeginFrame());
-        const SceneView  view = { .Scene = scene, .GpuScene = gpu, .Assets = assetManager, .FrameIndex = pass % 3 };
+        const hz::SceneView  view = { .Scene = scene, .GpuScene = gpu, .Assets = assetManager, .FrameIndex = pass % 3 };
         hz::CommandList& commands = context.AcquireCommandList();
 
         gpu.Upload(commands);
@@ -424,11 +424,11 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
         uint32_t expected[] = { UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX };
         if (pass < 3)
         {
-            const hz::Span<GpuDrawData> prepared = draws.GetDraws();
+            const hz::Span<hz::GpuDrawData> prepared = draws.GetDraws();
             EXPECT_EQ(prepared.Count, 4 - pass);
             for (uint32_t i = 0; i < prepared.Count; ++i)
             {
-                const GpuDrawData& Draw = prepared.Data[i];
+                const hz::GpuDrawData& Draw = prepared.Data[i];
                 const float        x = (float)scene.GetInstances().Data[Draw.instance].current.getTranslation().getX();
                 for (uint32_t j = 0; j < 4; ++j)
                 {
@@ -936,7 +936,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     }
     hz::GpuTextureData textures[4];
     textures[3] = { .id = { 3, 9 }, .srv = alpha.GetSrvIndex() };
-    GpuDrawData drawData[8] = {};
+    hz::GpuDrawData drawData[8] = {};
     drawData[5] = { .material = 0,
                     .alphaMode = 0,
                     .positions = vertices.GetSrvIndex(),
@@ -1034,7 +1034,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     {
         SCOPED_TRACE(caseIndex);
         const AlphaCase& test = cases[caseIndex % caseCount];
-        for (GpuDrawData& Draw : drawData)
+        for (hz::GpuDrawData& Draw : drawData)
         {
             Draw.indices = caseIndex < caseCount ? indexBuffer.GetSrvIndex() : indexBuffer32.GetSrvIndex();
             Draw.indexStride = caseIndex < caseCount ? 2 : 4;
@@ -1199,7 +1199,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     }
     hz::GpuTextureData textures[4];
     textures[3] = { .id = { 3, 9 }, .srv = alpha.GetSrvIndex() };
-    GpuDrawData drawData[7] = {};
+    hz::GpuDrawData drawData[7] = {};
     drawData[5] = { .material = 0,
                     .alphaMode = 0,
                     .positions = vertices.GetSrvIndex(),

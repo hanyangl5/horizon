@@ -1,5 +1,5 @@
 #pragma once
-#include "GpuDrawList.h"
+#include "Scene/GpuDrawList.h"
 #include "DeferredLighting.h"
 
 class ShadowMap
@@ -11,8 +11,8 @@ public:
 
     explicit ShadowMap(hz::RenderContext& Context);
     // Fits the light to the scene and uploads the lighting frame every frame; lighting reads it even when nothing draws shadows.
-    void                  Prepare(const SceneView&);
-    void                  Execute(hz::CommandList&, const SceneView&, const GpuDrawList&, const hz::GPUTexture& Depth);
+    void                  Prepare(const hz::SceneView&);
+    void                  Execute(hz::CommandList&, const hz::SceneView&, const hz::GpuDrawList&, const hz::GPUTexture& Depth);
     const hz::GPUSampler& GetSampler() const { return Sampler; }
     const hz::GPUBuffer&  GetLightingFrame(uint32_t Backing) const { return LightingFrames[Backing]; }
     float                 LuminousEfficacy = 100.0f; // lm/W; explicit Cookbook daylight-white calibration.

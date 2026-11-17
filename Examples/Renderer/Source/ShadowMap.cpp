@@ -67,7 +67,7 @@ struct ShadowBindingConstants
 };
 static_assert(sizeof(ShadowBindingConstants) == 8 * sizeof(uint32_t));
 
-void ShadowMap::Prepare(const SceneView& View)
+void ShadowMap::Prepare(const hz::SceneView& View)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ShadowMap::Prepare");
     Vector3 Z(0, 1, 0);
@@ -149,7 +149,7 @@ void ShadowMap::Prepare(const SceneView& View)
     ++Data.frameIndex;
 }
 
-void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const GpuDrawList& Draws, const hz::GPUTexture& Depth)
+void ShadowMap::Execute(hz::CommandList& Commands, const hz::SceneView& View, const hz::GpuDrawList& Draws, const hz::GPUTexture& Depth)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ShadowMap::Execute");
     const uint32_t Backing = View.FrameIndex;
