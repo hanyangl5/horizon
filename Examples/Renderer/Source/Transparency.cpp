@@ -35,6 +35,7 @@ struct TransparencyConstants
     uint32_t oitOutputIndex = UINT32_MAX;
     float    oitTime = 0;
 };
+static_assert(sizeof(TransparencyConstants) == 28 * sizeof(uint32_t));
 
 Transparency::Transparency(hz::RenderContext& Context, hz::Format DepthFormat): Context(Context)
 {

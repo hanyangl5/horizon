@@ -29,6 +29,7 @@ struct RTConstants
     float    aoRadius;
     float    shadowRadius;
 };
+static_assert(sizeof(RTConstants) == 23 * sizeof(uint32_t));
 // Mirrors the RootConstant0 block of the denoise shaders field for field.
 struct RTDenoiseConstants
 {

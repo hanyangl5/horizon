@@ -19,6 +19,7 @@ struct ScreenSpaceAOConstants
     float    distanceScale = 1;
     float    depthThreshold = 0;
 };
+static_assert(sizeof(ScreenSpaceAOConstants) == 12 * sizeof(uint32_t));
 
 ScreenSpaceAO::ScreenSpaceAO(hz::RenderContext& Context): Context(Context)
 {

@@ -276,6 +276,10 @@ void hz::CommandList::SetRootConstant(Span<const uint32_t> values, uint32_t offs
     ASSERT(pCurrentRootSignature && values.Data && values.Count);
     const uint32_t descriptorIndex = getDescriptorIndexFromName(pCurrentRootSignature, "RootConstant0");
     ASSERT(descriptorIndex != UINT32_MAX);
+    // C++ mirrors of the shader block are maintained by hand; catch a struct that outgrew the reflected block.
+    ASSERTMSG(offsetIn32BitValues + values.Count <= pCurrentRootSignature->pDescriptors[descriptorIndex].Size,
+              "Root constants [%u, %u) exceed the shader's RootConstant0 block of %u values", offsetIn32BitValues,
+              offsetIn32BitValues + values.Count, pCurrentRootSignature->pDescriptors[descriptorIndex].Size);
     cmdBindPushConstants(pCmd, pCurrentRootSignature, descriptorIndex, values.Data, values.Count, offsetIn32BitValues);
 }
 
