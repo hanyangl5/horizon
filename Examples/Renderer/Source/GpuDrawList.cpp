@@ -6,38 +6,13 @@
 
 GpuDrawList::GpuDrawList(hz::RenderContext& Context): Context(Context)
 {
-    Pipeline = Context.CreateComputePipeline(
-        { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain", .Name = "Renderer.FrustumCull" } },
-                          .pFileName = "FrustumCulling.slang" },
-          .Name = "Renderer.FrustumCull" });
-    ClearPipeline =
-        Context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearStatistics" } },
-                                                        .pFileName = "FrustumCulling.slang" },
-                                        .Name = "Renderer.ClearCullingStatistics" });
-    ASSERT(Pipeline.IsValid() && ClearPipeline.IsValid());
     const uint32_t Opaque = DrawListAlphaMode(hz::MaterialAlphaMode::Opaque) | DrawListAlphaMode(hz::MaterialAlphaMode::Mask);
     OpaqueList = AddList({ .alphaModes = Opaque });
     TransparentList = AddList({ .alphaModes = DrawListAlphaMode(hz::MaterialAlphaMode::Blend) });
     ShadowCasterList = AddList({ .alphaModes = Opaque, .frustumCull = 0 });
 }
 
-// Mirrors the RootConstant0 block of FrustumCulling.slang field for field.
-struct CullingConstants
-{
-    uint32_t frameIndex;
-    uint32_t drawsIndex;
-    uint32_t instancesIndex;
-    uint32_t materialsIndex;
-    uint32_t filtersIndex;
-    uint32_t filterCount;
-    uint32_t statisticsIndex;
-    uint32_t drawCount;
-    uint32_t cullingEnabled;
-};
-static_assert(sizeof(CullingConstants) == 9 * sizeof(uint32_t));
 static_assert(sizeof(DrawListFilter) == 4 * sizeof(uint32_t));
-// Offset of statisticsIndex, which ClearStatistics reads on its own.
-constexpr uint32_t CullingStatisticsSlot = offsetof(CullingConstants, statisticsIndex) / sizeof(uint32_t);
 
 DrawListID GpuDrawList::AddList(const DrawListFilter& Filter)
 {
@@ -49,7 +24,7 @@ DrawListID GpuDrawList::AddList(const DrawListFilter& Filter)
     return { ListCount++ };
 }
 
-void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameBuffer, const SceneView& View, bool Culling)
+void GpuDrawList::Prepare(const SceneView& View)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::Prepare");
     const hz::GpuAssetTables& Tables = View.GpuScene.GetAssetTables();
@@ -142,7 +117,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
     }
     Frame& CurrentFrame = Frames[View.FrameIndex];
     CurrentFrame.Count = DrawData.Size();
-    if (CurrentFrame.Count > CurrentFrame.Capacity || !CurrentFrame.Statistics.IsValid())
+    if (CurrentFrame.Count > CurrentFrame.Capacity || !CurrentFrame.Filters.IsValid())
     {
         CurrentFrame.Capacity = TF_MAX(64u, TF_MAX(CurrentFrame.Count, CurrentFrame.Capacity * 2));
         CurrentFrame.DrawData = Context.CreateBuffer({ .Size = uint64_t(CurrentFrame.Capacity) * sizeof(GpuDrawData),
@@ -168,13 +143,7 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
                                                       .StartState = ResourceStateShaderResource,
                                                       .Descriptors = DescriptorTypeBuffer,
                                                       .Flags = BufferCreationFlagPersistentMapBit });
-        CurrentFrame.Statistics = Context.CreateBuffer({ .Size = 16,
-                                                         .ElementCount = 4,
-                                                         .Name = "Renderer.CullingStatistics",
-                                                         .usage = MemoryUsageGpuOnly,
-                                                         .StartState = ResourceStateUnorderedAccess,
-                                                         .Descriptors = DescriptorTypeRwBufferRaw });
-        ASSERT(CurrentFrame.DrawData.IsValid() && CurrentFrame.Filters.IsValid() && CurrentFrame.Statistics.IsValid());
+        ASSERT(CurrentFrame.DrawData.IsValid() && CurrentFrame.Filters.IsValid());
         DrawListFilter Uploaded[MaxLists] = {};
         for (uint32_t List = 0; List < ListCount; ++List)
         {
@@ -184,35 +153,12 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
         const bool Written = Context.UpdateBuffer(CurrentFrame.Filters, 0, Uploaded, sizeof(Uploaded));
         ASSERT(Written);
     }
-    Commands.SetPipeline(ClearPipeline);
-    Commands.SetRootConstant({ CurrentFrame.Statistics.GetUavIndex() }, CullingStatisticsSlot);
-    Commands.Dispatch(1, 1, 1, { .storageBuffers = { &CurrentFrame.Statistics } });
     if (!CurrentFrame.Count)
     {
         return;
     }
     const bool Uploaded = Context.UpdateBuffer(CurrentFrame.DrawData, 0, DrawData.GetData(), uint64_t(CurrentFrame.Count) * sizeof(GpuDrawData));
     ASSERT(Uploaded);
-    Commands.BeginGpuTimestamp("GPU Frustum Culling");
-    Commands.SetPipeline(Pipeline);
-    const hz::GpuSceneBuffers& Gpu = View.GpuScene.GetBuffers();
-    const CullingConstants     Binding = { .frameIndex = FrameBuffer.GetSrvIndex(),
-                                           .drawsIndex = CurrentFrame.DrawData.GetSrvIndex(),
-                                           .instancesIndex = Gpu.instances.GetSrvIndex(),
-                                           .materialsIndex = Gpu.materials.GetSrvIndex(),
-                                           .filtersIndex = CurrentFrame.Filters.GetSrvIndex(),
-                                           .filterCount = ListCount,
-                                           .statisticsIndex = CurrentFrame.Statistics.GetUavIndex(),
-                                           .drawCount = CurrentFrame.Count,
-                                           .cullingEnabled = Culling ? 1u : 0u };
-    Commands.SetRootConstants(Binding);
-    const hz::GPUBuffer* Outputs[MaxLists + 1] = { &CurrentFrame.Statistics };
-    for (uint32_t List = 0; List < ListCount; ++List)
-        Outputs[List + 1] = &CurrentFrame.Lists[List];
-    Commands.Dispatch((CurrentFrame.Count + 63) / 64, 1, 1,
-                      { .buffers = { &FrameBuffer, &CurrentFrame.DrawData, &Gpu.instances, &Gpu.materials, &CurrentFrame.Filters },
-                        .storageBuffers = { Outputs, ListCount + 1 } });
-    Commands.EndGpuTimestamp();
 }
 
 hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const SceneView& View,

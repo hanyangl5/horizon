@@ -6,6 +6,7 @@
 #include "Graphics/FrameGraph.h"
 #include "Graphics/RenderContext.h"
 #include "GpuDrawList.h"
+#include "FrustumCulling.h"
 #include "PostEffects.h"
 #include "ScreenSpaceAO.h"
 #include "EnvironmentPass.h"
@@ -38,6 +39,8 @@ public:
 // Frame graph handles of the renderer's resources; passes look up their concrete textures through these.
 struct RenderTargets
 {
+    // The draw lists GpuDrawList owns; culling writes them and the drawing passes read them.
+    hz::FrameGraphBuffer  DrawLists;
     hz::FrameGraphTexture GBuffer[GBuffer::TextureCount];
     hz::FrameGraphTexture Depth;
     hz::FrameGraphTexture ShadowMap;
@@ -96,6 +99,7 @@ private:
     hz::AssetManager&  Assets;
     hz::RenderCameraID CameraId;
 
+    hz::UniquePtr<FrustumCulling>   Culling;
     hz::UniquePtr<GBuffer>          GBufferPass;
     hz::UniquePtr<DeferredLighting> Lighting;
     hz::UniquePtr<PostEffects>      PostProcessing;

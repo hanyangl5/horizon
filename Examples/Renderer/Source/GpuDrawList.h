@@ -20,7 +20,7 @@ struct GpuDrawData
     uint32_t indexCount;
 };
 
-// Selects the draws of one indirect list, like an SRP renderer list. Uploaded to the culling shader as-is.
+// Selects the draws of one indirect list, like an SRP renderer list. Uploaded as-is for the renderer's culling shader.
 struct DrawListFilter
 {
     // Bit (1 << MaterialAlphaMode) for every alpha mode the list accepts.
@@ -47,17 +47,19 @@ struct DrawGeometry
     uint32_t          PreviousIndex = UINT32_MAX; // Geometry index in the preceding revision.
 };
 
+// Flattens the render scene into per-draw data and owns the indirect lists that the renderer's culling fills. Every list
+// holds one indirect command per draw, with zero instances for draws its filter rejects, so draw ids stay valid across lists.
 class GpuDrawList
 {
 public:
     static constexpr uint32_t MaxLists = 8;
 
     explicit GpuDrawList(hz::RenderContext& Context);
-    // Lists are registered at initialization; every list holds one indirect command per draw, with zero instances for draws
-    // its filter rejects, so draw ids stay valid across lists.
+    // Lists are registered at initialization.
     DrawListID            AddList(const DrawListFilter& Filter);
-    void                  Prepare(hz::CommandList&, const hz::GPUBuffer& Frame, const SceneView&, bool Culling = true);
-    // Draw indices refer to the complete list before GPU frustum culling.
+    // Builds and uploads this frame's draw data. The lists stay unwritten until a culling pass fills them.
+    void                  Prepare(const SceneView&);
+    // Draw indices refer to the complete draw data.
     hz::Span<GpuDrawData>  GetDraws() const { return { DrawData.GetData(), DrawData.Size() }; }
     hz::Span<DrawGeometry> GetGeometries() const { return { Geometries.GetData(), Geometries.Size() }; }
     uint32_t               GetGeometryIndex(uint32_t DrawIndex) const { return GeometryIndices[DrawIndex]; }
@@ -70,7 +72,9 @@ public:
     DrawListID             GetShadowCasterList() const { return ShadowCasterList; }
     hz::Dependencies     GetDependencies(const hz::GPUBuffer& Frame, const SceneView& View,
                                          const hz::GPUBuffer* Indirect = nullptr) const;
-    const hz::GPUBuffer& GetStatistics(uint32_t Backing) const { return Frames[Backing].Statistics; }
+    // The registered filters with each list's UAV index filled in, one DrawListFilter per list.
+    const hz::GPUBuffer& GetFilters(uint32_t Backing) const { return Frames[Backing].Filters; }
+    uint32_t             GetListCount() const { return ListCount; }
     uint32_t             GetCount(uint32_t Backing) const { return Frames[Backing].Count; }
 
 private:
@@ -79,7 +83,6 @@ private:
         hz::GPUBuffer                           DrawData;
         hz::FixedArray<hz::GPUBuffer, MaxLists> Lists;
         hz::GPUBuffer                           Filters;
-        hz::GPUBuffer                           Statistics;
         uint32_t                                Capacity = 0;
         uint32_t                                Count = 0;
     };
@@ -89,8 +92,6 @@ private:
     DrawListID                               TransparentList;
     DrawListID                               ShadowCasterList;
     hz::RenderContext&                       Context;
-    hz::GPUPipeline                          Pipeline;
-    hz::GPUPipeline                          ClearPipeline;
     hz::FixedArray<Frame, 3>                 Frames;
     hz::Array<GpuDrawData>                   DrawData;
     hz::Array<DrawGeometry>                  Geometries;

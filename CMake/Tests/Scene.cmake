@@ -12,5 +12,6 @@ add_test_target(SceneTests D3D12_RESOURCE_LOCK
 
 target_sources(SceneTests PRIVATE
     ${ENGINE_DIR}/Examples/Renderer/Source/GpuDrawList.cpp
+    ${ENGINE_DIR}/Examples/Renderer/Source/FrustumCulling.cpp
     ${ENGINE_DIR}/Examples/Renderer/Source/RayTracingScene.cpp
 )

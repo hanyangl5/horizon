@@ -2,6 +2,7 @@
 #include "AssetTestFixtures.h"
 #include "../../Examples/Renderer/Source/DeferredLighting.h"
 #include "../../Examples/Renderer/Source/GpuDrawList.h"
+#include "../../Examples/Renderer/Source/FrustumCulling.h"
 #include "../../Examples/Renderer/Source/RayTracingScene.h"
 #include <cmath>
 #include <d3d12sdklayers.h>
@@ -347,6 +348,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderSources, shaders.string().c_str());
 
     GpuDrawList     draws(context);
+    FrustumCulling  culling(context);
     RayTracingScene rayScene(context);
 
     const char      source[] = R"hlsl(
@@ -414,7 +416,8 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
         hz::CommandList& commands = context.AcquireCommandList();
 
         gpu.Upload(commands);
-        draws.Prepare(commands, frame, view);
+        draws.Prepare(view);
+        culling.Execute(commands, frame, view, draws);
         rayScene.Update(commands, view, draws);
         EXPECT_EQ(rayScene.GetSceneTLAS().GetInstanceCount(), pass < 3 ? 3 - pass : 0);
         EXPECT_EQ(draws.GetGeometries().Count, pass < 2 ? 2u : (pass == 2 ? 1u : 0u));

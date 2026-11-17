@@ -137,6 +137,12 @@ static DeferredGBuffer GetGBuffer(const hz::FrameGraphContext& Context)
              .Depth = hz::GetFrameGraphTexture(Context, Targets.Depth) };
 }
 
+static void ExecuteCulling(const hz::FrameGraphContext& Context, void* UserData)
+{
+    const FrameInputs& Frame = Inputs(Context);
+    ((FrustumCulling*)UserData)->Execute(Context.Commands, Frame.Frame, Frame.View, Frame.Draws);
+}
+
 static void ExecuteShadows(const hz::FrameGraphContext& Context, void* UserData)
 {
     const FrameInputs& Frame = Inputs(Context);
@@ -329,12 +335,20 @@ void RenderPasses::BuildGraph()
                                                                     .Name = "Renderer.HDR.AdaptedLuminance" },
                                                        .History = true });
     T.Backbuffer = hz::ImportFrameGraphTexture(G, { .Name = "Backbuffer", .Output = true });
+    // GpuDrawList recreates its list buffers as the scene grows, so they stay outside the graph's resources; the import
+    // only orders culling before the passes that draw from the lists.
+    T.DrawLists = hz::ImportFrameGraphBuffer(G, { .Name = "DrawLists" });
 
+    const hz::FrameGraphBufferUse WriteLists[] = { { T.DrawLists, hz::FrameGraphAccessWrite } };
+    const hz::FrameGraphBufferUse ReadLists[] = { { T.DrawLists, hz::FrameGraphAccessRead } };
+    hz::AddFrameGraphPass(G, { .Name = "Culling", .Execute = ExecuteCulling, .UserData = Culling.Get(), .Buffers = WriteLists });
     const Use ShadowUses[] = { { T.ShadowMap, Write } };
-    hz::AddFrameGraphPass(G, { .Name = "Shadows", .Execute = ExecuteShadows, .UserData = Shadows.Get(), .Textures = ShadowUses });
+    hz::AddFrameGraphPass(G,
+                          { .Name = "Shadows", .Execute = ExecuteShadows, .UserData = Shadows.Get(), .Textures = ShadowUses, .Buffers = ReadLists });
     const Use GBufferUses[] = { { T.GBuffer[0], Write }, { T.GBuffer[1], Write }, { T.GBuffer[2], Write },
                                 { T.GBuffer[3], Write }, { T.Depth, Write } };
-    hz::AddFrameGraphPass(G, { .Name = "GBuffer", .Execute = ExecuteGBuffer, .UserData = GBufferPass.Get(), .Textures = GBufferUses });
+    hz::AddFrameGraphPass(
+        G, { .Name = "GBuffer", .Execute = ExecuteGBuffer, .UserData = GBufferPass.Get(), .Textures = GBufferUses, .Buffers = ReadLists });
     const Use SSAOUses[] = { { T.Depth, Read }, { T.Occlusion, Write }, { T.OcclusionScratch, Write } };
     SSAOPass = hz::AddFrameGraphPass(G, { .Name = "SSAO", .Execute = ExecuteScreenSpaceAO, .UserData = SSAO.Get(), .Textures = SSAOUses });
     const Use RTUses[] = { { T.GBuffer[1], Read },           { T.Depth, Read },          { T.RTResult, Write },
@@ -351,11 +365,12 @@ void RenderPasses::BuildGraph()
     const Use TransparencyUses[] = { { T.Depth, Read },     { T.ShadowMap, Read },        { T.SceneColor, Read },
                                      { T.OITHeads, Write }, { T.TransparentColor, Write } };
     const hz::FrameGraphBufferUse TransparencyBuffers[] = { { T.OITNodes, Write }, { T.OITCounters, Write } };
+    const hz::FrameGraphBufferUse TransparencyAllBuffers[] = { TransparencyBuffers[0], TransparencyBuffers[1], ReadLists[0] };
     TransparencyPass = hz::AddFrameGraphPass(G, { .Name = "Transparency",
                                                   .Execute = ExecuteTransparency,
                                                   .UserData = Transparency.Get(),
                                                   .Textures = TransparencyUses,
-                                                  .Buffers = TransparencyBuffers });
+                                                  .Buffers = TransparencyAllBuffers });
     Use PostUses[3 + PostEffectsTargets::LuminanceLevels + 2 * PostEffectsTargets::BloomLevels - 1 + 2];
     uint32_t PostUseCount = 0;
     PostUses[PostUseCount++] = { T.SceneColor, Read };
@@ -378,6 +393,7 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     GpuSceneData(Scene, Assets, Context, { .frameCount = FrameConstants.Size() })
 {
     ASSERT(Context.IsValid() && CameraId.IsValid());
+    Culling = hz::MakeUnique<FrustumCulling>(Context);
     GBufferPass = hz::MakeUnique<GBuffer>(Context);
     Lighting = hz::MakeUnique<DeferredLighting>(Context);
     SSAO = hz::MakeUnique<ScreenSpaceAO>(Context);
@@ -482,7 +498,7 @@ void RenderPasses::Execute()
     ASSERT(Updated);
     hz::CommandList& Commands = Context.AcquireCommandList();
     GpuSceneData.Upload(Commands);
-    Draws.Prepare(Commands, Frame, View);
+    Draws.Prepare(View);
     // Frame shape the passes depend on.
     const bool RayTracingReady = RayTracing->IsSupported();
     Shadows->Data.environmentMipCount = Environment->GetPrefilteredMipCount();
@@ -497,6 +513,8 @@ void RenderPasses::Execute()
     hz::SetFrameGraphPassEnabled(Graph, TransparencyPass, EnableTransparency);
     const hz::GPUTexture& Backbuffer = Context.GetCurrentBackbuffer();
     hz::SetFrameGraphTextureImport(Graph, Targets.Backbuffer, &Backbuffer);
+    // Stands for all of this frame's lists; passes fetch the individual lists from the draw list itself.
+    hz::SetFrameGraphBufferImport(Graph, Targets.DrawLists, &Draws.GetCommands(FrameIndex, Draws.GetOpaqueList()));
     FrameInputs Inputs = { .Draws = Draws,
                            .Frame = Frame,
                            .View = View,
