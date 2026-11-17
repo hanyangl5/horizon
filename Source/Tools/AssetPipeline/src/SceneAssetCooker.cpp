@@ -1,6 +1,7 @@
 /* Copyright (c) 2026 Horizon */
 
 #include "SceneAssetCooker.h"
+#include "CookUtilities.h"
 #include "Core/IContainer.h"
 #include "Core/IToolFileSystem.h"
 #include "Scene/SceneID.h"
@@ -32,14 +33,6 @@ static const char* text(const cJSON* pObject, const char* pField)
     return cJSON_IsString(pValue) ? pValue->valuestring : "";
 }
 
-static uint64_t hashBytes(const void* Data, size_t Size, uint64_t Hash = UINT64_C(14695981039346656037))
-{
-    const uint8_t* pBytes = (const uint8_t*)Data;
-    for (size_t i = 0; i < Size; ++i)
-        Hash = (Hash ^ pBytes[i]) * UINT64_C(1099511628211);
-    return Hash;
-}
-
 static void addHash(cJSON* pObject, const char* pField, uint64_t Hash)
 {
     char value[17];
@@ -64,7 +57,7 @@ static cJSON* readJson(ResourceDirectory directory, const char* pPath, uint64_t*
     if (!read)
         return nullptr;
     if (pHash)
-        *pHash = hashBytes(bytes.GetData(), (size_t)Size);
+        *pHash = cookHash(bytes.GetData(), (size_t)Size);
     return cJSON_ParseWithLength(bytes.GetData(), bytes.Size());
 }
 
@@ -93,37 +86,12 @@ static bool validTextureIdentity(const cJSON* pDocument)
 
 static bool writeBytes(ResourceDirectory directory, const char* pPath, hz::Span<char> bytes)
 {
-    if (!recoverJson(directory, pPath))
-        return false;
-    char       temporary[FS_MAX_PATH];
-    const bool validPath = snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) < (int)sizeof(temporary);
-    FileStream stream = {};
-    const bool opened = validPath && OpenStreamFromPath(directory, temporary, FileModeWrite, &stream);
-    const bool written = opened && WriteToStream(&stream, bytes.Data, bytes.Count) == bytes.Count;
-    const bool closed = !opened || CloseStream(&stream);
-    if (!written || !closed)
-    {
-        LOGF(Error, "Cannot publish scene asset file '%s'", pPath);
-        return false;
-    }
-    char backup[FS_MAX_PATH];
-    if (snprintf(backup, sizeof(backup), "%s.bak", pPath) >= (int)sizeof(backup))
-        return false;
-    const bool exists = FileExists(directory, pPath);
-    if ((FileExists(directory, backup) && !RemoveFile(directory, backup)) || (exists && !RenameFile(directory, pPath, backup)))
-    {
-        LOGF(Error, "Cannot back up '%s'; check for an interrupted cook", pPath);
-        return false;
-    }
-    if (!RenameFile(directory, temporary, pPath))
-    {
-        if (exists && !RenameFile(directory, backup, pPath))
-            LOGF(Error, "Restore '%s' from '%s' before retrying", pPath, backup);
-        return false;
-    }
-    if (exists && !RemoveFile(directory, backup))
-        LOGF(Warning, "Cannot Remove completed cook backup '%s'", backup);
-    return true;
+    CookedFile file(directory, pPath);
+    file.Write(bytes.Data, bytes.Count);
+    if (file.Publish())
+        return true;
+    LOGF(Error, "Cannot publish scene asset file '%s'", pPath);
+    return false;
 }
 
 static bool writeJson(ResourceDirectory directory, const char* pPath, const cJSON* pValue)
@@ -302,21 +270,21 @@ static uint64_t accessorHash(const cgltf_accessor* pAccessor)
 {
     if (!pAccessor)
         return 0;
-    uint64_t Hash = hashBytes(&pAccessor->type, sizeof(pAccessor->type));
-    Hash = hashBytes(&pAccessor->count, sizeof(pAccessor->count), Hash);
+    uint64_t Hash = cookHash(&pAccessor->type, sizeof(pAccessor->type));
+    Hash = cookHash(&pAccessor->count, sizeof(pAccessor->count), Hash);
     if (pAccessor->is_sparse)
     {
         hz::Array<float> values((uint32_t)(pAccessor->count * cgltf_num_components(pAccessor->type)));
         if (cgltf_accessor_unpack_floats(pAccessor, values.GetData(), values.Size()) != values.Size())
             return 0;
-        return hashBytes(values.GetData(), values.Size() * sizeof(float), Hash);
+        return cookHash(values.GetData(), values.Size() * sizeof(float), Hash);
     }
     for (cgltf_size i = 0; i < pAccessor->count; ++i)
     {
         float values[16] = {};
         if (!cgltf_accessor_read_float(pAccessor, i, values, 16))
             return 0;
-        Hash = hashBytes(values, cgltf_num_components(pAccessor->type) * sizeof(float), Hash);
+        Hash = cookHash(values, cgltf_num_components(pAccessor->type) * sizeof(float), Hash);
     }
     return Hash;
 }
@@ -335,16 +303,16 @@ static uint64_t primitiveHash(const cgltf_primitive& primitive)
     {
         const cgltf_attribute& attribute = primitive.attributes[i];
         attributes[i] = accessorHash(attribute.data);
-        attributes[i] = hashBytes(attribute.name, strlen(attribute.name), attributes[i]);
+        attributes[i] = cookHash(attribute.name, strlen(attribute.name), attributes[i]);
     }
     qsort(attributes.GetData(), attributes.Size(), sizeof(uint64_t), compareHashes);
-    uint64_t Hash = hashBytes(attributes.GetData(), attributes.Size() * sizeof(uint64_t));
-    Hash = hashBytes(&primitive.type, sizeof(primitive.type), Hash);
+    uint64_t Hash = cookHash(attributes.GetData(), attributes.Size() * sizeof(uint64_t));
+    Hash = cookHash(&primitive.type, sizeof(primitive.type), Hash);
     if (primitive.indices)
         for (cgltf_size i = 0; i < primitive.indices->count; ++i)
         {
             const uint64_t value = cgltf_accessor_read_index(primitive.indices, i);
-            Hash = hashBytes(&value, sizeof(value), Hash);
+            Hash = cookHash(&value, sizeof(value), Hash);
         }
     return Hash;
 }
@@ -620,7 +588,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
                                texture.extras);
         if (!*text(textures[i], "sourceKey"))
             addSourceKey(textures[i], data, texture.image->extras);
-        addHash(textures[i], "signature", hashBytes(&cooked.srgb, sizeof(cooked.srgb), cooked.signature));
+        addHash(textures[i], "signature", cookHash(&cooked.srgb, sizeof(cooked.srgb), cooked.signature));
         cJSON_AddBoolToObject(textures[i], "srgb", cooked.srgb);
         if (cooked.source[0])
             cJSON_AddStringToObject(textures[i], "source", cooked.source);
@@ -639,7 +607,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
         // Texture array indices are not identity evidence.
         const JsonDocument signature(createMaterial(data, material, { textures.GetData(), textures.Size() }, true));
         char*              pText = cJSON_PrintUnformatted(signature.Get());
-        addHash(materials[i], "signature", hashBytes(pText, strlen(pText)));
+        addHash(materials[i], "signature", cookHash(pText, strlen(pText)));
         cJSON_free(pText);
         cJSON_AddItemToArray(pRecords, materials[i]);
     }
@@ -657,7 +625,7 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
             cJSON_AddItemToArray(pSubmeshes, pSubmesh);
         }
         qsort(hashes.GetData(), hashes.Size(), sizeof(uint64_t), compareHashes);
-        addHash(meshes[i], "signature", hashBytes(hashes.GetData(), hashes.Size() * sizeof(uint64_t)));
+        addHash(meshes[i], "signature", cookHash(hashes.GetData(), hashes.Size() * sizeof(uint64_t)));
         cJSON_AddItemToArray(pRecords, meshes[i]);
     }
     if (!matchIdentities(pOldRecords, pRecords) || !validateIdentities(pRecords) || containsID(pRecords, text(pMetadata, "scene")))
@@ -768,7 +736,7 @@ bool SceneAssetCooker::validate() const
     char* pMetadataJson = cJSON_Print(pMetadata);
     if (!pMetadataJson)
         return false;
-    addHash(pAsset, "identityHash", hashBytes(pMetadataJson, strlen(pMetadataJson)));
+    addHash(pAsset, "identityHash", cookHash(pMetadataJson, strlen(pMetadataJson)));
     cJSON_free(pMetadataJson);
     char* pJson = cJSON_PrintUnformatted(pAsset);
     if (!pJson)

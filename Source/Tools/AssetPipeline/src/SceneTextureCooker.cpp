@@ -1,6 +1,7 @@
 /* Copyright (c) 2026 Horizon */
 
 #include "SceneTextureCooker.h"
+#include "CookUtilities.h"
 #include "Core/IToolFileSystem.h"
 #include "Core/ITime.h"
 #include <ThirdParty/cgltf/cgltf.h>
@@ -30,13 +31,6 @@ private:
 #endif
 
 #include "Core/IMemory.h"
-
-static uint64_t imageHash(const void* pBytes, size_t Size, uint64_t Hash = UINT64_C(14695981039346656037))
-{
-    for (size_t i = 0; i < Size; ++i)
-        Hash = (Hash ^ ((const uint8_t*)pBytes)[i]) * UINT64_C(1099511628211);
-    return Hash;
-}
 
 bool SceneTextureCooker::readImage(const char* pPath, hz::Array<uint8_t>& bytes) const
 {
@@ -230,7 +224,7 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
         if (pExtension && (stricmp(pExtension, ".dds") == 0 || stricmp(pExtension, ".ktx") == 0))
         {
             snprintf(output.path, sizeof(output.path), "%s", output.source);
-            output.signature = imageHash(output.source, strlen(output.source));
+            output.signature = cookHash(output.source, strlen(output.source));
             return FileExists(sourceDirectory, output.path);
         }
         if (!pExtension || (stricmp(pExtension, ".png") != 0 && stricmp(pExtension, ".jpg") != 0 && stricmp(pExtension, ".jpeg") != 0) ||
@@ -256,14 +250,14 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
     }
     if (!pBytes || !Size || Size > INT_MAX)
         return false;
-    output.signature = imageHash(pBytes, Size);
+    output.signature = cookHash(pBytes, Size);
 #if defined(_WIN32)
     const uint32_t settings[] = { 1, (uint32_t)(srgb ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM) };
-    const uint64_t Hash = imageHash(settings, sizeof(settings), output.signature);
+    const uint64_t Hash = cookHash(settings, sizeof(settings), output.signature);
     snprintf(output.path, sizeof(output.path), "Textures/%016llx.dds", (unsigned long long)Hash);
     output.cooked = true;
     if (output.source[0])
-        output.signature = imageHash(output.source, strlen(output.source));
+        output.signature = cookHash(output.source, strlen(output.source));
     if (FileExists(outputDirectory, output.path))
         return true;
     DirectX::Blob dds;

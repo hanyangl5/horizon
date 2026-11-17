@@ -25,6 +25,7 @@
 #include "AssetPipeline.h"
 #include "AssetPipeline/IAssetPipeline.h"
 #include "SceneAssetCooker.h"
+#include "CookUtilities.h"
 
 // Math
 #include <ThirdParty/ModifiedSonyMath1/vectormath.hpp>
@@ -61,74 +62,7 @@
 
 #include "Runtime/Resources/Private/ResourceLoader/TextureContainers.h"
 
-class CookedGeometryFile
-{
-public:
-    CookedGeometryFile(ResourceDirectory directory, const char* pPath): directory(directory), pPath(pPath)
-    {
-        if (snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) >= (int)sizeof(temporary) ||
-            snprintf(backup, sizeof(backup), "%s.bak", pPath) >= (int)sizeof(backup))
-            return;
-        if (!FileExists(directory, pPath) && FileExists(directory, backup) && !RenameFile(directory, backup, pPath))
-            return;
-        opened = OpenStreamFromPath(directory, temporary, FileModeWriteAllowRead, &stream);
-        written = opened;
-    }
-    ~CookedGeometryFile()
-    {
-        if (opened)
-            CloseStream(&stream);
-    }
-    CookedGeometryFile(const CookedGeometryFile&) = delete;
-    CookedGeometryFile& operator=(const CookedGeometryFile&) = delete;
-
-    void write(const void* Data, size_t Size)
-    {
-        if (written)
-            written = WriteToStream(&stream, Data, Size) == Size;
-    }
-    bool publish()
-    {
-        if (!opened)
-            return false;
-        const bool closed = CloseStream(&stream);
-        opened = false;
-        if (!written || !closed)
-            return false;
-        const bool exists = FileExists(directory, pPath);
-        if ((FileExists(directory, backup) && !RemoveFile(directory, backup)) || (exists && !RenameFile(directory, pPath, backup)))
-            return false;
-        if (!RenameFile(directory, temporary, pPath))
-        {
-            if (exists && !RenameFile(directory, backup, pPath))
-                LOGF(Error, "Restore '%s' from '%s' before retrying", pPath, backup);
-            return false;
-        }
-        if (exists && !RemoveFile(directory, backup))
-            LOGF(Warning, "Cannot Remove completed geometry backup '%s'", backup);
-        return true;
-    }
-
-private:
-    ResourceDirectory directory;
-    const char*       pPath;
-    FileStream        stream = {};
-    char              temporary[FS_MAX_PATH] = {};
-    char              backup[FS_MAX_PATH] = {};
-    bool              opened = false;
-    bool              written = false;
-};
-
 #include "Core/IMemory.h" //NOTE: this should be the last include in a .cpp
-
-struct SkeletonNodeInfo
-{
-    bstring     mName = bempty();
-    cgltf_node* pNode = nullptr;
-    int32_t*    mChildNodeIndices = nullptr;
-    int32_t     pParentNodeIndex = 0;
-    bool        mUsedInSkeleton = false;
-};
 
 static void BeginAssetPipelineSection(const char* section) { LOGF(Info, "========== %s ==========", section); }
 
@@ -199,16 +133,6 @@ struct SceneAssetCookFingerprint
     char     mDependencies[kSceneAssetCookMaxDependencies][FS_MAX_PATH];
 };
 
-static void updateSceneAssetCookHash(uint64_t* pHash, const void* Data, size_t Size)
-{
-    const uint8_t* pBytes = (const uint8_t*)Data;
-    for (size_t i = 0; i < Size; ++i)
-    {
-        *pHash ^= pBytes[i];
-        *pHash *= UINT64_C(1099511628211);
-    }
-}
-
 static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint, const char* pPath, const void* Data, size_t Size)
 {
     char normalizedPath[FS_MAX_PATH] = {};
@@ -224,8 +148,8 @@ static bool addSceneAssetCookDependency(SceneAssetCookFingerprint* pFingerprint,
     }
 
     snprintf(pFingerprint->mDependencies[pFingerprint->mDependencyCount++], FS_MAX_PATH, "%s", normalizedPath);
-    updateSceneAssetCookHash(&pFingerprint->mHash, normalizedPath, strlen(normalizedPath) + 1);
-    updateSceneAssetCookHash(&pFingerprint->mHash, Data, Size);
+    pFingerprint->mHash = cookHash(normalizedPath, strlen(normalizedPath) + 1, pFingerprint->mHash);
+    pFingerprint->mHash = cookHash(Data, Size, pFingerprint->mHash);
     return true;
 }
 
@@ -247,9 +171,9 @@ static bool addSceneAssetCookStatDependency(ResourceDirectory resourceDirectory,
         return false;
 
     snprintf(pFingerprint->mDependencies[pFingerprint->mDependencyCount++], FS_MAX_PATH, "%s", normalizedPath);
-    updateSceneAssetCookHash(&pFingerprint->mHash, normalizedPath, strlen(normalizedPath) + 1);
-    updateSceneAssetCookHash(&pFingerprint->mHash, &modified, sizeof(modified));
-    updateSceneAssetCookHash(&pFingerprint->mHash, &Size, sizeof(Size));
+    pFingerprint->mHash = cookHash(normalizedPath, strlen(normalizedPath) + 1, pFingerprint->mHash);
+    pFingerprint->mHash = cookHash(&modified, sizeof(modified), pFingerprint->mHash);
+    pFingerprint->mHash = cookHash(&Size, sizeof(Size), pFingerprint->mHash);
     return true;
 }
 
@@ -258,15 +182,15 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
                                            time_t additionalModifiedTime, SceneAssetCookFingerprint* pFingerprint)
 {
     static const uint32_t kCookerRevision = 12;
-    pFingerprint->mHash = UINT64_C(14695981039346656037);
-    updateSceneAssetCookHash(&pFingerprint->mHash, &kCookerRevision, sizeof(kCookerRevision));
-    updateSceneAssetCookHash(&pFingerprint->mHash, &additionalModifiedTime, sizeof(additionalModifiedTime));
-    updateSceneAssetCookHash(&pFingerprint->mHash, pParams->pVertexLayout, sizeof(*pParams->pVertexLayout));
-    updateSceneAssetCookHash(&pFingerprint->mHash, &pParams->mIgnoreMissingAttributes, sizeof(pParams->mIgnoreMissingAttributes));
-    updateSceneAssetCookHash(&pFingerprint->mHash, &pParams->mProcessMeshlets, sizeof(pParams->mProcessMeshlets));
-    updateSceneAssetCookHash(&pFingerprint->mHash, &pParams->mNumMaxVertices, sizeof(pParams->mNumMaxVertices));
-    updateSceneAssetCookHash(&pFingerprint->mHash, &pParams->mNumMaxTriangles, sizeof(pParams->mNumMaxTriangles));
-    updateSceneAssetCookHash(&pFingerprint->mHash, &pParams->mOptimizationFlags, sizeof(pParams->mOptimizationFlags));
+    pFingerprint->mHash = kCookHashSeed;
+    pFingerprint->mHash = cookHash(&kCookerRevision, sizeof(kCookerRevision), pFingerprint->mHash);
+    pFingerprint->mHash = cookHash(&additionalModifiedTime, sizeof(additionalModifiedTime), pFingerprint->mHash);
+    pFingerprint->mHash = cookHash(pParams->pVertexLayout, sizeof(*pParams->pVertexLayout), pFingerprint->mHash);
+    pFingerprint->mHash = cookHash(&pParams->mIgnoreMissingAttributes, sizeof(pParams->mIgnoreMissingAttributes), pFingerprint->mHash);
+    pFingerprint->mHash = cookHash(&pParams->mProcessMeshlets, sizeof(pParams->mProcessMeshlets), pFingerprint->mHash);
+    pFingerprint->mHash = cookHash(&pParams->mNumMaxVertices, sizeof(pParams->mNumMaxVertices), pFingerprint->mHash);
+    pFingerprint->mHash = cookHash(&pParams->mNumMaxTriangles, sizeof(pParams->mNumMaxTriangles), pFingerprint->mHash);
+    pFingerprint->mHash = cookHash(&pParams->mOptimizationFlags, sizeof(pParams->mOptimizationFlags), pFingerprint->mHash);
     if (!addSceneAssetCookDependency(pFingerprint, pSourcePath, pSourceData, sourceSize))
         return false;
 
@@ -1327,30 +1251,30 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         CreateDirectoryForFile(assetParams->mRDOutput, newFileName);
 
-        CookedGeometryFile geometryFile(assetParams->mRDOutput, newFileName);
-        geometryFile.write(GEOMETRY_FILE_MAGIC_STR, sizeof(GEOMETRY_FILE_MAGIC_STR));
-        geometryFile.write(&totalGeomSize, sizeof(totalGeomSize));
-        geometryFile.write(geom, totalGeomSize);
+        CookedFile         geometryFile(assetParams->mRDOutput, newFileName);
+        geometryFile.Write(GEOMETRY_FILE_MAGIC_STR, sizeof(GEOMETRY_FILE_MAGIC_STR));
+        geometryFile.Write(&totalGeomSize, sizeof(totalGeomSize));
+        geometryFile.Write(geom, totalGeomSize);
 
         // Serialized pointers are restored from the following data blocks during Load.
         GeometryData::ShadowData* pTempShadow = geomData->pShadow;
         void*                     pTempUserData = geomData->UserData;
         geomData->pShadow = nullptr;
         geomData->UserData = nullptr;
-        geometryFile.write(&totalGeomDataSize, sizeof(totalGeomDataSize));
-        geometryFile.write(geomData, totalGeomDataSize);
+        geometryFile.Write(&totalGeomDataSize, sizeof(totalGeomDataSize));
+        geometryFile.Write(geomData, totalGeomDataSize);
         geomData->pShadow = pTempShadow;
         geomData->UserData = pTempUserData;
-        geometryFile.write(&shadowSize, sizeof(shadowSize));
-        geometryFile.write(geomData->pShadow, shadowSize);
+        geometryFile.Write(&shadowSize, sizeof(shadowSize));
+        geometryFile.Write(geomData->pShadow, shadowSize);
         if (geom->meshlets.meshletCount)
         {
-            geometryFile.write(geom->meshlets.meshlets, sizeof(*geom->meshlets.meshlets) * geom->meshlets.meshletCount);
-            geometryFile.write(geom->meshlets.meshletsData, sizeof(*geom->meshlets.meshletsData) * geom->meshlets.meshletCount);
-            geometryFile.write(geom->meshlets.vertices, sizeof(*geom->meshlets.vertices) * geom->meshlets.vertexCount);
-            geometryFile.write(geom->meshlets.triangles, sizeof(*geom->meshlets.triangles) * geom->meshlets.triangleCount);
+            geometryFile.Write(geom->meshlets.meshlets, sizeof(*geom->meshlets.meshlets) * geom->meshlets.meshletCount);
+            geometryFile.Write(geom->meshlets.meshletsData, sizeof(*geom->meshlets.meshletsData) * geom->meshlets.meshletCount);
+            geometryFile.Write(geom->meshlets.vertices, sizeof(*geom->meshlets.vertices) * geom->meshlets.vertexCount);
+            geometryFile.Write(geom->meshlets.triangles, sizeof(*geom->meshlets.triangles) * geom->meshlets.triangleCount);
         }
-        const bool geometryWritten = geometryFile.publish();
+        const bool geometryWritten = geometryFile.Publish();
         if (!geometryWritten)
         {
             LOGF(Error, "Failed to publish geometry '%s'", newFileName);
