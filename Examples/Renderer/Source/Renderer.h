@@ -145,7 +145,7 @@ private:
         const bool Registered = Types->RegisterBuiltins();
         ASSERT(Registered);
         World = hz::MakeUnique<hz::World>(*Types);
-        if (!Asset->instantiate(*World).IsValid())
+        if (!Asset->Instantiate(*World).IsValid())
         {
             LOGF(Error, "Cannot instantiate SceneAsset '%s'", SceneFile);
             return false;

@@ -1884,7 +1884,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     hz::TypeRegistry types;
     ASSERT_TRUE(types.RegisterBuiltins());
     hz::UniquePtr<hz::World> world = hz::MakeUnique<hz::World>(types);
-    const hz::Entity          root = assetManager.GetScene(source)->instantiate(*world);
+    const hz::Entity          root = assetManager.GetScene(source)->Instantiate(*world);
     hz::Entity                first, second;
     {
         hz::WorldQuery query(*world, { hz::SceneTypes::meshRenderer });

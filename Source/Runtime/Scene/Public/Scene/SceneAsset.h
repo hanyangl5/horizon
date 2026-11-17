@@ -96,7 +96,7 @@ public:
     // Creates independent persistent entities beneath a new root, owned by World.
     // Requires builtin types and a committed World; the payload can be released afterwards.
     // Guid generation failure returns an invalid Entity and rolls back the new entities.
-    Entity                   instantiate(World& world, Entity parent = {}) const;
+    Entity                   Instantiate(World& world, Entity parent = {}) const;
 
 private:
     SceneAssetData* Data = nullptr;

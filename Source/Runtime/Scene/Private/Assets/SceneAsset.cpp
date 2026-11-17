@@ -470,7 +470,7 @@ static void copyName(Name& name, const char* pText)
     name.value[length] = 0;
 }
 
-Entity SceneAsset::instantiate(World& world, Entity parent) const
+Entity SceneAsset::Instantiate(World& world, Entity parent) const
 {
     ASSERT(Data && !world.IsDeferred() && (!parent.IsValid() || world.IsAlive(parent)));
     const Entity root = world.CreatePersistentEntity();

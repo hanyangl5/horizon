@@ -125,8 +125,8 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadD
     const hz::LocalTransform transform = { .translation = Vector3(100, 0, 0) };
     ASSERT_TRUE(world.SetComponent(parent, hz::SceneTypes::localTransform, &transform));
     const hz::AssetID mesh = asset.GetMeshes().Data[0].id;
-    const hz::Entity  firstRoot = asset.instantiate(world, parent);
-    const hz::Entity  secondRoot = asset.instantiate(world);
+    const hz::Entity  firstRoot = asset.Instantiate(world, parent);
+    const hz::Entity  secondRoot = asset.Instantiate(world);
     EXPECT_EQ(world.GetParent(firstRoot), parent);
     EXPECT_FALSE(world.GetParent(secondRoot).IsValid());
     EXPECT_NE(world.GetEntityGuid(firstRoot), world.GetEntityGuid(secondRoot));
@@ -195,7 +195,7 @@ TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
             hz::SceneAsset asset;
             ASSERT_TRUE(Parse(asset, json));
             hz::World        world(types);
-            const hz::Entity root = asset.instantiate(world);
+            const hz::Entity root = asset.Instantiate(world);
             struct Names
             {
                 hz::World*  pWorld;
@@ -269,7 +269,7 @@ TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
             ASSERT_TRUE(world.SetParent(child, parent, false));
             const hz::LocalTransform transform = { .translation = Vector3(3, 0, 0) };
             ASSERT_TRUE(world.SetComponent(parent, hz::SceneTypes::localTransform, &transform));
-            EXPECT_FALSE(asset.instantiate(world, parent).IsValid());
+            EXPECT_FALSE(asset.Instantiate(world, parent).IsValid());
             EXPECT_EQ(source.calls, failureAt + 1);
             EXPECT_EQ(world.GetEntity(parentID), parent);
             EXPECT_EQ(world.GetEntity(childID), child);
@@ -289,7 +289,7 @@ TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
             world.UpdateTransforms();
             EXPECT_FLOAT_EQ((float)world.GetWorldTransform(child)->current.getElem(3, 0), 3.0f);
             source.failureAt = UINT32_MAX;
-            const hz::Entity root = asset.instantiate(world, parent);
+            const hz::Entity root = asset.Instantiate(world, parent);
             ASSERT_TRUE(root.IsValid());
             EXPECT_EQ(world.GetParent(root), parent);
             ASSERT_TRUE(world.DestroySubtree(root));
@@ -442,7 +442,7 @@ TEST_F(SceneAssetReadTest, HandlesDeepHierarchyWithoutRecursiveTraversal)
         const hz::Entity         parent = world.CreatePersistentEntity();
         const hz::LocalTransform transform = { .translation = Vector3(3, 0, 0) };
         ASSERT_TRUE(world.SetComponent(parent, hz::SceneTypes::localTransform, &transform));
-        const hz::Entity root = asset.instantiate(world, parent);
+        const hz::Entity root = asset.Instantiate(world, parent);
         EXPECT_EQ(world.GetParent(root), parent);
         asset = {};
         world.UpdateTransforms();
