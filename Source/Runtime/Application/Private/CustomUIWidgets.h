@@ -245,7 +245,9 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
     ASSERT(pWidget);
     ASSERT(pWidget->Type == WIDGET_TYPE_CUSTOM);
     if (pWidget->Type != WIDGET_TYPE_CUSTOM) //-V547
+    {
         return;
+    }
 
     CustomWidget*              pCustomWidget = (CustomWidget*)pWidget->pWidget;
     BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pCustomWidget->UserData;
@@ -285,7 +287,9 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
         if (ci == 0 && freeChunk->offset == 0)
             floatingOccupiedChunks -= 1;
         if (ci == unusedChunkCount - 1 && freeChunk->offset + freeChunk->Size == data->Size)
+        {
             floatingOccupiedChunks -= 1;
+        }
 
         uint64_t point_beg = 0;
 
@@ -313,7 +317,9 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
             point_end = histogramPointOffsetAproximation(point + 1, nValues, data->Size);
 
             if (point_end > freeChunk->offset + freeChunk->Size)
+            {
                 break;
+            }
 
             values[2 * point] = -(int64_t)point_beg;
             values[2 * point + 1] = intensity;

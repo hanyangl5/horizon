@@ -50,15 +50,15 @@ extern "C"
 #endif
 
 #if defined(_WINDOWS) || defined(XBOX)
-#define CHECK_HRESULT(exp)                                                       \
-    do                                                                           \
-    {                                                                            \
-        HRESULT hres = (exp);                                                    \
-        if (!SUCCEEDED(hres))                                                    \
-        {                                                                        \
+#define CHECK_HRESULT(exp)                                                      \
+    do                                                                          \
+    {                                                                           \
+        HRESULT hres = (exp);                                                   \
+        if (!SUCCEEDED(hres))                                                   \
+        {                                                                       \
             LOGF(Error, "%s: FAILED with HRESULT: 0x%X", #exp, (uint32_t)hres); \
-            ASSERT(false);                                                       \
-        }                                                                        \
+            ASSERT(false);                                                      \
+        }                                                                       \
     } while (0)
 #endif
 
@@ -80,7 +80,7 @@ extern "C"
     do                                                                                                           \
     {                                                                                                            \
         (void)sizeof(b); /* This sizeof must compile, otherwise when disabling ASSERTs the code won't compile */ \
-        b ? (void)0 : FailedAssert(__FILE__, __LINE__, #b, "" msgFmt, ##__VA_ARGS__);                           \
+        b ? (void)0 : FailedAssert(__FILE__, __LINE__, #b, "" msgFmt, ##__VA_ARGS__);                            \
     } while (0)
 
 // Version of ASSERT intended to be used in if statements.
@@ -89,8 +89,8 @@ extern "C"
 
 #else
 
-//-V:ASSERT:627
-//-V:ASSERT:568
+    //-V:ASSERT:627
+    //-V:ASSERT:568
 #define ASSERTMSG(b, msgFmt, ...) \
     do                            \
     {                             \
@@ -145,26 +145,26 @@ extern "C"
 
 #else
 
-// Usage: DLOGF(LogLevel::Info | LogLevel::Debug, "Whatever string %s, this is an int %d", "This is a string", 1)
+    // Usage: DLOGF(LogLevel::Info | LogLevel::Debug, "Whatever string %s, this is an int %d", "This is a string", 1)
 #define DLOGF(log_value, ...) \
     do                        \
     {                         \
     } while (0)
-// Usage: DLOGF_IF(LogLevel::Info | LogLevel::Debug, boolean_value && integer_value == 5, "Whatever string %s, this is an int %d", "This
-// is a string", 1)
+    // Usage: DLOGF_IF(LogLevel::Info | LogLevel::Debug, boolean_value && integer_value == 5, "Whatever string %s, this is an int %d", "This
+    // is a string", 1)
 #define DLOGF_IF(log_value, condition, ...) \
     do                                      \
     {                                       \
         ((void)sizeof(condition));          \
     } while (0)
 
-// Usage: DRAW_LOGF(LogLevel::Info | LogLevel::Debug, "Whatever string %s, this is an int %d", "This is a string", 1)
+    // Usage: DRAW_LOGF(LogLevel::Info | LogLevel::Debug, "Whatever string %s, this is an int %d", "This is a string", 1)
 #define DRAW_LOGF(log_level, ...) \
     do                            \
     {                             \
     } while (0)
-// Usage: DRAW_LOGF_IF(LogLevel::Info | LogLevel::Debug, boolean_value && integer_value == 5, "Whatever string %s, this is an int %d",
-// "This is a string", 1)
+    // Usage: DRAW_LOGF_IF(LogLevel::Info | LogLevel::Debug, boolean_value && integer_value == 5, "Whatever string %s, this is an int %d",
+    // "This is a string", 1)
 #define DRAW_LOGF_IF(log_level, condition, ...) \
     do                                          \
     {                                           \

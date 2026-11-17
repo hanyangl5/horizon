@@ -17,8 +17,8 @@ static float QuantizeShadowExtent(float Extent)
 ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(Context), Resolution(Resolution)
 {
     Pipeline = Context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
-                                                                           { .stage = ShaderStageFrag, .pEntryPoint = "PSShadow" } },
-                                                               .pFileName = "ShadowMap.slang" },
+                                                                            { .stage = ShaderStageFrag, .pEntryPoint = "PSShadow" } },
+                                                                .pFileName = "ShadowMap.slang" },
                                                 .rasterizer = { .cullMode = CULL_MODE_NONE,
                                                                 .depthBias = 1,
                                                                 .slopeScaledDepthBias = 2.0f,
@@ -35,8 +35,7 @@ ShadowMap::ShadowMap(hz::RenderContext& Context, uint32_t Resolution): Context(C
                                     .Descriptors = DescriptorTypeTexture,
                                     .GetRenderTarget = true,
                                     .Name = "Renderer.ShadowMap" });
-    Sampler = Context.CreateSampler(
-        { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .CompareFunc = CMP_LEQUAL });
+    Sampler = Context.CreateSampler({ .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .CompareFunc = CMP_LEQUAL });
     SurfaceSampler = Context.CreateSampler();
     for (uint32_t Index = 0; Index < ShadowFrames.Size(); ++Index)
     {
@@ -163,7 +162,7 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     Commands.SetPipeline(Pipeline);
     Commands.SetViewport(0, 0, (float)Resolution, (float)Resolution);
     Commands.SetScissor(0, 0, Resolution, Resolution);
-    const hz::GpuSceneBuffers& Gpu = View.GpuScene.GetBuffers();
+    const hz::GpuSceneBuffers&   Gpu = View.GpuScene.GetBuffers();
     const ShadowBindingConstants Binding = {
         .frameIndex = ShadowFrames[Backing].GetSrvIndex(),
         .instancesIndex = Gpu.instances.IsValid() ? Gpu.instances.GetSrvIndex() : UINT32_MAX,

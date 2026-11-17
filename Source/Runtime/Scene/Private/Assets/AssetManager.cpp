@@ -231,7 +231,9 @@ public:
             hmdel(pIndices, asset.pEntry->id);
             // A Release already drops the entry; only a slot that was still encoded needs clearing here.
             if (asset.tableEncoded)
+            {
                 markTableDirty(index);
+            }
             const uint32_t generation = asset.generation + 1;
             asset = { .generation = generation ? generation : 1 };
             freeIndices.PushBack(index);
@@ -244,9 +246,13 @@ public:
         asset.state = AssetState::Failed;
         asset.error = error;
         if (pReason && pReason[0])
+        {
             snprintf(asset.diagnostic, sizeof(asset.diagnostic), "%s", pReason);
+        }
         else if (!asset.diagnostic[0])
+        {
             snprintf(asset.diagnostic, sizeof(asset.diagnostic), "Cannot Load %s", asset.pEntry->location.pPath);
+        }
     }
 
     // Returns true while the asset still has work to poll; Ready, Failed and retired slots drop out.
@@ -264,12 +270,16 @@ public:
             {
                 const ManagedAsset& dependency = assets[asset.pDependencies[i].index];
                 // A material keeps its factors when a texture fails: the GPU table leaves that slot unbound.
-                const bool optional = asset.pEntry->Type == AssetType::Material && dependency.pEntry->Type == AssetType::Texture;
+                const bool          optional = asset.pEntry->Type == AssetType::Material && dependency.pEntry->Type == AssetType::Texture;
                 if (dependency.state == AssetState::Failed && optional)
+                {
                     continue;
+                }
                 dependenciesReady &= dependency.state == AssetState::Ready;
                 if (dependency.state == AssetState::Failed)
+                {
                     fail(asset, AssetError::DependencyFailed, "A dependency failed to Load");
+                }
             }
         }
         const AssetLoader& loader = loaders[(uint32_t)asset.pEntry->Type];
@@ -279,7 +289,9 @@ public:
             if (!asset.pRequest)
                 fail(asset, AssetError::LoadFailed, "The loader rejected the asset");
             else
+            {
                 asset.state = AssetState::LoadingCPU;
+            }
         }
         if (asset.pRequest)
         {
@@ -299,9 +311,13 @@ public:
             else if (asset.state != AssetState::Failed)
             {
                 if (result.status == AssetLoadStatus::Succeeded && result.pPayload)
+                {
                     asset.state = AssetState::WaitingDependencies;
+                }
                 else
+                {
                     fail(asset, AssetError::LoadFailed, result.pError);
+                }
             }
         }
         if (asset.state == AssetState::WaitingDependencies && dependenciesReady)
@@ -332,9 +348,13 @@ public:
             else if (asset.state != AssetState::Failed)
             {
                 if (status == AssetLoadStatus::Succeeded)
+                {
                     asset.state = AssetState::Ready;
+                }
                 else
+                {
                     fail(asset, AssetError::UploadFailed, nullptr);
+                }
             }
         }
         if (asset.state == AssetState::Ready)
@@ -345,7 +365,9 @@ public:
         if (asset.state == AssetState::Failed)
         {
             if (!asset.diagnostic[0])
+            {
                 snprintf(asset.diagnostic, sizeof(asset.diagnostic), "Cannot Load %s", asset.pEntry->location.pPath);
+            }
             destroyPayload(asset);
             releaseDependencies(asset);
             markTableDirty(index);
@@ -365,7 +387,9 @@ public:
     {
         ManagedAsset& asset = assets[index];
         if (asset.tableDirty)
+        {
             return;
+        }
         asset.tableDirty = true;
         tableDirty.PushBack(index);
         ++tableRevision;
@@ -374,7 +398,9 @@ public:
             for (uint32_t i = 0; i < assets.Size(); ++i)
             {
                 if (assets[i].pEntry && assets[i].pEntry->Type == AssetType::Material)
+                {
                     markTableDirty(i);
+                }
             }
         }
     }
@@ -421,8 +447,8 @@ public:
             for (uint32_t Draw = 0; Draw < mesh.GetDescription().submeshes.Count; ++Draw)
             {
                 const IndirectDrawIndexArguments& args = mesh.GetDraw(Draw);
-                submeshes.PushBack({ .indexCount = args.indexCount, .firstIndex = args.startIndex,
-                                     .vertexOffset = (int32_t)args.vertexOffset });
+                submeshes.PushBack(
+                    { .indexCount = args.indexCount, .firstIndex = args.startIndex, .vertexOffset = (int32_t)args.vertexOffset });
             }
         }
         else if (asset.pEntry->Type == AssetType::Material)
@@ -444,7 +470,9 @@ public:
                 const ManagedAsset* pTexture = pIndex ? &assets[pIndex->value.index] : nullptr;
                 // Only a released texture lease can leave this Empty; keep the previous mapping instead of crashing.
                 if (pTexture && pTexture->state == AssetState::Ready && pTexture->pPayload)
+                {
                     *ppTextures[texture] = ((const TextureAsset*)pTexture->pPayload)->GetTexture().GetSrvIndex();
+                }
             }
             memcpy(mapping.baseColorFactor, material.baseColorFactor, sizeof(mapping.baseColorFactor));
             memcpy(mapping.emissiveFactor, material.emissiveFactor, sizeof(mapping.emissiveFactor));
@@ -479,13 +507,17 @@ public:
             for (uint32_t i = 0; i < assets.Size(); ++i)
             {
                 if (assets[i].state == AssetState::Ready && assets[i].pPayload)
+                {
                     encodeTableEntry(i);
+                }
             }
             tableDirty.Clear();
             return;
         }
         for (uint32_t index : tableDirty)
+        {
             encodeTableEntry(index);
+        }
         tableDirty.Clear();
     }
 
@@ -567,7 +599,9 @@ void AssetManager::Update()
     for (uint32_t i = 0; i < data.pending.Size(); ++i)
     {
         if (data.Update(data.assets[data.pending[i]]))
+        {
             data.pending[kept++] = data.pending[i];
+        }
     }
     data.pending.Resize(kept);
     data.retire();
@@ -591,16 +625,13 @@ const char* AssetManager::GetDiagnostic(AssetHandle Handle) const
     return pAsset ? pAsset->diagnostic : "";
 }
 
-const SceneAsset* AssetManager::GetScene(AssetHandle Handle) const
-{
-    return (const SceneAsset*)Data->getPayload(Handle, AssetType::Scene);
-}
+const SceneAsset* AssetManager::GetScene(AssetHandle Handle) const { return (const SceneAsset*)Data->getPayload(Handle, AssetType::Scene); }
 
 const TextureAsset* AssetManager::GetTexture(AssetHandle Handle) const
 {
     return (const TextureAsset*)Data->getPayload(Handle, AssetType::Texture);
 }
-const MeshAsset* AssetManager::GetMesh(AssetHandle Handle) const { return (const MeshAsset*)Data->getPayload(Handle, AssetType::Mesh); }
+const MeshAsset*     AssetManager::GetMesh(AssetHandle Handle) const { return (const MeshAsset*)Data->getPayload(Handle, AssetType::Mesh); }
 const MaterialAsset* AssetManager::GetMaterial(AssetHandle Handle) const
 {
     return (const MaterialAsset*)Data->getPayload(Handle, AssetType::Material);

@@ -57,8 +57,8 @@ static inline T withUTF16Path(const char* path, T (*function)(const wchar_t*))
 
 extern "C"
 {
-    bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
-    void GetParentPath(const char* path, char* output);
+bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+void GetParentPath(const char* path, char* output);
 }
 
 #ifndef XBOX
@@ -78,7 +78,9 @@ bool InitFileSystem(FileSystemInitDesc* pDesc)
     ASSERT(pDesc);
 
     for (uint32_t i = 0; i < MountCount; ++i)
+    {
         gResourceMounts[i] = "";
+    }
 
     // Get application directory
     wchar_t utf16Path[FS_MAX_PATH];
@@ -157,7 +159,9 @@ time_t GetLastModifiedTime(ResourceDirectory rd, const char* fileName)
 {
     char filePath[FS_MAX_PATH] = { 0 };
     if (!MergeDirAndFileName(GetResourceDirectory(rd), fileName, '\\', sizeof filePath, filePath))
+    {
         return 0;
+    }
 
     // Fix paths for Windows 7 - needs to be generalized and propagated
     // eastl::string path = eastl::string(filePath);
@@ -327,7 +331,9 @@ static ssize_t ioWindowsFsGetSize(FileStream* fs)
     WSD(stream, fs);
     LARGE_INTEGER fileSize = {};
     if (GetFileSizeEx(stream->Handle, &fileSize))
+    {
         return (ssize_t)fileSize.QuadPart;
+    }
     LOGF(Error, "Failed to Get file size: %s", WindowsErrorString().c_str());
     return -1;
 }
@@ -338,7 +344,9 @@ static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** o
     *outData = NULL;
 
     if (fs->mode & FileModeWrite)
+    {
         return false;
+    }
 
     WSD(stream, fs);
 

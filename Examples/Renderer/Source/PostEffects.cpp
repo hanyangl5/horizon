@@ -138,12 +138,16 @@ void PostEffects::ReleaseBloomChain()
     for (uint32_t Level = 0; Level < BloomLevels; ++Level)
     {
         if (BloomDown[Level])
+        {
             Context.ReleaseTransient(BloomDown[Level]);
+        }
         BloomDown[Level] = nullptr;
         if (Level + 1 < BloomLevels)
         {
             if (BloomUp[Level])
+            {
                 Context.ReleaseTransient(BloomUp[Level]);
+            }
             BloomUp[Level] = nullptr;
         }
     }
@@ -208,7 +212,7 @@ void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& Scene
     Commands.BeginGpuTimestamp("HDR");
     if (!ExposureInitialized)
     {
-        hz::DependencyList initializeDependencies;
+        hz::DependencyList           initializeDependencies;
         const PostLuminanceConstants Initialize = { .inputIndex = initializeDependencies.store(&AdaptedLuminance[0]),
                                                     .outputIndex = initializeDependencies.store(&AdaptedLuminance[1]) };
         Commands.SetPipeline(InitializePipeline);
@@ -216,7 +220,7 @@ void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& Scene
         Commands.Dispatch(1, 1, 1, initializeDependencies.Get());
         ExposureInitialized = true;
     }
-    hz::DependencyList         MeteringDependencies;
+    hz::DependencyList          MeteringDependencies;
     const PostMeteringConstants Metering = { .sceneColorIndex = MeteringDependencies.sample(&SceneColor),
                                              .luminanceOutputIndex = MeteringDependencies.store(&Luminance[0]) };
     Commands.SetPipeline(MeteringPipeline);
@@ -225,8 +229,8 @@ void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& Scene
     Commands.SetPipeline(ReducePipeline);
     for (uint32_t Level = 1; Level < LuminanceLevels; ++Level)
     {
-        const uint32_t Size = MeteringSize >> Level;
-        hz::DependencyList reduceDependencies;
+        const uint32_t               Size = MeteringSize >> Level;
+        hz::DependencyList           reduceDependencies;
         const PostLuminanceConstants Reduce = { .inputIndex = reduceDependencies.sample(&Luminance[Level - 1]),
                                                 .outputIndex = reduceDependencies.store(&Luminance[Level]) };
         Commands.SetRootConstants(Reduce);
@@ -312,8 +316,8 @@ void PostEffects::RunAdaptation(hz::CommandList& Commands, float DeltaSeconds)
 void PostEffects::ToneMap(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget)
 {
     const bool SrgbTarget = Context.GetColorFormat() == hz::Format::R8G8B8A8_SRGB || Context.GetColorFormat() == hz::Format::B8G8R8A8_SRGB;
-    hz::DependencyList     Dependencies;
-    const hz::GPUTexture*  Bloom = BloomUp[0];
+    hz::DependencyList      Dependencies;
+    const hz::GPUTexture*   Bloom = BloomUp[0];
     const PostToneConstants Constants = {
         .sceneColor = Dependencies.sample(&SceneColor),
         .adaptedLuminance = Dependencies.sample(&AdaptedLuminance[AdaptedIndex]),

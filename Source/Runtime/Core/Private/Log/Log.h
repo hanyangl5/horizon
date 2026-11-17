@@ -69,38 +69,38 @@ typedef void (*LogFlushFn)(void* user_data);
 extern "C"
 {
 #endif
-    // Initialization/Exit functions are thread unsafe
-    // appName   used to create appName.log. Pass NULL to disable
-    // level     mask of LogLevel bits. Log is ignored if its level is missing in mask. Use All to enable full log
-    FORGE_API void InitLog(const char* appName, LogLevel level);
-    FORGE_API void ExitLog(void);
+// Initialization/Exit functions are thread unsafe
+// appName   used to create appName.log. Pass NULL to disable
+// level     mask of LogLevel bits. Log is ignored if its level is missing in mask. Use All to enable full log
+FORGE_API void InitLog(const char* appName, LogLevel level);
+FORGE_API void ExitLog(void);
 
-    FORGE_API void AddLogFile(const char* filename, FileMode file_mode, LogLevel log_level);
-    FORGE_API void AddLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close,
-                                  LogFlushFn flush);
+FORGE_API void AddLogFile(const char* filename, FileMode file_mode, LogLevel log_level);
+FORGE_API void AddLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close,
+                              LogFlushFn flush);
 
-    FORGE_API void WriteLogVaList(uint32_t level, const char* filename, int line_number, const char* message, va_list args);
-    //+V576, function:WriteLog, format_arg:4, ellipsis_arg:5
-    FORGE_API void WriteLog(uint32_t level, const char* filename, int line_number, const char* message, ...);
-    //+V576, function:WriteRawLog, format_arg:3, ellipsis_arg:4
-    FORGE_API void WriteRawLog(uint32_t level, bool error, const char* message, ...);
+FORGE_API void WriteLogVaList(uint32_t level, const char* filename, int line_number, const char* message, va_list args);
+//+V576, function:WriteLog, format_arg:4, ellipsis_arg:5
+FORGE_API void WriteLog(uint32_t level, const char* filename, int line_number, const char* message, ...);
+//+V576, function:WriteRawLog, format_arg:3, ellipsis_arg:4
+FORGE_API void WriteRawLog(uint32_t level, bool error, const char* message, ...);
 
-    //+V576, function:FailedAssert, format_arg:4, ellipsis_arg:5
-    FORGE_API void FailedAssert(const char* file, int line, const char* statement, const char* msg, ...);
+//+V576, function:FailedAssert, format_arg:4, ellipsis_arg:5
+FORGE_API void FailedAssert(const char* file, int line, const char* statement, const char* msg, ...);
 
-    // Usage:
-    // puts(HumanReadableTime(ns).str);
-    // printf("%s\n", HumanReadableTime(ms * 1000).str);
-    // HumanReadableSize(9238412498).str;
-    struct HumanReadableValue
-    {
-        char str[16];
-    };
-    FORGE_API struct HumanReadableValue HumanReadableSSize(ssize_t Size);
-    FORGE_API struct HumanReadableValue HumanReadableTimeD(double nanoseconds);
+// Usage:
+// puts(HumanReadableTime(ns).str);
+// printf("%s\n", HumanReadableTime(ms * 1000).str);
+// HumanReadableSize(9238412498).str;
+struct HumanReadableValue
+{
+    char str[16];
+};
+FORGE_API struct HumanReadableValue HumanReadableSSize(ssize_t Size);
+FORGE_API struct HumanReadableValue HumanReadableTimeD(double nanoseconds);
 
-    static inline struct HumanReadableValue HumanReadableSize(size_t Size) { return HumanReadableSSize((ssize_t)Size); }
-    static inline struct HumanReadableValue HumanReadableTime(int64_t nanoseconds) { return HumanReadableTimeD((double)nanoseconds); }
+static inline struct HumanReadableValue HumanReadableSize(size_t Size) { return HumanReadableSSize((ssize_t)Size); }
+static inline struct HumanReadableValue HumanReadableTime(int64_t nanoseconds) { return HumanReadableTimeD((double)nanoseconds); }
 
 #ifdef __cplusplus
 } // extern "C"

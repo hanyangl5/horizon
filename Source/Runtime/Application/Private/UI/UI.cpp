@@ -825,7 +825,7 @@ static DropdownWidget* cloneDropdownWidget(const void* pWidget)
 static ColumnWidget* cloneColumnWidget(const void* pWidget)
 {
     const ColumnWidget* pOriginalWidget = (const ColumnWidget*)pWidget;
-    ColumnWidget*       pClonedWidget = (ColumnWidget*)MemAllocate(sizeof(ColumnWidget) + sizeof(UIWidget*) * pOriginalWidget->widgetsCount);
+    ColumnWidget* pClonedWidget = (ColumnWidget*)MemAllocate(sizeof(ColumnWidget) + sizeof(UIWidget*) * pOriginalWidget->widgetsCount);
     pClonedWidget->pPerColumnWidgets = (UIWidget**)(pClonedWidget + 1);
     pClonedWidget->widgetsCount = pOriginalWidget->widgetsCount;
 
@@ -1270,7 +1270,9 @@ static void processWidgetCallbacks(UIWidget* pWidget, bool deferred)
         // ImGui::Button doesn't Set the IsItemEdited flag, we assing ourselves:
         // pWidget->edited = ImGui::Button(...);
         if (pWidget->Type != WIDGET_TYPE_BUTTON)
+        {
             pWidget->edited = ImGui::IsItemEdited();
+        }
 
         pWidget->deactivated = ImGui::IsItemDeactivated();
         pWidget->deactivatedAfterEdit = ImGui::IsItemDeactivatedAfterEdit();
@@ -1557,7 +1559,9 @@ static void processDropdownWidget(UIWidget* pWidget)
     DropdownWidget* pOriginalWidget = (DropdownWidget*)(pWidget->pWidget);
 
     if (pOriginalWidget->Count == 0)
+    {
         return;
+    }
 
     char label[MAX_LABEL_LENGTH];
     LABELID1(pOriginalWidget->Data, label);
@@ -1761,7 +1765,9 @@ void processTextboxWidget(UIWidget* pWidget)
 
     uint32_t Flags = 0;
     if (pOriginalWidget->Flags & UI_TEXT_AUTOSELECT_ALL)
+    {
         Flags |= ImGuiInputTextFlags_AutoSelectAll;
+    }
     if (pOriginalWidget->pCallback)
         Flags |= ImGuiInputTextFlags_CallbackAlways;
 
@@ -2280,7 +2286,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
             else
             {
                 LOGF(Warning, "uiCreateComponent() has reached fonts capacity.  Consider increasing 'maxUIFonts' when initializing the "
-                               "user interface.");
+                              "user interface.");
                 useDefaultFallbackFont = true;
             }
         }
@@ -2965,12 +2971,8 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     /************************************************************************/
     // Rendering resources
     /************************************************************************/
-    SamplerDesc samplerDesc = { FILTER_LINEAR,
-                                FILTER_LINEAR,
-                                MIPMAP_MODE_NEAREST,
-                                AddressModeClampToEdge,
-                                AddressModeClampToEdge,
-                                AddressModeClampToEdge };
+    SamplerDesc samplerDesc = { FILTER_LINEAR,          FILTER_LINEAR,          MIPMAP_MODE_NEAREST,
+                                AddressModeClampToEdge, AddressModeClampToEdge, AddressModeClampToEdge };
     addSampler(pUserInterface->pRenderer, &samplerDesc, &pUserInterface->pDefaultSampler);
 
     BufferLoadDesc vbDesc = {};

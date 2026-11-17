@@ -49,15 +49,15 @@
 extern "C"
 {
 #endif
-    typedef void (*ForEachRLeafItemIntersectionFn)(void* UserData, void* Data);
-    typedef bool (*CompareRLeafItemFn)(void* UserData, void* Data);
+typedef void (*ForEachRLeafItemIntersectionFn)(void* UserData, void* Data);
+typedef bool (*CompareRLeafItemFn)(void* UserData, void* Data);
 
-    typedef struct RTreeDescriptor
-    {
-        uint32_t minElementsPerNode;
-        uint32_t maxElementsPerNode;
-        uint32_t maxElements;
-    } RTreeDescriptor;
+typedef struct RTreeDescriptor
+{
+    uint32_t minElementsPerNode;
+    uint32_t maxElementsPerNode;
+    uint32_t maxElements;
+} RTreeDescriptor;
 
     typedef struct RTree RTree;
 

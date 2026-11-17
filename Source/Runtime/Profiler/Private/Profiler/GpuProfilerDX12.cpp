@@ -98,8 +98,8 @@ void beginGpuTimestampQueryDX12(Cmd* pCmd, GpuProfiler* pGpuProfiler, GpuTimer* 
     }
 
     MemPlacementNew<tracy::D3D12ZoneScope>((tracy::D3D12ZoneScope*)pGpuTimer->pBackendGpuZone, getTracyGpuContext(pGpuProfiler),
-                                            (uint32_t)TracyLine, TracyFile, strlen(TracyFile), TracyFunction, strlen(TracyFunction),
-                                            pGpuTimer->name, strlen(pGpuTimer->name), pCmd->dx.pCmdList, true);
+                                           (uint32_t)TracyLine, TracyFile, strlen(TracyFile), TracyFunction, strlen(TracyFunction),
+                                           pGpuTimer->name, strlen(pGpuTimer->name), pCmd->dx.pCmdList, true);
     pGpuTimer->backendGpuZoneActive = true;
 }
 

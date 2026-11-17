@@ -614,7 +614,9 @@ static size_t ioMemoryStreamWrite(FileStream* fs, const void* src, size_t Size)
 
     size_t availableCapacity = 0;
     if (stream->Capacity >= stream->cursor)
+    {
         availableCapacity = stream->Capacity - stream->cursor;
+    }
 
     if (Size > availableCapacity)
     {
@@ -711,7 +713,9 @@ static bool ioMemoryStreamIsAtEnd(FileStream* fs)
 static bool ioMemoryStreamMemoryMap(FileStream* fs, size_t* outSize, void const** outData)
 {
     if (fs->mode & FileModeWrite)
+    {
         return false;
+    }
 
     MEMSD(stream, fs);
     *outSize = stream->Capacity;
@@ -860,7 +864,9 @@ bool FindStream(FileStream* pStream, const void* pFind, size_t findSize, ssize_t
     {
         uint8_t byte;
         if (ReadFromStream(pStream, &byte, sizeof(byte)) != sizeof(byte))
+        {
             return false;
+        }
 
         while (true)
         {
@@ -923,7 +929,9 @@ bool FindReverseStream(FileStream* pStream, const void* pFind, size_t findSize, 
     {
         uint8_t byte;
         if (!SeekStream(pStream, SBO_CURRENT_POSITION, -1))
+        {
             return false;
+        }
 
         size_t readBytes = ReadFromStream(pStream, &byte, sizeof(byte));
         ASSERT(readBytes == 1);
@@ -953,12 +961,16 @@ bool FindReverseStream(FileStream* pStream, const void* pFind, size_t findSize, 
 FORGE_API bool WrapStreamMemoryMap(FileStream* fs)
 {
     if (IsMemoryStream(fs))
+    {
         return true;
+    }
 
     size_t      Size;
     const void* mem;
     if (!StreamMemoryMap(fs, &Size, &mem))
+    {
         return false;
+    }
 
     FileStream wrapFs;
     if (!OpenStreamFromMemory(mem, Size, FileModeRead, false, &wrapFs))
@@ -1024,7 +1036,8 @@ void SetResourceDirectoryPath(IFileSystem* FileSystem, ResourceMount mount, Reso
     dir->bundled = MountContent == mount;
 
     char resourcePath[FS_MAX_PATH] = { 0 };
-    MergeDirAndFileName(FileSystem->GetResourceMount ? FileSystem->GetResourceMount(mount) : "", bundledFolder, '/', sizeof resourcePath, resourcePath);
+    MergeDirAndFileName(FileSystem->GetResourceMount ? FileSystem->GetResourceMount(mount) : "", bundledFolder, '/', sizeof resourcePath,
+                        resourcePath);
     strncpy(dir->path, resourcePath, FS_MAX_PATH);
     dir->FileSystem = FileSystem;
 
@@ -1386,7 +1399,9 @@ static inline void bunyArMemoryReadPrepare(const struct BunyArMetadata* a,
     *out = a->memoryBeg + ptr.offset;
     *read = (uint64_t)(a->memoryEnd - *out);
     if (*read > ptr.Size)
+    {
         *read = ptr.Size;
+    }
 }
 
 static inline size_t bunyArStreamRead(struct BunyArMetadata* a, uint64_t position, uint64_t Size, void* dst)
@@ -1404,8 +1419,7 @@ static inline size_t bunyArStreamRead(struct BunyArMetadata* a, uint64_t positio
         LockMutex(&a->mutex);
 
     size_t readed = 0;
-    if (GetStreamPosition(a->archiveStream) != (ssize_t)position &&
-        !SeekStream(a->archiveStream, SBO_START_OF_FILE, (ssize_t)position))
+    if (GetStreamPosition(a->archiveStream) != (ssize_t)position && !SeekStream(a->archiveStream, SBO_START_OF_FILE, (ssize_t)position))
     {
         readed = 0;
     }
@@ -1624,7 +1638,7 @@ static bool bunyArchiveOpen(FileStream* stream, uint64_t memorySize, const void*
         if (namesChanged)
         {
             LOGF(Error, "Baked archive Hash table is abandoned because node names was "
-                         "modified");
+                        "modified");
             MemDeallocate(archive->hashTable);
             archive->hashTable = NULL;
         }
@@ -1704,7 +1718,9 @@ bool OpenArchive(ResourceDirectory rd, const char* path, const struct ArchiveOpe
 {
     FileStream stream;
     if (!OpenStreamFromPath(rd, path, FileModeRead, &stream))
+    {
         return false;
+    }
 
     if (!OpenArchiveFromStream(&stream, desc, out))
     {
@@ -1731,7 +1747,9 @@ bool OpenArchiveFromStream(FileStream* stream, const struct ArchiveOpenDesc* des
         size_t      msize;
         const void* m;
         if (StreamMemoryMap(stream, &msize, &m))
+        {
             return bunyArchiveOpen(NULL, msize, m, desc, out);
+        }
     }
     return bunyArchiveOpen(stream, 0, NULL, desc, out);
 }
@@ -1744,7 +1762,9 @@ FORGE_API bool OpenArchiveFromMemory(uint64_t msize, const void* m, const struct
 FORGE_API bool CloseArchive(IFileSystem* fs)
 {
     if (!fs || !fs->User)
+    {
         return true;
+    }
 
     struct BunyArMetadata* archive = getFsArchive(fs);
 
@@ -1795,7 +1815,9 @@ static bool ioArchiveGetFileUid(IFileSystem* fs, ResourceDirectory rd, const cha
     char        path[BUNYAR_FILE_NAME_LENGTH_MAX + 1];
     const char* strrd = GetResourceDirectory(rd);
     if (!MergeDirAndFileName(strrd, fileName, '/', sizeof path, path))
+    {
         return false;
+    }
     return GetArchiveNodeId(fs, path, outUid);
 }
 
@@ -1829,7 +1851,9 @@ static bool ioArchiveOpenByUid(IFileSystem* inFs, uint64_t index, FileMode mode,
     case BUNYAR_FILE_FORMAT_RAW:
     {
         if (node->originalFileSize == node->filePointer.Size)
+        {
             break;
+        }
 
         LOGF(Error, "Archive contains raw file '%s' with corrupted size (%llu vs %llu)", archive->nodeNames + node->namePointer.offset,
              (unsigned long long)node->originalFileSize, (unsigned long long)node->filePointer.Size);
@@ -1922,7 +1946,9 @@ static bool ioArchiveFsOpen(IFileSystem* fs, const ResourceDirectory rd, const c
 static bool ioArchiveFsClose(FileStream* fs)
 {
     if (!fs->FileSystem)
+    {
         return true;
+    }
 
     ASSERT(fs->user.data[0]);
 
@@ -1964,7 +1990,9 @@ static bool bunyArReadBlockToBuffer(struct BunyArMetadata* archive, struct BunyA
         {
             bunyArMemoryReadPrepare(archive, loc, &srcMemory, &srcSize);
             if (srcSize != loc.Size)
+            {
                 return false;
+            }
         }
         else
         {
@@ -2199,7 +2227,9 @@ static bool ioArchiveMemoryMap(FileStream* fs, size_t* outSize, void const** out
 
     struct BunyArNode* node = stream->node;
     if (node->Format != BUNYAR_FILE_FORMAT_RAW)
+    {
         return false;
+    }
 
     *outSize = node->filePointer.Size;
     *outData = archive->memoryBeg + node->filePointer.offset;

@@ -67,28 +67,36 @@ void WorldImpl::constructComponents(void* pDestination, int32_t Count, const ecs
 {
     const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < Count; ++i)
+    {
         Type.Construct((uint8_t*)pDestination + (size_t)i * Type.Size);
+    }
 }
 
 void WorldImpl::destroyComponents(void* pValue, int32_t Count, const ecs_type_info_t* pInfo)
 {
     const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < Count; ++i)
+    {
         Type.Destroy((uint8_t*)pValue + (size_t)i * Type.Size);
+    }
 }
 
 void WorldImpl::copyConstructComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
 {
     const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < Count; ++i)
+    {
         Type.CopyConstruct((uint8_t*)pDestination + (size_t)i * Type.Size, (const uint8_t*)pSource + (size_t)i * Type.Size);
+    }
 }
 
 void WorldImpl::moveConstructComponents(void* pDestination, void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
 {
     const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
     for (int32_t i = 0; i < Count; ++i)
+    {
         Type.MoveConstruct((uint8_t*)pDestination + (size_t)i * Type.Size, (uint8_t*)pSource + (size_t)i * Type.Size);
+    }
 }
 
 void WorldImpl::copyComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
@@ -195,12 +203,16 @@ bool World::AddComponent(Entity entity, TypeID Type)
         return false;
     }
     if (!IsAlive(entity))
+    {
         return false;
+    }
     const WorldType* pType = pImpl->findType(Type);
     if (!pType)
         return false;
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    {
         return false;
+    }
     ecs_add_id(pImpl->pWorld, entity.value, pType->component);
     return true;
 }
@@ -213,7 +225,9 @@ bool World::RemoveComponent(Entity entity, TypeID Type)
         return false;
     }
     if (!IsAlive(entity))
+    {
         return false;
+    }
     const WorldType* pType = pImpl->findType(Type);
     if (!pType)
         return false;
@@ -231,12 +245,16 @@ bool World::SetComponent(Entity entity, TypeID Type, const void* pValue)
         return false;
     }
     if (!IsAlive(entity))
+    {
         return false;
+    }
     const WorldType* pType = pImpl->findType(Type);
     if (!pType)
         return false;
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    {
         return false;
+    }
     if (!ecs_has_id(pImpl->pWorld, entity.value, pType->component) && !ecs_is_deferred(pImpl->pWorld))
     {
         // Adding a component can move the table containing pValue before Flecs copies it.
@@ -255,7 +273,9 @@ bool World::SetComponent(Entity entity, TypeID Type, const void* pValue)
 const void* World::GetComponent(Entity entity, TypeID Type) const
 {
     if (!IsAlive(entity))
+    {
         return nullptr;
+    }
     const WorldType* pType = pImpl->findType(Type);
     return pType ? ecs_get_id(pImpl->pWorld, entity.value, pType->component) : nullptr;
 }
@@ -328,16 +348,18 @@ WorldChangeLog::WorldChangeLog(World& world): pImpl(MemNew(WorldChangeLogImpl, w
 
 WorldChangeLog::~WorldChangeLog()
 {
-    WorldImpl&                 world = *pImpl->world.pImpl;
+    WorldImpl&                  world = *pImpl->world.pImpl;
     Array<WorldChangeLogImpl*>& logs = world.changeLogs;
     world.checkThread();
     for (uint32_t i = 0; i < logs.Size(); ++i)
+    {
         if (logs[i] == pImpl)
         {
             logs[i] = logs[logs.Size() - 1];
             logs.PopBack();
             break;
         }
+    }
     --world.queryCount;
     MemDelete(pImpl);
 }
@@ -371,7 +393,9 @@ void WorldQuery::Each(bool (*pCallback)(Entity, Span<const void*>, void*), void*
         for (int32_t row = 0; row < it.count; ++row)
         {
             for (uint32_t field = 0; field < pImpl->fields.Size(); ++field)
+            {
                 pImpl->fields[field] = (const uint8_t*)it.ptrs[field + 1] + (size_t)row * it.sizes[field + 1];
+            }
             if (!pCallback(Entity(it.entities[row], pImpl->pOwner->pImpl->id), { pImpl->fields.GetData(), pImpl->fields.Size() }, UserData))
             {
                 ecs_iter_fini(&it);

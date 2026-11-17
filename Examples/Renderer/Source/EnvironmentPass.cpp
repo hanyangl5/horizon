@@ -87,10 +87,9 @@ void EnvironmentPass::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fr
                                         .samplerIndex = Sampler.GetIndex(),
                                         .intensity = Intensity };
     Commands.BeginGpuTimestamp("Skybox");
-    Commands.BeginRendering(
-        { .colorAttachments = { { .pTexture = &Color, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
-          .depthAttachment = { .pTexture = &Depth, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
-        Dependencies.Get());
+    Commands.BeginRendering({ .colorAttachments = { { .pTexture = &Color, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
+                              .depthAttachment = { .pTexture = &Depth, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
+                            Dependencies.Get());
     Commands.SetViewport(0, 0, (float)Context.GetWidth(), (float)Context.GetHeight());
     Commands.SetScissor(0, 0, Context.GetWidth(), Context.GetHeight());
     Commands.SetPipeline(Pipeline);

@@ -44,13 +44,13 @@ struct FrameGraphBufferEntry
 
 struct FrameGraphPassEntry
 {
-    FrameGraphPassDesc   Desc;
+    FrameGraphPassDesc Desc;
     // Uses are copied into the graph arrays; Desc's spans are not kept.
-    uint32_t             FirstTextureUse = 0;
-    uint32_t             TextureUseCount = 0;
-    uint32_t             FirstBufferUse = 0;
-    uint32_t             BufferUseCount = 0;
-    bool                 Live = false;
+    uint32_t           FirstTextureUse = 0;
+    uint32_t           TextureUseCount = 0;
+    uint32_t           FirstBufferUse = 0;
+    uint32_t           BufferUseCount = 0;
+    bool               Live = false;
 };
 
 // A GPU texture that one or more transient textures with disjoint lifetimes share.

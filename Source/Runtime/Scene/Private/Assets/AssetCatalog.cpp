@@ -73,16 +73,20 @@ public:
     {
         uint32_t dependencyCount = scene.GetNodes().Count + scene.GetMaterials().Count * 4;
         for (const SceneAssetMesh& mesh : scene.GetMeshes())
+        {
             dependencyCount += mesh.submeshes.Count;
+        }
         dependencies.Reserve(dependencyCount);
         entries.Reserve(1 + scene.GetTextures().Count + scene.GetMaterials().Count + scene.GetMeshes().Count);
         for (const SceneAssetTexture& texture : scene.GetTextures())
+        {
             entries.PushBack(
                 { .id = texture.id,
                   .Type = AssetType::Texture,
                   .pSourcePath = texture.pSource,
                   .location = { .pPath = texture.pPath, .root = texture.cooked ? AssetPathRoot::Cooked : AssetPathRoot::Source },
                   .srgb = texture.srgb });
+        }
         uint32_t index = 0;
         for (const SceneAssetMaterial& material : scene.GetMaterials())
         {
@@ -111,7 +115,9 @@ public:
         }
         const uint32_t start = dependencies.Size();
         for (const SceneAssetNode& node : scene.GetNodes())
+        {
             addDependency(node.mesh);
+        }
         entries.PushBack({ .id = scene.GetID(),
                            .Type = AssetType::Scene,
                            .pSourcePath = scene.GetSource(),
@@ -125,7 +131,9 @@ private:
     void addDependency(AssetID id)
     {
         if (id.IsValid())
+        {
             dependencies.PushBack(id);
+        }
     }
 
     Span<AssetID> finishDependencies(uint32_t start)
@@ -142,10 +150,16 @@ static bool sameEntry(const AssetCatalogEntry& a, const AssetCatalogEntry& b)
 {
     if (a.Type != b.Type || a.location.root != b.location.root || a.location.elementIndex != b.location.elementIndex || a.srgb != b.srgb ||
         strcmp(a.pSourcePath, b.pSourcePath) || strcmp(a.location.pPath, b.location.pPath) || a.dependencies.Count != b.dependencies.Count)
+    {
         return false;
+    }
     for (uint32_t i = 0; i < a.dependencies.Count; ++i)
+    {
         if (a.dependencies.Data[i] != b.dependencies.Data[i])
+        {
             return false;
+        }
+    }
     return true;
 }
 
@@ -212,7 +226,9 @@ bool AssetCatalog::Set(const AssetCatalogEntry& entry, bool replaceExisting)
         Data->retiredEntries.PushBack((AssetCatalogEntry*)pExisting);
     }
     if (!Data)
+    {
         Data = MemNew(AssetCatalogData);
+    }
     Data->insert(normalized);
     return true;
 }
@@ -237,11 +253,15 @@ bool AssetCatalog::AddScene(const SceneAsset& scene, const char* pCookedScenePat
         }
     }
     if (!Data)
+    {
         Data = MemNew(AssetCatalogData);
+    }
     for (const AssetCatalogEntry& entry : batch.getEntries())
     {
         if (Find(entry.id))
+        {
             continue;
+        }
         Data->insert(entry);
     }
     return true;
@@ -250,7 +270,9 @@ bool AssetCatalog::AddScene(const SceneAsset& scene, const char* pCookedScenePat
 const AssetCatalogEntry* AssetCatalog::Find(AssetID id) const
 {
     if (!Data || !id.IsValid())
+    {
         return nullptr;
+    }
     const CatalogIndex* pIndex = hmgetp_null(Data->pIndices, id);
     return pIndex ? pIndex->value : nullptr;
 }
@@ -259,13 +281,17 @@ uint32_t                 AssetCatalog::GetCount() const { return Data ? (uint32_
 const AssetCatalogEntry* AssetCatalog::FindScene(const char* pCookedScenePath) const
 {
     if (!Data || !pCookedScenePath)
+    {
         return nullptr;
+    }
     for (ptrdiff_t i = 0; i < hmlen(Data->pIndices); ++i)
     {
         const AssetCatalogEntry* pEntry = Data->pIndices[i].value;
         if (pEntry->Type == AssetType::Scene && pEntry->location.root == AssetPathRoot::Cooked &&
             !strcmp(pEntry->location.pPath, pCookedScenePath))
+        {
             return pEntry;
+        }
     }
     return nullptr;
 }
@@ -273,7 +299,9 @@ const AssetCatalogEntry* AssetCatalog::FindScene(const char* pCookedScenePath) c
 bool AssetCatalog::Remove(AssetID id)
 {
     if (!Data)
+    {
         return false;
+    }
     const CatalogIndex* pIndex = hmgetp_null(Data->pIndices, id);
     if (!pIndex)
     {
@@ -287,7 +315,9 @@ bool AssetCatalog::Remove(AssetID id)
 bool AssetCatalog::Merge(const AssetCatalog& other)
 {
     if (!other.Data)
+    {
         return true;
+    }
     for (ptrdiff_t i = 0; i < hmlen(other.Data->pIndices); ++i)
     {
         const AssetCatalogEntry& entry = *other.Data->pIndices[i].value;
@@ -299,12 +329,16 @@ bool AssetCatalog::Merge(const AssetCatalog& other)
         }
     }
     if (!Data)
+    {
         Data = MemNew(AssetCatalogData);
+    }
     for (ptrdiff_t i = 0; i < hmlen(other.Data->pIndices); ++i)
     {
         const AssetCatalogEntry& entry = *other.Data->pIndices[i].value;
         if (!Find(entry.id))
+        {
             Data->insert(entry);
+        }
     }
     return true;
 }
@@ -347,20 +381,28 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
     CatalogJson document;
     const char* pEnd = nullptr;
     if (json.Data && json.Count && json.Count <= 64 * 1024 * 1024)
+    {
         document.pRoot = cJSON_ParseWithLengthOpts(json.Data, json.Count, &pEnd, false);
+    }
     if (!document.pRoot)
         return false;
     while (pEnd < json.Data + json.Count && isspace((unsigned char)*pEnd))
+    {
         ++pEnd;
+    }
     if (pEnd < json.Data + json.Count && !*pEnd && pEnd + 1 == json.Data + json.Count)
+    {
         ++pEnd;
+    }
     const cJSON* pRoot = document.pRoot;
     const char*  pFormat = catalogString(pRoot, "format");
     uint32_t     version = 0;
     const cJSON* pEntries = cJSON_GetObjectItemCaseSensitive(pRoot, "entries");
     if (pEnd != json.Data + json.Count || !uniqueFields(pRoot) || !pFormat || strcmp(pFormat, "Horizon.AssetCatalog") ||
         !catalogNumber(cJSON_GetObjectItemCaseSensitive(pRoot, "version"), version) || version != 1 || !cJSON_IsArray(pEntries))
+    {
         return false;
+    }
     Array<AssetID> dependencies;
     for (const cJSON* pEntry = pEntries->child; pEntry; pEntry = pEntry->next)
     {
@@ -377,7 +419,9 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
             !catalogNumber(cJSON_GetObjectItemCaseSensitive(pEntry, "root"), root) || root > (uint32_t)AssetPathRoot::Cooked ||
             (!cJSON_IsNull(pIndex) && !catalogNumber(pIndex, entry.location.elementIndex)) || !cJSON_IsBool(pSrgb) ||
             !cJSON_IsArray(pDependencies))
+        {
             return false;
+        }
         entry.Type = (AssetType)Type;
         entry.location.root = (AssetPathRoot)root;
         entry.srgb = cJSON_IsTrue(pSrgb);
@@ -386,12 +430,16 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
         {
             AssetID id;
             if (!cJSON_IsString(pDependency) || !id.Parse(pDependency->valuestring) || !id.IsValid())
+            {
                 return false;
+            }
             dependencies.PushBack(id);
         }
         entry.dependencies = { dependencies.GetData(), dependencies.Size() };
         if (!catalog.Add(entry))
+        {
             return false;
+        }
     }
     return true;
 }
@@ -405,6 +453,7 @@ bool AssetCatalog::Parse(Span<char> json)
         return false;
     }
     if (candidate.Data)
+    {
         for (ptrdiff_t i = 0; i < hmlen(candidate.Data->pIndices); ++i)
         {
             const AssetCatalogEntry& entry = *candidate.Data->pIndices[i].value;
@@ -415,8 +464,11 @@ bool AssetCatalog::Parse(Span<char> json)
                 return false;
             }
         }
+    }
     if (!Data)
+    {
         Data = MemNew(AssetCatalogData);
+    }
     for (ptrdiff_t i = 0; i < hmlen(Data->pIndices); ++i)
     {
         Data->retiredEntries.PushBack(Data->pIndices[i].value);
@@ -439,7 +491,9 @@ bool AssetCatalog::Load(ResourceDirectory directory, const char* pFileName)
     }
     FileStream stream = {};
     if (!OpenStreamFromPath(directory, pFileName, FileModeRead, &stream))
+    {
         return false;
+    }
     const ssize_t Size = GetStreamFileSize(&stream);
     if (Size <= 0 || Size > 64 * 1024 * 1024)
     {
@@ -468,12 +522,16 @@ bool AssetCatalog::Serialize(Array<char>& json) const
     Array<const AssetCatalogEntry*> entries;
     entries.Reserve(GetCount());
     if (Data)
+    {
         for (ptrdiff_t i = 0; i < hmlen(Data->pIndices); ++i)
         {
             entries.PushBack(Data->pIndices[i].value);
         }
+    }
     if (!entries.Empty())
+    {
         qsort(entries.GetData(), entries.Size(), sizeof(entries[0]), compareEntries);
+    }
     CatalogJson document;
     document.pRoot = cJSON_CreateObject();
     cJSON_AddStringToObject(document.pRoot, "format", "Horizon.AssetCatalog");

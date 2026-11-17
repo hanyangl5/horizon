@@ -21,7 +21,9 @@ public:
         Array<AssetID> dependencies;
         dependencies.Reserve(pScene->GetNodes().Count);
         for (const SceneAssetNode& node : pScene->GetNodes())
+        {
             dependencies.PushBack(node.mesh);
+        }
         return matchesAssetDependencies(entry, dependencies);
     }
 

@@ -71,7 +71,7 @@ const hz::GPUTexture& ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ScreenSpaceAO::execute");
     ASSERT(Width && Height && Frame.IsValid() && Depth.IsValid() && Sampler.IsValid());
     // The Cookbook kernel and bilateral blur use Depth; the deferred pass multiplies the result into indirect light.
-    hz::DependencyList        Dependencies;
+    hz::DependencyList           Dependencies;
     const ScreenSpaceAOConstants Constants = { .frameIndex = Dependencies.read(Frame),
                                                .depthIndex = Dependencies.sample(&Depth),
                                                .rotationsIndex = Dependencies.sample(&Rotations),

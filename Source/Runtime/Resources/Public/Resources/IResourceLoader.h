@@ -280,8 +280,13 @@ static_assert(sizeof(GeometryData) % 16 == 0, "GeometryData size must be a multi
 // Written after GEOMETRY_FILE_VERSION. The blocks are raw struct images, so files from a build with a different
 // layout are rejected rather than reinterpreted.
 FORGE_CONSTEXPR const uint32_t GEOMETRY_FILE_LAYOUT[] = {
-    (uint32_t)sizeof(Geometry),       (uint32_t)sizeof(GeometryData), (uint32_t)sizeof(GeometryData::ShadowData),
-    (uint32_t)sizeof(IndirectDrawIndexArguments), (uint32_t)sizeof(Meshlet), (uint32_t)sizeof(MeshletData), MAX_SEMANTICS,
+    (uint32_t)sizeof(Geometry),
+    (uint32_t)sizeof(GeometryData),
+    (uint32_t)sizeof(GeometryData::ShadowData),
+    (uint32_t)sizeof(IndirectDrawIndexArguments),
+    (uint32_t)sizeof(Meshlet),
+    (uint32_t)sizeof(MeshletData),
+    MAX_SEMANTICS,
     MAX_VERTEX_BINDINGS,
 };
 

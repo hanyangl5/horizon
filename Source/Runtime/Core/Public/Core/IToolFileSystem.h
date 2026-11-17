@@ -53,14 +53,14 @@ extern "C"
     /// Creates a new FileWatcher that watches for changes specified by `eventMask` at `path` and calls `callback` when changes occur.
     /// The return value must have `FreeFileWatcher` called to free it.
     FORGE_TOOL_API FileWatcher* CreateFileWatcher(const char* path, FileWatcherEventMask eventMask, FileWatcherCallback callback,
-                                                    void* callbackUserData);
+                                                  void* callbackUserData);
 
     /// Invalidates and frees `fileWatcher.
     FORGE_TOOL_API void FreeFileWatcher(FileWatcher* fileWatcher);
 
-/************************************************************************/
-// MARK: - File iteration
-/************************************************************************/
+    /************************************************************************/
+    // MARK: - File iteration
+    /************************************************************************/
 #ifdef TARGET_IOS
     void RegisterUTIForExtension(const char* uti, const char* extension);
 #endif
@@ -86,7 +86,7 @@ extern "C"
     /// Returns and allocates array of all files inside input resourceDir + subDirectory. String also contains subDirectory
     /// Specifying Empty extension will collect all files
     FORGE_TOOL_API bool GetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char*** out,
-                                                int* Count);
+                                              int* Count);
     /************************************************************************/
     /************************************************************************/
 
@@ -139,7 +139,7 @@ extern "C"
     ///   On failure, length is equal to Size of the buffer.
     ///   Failure is when 'nextPath' insertion is unfinished.
     FORGE_API size_t NormalizePathContinue(const char* nextPath, char separator, //
-                                             const char* outputBeg, char* outputCur, const char* outputEnd);
+                                           const char* outputBeg, char* outputCur, const char* outputEnd);
 
     /// Normalize 'path' with custom 'separator' into 'buffer'
     ///

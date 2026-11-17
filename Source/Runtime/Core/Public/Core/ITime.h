@@ -38,30 +38,30 @@ extern "C"
         see https://gist.github.com/jspohr/3dc4f00033d79ec5bdaf67bc46c813e3
     */
     /* TODO: Move this function to the Math Library as soon as it's in C */
-    static inline int64_t Int64MulDiv(int64_t Value, int64_t Numer, int64_t Denom)
-    {
-        int64_t q = Value / Denom;
-        int64_t r = Value % Denom;
-        return q * Numer + r * Numer / Denom;
-    }
+static inline int64_t Int64MulDiv(int64_t Value, int64_t Numer, int64_t Denom)
+{
+    int64_t q = Value / Denom;
+    int64_t r = Value % Denom;
+    return q * Numer + r * Numer / Denom;
+}
 
     // High res timer functions
-    FORGE_API int64_t GetUSec(bool Precise);
-    FORGE_API int64_t GetTimerFrequency(void);
+FORGE_API int64_t GetUSec(bool Precise);
+FORGE_API int64_t GetTimerFrequency(void);
 
-    // Time related functions
-    FORGE_API uint32_t GetTickCountMs(void);
-    FORGE_API uint32_t GetUnixTimeSeconds(void);
+// Time related functions
+FORGE_API uint32_t GetTickCountMs(void);
+FORGE_API uint32_t GetUnixTimeSeconds(void);
 
-    /// Low res OS timer
-    typedef struct Timer
-    {
-        uint32_t StartTime;
-    } Timer;
+/// Low res OS timer
+typedef struct Timer
+{
+    uint32_t StartTime;
+} Timer;
 
-    FORGE_API void     InitTimer(Timer* Timer);
-    FORGE_API void     ResetTimer(Timer* Timer);
-    FORGE_API uint32_t GetTimerMSec(Timer* Timer, bool Reset);
+FORGE_API void     InitTimer(Timer* Timer);
+FORGE_API void     ResetTimer(Timer* Timer);
+FORGE_API uint32_t GetTimerMSec(Timer* Timer, bool Reset);
 
 /// High-resolution OS timer
 #define HIRES_TIMER_LENGTH_OF_HISTORY 60
@@ -82,5 +82,5 @@ extern "C"
     FORGE_API void    ResetHiresTimer(HiresTimer* Timer);
 
 #ifdef __cplusplus
-}
+    }
 #endif

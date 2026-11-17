@@ -39,13 +39,13 @@ public:
     void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const SceneView& View,
                  const GpuDrawList& Draws, const LightingResources& Lighting);
     bool IsSupported() const { return Supported; }
-    const hz::GPUTexture& GetShadowAO() const { return Result; }
-    const hz::GPUTexture& GetReflection() const { return Reflection; }
+    const hz::GPUTexture&    GetShadowAO() const { return Result; }
+    const hz::GPUTexture&    GetReflection() const { return Reflection; }
     RayTracedEffectsSettings Settings;
 
 private:
     hz::RenderContext&                Context;
-    hz::UniquePtr<RayTracingScene>   RayScene;
+    hz::UniquePtr<RayTracingScene>    RayScene;
     hz::GPUPipeline                   ShadowPipeline;
     hz::GPUPipeline                   TemporalPipeline;
     hz::GPUPipeline                   AtrousPipeline;

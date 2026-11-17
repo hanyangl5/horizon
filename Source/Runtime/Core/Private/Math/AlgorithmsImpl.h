@@ -99,7 +99,7 @@
         if (memberCount == 0)                                                   \
             return 0;                                                           \
         Type* pPivot = partitionImplFn(pArr, pArr + memberCount, pArr + pivot); \
-        ASSERT(pPivot&& pArr);                                                  \
+        ASSERT(pPivot && pArr);                                                 \
         return pPivot && pArr ? pPivot - pArr : 0;                              \
     }
 
@@ -111,10 +111,10 @@
     }
 
 #define DEFINE_QUICK_SORT_FUNCTION(attrs, fnName, Type, quickSortImplFn) \
-    attrs void fnName(Type* Data, size_t memberCount)                   \
+    attrs void fnName(Type* Data, size_t memberCount)                    \
     {                                                                    \
         Type tmp;                                                        \
-        quickSortImplFn(Data, Data + memberCount, &tmp);               \
+        quickSortImplFn(Data, Data + memberCount, &tmp);                 \
     }
 
 #define CONCAT(x, y)      CONCAT_IMPL(x, y)
@@ -127,7 +127,7 @@
     ALIGNAS(8) char CONCAT(name, Buf)[TMP_BUF_STACK_SIZE]; \
     char*           name = CONCAT(name, Buf);              \
     if (memberSize > sizeof(CONCAT(name, Buf)))            \
-        name = MemAllocate(memberSize);                      \
+        name = MemAllocate(memberSize);                    \
     (void)0
 #define DESTROY_TEMP_NUMERIC(name) ((void)0)
 #define DESTROY_TEMP_GENERIC(name) ((memberSize > sizeof(CONCAT(name, Buf))) ? MemDeallocate(name) : (void)0)

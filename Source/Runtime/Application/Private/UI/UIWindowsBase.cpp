@@ -374,12 +374,16 @@ int WindowsMain(int argc, char** argv, IApp* app)
     }
 
     if (!InitMemoryAlloc(app->GetName()))
+    {
         return EXIT_FAILURE;
+    }
 
     FileSystemInitDesc FileSystemDesc = {};
     FileSystemDesc.pAppName = app->GetName();
     if (!InitFileSystem(&FileSystemDesc))
+    {
         return EXIT_FAILURE;
+    }
 
     SetResourceDirectoryPath(SystemFileIO, MountDebug, DirectoryShaderBinaries, "CompiledShaders");
     SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryShaderSources, "Shaders");

@@ -24,7 +24,7 @@
 //#include "Core/IMath.h"
 #define MEM_MAX(a, b)             ((a) > (b) ? (a) : (b))
 
-#define ALIGN_TO(Size, alignment) (((Size) + (alignment)-1) & ~((alignment)-1))
+#define ALIGN_TO(Size, alignment) (((Size) + (alignment) - 1) & ~((alignment) - 1))
 
 // Taken from EASTL EA_PLATFORM_MIN_MALLOC_ALIGNMENT
 #ifndef PLATFORM_MIN_MALLOC_ALIGNMENT
@@ -143,11 +143,17 @@ static void memoryTrackingApplyAllocLocked(size_t requestedSize, size_t actualSi
     ++gMemoryTrackingStats.TotalAllocationCount;
 
     if (gMemoryTrackingStats.LiveRequestedBytes > gMemoryTrackingStats.PeakRequestedBytes)
+    {
         gMemoryTrackingStats.PeakRequestedBytes = gMemoryTrackingStats.LiveRequestedBytes;
+    }
     if (gMemoryTrackingStats.LiveActualBytes > gMemoryTrackingStats.PeakActualBytes)
+    {
         gMemoryTrackingStats.PeakActualBytes = gMemoryTrackingStats.LiveActualBytes;
+    }
     if (gMemoryTrackingStats.LiveAllocationCount > gMemoryTrackingStats.PeakAllocationCount)
+    {
         gMemoryTrackingStats.PeakAllocationCount = gMemoryTrackingStats.LiveAllocationCount;
+    }
 }
 
 static void memoryTrackingApplyFreeLocked(size_t requestedSize, size_t actualSize)
@@ -159,17 +165,23 @@ static void memoryTrackingApplyFreeLocked(size_t requestedSize, size_t actualSiz
         actual = requested;
 
     if (gMemoryTrackingStats.LiveRequestedBytes >= requested)
+    {
         gMemoryTrackingStats.LiveRequestedBytes -= requested;
+    }
     else
         gMemoryTrackingStats.LiveRequestedBytes = 0;
 
     if (gMemoryTrackingStats.LiveActualBytes >= actual)
+    {
         gMemoryTrackingStats.LiveActualBytes -= actual;
+    }
     else
         gMemoryTrackingStats.LiveActualBytes = 0;
 
     if (gMemoryTrackingStats.LiveAllocationCount > 0)
+    {
         --gMemoryTrackingStats.LiveAllocationCount;
+    }
 }
 
 static MemoryTrackingEntry* memoryTrackingFindEntryLocked(void* ptr)
@@ -621,7 +633,9 @@ void* TrackedCalloc(size_t Count, size_t Size)
 {
     size_t sz = 0;
     if (!MulSize(Count, Size, &sz))
+    {
         return NULL;
+    }
 
 #ifdef _MSC_VER
     void* ptr = TrackedMalloc(sz);
@@ -655,7 +669,9 @@ void* TrackedCallocMemalign(size_t Count, size_t alignment, size_t Size)
     size_t alignedArrayElementSize = ALIGN_TO(Size, alignment);
     size_t totalBytes = 0;
     if (!MulSize(Count, alignedArrayElementSize, &totalBytes))
+    {
         return NULL;
+    }
 
     void* ptr = TrackedMemalign(alignment, totalBytes);
 

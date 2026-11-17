@@ -207,7 +207,9 @@ static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outD
     *outData = NULL;
 
     if (fs->mode & FileModeWrite)
+    {
         return false;
+    }
 
     USD(stream, fs);
 
@@ -215,9 +217,13 @@ static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outD
     if (!stream->mapping)
     {
         if (stream->Size < 0)
+        {
             return false;
+        }
         if (stream->Size == 0)
+        {
             return true;
+        }
 
         void* mem = mmap(NULL, (size_t)stream->Size, PROT_READ, MAP_PRIVATE, stream->descriptor, 0);
 
@@ -340,7 +346,9 @@ static bool ioUnixFsSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t offs
 static bool ioUnixFsFlush(FileStream* fs)
 {
     if (!(fs->mode & FileModeWrite))
+    {
         return true;
+    }
 
     USD(stream, fs);
 
@@ -366,7 +374,9 @@ static bool unixFsUpdateSize(struct UnixFileStream* stream)
         return false;
     off_t Size = lseek(stream->descriptor, 0, SEEK_END);
     if (Size < 0)
+    {
         return false;
+    }
 
     if (offset == Size)
     {
@@ -390,7 +400,9 @@ static ssize_t ioUnixFsGetSize(FileStream* fs)
 {
     USD(stream, fs);
     if ((fs->mode & FileModeWrite) && !unixFsUpdateSize(stream))
+    {
         return -1;
+    }
     return stream->Size;
 }
 

@@ -56,9 +56,8 @@ void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBuffer
     BufferDesc ubDesc = {};
     ubDesc.Descriptors = DescriptorTypeUniformBuffer;
     ubDesc.MemoryUsage = MemoryUsage;
-    ubDesc.Flags =
-        (ubDesc.MemoryUsage != MemoryUsageGpuOnly ? BufferCreationFlagPersistentMapBit : BufferCreationFlagNone) |
-        BufferCreationFlagNoDescriptorViewCreation;
+    ubDesc.Flags = (ubDesc.MemoryUsage != MemoryUsageGpuOnly ? BufferCreationFlagPersistentMapBit : BufferCreationFlagNone) |
+                   BufferCreationFlagNoDescriptorViewCreation;
 
     if (ownMemory)
         ubDesc.Flags |= BufferCreationFlagOwnMemoryBit;

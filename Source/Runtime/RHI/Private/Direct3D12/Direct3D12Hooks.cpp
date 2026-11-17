@@ -249,15 +249,23 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
 hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
 {
     if (ColorSpaceSdrLinear == colorSpace)
+    {
         return hz::Format::B8G8R8A8_UNORM;
+    }
     if (ColorSpaceSdrSrgb == colorSpace)
+    {
         return hz::Format::B8G8R8A8_SRGB;
+    }
 
     hz::Format Format = hz::Format::UNDEFINED;
     if (ColorSpaceP2020 == colorSpace)
+    {
         Format = hz::Format::R10G10B10A2_UNORM;
+    }
     if (ColorSpaceExtendedSrgb == colorSpace)
+    {
         Format = hz::Format::R16G16B16A16_SFLOAT;
+    }
 
     DXGI_OUTPUT_DESC1 desc1 = {};
     if (!hook_get_output_desc(pRenderer, &pDesc->windowHandle, &desc1))

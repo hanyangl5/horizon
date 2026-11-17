@@ -269,7 +269,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #define ENABLE_MESHOPTIMIZER
 // Uncomment this to enable Empty mounts
 // used for absolute paths
-//#define ENABLE_FS_EMPTY_MOUNT
+// #define ENABLE_FS_EMPTY_MOUNT
 
 #ifdef ENABLE_PROFILER
 // Enable this if you want to have the profiler through a web browser, see PROFILE_WEBSERVER_PORT for server location
@@ -304,7 +304,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #define ENABLE_LOGGING
 #define DEFAULT_LOG_LEVEL All
 #if !defined(NDEBUG)
-//#define ENABLE_MEMORY_TRACKING
+// #define ENABLE_MEMORY_TRACKING
 #endif
 // #define ENABLE_FORGE_STACKTRACE_DUMP
 

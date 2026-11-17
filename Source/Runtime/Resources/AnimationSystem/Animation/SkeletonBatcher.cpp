@@ -70,7 +70,7 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
         (UniformSkeletonBlock*)MemCallocateAligned(maxSkeletonBatches, alignof(UniformSkeletonBlock), sizeof(UniformSkeletonBlock));
 
     batchCounts = (tfrg_atomic32_t*)MemCallocateAligned(frameCount + frameCount * maxSkeletonBatches, alignof(tfrg_atomic32_t),
-                                                       sizeof(tfrg_atomic32_t));
+                                                        sizeof(tfrg_atomic32_t));
     batchSize = batchCounts + frameCount;
 
     // Initialize all the buffer that will be used for Each batch per Each frame index

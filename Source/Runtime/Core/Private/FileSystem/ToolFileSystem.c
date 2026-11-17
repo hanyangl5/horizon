@@ -43,7 +43,9 @@ bool GetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirecto
 
     FsDirectoryIterator iterator = NULL;
     if (!DirectoryIteratorOpen(resourceDir, subDirectory, &iterator))
+    {
         return false;
+    }
 
     if (extension)
     {
@@ -144,7 +146,9 @@ bool GetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, 
 
     FsDirectoryIterator iterator = NULL;
     if (!DirectoryIteratorOpen(resourceDir, subDirectory, &iterator))
+    {
         return false;
+    }
 
     bool success = true;
 

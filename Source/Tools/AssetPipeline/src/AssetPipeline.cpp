@@ -34,7 +34,6 @@
 
 #include <ThirdParty/tinyimageformat/tinyimageformat_base.h>
 
-
 // Meshoptimizer
 #include <ThirdParty/meshoptimizer/src/meshoptimizer.h>
 
@@ -73,6 +72,7 @@ static void EndAssetPipelineSection(const char* section) { LOGF(Info, "=========
 static bool validateSceneAssetCookInput(const cgltf_data* Data)
 {
     for (cgltf_size i = 0; i < Data->meshes_count; ++i)
+    {
         for (cgltf_size j = 0; j < Data->meshes[i].primitives_count; ++j)
         {
             const cgltf_primitive& primitive = Data->meshes[i].primitives[j];
@@ -91,7 +91,9 @@ static bool validateSceneAssetCookInput(const cgltf_data* Data)
                 const cgltf_attribute& attribute = primitive.attributes[k];
                 // Application-specific attributes start with an underscore; the geometry cook skips them.
                 if (attribute.type == cgltf_attribute_type_invalid && attribute.name && attribute.name[0] == '_')
+                {
                     continue;
+                }
                 const bool indexed = attribute.type == cgltf_attribute_type_texcoord;
                 if (attribute.type == cgltf_attribute_type_invalid ||
                     (indexed ? attribute.index > SEMANTIC_TEXCOORD9 - SEMANTIC_TEXCOORD0 : attribute.index != 0))
@@ -102,6 +104,7 @@ static bool validateSceneAssetCookInput(const cgltf_data* Data)
                 }
             }
         }
+    }
     for (cgltf_size i = 0; i < Data->skins_count; ++i)
     {
         const cgltf_skin& skin = Data->skins[i];
@@ -161,14 +164,20 @@ static bool addSceneAssetCookStatDependency(ResourceDirectory resourceDirectory,
     for (uint32_t i = 0; i < pFingerprint->mDependencyCount; ++i)
     {
         if (strcmp(pFingerprint->mDependencies[i], normalizedPath) == 0)
+        {
             return true;
+        }
     }
     if (!normalizedPath[0] || strlen(normalizedPath) >= FS_MAX_PATH || pFingerprint->mDependencyCount >= kSceneAssetCookMaxDependencies)
+    {
         return false;
+    }
 
     const time_t modified = GetLastModifiedTime(resourceDirectory, pPath);
     if (!modified)
+    {
         return false;
+    }
 
     snprintf(pFingerprint->mDependencies[pFingerprint->mDependencyCount++], FS_MAX_PATH, "%s", normalizedPath);
     pFingerprint->mHash = cookHash(normalizedPath, strlen(normalizedPath) + 1, pFingerprint->mHash);
@@ -209,7 +218,9 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
         // Buffers are already loaded for the cook, so their bytes cost nothing extra to hash and catch edits that keep the
         // modification time.
         if (!addSceneAssetCookDependency(pFingerprint, dependencyPath, pBuffer->data, pBuffer->size))
+        {
             return false;
+        }
     }
     for (cgltf_size i = 0; i < Data->images_count; ++i)
     {
@@ -221,11 +232,15 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
         // Scene images can total gigabytes, so the startup check hashes their size and modification time, not their bytes.
         FileStream image = {};
         if (!OpenStreamFromPath(resourceDirectory, dependencyPath, FileModeRead, &image))
+        {
             return false;
+        }
         const ssize_t imageSize = GetStreamFileSize(&image);
         CloseStream(&image);
         if (imageSize < 0 || !addSceneAssetCookStatDependency(resourceDirectory, pFingerprint, dependencyPath, (uint64_t)imageSize))
+        {
             return false;
+        }
     }
     return true;
 }
@@ -287,7 +302,6 @@ void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const ch
         }
     }
 }
-
 
 static inline constexpr ShaderSemantic util_cgltf_attrib_type_to_semantic(cgltf_attribute_type Type, uint32_t index)
 {
@@ -832,7 +846,9 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                     const uint32_t semanticIdx =
                         (uint32_t)util_cgltf_attrib_type_to_semantic(prim->attributes[k].type, prim->attributes[k].index);
                     if (semanticIdx == SEMANTIC_UNDEFINED)
+                    {
                         continue;
+                    }
                     vertexAttribs[semanticIdx] = &prim->attributes[k];
                     vertexAttribCount[semanticIdx] += (uint32_t)prim->attributes[k].data->count;
                 }
@@ -884,7 +900,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         if (userDataSize > 0)
         {
             uint8_t* UserData = jointCount > 0 ? ((uint8_t*)geomData->pJointRemaps + round_up(jointCount * sizeof(uint32_t), 16))
-                                                : (uint8_t*)(geomData + 1);
+                                               : (uint8_t*)(geomData + 1);
             geomData->UserData = UserData;
             geomData->userDataSize = userDataSize;
             glTFParams->pWriteExtrasCallback(&userDataSize, UserData, glTFParams->pCallbackUserData);
@@ -1019,7 +1035,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 const char* jointRemaps = (const char*)data->json + skin->extras.start_offset;
                 jsmn_parser parser = {};
                 jsmntok_t*  tokens = (jsmntok_t*)MemAllocate((skin->joints_count + 1) * sizeof(jsmntok_t));
-                const int tokenCount = jsmn_parse(&parser, (const char*)jointRemaps, extrasSize, tokens, skin->joints_count + 1);
+                const int   tokenCount = jsmn_parse(&parser, (const char*)jointRemaps, extrasSize, tokens, skin->joints_count + 1);
                 // The extras are an array of one remap per joint.
                 if (tokenCount != (int)skin->joints_count + 1 || tokens[0].type != JSMN_ARRAY || tokens[0].size != (int)skin->joints_count)
                 {
@@ -1078,7 +1094,9 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                     cgltf_attribute* attr = &prim->attributes[a];
                     const uint32_t   semanticIdx = (uint32_t)util_cgltf_attrib_type_to_semantic(attr->type, attr->index);
                     if (semanticIdx == SEMANTIC_UNDEFINED)
+                    {
                         continue;
+                    }
 
                     if (semanticIdx == SEMANTIC_POSITION)
                         pos_attr = attr;
@@ -1262,7 +1280,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         CreateDirectoryForFile(assetParams->mRDOutput, newFileName);
 
-        CookedFile         geometryFile(assetParams->mRDOutput, newFileName);
+        CookedFile geometryFile(assetParams->mRDOutput, newFileName);
         geometryFile.Write(GEOMETRY_FILE_MAGIC_STR, sizeof(GEOMETRY_FILE_MAGIC_STR));
         geometryFile.Write(&GEOMETRY_FILE_VERSION, sizeof(GEOMETRY_FILE_VERSION));
         geometryFile.Write(GEOMETRY_FILE_LAYOUT, sizeof(GEOMETRY_FILE_LAYOUT));
@@ -1347,7 +1365,9 @@ int AssetPipelineRun(AssetPipelineParams* assetParams)
         for (int32_t i = 0; i < assetParams->mFlagsCount; ++i)
         {
             if (strcmp(assetParams->mFlags[i], "--optimize") == 0)
+            {
                 meshOptimizerFlags |= MESH_OPTIMIZATION_FLAG_ALL;
+            }
             else if (strcmp(assetParams->mFlags[i], "--optimizecache") == 0)
                 meshOptimizerFlags |= MESH_OPTIMIZATION_FLAG_VERTEXCACHE;
             else if (strcmp(assetParams->mFlags[i], "--optimizeoverdraw") == 0)

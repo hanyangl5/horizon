@@ -15,8 +15,7 @@ namespace hz
 {
 GPUBuffer::GPUBuffer(RenderContext* context, Buffer* buffer, uint64_t bufferSize, ResourceMemoryUsage MemoryUsage,
                      DescriptorType bufferDescriptors, ResourceState initialState):
-    pContext(context),
-    pBuffer(buffer), Size(bufferSize), usage(MemoryUsage), Descriptors(bufferDescriptors), state(initialState)
+    pContext(context), pBuffer(buffer), Size(bufferSize), usage(MemoryUsage), Descriptors(bufferDescriptors), state(initialState)
 {
     ASSERT(pContext && pBuffer);
     ++pContext->resourceCount;
@@ -69,7 +68,8 @@ void GPUBuffer::Destroy()
     }
 }
 
-GPUTexture::GPUTexture(RenderContext* context, Texture* texture, RenderTarget* GetRenderTarget, ResourceState initialState, bool ownsResource):
+GPUTexture::GPUTexture(RenderContext* context, Texture* texture, RenderTarget* GetRenderTarget, ResourceState initialState,
+                       bool ownsResource):
     pContext(context), pTexture(texture), pRenderTarget(GetRenderTarget), state(initialState), owned(ownsResource)
 {
     ASSERT(pTexture);
@@ -332,13 +332,19 @@ GPUTexture* RenderContext::AcquireTransient(const TextureDesc& input)
         if (!slot.used)
         {
             if (freeSlot == transientCapacity)
+            {
                 freeSlot = i;
+            }
             continue;
         }
         if (slot.inUse || !SameTextureDesc(slot.desc, input))
+        {
             continue;
+        }
         if (slot.useId && !IsResourceUseComplete(slot.useId))
+        {
             continue;
+        }
         slot.inUse = true;
         return &slot.texture;
     }
@@ -361,7 +367,9 @@ void RenderContext::ReleaseTransient(GPUTexture* pTexture)
     for (uint32_t i = 0; i < transientCapacity; ++i)
     {
         if (&transientSlots[i].texture != pTexture)
+        {
             continue;
+        }
         ASSERT(transientSlots[i].inUse);
         transientSlots[i].inUse = false;
         transientSlots[i].useId = GetResourceUseId();
@@ -375,7 +383,9 @@ void RenderContext::PurgeTransients()
     for (TransientSlot& slot : transientSlots)
     {
         if (!slot.used || slot.inUse)
+        {
             continue;
+        }
         slot.texture = GPUTexture{};
         slot.used = false;
         slot.useId = 0;
@@ -387,7 +397,9 @@ void RenderContext::ReleaseTransientSlots()
     for (TransientSlot& slot : transientSlots)
     {
         if (!slot.used)
+        {
             continue;
+        }
         ASSERT(!slot.inUse);
         slot.texture = GPUTexture{};
         slot.used = false;
@@ -463,7 +475,9 @@ Shader* RenderContext::CreateShader(const ShaderDesc& input)
     {
         LOGF(Error, "Could not map shader source '%s'", input.pFileName);
         if (sourceFile.FileSystem)
+        {
             CloseStream(&sourceFile);
+        }
         return {};
     }
     if (pFileSource)
@@ -504,7 +518,9 @@ Shader* RenderContext::CreateShader(const ShaderDesc& input)
     else
         addShaderSource(pRenderer, &source, &shader);
     if (sourceFile.FileSystem)
+    {
         CloseStream(&sourceFile);
+    }
     ASSERT(shader);
     return shader;
 }
@@ -524,9 +540,9 @@ GPUPipeline RenderContext::CreateGraphicsPipeline(const GraphicsPipelineDesc& in
     RasterizerStateDesc raster = input.rasterizer;
     DepthStateDesc      Depth = input.Depth;
     BlendStateDesc      blend = {
-        .renderTargetMask = (BlendStateTargets)((1u << input.colorTargets.Count) - 1),
-        .alphaToCoverage = input.alphaToCoverage,
-        .independentBlend = true,
+             .renderTargetMask = (BlendStateTargets)((1u << input.colorTargets.Count) - 1),
+             .alphaToCoverage = input.alphaToCoverage,
+             .independentBlend = true,
     };
     hz::Format formats[MAX_RENDER_TARGETS] = {};
     for (uint32_t i = 0; i < input.colorTargets.Count; ++i)
@@ -616,9 +632,10 @@ bool RenderContext::UpdateBuffer(const GPUBuffer& buffer, uint64_t offset, const
     ASSERT(ready && buffer.pBuffer && Data && Size);
     ASSERT(buffer.usage == MemoryUsageCpuToGpu && offset <= buffer.Size && Size <= buffer.Size - offset &&
            buffer.pBuffer->pCpuMappedAddress);
-    if (buffer.usage != MemoryUsageCpuToGpu || offset > buffer.Size || Size > buffer.Size - offset ||
-        !buffer.pBuffer->pCpuMappedAddress)
+    if (buffer.usage != MemoryUsageCpuToGpu || offset > buffer.Size || Size > buffer.Size - offset || !buffer.pBuffer->pCpuMappedAddress)
+    {
         return false;
+    }
     memcpy((uint8_t*)buffer.pBuffer->pCpuMappedAddress + offset, Data, (size_t)Size);
     return true;
 }
@@ -644,7 +661,9 @@ PipelineCacheHeader makeCacheHeader(const GPUSettings& settings)
 {
     uint32_t driverHash = 2166136261u;
     for (const char* p = settings.gpuVendorPreset.gpuDriverVersion; *p; ++p)
+    {
         driverHash = (driverHash ^ (uint8_t)*p) * 16777619u;
+    }
     return { .magic = kPipelineCacheMagic,
              .version = kPipelineCacheVersion,
              .vendorId = settings.gpuVendorPreset.vendorId,
@@ -655,17 +674,16 @@ PipelineCacheHeader makeCacheHeader(const GPUSettings& settings)
 
 bool RenderContext::InitPipelineCache()
 {
-    const GPUSettings&       settings = pRenderer->pGpu->settings;
+    const GPUSettings&        settings = pRenderer->pGpu->settings;
     const PipelineCacheHeader expected = makeCacheHeader(settings);
-    PipelineCacheDesc        cacheDesc = {};
-    void*                    pBlob = nullptr;
-    FileStream               stream = {};
+    PipelineCacheDesc         cacheDesc = {};
+    void*                     pBlob = nullptr;
+    FileStream                stream = {};
     if (OpenStreamFromPath(DirectoryShaderBinaries, kPipelineCacheFile, FileModeRead, &stream))
     {
         PipelineCacheHeader header = {};
         const ssize_t       fileSize = GetStreamFileSize(&stream);
-        const bool          headerRead =
-            fileSize > (ssize_t)sizeof(header) && ReadFromStream(&stream, &header, sizeof(header)) == sizeof(header);
+        const bool headerRead = fileSize > (ssize_t)sizeof(header) && ReadFromStream(&stream, &header, sizeof(header)) == sizeof(header);
         if (headerRead && memcmp(&header, &expected, sizeof(header)) == 0)
         {
             const size_t blobSize = (size_t)fileSize - sizeof(header);
@@ -686,14 +704,20 @@ bool RenderContext::InitPipelineCache()
 void RenderContext::SavePipelineCache()
 {
     if (!pRenderer || !pPipelineCache)
+    {
         return;
+    }
     size_t blobSize = 0;
     getPipelineCacheData(pRenderer, pPipelineCache, &blobSize, nullptr);
     if (!blobSize)
+    {
         return;
+    }
     uint8_t* pBlob = (uint8_t*)MemAllocate(blobSize);
     if (!pBlob)
+    {
         return;
+    }
     getPipelineCacheData(pRenderer, pPipelineCache, &blobSize, pBlob);
 
     const PipelineCacheHeader header = makeCacheHeader(pRenderer->pGpu->settings);

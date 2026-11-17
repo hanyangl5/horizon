@@ -10,9 +10,8 @@ public:
     explicit Transparency(hz::RenderContext& Context, hz::Format DepthFormat = hz::Format::D24_UNORM_S8_UINT);
     void Resize(uint32_t Width, uint32_t Height, uint32_t FragmentsPerPixel = 4);
 
-    const hz::GPUTexture& Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
-                                  const SceneView& View, const GpuDrawList& Draws, const LightingResources& Lighting,
-                                  const hz::GPUTexture& OpaqueColor);
+    const hz::GPUTexture& Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth, const SceneView& View,
+                                  const GpuDrawList& Draws, const LightingResources& Lighting, const hz::GPUTexture& OpaqueColor);
     // uint4: attempted fragments, allocation overflow, pixels exceeding the 64-fragment resolve limit, reserved.
     const hz::GPUBuffer&  GetStatistics() const { return Counters; }
     const hz::GPUTexture& GetColor() const { return Color; }

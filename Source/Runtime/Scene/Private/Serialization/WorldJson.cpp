@@ -36,15 +36,21 @@ bool validWorldJsonStrings(Span<char> json)
 cJSON* parseWorldJson(Span<char> json)
 {
     if (!json.Data || !json.Count || json.Count > 64 * 1024 * 1024)
+    {
         return nullptr;
+    }
     const char* pEnd = nullptr;
     cJSON*      pValue = cJSON_ParseWithLengthOpts(json.Data, json.Count, &pEnd, false);
     if (!pValue)
         return nullptr;
     while (pEnd < json.Data + json.Count && isspace((unsigned char)*pEnd))
+    {
         ++pEnd;
+    }
     if (pEnd < json.Data + json.Count && pEnd + 1 == json.Data + json.Count && !*pEnd)
+    {
         ++pEnd;
+    }
     if (pEnd != json.Data + json.Count)
     {
         cJSON_Delete(pValue);
@@ -129,7 +135,9 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
     {
         const bool sign = property.kind == PropertyKind::SignedInteger;
         if (property.Size < 8)
+        {
             return cJSON_CreateNumber(sign ? (double)signedValue(pValue, property.Size) : (double)unsignedValue(pValue, property.Size));
+        }
         char                       text[32];
         const std::to_chars_result result = sign ? std::to_chars(text, text + sizeof(text) - 1, signedValue(pValue, 8))
                                                  : std::to_chars(text, text + sizeof(text) - 1, unsignedValue(pValue, 8));
@@ -153,7 +161,9 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
     case PropertyKind::Enum:
         for (const EnumValue& entry : property.enumValues)
             if (entry.value == signedValue(pValue, property.Size))
+            {
                 return cJSON_CreateString(entry.Name);
+            }
         return nullptr;
     case PropertyKind::AssetReference:
     {
@@ -189,7 +199,9 @@ static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
         const uint32_t Count = floatCount(property.kind);
         float          values[16] = {};
         if (!Count)
+        {
             return nullptr;
+        }
         if (property.kind == PropertyKind::Matrix4)
             for (uint32_t i = 0; i < 16; ++i)
                 values[i] = (float)((const Matrix4*)pValue)->getElem(i / 4, i % 4);
@@ -213,10 +225,14 @@ cJSON* writeWorldProperties(const TypeDesc& Type, const void* pValue)
 {
     Array<const PropertyDesc*> properties;
     for (const PropertyDesc& property : Type.properties)
+    {
         if (serialized(property))
             properties.PushBack(&property);
+    }
     if (!properties.Empty())
+    {
         qsort(properties.GetData(), properties.Size(), sizeof(properties[0]), compareProperties);
+    }
     JsonValue object(cJSON_CreateObject());
     for (const PropertyDesc* pProperty : properties)
     {
@@ -283,7 +299,9 @@ static bool readProperty(const PropertyDesc& property, const cJSON* pJson, void*
         return true;
     case PropertyKind::String:
         if (!cJSON_IsString(pJson) || strlen(pJson->valuestring) >= property.Size)
+        {
             return false;
+        }
         memset(pValue, 0, property.Size);
         memcpy(pValue, pJson->valuestring, strlen(pJson->valuestring));
         return true;
@@ -318,15 +336,19 @@ static bool readProperty(const PropertyDesc& property, const cJSON* pJson, void*
         property.pArrayOperations->pResize(pValue, (uint32_t)cJSON_GetArraySize(pJson));
         uint8_t* pElement = (uint8_t*)property.pArrayOperations->Data(pValue);
         for (const cJSON* pItem = pJson->child; pItem; pItem = pItem->next, pElement += property.pElementType->Size)
+        {
             if (!readWorldProperties(*property.pElementType, pItem, pElement))
                 return false;
+        }
         return true;
     }
     default:
     {
         const uint32_t Count = floatCount(property.kind);
         if (!Count || !cJSON_IsArray(pJson) || cJSON_GetArraySize(pJson) != (int)Count)
+        {
             return false;
+        }
         float    values[16] = {};
         uint32_t i = 0;
         for (const cJSON* pItem = pJson->child; pItem; pItem = pItem->next)
@@ -376,14 +398,18 @@ bool validateWorldReferences(const TypeDesc& Type, const void* pValue, const Wor
         {
             const Guid& id = *(const Guid*)pField;
             if (id.IsValid() && !world.GetEntity(id).IsValid())
+            {
                 return false;
+            }
         }
         if (property.kind == PropertyKind::Array)
         {
             const uint8_t* pElements = (const uint8_t*)property.pArrayOperations->Data(pField);
             for (uint32_t i = 0; i < property.pArrayOperations->pCount(pField); ++i)
                 if (!validateWorldReferences(*property.pElementType, pElements + (size_t)i * property.pElementType->Size, world))
+                {
                     return false;
+                }
         }
     }
     return true;
@@ -401,10 +427,16 @@ bool normalizeWorldComponent(TypeID Type, void* pValue, bool sortOverrides)
     {
         Array<MaterialOverride>& overrides = ((MeshRenderer*)pValue)->overrides;
         if (sortOverrides && !overrides.Empty())
+        {
             qsort(overrides.GetData(), overrides.Size(), sizeof(MaterialOverride), compareMaterialOverrides);
+        }
         for (uint32_t i = 0; i < overrides.Size(); ++i)
+        {
             if (!overrides[i].submesh || !overrides[i].material.IsValid() || (i && overrides[i - 1].submesh >= overrides[i].submesh))
+            {
                 return false;
+            }
+        }
     }
     if (Type == SceneTypes::localTransform)
     {

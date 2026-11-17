@@ -18,11 +18,17 @@ inline int compareAssetIDs(const void* pA, const void* pB)
 inline Span<AssetID> normalizeAssetDependencies(Array<AssetID>& ids, uint32_t start = 0)
 {
     if (start != ids.Size())
+    {
         qsort(ids.GetData() + start, ids.Size() - start, sizeof(AssetID), compareAssetIDs);
+    }
     uint32_t end = start;
     for (uint32_t i = start; i < ids.Size(); ++i)
+    {
         if (ids[i].IsValid() && (end == start || ids[i] != ids[end - 1]))
+        {
             ids[end++] = ids[i];
+        }
+    }
     ids.Resize(end);
     return { ids.GetData() + start, end - start };
 }
@@ -32,10 +38,16 @@ inline bool matchesAssetDependencies(const AssetCatalogEntry& entry, Array<Asset
 {
     const Span<AssetID> sorted = normalizeAssetDependencies(ids);
     if (sorted.Count != entry.dependencies.Count)
+    {
         return false;
+    }
     for (uint32_t i = 0; i < sorted.Count; ++i)
+    {
         if (sorted.Data[i] != entry.dependencies.Data[i])
+        {
             return false;
+        }
+    }
     return true;
 }
 } // namespace hz

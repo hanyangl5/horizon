@@ -45,7 +45,9 @@ DrawListID GpuDrawList::AddList(const DrawListFilter& Filter)
     Filters[ListCount] = Filter;
     // Frames were sized for the previous lists; the next Prepare recreates them.
     for (Frame& Backing : Frames)
+    {
         Backing.Capacity = 0;
+    }
     return { ListCount++ };
 }
 
@@ -159,7 +161,9 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
                                            .StartState = ResourceStateUnorderedAccess,
                                            .Descriptors = DescriptorTypeRwBufferRaw | DescriptorTypeIndirectBuffer };
         for (uint32_t List = 0; List < ListCount; ++List)
+        {
             CurrentFrame.Lists[List] = Context.CreateBuffer(Arguments);
+        }
         CurrentFrame.Filters = Context.CreateBuffer({ .Size = sizeof(DrawListFilter) * MaxLists,
                                                       .ElementCount = MaxLists,
                                                       .StructStride = sizeof(DrawListFilter),
@@ -191,7 +195,8 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
     {
         return;
     }
-    const bool Uploaded = Context.UpdateBuffer(CurrentFrame.DrawData, 0, DrawData.GetData(), uint64_t(CurrentFrame.Count) * sizeof(GpuDrawData));
+    const bool Uploaded =
+        Context.UpdateBuffer(CurrentFrame.DrawData, 0, DrawData.GetData(), uint64_t(CurrentFrame.Count) * sizeof(GpuDrawData));
     ASSERT(Uploaded);
     Commands.BeginGpuTimestamp("GPU Frustum Culling");
     Commands.SetPipeline(Pipeline);
@@ -208,15 +213,16 @@ void GpuDrawList::Prepare(hz::CommandList& Commands, const hz::GPUBuffer& FrameB
     Commands.SetRootConstants(Binding);
     const hz::GPUBuffer* Outputs[MaxLists + 1] = { &CurrentFrame.Statistics };
     for (uint32_t List = 0; List < ListCount; ++List)
+    {
         Outputs[List + 1] = &CurrentFrame.Lists[List];
+    }
     Commands.Dispatch((CurrentFrame.Count + 63) / 64, 1, 1,
                       { .buffers = { &FrameBuffer, &CurrentFrame.DrawData, &Gpu.instances, &Gpu.materials, &CurrentFrame.Filters },
                         .storageBuffers = { Outputs, ListCount + 1 } });
     Commands.EndGpuTimestamp();
 }
 
-hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const SceneView& View,
-                                             const hz::GPUBuffer* Indirect) const
+hz::Dependencies GpuDrawList::GetDependencies(const hz::GPUBuffer& Frame, const SceneView& View, const hz::GPUBuffer* Indirect) const
 {
     Buffers.Clear();
     Textures.Clear();

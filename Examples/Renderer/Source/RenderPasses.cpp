@@ -148,8 +148,7 @@ static void ExecuteScreenSpaceAO(FrameContext& Frame, void* UserData)
     // Ray traced AO replaces the screen space term.
     if (!Frame.RayTracedAO)
     {
-        Frame.Resources.SSAO =
-            &((ScreenSpaceAO*)UserData)->Execute(Frame.Commands, Frame.Frame, *Frame.GBuffer.Depth, Frame.LinearSampler);
+        Frame.Resources.SSAO = &((ScreenSpaceAO*)UserData)->Execute(Frame.Commands, Frame.Frame, *Frame.GBuffer.Depth, Frame.LinearSampler);
     }
 }
 
@@ -184,8 +183,7 @@ static void ExecuteEnvironment(FrameContext& Frame, void* UserData)
 static void ExecuteTransparency(FrameContext& Frame, void* UserData)
 {
     Frame.Color = &((Transparency*)UserData)
-                       ->Execute(Frame.Commands, Frame.Frame, *Frame.GBuffer.Depth, Frame.View, Frame.Draws, Frame.Resources,
-                                 *Frame.Color);
+                       ->Execute(Frame.Commands, Frame.Frame, *Frame.GBuffer.Depth, Frame.View, Frame.Draws, Frame.Resources, *Frame.Color);
 }
 
 static void ExecutePost(FrameContext& Frame, void* UserData)
@@ -277,7 +275,7 @@ void RenderPasses::Execute()
 
     ASSERT(PostProcessing);
     // Block on the oldest frame like Unreal's frame sync; returning would spin Update/Draw while every frame is in flight.
-    const uint32_t     FrameIndex = NextFrame;
+    const uint32_t       FrameIndex = NextFrame;
     FrameConstantBuffer& ConstantBuffer = FrameConstants[FrameIndex];
     if (ConstantBuffer.Submission.IsValid())
     {
@@ -331,7 +329,9 @@ void RenderPasses::Execute()
     {
         const RenderPass& Pass = Passes[Index];
         if (Pass.Enabled && !*Pass.Enabled)
+        {
             continue;
+        }
         Pass.Execute(FrameState, Pass.UserData);
     }
     ASSERT(FrameState.Color && FrameState.Backbuffer);

@@ -55,8 +55,8 @@ public:
     explicit GpuDrawList(hz::RenderContext& Context);
     // Lists are registered at initialization; every list holds one indirect command per draw, with zero instances for draws
     // its filter rejects, so draw ids stay valid across lists.
-    DrawListID            AddList(const DrawListFilter& Filter);
-    void                  Prepare(hz::CommandList&, const hz::GPUBuffer& Frame, const SceneView&, bool Culling = true);
+    DrawListID             AddList(const DrawListFilter& Filter);
+    void                   Prepare(hz::CommandList&, const hz::GPUBuffer& Frame, const SceneView&, bool Culling = true);
     // Draw indices refer to the complete list before GPU frustum culling.
     hz::Span<GpuDrawData>  GetDraws() const { return { DrawData.GetData(), DrawData.Size() }; }
     hz::Span<DrawGeometry> GetGeometries() const { return { Geometries.GetData(), Geometries.Size() }; }
@@ -68,8 +68,7 @@ public:
     DrawListID             GetOpaqueList() const { return OpaqueList; }
     DrawListID             GetTransparentList() const { return TransparentList; }
     DrawListID             GetShadowCasterList() const { return ShadowCasterList; }
-    hz::Dependencies     GetDependencies(const hz::GPUBuffer& Frame, const SceneView& View,
-                                         const hz::GPUBuffer* Indirect = nullptr) const;
+    hz::Dependencies     GetDependencies(const hz::GPUBuffer& Frame, const SceneView& View, const hz::GPUBuffer* Indirect = nullptr) const;
     const hz::GPUBuffer& GetStatistics(uint32_t Backing) const { return Frames[Backing].Statistics; }
     uint32_t             GetCount(uint32_t Backing) const { return Frames[Backing].Count; }
 
