@@ -2,27 +2,24 @@
 
 The reference pipeline is `3D-Graphics-Rendering-Cookbook-Second-Edition/Renderer`.
 The port reads the World through RenderScene and GpuScene, and uses bindless D3D12, Slang and resource-owning
-pass classes. The application still calls `update()` and `execute()`; dependencies,
-indirect-argument transitions and acceleration-structure synchronization stay in
-Graphics/RHI. No application code issues native barriers.
+pass classes. No application code issues native barriers.
 
-Passes expose `resize()` rather than paired load/unload hooks. The application
-waits for outstanding GPU work before resizing. Pass objects, fixed pipelines,
-environment assets, blue noise and acceleration structures survive; old size
-targets are released by RAII and temporal history is invalidated. Tone mapping
-rebuilds its PSO only when the output format changes.
+`RenderPasses` registers every pass once on a frame graph
+([FrameGraph.h](../Source/Runtime/Graphics/Public/Graphics/FrameGraph.h)). Each pass declares the textures and buffers
+it reads and writes; the graph culls passes whose results nothing reads, sizes targets relative to the viewport, lets
+transient targets with disjoint lifetimes share memory, and keeps two copies of history targets such as the denoiser
+accumulation. Effects are gated with `SetFrameGraphPassEnabled`, and an optional read resolves to null when its writer
+is disabled. Resizing recreates viewport-sized targets after outstanding GPU work completes and invalidates history;
+pass objects, pipelines, environment assets and acceleration structures survive. Barriers stay with `CommandList`,
+which transitions each resource a command declares in its `Dependencies`, so the graph never tracks resource states.
 
-`RenderPasses` runs a registered pass list, and each entry carries an optional
-enable flag, so an effect is added, reordered or gated without editing the frame
-function. `FrameContext` holds the frame state and the outputs passes hand to each
-other. Per-frame targets such as the bloom chain come from the context's transient
-pool: a released texture is parked and only reused once the submission that used
-it completed, so their handles and resource states stay valid across frames.
+`GpuDrawList` (Scene runtime) flattens the RenderScene into per-draw data and owns the indirect lists. Lists are
+registered with a `DrawListFilter` (accepted alpha modes, required material tag bits and whether frustum culling
+applies), similar to an SRP renderer list; the opaque, transparent and shadow-caster lists are the defaults. The
+sample's culling pass fills every list in one dispatch, so a GPU-driven culling pipeline can replace it without
+changing the drawing passes.
 
-Passes declare what they read and write through `DependencyList`, which returns
-the descriptor index as it records the barrier, so a constant block and the
-barrier set cannot drift apart. Constant blocks are named structs that mirror
-their shader block and assert their size.
+Constant blocks are named structs that mirror their shader block and assert their size.
 
 Shader alignment distinguishes the reference algorithm from engine bindings.
 RT shadow/AO restores the original inline control flow, sampling helpers and
