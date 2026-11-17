@@ -29,8 +29,7 @@
 const char* gApplicationName = "AssetPipeline";
 
 const AssetPipelineProcessCommand gAssetPipelineCommands[] = {
-    { "-pa", PROCESS_ANIMATIONS }, { "-ptfx", PROCESS_TFX },      { "-pgltf", PROCESS_GLTF },
-    { "-pt", PROCESS_TEXTURES },   { "-pwz", PROCESS_WRITE_ZIP }, { "-pwza", PROCESS_WRITE_ZIP_ALL },
+    { "-pgltf", PROCESS_GLTF },
 };
 
 void PrintHelp()
@@ -38,14 +37,8 @@ void PrintHelp()
     printf("Asset Pipeline\n");
     printf("\n-command [Flags]\n");
     printf("\nCommands:\n");
-    printf("\n\t%s\t\t(unavailable: Ozz API migration required)\n", gAssetPipelineCommands[PROCESS_ANIMATIONS].mCommandString);
-    printf("\n\t%s\t(unavailable: TressFX is not vendored)\n", gAssetPipelineCommands[PROCESS_TFX].mCommandString);
-    printf("\n\t\t--fhc | -followhaircount\t\t: Number of follow hairs around loaded guide hairs procedually\n");
-    printf("\t\t--tsf | -tipseparationfactor\t: Separation factor for the follow hairs\n");
-    printf("\t\t--maxradius | -maxradius\t\t: Max radius of the random distribution to generate follow hairs\n");
     printf("\n\t%s\t(GLTF to bin)\tProcessGLTF\n", gAssetPipelineCommands[PROCESS_GLTF].mCommandString);
     printf("\n\t\tAlso emits .sceneasset.json, .assetcatalog.json and BC7 DDS textures\n");
-    printf("\n\t\t--hair\t\t: Processes the mesh as a hair mesh\n");
     printf("\n\t\t--optimize\t\t: Enables all supported mesh optimization techniques\n");
     printf("\n\t\t--optimizecache\t\t: Enables vertex cache optimization\n");
     printf("\n\t\t--optimizeoverdraw\t\t: Enables overdraw optimization\n");
@@ -55,17 +48,6 @@ void PrintHelp()
         "and 256 respectively\n");
     printf("\n\t\t--meshletnumvertices [num]\t\t: Overrides maximum number of vertices in Each meshlet\n");
     printf("\n\t\t--meshletnumtriangles [num]\t\t: Overrides maximum number of triangles in Each meshlet\n");
-    printf("\n\t%s\t(unavailable: texture compression backends are not vendored)\n",
-           gAssetPipelineCommands[PROCESS_TEXTURES].mCommandString);
-    printf("\n\t\t--astc\t\t Perform ASTC compression | default astc4x4 | overrides --astc4x4 --astc8x8 \n");
-    printf("\n\t\t--bc\t\t Perform DXT BC compression | default bc3 | overrides --bc1 --bc3 --bc4 --bc5 --bc7\n");
-    printf("\n\t\t--genmips\t Generate mip maps if not existing \n");
-    printf("\n\t\t--in-linear\t\t Specify input Color space as Linear \n");
-    printf("\n\t\t--vmf [RoughnessFileName]\t\t Create vMF filtered normal mipmaps using given roughness texture \n");
-    printf("\n\t%s\t(unavailable: Buny archive support is not enabled)\n", gAssetPipelineCommands[PROCESS_WRITE_ZIP].mCommandString);
-    printf("\n\t\t--filter [extension filters]\t: Only zip files with the chosen extensions\n");
-    printf("\n\t%s\t(unavailable: Buny archive support is not enabled)\n", gAssetPipelineCommands[PROCESS_WRITE_ZIP_ALL].mCommandString);
-    printf("\n\t\t--filter [subfolders to zip]\t: Only zip folders with the chosen names\n");
     printf("\nCommon Options:\n");
     printf("\n\t-h | -help\t\t: Print usage information\n");
     printf("\n\t--input [path]\t\t\t: Choose input folder\n");
@@ -111,7 +93,6 @@ int AssetPipelineCmd(int argc, char** argv)
 
     params.mRDInput = DirectoryMiddleware1;
     params.mRDOutput = DirectoryMiddleware2;
-    params.mRDZipWrite = DirectoryMiddleware3;
 
     char filePath[FS_MAX_PATH] = { 0 };
     char fileNameWithoutExt[FS_MAX_PATH] = { 0 };

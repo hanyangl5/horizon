@@ -20,7 +20,6 @@ set (ASSET_PIPELINE_FILES
     ${ASSET_PIPELINE_SOURCE_DIR}/AssetPipeline.cpp
     ${ASSET_PIPELINE_SOURCE_DIR}/AssetPipeline.h
     ${ASSET_PIPELINE_SOURCE_DIR}/AssetPipelineConfig.h
-    ${ASSET_PIPELINE_SOURCE_DIR}/AssetPipelineUnsupported.cpp
     ${ASSET_PIPELINE_SOURCE_DIR}/SceneAssetCooker.cpp
     ${ASSET_PIPELINE_SOURCE_DIR}/SceneAssetCooker.h
     ${ASSET_PIPELINE_SOURCE_DIR}/SceneTextureCooker.cpp
