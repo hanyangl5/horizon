@@ -23,7 +23,7 @@ World Foundation 是 GPU-driven geometry、light culling、path tracing 和 Edit
 | `Entity` | World 中的运行时实体（带 generation） | `AActor`（大致） |
 | `Guid` / `EntityIdentity` | 实体的持久身份及保存它的组件；World 文件 ID 也用 `Guid` | `FGuid`（ActorGuid） |
 | `LocalTransform` / `Matrix4` | 局部 TRS / 不可分解的局部矩阵，二者互斥 | RelativeTransform |
-| `WorldTransform` | 派生的世界矩阵（current/previous），不保存 | ComponentToWorld |
+| `WorldTransform` | 派生的世界矩阵，不保存 | ComponentToWorld |
 | `MeshRenderer` | 组件：Mesh 的 AssetID + 按 SubmeshID 的材质覆盖 | `UStaticMeshComponent` |
 | `Light` / `Camera` | 光源、相机组件 | `ULightComponent` / `UCameraComponent` |
 | `WorldArchive` | `.world.json` 的读写、capture 和 instantiate | `.umap` 包；Bevy `DynamicScene` |
@@ -289,7 +289,7 @@ Flecs 自带 meta（反射）、JSON 序列化、`ChildOf` 关系和 deferred �
 
 ## Transform hierarchy
 
-**Local 变换有两种表示，二者严格互斥**：`LocalTransform`（TRS：translation/rotation/scale）是 authoring 首选；`Matrix4`（可选组件）承载**无法无损分解为 TRS** 的仿射变换。原因：父级非均匀缩放与旋转组合后，world/local 矩阵可能含 **shear**，TRS 无法精确表达；负缩放也有歧义。**互斥由 World API 强制**——一个 Entity 二者只能有其一；加载到同时带两者的**非法文件直接报错**（不做"谁优先"的隐式规则）。importer 对不可分解的局部变换使用 `Matrix4`，作者手编或可分解的节点使用 `LocalTransform`。`Parent` 表示层级关系；`WorldTransform` 保存 current 和 previous matrices，属于派生数据，不写入 World 文件。
+**Local 变换有两种表示，二者严格互斥**：`LocalTransform`（TRS：translation/rotation/scale）是 authoring 首选；`Matrix4`（可选组件）承载**无法无损分解为 TRS** 的仿射变换。原因：父级非均匀缩放与旋转组合后，world/local 矩阵可能含 **shear**，TRS 无法精确表达；负缩放也有歧义。**互斥由 World API 强制**——一个 Entity 二者只能有其一；加载到同时带两者的**非法文件直接报错**（不做"谁优先"的隐式规则）。importer 对不可分解的局部变换使用 `Matrix4`，作者手编或可分解的节点使用 `LocalTransform`。`Parent` 表示层级关系；`WorldTransform` 保存当前世界矩阵，属于派生数据，不写入 World 文件。运动历史只由 RenderScene 保存。
 
 Hierarchy 必须满足：
 
@@ -304,13 +304,13 @@ Hierarchy 必须满足：
 - teleport 或 camera cut 可以显式同步 previous transform，避免错误 motion vector。
 - Transform update 在 RenderScene extraction 前完成。
 
-**单一真相 + 派生遍历 cache**：层级的**唯一权威来源是 World 私有的 Flecs 父子关系**（`Parent` 只是它的公共视图，不是第二份存储）。Flecs 按 archetype/table 存储，普通 query 迭代**不是**层级顺序，也无法便宜地"只遍历 dirty subtree"。因此从父子关系**派生**一个层级遍历 cache——parent 恒在 child 之前的拓扑序（DFS）数组，结构变化后重建，旧的节点索引和缓存指针随之失效。propagation 沿该数组从前往后单次线性扫描；dirty 用 dirty-root 队列表示，重建后每个 subtree 是数组里一段**连续 DFS range**，clean subtree 直接跳过。`WorldTransform`（current/previous）作为派生数据存在这套 dense、hierarchy-ordered 存储里，而不是靠普通 component query 逐个更新；它不进 World 文件。
+**单一真相 + 派生遍历 cache**：层级的**唯一权威来源是 World 私有的 Flecs 父子关系**（`Parent` 只是它的公共视图，不是第二份存储）。Flecs 按 archetype/table 存储，普通 query 迭代**不是**层级顺序，也无法便宜地"只遍历 dirty subtree"。因此从父子关系**派生**一个层级遍历 cache——parent 恒在 child 之前的拓扑序（DFS）数组，结构变化后重建，旧的节点索引和缓存指针随之失效。propagation 沿该数组从前往后单次线性扫描；dirty 用 dirty-root 队列表示，重建后每个 subtree 是数组里一段**连续 DFS range**，clean subtree 直接跳过。`WorldTransform` 作为派生数据存在这套 dense、hierarchy-ordered 存储里，而不是靠普通 component query 逐个更新；它不进 World 文件。
 
 **结构变化（create/delete/reparent）时全量 O(N) 重建该 cache**，不追求增量拓扑维护。理由：要同时保住"parent 在前 + subtree 连续可跳过 + reparent 不移动数据"三者，数学上做不到（reparent 必然打乱 DFS 连续性）；而结构变化通常远少于 transform 更新，第一版用重建换正确性和简单性，增量维护留到有 profile 证据再做。
 
 当前接口：`setParent` 返回是否成功；`getParent` 提供父子关系的公共视图。Reparent 和删除带子节点的实体必须在 query/defer 作用域外调用，否则返回失败；叶节点增删与局部组件修改仍可 defer，LocalTransform/Matrix4 互斥检查同时覆盖待提交操作。删除父节点需要 TypeRegistry 注册 Matrix4，以便保留无法分解的结果。
 
-`updateTransforms` 在结构修改后重建缓存，普通更新只遍历排序、合并后的脏子树；缓存预热后，稳定层级的变换更新不分配内存。读取 `getWorldTransform` 前必须完成更新。`commitTransforms` 推进 World 缓存的 previous，调用方须保证 current 对应实际提交的状态；`resetTransformHistory` 可重置指定子树或全部实体。首次出现的实体以 current 初始化 previous。RenderScene 单独保存实际提交的历史，不依赖提交时 World 的最新状态；渲染路径在 `GpuScene::endFrame` 推进历史。
+`UpdateTransforms` 在结构修改后重建缓存，普通更新只遍历排序、合并后的脏子树；新建实体追加为根，删除叶子留下空位，只有重新挂接父子、延迟作用域内的结构修改或空位过多时才重建。缓存预热后，稳定层级的变换更新不分配内存。读取 `GetWorldTransform` 前必须完成更新。World 不保存运动历史：RenderScene 保存实际提交的历史，渲染路径在 `GpuScene::EndFrame` 推进历史，teleport 或 camera cut 通过 `RenderScene::markDirty` 重置。
 
 后续并行化时以独立 root 或预计算的 hierarchy range 为任务单位，结果必须与单线程路径一致。
 

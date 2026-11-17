@@ -618,12 +618,9 @@ TEST_F(SceneWorldTest, PropertyEditsPropagateTransformsAndRespectDeferredVisibil
     }
     world.UpdateTransforms();
     EXPECT_FLOAT_EQ((float)world.GetWorldTransform(child)->current.getTranslation().getX(), 5.0f);
-    EXPECT_FLOAT_EQ((float)world.GetWorldTransform(child)->previous.getTranslation().getX(), 0.0f);
-    world.CommitTransforms();
     ASSERT_TRUE(world.SetProperty(child, hz::SceneTypes::localTransform, 1, value));
     world.UpdateTransforms();
     EXPECT_FLOAT_EQ((float)world.GetWorldTransform(child)->current.getTranslation().getX(), 10.0f);
-    EXPECT_FLOAT_EQ((float)world.GetWorldTransform(child)->previous.getTranslation().getX(), 5.0f);
     ASSERT_TRUE(world.RemoveComponent(parent, hz::SceneTypes::localTransform));
     ASSERT_TRUE(world.AddComponent(parent, hz::SceneTypes::localMatrix));
     const Matrix4 matrix = Matrix4::translation(Vector3(2.0f, 0.0f, 0.0f));

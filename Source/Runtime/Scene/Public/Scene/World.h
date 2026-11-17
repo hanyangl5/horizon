@@ -80,9 +80,6 @@ public:
     void                  UpdateTransforms();
     // Valid until the next structural Update. Call UpdateTransforms before reading.
     const WorldTransform* GetWorldTransform(Entity entity) const;
-    // Advance history only after a rendered frame is submitted.
-    void                  CommitTransforms();
-    void                  resetTransformHistory(Entity root = {});
 
     bool        AddComponent(Entity entity, TypeID Type);
     bool        RemoveComponent(Entity entity, TypeID Type);

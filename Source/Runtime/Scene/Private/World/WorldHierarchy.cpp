@@ -172,7 +172,6 @@ void WorldHierarchy::rebuild()
         node.entity = entry.entity;
         node.parent = entry.parent == UINT32_MAX ? UINT32_MAX : buildNodes[entry.parent].output;
         node.dirty = true;
-        node.historyDirty = false;
         scratch.PushBack(node);
         stack.PushBack(current);
         if (entry.firstChild != UINT32_MAX)
@@ -212,7 +211,6 @@ void WorldHierarchy::rebuild()
     }
     dirtyRoots.Clear();
     dirtyRoots.Reserve(nodes.Size());
-    historyDirty.Clear();
     for (uint32_t i = 0; i < nodes.Size(); i = nodes[i].subtreeEnd)
         dirtyRoots.PushBack(i);
     tombstones = 0;
@@ -241,18 +239,8 @@ void WorldHierarchy::Update()
                 continue;
             node.transform.current =
                 node.parent == UINT32_MAX ? localMatrix(node.entity) : nodes[node.parent].transform.current * localMatrix(node.entity);
-            if (!node.initialized)
-            {
-                node.transform.previous = node.transform.current;
-                node.initialized = true;
-            }
             node.dirty = false;
             world.recordChange(node.entity);
-            if (!node.historyDirty)
-            {
-                node.historyDirty = true;
-                historyDirty.PushBack(i);
-            }
         }
     }
     dirtyRoots.Clear();
@@ -264,28 +252,6 @@ const WorldTransform* WorldHierarchy::Get(ecs_entity_t entity) const
     ASSERT(!structureDirty && dirtyRoots.Empty());
     const uint32_t index = Find(entity);
     return index != UINT32_MAX ? &nodes[index].transform : nullptr;
-}
-
-void WorldHierarchy::commit()
-{
-    Update();
-    for (uint32_t index : historyDirty)
-    {
-        nodes[index].transform.previous = nodes[index].transform.current;
-        nodes[index].historyDirty = false;
-    }
-    historyDirty.Clear();
-}
-
-void WorldHierarchy::markDirty(ecs_entity_t root)
-{
-    Update();
-    const uint32_t first = root ? Find(root) : 0;
-    if (first == UINT32_MAX)
-        return;
-    const uint32_t end = root ? nodes[first].subtreeEnd : nodes.Size();
-    for (uint32_t i = first; i < end; ++i)
-        nodes[i].transform.previous = nodes[i].transform.current;
 }
 
 bool WorldHierarchy::writeLocalMatrix(ecs_entity_t entity, const Matrix4& matrix)
@@ -451,11 +417,5 @@ void                  World::UpdateTransforms() { pImpl->pHierarchy->Update(); }
 const WorldTransform* World::GetWorldTransform(Entity entity) const
 {
     return IsAlive(entity) ? pImpl->pHierarchy->Get(entity.value) : nullptr;
-}
-void World::CommitTransforms() { pImpl->pHierarchy->commit(); }
-void World::resetTransformHistory(Entity root)
-{
-    if (!root.IsValid() || IsAlive(root))
-        pImpl->pHierarchy->markDirty(root.value);
 }
 } // namespace hz

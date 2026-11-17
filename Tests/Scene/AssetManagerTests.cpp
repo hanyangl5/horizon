@@ -801,7 +801,6 @@ TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocatin
     }
     scene.Update();
     assetManager.Update();
-    world.CommitTransforms();
     scene.Update();
     const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (hz::Entity entity : entities)
@@ -1351,7 +1350,6 @@ TEST_F(TypedAssetLiveTest, RenderSceneExtractsSubmeshesBoundsHistoryAndMaterialC
     EXPECT_EQ(scene.GetMeshBatch(meshBatchIDs[1])->submesh, UINT64_C(0x8000000000000003));
     const hz::GpuMaterialID original = scene.GetMeshBatch(meshBatchIDs[0])->material;
 
-    world.CommitTransforms();
     scene.Update();
     const uint64_t            revision = scene.GetRevision();
     const MemoryTrackingStats before = GetMemoryTrackingStats();

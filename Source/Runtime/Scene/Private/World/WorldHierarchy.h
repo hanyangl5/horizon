@@ -23,8 +23,6 @@ public:
     bool                  Destroy(ecs_entity_t entity, bool subtree);
     void                  Update();
     const WorldTransform* Get(ecs_entity_t entity) const;
-    void                  commit();
-    void                  markDirty(ecs_entity_t root);
 
 private:
     struct Node
@@ -34,8 +32,6 @@ private:
         uint32_t       subtreeEnd = 0;
         WorldTransform transform;
         bool           dirty = false;
-        bool           historyDirty = false;
-        bool           initialized = false;
     };
     struct BuildNode
     {
@@ -76,7 +72,6 @@ private:
     Array<BuildNode>    buildNodes;
     Array<uint32_t>     stack;
     Array<uint32_t>     dirtyRoots;
-    Array<uint32_t>     historyDirty;
     // Destroyed leaves left in place by removeLeaf; their entity is 0.
     uint32_t            tombstones = 0;
     bool                structureDirty = true;

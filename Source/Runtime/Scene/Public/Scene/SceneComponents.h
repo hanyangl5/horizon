@@ -42,7 +42,6 @@ struct LocalTransform
 struct WorldTransform
 {
     Matrix4 current = Matrix4::identity();
-    Matrix4 previous = Matrix4::identity();
 };
 
 struct MaterialOverride

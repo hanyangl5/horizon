@@ -97,7 +97,6 @@ TEST_F(WorldArchiveTest, RoundTripsComponentsHierarchyAndStableOrdering)
     EXPECT_FLOAT_EQ(((const hz::LocalTransform*)restored->GetComponent(loadedParent, hz::SceneTypes::localTransform))->translation.getX(),
                     transform.translation.getX());
     EXPECT_FLOAT_EQ((float)restored->GetWorldTransform(loadedChild)->current.getElem(3, 0), transform.translation.getX());
-    EXPECT_FLOAT_EQ((float)restored->GetWorldTransform(loadedChild)->previous.getElem(3, 0), transform.translation.getX());
     ASSERT_TRUE(archive.capture(*restored));
     EXPECT_EQ(text(archive), first);
 }

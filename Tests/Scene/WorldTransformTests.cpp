@@ -115,38 +115,6 @@ TEST_F(SceneTransformTest, ParentDeletionPreservesChildrenButSubtreeDeletionRemo
     EXPECT_EQ(world.GetWorldTransform(leaf), nullptr);
 }
 
-TEST_F(SceneTransformTest, HistoryAdvancesOnlyOnCommitAndCanResetASubtree)
-{
-    hz::TypeRegistry types;
-    ASSERT_TRUE(types.RegisterBuiltins());
-    hz::World        world(types);
-    const hz::Entity entity = world.CreateEntity();
-    const hz::Entity child = world.CreateEntity();
-    const hz::Entity other = world.CreateEntity();
-    ASSERT_TRUE(world.setParent(child, entity, false));
-    setTranslation(world, entity, 1.0f);
-    world.UpdateTransforms();
-    expectMatrix(world.GetWorldTransform(entity)->previous, world.GetWorldTransform(entity)->current);
-    setTranslation(world, entity, 2.0f);
-    world.UpdateTransforms();
-    setTranslation(world, entity, 3.0f);
-    world.UpdateTransforms();
-    expectMatrix(world.GetWorldTransform(entity)->previous, Matrix4::translation(Vector3(1.0f, 0.0f, 0.0f)));
-    // Rebuilding the hierarchy must preserve uncommitted history on existing entities.
-    world.CreateEntity();
-    world.UpdateTransforms();
-    expectMatrix(world.GetWorldTransform(entity)->previous, Matrix4::translation(Vector3(1.0f, 0.0f, 0.0f)));
-    world.CommitTransforms();
-    expectMatrix(world.GetWorldTransform(entity)->previous, world.GetWorldTransform(entity)->current);
-    setTranslation(world, entity, 4.0f);
-    setTranslation(world, other, 7.0f);
-    world.UpdateTransforms();
-    world.resetTransformHistory(entity);
-    expectMatrix(world.GetWorldTransform(entity)->previous, world.GetWorldTransform(entity)->current);
-    expectMatrix(world.GetWorldTransform(child)->previous, world.GetWorldTransform(child)->current);
-    expectMatrix(world.GetWorldTransform(other)->previous, Matrix4::identity());
-}
-
 TEST_F(SceneTransformTest, DeferredLocalChangesRemainMutuallyExclusive)
 {
     hz::TypeRegistry types;
@@ -191,7 +159,6 @@ TEST_F(SceneTransformTest, DeepHierarchyUsesIterativeTraversalAndCleanUpdatesDoN
     }
     world.UpdateTransforms();
     expectMatrix(world.GetWorldTransform(parent)->current, Matrix4::translation(Vector3(2048.0f, 0.0f, 0.0f)));
-    world.CommitTransforms();
     const MemoryTrackingStats before = GetMemoryTrackingStats();
     for (hz::Entity entity : entities)
         setTranslation(world, entity, 1.0f);
@@ -199,7 +166,6 @@ TEST_F(SceneTransformTest, DeepHierarchyUsesIterativeTraversalAndCleanUpdatesDoN
     {
         setTranslation(world, root, 2.0f);
         world.UpdateTransforms();
-        world.CommitTransforms();
         world.UpdateTransforms();
     }
     const MemoryTrackingStats after = GetMemoryTrackingStats();
@@ -230,7 +196,6 @@ TEST_F(SceneTransformTest, DeepSubtreeSupportsReparentingComponentEditsAndDeleti
     const hz::Entity root = entities[Count - 1];
     const hz::Entity leaf = entities[0];
     world.UpdateTransforms();
-    world.CommitTransforms();
     const hz::Entity firstParent = world.CreateEntity();
     const hz::Entity secondParent = world.CreateEntity();
     setTranslation(world, firstParent, 12.0f);
@@ -348,10 +313,8 @@ TEST_F(SceneTransformTest, BuildsOneHundredThousandEntitiesAndUpdatesASingleDirt
             first = last;
     }
     world.UpdateTransforms();
-    world.CommitTransforms();
     setTranslation(world, first, 12.0f);
     world.UpdateTransforms();
     expectMatrix(world.GetWorldTransform(first)->current, Matrix4::translation(Vector3(12.0f, 0.0f, 0.0f)));
-    expectMatrix(world.GetWorldTransform(first)->previous, Matrix4::identity());
     expectMatrix(world.GetWorldTransform(last)->current, Matrix4::translation(Vector3(99999.0f, 0.0f, 0.0f)));
 }
