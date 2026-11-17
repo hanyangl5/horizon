@@ -65,7 +65,7 @@ TEST_F(SceneWorldTest, ForeignEntitiesAreRejectedByOtherWorlds)
     EXPECT_EQ(second.GetEntityGuid(entity), hz::Guid{});
     EXPECT_FALSE(second.AddComponent(entity, hz::SceneTypes::camera));
     EXPECT_FALSE(second.SetProperty(entity, hz::SceneTypes::camera, 0, {}));
-    EXPECT_FALSE(second.setParent(entity, entity));
+    EXPECT_FALSE(second.SetParent(entity, entity));
     EXPECT_TRUE(first.IsAlive(entity));
 }
 
@@ -421,8 +421,8 @@ TEST_F(SceneWorldTest, HierarchyDeletionRemovesOnlyDestroyedEntityIdentities)
     const hz::Entity parent = world.CreatePersistentEntity(parentID);
     const hz::Entity child = world.CreatePersistentEntity(childID);
     const hz::Entity leaf = world.CreatePersistentEntity(leafID);
-    ASSERT_TRUE(world.setParent(child, parent, false));
-    ASSERT_TRUE(world.setParent(leaf, child, false));
+    ASSERT_TRUE(world.SetParent(child, parent, false));
+    ASSERT_TRUE(world.SetParent(leaf, child, false));
     ASSERT_TRUE(world.DestroyEntity(parent));
     EXPECT_FALSE(world.GetEntity(parentID).IsValid());
     EXPECT_EQ(world.GetEntity(childID), child);
@@ -514,16 +514,16 @@ TEST_F(SceneWorldTest, ArrayEditsPreserveOwnershipAndValidateIndices)
     EXPECT_FALSE(pMesh->overrides[0].material.IsValid());
     const hz::AssetID       material = { .low = 7 };
     const hz::PropertyValue value = { .kind = hz::PropertyKind::AssetReference, .Data = &material, .Size = sizeof(material) };
-    EXPECT_FALSE(world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 1, 2, value));
-    EXPECT_FALSE(world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 999, value));
+    EXPECT_FALSE(world.SetArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 1, 2, value));
+    EXPECT_FALSE(world.SetArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 999, value));
     EXPECT_FALSE(
-        world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2,
+        world.SetArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2,
                                       { .kind = hz::PropertyKind::EntityReference, .Data = &material, .Size = sizeof(material) }));
-    ASSERT_TRUE(world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2, value));
+    ASSERT_TRUE(world.SetArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2, value));
     const hz::MaterialOverride* pStorage = pMesh->overrides.GetData();
     const MemoryTrackingStats   before = GetMemoryTrackingStats();
     ASSERT_TRUE(world.SetProperty(entity, hz::SceneTypes::meshRenderer, 1, value));
-    ASSERT_TRUE(world.setArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2, value));
+    ASSERT_TRUE(world.SetArrayElementProperty(entity, hz::SceneTypes::meshRenderer, 2, 0, 2, value));
     const MemoryTrackingStats after = GetMemoryTrackingStats();
     EXPECT_EQ(pMesh->overrides.GetData(), pStorage);
     if (before.TrackingEnabled)
@@ -585,11 +585,11 @@ TEST_F(SceneWorldTest, ArrayEditsRespectContainerAndElementReadOnlyFlags)
                                             .Size = sizeof(value.material) };
     EXPECT_FALSE(world.SetProperty(entity, editable.id, 1, material));
     ASSERT_TRUE(world.InsertArrayElement(entity, editable.id, 2, 0, &value));
-    EXPECT_FALSE(world.setArrayElementProperty(entity, editable.id, 2, 0, 2, material));
+    EXPECT_FALSE(world.SetArrayElementProperty(entity, editable.id, 2, 0, 2, material));
     EXPECT_FALSE(world.ResizeArray(entity, locked.id, 2, 1));
     EXPECT_FALSE(world.InsertArrayElement(entity, locked.id, 2, 0, &value));
     EXPECT_FALSE(world.RemoveArrayElement(entity, locked.id, 2, 0));
-    EXPECT_FALSE(world.setArrayElementProperty(entity, locked.id, 2, 0, 2, material));
+    EXPECT_FALSE(world.SetArrayElementProperty(entity, locked.id, 2, 0, 2, material));
     const hz::MeshRenderer* pMesh = (const hz::MeshRenderer*)world.GetComponent(entity, editable.id);
     EXPECT_FALSE(pMesh->mesh.IsValid());
     EXPECT_EQ(pMesh->overrides[0].material, value.material);
@@ -604,7 +604,7 @@ TEST_F(SceneWorldTest, PropertyEditsPropagateTransformsAndRespectDeferredVisibil
     const hz::Entity parent = world.CreateEntity();
     const hz::Entity child = world.CreateEntity();
     ASSERT_TRUE(world.AddComponent(parent, hz::SceneTypes::localTransform));
-    ASSERT_TRUE(world.setParent(child, parent, false));
+    ASSERT_TRUE(world.SetParent(child, parent, false));
     world.UpdateTransforms();
     const Vector3           translation(5.0f, 0.0f, 0.0f);
     const hz::PropertyValue value = { .kind = hz::PropertyKind::Vector3, .Data = &translation, .Size = sizeof(translation) };

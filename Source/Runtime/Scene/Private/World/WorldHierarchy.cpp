@@ -310,7 +310,7 @@ bool WorldHierarchy::writeLocalMatrix(ecs_entity_t entity, const Matrix4& matrix
     return true;
 }
 
-bool WorldHierarchy::setParent(ecs_entity_t entity, ecs_entity_t parent, bool keepWorld)
+bool WorldHierarchy::SetParent(ecs_entity_t entity, ecs_entity_t parent, bool keepWorld)
 {
     if (ecs_is_deferred(world.pWorld))
     {
@@ -425,13 +425,13 @@ void World::AttachParent(Entity entity, Entity parent)
     ecs_add_pair(pImpl->pWorld, entity.value, pImpl->parentRelation, parent.value);
     pImpl->pHierarchy->invalidateStructure();
 }
-bool World::setParent(Entity entity, Entity parent, bool keepWorld)
+bool World::SetParent(Entity entity, Entity parent, bool keepWorld)
 {
     if (!IsAlive(entity) || (parent.IsValid() && !IsAlive(parent)))
     {
         return false;
     }
-    return pImpl->pHierarchy->setParent(entity.value, parent.value, keepWorld);
+    return pImpl->pHierarchy->SetParent(entity.value, parent.value, keepWorld);
 }
 bool                  World::DestroyEntity(Entity entity) { return IsAlive(entity) && pImpl->pHierarchy->Destroy(entity.value, false); }
 bool                  World::DestroySubtree(Entity entity) { return IsAlive(entity) && pImpl->pHierarchy->Destroy(entity.value, true); }

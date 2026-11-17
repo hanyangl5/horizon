@@ -76,7 +76,7 @@ public:
 
     Entity                GetParent(Entity entity) const;
     // Hierarchy edits run outside Defer/query scopes. An invalid parent means the root.
-    bool                  setParent(Entity entity, Entity parent = {}, bool keepWorld = true);
+    bool                  SetParent(Entity entity, Entity parent = {}, bool keepWorld = true);
     void                  UpdateTransforms();
     // Valid until the next structural Update. Call UpdateTransforms before reading.
     const WorldTransform* GetWorldTransform(Entity entity) const;
@@ -94,7 +94,7 @@ public:
     // pValue points to an element of the reflected array Type, including when inserting from this array.
     bool InsertArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index, const void* pValue);
     bool RemoveArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index);
-    bool setArrayElementProperty(Entity entity, TypeID Type, PropertyID property, uint32_t index, PropertyID elementProperty,
+    bool SetArrayElementProperty(Entity entity, TypeID Type, PropertyID property, uint32_t index, PropertyID elementProperty,
                                  const PropertyValue& value);
 
     // Defers structural changes until the outermost scope ends. World must outlive its scopes and queries.

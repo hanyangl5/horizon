@@ -35,16 +35,16 @@ TEST_F(SceneTransformTest, PropagatesLocalChangesAndRejectsCycles)
     setTranslation(world, root, 10.0f);
     setTranslation(world, child, 2.0f);
     setTranslation(world, leaf, 3.0f);
-    ASSERT_TRUE(world.setParent(child, root, false));
-    ASSERT_TRUE(world.setParent(leaf, child, false));
+    ASSERT_TRUE(world.SetParent(child, root, false));
+    ASSERT_TRUE(world.SetParent(leaf, child, false));
     {
         hz::DeferredChanges changes = world.Defer();
-        EXPECT_FALSE(world.setParent(child, {}));
+        EXPECT_FALSE(world.SetParent(child, {}));
         EXPECT_FALSE(world.DestroyEntity(root));
         EXPECT_FALSE(world.DestroySubtree(root));
     }
-    EXPECT_FALSE(world.setParent(root, leaf));
-    EXPECT_FALSE(world.setParent(root, root));
+    EXPECT_FALSE(world.SetParent(root, leaf));
+    EXPECT_FALSE(world.SetParent(root, root));
     world.UpdateTransforms();
     expectMatrix(world.GetWorldTransform(leaf)->current, Matrix4::translation(Vector3(15.0f, 0.0f, 0.0f)));
     setTranslation(world, child, 5.0f);
@@ -67,7 +67,7 @@ TEST_F(SceneTransformTest, PreservesShearAndRejectsSingularParentsAtomically)
     ASSERT_TRUE(world.SetComponent(child, hz::SceneTypes::localTransform, &rotated));
     world.UpdateTransforms();
     const Matrix4 before = world.GetWorldTransform(child)->current;
-    ASSERT_TRUE(world.setParent(child, parent));
+    ASSERT_TRUE(world.SetParent(child, parent));
     EXPECT_NE(world.GetComponent(child, hz::SceneTypes::localMatrix), nullptr);
     EXPECT_EQ(world.GetComponent(child, hz::SceneTypes::localTransform), nullptr);
     world.UpdateTransforms();
@@ -76,11 +76,11 @@ TEST_F(SceneTransformTest, PreservesShearAndRejectsSingularParentsAtomically)
     const hz::Entity         singular = world.CreateEntity();
     const hz::LocalTransform zero = { .scale = Vector3(0.0f, 1.0f, 1.0f) };
     ASSERT_TRUE(world.SetComponent(singular, hz::SceneTypes::localTransform, &zero));
-    EXPECT_FALSE(world.setParent(child, singular));
+    EXPECT_FALSE(world.SetParent(child, singular));
     EXPECT_EQ(world.GetParent(child), parent);
     world.UpdateTransforms();
     expectMatrix(world.GetWorldTransform(child)->current, before);
-    ASSERT_TRUE(world.setParent(child, singular, false));
+    ASSERT_TRUE(world.SetParent(child, singular, false));
     EXPECT_EQ(world.GetParent(child), singular);
 }
 
@@ -96,9 +96,9 @@ TEST_F(SceneTransformTest, ParentDeletionPreservesChildrenButSubtreeDeletionRemo
     setTranslation(world, root, 10.0f);
     setTranslation(world, child, 2.0f);
     setTranslation(world, leaf, 3.0f);
-    ASSERT_TRUE(world.setParent(child, root, false));
-    ASSERT_TRUE(world.setParent(sibling, root, false));
-    ASSERT_TRUE(world.setParent(leaf, child, false));
+    ASSERT_TRUE(world.SetParent(child, root, false));
+    ASSERT_TRUE(world.SetParent(sibling, root, false));
+    ASSERT_TRUE(world.SetParent(leaf, child, false));
     ASSERT_TRUE(world.DestroyEntity(root));
     EXPECT_FALSE(world.IsAlive(root));
     EXPECT_TRUE(world.IsAlive(child));
@@ -152,7 +152,7 @@ TEST_F(SceneTransformTest, DeepHierarchyUsesIterativeTraversalAndCleanUpdatesDoN
         const hz::Entity entity = world.CreateEntity();
         entities.PushBack(entity);
         setTranslation(world, entity, 1.0f);
-        ASSERT_TRUE(world.setParent(entity, parent, false));
+        ASSERT_TRUE(world.SetParent(entity, parent, false));
         if (!root.IsValid())
             root = entity;
         parent = entity;
@@ -192,7 +192,7 @@ TEST_F(SceneTransformTest, DeepSubtreeSupportsReparentingComponentEditsAndDeleti
         setTranslation(world, entities[i], 1.0f);
     }
     for (uint32_t i = 0; i + 1 < Count; ++i)
-        ASSERT_TRUE(world.setParent(entities[i], entities[i + 1], false));
+        ASSERT_TRUE(world.SetParent(entities[i], entities[i + 1], false));
     const hz::Entity root = entities[Count - 1];
     const hz::Entity leaf = entities[0];
     world.UpdateTransforms();
@@ -200,13 +200,13 @@ TEST_F(SceneTransformTest, DeepSubtreeSupportsReparentingComponentEditsAndDeleti
     const hz::Entity secondParent = world.CreateEntity();
     setTranslation(world, firstParent, 12.0f);
     setTranslation(world, secondParent, 5.0f);
-    ASSERT_TRUE(world.setParent(root, firstParent, false));
+    ASSERT_TRUE(world.SetParent(root, firstParent, false));
     world.UpdateTransforms();
     expectMatrix(world.GetWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)Count + 12.0f, 0, 0)));
-    ASSERT_TRUE(world.setParent(root, secondParent));
+    ASSERT_TRUE(world.SetParent(root, secondParent));
     world.UpdateTransforms();
     expectMatrix(world.GetWorldTransform(leaf)->current, Matrix4::translation(Vector3((float)Count + 12.0f, 0, 0)));
-    EXPECT_FALSE(world.setParent(secondParent, leaf));
+    EXPECT_FALSE(world.SetParent(secondParent, leaf));
     hz::MeshRenderer renderer;
     renderer.overrides.PushBack({ .submesh = 1, .material = { .low = 42 } });
     ASSERT_TRUE(world.SetComponent(root, hz::SceneTypes::meshRenderer, &renderer));
@@ -256,14 +256,14 @@ TEST_F(SceneTransformTest, SpawningAndDestroyingLeavesKeepsHierarchyIncremental)
     setTranslation(world, root, 10.0f);
     setTranslation(world, child, 2.0f);
     setTranslation(world, leaf, 3.0f);
-    ASSERT_TRUE(world.setParent(child, root, false));
-    ASSERT_TRUE(world.setParent(leaf, child, false));
+    ASSERT_TRUE(world.SetParent(child, root, false));
+    ASSERT_TRUE(world.SetParent(leaf, child, false));
     world.UpdateTransforms();
 
     // Destroying a leaf inside the hierarchy leaves the rest of the order intact.
     const hz::Entity sibling = world.CreateEntity();
     setTranslation(world, sibling, 1.0f);
-    ASSERT_TRUE(world.setParent(sibling, child, false));
+    ASSERT_TRUE(world.SetParent(sibling, child, false));
     world.UpdateTransforms();
     ASSERT_TRUE(world.DestroyEntity(leaf));
     setTranslation(world, child, 5.0f);

@@ -266,7 +266,7 @@ TEST_F(SceneAssetReadTest, FailedGuidGenerationRollsBackOnlyTheNewInstance)
             const hz::Guid   childID = { .high = 0x4000, .low = UINT64_C(0x8000000000000011) };
             const hz::Entity parent = world.CreatePersistentEntity(parentID);
             const hz::Entity child = world.CreatePersistentEntity(childID);
-            ASSERT_TRUE(world.setParent(child, parent, false));
+            ASSERT_TRUE(world.SetParent(child, parent, false));
             const hz::LocalTransform transform = { .translation = Vector3(3, 0, 0) };
             ASSERT_TRUE(world.SetComponent(parent, hz::SceneTypes::localTransform, &transform));
             EXPECT_FALSE(asset.instantiate(world, parent).IsValid());

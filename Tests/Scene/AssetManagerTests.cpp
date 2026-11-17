@@ -850,7 +850,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsOnlyChangedEntitiesAndFollowsParentM
         ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
         ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
     }
-    ASSERT_TRUE(world.setParent(child, parent, false));
+    ASSERT_TRUE(world.SetParent(child, parent, false));
     scene.Update();
     assetManager.Update();
     scene.Update();
@@ -968,7 +968,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
         ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::light, &light));
         ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::camera, &lens));
         ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::localTransform, &transform));
-        ASSERT_TRUE(world.setParent(entities[i], parent, false));
+        ASSERT_TRUE(world.SetParent(entities[i], parent, false));
     }
     scene.Update();
     EXPECT_EQ(scene.GetActiveLights().Count, 9u);
@@ -1907,7 +1907,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     Matrix4 transform = Matrix4::translation(Vector3(5, 0, 0));
     transform.setElem(1, 0, 0.25f);
     ASSERT_TRUE(world->SetComponent(root, hz::SceneTypes::localMatrix, &transform));
-    ASSERT_TRUE(world->setParent(first, second, false));
+    ASSERT_TRUE(world->SetParent(first, second, false));
     const hz::Name name = { "Edited" };
     ASSERT_TRUE(world->SetComponent(first, hz::SceneTypes::name, &name));
     hz::MeshRenderer renderer = { .mesh = assets.GetMeshes().Data[0].id };

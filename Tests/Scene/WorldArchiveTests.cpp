@@ -65,7 +65,7 @@ TEST_F(WorldArchiveTest, RoundTripsComponentsHierarchyAndStableOrdering)
     const hz::Entity child = world.CreatePersistentEntity(id(10));
     const hz::Entity matrixEntity = world.CreatePersistentEntity(id(30));
     world.CreateEntity();
-    ASSERT_TRUE(world.setParent(child, parent, false));
+    ASSERT_TRUE(world.SetParent(child, parent, false));
     hz::Name name = { "Parent" };
     ASSERT_TRUE(world.SetComponent(parent, hz::SceneTypes::name, &name));
     hz::LocalTransform transform = { .translation = Vector3(1.2345678f, 2, 3), .scale = Vector3(-1, 0, 2) };
@@ -112,7 +112,7 @@ TEST_F(WorldArchiveTest, SavesAffineLocalMatrixAfterReparentingUnderRotatedScale
     const Matrix4 childMatrix = Matrix4::translation(Vector3(3.7f, -2.1f, 5.6f)) * Matrix4::rotationZYX(Vector3(0.8f, -0.3f, 0.2f));
     ASSERT_TRUE(world.SetComponent(parent, hz::SceneTypes::localMatrix, &parentMatrix));
     ASSERT_TRUE(world.SetComponent(child, hz::SceneTypes::localMatrix, &childMatrix));
-    ASSERT_TRUE(world.setParent(child, parent, true));
+    ASSERT_TRUE(world.SetParent(child, parent, true));
     const Matrix4* local = (const Matrix4*)world.GetComponent(child, hz::SceneTypes::localMatrix);
     ASSERT_NE(local, nullptr);
     for (uint32_t column = 0; column < 4; ++column)

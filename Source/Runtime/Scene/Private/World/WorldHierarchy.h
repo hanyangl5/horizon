@@ -19,7 +19,7 @@ public:
     void                  addRoot(ecs_entity_t entity);
     bool                  prepareLocalChange(ecs_entity_t entity, TypeID Type, bool adding);
     void                  finishDeferredChanges();
-    bool                  setParent(ecs_entity_t entity, ecs_entity_t parent, bool keepWorld);
+    bool                  SetParent(ecs_entity_t entity, ecs_entity_t parent, bool keepWorld);
     bool                  Destroy(ecs_entity_t entity, bool subtree);
     void                  Update();
     const WorldTransform* Get(ecs_entity_t entity) const;

@@ -180,7 +180,7 @@ bool World::RemoveArrayElement(Entity entity, TypeID Type, PropertyID property, 
     return true;
 }
 
-bool World::setArrayElementProperty(Entity entity, TypeID Type, PropertyID property, uint32_t index, PropertyID elementProperty,
+bool World::SetArrayElementProperty(Entity entity, TypeID Type, PropertyID property, uint32_t index, PropertyID elementProperty,
                                     const PropertyValue& value)
 {
     if (!IsAlive(entity))
