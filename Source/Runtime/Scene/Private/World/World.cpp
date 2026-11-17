@@ -170,8 +170,9 @@ World::~World() { MemDelete(pImpl); }
 Entity World::CreateEntity()
 {
     pImpl->checkThread();
-    pImpl->pHierarchy->invalidateStructure();
-    return Entity(ecs_new_w_id(pImpl->pWorld, pImpl->entityTag), pImpl->id);
+    const ecs_entity_t entity = ecs_new_w_id(pImpl->pWorld, pImpl->entityTag);
+    pImpl->pHierarchy->addRoot(entity);
+    return Entity(entity, pImpl->id);
 }
 
 bool World::Owns(Entity entity) const

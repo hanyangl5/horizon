@@ -2,6 +2,7 @@
 
 #include "Scene/SceneComponents.h"
 #include "Scene/World.h"
+#include "Core/IContainer.h"
 
 class SceneTransformTest: public ::testing::Test
 {
@@ -277,6 +278,59 @@ TEST_F(SceneTransformTest, DeepSubtreeSupportsReparentingComponentEditsAndDeleti
         EXPECT_TRUE(world.DestroyEntity(firstParent));
     }
     EXPECT_FALSE(world.IsAlive(firstParent));
+}
+
+TEST_F(SceneTransformTest, SpawningAndDestroyingLeavesKeepsHierarchyIncremental)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.RegisterBuiltins());
+    hz::World        world(types);
+    const hz::Entity root = world.CreateEntity();
+    const hz::Entity child = world.CreateEntity();
+    const hz::Entity leaf = world.CreateEntity();
+    setTranslation(world, root, 10.0f);
+    setTranslation(world, child, 2.0f);
+    setTranslation(world, leaf, 3.0f);
+    ASSERT_TRUE(world.setParent(child, root, false));
+    ASSERT_TRUE(world.setParent(leaf, child, false));
+    world.UpdateTransforms();
+
+    // Destroying a leaf inside the hierarchy leaves the rest of the order intact.
+    const hz::Entity sibling = world.CreateEntity();
+    setTranslation(world, sibling, 1.0f);
+    ASSERT_TRUE(world.setParent(sibling, child, false));
+    world.UpdateTransforms();
+    ASSERT_TRUE(world.DestroyEntity(leaf));
+    setTranslation(world, child, 5.0f);
+    world.UpdateTransforms();
+    EXPECT_EQ(world.GetWorldTransform(leaf), nullptr);
+    expectMatrix(world.GetWorldTransform(sibling)->current, Matrix4::translation(Vector3(16.0f, 0.0f, 0.0f)));
+
+    // One spawn and one despawn per frame: a long run must not grow memory or lose transforms.
+    hz::Array<hz::Entity> spawned;
+    for (uint32_t frame = 0; frame < 64; ++frame)
+    {
+        const hz::Entity entity = world.CreateEntity();
+        setTranslation(world, entity, (float)frame);
+        spawned.PushBack(entity);
+        if (spawned.Size() > 8)
+        {
+            ASSERT_TRUE(world.DestroyEntity(spawned[0]));
+            for (uint32_t i = 1; i < spawned.Size(); ++i)
+                spawned[i - 1] = spawned[i];
+            spawned.PopBack();
+        }
+        world.UpdateTransforms();
+        expectMatrix(world.GetWorldTransform(entity)->current, Matrix4::translation(Vector3((float)frame, 0.0f, 0.0f)));
+        expectMatrix(world.GetWorldTransform(sibling)->current, Matrix4::translation(Vector3(16.0f, 0.0f, 0.0f)));
+    }
+    // A parent deleted after leaves were tombstoned still preserves its remaining children.
+    ASSERT_TRUE(world.DestroyEntity(child));
+    world.UpdateTransforms();
+    EXPECT_FALSE(world.GetParent(sibling).IsValid());
+    expectMatrix(world.GetWorldTransform(sibling)->current, Matrix4::translation(Vector3(16.0f, 0.0f, 0.0f)));
+    for (hz::Entity entity : spawned)
+        EXPECT_NE(world.GetWorldTransform(entity), nullptr);
 }
 
 TEST_F(SceneTransformTest, BuildsOneHundredThousandEntitiesAndUpdatesASingleDirtyRoot)

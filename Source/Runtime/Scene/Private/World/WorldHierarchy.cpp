@@ -35,7 +35,8 @@ WorldHierarchy::~WorldHierarchy()
     ecs_query_fini(pEntities);
     // Avoid Flecs recursively cascading deletion through a deep hierarchy at ecs_fini.
     for (uint32_t i = nodes.Size(); i > 0; --i)
-        ecs_delete(world.pWorld, nodes[i - 1].entity);
+        if (nodes[i - 1].entity)
+            ecs_delete(world.pWorld, nodes[i - 1].entity);
     hmfree(pIndices);
     hmfree(pBuildIndices);
     hmfree(pPendingLocals);
@@ -47,6 +48,30 @@ uint32_t WorldHierarchy::Find(ecs_entity_t entity) const
     Index*       pLookup = pIndices;
     const Index* pEntry = pLookup ? hmgetp_ts(pLookup, entity, index) : nullptr;
     return pEntry && index >= 0 ? pEntry->value : UINT32_MAX;
+}
+
+void WorldHierarchy::addRoot(ecs_entity_t entity)
+{
+    if (structureDirty || ecs_is_deferred(world.pWorld))
+    {
+        // A deferred entity is not visible to the rebuild query until the scope commits.
+        structureDirty = true;
+        return;
+    }
+    const uint32_t index = nodes.Size();
+    nodes.PushBack({ .entity = entity, .subtreeEnd = index + 1, .dirty = true });
+    const Index mapping = { .key = entity, .value = index };
+    hmputs(pIndices, mapping);
+    dirtyRoots.PushBack(index);
+}
+
+void WorldHierarchy::removeLeaf(uint32_t index)
+{
+    // The slot stays as a tombstone so no other index moves; the next rebuild drops it.
+    hmdel(pIndices, nodes[index].entity);
+    nodes[index].entity = 0;
+    if (++tombstones > nodes.Size() / 4)
+        structureDirty = true;
 }
 
 void WorldHierarchy::markTransformDirty(ecs_entity_t entity)
@@ -180,6 +205,7 @@ void WorldHierarchy::rebuild()
     historyDirty.Clear();
     for (uint32_t i = 0; i < nodes.Size(); i = nodes[i].subtreeEnd)
         dirtyRoots.PushBack(i);
+    tombstones = 0;
     structureDirty = false;
 }
 
@@ -201,6 +227,8 @@ void WorldHierarchy::Update()
         for (uint32_t i = root; i < processedEnd; ++i)
         {
             Node& node = nodes[i];
+            if (!node.entity)
+                continue;
             node.transform.current =
                 node.parent == UINT32_MAX ? localMatrix(node.entity) : nodes[node.parent].transform.current * localMatrix(node.entity);
             if (!node.initialized)
@@ -342,7 +370,12 @@ bool WorldHierarchy::Destroy(ecs_entity_t entity, bool subtree)
     if (!hasChildren)
     {
         ecs_delete(world.pWorld, entity);
-        invalidateStructure();
+        // A deferred delete still shows its entity to the rebuild query until the scope commits.
+        const uint32_t index = structureDirty || ecs_is_deferred(world.pWorld) ? UINT32_MAX : Find(entity);
+        if (index != UINT32_MAX)
+            removeLeaf(index);
+        else
+            invalidateStructure();
         return true;
     }
     if (ecs_is_deferred(world.pWorld))
@@ -361,13 +394,16 @@ bool WorldHierarchy::Destroy(ecs_entity_t entity, bool subtree)
     if (subtree)
     {
         for (uint32_t i = end; i > root; --i)
-            ecs_delete(world.pWorld, nodes[i - 1].entity);
+            if (nodes[i - 1].entity)
+                ecs_delete(world.pWorld, nodes[i - 1].entity);
     }
     else
     {
         // Each direct child's cached subtree range remains valid until the next Update.
         for (uint32_t i = root + 1; i < end; i = nodes[i].subtreeEnd)
         {
+            if (!nodes[i].entity)
+                continue;
             if (!writeLocalMatrix(nodes[i].entity, nodes[i].transform.current))
                 return false;
             ecs_remove_pair(world.pWorld, nodes[i].entity, world.parentRelation, entity);

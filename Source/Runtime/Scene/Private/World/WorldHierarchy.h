@@ -15,6 +15,8 @@ public:
     WorldHierarchy& operator=(const WorldHierarchy&) = delete;
 
     void                  invalidateStructure() { structureDirty = true; }
+    // A new entity has no parent or children, so it can be appended as a root instead of rebuilding the order.
+    void                  addRoot(ecs_entity_t entity);
     bool                  prepareLocalChange(ecs_entity_t entity, TypeID Type, bool adding);
     void                  finishDeferredChanges();
     bool                  setParent(ecs_entity_t entity, ecs_entity_t parent, bool keepWorld);
@@ -59,6 +61,7 @@ private:
     Matrix4  localMatrix(ecs_entity_t entity) const;
     bool     writeLocalMatrix(ecs_entity_t entity, const Matrix4& matrix);
     void     markTransformDirty(ecs_entity_t entity);
+    void     removeLeaf(uint32_t index);
 
     WorldImpl&          world;
     ecs_query_t*        pEntities = nullptr;
@@ -74,6 +77,8 @@ private:
     Array<uint32_t>     stack;
     Array<uint32_t>     dirtyRoots;
     Array<uint32_t>     historyDirty;
+    // Destroyed leaves left in place by removeLeaf; their entity is 0.
+    uint32_t            tombstones = 0;
     bool                structureDirty = true;
 };
 } // namespace hz
