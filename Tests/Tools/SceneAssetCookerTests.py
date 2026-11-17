@@ -5,6 +5,7 @@ import copy
 import json
 import os
 from pathlib import Path
+import shutil
 import struct
 import subprocess
 import sys
@@ -217,6 +218,8 @@ def run(executable):
     default_material_regression(executable, work / 'default-material')
     nonindexed_geometry_regression(executable, work / 'nonindexed', work / 'albedo.dds')
     geometry_publish_regression(executable, work / 'geometry-publish', work / 'albedo.dds')
+    # Failures keep the work directory for inspection.
+    shutil.rmtree(work)
 
 
 
