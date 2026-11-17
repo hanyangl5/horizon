@@ -101,7 +101,7 @@ bool WorldArchive::Serialize(Array<char>& json) const
     json = Data->text;
     return true;
 }
-bool WorldArchive::capture(World& world, Guid id)
+bool WorldArchive::Capture(World& world, Guid id)
 {
     if (world.IsDeferred())
     {
@@ -357,7 +357,7 @@ static bool loadComponent(const cJSON* pComponent, const TypeDesc& Type, uint32_
     return readWorldProperties(Type, pProperties, value.pValue) && normalizeWorldComponent(Type.id, value.pValue, true) &&
            validateWorldReferences(Type, value.pValue, world) && world.SetComponent(entity, Type.id, value.pValue);
 }
-bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& target, Span<ComponentMigration> migrations,
+bool WorldArchive::Instantiate(const TypeRegistry& types, UniquePtr<World>& target, Span<ComponentMigration> migrations,
                                const IDGenerator& entityGuids) const
 {
     if (!Data || (target && target->IsDeferred()))

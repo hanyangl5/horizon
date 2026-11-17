@@ -38,9 +38,9 @@ public:
     bool Serialize(Array<char>& json) const;
     Guid GetID() const;
     // Captures persistent entities only; an existing archive ID is retained unless explicitly replaced.
-    bool capture(World& world, Guid id = {});
+    bool Capture(World& world, Guid id = {});
     // Replaces target only after complete validation. Fails while target has live queries or scopes.
-    bool instantiate(const TypeRegistry& types, UniquePtr<World>& target, Span<ComponentMigration> migrations = {},
+    bool Instantiate(const TypeRegistry& types, UniquePtr<World>& target, Span<ComponentMigration> migrations = {},
                      const IDGenerator& entityGuids = {}) const;
 
 private:

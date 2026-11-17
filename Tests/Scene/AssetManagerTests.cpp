@@ -1916,7 +1916,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     ASSERT_TRUE(world->SetComponent(first, hz::SceneTypes::meshRenderer, &renderer));
     const hz::Guid   rootID = world->GetEntityGuid(root), firstID = world->GetEntityGuid(first), secondID = world->GetEntityGuid(second);
     hz::WorldArchive saved;
-    ASSERT_TRUE(saved.capture(*world));
+    ASSERT_TRUE(saved.Capture(*world));
     ASSERT_TRUE(saved.Save(DirectoryOtherFiles, "edited.world.json"));
     hz::Array<char> original;
     ASSERT_TRUE(saved.Serialize(original));
@@ -1990,9 +1990,9 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
             break;
         hz::WorldArchive loaded;
         ASSERT_TRUE(loaded.Load(DirectoryOtherFiles, "edited.world.json"));
-        ASSERT_TRUE(loaded.instantiate(types, world));
+        ASSERT_TRUE(loaded.Instantiate(types, world));
         EXPECT_EQ(loaded.GetID(), saved.GetID());
-        ASSERT_TRUE(loaded.capture(*world));
+        ASSERT_TRUE(loaded.Capture(*world));
         hz::Array<char> restored;
         ASSERT_TRUE(loaded.Serialize(restored));
         ASSERT_EQ(restored.Size(), original.Size());
