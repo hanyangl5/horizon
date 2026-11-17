@@ -168,15 +168,49 @@ static void BeginAssetPipelineSection(const char* section) { LOGF(Info, "=======
 
 static void EndAssetPipelineSection(const char* section) { LOGF(Info, "========== !%s ==========", section); }
 
+// The geometry cook indexes per-semantic tables with these attributes and indexes skin extras by joint count, so
+// unsupported input must be rejected here instead of asserting there.
 static bool validateSceneAssetCookInput(const cgltf_data* Data)
 {
     for (cgltf_size i = 0; i < Data->meshes_count; ++i)
         for (cgltf_size j = 0; j < Data->meshes[i].primitives_count; ++j)
-            if (Data->meshes[i].primitives[j].type != cgltf_primitive_type_triangles)
+        {
+            const cgltf_primitive& primitive = Data->meshes[i].primitives[j];
+            if (primitive.type != cgltf_primitive_type_triangles)
             {
                 LOGF(Error, "Scene mesh %u primitive %u requires triangle-list topology", (uint32_t)i, (uint32_t)j);
                 return false;
             }
+            if (!primitive.attributes_count)
+            {
+                LOGF(Error, "Scene mesh %u primitive %u has no vertex attributes", (uint32_t)i, (uint32_t)j);
+                return false;
+            }
+            for (cgltf_size k = 0; k < primitive.attributes_count; ++k)
+            {
+                const cgltf_attribute& attribute = primitive.attributes[k];
+                // Application-specific attributes start with an underscore; the geometry cook skips them.
+                if (attribute.type == cgltf_attribute_type_invalid && attribute.name && attribute.name[0] == '_')
+                    continue;
+                const bool indexed = attribute.type == cgltf_attribute_type_texcoord;
+                if (attribute.type == cgltf_attribute_type_invalid ||
+                    (indexed ? attribute.index > SEMANTIC_TEXCOORD9 - SEMANTIC_TEXCOORD0 : attribute.index != 0))
+                {
+                    LOGF(Error, "Scene mesh %u primitive %u has unsupported vertex attribute '%s'", (uint32_t)i, (uint32_t)j,
+                         attribute.name ? attribute.name : "");
+                    return false;
+                }
+            }
+        }
+    for (cgltf_size i = 0; i < Data->skins_count; ++i)
+    {
+        const cgltf_skin& skin = Data->skins[i];
+        if (skin.extras.end_offset > skin.extras.start_offset && !skin.inverse_bind_matrices)
+        {
+            LOGF(Error, "Scene skin %u has joint remaps without inverse bind matrices", (uint32_t)i);
+            return false;
+        }
+    }
     for (cgltf_size i = 0; i < Data->textures_count; ++i)
     {
         const cgltf_image* pImage = Data->textures[i].image;
@@ -1456,7 +1490,8 @@ static inline constexpr ShaderSemantic util_cgltf_attrib_type_to_semantic(cgltf_
     case cgltf_attribute_type_texcoord:
         return (ShaderSemantic)(SEMANTIC_TEXCOORD0 + index);
     default:
-        return SEMANTIC_TEXCOORD0;
+        // Application-specific attributes; validateSceneAssetCookInput rejects every other kind.
+        return SEMANTIC_UNDEFINED;
     }
 }
 
@@ -1861,10 +1896,16 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             continue;
         }
 
-        ssize_t fileSize = GetStreamFileSize(&file);
-        void*   fileData = MemAllocate(fileSize);
-
-        ReadFromStream(&file, fileData, fileSize);
+        const ssize_t fileSize = GetStreamFileSize(&file);
+        if (fileSize <= 0)
+        {
+            LOGF(Error, "Failed to read gltf file %s", fileName);
+            CloseStream(&file);
+            error = true;
+            continue;
+        }
+        void*      fileData = MemAllocate(fileSize);
+        const bool fileRead = ReadFromStream(&file, fileData, fileSize) == (size_t)fileSize;
 
         cgltf_options options = {};
         cgltf_data*   data = NULL;
@@ -1879,7 +1920,7 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
             MemDeallocate(ptr);
         };
         options.rd = assetParams->mRDInput;
-        cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
+        cgltf_result result = fileRead ? cgltf_parse(&options, fileData, fileSize, &data) : cgltf_result_io_error;
         CloseStream(&file);
 
         if (cgltf_result_success != result)
@@ -2017,7 +2058,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 {
                     const uint32_t semanticIdx =
                         (uint32_t)util_cgltf_attrib_type_to_semantic(prim->attributes[k].type, prim->attributes[k].index);
-                    ASSERT(semanticIdx < MAX_SEMANTICS);
+                    if (semanticIdx == SEMANTIC_UNDEFINED)
+                        continue;
                     vertexAttribs[semanticIdx] = &prim->attributes[k];
                     vertexAttribCount[semanticIdx] += (uint32_t)prim->attributes[k].data->count;
                 }
@@ -2134,8 +2176,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                         vertexPacking[attr->semantic] = util_unpack_uint8_to_uint16_joints;
                     else
                     {
-                        LOGF(Error, "Joint size doesn't match");
-                        ASSERT(false);
+                        LOGF(Error, "Joint size doesn't match in '%s'", fileName);
+                        error = true;
                     }
                     break;
                 }
@@ -2204,8 +2246,15 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 const char* jointRemaps = (const char*)data->json + skin->extras.start_offset;
                 jsmn_parser parser = {};
                 jsmntok_t*  tokens = (jsmntok_t*)MemAllocate((skin->joints_count + 1) * sizeof(jsmntok_t));
-                jsmn_parse(&parser, (const char*)jointRemaps, extrasSize, tokens, skin->joints_count + 1);
-                ASSERT(tokens[0].size == (int)skin->joints_count + 1);
+                const int tokenCount = jsmn_parse(&parser, (const char*)jointRemaps, extrasSize, tokens, skin->joints_count + 1);
+                // The extras are an array of one remap per joint.
+                if (tokenCount != (int)skin->joints_count + 1 || tokens[0].type != JSMN_ARRAY || tokens[0].size != (int)skin->joints_count)
+                {
+                    LOGF(Error, "Skin %u in '%s' needs one joint remap per joint", j, fileName);
+                    MemDeallocate(tokens);
+                    error = true;
+                    break;
+                }
                 cgltf_accessor_unpack_floats(skin->inverse_bind_matrices, (cgltf_float*)geomData->pInverseBindPoses,
                                              skin->joints_count * sizeof(float[16]) / sizeof(float));
                 for (uint32_t r = 0; r < skin->joints_count; ++r)
@@ -2268,7 +2317,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 {
                     cgltf_attribute* attr = &prim->attributes[a];
                     const uint32_t   semanticIdx = (uint32_t)util_cgltf_attrib_type_to_semantic(attr->type, attr->index);
-                    ASSERT(semanticIdx < TF_ARRAY_COUNT(geomData->pShadow->pAttributes));
+                    if (semanticIdx == SEMANTIC_UNDEFINED)
+                        continue;
 
                     if (semanticIdx == SEMANTIC_POSITION)
                         pos_attr = attr;

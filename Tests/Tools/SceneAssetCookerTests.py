@@ -211,6 +211,7 @@ def run(executable):
     print('SceneAsset cooker regressions passed:', work)
     texture_regressions(executable, work / 'textures')
     partial_attribute_regression(executable, work / 'partial', work / 'albedo.dds')
+    malformed_input_regression(executable, work / 'malformed', work / 'albedo.dds')
     default_material_regression(executable, work / 'default-material')
     nonindexed_geometry_regression(executable, work / 'nonindexed', work / 'albedo.dds')
     geometry_publish_regression(executable, work / 'geometry-publish', work / 'albedo.dds')
@@ -393,6 +394,49 @@ def partial_attribute_regression(executable, work, albedo):
         sizes.append((output / 'partial.bin').stat().st_size)
     assert sizes[0] == sizes[1]  # Missing UVs keep their zero-filled slots in the shared stream.
     print('Partial vertex attribute regression passed:', work)
+
+
+def malformed_input_regression(executable, work, albedo):
+    work.mkdir()
+    output = work / 'cooked'
+    output.mkdir()
+    (work / 'albedo.dds').write_bytes(albedo.read_bytes())
+
+    def cook(document):
+        source = work / 'malformed.gltf'
+        source.write_text(json.dumps(document), encoding='utf-8')
+        return subprocess.run([str(executable), '-pgltf', '--input-file', source.as_posix(), '--output', output.as_posix(), '--force'],
+                              cwd=work, capture_output=True, text=True, errors='replace', timeout=30)
+
+    # Application-specific attributes are ignored rather than overwriting TEXCOORD_0.
+    document = fixture()
+    for primitive in document['meshes'][0]['primitives']:
+        primitive['attributes']['_CUSTOM'] = primitive['attributes']['NORMAL']
+    result = cook(document)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+    # Each rejection must exit cleanly instead of asserting or writing past the semantic tables.
+    def texcoord_beyond_table(document):
+        attributes = document['meshes'][0]['primitives'][0]['attributes']
+        attributes['TEXCOORD_10'] = attributes['TEXCOORD_0']
+
+    def unknown_attribute(document):
+        attributes = document['meshes'][0]['primitives'][0]['attributes']
+        attributes['UNKNOWN'] = attributes['NORMAL']
+
+    def no_attributes(document):
+        document['meshes'][0]['primitives'][0]['attributes'] = {}
+
+    def float_joints(document):
+        attributes = document['meshes'][0]['primitives'][0]['attributes']
+        attributes['JOINTS_0'] = attributes['NORMAL']
+
+    for mutate in (texcoord_beyond_table, unknown_attribute, no_attributes, float_joints):
+        document = fixture()
+        mutate(document)
+        result = cook(document)
+        assert result.returncode == 1, f'{mutate.__name__}: exit={result.returncode:#x}\n{result.stdout}{result.stderr}'
+    print('Malformed input regression passed:', work)
 
 
 def png(red=255):
