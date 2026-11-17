@@ -2,6 +2,7 @@
 
 #include "Graphics/RenderContext.h"
 #include "Resources/IResourceLoader.h"
+#include "TextureDescs.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -321,13 +322,6 @@ uint32_t GPUTexture::GetArraySize() const { return pTexture ? pTexture->arraySiz
 uint32_t GPUTexture::GetMipLevels() const { return pTexture ? pTexture->MipLevels : 0; }
 Format   GPUTexture::GetFormat() const { return pTexture ? pTexture->Format : Format::UNDEFINED; }
 
-static bool sameTextureDesc(const TextureDesc& a, const TextureDesc& b)
-{
-    return a.Width == b.Width && a.Height == b.Height && a.Depth == b.Depth && a.ArraySize == b.ArraySize &&
-           a.MipLevels == b.MipLevels && a.SampleCount == b.SampleCount && a.Format == b.Format && a.StartState == b.StartState &&
-           a.Descriptors == b.Descriptors && a.Flags == b.Flags && a.GetRenderTarget == b.GetRenderTarget;
-}
-
 GPUTexture* RenderContext::AcquireTransient(const TextureDesc& input)
 {
     ASSERT(ready && input.Width && input.Height);
@@ -341,7 +335,7 @@ GPUTexture* RenderContext::AcquireTransient(const TextureDesc& input)
                 freeSlot = i;
             continue;
         }
-        if (slot.inUse || !sameTextureDesc(slot.desc, input))
+        if (slot.inUse || !SameTextureDesc(slot.desc, input))
             continue;
         if (slot.useId && !IsResourceUseComplete(slot.useId))
             continue;
