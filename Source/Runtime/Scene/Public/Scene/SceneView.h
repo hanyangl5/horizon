@@ -11,6 +11,6 @@ struct SceneView
     const RenderScene&  Scene;
     const GpuScene&     GpuScene;
     const AssetManager& Assets;
-    uint32_t                FrameIndex = 0;
+    uint32_t            FrameIndex = 0;
 };
 } // namespace hz

@@ -48,13 +48,13 @@ bool ScreenSpaceAO::Load()
     return true;
 }
 
-void ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth, const hz::GPUSampler& Sampler,
-                            const hz::GPUTexture& Occlusion, const hz::GPUTexture& Scratch)
+void ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
+                            const hz::GPUSampler& Sampler, const hz::GPUTexture& Occlusion, const hz::GPUTexture& Scratch)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ScreenSpaceAO::execute");
     ASSERT(Rotations.IsValid() && Frame.IsValid() && Depth.IsValid() && Sampler.IsValid());
-    const uint32_t Width = Occlusion.GetWidth();
-    const uint32_t Height = Occlusion.GetHeight();
+    const uint32_t               Width = Occlusion.GetWidth();
+    const uint32_t               Height = Occlusion.GetHeight();
     // The Cookbook kernel and bilateral blur use Depth; the deferred pass multiplies the result into indirect light.
     hz::DependencyList           Dependencies;
     const ScreenSpaceAOConstants Constants = { .frameIndex = Dependencies.read(Frame),

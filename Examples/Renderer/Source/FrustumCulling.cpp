@@ -52,7 +52,9 @@ void FrustumCulling::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fra
     Commands.Dispatch(1, 1, 1, { .storageBuffers = { &Stats } });
     const uint32_t Count = Draws.GetCount(Backing);
     if (!Count)
+    {
         return;
+    }
     const hz::GpuSceneBuffers& Gpu = View.GpuScene.GetBuffers();
     const hz::GPUBuffer&       DrawData = Draws.GetDrawData(Backing);
     const hz::GPUBuffer&       Filters = Draws.GetFilters(Backing);
@@ -71,9 +73,11 @@ void FrustumCulling::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fra
     Commands.SetRootConstants(Binding);
     const hz::GPUBuffer* Outputs[hz::GpuDrawList::MaxLists + 1] = { &Stats };
     for (uint32_t List = 0; List < ListCount; ++List)
+    {
         Outputs[List + 1] = &Draws.GetCommands(Backing, { List });
-    Commands.Dispatch((Count + 63) / 64, 1, 1,
-                      { .buffers = { &Frame, &DrawData, &Gpu.instances, &Gpu.materials, &Filters },
-                        .storageBuffers = { Outputs, ListCount + 1 } });
+    }
+    Commands.Dispatch(
+        (Count + 63) / 64, 1, 1,
+        { .buffers = { &Frame, &DrawData, &Gpu.instances, &Gpu.materials, &Filters }, .storageBuffers = { Outputs, ListCount + 1 } });
     Commands.EndGpuTimestamp();
 }
