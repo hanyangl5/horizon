@@ -1,5 +1,7 @@
 add_test_target(SceneTests D3D12_RESOURCE_LOCK
     ${HORIZON_TEST_SOURCE_DIR}/Scene/AssetManagerTests.cpp
+    ${HORIZON_TEST_SOURCE_DIR}/Scene/AssetTestFixtures.h
+    ${HORIZON_TEST_SOURCE_DIR}/Scene/RendererShaderTests.cpp
     ${HORIZON_TEST_SOURCE_DIR}/Scene/SceneAssetTests.cpp
     ${HORIZON_TEST_SOURCE_DIR}/Scene/SceneIDTests.cpp
     ${HORIZON_TEST_SOURCE_DIR}/Scene/SceneReflectionTests.cpp
