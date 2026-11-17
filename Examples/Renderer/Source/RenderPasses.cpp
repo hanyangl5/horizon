@@ -134,6 +134,7 @@ static DeferredGBuffer GetGBuffer(const hz::FrameGraphContext& Context)
     return { .Emissive = hz::GetFrameGraphTexture(Context, Targets.GBuffer[0]),
              .NormalMaterial = hz::GetFrameGraphTexture(Context, Targets.GBuffer[1]),
              .BaseColorMetallic = hz::GetFrameGraphTexture(Context, Targets.GBuffer[2]),
+             .MotionMaterialId = hz::GetFrameGraphTexture(Context, Targets.GBuffer[3]),
              .Depth = hz::GetFrameGraphTexture(Context, Targets.Depth) };
 }
 
@@ -201,8 +202,9 @@ static void ExecuteLighting(const hz::FrameGraphContext& Context, void* UserData
     // The pass writes both images whenever it runs; hand over only the effects that are enabled, as the shader expects.
     Lighting.RTShadowAO = Frame.RayTracedShadows ? hz::GetFrameGraphTexture(Context, Targets.RTResult) : nullptr;
     Lighting.RTReflection = Frame.RayTracedReflection ? hz::GetFrameGraphTexture(Context, Targets.RTReflection) : nullptr;
-    ((DeferredLighting*)UserData)
-        ->Execute(Context.Commands, Frame.Frame, GetGBuffer(Context), Lighting, *hz::GetFrameGraphTexture(Context, Targets.SceneColor));
+    ((RestirDI*)UserData)
+        ->Execute(Context.Commands, Frame.Frame, GetGBuffer(Context), Frame.View, Lighting,
+                  *hz::GetFrameGraphTexture(Context, Targets.SceneColor));
 }
 
 static void ExecuteEnvironment(const hz::FrameGraphContext& Context, void* UserData)
@@ -303,7 +305,13 @@ void RenderPasses::BuildGraph()
     T.RTReflection = ViewportTexture(G, RayTracedEffects::ReflectionFormat, "Renderer.RT.Reflection", false, RayTracedEffects::ResolutionShift);
     T.RTHistory = ViewportTexture(G, RayTracedEffects::HistoryFormat, "Renderer.RT.History", false, RayTracedEffects::ResolutionShift, true);
     T.RTPreviousDepth = ViewportTexture(G, RayTracedEffects::DepthFormat, "Renderer.RT.PreviousDepth", false, RayTracedEffects::ResolutionShift, true);
-    T.SceneColor = ViewportTexture(G, DeferredLighting::ColorFormat, "Renderer.DeferredLighting.Color", true);
+    // ReSTIR DI writes the lit color from a compute shader and the sky pass then renders into it.
+    T.SceneColor = hz::AddFrameGraphTexture(G, { .Texture = { .Format = RestirDI::ColorFormat,
+                                                              .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                              .Descriptors = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
+                                                              .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                                              .GetRenderTarget = true,
+                                                              .Name = "Renderer.RestirDI.Color" } });
     T.OITHeads = ViewportTexture(G, Transparency::HeadsFormat, "Renderer.OIT.Heads", false);
     T.TransparentColor = ViewportTexture(G, Transparency::ColorFormat, "Renderer.OIT.Resolved", false);
     const DescriptorType RawStorage = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW);
@@ -374,10 +382,10 @@ void RenderPasses::BuildGraph()
                            { T.RTPreviousDepth, Write } };
     RayTracingPass =
         hz::AddFrameGraphPass(G, { .Name = "Ray Tracing", .Execute = ExecuteRayTracing, .UserData = RayTracing.Get(), .Textures = RTUses });
-    const Use LightingUses[] = { { T.GBuffer[0], Read },   { T.GBuffer[1], Read },       { T.GBuffer[2], Read },
+    const Use LightingUses[] = { { T.GBuffer[0], Read },   { T.GBuffer[1], Read },       { T.GBuffer[2], Read },       { T.GBuffer[3], Read },
                                  { T.Depth, Read },        { T.ShadowMap, Read },        { T.Occlusion, Optional },
                                  { T.RTResult, Optional }, { T.RTReflection, Optional }, { T.SceneColor, Write } };
-    hz::AddFrameGraphPass(G, { .Name = "Lighting", .Execute = ExecuteLighting, .UserData = Lighting.Get(), .Textures = LightingUses });
+    hz::AddFrameGraphPass(G, { .Name = "ReSTIR DI", .Execute = ExecuteLighting, .UserData = Lighting.Get(), .Textures = LightingUses });
     const Use EnvironmentUses[] = { { T.SceneColor, Modify }, { T.Depth, Read } };
     hz::AddFrameGraphPass(
         G, { .Name = "Environment", .Execute = ExecuteEnvironment, .UserData = Environment.Get(), .Textures = EnvironmentUses });
@@ -423,9 +431,9 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     ASSERT(Context.IsValid() && CameraId.IsValid());
     Culling = hz::MakeUnique<FrustumCulling>(Context);
     GBufferPass = hz::MakeUnique<GBuffer>(Context);
-    Lighting = hz::MakeUnique<DeferredLighting>(Context);
+    Lighting = hz::MakeUnique<RestirDI>(Context);
     SSAO = hz::MakeUnique<ScreenSpaceAO>(Context);
-    Environment = hz::MakeUnique<EnvironmentPass>(Context, DeferredLighting::ColorFormat);
+    Environment = hz::MakeUnique<EnvironmentPass>(Context, RestirDI::ColorFormat);
     Shadows = hz::MakeUnique<ShadowMap>(Context);
     PostProcessing = hz::MakeUnique<PostEffects>(Context);
     Transparency = hz::MakeUnique<::Transparency>(Context);
@@ -470,6 +478,7 @@ bool RenderPasses::Resize(uint32_t Width, uint32_t Height)
         return false;
     }
     PostProcessing->Resize();
+    Lighting->Resize(Width, Height);
     if (!hz::ResizeFrameGraph(Graph, Width, Height))
     {
         LOGF(Error, "Cannot compile the frame graph for %ux%u", Width, Height);

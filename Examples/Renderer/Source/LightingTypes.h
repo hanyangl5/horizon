@@ -4,12 +4,12 @@
 #include "Graphics/RenderContext.h"
 #include "Scene/SceneView.h"
 
-// Shared CPU/Slang layout, 144 bytes. Direction follows emitted rays; w is perpendicular illuminance in lux.
-// Fields mirror the shader block, so they keep the shader's names.
+// Frame block for the directional light, its shadow map and the environment calibration. It is uploaded
+// by ShadowMap and mirrors LightingFrameData in LightingBRDF.slang field for field.
 struct alignas(16) LightingFrameData
 {
     Matrix4  shadowViewProjection = Matrix4::identity();
-    Vector4  lightDirection = Vector4(0, -1, 0, 0);
+    Vector4  lightDirection = Vector4(0, -1, 0, 0); // xyz follows the emitted light, w is illuminance in lux.
     Vector4  lightColor = Vector4(1, 1, 1, 1);
     float    environmentIntensity = 1000; // cd/m^2 per unit HDR environment radiance.
     float    shadowBias = 0;
@@ -26,6 +26,8 @@ struct alignas(16) LightingFrameData
 };
 static_assert(sizeof(LightingFrameData) == 144);
 
+// Optional inputs to the deferred passes. A null or invalid entry is not bound and its descriptor index is
+// UINT32_MAX, so every consumer must treat it as absent instead of sampling garbage.
 struct LightingResources
 {
     const hz::GPUBuffer*  LightingFrame = nullptr;
@@ -41,23 +43,13 @@ struct LightingResources
     const hz::GPUSampler* EnvironmentSampler = nullptr;
 };
 
+// Geometry inputs written by the GBuffer pass; see GBuffer.md for the channel layouts.
 struct DeferredGBuffer
 {
     const hz::GPUTexture* Emissive = nullptr;
     const hz::GPUTexture* NormalMaterial = nullptr;
     const hz::GPUTexture* BaseColorMetallic = nullptr;
+    // RGB motion vectors over [-1, 1] screen UV and A8 material ID; temporal reuse reprojects with it.
+    const hz::GPUTexture* MotionMaterialId = nullptr;
     const hz::GPUTexture* Depth = nullptr;
-};
-
-class DeferredLighting
-{
-public:
-    static constexpr hz::Format ColorFormat = hz::Format::R32G32B32A32_SFLOAT;
-
-    explicit DeferredLighting(hz::RenderContext& Context);
-    void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const LightingResources& Resources,
-                 const hz::GPUTexture& Color);
-
-private:
-    hz::GPUPipeline Pipeline;
 };

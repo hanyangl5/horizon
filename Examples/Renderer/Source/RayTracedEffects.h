@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DeferredLighting.h"
+#include "LightingTypes.h"
 #include "Scene/GpuDrawList.h"
 #include "Core/IUniquePtr.h"
 

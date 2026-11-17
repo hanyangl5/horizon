@@ -11,7 +11,7 @@
 #include "ScreenSpaceAO.h"
 #include "EnvironmentPass.h"
 #include "ShadowMap.h"
-#include "DeferredLighting.h"
+#include "RestirDI.h"
 #include "Transparency.h"
 #include "RayTracedEffects.h"
 
@@ -101,7 +101,7 @@ private:
 
     hz::UniquePtr<FrustumCulling>          Culling;
     hz::UniquePtr<GBuffer>                 GBufferPass;
-    hz::UniquePtr<DeferredLighting>        Lighting;
+    hz::UniquePtr<RestirDI>                Lighting;
     hz::UniquePtr<PostEffects>             PostProcessing;
     hz::UniquePtr<ScreenSpaceAO>           SSAO;
     hz::UniquePtr<EnvironmentPass>         Environment;

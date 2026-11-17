@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DeferredLighting.h"
+#include "LightingTypes.h"
 #include "Scene/GpuDrawList.h"
 
 // Viewport-sized resources the OIT pass works in. Nodes holds 16 bytes per fragment.

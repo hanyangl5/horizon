@@ -42,10 +42,10 @@ Omit `--reference` to repair only the eight materials whose DDS already has alph
 The next launch recooks changed assets automatically.
 
 Geometry uses manual vertex pulling and Slang shaders. Materials resolve texture
-IDs through the GPU asset tables. Lighting reads directional lights from
-World; the sample creates a sun and a controllable camera positioned from scene
-bounds. Motion vectors use the previously submitted object and camera transforms.
-The preview reconstructs Z from Bistro's BC5 normal maps and supports metallic/roughness
+IDs through the GPU asset tables. Lighting reads the World light table: the sample
+creates a directional sun plus a ring of local point lights, and the ReSTIR DI pass
+samples all of them. Motion vectors use the previously submitted object and camera
+transforms, and feed both temporal reuse and the ray traced effects. The preview reconstructs Z from Bistro's BC5 normal maps and supports metallic/roughness
 and emissive maps. MASK follows
 the reference shader's alpha dither and derivative-adjusted cutoff; BLEND uses
 PPLL transparency. Directional shadows, ray-traced shadow/AO/reflection, IBL and

@@ -62,7 +62,7 @@ and the input assets prevent text-level or pixel-level identity.
 | Tone mapping | None, Reinhard, Uchimura and Khronos PBR, plus Horizon SDR/HDR10/scRGB output. All curves and HDR transfer functions have GPU numerical checks; physical SDR and HDR10 Renderer paths execute. |
 
 The order is shadow map, geometry, optional SSAO, RT shadow/AO and denoising, RT
-reflection, deferred lighting, sky, transparency/resolve, then HDR postprocessing.
+reflection, ReSTIR DI, sky, transparency/resolve, then HDR postprocessing.
 Main lit targets use RGBA32F, matching the reference range. PPLL nodes retain the
 reference half4 storage and its 65504 color limit.
 
@@ -71,10 +71,11 @@ light of 1000 W/m^2 becomes 100000 lux at the renderer boundary. This is a white
 light assumption, not a general lux/watt conversion. Environment calibration is
 1000 cd/m^2 per HDR unit and is shared by sky, lighting, OIT and reflection.
 
-Agility SDK 722 fixes the earlier SDKLayers DXIL-library instrumentation error.
-DeferredLighting binds its graphics PSO before attachment transitions to avoid a
-GBV compatibility problem after DispatchRays; this is not a general D3D12 barrier
-ordering requirement. No dummy PSO, extra public option or manual barrier is used.
+The lighting pass is a ReSTIR DI scaffold: it owns the per-frame light table, the reservoir history and the
+G-buffer bindings, and shades the light table in full until the sampling and reuse stages are filled in.
+[RestirDI](RestirDI.md) documents the stages, the reservoir contract and the validation plan.
+Agility SDK 722 fixed the earlier SDKLayers DXIL-library instrumentation error that affected the deferred
+graphics pass; the current lighting pass is a compute dispatch and no longer needs a pre-bound PSO.
 
 Original environment files are read through the local `Assets/Cookbook` link to
 the reference `data` directory. Rotation and blue-noise DDS conversions preserve

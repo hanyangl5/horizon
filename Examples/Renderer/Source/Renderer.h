@@ -19,6 +19,9 @@
 
 constexpr const char* SceneDirectory = "Assets/Bistro";
 constexpr const char* SceneSource = "BistroExterior.gltf";
+// Local emitters the ReSTIR DI pass samples. Replace them with scene asset lights when the importer grows
+// light support; the pass only reads the RenderScene light table.
+constexpr uint32_t kRestirDemoLightCount = 12;
 constexpr bool        EnableHDR = true;
 // GPU-based validation slows GPU work several times over, so only Debug builds enable it by default.
 #if defined(_DEBUG)
@@ -151,7 +154,7 @@ private:
             return false;
         }
         Scene = hz::MakeUnique<hz::RenderScene>(*World, *AssetManager);
-        Scene->Reserve(Asset->GetNodes().Count, Asset->GetNodes().Count, 1, 1);
+        Scene->Reserve(Asset->GetNodes().Count, Asset->GetNodes().Count, 1 + kRestirDemoLightCount, 1);
         Scene->Update();
         LOGF(Info, "World ready: %u render primitives, %u instances, %u mesh batches, %u materials, %u textures",
              Scene->GetActivePrimitives().Count, Scene->GetActiveInstances().Count, Scene->GetActiveMeshBatches().Count,
@@ -293,8 +296,41 @@ private:
                              World->SetComponent(SunEntity, hz::SceneTypes::light, &Sun) &&
                              World->SetComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
         ASSERT(Created);
+        CreateDemoLights(Bounds, Desc.position);
         Scene->Update();
         LOGF(Info, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R Reset, Esc Release mouse");
+    }
+
+    // TODO(restir-di): move these emitters, or replace them with lights imported from the scene asset. The
+    // pass only consumes the RenderScene light table, so any World light works.
+    void CreateDemoLights(const hz::RenderBounds& Bounds, const Vector3& CameraPosition)
+    {
+        constexpr uint32_t ColorCount = 4;
+        static const Vector3 Colors[ColorCount] = { Vector3(1.0f, 0.32f, 0.12f), Vector3(0.16f, 0.55f, 1.0f),
+                                                    Vector3(1.0f, 0.82f, 0.3f), Vector3(0.35f, 1.0f, 0.45f) };
+        const Vector3 Target((Bounds.minimum[0] + Bounds.maximum[0]) * 0.5f, Bounds.minimum[1] + 4.0f,
+                             (Bounds.minimum[2] + Bounds.maximum[2]) * 0.5f);
+        // Keep the emitters between the camera and the scene centre so the default view shows their pools.
+        const Vector3 Center = Target + normalize(CameraPosition - Target) * 10.0f;
+        for (uint32_t Index = 0; Index < kRestirDemoLightCount; ++Index)
+        {
+            const float   Angle = 2.0f * PI * (float)Index / (float)kRestirDemoLightCount;
+            const float   Radius = 5.0f + 2.0f * (float)(Index & 1u);
+            const Vector3 Position(Center.getX() + cosf(Angle) * Radius,
+                                   Bounds.minimum[1] + 2.5f + 2.5f * (float)((Index >> 1) & 1u),
+                                   Center.getZ() + sinf(Angle) * Radius);
+            const hz::Light Light = {
+                .Type = hz::LightType::Point,
+                .color = Colors[Index % ColorCount],
+                .intensity = 4000.0f,
+                .range = 35.0f,
+            };
+            const Matrix4    Pose = Matrix4::translation(Position);
+            const hz::Entity Entity = World->CreatePersistentEntity();
+            const bool       Created = World->SetComponent(Entity, hz::SceneTypes::light, &Light) &&
+                                 World->SetComponent(Entity, hz::SceneTypes::localMatrix, &Pose);
+            ASSERT(Created);
+        }
     }
 
     hz::UniquePtr<FreeCameraController> Camera;

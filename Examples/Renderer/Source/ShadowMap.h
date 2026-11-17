@@ -1,6 +1,6 @@
 #pragma once
 #include "Scene/GpuDrawList.h"
-#include "DeferredLighting.h"
+#include "LightingTypes.h"
 
 class ShadowMap
 {
