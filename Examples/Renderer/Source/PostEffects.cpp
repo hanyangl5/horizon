@@ -231,10 +231,10 @@ void PostEffects::RunAdaptation(hz::CommandList& Commands, float DeltaSeconds, c
 void PostEffects::ToneMap(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget,
                           const PostEffectsTargets& Targets)
 {
-    const uint32_t Width = RenderTarget.GetWidth();
-    const uint32_t Height = RenderTarget.GetHeight();
+    const uint32_t     Width = RenderTarget.GetWidth();
+    const uint32_t     Height = RenderTarget.GetHeight();
     const bool SrgbTarget = Context.GetColorFormat() == hz::Format::R8G8B8A8_SRGB || Context.GetColorFormat() == hz::Format::B8G8R8A8_SRGB;
-    hz::DependencyList      Dependencies;
+    hz::DependencyList Dependencies;
     const hz::GPUTexture*   Bloom = Settings.EnableBloom ? Targets.BloomUp[0] : nullptr;
     const PostToneConstants Constants = {
         .sceneColor = Dependencies.sample(&SceneColor),

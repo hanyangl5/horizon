@@ -93,7 +93,9 @@ bool RayTracedEffects::Load()
     if (!Supported)
         return true;
     if (!BlueNoise.IsValid())
+    {
         BlueNoise = Context.LoadTexture(DirectoryShaderSources, "../Assets/blue_noise_128x128x64.dds");
+    }
     MarkDirty();
     if (!BlueNoise.IsValid() || BlueNoise.GetWidth() != 128 || BlueNoise.GetHeight() != 8192)
     {
@@ -105,16 +107,17 @@ bool RayTracedEffects::Load()
 
 void RayTracedEffects::MarkDirty() { MarkedDirty = true; }
 
-void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const hz::SceneView& View,
-                               const hz::GpuDrawList& Draws, const LightingResources& Lighting, const RayTracedEffectsTargets& Targets)
+void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
+                               const hz::SceneView& View, const hz::GpuDrawList& Draws, const LightingResources& Lighting,
+                               const RayTracedEffectsTargets& Targets)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RayTracedEffects::execute");
     if (!Supported)
     {
         return;
     }
-    ASSERT(Targets.Result && Targets.Scratch && Targets.Reflection && Targets.History && Targets.PreviousHistory &&
-           Targets.PreviousDepth && Targets.PreviousFrameDepth && GBuffer.NormalMaterial && GBuffer.Depth && Lighting.LightingFrame);
+    ASSERT(Targets.Result && Targets.Scratch && Targets.Reflection && Targets.History && Targets.PreviousHistory && Targets.PreviousDepth &&
+           Targets.PreviousFrameDepth && GBuffer.NormalMaterial && GBuffer.Depth && Lighting.LightingFrame);
     const hz::GPUTexture& Result = *Targets.Result;
     const hz::GPUTexture& Scratch = *Targets.Scratch;
     const hz::GPUTexture& Reflection = *Targets.Reflection;
@@ -136,30 +139,30 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     const hz::GPUAccelerationStructure& TLAS = RayScene->GetSceneTLAS();
     const hz::GPUBuffer&                DrawData = Draws.GetDrawData(View.FrameIndex);
     auto        Index = [](const hz::GPUTexture* Texture) { return Texture && Texture->IsValid() ? Texture->GetSrvIndex() : UINT32_MAX; };
-    RTConstants Constants = {
-        .frame = Frame.GetSrvIndex(),
-        .lighting = Lighting.LightingFrame->GetSrvIndex(),
-        .draws = DrawData.GetSrvIndex(),
-        .materials = View.GpuScene.GetBuffers().materials.GetSrvIndex(),
-        .textures = View.GpuScene.GetBuffers().textures.GetSrvIndex(),
-        .sampler = MaterialSampler.GetIndex(),
-        .tlas = TLAS.IsValid() ? TLAS.GetSrvIndex() : UINT32_MAX,
-        .normal = GBuffer.NormalMaterial->GetSrvIndex(),
-        .Depth = GBuffer.Depth->GetSrvIndex(),
-        .output = Result.GetUavIndex(),
-        .blueNoise = BlueNoise.GetSrvIndex(),
-        .environment = Index(Lighting.Environment),
-        .irradiance = Index(Lighting.Irradiance),
-        .brdf = Index(Lighting.BRDFLut),
-        .environmentSampler = Lighting.EnvironmentSampler ? Lighting.EnvironmentSampler->GetIndex() : UINT32_MAX,
-        .shadows = Settings.Shadows,
-        .ao = Settings.AO,
-        .aoSamples = TF_MAX(Settings.AOSamples, 1u),
-        .frameNumber = FrameIndex++,
-        .alphaMethod = Settings.ShadowAlphaTestMethod,
-        .retraceDepth = Settings.RetraceMaxDepth,
-        .aoRadius = Settings.AORadius,
-        .shadowRadius = Settings.ShadowRadius,
+    RTConstants                         Constants = {
+                                .frame = Frame.GetSrvIndex(),
+                                .lighting = Lighting.LightingFrame->GetSrvIndex(),
+                                .draws = DrawData.GetSrvIndex(),
+                                .materials = View.GpuScene.GetBuffers().materials.GetSrvIndex(),
+                                .textures = View.GpuScene.GetBuffers().textures.GetSrvIndex(),
+                                .sampler = MaterialSampler.GetIndex(),
+                                .tlas = TLAS.IsValid() ? TLAS.GetSrvIndex() : UINT32_MAX,
+                                .normal = GBuffer.NormalMaterial->GetSrvIndex(),
+                                .Depth = GBuffer.Depth->GetSrvIndex(),
+                                .output = Result.GetUavIndex(),
+                                .blueNoise = BlueNoise.GetSrvIndex(),
+                                .environment = Index(Lighting.Environment),
+                                .irradiance = Index(Lighting.Irradiance),
+                                .brdf = Index(Lighting.BRDFLut),
+                                .environmentSampler = Lighting.EnvironmentSampler ? Lighting.EnvironmentSampler->GetIndex() : UINT32_MAX,
+                                .shadows = Settings.Shadows,
+                                .ao = Settings.AO,
+                                .aoSamples = TF_MAX(Settings.AOSamples, 1u),
+                                .frameNumber = FrameIndex++,
+                                .alphaMethod = Settings.ShadowAlphaTestMethod,
+                                .retraceDepth = Settings.RetraceMaxDepth,
+                                .aoRadius = Settings.AORadius,
+                                .shadowRadius = Settings.ShadowRadius,
     };
     const hz::Dependencies SceneDependencies = Draws.GetDependencies(Frame, View);
     Commands.BeginGpuTimestamp("RT Shadow AO");
@@ -178,17 +181,17 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     const hz::GPUTexture& PreviousHistory = *Targets.PreviousHistory;
     const hz::GPUTexture& PreviousFrameDepth = *Targets.PreviousFrameDepth;
     RTDenoiseConstants    Denoise = {
-        .frame = Frame.GetSrvIndex(),
-        .input = Result.GetSrvIndex(),
-        .history = PreviousHistory.GetSrvIndex(),
-        .Depth = GBuffer.Depth->GetSrvIndex(),
-        .previousDepth = PreviousFrameDepth.GetSrvIndex(),
-        .normal = GBuffer.NormalMaterial->GetSrvIndex(),
-        .output = History.GetUavIndex(),
-        .historyValid = Targets.HistoryValid && !MarkedDirty,
-        .alpha = Settings.TemporalAlpha,
-        .depthThreshold = Settings.TemporalDepthThreshold,
-        .planeSigma = Settings.AtrousPlaneSigma,
+           .frame = Frame.GetSrvIndex(),
+           .input = Result.GetSrvIndex(),
+           .history = PreviousHistory.GetSrvIndex(),
+           .Depth = GBuffer.Depth->GetSrvIndex(),
+           .previousDepth = PreviousFrameDepth.GetSrvIndex(),
+           .normal = GBuffer.NormalMaterial->GetSrvIndex(),
+           .output = History.GetUavIndex(),
+           .historyValid = Targets.HistoryValid && !MarkedDirty,
+           .alpha = Settings.TemporalAlpha,
+           .depthThreshold = Settings.TemporalDepthThreshold,
+           .planeSigma = Settings.AtrousPlaneSigma,
     };
     Commands.SetPipeline(TemporalPipeline);
     Commands.SetRootConstants(Denoise);
