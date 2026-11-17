@@ -828,6 +828,57 @@ TEST_F(AssetManagerTest, RenderSceneMergesSparseTransformChangesWithoutAllocatin
     EXPECT_EQ(scene.GetChanges().instanceIndices.Count, 0u);
 }
 
+TEST_F(AssetManagerTest, RenderSceneExtractsOnlyChangedEntitiesAndFollowsParentMoves)
+{
+    hz::AssetCatalog catalog;
+    ASSERT_TRUE(
+        catalog.Add({ .id = assetID(1), .Type = hz::AssetType::Mesh, .pSourcePath = "scene.gltf", .location = { .pPath = "scene.bin" } }));
+    TestAssetLoader loader;
+    loader.ready = false;
+    hz::AssetManager assetManager(catalog);
+    assetManager.SetLoader(hz::AssetType::Mesh, loader.GetLoader());
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.RegisterBuiltins());
+    hz::World              world(types);
+    hz::RenderScene        scene(world, assetManager);
+    const hz::MeshRenderer renderer = { .mesh = assetID(1) };
+    const hz::Entity       parent = world.CreateEntity();
+    const hz::Entity       child = world.CreateEntity();
+    const hz::Entity       other = world.CreateEntity();
+    for (hz::Entity entity : { parent, child, other })
+    {
+        const hz::LocalTransform transform;
+        ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
+        ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
+    }
+    ASSERT_TRUE(world.setParent(child, parent, false));
+    scene.Update();
+    assetManager.Update();
+    scene.Update();
+    scene.Update();
+    EXPECT_EQ(scene.GetChanges().instances.ranges.Count, 0u);
+
+    // Moving the parent moves the child's world transform without touching the child's components.
+    const hz::LocalTransform moved = { .translation = Vector3(4, 0, 0) };
+    ASSERT_TRUE(world.SetComponent(parent, hz::SceneTypes::localTransform, &moved));
+    scene.Update();
+    const hz::RenderInstance& childInstance = scene.GetInstances().Data[scene.FindPrimitive(child).index];
+    EXPECT_FLOAT_EQ((float)childInstance.current.getElem(3, 0), 4);
+    uint32_t changedInstances = 0;
+    for (uint32_t i = 0; i < scene.GetChanges().instances.ranges.Count; ++i)
+        changedInstances += scene.GetChanges().instances.ranges.Data[i].Count;
+    EXPECT_EQ(changedInstances, 2u);
+    EXPECT_FLOAT_EQ((float)scene.GetInstances().Data[scene.FindPrimitive(other).index].current.getElem(3, 0), 0);
+
+    // Removing the binding entity and its whole subtree leaves only the unrelated entity.
+    ASSERT_TRUE(world.DestroySubtree(parent));
+    scene.Update();
+    EXPECT_FALSE(scene.FindPrimitive(parent).IsValid());
+    EXPECT_FALSE(scene.FindPrimitive(child).IsValid());
+    EXPECT_TRUE(scene.FindPrimitive(other).IsValid());
+    EXPECT_EQ(scene.GetActivePrimitives().Count, 1u);
+}
+
 TEST_F(AssetManagerTest, RenderScenePendingUploadsAccumulateAcrossUpdates)
 {
     hz::AssetCatalog catalog;

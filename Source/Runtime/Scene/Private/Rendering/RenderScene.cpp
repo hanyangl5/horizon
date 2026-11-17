@@ -104,7 +104,7 @@ class RenderSceneData
 {
 public:
     RenderSceneData(World& world, AssetManager& assetManager):
-        world(world), assetManager(assetManager), bindings(world, assetManager), query(world, { SceneTypes::meshRenderer }),
+        world(world), assetManager(assetManager), bindings(world, assetManager), changes(world), query(world, { SceneTypes::meshRenderer }),
         lightQuery(world, { SceneTypes::light }), cameraQuery(world, { SceneTypes::camera })
     {
         ASSERT(query.IsValid() && lightQuery.IsValid() && cameraQuery.IsValid());
@@ -335,8 +335,11 @@ public:
         if (instanceHistory.Size() <= renderEntity.instance.index)
         {
             historyPending.Reserve(renderEntity.instance.index + 1);
+            historyFollowUp.Reserve(renderEntity.instance.index + 1);
             instanceHistory.Resize(renderEntity.instance.index + 1);
+            instanceEntities.Resize(renderEntity.instance.index + 1);
         }
+        instanceEntities[renderEntity.instance.index] = entity;
         instanceHistory[renderEntity.instance.index].valid = false;
         instanceHistory[renderEntity.instance.index].Reset = false;
         setInstanceIndex(renderEntity.primitive.index, UINT32_MAX);
@@ -453,6 +456,63 @@ public:
         data.extract(renderEntity);
         return true;
     }
+    void removeEntity(uint32_t i)
+    {
+        RenderEntity& entity = entities[i];
+        removeMeshBatches(entity);
+        setInstanceIndex(entity.primitive.index, UINT32_MAX);
+        instanceEntities[entity.instance.index] = {};
+        primitives.Remove(entity.primitive);
+        instances.Remove(entity.instance);
+        hmdel(pIndices, entity.entity);
+        if (i + 1 < entities.Size())
+            entities[i] = std::move(entities[entities.Size() - 1]);
+        entities.PopBack();
+        if (i < entities.Size())
+            hmgetp_null(pIndices, entities[i].entity)->value = i;
+    }
+    // Extraction reads the MeshRenderer binding, the world transform, the Guid and asset states. The World change log names
+    // entities whose components or transforms changed, the asset state revision covers asset loads, and history follow-ups
+    // cover previous transforms that advanced on submission. Anything else would compare equal, so it is skipped.
+    void extractMeshEntities()
+    {
+        bool               rescan = false;
+        const Span<Entity> changed = changes.Drain(rescan);
+        const uint64_t     assetRevision = assetManager.GetStateRevision();
+        rescan |= assetRevision != extractedAssetRevision;
+        extractedAssetRevision = assetRevision;
+        if (rescan)
+        {
+            historyFollowUp.Clear();
+            for (RenderEntity& entity : entities)
+                entity.seen = false;
+            query.Each(extractEntity, this);
+            for (uint32_t i = 0; i < entities.Size();)
+                if (entities[i].seen)
+                    ++i;
+                else
+                    removeEntity(i);
+            return;
+        }
+        for (uint32_t pass = 0; pass < 2; ++pass)
+        {
+            const Span<Entity> list = pass ? Span<Entity>{ historyFollowUp.GetData(), historyFollowUp.Size() } : changed;
+            for (Entity entity : list)
+            {
+                if (!entity.IsValid())
+                    continue;
+                const RenderEntityIndex* pIndex = hmgetp_null(pIndices, entity);
+                if (!world.GetComponent(entity, SceneTypes::meshRenderer))
+                {
+                    if (pIndex)
+                        removeEntity(pIndex->value);
+                    continue;
+                }
+                extract(pIndex ? entities[pIndex->value] : Add(entity));
+            }
+        }
+        historyFollowUp.Clear();
+    }
     void Update()
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::Update");
@@ -467,8 +527,6 @@ public:
         lights.beginUpdate();
         cameras.beginUpdate();
         indicesDirty.Clear();
-        for (RenderEntity& entity : entities)
-            entity.seen = false;
         for (RenderLightEntity& entity : lightEntities)
             entity.seen = false;
         for (RenderCameraEntity& entity : cameraEntities)
@@ -481,26 +539,7 @@ public:
         }
         {
             PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::extract");
-            query.Each(extractEntity, this);
-        }
-        for (uint32_t i = 0; i < entities.Size();)
-        {
-            RenderEntity& entity = entities[i];
-            if (entity.seen)
-            {
-                ++i;
-                continue;
-            }
-            removeMeshBatches(entity);
-            setInstanceIndex(entity.primitive.index, UINT32_MAX);
-            primitives.Remove(entity.primitive);
-            instances.Remove(entity.instance);
-            hmdel(pIndices, entity.entity);
-            if (i + 1 < entities.Size())
-                entities[i] = entities[entities.Size() - 1];
-            entities.PopBack();
-            if (i < entities.Size())
-                hmgetp_null(pIndices, entities[i].entity)->value = i;
+            extractMeshEntities();
         }
         extractLights();
         cameraQuery.Each(extractCamera, this);
@@ -562,10 +601,13 @@ public:
             // A Reset since the last Update renders previous == current first.
             if (history.Reset || !instance.id.IsValid() || !pPrimitive || !pPrimitive->instanceCount)
             {
+                historyFollowUp.PushBack(instanceEntities[index]);
                 continue;
             }
             history.submitted = instance.current;
             history.valid = true;
+            // The next Update must see the new previous transform even if the entity does not change again.
+            historyFollowUp.PushBack(instanceEntities[index]);
         }
         historyPending.Clear();
         for (RenderCameraEntity& entity : cameraEntities)
@@ -588,6 +630,7 @@ public:
             {
                 instanceHistory[entity.instance.index].valid = false;
                 instanceHistory[entity.instance.index].Reset = true;
+                historyFollowUp.PushBack(entity.entity);
             }
         for (RenderCameraEntity& entity : cameraEntities)
             if (!target.IsValid() || entity.entity == target)
@@ -600,6 +643,7 @@ public:
     World&                                          world;
     AssetManager&                                   assetManager;
     WorldAssetBindings                              bindings;
+    WorldChangeLog                                  changes;
     WorldQuery                                      query;
     WorldQuery                                      lightQuery;
     WorldQuery                                      cameraQuery;
@@ -622,6 +666,11 @@ public:
     Array<bool>                                     indicesPendingFlags;
     Array<RenderHistory>                            instanceHistory;
     Array<uint32_t>                                 historyPending;
+    // Asset states seen by the last extraction; a change re-extracts every mesh entity.
+    uint64_t                                        extractedAssetRevision = 0;
+    // History submitted since the last Update changes each moved instance's previous transform once more.
+    Array<Entity>                                   historyFollowUp;
+    Array<Entity>                                   instanceEntities;
     Array<RenderRange>                              uploadRanges[6];
     uint64_t                                        revision = 0;
     bool                                            frameLocked = false;
