@@ -110,7 +110,7 @@ bool WorldArchive::Capture(World& world, Guid id)
     }
     if (!id.IsValid())
     {
-        id = Data ? Data->id : Guid::create();
+        id = Data ? Data->id : Guid::Create();
     }
     if (!id.IsValid())
     {

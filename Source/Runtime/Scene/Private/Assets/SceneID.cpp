@@ -97,14 +97,14 @@ static uint64_t hashIDWords(uint64_t high, uint64_t low)
     return Hash;
 }
 
-AssetID AssetID::create(const IDGenerator& generator)
+AssetID AssetID::Create(const IDGenerator& generator)
 {
     AssetID id;
     generateID(generator, id.high, id.low);
     return id;
 }
 
-Guid Guid::create(const IDGenerator& generator)
+Guid Guid::Create(const IDGenerator& generator)
 {
     Guid id;
     generateID(generator, id.high, id.low);

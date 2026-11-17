@@ -110,18 +110,18 @@ TEST(SceneIDTest, InjectedSequenceIsDeterministicAndSetsUuidBits)
 {
     uint8_t               next = 0;
     const hz::IDGenerator generator = { .pGenerate = generateSequence, .UserData = &next };
-    const hz::AssetID     asset = hz::AssetID::create(generator);
-    const hz::Guid        object = hz::Guid::create(generator);
+    const hz::AssetID     asset = hz::AssetID::Create(generator);
+    const hz::Guid        object = hz::Guid::Create(generator);
     char                  text[hz::kIDStringCapacity];
     asset.ToString(text);
     EXPECT_STREQ(text, "00010203-0405-4607-8809-0a0b0c0d0e0f");
     object.ToString(text);
     EXPECT_STREQ(text, "10111213-1415-4617-9819-1a1b1c1d1e1f");
     next = 0;
-    EXPECT_EQ(hz::AssetID::create(generator), asset);
-    EXPECT_EQ(hz::Guid::create(generator), object);
-    EXPECT_FALSE(hz::AssetID::create({ .pGenerate = failGeneration }).IsValid());
-    EXPECT_FALSE(hz::Guid::create({ .pGenerate = failGeneration }).IsValid());
+    EXPECT_EQ(hz::AssetID::Create(generator), asset);
+    EXPECT_EQ(hz::Guid::Create(generator), object);
+    EXPECT_FALSE(hz::AssetID::Create({ .pGenerate = failGeneration }).IsValid());
+    EXPECT_FALSE(hz::Guid::Create({ .pGenerate = failGeneration }).IsValid());
 }
 
 TEST(SceneIDTest, SystemGeneratorProducesValidDistinctIds)
@@ -129,14 +129,14 @@ TEST(SceneIDTest, SystemGeneratorProducesValidDistinctIds)
     hz::AssetID assets[32];
     for (uint32_t i = 0; i < 32; ++i)
     {
-        assets[i] = hz::AssetID::create();
+        assets[i] = hz::AssetID::Create();
         ASSERT_TRUE(assets[i].IsValid());
         EXPECT_EQ((assets[i].high >> 12) & 0xf, 4u);
         EXPECT_EQ(assets[i].low >> 62, 2u);
         for (uint32_t j = 0; j < i; ++j)
             EXPECT_NE(assets[i], assets[j]);
     }
-    const hz::Guid object = hz::Guid::create();
+    const hz::Guid object = hz::Guid::Create();
     ASSERT_TRUE(object.IsValid());
     EXPECT_EQ((object.high >> 12) & 0xf, 4u);
     EXPECT_EQ(object.low >> 62, 2u);

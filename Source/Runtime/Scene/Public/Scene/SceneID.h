@@ -21,7 +21,7 @@ struct AssetID
     uint64_t low = 0;
 
     // Uses the system random source by default. Failure logs an error and returns an invalid ID.
-    static AssetID create(const IDGenerator& generator = {});
+    static AssetID Create(const IDGenerator& generator = {});
 
     // Accepts exactly 36 characters in UUID form, including nil; failure leaves this ID unchanged.
     bool     Parse(const char* pText);
@@ -40,7 +40,7 @@ struct Guid
     uint64_t low = 0;
 
     // Generation and text conversion follow the same contract as AssetID.
-    static Guid create(const IDGenerator& generator = {});
+    static Guid Create(const IDGenerator& generator = {});
     bool        Parse(const char* pText);
     void        ToString(char (&text)[kIDStringCapacity]) const;
     uint64_t    Hash() const;

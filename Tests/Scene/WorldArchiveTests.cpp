@@ -433,7 +433,7 @@ TEST_F(WorldArchiveTest, SavesLoadsAndRecoversInterruptedFileReplacement)
     ASSERT_TRUE(InitFileSystem(&desc));
     {
         char name[hz::kIDStringCapacity];
-        hz::Guid::create().ToString(name);
+        hz::Guid::Create().ToString(name);
         const std::filesystem::path directory = std::filesystem::temp_directory_path() / name;
         std::filesystem::create_directory(directory);
         IFileSystem io = *SystemFileIO;

@@ -8,7 +8,7 @@ namespace hz
 Entity World::CreatePersistentEntity()
 {
     pImpl->checkThread();
-    const Guid id = Guid::create(pImpl->entityGuids);
+    const Guid id = Guid::Create(pImpl->entityGuids);
     return id.IsValid() ? CreatePersistentEntity(id) : Entity{};
 }
 

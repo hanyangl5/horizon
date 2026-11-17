@@ -223,7 +223,7 @@ static bool matchIdentities(cJSON* pOld, cJSON* pNew, bool submeshes = false)
             snprintf(id, sizeof(id), "%s", text(pMatch, "id"));
         else
         {
-            const hz::AssetID generated = hz::AssetID::create();
+            const hz::AssetID generated = hz::AssetID::Create();
             if (!generated.IsValid())
             {
                 return false;
@@ -430,7 +430,7 @@ bool SceneAssetCooker::prepare(const cgltf_data& data)
             LOGF(Error, "Missing identity sidecar '%s'; restore it before recooking", metadataFile);
             return false;
         }
-        sceneID = hz::AssetID::create();
+        sceneID = hz::AssetID::Create();
         if (!sceneID.IsValid())
         {
             return false;
@@ -492,7 +492,7 @@ bool SceneAssetCooker::registerTexture(CookedSceneTexture& texture)
         }
     if (*pID)
         return texture.registeredID.Parse(pID);
-    texture.registeredID = hz::AssetID::create();
+    texture.registeredID = hz::AssetID::Create();
     if (!texture.registeredID.IsValid())
     {
         return false;

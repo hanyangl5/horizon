@@ -166,7 +166,7 @@ protected:
         FileSystemInitDesc desc = { .pAppName = "SceneAssetLoaderTest" };
         ASSERT_TRUE(InitFileSystem(&desc));
         char id[hz::kIDStringCapacity];
-        hz::AssetID::create().ToString(id);
+        hz::AssetID::Create().ToString(id);
         directory = std::filesystem::temp_directory_path() / id;
         std::filesystem::create_directory(directory);
         fileSystem = *SystemFileIO;
