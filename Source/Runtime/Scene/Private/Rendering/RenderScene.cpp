@@ -222,7 +222,7 @@ public:
             if (!equalLight(light, next))
             {
                 light = next;
-                lights.markDirty(entity.id.index);
+                lights.MarkDirty(entity.id.index);
             }
             ++i;
         }
@@ -261,7 +261,7 @@ public:
             camera.previous = previous;
             camera.lens = lens;
             camera.previousLens = previousLens;
-            data.cameras.markDirty(cameraEntity.id.index);
+            data.cameras.MarkDirty(cameraEntity.id.index);
         }
         cameraEntity.historyReset = false;
         return true;
@@ -406,7 +406,7 @@ public:
             }
             primitive.mesh = mesh;
             primitive.instanceCount = Count;
-            primitives.markDirty(entity.primitive.index);
+            primitives.MarkDirty(entity.primitive.index);
             setInstanceIndex(entity.primitive.index, ready ? entity.instance.index : UINT32_MAX);
         }
         if (ready && entity.meshBatches.Empty())
@@ -424,7 +424,7 @@ public:
                 if (meshBatch.material != material)
                 {
                     meshBatch.material = material;
-                    meshBatches.markDirty(meshBatch.id.index);
+                    meshBatches.MarkDirty(meshBatch.id.index);
                 }
             }
         }
@@ -435,7 +435,7 @@ public:
                 if (meshBatch.material.IsValid())
                 {
                     meshBatch.material = {};
-                    meshBatches.markDirty(id.index);
+                    meshBatches.MarkDirty(id.index);
                 }
             }
         const WorldTransform& transform = *world.GetWorldTransform(entity.entity);
@@ -451,7 +451,7 @@ public:
             instance.current = transform.current;
             instance.previous = previous;
             instance.bounds = bounds;
-            instances.markDirty(instance.id.index);
+            instances.MarkDirty(instance.id.index);
             markHistory(entity.instance.index);
         }
         if (history.Reset)
@@ -650,7 +650,7 @@ public:
             entity.historyValid = true;
         }
     }
-    void markDirty(Entity target)
+    void MarkDirty(Entity target)
     {
         ASSERT(!frameLocked);
         for (RenderEntity& entity : entities)
@@ -735,7 +735,7 @@ RenderSceneUploads RenderScene::GetPendingUploads() { return Data->GetPendingUpl
 void               RenderScene::AcknowledgeUploads() { Data->AcknowledgeUploads(); }
 void               RenderScene::CommitHistory() { Data->CommitHistory(); }
 void               RenderScene::SetFrameLocked(bool locked) { Data->frameLocked = locked; }
-void               RenderScene::markDirty(Entity entity) { Data->markDirty(entity); }
+void               RenderScene::MarkDirty(Entity entity) { Data->MarkDirty(entity); }
 RenderSceneChanges RenderScene::GetChanges() const
 {
     return { .primitives = Data->primitives.GetChanges(),

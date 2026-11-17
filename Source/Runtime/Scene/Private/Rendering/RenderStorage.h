@@ -85,7 +85,7 @@ public:
         active.PushBack(index);
         created.PushBack(index);
         pendingActive = true;
-        markDirty(index);
+        MarkDirty(index);
         return value.id;
     }
     void Remove(ID id)
@@ -102,13 +102,13 @@ public:
         free.PushBack(id.index);
         removed.PushBack(id.index);
         pendingActive = true;
-        markDirty(id.index);
+        MarkDirty(id.index);
     }
     const T* Get(ID id) const
     {
         return id.IsValid() && id.index < values.Size() && values[id.index].id == id ? &values[id.index] : nullptr;
     }
-    void markDirty(uint32_t index)
+    void MarkDirty(uint32_t index)
     {
         if (!dirtyFlags[index])
         {

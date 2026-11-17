@@ -476,7 +476,7 @@ bool RenderPasses::Resize(uint32_t Width, uint32_t Height)
         return false;
     }
 
-    Scene.markDirty();
+    Scene.MarkDirty();
     return true;
 }
 
