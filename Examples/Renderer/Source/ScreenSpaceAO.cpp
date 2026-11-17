@@ -33,9 +33,8 @@ ScreenSpaceAO::ScreenSpaceAO(hz::RenderContext& Context): Context(Context)
     ASSERT(AOPipeline.IsValid() && BlurPipeline.IsValid() && RotationSampler.IsValid());
 }
 
-bool ScreenSpaceAO::Resize(uint32_t NewWidth, uint32_t NewHeight)
+bool ScreenSpaceAO::Load()
 {
-    ASSERT(NewWidth && NewHeight);
     if (!Rotations.IsValid())
     {
         // Lossless RGBA8 conversion of Cookbook's data/rot_texture.bmp, with its original 4x4 texels.
@@ -46,30 +45,16 @@ bool ScreenSpaceAO::Resize(uint32_t NewWidth, uint32_t NewHeight)
             return false;
         }
     }
-    Width = NewWidth;
-    Height = NewHeight;
-    const hz::TextureDesc Desc = { .Width = Width,
-                                   .Height = Height,
-                                   .Format = hz::Format::R8G8B8A8_UNORM,
-                                   .StartState = ResourceStateUnorderedAccess,
-                                   .Descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
-                                   .Flags = TextureCreationFlagForce2D,
-                                   .Name = "Renderer.SSAO" };
-    Occlusion = Context.CreateTexture(Desc);
-    for (hz::GPUTexture& Texture : Blur)
-    {
-        Texture = Context.CreateTexture(Desc);
-    }
-    Blurred = false;
-    ASSERT(Occlusion.IsValid() && Blur[0].IsValid() && Blur[1].IsValid());
     return true;
 }
 
-const hz::GPUTexture& ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
-                                             const hz::GPUSampler& Sampler)
+void ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth, const hz::GPUSampler& Sampler,
+                            const hz::GPUTexture& Occlusion, const hz::GPUTexture& Scratch)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ScreenSpaceAO::execute");
-    ASSERT(Width && Height && Frame.IsValid() && Depth.IsValid() && Sampler.IsValid());
+    ASSERT(Rotations.IsValid() && Frame.IsValid() && Depth.IsValid() && Sampler.IsValid());
+    const uint32_t Width = Occlusion.GetWidth();
+    const uint32_t Height = Occlusion.GetHeight();
     // The Cookbook kernel and bilateral blur use Depth; the deferred pass multiplies the result into indirect light.
     hz::DependencyList        Dependencies;
     const ScreenSpaceAOConstants Constants = { .frameIndex = Dependencies.read(Frame),
@@ -85,29 +70,24 @@ const hz::GPUTexture& ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz
     Commands.SetPipeline(AOPipeline);
     Commands.SetRootConstants(Constants);
     Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1, Dependencies.Get());
-    const hz::GPUTexture* Source = &Occlusion;
-    Blurred = false;
     Commands.SetPipeline(BlurPipeline);
     for (uint32_t Pass = 0; Pass < Settings.BlurPasses; ++Pass)
     {
+        // Horizontal into Scratch, vertical back, so the result always ends in Occlusion.
         for (uint32_t Axis = 0; Axis < 2; ++Axis)
         {
-            hz::GPUTexture&              Target = Blur[Axis];
+            const hz::GPUTexture&        Source = Axis == 0 ? Occlusion : Scratch;
+            const hz::GPUTexture&        Target = Axis == 0 ? Scratch : Occlusion;
             hz::DependencyList           BlurDependencies;
             const ScreenSpaceAOConstants BlurConstants = { .depthIndex = BlurDependencies.sample(&Depth),
-                                                           .sourceIndex = BlurDependencies.sample(Source),
+                                                           .sourceIndex = BlurDependencies.sample(&Source),
                                                            .outputIndex = BlurDependencies.store(&Target),
                                                            .samplerIndex = Sampler.GetIndex(),
                                                            .horizontal = Axis == 0,
                                                            .depthThreshold = Settings.DepthThreshold };
             Commands.SetRootConstants(BlurConstants);
             Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1, BlurDependencies.Get());
-            Source = &Target;
-            Blurred = true;
         }
     }
     Commands.EndGpuTimestamp();
-    return GetOcclusion();
 }
-
-const hz::GPUTexture& ScreenSpaceAO::GetOcclusion() const { return Blurred ? Blur[1] : Occlusion; }

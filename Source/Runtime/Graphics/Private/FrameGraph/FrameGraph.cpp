@@ -165,7 +165,7 @@ void FinishFrameGraphFrame(FrameGraph* Graph)
     }
 }
 
-#if defined(HZ_DEBUG) || defined(_DEBUG)
+#if defined(FORGE_DEBUG)
 static bool passDeclares(const FrameGraph& Graph, FrameGraphPass Pass, FrameGraphTexture Texture, bool History)
 {
     const FrameGraphPassEntry& Entry = Graph.Passes[Pass.Index];
@@ -183,7 +183,7 @@ const GPUTexture* GetFrameGraphTexture(const FrameGraphContext& Context, FrameGr
 {
     const FrameGraph&             Graph = Context.Graph;
     const FrameGraphTextureEntry& Entry = Graph.Textures[Texture.Index];
-#if defined(HZ_DEBUG) || defined(_DEBUG)
+#if defined(FORGE_DEBUG)
     ASSERTMSG(passDeclares(Graph, Context.Pass, Texture, false), "Pass '%s' reads texture '%s' it did not declare",
               Graph.Passes[Context.Pass.Index].Desc.Name, Entry.Name ? Entry.Name : "");
 #endif
@@ -201,7 +201,7 @@ const GPUTexture* GetFrameGraphTexture(const FrameGraphContext& Context, FrameGr
 const GPUTexture* GetFrameGraphHistory(const FrameGraphContext& Context, FrameGraphTexture Texture)
 {
     const FrameGraphTextureEntry& Entry = Context.Graph.Textures[Texture.Index];
-#if defined(HZ_DEBUG) || defined(_DEBUG)
+#if defined(FORGE_DEBUG)
     ASSERT(passDeclares(Context.Graph, Context.Pass, Texture, true));
 #endif
     ASSERT(Entry.Kind == FrameGraphResourceKind::History);

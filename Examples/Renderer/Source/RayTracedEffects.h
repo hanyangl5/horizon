@@ -27,20 +27,38 @@ struct RayTracedEffectsSettings
 
 class RayTracingScene;
 
+// Viewport-sized resources of the ray traced effects. History and PreviousDepth are written this frame; the Previous*
+// copies hold last frame's, valid only when HistoryValid is set.
+struct RayTracedEffectsTargets
+{
+    const hz::GPUTexture* Result = nullptr;
+    const hz::GPUTexture* Scratch = nullptr;
+    const hz::GPUTexture* Reflection = nullptr;
+    const hz::GPUTexture* History = nullptr;
+    const hz::GPUTexture* PreviousHistory = nullptr;
+    const hz::GPUTexture* PreviousDepth = nullptr;
+    const hz::GPUTexture* PreviousFrameDepth = nullptr;
+    bool                  HistoryValid = false;
+};
+
 class RayTracedEffects
 {
 public:
+    static constexpr hz::Format ResultFormat = hz::Format::R8G8_UNORM;
+    static constexpr hz::Format ScratchFormat = hz::Format::R16G16_SFLOAT;
+    // Shadow, AO and the per-pixel history length.
+    static constexpr hz::Format HistoryFormat = hz::Format::R16G16B16A16_SFLOAT;
+    static constexpr hz::Format DepthFormat = hz::Format::R32_SFLOAT;
+    static constexpr hz::Format ReflectionFormat = hz::Format::R32G32B32A32_SFLOAT;
+
     explicit RayTracedEffects(hz::RenderContext& Context);
     ~RayTracedEffects();
-    // Replacing targets requires completion of earlier draws, as for the other render passes.
-    void Resize(uint32_t Width, uint32_t Height);
+    bool Load();
 
     void MarkDirty();
     void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const SceneView& View,
-                 const GpuDrawList& Draws, const LightingResources& Lighting);
+                 const GpuDrawList& Draws, const LightingResources& Lighting, const RayTracedEffectsTargets& Targets);
     bool IsSupported() const { return Supported; }
-    const hz::GPUTexture& GetShadowAO() const { return Result; }
-    const hz::GPUTexture& GetReflection() const { return Reflection; }
     RayTracedEffectsSettings Settings;
 
 private:
@@ -53,15 +71,7 @@ private:
     hz::GPURayTracingPipeline         ReflectionPipeline;
     hz::GPUSampler                    MaterialSampler;
     hz::GPUTexture                    BlueNoise;
-    hz::GPUTexture                    Result;
-    hz::GPUTexture                    Scratch;
-    hz::FixedArray<hz::GPUTexture, 2> History;
-    hz::GPUTexture                    PreviousDepth;
-    hz::GPUTexture                    Reflection;
     RayTracedEffectsSettings          PreviousSettings;
-    uint32_t                          Width = 0;
-    uint32_t                          Height = 0;
-    uint32_t                          HistoryIndex = 0;
     uint32_t                          FrameIndex = 0;
     uint64_t                          AssetRevision = 0;
     bool                              MarkedDirty = true;

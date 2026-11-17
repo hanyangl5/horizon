@@ -30,28 +30,44 @@ struct PostEffectsSettings
     float           PaperWhiteNits = 203.0f;
 };
 
-class PostEffects
+struct PostEffectsTargets
 {
-public:
-    explicit PostEffects(hz::RenderContext& Context);
-    void Resize(uint32_t Width, uint32_t Height);
-    void Execute(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget, float DeltaSeconds);
-    void ResetExposure() { ExposureInitialized = false; }
-
-    const hz::GPUTexture*     GetBloom() const { return BloomUp[0]; }
-    const hz::GPUTexture&     GetAdaptedLuminance() const { return AdaptedLuminance[AdaptedIndex]; }
-    const hz::GPUTexture&     GetLuminance(uint32_t Level) const { return Luminance[Level]; }
     static constexpr uint32_t MeteringSize = 512;
     static constexpr uint32_t LuminanceLevels = 10;
     static constexpr uint32_t BloomLevels = 6;
-    PostEffectsSettings       Settings;
+
+    // Log luminance halving from MeteringSize down to 1x1.
+    const hz::GPUTexture* Luminance[LuminanceLevels] = {};
+    // Downsamples from half the viewport; Up accumulates back, so the smallest level only needs its downsample.
+    const hz::GPUTexture* BloomDown[BloomLevels] = {};
+    const hz::GPUTexture* BloomUp[BloomLevels - 1] = {};
+    // 1x1 exposure: Previous is last frame's adapted value, Adapted receives this frame's.
+    const hz::GPUTexture* PreviousAdapted = nullptr;
+    const hz::GPUTexture* Adapted = nullptr;
+    // False after a resize or reset; the pass then seeds both images before adapting.
+    bool                  AdaptedValid = false;
+};
+
+class PostEffects
+{
+public:
+    static constexpr hz::Format LuminanceFormat = hz::Format::R16_SFLOAT;
+    static constexpr hz::Format AdaptedFormat = hz::Format::R32_SFLOAT;
+    static constexpr hz::Format BloomFormat = hz::Format::R16G16B16A16_SFLOAT;
+
+    explicit PostEffects(hz::RenderContext& Context);
+    // Rebuilds the tone map pipeline when the swap chain format changes.
+    void Resize();
+    void Execute(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget, float DeltaSeconds,
+                 const PostEffectsTargets& Targets);
+
+    PostEffectsSettings Settings;
 
 private:
-    void RunBloom(hz::CommandList& Commands, const hz::GPUTexture& SceneColor);
-    void RunAdaptation(hz::CommandList& Commands, float DeltaSeconds);
-    void ToneMap(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget);
-    bool PrepareBloomChain();
-    void ReleaseBloomChain();
+    void RunBloom(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const PostEffectsTargets& Targets);
+    void RunAdaptation(hz::CommandList& Commands, float DeltaSeconds, const PostEffectsTargets& Targets);
+    void ToneMap(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget,
+                 const PostEffectsTargets& Targets);
 
     hz::RenderContext&                              Context;
     hz::GPUSampler                                  Sampler;
@@ -63,15 +79,4 @@ private:
     hz::GPUPipeline                                 BloomUpsamplePipeline;
     hz::GPUPipeline                                 ToneMapPipeline;
     hz::Format                                      ColorFormat = {};
-    // Pooled per frame; Resize creates the chain so execute only borrows it.
-    hz::GPUTexture* BloomDown[BloomLevels] = {};
-    hz::GPUTexture* BloomUp[BloomLevels - 1] = {};
-    hz::FixedArray<hz::GPUTexture, 2>               AdaptedLuminance;
-    hz::FixedArray<hz::GPUTexture, LuminanceLevels> Luminance;
-    uint32_t                                        Width = 0;
-    uint32_t                                        Height = 0;
-    uint32_t                                        BloomWidth = 0;
-    uint32_t                                        BloomHeight = 0;
-    uint32_t                                        AdaptedIndex = 0;
-    bool                                            ExposureInitialized = false;
 };

@@ -88,61 +88,38 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
 
 RayTracedEffects::~RayTracedEffects() = default;
 
-void RayTracedEffects::Resize(uint32_t Width, uint32_t Height)
+bool RayTracedEffects::Load()
 {
     if (!Supported)
-    {
-        return;
-    }
-    ASSERT(Width && Height);
-    this->Width = Width;
-    this->Height = Height;
-    const DescriptorType Views = DescriptorType(DescriptorTypeTexture | DescriptorTypeRwTexture);
-    hz::TextureDesc      Desc = { .Width = Width,
-                                  .Height = Height,
-                                  .Format = hz::Format::R8G8_UNORM,
-                                  .StartState = ResourceStateUnorderedAccess,
-                                  .Descriptors = Views,
-                                  .Flags = TextureCreationFlagForce2D,
-                                  .Name = "Renderer.RT.ShadowAO" };
-    Result = Context.CreateTexture(Desc);
-    Desc.Format = hz::Format::R16G16_SFLOAT;
-    Desc.Name = "Renderer.RT.DenoiseScratch";
-    Scratch = Context.CreateTexture(Desc);
-    // Shadow, AO and the per-pixel history length.
-    Desc.Format = hz::Format::R16G16B16A16_SFLOAT;
-    Desc.Name = "Renderer.RT.History";
-    for (hz::GPUTexture& Texture : History)
-    {
-        Texture = Context.CreateTexture(Desc);
-    }
-    Desc.Format = hz::Format::R32_SFLOAT;
-    Desc.Name = "Renderer.RT.PreviousDepth";
-    PreviousDepth = Context.CreateTexture(Desc);
-    Desc.Format = hz::Format::R32G32B32A32_SFLOAT;
-    Desc.Name = "Renderer.RT.Reflection";
-    Reflection = Context.CreateTexture(Desc);
+        return true;
     if (!BlueNoise.IsValid())
-    {
         BlueNoise = Context.LoadTexture(DirectoryShaderSources, "../Assets/blue_noise_128x128x64.dds");
-    }
-    HistoryIndex = 0;
     MarkDirty();
-    ASSERT(Result.IsValid() && Scratch.IsValid() && History[0].IsValid() && History[1].IsValid() && PreviousDepth.IsValid() &&
-           Reflection.IsValid() && BlueNoise.IsValid() && BlueNoise.GetWidth() == 128 && BlueNoise.GetHeight() == 8192);
+    if (!BlueNoise.IsValid() || BlueNoise.GetWidth() != 128 || BlueNoise.GetHeight() != 8192)
+    {
+        LOGF(Error, "Ray traced effects require Examples/Renderer/Assets/blue_noise_128x128x64.dds");
+        return false;
+    }
+    return true;
 }
 
 void RayTracedEffects::MarkDirty() { MarkedDirty = true; }
 
 void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const SceneView& View,
-                               const GpuDrawList& Draws, const LightingResources& Lighting)
+                               const GpuDrawList& Draws, const LightingResources& Lighting, const RayTracedEffectsTargets& Targets)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RayTracedEffects::execute");
     if (!Supported)
     {
         return;
     }
-    ASSERT(Width && Height && GBuffer.NormalMaterial && GBuffer.Depth && Lighting.LightingFrame);
+    ASSERT(Targets.Result && Targets.Scratch && Targets.Reflection && Targets.History && Targets.PreviousHistory &&
+           Targets.PreviousDepth && Targets.PreviousFrameDepth && GBuffer.NormalMaterial && GBuffer.Depth && Lighting.LightingFrame);
+    const hz::GPUTexture& Result = *Targets.Result;
+    const hz::GPUTexture& Scratch = *Targets.Scratch;
+    const hz::GPUTexture& Reflection = *Targets.Reflection;
+    const uint32_t        Width = Result.GetWidth();
+    const uint32_t        Height = Result.GetHeight();
     if (!(Settings == PreviousSettings))
     {
         MarkDirty();
@@ -197,17 +174,18 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     Commands.EndGpuTimestamp();
 
     Commands.BeginGpuTimestamp("RT Denoise");
-    const uint32_t     Current = HistoryIndex;
-    const uint32_t     Previous = 1 - Current;
-    RTDenoiseConstants Denoise = {
+    const hz::GPUTexture& History = *Targets.History;
+    const hz::GPUTexture& PreviousHistory = *Targets.PreviousHistory;
+    const hz::GPUTexture& PreviousFrameDepth = *Targets.PreviousFrameDepth;
+    RTDenoiseConstants    Denoise = {
         .frame = Frame.GetSrvIndex(),
         .input = Result.GetSrvIndex(),
-        .history = History[Previous].GetSrvIndex(),
+        .history = PreviousHistory.GetSrvIndex(),
         .Depth = GBuffer.Depth->GetSrvIndex(),
-        .previousDepth = PreviousDepth.GetSrvIndex(),
+        .previousDepth = PreviousFrameDepth.GetSrvIndex(),
         .normal = GBuffer.NormalMaterial->GetSrvIndex(),
-        .output = History[Current].GetUavIndex(),
-        .historyValid = !MarkedDirty,
+        .output = History.GetUavIndex(),
+        .historyValid = Targets.HistoryValid && !MarkedDirty,
         .alpha = Settings.TemporalAlpha,
         .depthThreshold = Settings.TemporalDepthThreshold,
         .planeSigma = Settings.AtrousPlaneSigma,
@@ -215,11 +193,11 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     Commands.SetPipeline(TemporalPipeline);
     Commands.SetRootConstants(Denoise);
     Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
-                      { .sampledTextures = { &Result, &History[Previous], GBuffer.Depth, &PreviousDepth },
-                        .storageTextures = { &History[Current] },
+                      { .sampledTextures = { &Result, &PreviousHistory, GBuffer.Depth, &PreviousFrameDepth },
+                        .storageTextures = { &History },
                         .buffers = { &Frame } });
     // The traced input is consumed, so the a-trous iterations ping-pong through Scratch and finish in Result.
-    const hz::GPUTexture* Passes[] = { &History[Current], &Scratch, &Result };
+    const hz::GPUTexture* Passes[] = { &History, &Scratch, &Result };
     for (uint32_t Pass = 0; Pass < 2; ++Pass)
     {
         Denoise.input = Passes[Pass]->GetSrvIndex();
@@ -232,12 +210,11 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
                             .storageTextures = { Passes[Pass + 1] },
                             .buffers = { &Frame } });
     }
-    Denoise.output = PreviousDepth.GetUavIndex();
+    Denoise.output = Targets.PreviousDepth->GetUavIndex();
     Commands.SetPipeline(DepthCopyPipeline);
     Commands.SetRootConstants(Denoise);
     Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
-                      { .sampledTextures = { GBuffer.Depth }, .storageTextures = { &PreviousDepth }, .buffers = { &Frame } });
-    HistoryIndex = Previous;
+                      { .sampledTextures = { GBuffer.Depth }, .storageTextures = { Targets.PreviousDepth }, .buffers = { &Frame } });
     MarkedDirty = false;
     Commands.EndGpuTimestamp();
 

@@ -17,12 +17,15 @@ struct ScreenSpaceAOSettings
 class ScreenSpaceAO
 {
 public:
-    explicit ScreenSpaceAO(hz::RenderContext& Context);
-    bool Resize(uint32_t NewWidth, uint32_t NewHeight);
+    // Occlusion and Scratch share this desc at the viewport size.
+    static constexpr hz::Format TargetFormat = hz::Format::R8G8B8A8_UNORM;
 
-    const hz::GPUTexture& Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
-                                  const hz::GPUSampler& Sampler);
-    const hz::GPUTexture& GetOcclusion() const;
+    explicit ScreenSpaceAO(hz::RenderContext& Context);
+    bool Load();
+
+    // Writes the result to Occlusion; each blur pass goes through Scratch and back.
+    void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth, const hz::GPUSampler& Sampler,
+                 const hz::GPUTexture& Occlusion, const hz::GPUTexture& Scratch);
 
     ScreenSpaceAOSettings Settings;
 
@@ -32,9 +35,4 @@ private:
     hz::GPUPipeline    BlurPipeline;
     hz::GPUSampler     RotationSampler;
     hz::GPUTexture     Rotations;
-    hz::GPUTexture     Occlusion;
-    hz::GPUTexture     Blur[2];
-    uint32_t           Width = 0;
-    uint32_t           Height = 0;
-    bool               Blurred = false;
 };

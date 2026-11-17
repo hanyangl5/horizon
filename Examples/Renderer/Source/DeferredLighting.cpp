@@ -28,29 +28,17 @@ struct DeferredLightingConstants
 };
 static_assert(sizeof(DeferredLightingConstants) == 15 * sizeof(uint32_t));
 
-DeferredLighting::DeferredLighting(hz::RenderContext& Context): Context(Context)
+DeferredLighting::DeferredLighting(hz::RenderContext& Context)
 {
     Pipeline = Context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
                                                                            { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
                                                                .pFileName = "DeferredLighting.slang" },
-                                                .colorTargets = { { .Format = hz::Format::R32G32B32A32_SFLOAT } },
+                                                .colorTargets = { { .Format = ColorFormat } },
                                                 .Name = "Renderer.DeferredLighting" });
     ASSERT(Pipeline.IsValid());
 }
-void DeferredLighting::Resize(uint32_t Width, uint32_t Height)
-{
-    Color = Context.CreateTexture({ .Width = Width,
-                                    .Height = Height,
-                                    .Format = hz::Format::R32G32B32A32_SFLOAT,
-                                    .StartState = ResourceStateRenderTarget,
-                                    .Descriptors = DescriptorTypeTexture,
-                                    .Flags = TextureCreationFlagForce2D,
-                                    .GetRenderTarget = true,
-                                    .Name = "Renderer.DeferredLighting.Color" });
-    ASSERT(Color.IsValid());
-}
-const hz::GPUTexture& DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
-                                                const SceneView& View, const LightingResources& Resources)
+void DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
+                               const LightingResources& Resources, const hz::GPUTexture& Color)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("DeferredLighting::Execute");
     ASSERT(Color.IsValid() && Resources.LightingFrame && Resources.LightingFrame->IsValid());
@@ -86,5 +74,4 @@ const hz::GPUTexture& DeferredLighting::Execute(hz::CommandList& Commands, const
     Commands.Draw(3);
     Commands.EndRendering();
     Commands.EndGpuTimestamp();
-    return Color;
 }

@@ -37,7 +37,7 @@ struct TransparencyConstants
 };
 static_assert(sizeof(TransparencyConstants) == 28 * sizeof(uint32_t));
 
-Transparency::Transparency(hz::RenderContext& Context, hz::Format DepthFormat): Context(Context)
+Transparency::Transparency(hz::RenderContext& Context, hz::Format DepthFormat)
 {
     ClearPipeline = Context.CreateComputePipeline(
         { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearMain" } }, .pFileName = "Transparency.slang" },
@@ -57,49 +57,19 @@ Transparency::Transparency(hz::RenderContext& Context, hz::Format DepthFormat): 
     ASSERT(ClearPipeline.IsValid() && GatherPipeline.IsValid() && ResolvePipeline.IsValid() && SurfaceSampler.IsValid());
 }
 
-void Transparency::Resize(uint32_t NewWidth, uint32_t NewHeight, uint32_t FragmentsPerPixel)
-{
-    ASSERT(NewWidth && NewHeight && FragmentsPerPixel);
-    Width = NewWidth;
-    Height = NewHeight;
-    const uint64_t Capacity = uint64_t(Width) * Height * FragmentsPerPixel;
-    ASSERT(Capacity <= UINT32_MAX / 16);
-    MaxNodes = (uint32_t)Capacity;
-    Heads = Context.CreateTexture({ .Width = Width,
-                                    .Height = Height,
-                                    .Format = hz::Format::R32_UINT,
-                                    .StartState = ResourceStateUnorderedAccess,
-                                    .Descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
-                                    .Flags = TextureCreationFlagForce2D,
-                                    .Name = "Renderer.OIT.Heads" });
-    Color = Context.CreateTexture({ .Width = Width,
-                                    .Height = Height,
-                                    .Format = hz::Format::R32G32B32A32_SFLOAT,
-                                    .StartState = ResourceStateUnorderedAccess,
-                                    .Descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
-                                    .Flags = TextureCreationFlagForce2D,
-                                    .Name = "Renderer.OIT.Resolved" });
-    Nodes = Context.CreateBuffer({ .Size = Capacity * 16,
-                                   .ElementCount = MaxNodes * 4,
-                                   .Name = "Renderer.OIT.Nodes",
-                                   .usage = MemoryUsageGpuOnly,
-                                   .StartState = ResourceStateUnorderedAccess,
-                                   .Descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
-    Counters = Context.CreateBuffer({ .Size = 16,
-                                      .ElementCount = 4,
-                                      .Name = "Renderer.OIT.Counters",
-                                      .usage = MemoryUsageGpuOnly,
-                                      .StartState = ResourceStateUnorderedAccess,
-                                      .Descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
-    ASSERT(Heads.IsValid() && Color.IsValid() && Nodes.IsValid() && Counters.IsValid());
-}
-
-const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
-                                            const SceneView& View, const GpuDrawList& Draws, const LightingResources& Lighting,
-                                            const hz::GPUTexture& OpaqueColor)
+void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth, const SceneView& View,
+                           const GpuDrawList& Draws, const LightingResources& Lighting, const hz::GPUTexture& OpaqueColor,
+                           const TransparencyTargets& Targets)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Transparency::execute");
-    ASSERT(Width && Height && Lighting.LightingFrame && Lighting.EnvironmentSampler);
+    ASSERT(Targets.Heads && Targets.Color && Targets.Nodes && Targets.Counters && Lighting.LightingFrame && Lighting.EnvironmentSampler);
+    const hz::GPUTexture& Heads = *Targets.Heads;
+    const hz::GPUTexture& Color = *Targets.Color;
+    const hz::GPUBuffer&  Nodes = *Targets.Nodes;
+    const hz::GPUBuffer&  Counters = *Targets.Counters;
+    const uint32_t        Width = Color.GetWidth();
+    const uint32_t        Height = Color.GetHeight();
+    const uint32_t        MaxNodes = (uint32_t)(Nodes.GetSize() / NodeBytes);
     TransparencyConstants Constants = { .frameIndex = Frame.GetSrvIndex(),
                                         .oitHeadsIndex = Heads.GetUavIndex(),
                                         .oitCounterIndex = Counters.GetUavIndex(),
@@ -176,5 +146,4 @@ const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz:
                         .buffers = { &Nodes },
                         .storageBuffers = { &Counters } });
     Commands.EndGpuTimestamp();
-    return Color;
 }

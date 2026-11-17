@@ -52,15 +52,12 @@ struct DeferredGBuffer
 class DeferredLighting
 {
 public:
-    explicit DeferredLighting(hz::RenderContext& Context);
-    void Resize(uint32_t Width, uint32_t Height);
+    static constexpr hz::Format ColorFormat = hz::Format::R32G32B32A32_SFLOAT;
 
-    const hz::GPUTexture& Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
-                                  const SceneView& View, const LightingResources& Resources);
-    const hz::GPUTexture& GetColor() const { return Color; }
+    explicit DeferredLighting(hz::RenderContext& Context);
+    void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const LightingResources& Resources,
+                 const hz::GPUTexture& Color);
 
 private:
-    hz::RenderContext& Context;
-    hz::GPUPipeline    Pipeline;
-    hz::GPUTexture     Color;
+    hz::GPUPipeline Pipeline;
 };

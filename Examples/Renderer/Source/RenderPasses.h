@@ -3,6 +3,7 @@
 #include "Core/IContainer.h"
 #include "Core/IMath.h"
 #include "Core/IUniquePtr.h"
+#include "Graphics/FrameGraph.h"
 #include "Graphics/RenderContext.h"
 #include "GpuDrawList.h"
 #include "PostEffects.h"
@@ -21,68 +22,56 @@ struct RenderPassesDesc
     hz::RenderCameraID Camera;
 };
 
-// Per-frame state shared by the registered passes. Earlier passes fill what later passes consume.
-struct FrameContext
-{
-    hz::CommandList&      Commands;
-    GpuDrawList&          Draws;
-    const hz::GPUBuffer&  Frame;
-    const SceneView&      View;
-    hz::GPUSampler&       LinearSampler;
-    float                 DeltaSeconds = 0.0f;
-    float                 EnvironmentIntensity = 0.0f;
-    bool                  RayTracedAO = false;
-    const hz::GPUTexture* Color = nullptr;
-    const hz::GPUTexture* Backbuffer = nullptr;
-    DeferredGBuffer       GBuffer = {};
-    LightingResources     Resources = {};
-};
-
-// One entry of the frame pass list. Enabled gates optional effects without editing the list.
-struct RenderPass
-{
-    const char* Name = nullptr;
-    void (*Execute)(FrameContext&, void*) = nullptr;
-    void*       UserData = nullptr;
-    const bool* Enabled = nullptr;
-};
-
 class GBuffer
 {
 public:
-    GBuffer(hz::RenderContext& Context);
-    void Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const SceneView& View, const GpuDrawList& Draws);
-    void Resize(uint32_t Width, uint32_t Height);
-
-    hz::RenderContext&        Context;
     static constexpr uint32_t TextureCount = 4;
-    uint32_t                  Width = 0;
-    uint32_t                  Height = 0;
-    hz::GPUPipeline           Pipeline;
-    hz::GPUSampler            Sampler;
-    hz::GPUTexture            Textures[TextureCount];
-    hz::GPUTexture            Depth;
+
+    GBuffer(hz::RenderContext& Context);
+    void Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const SceneView& View, const GpuDrawList& Draws,
+                 const hz::GPUTexture* const (&Textures)[TextureCount], const hz::GPUTexture& Depth);
+
+    hz::GPUPipeline Pipeline;
+    hz::GPUSampler  Sampler;
+};
+
+// Frame graph handles of the renderer's resources; passes look up their concrete textures through these.
+struct RenderTargets
+{
+    hz::FrameGraphTexture GBuffer[GBuffer::TextureCount];
+    hz::FrameGraphTexture Depth;
+    hz::FrameGraphTexture ShadowMap;
+    hz::FrameGraphTexture Occlusion;
+    hz::FrameGraphTexture OcclusionScratch;
+    hz::FrameGraphTexture RTResult;
+    hz::FrameGraphTexture RTScratch;
+    hz::FrameGraphTexture RTReflection;
+    hz::FrameGraphTexture RTHistory;
+    hz::FrameGraphTexture RTPreviousDepth;
+    hz::FrameGraphTexture SceneColor;
+    hz::FrameGraphTexture OITHeads;
+    hz::FrameGraphTexture TransparentColor;
+    hz::FrameGraphBuffer  OITNodes;
+    hz::FrameGraphBuffer  OITCounters;
+    hz::FrameGraphTexture Luminance[PostEffectsTargets::LuminanceLevels];
+    hz::FrameGraphTexture BloomDown[PostEffectsTargets::BloomLevels];
+    hz::FrameGraphTexture BloomUp[PostEffectsTargets::BloomLevels - 1];
+    hz::FrameGraphTexture AdaptedLuminance;
+    hz::FrameGraphTexture Backbuffer;
 };
 
 class RenderPasses
 {
 public:
     RenderPasses(const RenderPassesDesc& Desc);
-    ~RenderPasses() = default;
+    ~RenderPasses();
 
     bool Resize(uint32_t Width, uint32_t Height);
 
     void Update(float DeltaSeconds);
     void Execute();
-    void AddPass(const RenderPass& Pass)
-    {
-        ASSERT(PassCount < MaxPasses);
-        Passes[PassCount++] = Pass;
-    }
     bool EnableScreenSpaceAO = false;
     bool EnableTransparency = true;
-
-    static constexpr uint32_t MaxPasses = 12;
 
 private:
     // Uploaded as the frame constant block, so the fields keep the shader's names.
@@ -100,12 +89,14 @@ private:
         hz::SubmitHandle Submission;
     };
 
+    void BuildGraph();
+
     hz::RenderContext& Context;
     hz::RenderScene&   Scene;
     hz::AssetManager&  Assets;
     hz::RenderCameraID CameraId;
 
-    hz::UniquePtr<GBuffer>          GBufferTargets;
+    hz::UniquePtr<GBuffer>          GBufferPass;
     hz::UniquePtr<DeferredLighting> Lighting;
     hz::UniquePtr<PostEffects>      PostProcessing;
     hz::UniquePtr<ScreenSpaceAO>    SSAO;
@@ -118,7 +109,10 @@ private:
     float                            DeltaSeconds = 1.0f / 60.0f;
     hz::FixedArray<FrameConstantBuffer, 3> FrameConstants;
     uint32_t                              NextFrame = 0;
-    hz::FixedArray<RenderPass, 12>        Passes;
-    uint32_t                              PassCount = 0;
     hz::GpuScene                          GpuSceneData;
+    hz::FrameGraph*                       Graph = nullptr;
+    RenderTargets                         Targets;
+    hz::FrameGraphPass                    SSAOPass;
+    hz::FrameGraphPass                    RayTracingPass;
+    hz::FrameGraphPass                    TransparencyPass;
 };
