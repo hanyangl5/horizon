@@ -1098,6 +1098,36 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     EXPECT_FLOAT_EQ(pVertices[8], -2);
 }
 
+TEST_F(TypedAssetLiveTest, MissingTextureLeavesMaterialSlotUnboundInsteadOfFailingScene)
+{
+    // No writeTexture(): pixel.dds is absent, so only the texture asset fails.
+    writeScene();
+    writeGeometry();
+    hz::SceneAsset scene;
+    ASSERT_TRUE(scene.Parse(kTypedScene));
+    hz::AssetCatalog catalog;
+    ASSERT_TRUE(catalog.AddScene(scene, "scene.sceneasset.json"));
+    hz::RenderContext context({ .pAppName = "MissingTextureTest" });
+    hz::AssetLoaders  loaders(context, { .vertexLayout = kAssetTestLayout, .cookedDirectory = DirectoryOtherFiles });
+    hz::AssetManager  assetManager(catalog, &context);
+    loaders.RegisterLoaders(assetManager);
+    const hz::AssetHandle root = assetManager.Request(scene.GetID());
+    Wait(assetManager, root);
+    EXPECT_EQ(assetManager.GetState(root), hz::AssetState::Ready);
+    const hz::SceneAssetMaterial& description = scene.GetMaterials().Data[0];
+    EXPECT_EQ(assetManager.GetState(assetManager.Find(description.baseColorTexture)), hz::AssetState::Failed);
+    const hz::AssetHandle material = assetManager.Find(description.id);
+    ASSERT_EQ(assetManager.GetState(material), hz::AssetState::Ready);
+    const hz::GpuAssetTables tables = assetManager.GetGpuTables();
+    const hz::GpuMaterialData* pMapping = tables.GetMaterial({ .index = material.index, .generation = material.generation });
+    ASSERT_NE(pMapping, nullptr);
+    EXPECT_EQ(pMapping->baseColorTexture, UINT32_MAX);
+    EXPECT_FLOAT_EQ(pMapping->roughnessFactor, 0.8f);
+    assetManager.Release(root);
+    assetManager.Shutdown();
+    EXPECT_EQ(assetManager.GetCount(), 0u);
+}
+
 TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
 {
     std::string       text = kTypedScene;

@@ -262,9 +262,13 @@ public:
         {
             for (uint32_t i = 0; i < asset.pEntry->dependencies.Count; ++i)
             {
-                const AssetState state = assets[asset.pDependencies[i].index].state;
-                dependenciesReady &= state == AssetState::Ready;
-                if (state == AssetState::Failed)
+                const ManagedAsset& dependency = assets[asset.pDependencies[i].index];
+                // A material keeps its factors when a texture fails: the GPU table leaves that slot unbound.
+                const bool optional = asset.pEntry->Type == AssetType::Material && dependency.pEntry->Type == AssetType::Texture;
+                if (dependency.state == AssetState::Failed && optional)
+                    continue;
+                dependenciesReady &= dependency.state == AssetState::Ready;
+                if (dependency.state == AssetState::Failed)
                     fail(asset, AssetError::DependencyFailed, "A dependency failed to Load");
             }
         }

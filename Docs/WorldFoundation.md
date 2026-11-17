@@ -175,7 +175,7 @@ Ready/Failed -> Retiring -> Unloaded
 主要约束：
 
 - 重复请求同一 `AssetID` 时复用 资产管理项，不重复加载资源。
-- dependency graph 在排队阶段检测循环依赖，父资产只有在必要依赖 ready 后才能进入 ready。
+- dependency graph 在排队阶段检测循环依赖，父资产只有在必要依赖 ready 后才能进入 ready。材质的纹理是可选依赖：纹理失败时材质仍然 ready，GPU 表中该槽位保持未绑定，不再让 mesh 和场景整体失败。
 - request 和 release 不隐式等待 IO 或 GPU upload。
 - loading 期间的最后一次 release 将 资产管理项 标记为 retiring；loader 完成后再安全清理。
 - GPU payload 只能在相关 GPU 工作完成后销毁。
