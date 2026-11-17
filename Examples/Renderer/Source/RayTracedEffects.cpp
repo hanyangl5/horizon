@@ -57,19 +57,20 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
     RayScene = hz::MakeUnique<RayTracingScene>(Context);
     MaterialSampler = Context.CreateSampler();
     ShadowPipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "RTShadowAO.slang" },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } }, .pFileName = "RTShadowAO.slang" },
         .Name = "Renderer.RT.ShadowAO",
     });
     TemporalPipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_temporal.comp.slang" },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } },
+                        .pFileName = "rt_denoise_temporal.comp.slang" },
         .Name = "Renderer.RT.Temporal",
     });
     AtrousPipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_atrous.comp.slang" },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_atrous.comp.slang" },
         .Name = "Renderer.RT.Atrous",
     });
     DepthCopyPipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSCopyDepth" } }, .pFileName = "RTDenoise.slang" },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSCopyDepth" } }, .pFileName = "RTDenoise.slang" },
         .Name = "Renderer.RT.DepthHistory",
     });
     ReflectionPipeline = Context.CreateRayTracingPipeline({

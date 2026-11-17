@@ -24,12 +24,12 @@ static_assert(sizeof(ScreenSpaceAOConstants) == 12 * sizeof(uint32_t));
 ScreenSpaceAO::ScreenSpaceAO(hz::RenderContext& Context): Context(Context)
 {
     AOPipeline = Context.CreateComputePipeline(
-        { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } }, .pFileName = "ScreenSpaceAO.slang" },
+        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "ScreenSpaceAO.slang" },
           .Name = "Renderer.SSAO" });
     BlurPipeline = Context.CreateComputePipeline(
-        { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "BlurMain" } }, .pFileName = "ScreenSpaceAO.slang" },
+        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "BlurMain" } }, .pFileName = "ScreenSpaceAO.slang" },
           .Name = "Renderer.SSAO.Blur" });
-    RotationSampler = Context.CreateSampler({ .AddressU = AddressModeRepeat, .AddressV = AddressModeRepeat });
+    RotationSampler = Context.CreateSampler({ .AddressU = ADDRESS_MODE_REPEAT, .AddressV = ADDRESS_MODE_REPEAT });
     ASSERT(AOPipeline.IsValid() && BlurPipeline.IsValid() && RotationSampler.IsValid());
 }
 

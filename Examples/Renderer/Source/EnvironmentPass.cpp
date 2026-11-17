@@ -9,8 +9,8 @@
 EnvironmentPass::EnvironmentPass(hz::RenderContext& Context, hz::Format ColorFormat, hz::Format DepthFormat): Context(Context)
 {
     Pipeline = Context.CreateGraphicsPipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
-                                    { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
+                                    { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
                         .pFileName = "Skybox.slang" },
         .Depth = { .depthTest = true, .depthWrite = false, .depthFunc = CMP_LEQUAL },
         .colorTargets = { { .Format = ColorFormat } },
@@ -18,7 +18,7 @@ EnvironmentPass::EnvironmentPass(hz::RenderContext& Context, hz::Format ColorFor
         .Name = "Renderer.Skybox",
     });
     Sampler = Context.CreateSampler(
-        { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .AddressW = AddressModeClampToEdge });
+        { .AddressU = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressV = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressW = ADDRESS_MODE_CLAMP_TO_EDGE });
     ASSERT(Pipeline.IsValid() && Sampler.IsValid());
 }
 
@@ -87,9 +87,10 @@ void EnvironmentPass::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fr
                                         .samplerIndex = Sampler.GetIndex(),
                                         .intensity = Intensity };
     Commands.BeginGpuTimestamp("Skybox");
-    Commands.BeginRendering({ .colorAttachments = { { .pTexture = &Color, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
-                              .depthAttachment = { .pTexture = &Depth, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } },
-                            Dependencies.Get());
+    Commands.BeginRendering(
+        { .colorAttachments = { { .pTexture = &Color, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } },
+          .depthAttachment = { .pTexture = &Depth, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } },
+        Dependencies.Get());
     Commands.SetViewport(0, 0, (float)Context.GetWidth(), (float)Context.GetHeight());
     Commands.SetScissor(0, 0, Context.GetWidth(), Context.GetHeight());
     Commands.SetPipeline(Pipeline);

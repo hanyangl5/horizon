@@ -18,7 +18,7 @@ struct SceneResourceAccess
 
     static GPUTexture take(RenderContext* pContext, Texture*& pTexture)
     {
-        GPUTexture result(pContext, pTexture, nullptr, ResourceStateShaderResource);
+        GPUTexture result(pContext, pTexture, nullptr, RESOURCE_STATE_SHADER_RESOURCE);
         pTexture = nullptr;
         return result;
     }

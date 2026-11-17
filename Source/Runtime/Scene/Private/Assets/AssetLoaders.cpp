@@ -79,7 +79,7 @@ public:
     GPUBuffer         vertexBuffers[MAX_VERTEX_BINDINGS];
     uint32_t          vertexStrides[MAX_VERTEX_BINDINGS] = {};
     uint32_t          vertexBufferCount = 0;
-    IndexType         indexType = IndexTypeUInt16;
+    IndexType         indexType = INDEX_TYPE_UINT16;
     Array<MeshDraw>   draws;
 };
 
@@ -333,7 +333,7 @@ bool AssetGeometry::buildBounds()
         return false;
     const GeometryData::ShadowData& shadow = *pShadow->pShadow;
     const uint8_t*                  pPositions = (const uint8_t*)shadow.pAttributes[SEMANTIC_POSITION];
-    const bool                      index32 = pUpload->indexType == IndexTypeUInt32;
+    const bool                      index32 = pUpload->indexType == INDEX_TYPE_UINT32;
     draws.Resize(pUpload->drawArgCount);
     for (uint32_t i = 0; i < draws.Size(); ++i)
     {

@@ -172,7 +172,7 @@ GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
     pipeline = context.CreateComputePipeline({
         .shaderDesc = {
             .stages = {
-                { .stage = ShaderStageComp,
+                { .stage = SHADER_STAGE_COMP,
                   .pSource = kGeometryBuildShader,
                   .sourceSize = (uint32_t)(sizeof(kGeometryBuildShader) - 1),
                   .pEntryPoint = "CSMain",
@@ -188,18 +188,18 @@ GeometryBuildPass::GeometryBuildPass(hz::RenderContext& context)
         .ElementCount = kGeneratedVertexCount,
         .StructStride = sizeof(Vertex),
         .Name = "DeferredShading.GeneratedVertices",
-        .usage = MemoryUsageGpuOnly,
-        .StartState = ResourceStateUnorderedAccess,
-        .Descriptors = DescriptorTypeBuffer | DescriptorTypeRwBuffer | DescriptorTypeVertexBuffer,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .Descriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_VERTEX_BUFFER,
     });
     indices = context.CreateBuffer({
         .Size = sizeof(uint32_t) * kGeneratedIndexCount,
         .ElementCount = kGeneratedIndexCount,
         .StructStride = sizeof(uint32_t),
         .Name = "DeferredShading.GeneratedIndices",
-        .usage = MemoryUsageGpuOnly,
-        .StartState = ResourceStateUnorderedAccess,
-        .Descriptors = DescriptorTypeBuffer | DescriptorTypeRwBuffer | DescriptorTypeIndexBuffer,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .Descriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDEX_BUFFER,
     });
     ASSERT(vertices.IsValid() && indices.IsValid());
 }
@@ -275,10 +275,10 @@ GBufferPass::GBufferPass(hz::RenderContext& context)
     pipeline = context.CreateGraphicsPipeline({
         .shaderDesc = {
         .stages = {
-            { .stage = ShaderStageVert, .pSource = kGBufferShader,
+            { .stage = SHADER_STAGE_VERT, .pSource = kGBufferShader,
               .sourceSize = (uint32_t)(sizeof(kGBufferShader) - 1), .pEntryPoint = "VSMain",
               .Name = "DeferredShadingGBufferVS" },
-            { .stage = ShaderStageFrag, .pSource = kGBufferShader,
+            { .stage = SHADER_STAGE_FRAG, .pSource = kGBufferShader,
               .sourceSize = (uint32_t)(sizeof(kGBufferShader) - 1), .pEntryPoint = "PSMain",
               .Name = "DeferredShadingGBufferPS" },
         },
@@ -310,8 +310,8 @@ bool GBufferPass::Resize(hz::RenderContext& context, uint32_t Width, uint32_t He
         .Width = Width,
         .Height = Height,
         .Format = hz::Format::R8G8B8A8_UNORM,
-        .StartState = ResourceStateRenderTarget,
-        .Descriptors = DescriptorTypeTexture,
+        .StartState = RESOURCE_STATE_RENDER_TARGET,
+        .Descriptors = DESCRIPTOR_TYPE_TEXTURE,
         .GetRenderTarget = true,
         .Name = "GBuffer.Albedo",
     };
@@ -320,7 +320,7 @@ bool GBufferPass::Resize(hz::RenderContext& context, uint32_t Width, uint32_t He
     normalDesc.Name = "GBuffer.Normal";
     hz::TextureDesc depthDesc = albedoDesc;
     depthDesc.Format = hz::Format::D32_SFLOAT;
-    depthDesc.StartState = ResourceStateDepthWrite;
+    depthDesc.StartState = RESOURCE_STATE_DEPTH_WRITE;
     depthDesc.Name = "GBuffer.Depth";
 
     albedo = context.CreateTexture(albedoDesc);
@@ -344,12 +344,12 @@ void GBufferPass::execute(hz::CommandList& commands, const hz::GPUBuffer& vertic
     commands.BeginRendering(
         {
             .colorAttachments =  {
-                { .pTexture = &albedo, .loadAction = LoadActionClear, .storeAction = StoreActionStore, .ClearValue = black },
-                { .pTexture = &normal, .loadAction = LoadActionClear, .storeAction = StoreActionStore, .ClearValue = normalClear },
+                { .pTexture = &albedo, .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .ClearValue = black },
+                { .pTexture = &normal, .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .ClearValue = normalClear },
             } ,
             .depthAttachment = { .pTexture = &Depth,
-                                 .loadAction = LoadActionClear,
-                                 .storeAction = StoreActionStore,
+                                 .loadAction = LOAD_ACTION_CLEAR,
+                                 .storeAction = STORE_ACTION_STORE,
                                  .ClearValue = depthClear },
         },
         { .buffers = buffers });
@@ -357,7 +357,7 @@ void GBufferPass::execute(hz::CommandList& commands, const hz::GPUBuffer& vertic
     commands.SetScissor(0, 0, Width, Height);
     commands.SetPipeline(pipeline);
     commands.SetVertexBuffer(0, vertices, 0, sizeof(Vertex));
-    commands.SetIndexBuffer(indices, 0, IndexTypeUInt32);
+    commands.SetIndexBuffer(indices, 0, INDEX_TYPE_UINT32);
     commands.SetRootConstant({ sceneUniforms[0]->GetSrvIndex() });
     commands.DrawIndexed(kCubeIndexCount);
     commands.SetRootConstant({ sceneUniforms[1]->GetSrvIndex() });
@@ -411,10 +411,10 @@ LightingPass::LightingPass(hz::RenderContext& context, hz::Format surfaceFormat)
     pipeline = context.CreateGraphicsPipeline({
         .shaderDesc = {
         .stages = {
-            { .stage = ShaderStageVert, .pSource = kLightingShader,
+            { .stage = SHADER_STAGE_VERT, .pSource = kLightingShader,
               .sourceSize = (uint32_t)(sizeof(kLightingShader) - 1), .pEntryPoint = "VSMain",
               .Name = "DeferredShadingLightingVS" },
-            { .stage = ShaderStageFrag, .pSource = kLightingShader,
+            { .stage = SHADER_STAGE_FRAG, .pSource = kLightingShader,
               .sourceSize = (uint32_t)(sizeof(kLightingShader) - 1), .pEntryPoint = "PSMain",
               .Name = "DeferredShadingLightingPS" },
         },
@@ -435,8 +435,8 @@ void LightingPass::execute(hz::CommandList& commands, const hz::GPUTexture& back
         {
             .colorAttachments = { {
                 .pTexture = &backbuffer,
-                .loadAction = LoadActionClear,
-                .storeAction = StoreActionStore,
+                .loadAction = LOAD_ACTION_CLEAR,
+                .storeAction = STORE_ACTION_STORE,
                 .ClearValue = Clear,
             } },
         },
@@ -474,7 +474,7 @@ public:
             .Height = 0,
             .imageCount = 2,
             .colorFormat = kSurfaceFormat,
-            .colorSpace = ColorSpaceSdrSrgb,
+            .colorSpace = COLOR_SPACE_SDR_SRGB,
             .enableVSync = settings.vSyncEnabled,
             .enableGpuValidation = true,
             .enableGpuProfiler = true,
@@ -564,9 +564,9 @@ private:
                 .ElementCount = 1,
                 .StructStride = sizeof(SceneUniforms),
                 .Name = object == 0 ? "DeferredShading.CubeUniforms" : "DeferredShading.FloorUniforms",
-                .usage = MemoryUsageGpuOnly,
-                .StartState = ResourceStateShaderResource,
-                .Descriptors = DescriptorTypeBuffer,
+                .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                .Descriptors = DESCRIPTOR_TYPE_BUFFER,
             });
             ASSERT(sceneUniformBuffers[object].IsValid());
         }

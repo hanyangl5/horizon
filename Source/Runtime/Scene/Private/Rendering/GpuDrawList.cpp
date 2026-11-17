@@ -128,16 +128,16 @@ void GpuDrawList::Prepare(const SceneView& View)
         CurrentFrame.DrawData = Context.CreateBuffer({ .Size = uint64_t(CurrentFrame.Capacity) * sizeof(GpuDrawData),
                                                        .ElementCount = CurrentFrame.Capacity * (uint32_t)(sizeof(GpuDrawData) / 4),
                                                        .Name = "Renderer.DrawData",
-                                                       .usage = MemoryUsageCpuToGpu,
-                                                       .StartState = ResourceStateShaderResource,
-                                                       .Descriptors = DescriptorTypeBufferRaw,
-                                                       .Flags = BufferCreationFlagPersistentMapBit });
+                                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                       .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                       .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
+                                                       .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
         const BufferDesc Arguments = { .Size = uint64_t(CurrentFrame.Capacity) * 20,
                                        .ElementCount = CurrentFrame.Capacity * 5,
                                        .Name = "Renderer.IndirectDraws",
-                                       .usage = MemoryUsageGpuOnly,
-                                       .StartState = ResourceStateUnorderedAccess,
-                                       .Descriptors = DescriptorTypeRwBufferRaw | DescriptorTypeIndirectBuffer };
+                                       .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                       .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                       .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW | DESCRIPTOR_TYPE_INDIRECT_BUFFER };
         for (uint32_t List = 0; List < ListCount; ++List)
         {
             CurrentFrame.Lists[List] = Context.CreateBuffer(Arguments);
@@ -146,10 +146,10 @@ void GpuDrawList::Prepare(const SceneView& View)
                                                       .ElementCount = MaxLists,
                                                       .StructStride = sizeof(DrawListFilter),
                                                       .Name = "Renderer.DrawListFilters",
-                                                      .usage = MemoryUsageCpuToGpu,
-                                                      .StartState = ResourceStateShaderResource,
-                                                      .Descriptors = DescriptorTypeBuffer,
-                                                      .Flags = BufferCreationFlagPersistentMapBit });
+                                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                      .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                      .Descriptors = DESCRIPTOR_TYPE_BUFFER,
+                                                      .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
         ASSERT(CurrentFrame.DrawData.IsValid() && CurrentFrame.Filters.IsValid());
         DrawListFilter Uploaded[MaxLists] = {};
         for (uint32_t List = 0; List < ListCount; ++List)

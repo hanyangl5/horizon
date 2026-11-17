@@ -231,7 +231,7 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     textureDesc.ArraySize = max(1U, TinyDDS_ArraySlices(ctx));
     textureDesc.MipLevels = max(1U, TinyDDS_NumberOfMipmaps(ctx));
     textureDesc.Format = (hz::Format)TinyImageFormat_FromTinyDDSFormat(TinyDDS_GetFormat(ctx));
-    textureDesc.Descriptors = DescriptorTypeTexture;
+    textureDesc.Descriptors = DESCRIPTOR_TYPE_TEXTURE;
     textureDesc.SampleCount = SAMPLE_COUNT_1;
 
     if (textureDesc.Format == hz::Format::UNDEFINED)
@@ -243,7 +243,7 @@ inline bool loadDDSTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     if (TinyDDS_IsCubemap(ctx))
     {
         textureDesc.ArraySize *= 6;
-        textureDesc.Descriptors |= DescriptorTypeTextureCube;
+        textureDesc.Descriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
     }
 
     TinyDDS_DestroyContext(ctx);
@@ -296,7 +296,7 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     textureDesc.ArraySize = max(1U, TinyKtx_ArraySlices(ctx));
     textureDesc.MipLevels = max(1U, TinyKtx_NumberOfMipmaps(ctx));
     textureDesc.Format = (hz::Format)TinyImageFormat_FromTinyKtxFormat(TinyKtx_GetFormat(ctx));
-    textureDesc.Descriptors = DescriptorTypeTexture;
+    textureDesc.Descriptors = DESCRIPTOR_TYPE_TEXTURE;
     textureDesc.SampleCount = SAMPLE_COUNT_1;
 
     if (textureDesc.Format == hz::Format::UNDEFINED)
@@ -308,7 +308,7 @@ inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
     if (TinyKtx_IsCubemap(ctx))
     {
         textureDesc.ArraySize *= 6;
-        textureDesc.Descriptors |= DescriptorTypeTextureCube;
+        textureDesc.Descriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
     }
 
     TinyKtx_DestroyContext(ctx);

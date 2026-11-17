@@ -349,7 +349,7 @@ void DrawDriverMemoryTrackingUI(void*)
     static bool driverMemUsageShowKB = false;
     ImGui::Checkbox("Driver Memory Show In Kilobytes", &driverMemUsageShowKB);
     const char* memUnit = driverMemUsageShowKB ? "KB" : "MB";
-    size_t      memDivisor = driverMemUsageShowKB ? Kilobyte : Megabyte;
+    size_t      memDivisor = driverMemUsageShowKB ? TF_KB : TF_MB;
 
     if (ImGui::TreeNodeEx("DriverMemoryTracking", ImGuiTreeNodeFlags_DefaultOpen, "Total Driver Memory Usage: %zu %s | Alloc Count: %zu",
                           (size_t)(totDriverMemory / memDivisor), memUnit, (size_t)totDriverAllocs))
@@ -424,7 +424,7 @@ void DrawDeviceMemoryReportUI(void*)
     static bool memReportMemUsageShowKB = false;
     ImGui::Checkbox("Memory Report EXT Memory Show In Kilobytes", &memReportMemUsageShowKB);
     const char*  memUnit = memReportMemUsageShowKB ? "KB" : "MB";
-    const size_t memDivisor = memReportMemUsageShowKB ? Kilobyte : Megabyte;
+    const size_t memDivisor = memReportMemUsageShowKB ? TF_KB : TF_MB;
 
     if (ImGui::TreeNodeEx("DeviceMemoryReport", ImGuiTreeNodeFlags_DefaultOpen, "Total GPU Memory: %zu %s | Alloc Count: %zu",
                           memReportTotalMemory / memDivisor, memUnit, memReportTotalAllocCount))
@@ -525,12 +525,12 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
     TextureDesc     textureDesc = {};
     textureDesc.ArraySize = 1;
     textureDesc.Depth = 1;
-    textureDesc.Descriptors = DescriptorTypeTexture;
+    textureDesc.Descriptors = DESCRIPTOR_TYPE_TEXTURE;
     textureDesc.Format = hz::Format::R8G8B8A8_UNORM;
     textureDesc.Height = Height;
     textureDesc.MipLevels = 1;
     textureDesc.SampleCount = SAMPLE_COUNT_1;
-    textureDesc.StartState = ResourceStatePixelShaderResource;
+    textureDesc.StartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     textureDesc.Width = Width;
     textureDesc.Name = "ImGui Font Texture";
     loadDesc.pDesc = &textureDesc;
@@ -538,7 +538,7 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
     addResource(&loadDesc, &token);
     waitForToken(&token);
 
-    TextureUpdateDesc updateDesc = { pTexture, 0, 1, 0, 1, ResourceStatePixelShaderResource };
+    TextureUpdateDesc updateDesc = { pTexture, 0, 1, 0, 1, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
     beginUpdateResource(&updateDesc);
     TextureSubresourceUpdate subresource = updateDesc.GetSubresourceUpdateDesc(0, 0);
     for (uint32_t r = 0; r < subresource.rowCount; ++r)
@@ -2886,7 +2886,7 @@ static void cmdPrepareRenderingForUI(Cmd* pCmd, const float2& displayPos, const 
     cmdSetScissor(pCmd, (uint32_t)displayPos.x, (uint32_t)displayPos.y, (uint32_t)displaySize.x, (uint32_t)displaySize.y);
 
     cmdBindPipeline(pCmd, pPipeline);
-    cmdBindIndexBuffer(pCmd, pUserInterface->pIndexBuffer, sizeof(ImDrawIdx) == sizeof(uint16_t) ? IndexTypeUInt16 : IndexTypeUInt32,
+    cmdBindIndexBuffer(pCmd, pUserInterface->pIndexBuffer, sizeof(ImDrawIdx) == sizeof(uint16_t) ? INDEX_TYPE_UINT16 : INDEX_TYPE_UINT32,
                        iOffset);
     cmdBindVertexBuffer(pCmd, 1, &pUserInterface->pVertexBuffer, &vertexStride, &vOffset);
 }
@@ -2971,30 +2971,34 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     /************************************************************************/
     // Rendering resources
     /************************************************************************/
-    SamplerDesc samplerDesc = { FILTER_LINEAR,          FILTER_LINEAR,          MIPMAP_MODE_NEAREST,
-                                AddressModeClampToEdge, AddressModeClampToEdge, AddressModeClampToEdge };
+    SamplerDesc samplerDesc = { FILTER_LINEAR,
+                                FILTER_LINEAR,
+                                MIPMAP_MODE_NEAREST,
+                                ADDRESS_MODE_CLAMP_TO_EDGE,
+                                ADDRESS_MODE_CLAMP_TO_EDGE,
+                                ADDRESS_MODE_CLAMP_TO_EDGE };
     addSampler(pUserInterface->pRenderer, &samplerDesc, &pUserInterface->pDefaultSampler);
 
     BufferLoadDesc vbDesc = {};
-    vbDesc.desc.Descriptors = DescriptorTypeVertexBuffer;
-    vbDesc.desc.MemoryUsage = MemoryUsageCpuToGpu;
+    vbDesc.desc.Descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+    vbDesc.desc.MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
     vbDesc.desc.Size = VERTEX_BUFFER_SIZE * pDesc->frameCount;
-    vbDesc.desc.Flags = BufferCreationFlagPersistentMapBit;
+    vbDesc.desc.Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
     vbDesc.desc.Name = "UI Vertex Buffer";
     vbDesc.ppBuffer = &pUserInterface->pVertexBuffer;
     addResource(&vbDesc, NULL);
 
     BufferLoadDesc ibDesc = vbDesc;
-    ibDesc.desc.Descriptors = DescriptorTypeIndexBuffer;
+    ibDesc.desc.Descriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
     ibDesc.desc.Size = INDEX_BUFFER_SIZE * pDesc->frameCount;
     vbDesc.desc.Name = "UI Index Buffer";
     ibDesc.ppBuffer = &pUserInterface->pIndexBuffer;
     addResource(&ibDesc, NULL);
 
     BufferLoadDesc ubDesc = {};
-    ubDesc.desc.Descriptors = DescriptorTypeUniformBuffer;
-    ubDesc.desc.MemoryUsage = MemoryUsageCpuToGpu;
-    ubDesc.desc.Flags = BufferCreationFlagPersistentMapBit;
+    ubDesc.desc.Descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ubDesc.desc.MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    ubDesc.desc.Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
     ubDesc.desc.Size = sizeof(Matrix4);
     vbDesc.desc.Name = "UI Uniform Buffer";
     for (uint32_t i = 0; i < pDesc->frameCount; ++i)

@@ -30,9 +30,9 @@ GPUBuffer::GPUBuffer(GPUBuffer&& other) noexcept:
     other.pContext = nullptr;
     other.pBuffer = nullptr;
     other.Size = 0;
-    other.usage = MemoryUsageUnknown;
-    other.Descriptors = DescriptorTypeUndefined;
-    other.state = ResourceStateUndefined;
+    other.usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
+    other.Descriptors = DESCRIPTOR_TYPE_UNDEFINED;
+    other.state = RESOURCE_STATE_UNDEFINED;
 }
 
 GPUBuffer& GPUBuffer::operator=(GPUBuffer&& other) noexcept
@@ -49,9 +49,9 @@ GPUBuffer& GPUBuffer::operator=(GPUBuffer&& other) noexcept
         other.pContext = nullptr;
         other.pBuffer = nullptr;
         other.Size = 0;
-        other.usage = MemoryUsageUnknown;
-        other.Descriptors = DescriptorTypeUndefined;
-        other.state = ResourceStateUndefined;
+        other.usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
+        other.Descriptors = DESCRIPTOR_TYPE_UNDEFINED;
+        other.state = RESOURCE_STATE_UNDEFINED;
     }
     return *this;
 }
@@ -88,7 +88,7 @@ GPUTexture::GPUTexture(GPUTexture&& other) noexcept:
     other.pContext = nullptr;
     other.pTexture = nullptr;
     other.pRenderTarget = nullptr;
-    other.state = ResourceStateUndefined;
+    other.state = RESOURCE_STATE_UNDEFINED;
     other.owned = false;
 }
 
@@ -105,7 +105,7 @@ GPUTexture& GPUTexture::operator=(GPUTexture&& other) noexcept
         other.pContext = nullptr;
         other.pTexture = nullptr;
         other.pRenderTarget = nullptr;
-        other.state = ResourceStateUndefined;
+        other.state = RESOURCE_STATE_UNDEFINED;
         other.owned = false;
     }
     return *this;
@@ -252,7 +252,7 @@ GPUBuffer RenderContext::CreateBuffer(const BufferDesc& input)
     desc.ElementCount = input.ElementCount;
     desc.StructStride = input.StructStride;
     desc.Name = input.Name;
-    desc.QueueType = QueueTypeGraphics;
+    desc.QueueType = QUEUE_TYPE_GRAPHICS;
     desc.MemoryUsage = input.usage;
     desc.StartState = input.StartState;
     desc.Descriptors = input.Descriptors;
@@ -436,7 +436,7 @@ GPUTexture RenderContext::LoadTexture(ResourceDirectory directory, const char* p
         LOGF(Error, "Failed to Load texture '%s'", pFileName);
         return {};
     }
-    return GPUTexture(this, texture, nullptr, ResourceStateShaderResource);
+    return GPUTexture(this, texture, nullptr, RESOURCE_STATE_SHADER_RESOURCE);
 }
 
 GPUSampler RenderContext::CreateSampler(const SamplerDesc& input)
@@ -489,13 +489,13 @@ Shader* RenderContext::CreateShader(const ShaderDesc& input)
         ShaderSrcStageDesc*    stage = nullptr;
         switch (inputStage.stage)
         {
-        case ShaderStageVert:
+        case SHADER_STAGE_VERT:
             stage = &source.vert;
             break;
-        case ShaderStageFrag:
+        case SHADER_STAGE_FRAG:
             stage = &source.frag;
             break;
-        case ShaderStageComp:
+        case SHADER_STAGE_COMP:
             stage = &source.comp;
             break;
         default:
@@ -630,9 +630,10 @@ bool RenderContext::GetGpuAddress(const GPUBuffer& buffer, uint64_t* pAddress) c
 bool RenderContext::UpdateBuffer(const GPUBuffer& buffer, uint64_t offset, const void* Data, uint64_t Size)
 {
     ASSERT(ready && buffer.pBuffer && Data && Size);
-    ASSERT(buffer.usage == MemoryUsageCpuToGpu && offset <= buffer.Size && Size <= buffer.Size - offset &&
+    ASSERT(buffer.usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU && offset <= buffer.Size && Size <= buffer.Size - offset &&
            buffer.pBuffer->pCpuMappedAddress);
-    if (buffer.usage != MemoryUsageCpuToGpu || offset > buffer.Size || Size > buffer.Size - offset || !buffer.pBuffer->pCpuMappedAddress)
+    if (buffer.usage != RESOURCE_MEMORY_USAGE_CPU_TO_GPU || offset > buffer.Size || Size > buffer.Size - offset ||
+        !buffer.pBuffer->pCpuMappedAddress)
     {
         return false;
     }

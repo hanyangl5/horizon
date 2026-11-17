@@ -31,8 +31,8 @@
 #include "Core/IFileSystem.h"
 #include "Core/IThread.h"
 
-static FORGE_CONSTEXPR const ResourceState gVertexBufferState = ResourceStateVertexAndConstantBuffer | ResourceStateShaderResource;
-static FORGE_CONSTEXPR const ResourceState gIndexBufferState = ResourceStateIndexBuffer | ResourceStateShaderResource;
+static FORGE_CONSTEXPR const ResourceState gVertexBufferState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | RESOURCE_STATE_SHADER_RESOURCE;
+static FORGE_CONSTEXPR const ResourceState gIndexBufferState = RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE;
 
 typedef struct MappedMemoryRange
 {
@@ -461,7 +461,7 @@ typedef struct ShaderStageLoadDesc
 
 typedef struct ShaderLoadDesc
 {
-    ShaderStageLoadDesc   stages[ShaderStageCount];
+    ShaderStageLoadDesc   stages[SHADER_STAGE_COUNT];
     const ShaderConstant* pConstants;
     uint32_t              constantCount;
     bool                  bIsSourceCode;

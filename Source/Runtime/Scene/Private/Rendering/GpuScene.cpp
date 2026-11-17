@@ -154,9 +154,9 @@ public:
                 *table.pBuffer = context.CreateBuffer({ .Size = table.Capacity,
                                                         .ElementCount = (uint32_t)(table.Capacity / 4),
                                                         .Name = table.Name,
-                                                        .usage = MemoryUsageGpuOnly,
-                                                        .StartState = ResourceStateShaderResource,
-                                                        .Descriptors = DescriptorTypeBufferRaw });
+                                                        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                        .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                        .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
                 ASSERT(table.pBuffer->IsValid());
                 table.full = true;
             }
@@ -187,9 +187,9 @@ public:
                 context.DeferRelease(std::move(frame.staging));
                 frame.staging = context.CreateBuffer({ .Size = frame.Capacity,
                                                        .Name = "GpuScene.Staging",
-                                                       .usage = MemoryUsageCpuToGpu,
-                                                       .StartState = ResourceStateGenericRead,
-                                                       .Flags = BufferCreationFlagPersistentMapBit });
+                                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                       .StartState = RESOURCE_STATE_GENERIC_READ,
+                                                       .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
                 ASSERT(frame.staging.IsValid());
             }
             for (uint32_t i = 0; i < kGpuTableCount; ++i)

@@ -130,7 +130,7 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
 #ifndef __ANDROID__
         waitQueueIdle(pCmd->pQueue);
 #endif
-        TextureUpdateDesc updateDesc = { gFontstash.pAtlasTexture, 0, 1, 0, 1, ResourceStatePixelShaderResource };
+        TextureUpdateDesc updateDesc = { gFontstash.pAtlasTexture, 0, 1, 0, 1, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
         beginUpdateResource(&updateDesc);
         TextureSubresourceUpdate subresource = updateDesc.GetSubresourceUpdateDesc(0, 0);
         for (uint32_t r = 0; r < subresource.rowCount; ++r)
@@ -271,12 +271,12 @@ bool initFontSystem(FontSystemDesc* pDesc)
     TextureDesc desc = {};
     desc.ArraySize = 1;
     desc.Depth = 1;
-    desc.Descriptors = DescriptorTypeTexture;
+    desc.Descriptors = DESCRIPTOR_TYPE_TEXTURE;
     desc.Format = hz::Format::R8_UNORM;
     desc.Height = gFontstash.Height;
     desc.MipLevels = 1;
     desc.SampleCount = SAMPLE_COUNT_1;
-    desc.StartState = ResourceStatePixelShaderResource;
+    desc.StartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     desc.Width = gFontstash.Width;
     desc.Name = "Fontstash Texture";
     TextureLoadDesc loadDesc = {};
@@ -287,22 +287,26 @@ bool initFontSystem(FontSystemDesc* pDesc)
     /************************************************************************/
     // Rendering resources
     /************************************************************************/
-    SamplerDesc samplerDesc = { FILTER_LINEAR,          FILTER_LINEAR,          MIPMAP_MODE_NEAREST,
-                                AddressModeClampToEdge, AddressModeClampToEdge, AddressModeClampToEdge };
+    SamplerDesc samplerDesc = { FILTER_LINEAR,
+                                FILTER_LINEAR,
+                                MIPMAP_MODE_NEAREST,
+                                ADDRESS_MODE_CLAMP_TO_EDGE,
+                                ADDRESS_MODE_CLAMP_TO_EDGE,
+                                ADDRESS_MODE_CLAMP_TO_EDGE };
     addSampler(gFontstash.pRenderer, &samplerDesc, &gFontstash.pDefaultSampler);
 
     const BufferDesc uniformDesc = { .Size = 65536,
                                      .ElementCount = 65536 / 4,
-                                     .MemoryUsage = MemoryUsageCpuToGpu,
-                                     .Flags = BufferCreationFlagPersistentMapBit,
-                                     .Descriptors = DescriptorTypeBufferRaw };
+                                     .MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                     .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+                                     .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW };
     addGPURingBuffer(gFontstash.pRenderer, &uniformDesc, &gFontstash.uniformRingBuffer);
 
     BufferDesc vbDesc = {};
-    vbDesc.Descriptors = DescriptorTypeVertexBuffer;
-    vbDesc.MemoryUsage = MemoryUsageCpuToGpu;
+    vbDesc.Descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+    vbDesc.MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
     vbDesc.Size = pDesc->fontstashRingSizeBytes;
-    vbDesc.Flags = BufferCreationFlagPersistentMapBit;
+    vbDesc.Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
     addGPURingBuffer(gFontstash.pRenderer, &vbDesc, &gFontstash.meshRingBuffer);
     /************************************************************************/
     /************************************************************************/

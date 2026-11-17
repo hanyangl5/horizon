@@ -40,18 +40,18 @@ static_assert(sizeof(TransparencyConstants) == 28 * sizeof(uint32_t));
 Transparency::Transparency(hz::RenderContext& Context, hz::Format DepthFormat)
 {
     ClearPipeline = Context.CreateComputePipeline(
-        { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearMain" } }, .pFileName = "Transparency.slang" },
+        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "ClearMain" } }, .pFileName = "Transparency.slang" },
           .Name = "Renderer.OIT.Clear" });
     GatherPipeline =
-        Context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
-                                                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSTransparent" } },
+        Context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
+                                                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSTransparent" } },
                                                          .pFileName = "Transparency.slang" },
                                          .Depth = { .depthTest = true, .depthWrite = false, .depthFunc = CMP_LEQUAL },
                                          .depthStencilFormat = DepthFormat,
                                          .indirectDrawId = true,
                                          .Name = "Renderer.OIT.Gather" });
     ResolvePipeline = Context.CreateComputePipeline(
-        { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ResolveMain" } }, .pFileName = "Transparency.slang" },
+        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "ResolveMain" } }, .pFileName = "Transparency.slang" },
           .Name = "Renderer.OIT.Resolve" });
     SurfaceSampler = Context.CreateSampler();
     ASSERT(ClearPipeline.IsValid() && GatherPipeline.IsValid() && ResolvePipeline.IsValid() && SurfaceSampler.IsValid());
@@ -111,7 +111,7 @@ void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame
         Dependencies.storageTextures = StorageTextures;
         Dependencies.storageBuffers = StorageBuffers;
         Commands.BeginRendering(
-            { .depthAttachment = { .pTexture = &Depth, .loadAction = LoadActionLoad, .storeAction = StoreActionStore } }, Dependencies);
+            { .depthAttachment = { .pTexture = &Depth, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } }, Dependencies);
         Commands.SetViewport(0, 0, (float)Width, (float)Height);
         Commands.SetScissor(0, 0, Width, Height);
         Commands.SetPipeline(GatherPipeline);

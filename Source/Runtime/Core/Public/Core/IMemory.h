@@ -41,9 +41,9 @@
 #include <stdint.h>
 #endif
 
-#define Kilobyte (1024)
-#define Megabyte (1024 * Kilobyte)
-#define Gigabyte (1024 * Megabyte)
+#define TF_KB (1024)
+#define TF_MB (1024 * TF_KB)
+#define TF_GB (1024 * TF_MB)
 
 typedef struct MemoryTrackingStats
 {

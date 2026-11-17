@@ -397,7 +397,7 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
             output[0] = uint4(round(source.Load(int3(0,0,0)) * 255.0));
         }
     )hlsl";
-    hz::GPUPipeline pipeline = context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
+    hz::GPUPipeline pipeline = context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
                                                                                              .pSource = shader,
                                                                                              .sourceSize = sizeof(shader) - 1,
                                                                                              .pEntryPoint = "CSMain" } } },
@@ -406,13 +406,13 @@ TEST_F(TextureAssetLiveTest, UploadsSamplesAndRetiresTextureAfterSubmission)
     hz::GPUBuffer    output = context.CreateBuffer({ .Size = 16,
                                                      .ElementCount = 1,
                                                      .StructStride = 16,
-                                                     .usage = MemoryUsageGpuOnly,
-                                                     .StartState = ResourceStateUnorderedAccess,
-                                                     .Descriptors = DescriptorTypeRwBuffer });
+                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                     .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                     .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
     hz::GPUBuffer    readback = context.CreateBuffer({ .Size = 16,
-                                                       .usage = MemoryUsageGpuToCpu,
-                                                       .StartState = ResourceStateCopyDest,
-                                                       .Flags = BufferCreationFlagPersistentMapBit });
+                                                       .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                       .StartState = RESOURCE_STATE_COPY_DEST,
+                                                       .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     hz::CommandList& commands = context.AcquireCommandList();
     commands.SetPipeline(pipeline);
     commands.SetRootConstant({ texture.GetSrvIndex(), output.GetUavIndex() });
@@ -501,7 +501,7 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     EXPECT_EQ(&pFirst->GetVertexBuffer(0), &pSecond->GetVertexBuffer(0));
     EXPECT_EQ(pFirst->GetVertexBufferCount(), 1u);
     EXPECT_EQ(pFirst->GetVertexStride(0), 12u);
-    EXPECT_EQ(pFirst->GetIndexType(), IndexTypeUInt16);
+    EXPECT_EQ(pFirst->GetIndexType(), INDEX_TYPE_UINT16);
     EXPECT_EQ(pFirst->GetDraw(0).indexCount, 3u);
     const hz::MeshBounds& bounds = pFirst->GetBounds(0);
     EXPECT_FLOAT_EQ(bounds.minimum[0], -1);
@@ -515,9 +515,9 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     EXPECT_FLOAT_EQ(pMaterial->GetDescription().roughnessFactor, 0.8f);
     ASSERT_NE(assetManager.GetTexture(assetManager.Find(pMaterial->GetDescription().baseColorTexture)), nullptr);
     hz::GPUBuffer    readback = context.CreateBuffer({ .Size = 36,
-                                                       .usage = MemoryUsageGpuToCpu,
-                                                       .StartState = ResourceStateCopyDest,
-                                                       .Flags = BufferCreationFlagPersistentMapBit });
+                                                       .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                       .StartState = RESOURCE_STATE_COPY_DEST,
+                                                       .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     hz::CommandList& commands = context.AcquireCommandList();
     commands.CopyBuffer(readback, 0, pFirst->GetVertexBuffer(0), 0, 36);
     assetManager.Release(root);
@@ -568,7 +568,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
 {
     writeTexture();
     writeScene();
-    writeGeometry(IndexTypeUInt32);
+    writeGeometry(INDEX_TYPE_UINT32);
     hz::SceneAsset asset;
     ASSERT_TRUE(asset.Parse(kTypedScene));
     hz::AssetCatalog catalog;
@@ -582,7 +582,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     ASSERT_EQ(assetManager.GetState(Handle), hz::AssetState::Ready);
     const hz::MeshAsset* mesh = assetManager.GetMesh(Handle);
     ASSERT_NE(mesh, nullptr);
-    EXPECT_EQ(mesh->GetIndexType(), IndexTypeUInt32);
+    EXPECT_EQ(mesh->GetIndexType(), INDEX_TYPE_UINT32);
     const hz::MeshBounds& bounds = mesh->GetBounds(0);
     const float           minimum[] = { -1, -5, -2 }, maximum[] = { 4, 2, 6 };
     for (uint32_t axis = 0; axis < 3; ++axis)
@@ -594,9 +594,9 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
     ASSERT_NE(gpuMesh, nullptr);
     EXPECT_EQ(gpuMesh->indexStride, 4u);
     hz::GPUBuffer    readback = context.CreateBuffer({ .Size = 48,
-                                                       .usage = MemoryUsageGpuToCpu,
-                                                       .StartState = ResourceStateCopyDest,
-                                                       .Flags = BufferCreationFlagPersistentMapBit });
+                                                       .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                       .StartState = RESOURCE_STATE_COPY_DEST,
+                                                       .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     hz::CommandList& commands = context.AcquireCommandList();
     commands.CopyBuffer(readback, 0, mesh->GetIndexBuffer(), 0, 12);
     commands.CopyBuffer(readback, 12, mesh->GetVertexBuffer(0), 0, 36);
@@ -1493,9 +1493,9 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
 
     hz::GpuScene              gpu(scene, assetManager, context);
     hz::GPUBuffer             readback = context.CreateBuffer({ .Size = 1024,
-                                                                .usage = MemoryUsageGpuToCpu,
-                                                                .StartState = ResourceStateCopyDest,
-                                                                .Flags = BufferCreationFlagPersistentMapBit });
+                                                                .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                                .StartState = RESOURCE_STATE_COPY_DEST,
+                                                                .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     const uint8_t*            pBytes = (const uint8_t*)readback.Get()->pCpuMappedAddress;
     const hz::RenderInstance& copiedInstance = *(const hz::RenderInstance*)pBytes;
     const hz::GpuMeshData&    copiedMesh = *(const hz::GpuMeshData*)(pBytes + 256);
@@ -1684,9 +1684,9 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     hz::GpuScene gpu(scene, assetManager, context);
     gpu.Reserve(1, 1, 1, 1);
     hz::GPUBuffer           readback = context.CreateBuffer({ .Size = 1024,
-                                                              .usage = MemoryUsageGpuToCpu,
-                                                              .StartState = ResourceStateCopyDest,
-                                                              .Flags = BufferCreationFlagPersistentMapBit });
+                                                              .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                              .StartState = RESOURCE_STATE_COPY_DEST,
+                                                              .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     const uint8_t*          pBytes = (const uint8_t*)readback.Get()->pCpuMappedAddress;
     const hz::RenderCamera& copiedCamera = *(const hz::RenderCamera*)pBytes;
     const hz::RenderLight&  copiedLight = *(const hz::RenderLight*)(pBytes + 512);
@@ -1831,9 +1831,9 @@ TEST_F(AssetManagerTest, GpuSceneUploadsSparseChangesForOneHundredThousandEntiti
     hz::GpuScene gpu(scene, assetManager, context);
     gpu.Reserve(kEntityCount, kEntityCount);
     hz::GPUBuffer             readback = context.CreateBuffer({ .Size = sizeof(hz::RenderInstance),
-                                                                .usage = MemoryUsageGpuToCpu,
-                                                                .StartState = ResourceStateCopyDest,
-                                                                .Flags = BufferCreationFlagPersistentMapBit });
+                                                                .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                                .StartState = RESOURCE_STATE_COPY_DEST,
+                                                                .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     const hz::RenderInstance& copied = *(const hz::RenderInstance*)readback.Get()->pCpuMappedAddress;
     const int64_t             fullStart = GetUSec(true);
     renderGpuSceneFrame(context, gpu, readback, {});
@@ -1926,9 +1926,9 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
     ASSERT_TRUE(assetManager.Release(source));
     hz::UniquePtr<hz::GpuScene> gpu = hz::MakeUnique<hz::GpuScene>(*scene, assetManager, context);
     hz::GPUBuffer                readback = context.CreateBuffer({ .Size = sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData) + 36,
-                                                                   .usage = MemoryUsageGpuToCpu,
-                                                                   .StartState = ResourceStateCopyDest,
-                                                                   .Flags = BufferCreationFlagPersistentMapBit });
+                                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                                   .StartState = RESOURCE_STATE_COPY_DEST,
+                                                                   .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     const hz::AssetHandle        oldMesh = assetManager.Find(renderer.mesh);
     for (uint32_t pass = 0; pass < 2; ++pass)
     {

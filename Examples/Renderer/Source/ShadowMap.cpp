@@ -16,8 +16,8 @@ static float QuantizeShadowExtent(float Extent)
 
 ShadowMap::ShadowMap(hz::RenderContext& Context): Context(Context)
 {
-    Pipeline = Context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
-                                                                            { .stage = ShaderStageFrag, .pEntryPoint = "PSShadow" } },
+    Pipeline = Context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
+                                                                            { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSShadow" } },
                                                                 .pFileName = "ShadowMap.slang" },
                                                 .rasterizer = { .cullMode = CULL_MODE_NONE,
                                                                 .depthBias = 1,
@@ -28,7 +28,8 @@ ShadowMap::ShadowMap(hz::RenderContext& Context): Context(Context)
                                                 .depthStencilFormat = DepthFormat,
                                                 .indirectDrawId = true,
                                                 .Name = "Renderer.ShadowMap" });
-    Sampler = Context.CreateSampler({ .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .CompareFunc = CMP_LEQUAL });
+    Sampler = Context.CreateSampler(
+        { .AddressU = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressV = ADDRESS_MODE_CLAMP_TO_EDGE, .CompareFunc = CMP_LEQUAL });
     SurfaceSampler = Context.CreateSampler();
     for (uint32_t Index = 0; Index < ShadowFrames.Size(); ++Index)
     {
@@ -36,18 +37,18 @@ ShadowMap::ShadowMap(hz::RenderContext& Context): Context(Context)
                                                      .ElementCount = 1,
                                                      .StructStride = 208,
                                                      .Name = "Renderer.ShadowCamera",
-                                                     .usage = MemoryUsageCpuToGpu,
-                                                     .StartState = ResourceStateShaderResource,
-                                                     .Descriptors = DescriptorTypeBuffer,
-                                                     .Flags = BufferCreationFlagPersistentMapBit });
+                                                     .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                     .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                     .Descriptors = DESCRIPTOR_TYPE_BUFFER,
+                                                     .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
         LightingFrames[Index] = Context.CreateBuffer({ .Size = sizeof(LightingFrameData),
                                                        .ElementCount = 1,
                                                        .StructStride = sizeof(LightingFrameData),
                                                        .Name = "Renderer.LightingFrame",
-                                                       .usage = MemoryUsageCpuToGpu,
-                                                       .StartState = ResourceStateShaderResource,
-                                                       .Descriptors = DescriptorTypeBuffer,
-                                                       .Flags = BufferCreationFlagPersistentMapBit });
+                                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                       .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                       .Descriptors = DESCRIPTOR_TYPE_BUFFER,
+                                                       .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     }
     ASSERT(Pipeline.IsValid() && Sampler.IsValid());
 }
@@ -154,8 +155,8 @@ void ShadowMap::Execute(hz::CommandList& Commands, const hz::SceneView& View, co
     const uint32_t Backing = View.FrameIndex;
     Commands.BeginGpuTimestamp("Shadow Map");
     Commands.BeginRendering({ .depthAttachment = { .pTexture = &Depth,
-                                                   .loadAction = LoadActionClear,
-                                                   .storeAction = StoreActionStore,
+                                                   .loadAction = LOAD_ACTION_CLEAR,
+                                                   .storeAction = STORE_ACTION_STORE,
                                                    .ClearValue = { .Depth = 1 } } },
                             Draws.GetDependencies(ShadowFrames[Backing], View, &Draws.GetCommands(Backing, Draws.GetShadowCasterList())));
     Commands.SetPipeline(Pipeline);

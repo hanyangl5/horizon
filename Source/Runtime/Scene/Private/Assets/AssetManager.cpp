@@ -435,7 +435,7 @@ public:
             tableGarbage += meshes[index].submeshCount + meshes[index].vertexStreamCount;
             meshes[index] = { .id = { .index = index, .generation = asset.generation },
                               .indexSrv = mesh.GetIndexBuffer().GetSrvIndex(),
-                              .indexStride = mesh.GetIndexType() == IndexTypeUInt16 ? 2u : 4u,
+                              .indexStride = mesh.GetIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u,
                               .vertexStreamOffset = vertexStreams.Size(),
                               .vertexStreamCount = mesh.GetVertexBufferCount(),
                               .submeshOffset = submeshes.Size(),

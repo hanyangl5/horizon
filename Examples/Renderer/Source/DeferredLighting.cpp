@@ -30,8 +30,8 @@ static_assert(sizeof(DeferredLightingConstants) == 15 * sizeof(uint32_t));
 
 DeferredLighting::DeferredLighting(hz::RenderContext& Context)
 {
-    Pipeline = Context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
-                                                                            { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
+    Pipeline = Context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
+                                                                            { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
                                                                 .pFileName = "DeferredLighting.slang" },
                                                 .colorTargets = { { .Format = ColorFormat } },
                                                 .Name = "Renderer.DeferredLighting" });
@@ -66,7 +66,7 @@ void DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     // Keep graphics state active during GBV attachment-transition checks after DXR.
     Commands.SetPipeline(Pipeline);
     Commands.BeginRendering(
-        { .colorAttachments = { { .pTexture = &Color, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
+        { .colorAttachments = { { .pTexture = &Color, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
         Dependencies.Get());
     Commands.SetViewport(0, 0, (float)Color.GetWidth(), (float)Color.GetHeight());
     Commands.SetScissor(0, 0, Color.GetWidth(), Color.GetHeight());

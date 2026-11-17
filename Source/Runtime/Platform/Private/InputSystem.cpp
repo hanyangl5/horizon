@@ -158,7 +158,7 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     loadDesc.pFileName = pDesc->pJoystickTexture;
     loadDesc.ppTexture = &gVirtualJoystick->pTexture;
     // Textures representing color should be stored in SRGB or HDR Format
-    loadDesc.creationFlag = TextureCreationFlagSrgb;
+    loadDesc.creationFlag = TEXTURE_CREATION_FLAG_SRGB;
     addResource(&loadDesc, &token);
     waitForToken(&token);
 
@@ -172,16 +172,20 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     /************************************************************************/
     // States
     /************************************************************************/
-    SamplerDesc samplerDesc = { FILTER_LINEAR,          FILTER_LINEAR,          MIPMAP_MODE_NEAREST,
-                                AddressModeClampToEdge, AddressModeClampToEdge, AddressModeClampToEdge };
+    SamplerDesc samplerDesc = { FILTER_LINEAR,
+                                FILTER_LINEAR,
+                                MIPMAP_MODE_NEAREST,
+                                ADDRESS_MODE_CLAMP_TO_EDGE,
+                                ADDRESS_MODE_CLAMP_TO_EDGE,
+                                ADDRESS_MODE_CLAMP_TO_EDGE };
     addSampler(pRenderer, &samplerDesc, &gVirtualJoystick->pSampler);
     /************************************************************************/
     // Resources
     /************************************************************************/
     BufferLoadDesc vbDesc = {};
-    vbDesc.desc.Descriptors = DescriptorTypeVertexBuffer;
-    vbDesc.desc.MemoryUsage = MemoryUsageCpuToGpu;
-    vbDesc.desc.Flags = BufferCreationFlagPersistentMapBit;
+    vbDesc.desc.Descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+    vbDesc.desc.MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    vbDesc.desc.Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
     vbDesc.desc.Size = 128 * 4 * sizeof(float4);
     vbDesc.ppBuffer = &gVirtualJoystick->pMeshBuffer;
     addResource(&vbDesc, NULL);

@@ -92,7 +92,7 @@ typedef struct GpuCmdRing
 void addGPURingBuffer(Renderer* pRenderer, const BufferDesc* pBufferDesc, GPURingBuffer* pRingBuffer);
 
 void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBufferSize, GPURingBuffer* pRingBuffer,
-                             bool const ownMemory = false, ResourceMemoryUsage MemoryUsage = MemoryUsageCpuToGpu);
+                             bool const ownMemory = false, ResourceMemoryUsage MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU);
 void removeGPURingBuffer(GPURingBuffer* pRingBuffer);
 
 void resetGPURingBuffer(GPURingBuffer* pRingBuffer);

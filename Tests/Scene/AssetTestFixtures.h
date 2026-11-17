@@ -264,7 +264,7 @@ protected:
         EXPECT_EQ(WriteToStream(&stream, text, strlen(text)), strlen(text));
         CloseStream(&stream);
     }
-    void writeGeometry(IndexType indexType = IndexTypeUInt16, bool rendererLayout = false)
+    void writeGeometry(IndexType indexType = INDEX_TYPE_UINT16, bool rendererLayout = false)
     {
         Geometry geometry = {};
         geometry.drawArgCount = 1;
@@ -284,8 +284,8 @@ protected:
         const uint32_t normals[] = { 0x80008000, 0x80008000, 0x80008000 }, uvs[] = { 0, 0, 0 };
         const uint16_t indices16[] = { 0, 1, 2 };
         const uint32_t indices32[] = { 0, 1, 2 };
-        const void*    pIndices = indexType == IndexTypeUInt16 ? (const void*)indices16 : indices32;
-        const uint32_t indexBytes = indexType == IndexTypeUInt16 ? sizeof(indices16) : sizeof(indices32);
+        const void*    pIndices = indexType == INDEX_TYPE_UINT16 ? (const void*)indices16 : indices32;
+        const uint32_t indexBytes = indexType == INDEX_TYPE_UINT16 ? sizeof(indices16) : sizeof(indices32);
         const float    positions[] = { -1, 2, 3, 4, -5, 6, 0, 1, -2 };
         const uint32_t geometrySize = sizeof(geometry) + sizeof(Draw);
         const uint32_t dataSize = sizeof(data);

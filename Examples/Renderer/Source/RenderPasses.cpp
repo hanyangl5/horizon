@@ -41,8 +41,8 @@ GBuffer::GBuffer(hz::RenderContext& Context)
     Pipeline = Context.CreateGraphicsPipeline({
     .shaderDesc = {
         .stages = {
-            { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect", .Name = "Renderer.GeometryVS" },
-            { .stage = ShaderStageFrag, .pEntryPoint = "PSMain", .Name = "Renderer.GeometryPS" },
+            { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect", .Name = "Renderer.GeometryVS" },
+            { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain", .Name = "Renderer.GeometryPS" },
         },
         .pFileName = "Geometry.slang",
     },
@@ -73,14 +73,14 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const hz
     Cmd.BeginGpuTimestamp("Geometry");
     Cmd.BeginRendering({
         .colorAttachments =  {
-            { .pTexture = Textures[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .ClearValue = Black },
-            { .pTexture = Textures[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .ClearValue = Black },
-            { .pTexture = Textures[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .ClearValue = Black },
-            { .pTexture = Textures[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore, .ClearValue = Black },
+            { .pTexture = Textures[0], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .ClearValue = Black },
+            { .pTexture = Textures[1], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .ClearValue = Black },
+            { .pTexture = Textures[2], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .ClearValue = Black },
+            { .pTexture = Textures[3], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE, .ClearValue = Black },
         } ,
         .depthAttachment = { .pTexture = &Depth,
-                             .loadAction = LoadActionClear,
-                             .storeAction = StoreActionStore,
+                             .loadAction = LOAD_ACTION_CLEAR,
+                             .storeAction = STORE_ACTION_STORE,
                              .ClearValue = { .Depth = 1.0f } },
     }, Draws.GetDependencies(Frame, View, &Draws.GetCommands(View.FrameIndex, Draws.GetOpaqueList())));
     Cmd.SetViewport(0, 0, (float)Width, (float)Height);
@@ -257,16 +257,16 @@ static void ExecutePost(const hz::FrameGraphContext& Context, void* UserData)
 static hz::FrameGraphTexture ViewportTexture(hz::FrameGraph* Graph, hz::Format Format, const char* Name, bool RenderTarget,
                                              uint32_t SizeShift = 0, bool History = false)
 {
-    const DescriptorType Storage = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture);
-    return hz::AddFrameGraphTexture(Graph,
-                                    { .Texture = { .Format = Format,
-                                                   .StartState = RenderTarget ? ResourceStateRenderTarget : ResourceStateUnorderedAccess,
-                                                   .Descriptors = RenderTarget ? DescriptorTypeTexture : Storage,
-                                                   .Flags = TextureCreationFlagForce2D,
-                                                   .GetRenderTarget = RenderTarget,
-                                                   .Name = Name },
-                                      .SizeShift = SizeShift,
-                                      .History = History });
+    const DescriptorType Storage = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
+    return hz::AddFrameGraphTexture(
+        Graph, { .Texture = { .Format = Format,
+                              .StartState = RenderTarget ? RESOURCE_STATE_RENDER_TARGET : RESOURCE_STATE_UNORDERED_ACCESS,
+                              .Descriptors = RenderTarget ? DESCRIPTOR_TYPE_TEXTURE : Storage,
+                              .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                              .GetRenderTarget = RenderTarget,
+                              .Name = Name },
+                 .SizeShift = SizeShift,
+                 .History = History });
 }
 
 void RenderPasses::BuildGraph()
@@ -284,16 +284,16 @@ void RenderPasses::BuildGraph()
         T.GBuffer[Index] = ViewportTexture(G, GBufferFormats[Index], GBufferNames[Index], true);
     }
     T.Depth = hz::AddFrameGraphTexture(G, { .Texture = { .Format = DepthFormat,
-                                                         .StartState = ResourceStateDepthWrite,
-                                                         .Descriptors = DescriptorTypeTexture,
-                                                         .Flags = TextureCreationFlagForce2D,
+                                                         .StartState = RESOURCE_STATE_DEPTH_WRITE,
+                                                         .Descriptors = DESCRIPTOR_TYPE_TEXTURE,
+                                                         .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                                          .GetRenderTarget = true,
                                                          .Name = "Renderer.Depth" } });
     T.ShadowMap = hz::AddFrameGraphTexture(G, { .Texture = { .Width = ShadowMap::Resolution,
                                                              .Height = ShadowMap::Resolution,
                                                              .Format = ShadowMap::DepthFormat,
-                                                             .StartState = ResourceStateDepthWrite,
-                                                             .Descriptors = DescriptorTypeTexture,
+                                                             .StartState = RESOURCE_STATE_DEPTH_WRITE,
+                                                             .Descriptors = DESCRIPTOR_TYPE_TEXTURE,
                                                              .GetRenderTarget = true,
                                                              .Name = "Renderer.ShadowMap" } });
     T.Occlusion = ViewportTexture(G, ScreenSpaceAO::TargetFormat, "Renderer.SSAO", false);
@@ -306,30 +306,30 @@ void RenderPasses::BuildGraph()
     T.SceneColor = ViewportTexture(G, DeferredLighting::ColorFormat, "Renderer.DeferredLighting.Color", true);
     T.OITHeads = ViewportTexture(G, Transparency::HeadsFormat, "Renderer.OIT.Heads", false);
     T.TransparentColor = ViewportTexture(G, Transparency::ColorFormat, "Renderer.OIT.Resolved", false);
-    const DescriptorType RawStorage = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw);
+    const DescriptorType RawStorage = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW);
     // One fragment per pixel on average, as before.
     T.OITNodes = hz::AddFrameGraphBuffer(G, { .Buffer = { .StructStride = 4,
                                                           .Name = "Renderer.OIT.Nodes",
-                                                          .usage = MemoryUsageGpuOnly,
-                                                          .StartState = ResourceStateUnorderedAccess,
+                                                          .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                          .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                           .Descriptors = RawStorage },
                                               .BytesPerPixel = Transparency::NodeBytes });
     T.OITCounters = hz::AddFrameGraphBuffer(G, { .Buffer = { .Size = 16,
                                                              .ElementCount = 4,
                                                              .Name = "Renderer.OIT.Counters",
-                                                             .usage = MemoryUsageGpuOnly,
-                                                             .StartState = ResourceStateUnorderedAccess,
+                                                             .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                             .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                              .Descriptors = RawStorage } });
-    const DescriptorType Storage = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture);
+    const DescriptorType Storage = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
     for (uint32_t Level = 0; Level < PostEffectsTargets::LuminanceLevels; ++Level)
     {
         const uint32_t Size = PostEffectsTargets::MeteringSize >> Level;
         T.Luminance[Level] = hz::AddFrameGraphTexture(G, { .Texture = { .Width = Size ? Size : 1,
                                                                         .Height = Size ? Size : 1,
                                                                         .Format = PostEffects::LuminanceFormat,
-                                                                        .StartState = ResourceStateUnorderedAccess,
+                                                                        .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                                         .Descriptors = Storage,
-                                                                        .Flags = TextureCreationFlagForce2D,
+                                                                        .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                                                         .Name = "Renderer.HDR.LogLuminance" } });
     }
     // Bloom follows the render size so the glare keeps its screen-space radius; level 0 is half the viewport.
@@ -344,9 +344,9 @@ void RenderPasses::BuildGraph()
     T.AdaptedLuminance = hz::AddFrameGraphTexture(G, { .Texture = { .Width = 1,
                                                                     .Height = 1,
                                                                     .Format = PostEffects::AdaptedFormat,
-                                                                    .StartState = ResourceStateUnorderedAccess,
+                                                                    .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                                     .Descriptors = Storage,
-                                                                    .Flags = TextureCreationFlagForce2D,
+                                                                    .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                                                     .Name = "Renderer.HDR.AdaptedLuminance" },
                                                        .History = true });
     T.Backbuffer = hz::ImportFrameGraphTexture(G, { .Name = "Backbuffer", .Output = true });
@@ -433,7 +433,7 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     Graph = hz::InitFrameGraph(&Context);
     BuildGraph();
 
-    LinearSampler = Context.CreateSampler({ .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge });
+    LinearSampler = Context.CreateSampler({ .AddressU = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressV = ADDRESS_MODE_CLAMP_TO_EDGE });
     for (FrameConstantBuffer& ConstantBuffer : FrameConstants)
     {
         hz::GPUBuffer& Buffer = ConstantBuffer.Buffer;
@@ -441,10 +441,10 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
                                         .ElementCount = 1,
                                         .StructStride = sizeof(FrameData),
                                         .Name = "Renderer.Frame",
-                                        .usage = MemoryUsageCpuToGpu,
-                                        .StartState = ResourceStateShaderResource,
-                                        .Descriptors = DescriptorTypeBuffer,
-                                        .Flags = BufferCreationFlagPersistentMapBit });
+                                        .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                        .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                        .Descriptors = DESCRIPTOR_TYPE_BUFFER,
+                                        .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
         ASSERT(Buffer.IsValid());
     }
 }

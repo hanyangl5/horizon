@@ -3543,7 +3543,7 @@ void GetPathExtension(const char* path, char* output);
 bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
 }
 
-#define MipReduce(s, mip) (max(1u, (uint32_t)((s) >> (mip))))
+#define MIP_REDUCE(s, mip) (max(1u, (uint32_t)((s) >> (mip))))
 
 #define SAFE_FREE(x)        \
     if ((x) != nullptr)     \
@@ -3574,7 +3574,7 @@ extern PlatformParameters gPlatformParameters;
 struct ShaderByteCodeBuffer
 {
     // Make sure we don't stack overflow
-    static FORGE_CONSTEXPR const uint32_t kStackSize = 128u * Kilobyte;
+    static FORGE_CONSTEXPR const uint32_t kStackSize = 128u * TF_KB;
 
     // Stack memory, no need to deallocate it. Used first, if a shader is too big we allocate heap memory
     void*    pStackMemory;
@@ -3802,8 +3802,8 @@ static void materialLoadBinaryShader(Renderer* pRenderer, const MaterialDesc* pM
     const uint32_t shaderIds[MATERIAL_MAX_SHADER_STAGES] = { pShaderSet->vertIdx,   pShaderSet->fragIdx, pShaderSet->hullIdx,
                                                              pShaderSet->domainIdx, pShaderSet->geomIdx, pShaderSet->compIdx };
 
-    const ShaderStage pStages[MATERIAL_MAX_SHADER_STAGES] = { ShaderStageVert, ShaderStageFrag, ShaderStageHull,
-                                                              ShaderStageDomn, ShaderStageGeom, ShaderStageComp };
+    const ShaderStage pStages[MATERIAL_MAX_SHADER_STAGES] = { SHADER_STAGE_VERT, SHADER_STAGE_FRAG, SHADER_STAGE_HULL,
+                                                              SHADER_STAGE_DOMN, SHADER_STAGE_GEOM, SHADER_STAGE_COMP };
 
     BinaryShaderStageDesc* pStageDescriptors[MATERIAL_MAX_SHADER_STAGES] = {
         &pBinaryShaderDesc->vert,   &pBinaryShaderDesc->frag, &pBinaryShaderDesc->hull,
@@ -3858,49 +3858,49 @@ static inline bool IssueBufferCopyBarriers() { return true; } //-V524
 
 static inline bool IssueExplicitInitialStateBarrier() { return false; }
 
-ResourceLoaderDesc          gDefaultResourceLoaderDesc = { 8ull * Megabyte, 2, false };
+ResourceLoaderDesc          gDefaultResourceLoaderDesc = { 8ull * TF_MB, 2, false };
 /************************************************************************/
 // Surface Utils
 /************************************************************************/
 static inline ResourceState ResourceStartState(bool uav)
 {
     if (uav)
-        return ResourceStateUnorderedAccess;
+        return RESOURCE_STATE_UNORDERED_ACCESS;
     else
-        return ResourceStateShaderResource;
+        return RESOURCE_STATE_SHADER_RESOURCE;
 }
 
 static inline ResourceState ResourceStartState(const BufferDesc* pDesc)
 {
     // Host visible (Upload Heap)
-    if (pDesc->MemoryUsage == MemoryUsageCpuOnly || pDesc->MemoryUsage == MemoryUsageCpuToGpu)
+    if (pDesc->MemoryUsage == RESOURCE_MEMORY_USAGE_CPU_ONLY || pDesc->MemoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
     {
-        return ResourceStateGenericRead;
+        return RESOURCE_STATE_GENERIC_READ;
     }
     // Device Local (Default Heap)
-    else if (pDesc->MemoryUsage == MemoryUsageGpuOnly)
+    else if (pDesc->MemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
     {
         DescriptorType usage = (DescriptorType)pDesc->Descriptors;
-        ResourceState  ret = ResourceStateUndefined;
+        ResourceState  ret = RESOURCE_STATE_UNDEFINED;
 
         // Try to limit number of states used overall to avoid sync complexities
-        if (usage & DescriptorTypeRwBuffer)
+        if (usage & DESCRIPTOR_TYPE_RW_BUFFER)
         {
-            ret = ResourceStateUnorderedAccess;
+            ret = RESOURCE_STATE_UNORDERED_ACCESS;
         }
         else
         {
-            if (usage & (DescriptorTypeVertexBuffer | DescriptorTypeUniformBuffer))
+            if (usage & (DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER))
             {
-                ret |= ResourceStateVertexAndConstantBuffer;
+                ret |= RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
             }
-            if (usage & DescriptorTypeIndexBuffer)
+            if (usage & DESCRIPTOR_TYPE_INDEX_BUFFER)
             {
-                ret |= ResourceStateIndexBuffer;
+                ret |= RESOURCE_STATE_INDEX_BUFFER;
             }
-            if (usage & DescriptorTypeBuffer)
+            if (usage & DESCRIPTOR_TYPE_BUFFER)
             {
-                ret |= ResourceStateShaderResource;
+                ret |= RESOURCE_STATE_SHADER_RESOURCE;
             }
         }
 
@@ -3909,7 +3909,7 @@ static inline ResourceState ResourceStartState(const BufferDesc* pDesc)
     // Host Cached (Readback Heap)
     else
     {
-        return ResourceStateCopyDest;
+        return RESOURCE_STATE_COPY_DEST;
     }
 }
 
@@ -4166,8 +4166,8 @@ static MappedMemoryRange allocateUploadMemory(Renderer* pRenderer, uint64_t memo
     BufferDesc bufferDesc = {};
     bufferDesc.Size = memoryRequirement;
     bufferDesc.alignment = alignment;
-    bufferDesc.MemoryUsage = MemoryUsageCpuOnly;
-    bufferDesc.Flags = BufferCreationFlagPersistentMapBit;
+    bufferDesc.MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
+    bufferDesc.Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
     bufferDesc.Name = "temporary staging buffer";
     addBuffer(pRenderer, &bufferDesc, &buffer);
     return { (uint8_t*)buffer->pCpuMappedAddress, buffer, 0, memoryRequirement, MAPPED_RANGE_FLAG_TEMP_BUFFER };
@@ -4256,7 +4256,7 @@ static void waitCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine)
 
     FenceStatus status;
     getFenceStatus(pRenderer, resourceSet.pFence, &status);
-    if (FenceStatusIncomplete == status)
+    if (FENCE_STATUS_INCOMPLETE == status)
     {
         waitForFences(pRenderer, 1, &resourceSet.pFence);
     }
@@ -4265,7 +4265,7 @@ static void waitCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine)
     if (StrictQueueTypeBarriers() && resourceSet.pPostCopyBarrierFence)
     {
         getFenceStatus(pRenderer, resourceSet.pPostCopyBarrierFence, &status);
-        if (FenceStatusIncomplete == status)
+        if (FENCE_STATUS_INCOMPLETE == status)
         {
             waitForFences(pRenderer, 1, &resourceSet.pPostCopyBarrierFence);
         }
@@ -4297,7 +4297,8 @@ static Cmd* acquireCmd(CopyEngine* pCopyEngine)
         resetCopyEngineSet(pResourceLoader->pRenderer, pCopyEngine);
         resetCmdPool(pResourceLoader->pRenderer, resourceSet.pCmdPool);
         beginCmd(resourceSet.pCmd);
-        cmdBeginDebugMarker(resourceSet.pCmd, 1.0f, 0.5f, 0.1f, QueueTypeTransfer == pCopyEngine->pQueue->Type ? "Copy Cmd" : "Upload Cmd");
+        cmdBeginDebugMarker(resourceSet.pCmd, 1.0f, 0.5f, 0.1f,
+                            QUEUE_TYPE_TRANSFER == pCopyEngine->pQueue->Type ? "Copy Cmd" : "Upload Cmd");
         pCopyEngine->isRecording = true;
     }
     return resourceSet.pCmd;
@@ -4305,7 +4306,7 @@ static Cmd* acquireCmd(CopyEngine* pCopyEngine)
 
 static Cmd* acquirePostCopyBarrierCmd(CopyEngine* pCopyEngine)
 {
-    if (!StrictQueueTypeBarriers() || pCopyEngine->pQueue->Type != QueueTypeTransfer)
+    if (!StrictQueueTypeBarriers() || pCopyEngine->pQueue->Type != QUEUE_TYPE_TRANSFER)
     {
         return acquireCmd(pCopyEngine);
     }
@@ -4411,13 +4412,13 @@ static UploadFunctionResult UpdateBuffer(Renderer* pRenderer, CopyEngine* pCopyE
 {
     UNREF_PARAM(pRenderer);
     Buffer* pBuffer = bufUpdateDesc.pBuffer;
-    ASSERT(MemoryUsageGpuOnly == pBuffer->MemoryUsage);
+    ASSERT(RESOURCE_MEMORY_USAGE_GPU_ONLY == pBuffer->MemoryUsage);
 
     Cmd* pCmd = acquireCmd(pCopyEngine);
 
-    if (IssueBufferCopyBarriers() && bufUpdateDesc.currentState != ResourceStateCopyDest)
+    if (IssueBufferCopyBarriers() && bufUpdateDesc.currentState != RESOURCE_STATE_COPY_DEST)
     {
-        BufferBarrier Barrier = { bufUpdateDesc.pBuffer, bufUpdateDesc.currentState, ResourceStateCopyDest };
+        BufferBarrier Barrier = { bufUpdateDesc.pBuffer, bufUpdateDesc.currentState, RESOURCE_STATE_COPY_DEST };
         cmdResourceBarrier(pCmd, 1, &Barrier, 0, NULL, 0, NULL);
     }
 
@@ -4425,9 +4426,9 @@ static UploadFunctionResult UpdateBuffer(Renderer* pRenderer, CopyEngine* pCopyE
     cmdUpdateBuffer(pCmd, pBuffer, bufUpdateDesc.dstOffset, range.pBuffer, range.offset,
                     bufUpdateDesc.Size ? bufUpdateDesc.Size : range.Size);
 
-    if (IssueBufferCopyBarriers() && bufUpdateDesc.currentState != ResourceStateCopyDest)
+    if (IssueBufferCopyBarriers() && bufUpdateDesc.currentState != RESOURCE_STATE_COPY_DEST)
     {
-        BufferBarrier Barrier = { bufUpdateDesc.pBuffer, ResourceStateCopyDest, bufUpdateDesc.currentState };
+        BufferBarrier Barrier = { bufUpdateDesc.pBuffer, RESOURCE_STATE_COPY_DEST, bufUpdateDesc.currentState };
         cmdResourceBarrier(pCmd, 1, &Barrier, 0, NULL, 0, NULL);
     }
 
@@ -4438,7 +4439,7 @@ static UploadFunctionResult loadBuffer(Renderer* pRenderer, CopyEngine* pCopyEng
 {
     const BufferLoadDescInternal& loadDesc = updateRequest.bufLoadDesc;
     BufferUpdateDesc              updateDesc = { loadDesc.pBuffer };
-    updateDesc.currentState = ResourceStateCopyDest;
+    updateDesc.currentState = RESOURCE_STATE_COPY_DEST;
     MappedMemoryRange range = {};
     bool              mapped = false;
     if (loadDesc.pSrcBuffer)
@@ -4488,9 +4489,9 @@ static UploadFunctionResult loadBuffer(Renderer* pRenderer, CopyEngine* pCopyEng
     UploadFunctionResult res = UpdateBuffer(pRenderer, pCopyEngine, updateDesc);
     if (UPLOAD_FUNCTION_RESULT_COMPLETED == res)
     {
-        if (IssueBufferCopyBarriers() && loadDesc.StartState != ResourceStateCopyDest)
+        if (IssueBufferCopyBarriers() && loadDesc.StartState != RESOURCE_STATE_COPY_DEST)
         {
-            BufferBarrier Barrier = { loadDesc.pBuffer, ResourceStateCopyDest, loadDesc.StartState };
+            BufferBarrier Barrier = { loadDesc.pBuffer, RESOURCE_STATE_COPY_DEST, loadDesc.StartState };
             Cmd*          cmd = acquirePostCopyBarrierCmd(pCopyEngine);
             cmdResourceBarrier(cmd, 1, &Barrier, 0, NULL, 0, NULL);
         }
@@ -4518,9 +4519,9 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
     uint64_t          offset = 0;
 
     Cmd* cmd = texUpdateDesc.pCmd ? texUpdateDesc.pCmd : acquireCmd(pCopyEngine);
-    if (IssueTextureCopyBarriers() && texUpdateDesc.currentState != ResourceStateCopyDest)
+    if (IssueTextureCopyBarriers() && texUpdateDesc.currentState != RESOURCE_STATE_COPY_DEST)
     {
-        TextureBarrier Barrier = { texture, texUpdateDesc.currentState, ResourceStateCopyDest };
+        TextureBarrier Barrier = { texture, texUpdateDesc.currentState, RESOURCE_STATE_COPY_DEST };
         cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
     }
 
@@ -4580,9 +4581,9 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                 uint32_t mip = texUpdateDesc.mipsAfterSlice ? j : i;
                 uint32_t layer = texUpdateDesc.mipsAfterSlice ? i : j;
 
-                uint32_t w = MipReduce(texture->Width, mip);
-                uint32_t h = MipReduce(texture->Height, mip);
-                uint32_t d = MipReduce(texture->Depth, mip);
+                uint32_t w = MIP_REDUCE(texture->Width, mip);
+                uint32_t h = MIP_REDUCE(texture->Height, mip);
+                uint32_t d = MIP_REDUCE(texture->Depth, mip);
 
                 uint32_t numBytes = 0;
                 uint32_t rowBytes = 0;
@@ -4632,9 +4633,9 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
         }
     }
 
-    if (IssueTextureCopyBarriers() && texUpdateDesc.currentState != ResourceStateCopyDest)
+    if (IssueTextureCopyBarriers() && texUpdateDesc.currentState != RESOURCE_STATE_COPY_DEST)
     {
-        TextureBarrier Barrier = { texture, ResourceStateCopyDest, texUpdateDesc.currentState };
+        TextureBarrier Barrier = { texture, RESOURCE_STATE_COPY_DEST, texUpdateDesc.currentState };
         cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
     }
 
@@ -4658,7 +4659,7 @@ static UploadFunctionResult LoadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         if (IssueExplicitInitialStateBarrier())
         {
             Cmd*           cmd = acquireCmd(pCopyEngine);
-            TextureBarrier Barrier = { texture, ResourceStateUndefined, ResourceStateCopyDest };
+            TextureBarrier Barrier = { texture, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_COPY_DEST };
             cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
         }
 
@@ -4676,12 +4677,12 @@ static UploadFunctionResult LoadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         updateDesc.MipLevels = texture->MipLevels;
         updateDesc.pTexture = texture;
         updateDesc.range = range;
-        updateDesc.currentState = ResourceStateCopyDest;
+        updateDesc.currentState = RESOURCE_STATE_COPY_DEST;
         updateTexture(pRenderer, pCopyEngine, updateDesc);
 
-        if (IssueTextureCopyBarriers() && pTextureDesc->StartState != ResourceStateCopyDest)
+        if (IssueTextureCopyBarriers() && pTextureDesc->StartState != RESOURCE_STATE_COPY_DEST)
         {
-            TextureBarrier Barrier = { texture, ResourceStateCopyDest, pTextureDesc->StartState };
+            TextureBarrier Barrier = { texture, RESOURCE_STATE_COPY_DEST, pTextureDesc->StartState };
             Cmd*           cmd = acquirePostCopyBarrierCmd(pCopyEngine);
             cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
         }
@@ -4689,8 +4690,8 @@ static UploadFunctionResult LoadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         return UPLOAD_FUNCTION_RESULT_COMPLETED;
     }
 
-    ASSERT((((pTextureDesc->Flags & TextureCreationFlagSrgb) == 0) || (pTextureDesc->pFileName != NULL)) &&
-           "Only textures loaded from file can have TextureCreationFlagSrgb. "
+    ASSERT((((pTextureDesc->Flags & TEXTURE_CREATION_FLAG_SRGB) == 0) || (pTextureDesc->pFileName != NULL)) &&
+           "Only textures loaded from file can have TEXTURE_CREATION_FLAG_SRGB. "
            "Please change format of the provided texture if you need srgb format.");
 
     if (pTextureDesc->pFileName)
@@ -4772,9 +4773,9 @@ static UploadFunctionResult LoadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                 textureDesc.Format = hz::Format::R8G8_UNORM;
             }
             // Copy queues implicitly promote from COMMON and decay back after submission.
-            textureDesc.StartState = pCopyEngine->pQueue->Type == QueueTypeTransfer ? ResourceStateCommon : ResourceStateCopyDest;
+            textureDesc.StartState = pCopyEngine->pQueue->Type == QUEUE_TYPE_TRANSFER ? RESOURCE_STATE_COMMON : RESOURCE_STATE_COPY_DEST;
 
-            if (pTextureDesc->Flags & TextureCreationFlagSrgb)
+            if (pTextureDesc->Flags & TEXTURE_CREATION_FLAG_SRGB)
             {
                 hz::Format srgbFormat = (hz::Format)TinyImageFormat_ToSRGB((TinyImageFormat)textureDesc.Format);
                 if (srgbFormat != hz::Format::UNDEFINED)
@@ -4796,11 +4797,11 @@ static UploadFunctionResult LoadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             updateDesc.MipLevels = textureDesc.MipLevels;
             updateDesc.baseArrayLayer = 0;
             updateDesc.layerCount = textureDesc.ArraySize;
-            updateDesc.currentState = ResourceStateCopyDest;
+            updateDesc.currentState = RESOURCE_STATE_COPY_DEST;
 
             if (IssueExplicitInitialStateBarrier())
             {
-                TextureBarrier Barrier = { updateDesc.pTexture, ResourceStateUndefined, ResourceStateCopyDest };
+                TextureBarrier Barrier = { updateDesc.pTexture, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_COPY_DEST };
                 Cmd*           cmd = acquireCmd(pCopyEngine);
                 cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
             }
@@ -4810,8 +4811,9 @@ static UploadFunctionResult LoadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             if (IssueTextureCopyBarriers() && UPLOAD_FUNCTION_RESULT_COMPLETED == res)
             {
                 TextureBarrier Barrier = { *pTextureDesc->ppTexture,
-                                           pCopyEngine->pQueue->Type == QueueTypeTransfer ? ResourceStateCommon : ResourceStateCopyDest,
-                                           ResourceStateShaderResource };
+                                           pCopyEngine->pQueue->Type == QUEUE_TYPE_TRANSFER ? RESOURCE_STATE_COMMON
+                                                                                            : RESOURCE_STATE_COPY_DEST,
+                                           RESOURCE_STATE_SHADER_RESOURCE };
                 Cmd*           cmd = acquirePostCopyBarrierCmd(pCopyEngine);
                 cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
             }
@@ -4840,7 +4842,7 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
     {
         if (pDesc->pGeometryBufferLayoutDesc)
         {
-            *indexStride = pDesc->pGeometryBufferLayoutDesc->indexType == IndexTypeUInt16 ? sizeof(uint16_t) : sizeof(uint32_t);
+            *indexStride = pDesc->pGeometryBufferLayoutDesc->indexType == INDEX_TYPE_UINT16 ? sizeof(uint16_t) : sizeof(uint32_t);
             indexBufferSize = *indexStride * geom->indexCount;
         }
 
@@ -4852,17 +4854,18 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
     else
     {
         BufferDesc loadDesc = {};
-        loadDesc.Descriptors = DescriptorTypeIndexBuffer | (structuredBuffers ? (DescriptorTypeBuffer | DescriptorTypeRwBuffer)
-                                                                              : (DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw));
+        loadDesc.Descriptors =
+            DESCRIPTOR_TYPE_INDEX_BUFFER | (structuredBuffers ? (DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER)
+                                                              : (DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW));
         loadDesc.Flags |= (pDesc->Flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
-                              ? (BufferCreationFlagShaderDeviceAddress | BufferCreationFlagAccelerationStructureBuildInput)
-                              : BufferCreationFlagNone;
+                              ? (BUFFER_CREATION_FLAG_SHADER_DEVICE_ADDRESS | BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT)
+                              : BUFFER_CREATION_FLAG_NONE;
         // RAW loads read 32-bit words, including an odd final 16-bit index.
         loadDesc.Size = structuredBuffers ? indexBufferSize : round_up(indexBufferSize, (uint32_t)sizeof(uint32_t));
         loadDesc.ElementCount = (uint32_t)(loadDesc.Size / (structuredBuffers ? *indexStride : sizeof(uint32_t)));
         loadDesc.StructStride = *indexStride;
-        loadDesc.MemoryUsage = MemoryUsageGpuOnly;
-        loadDesc.StartState = gUma ? gIndexBufferState : ResourceStateCopyDest;
+        loadDesc.MemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+        loadDesc.StartState = gUma ? gIndexBufferState : RESOURCE_STATE_COPY_DEST;
         addBuffer(pRenderer, &loadDesc, &geom->pIndexBuffer);
         indexUpdateDesc->pBuffer = geom->pIndexBuffer;
         indexUpdateDesc->dstOffset = 0;
@@ -4901,17 +4904,18 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
         {
             BufferDesc vertexBufferDesc = {};
             vertexBufferDesc.Descriptors =
-                DescriptorTypeVertexBuffer | (structuredBuffers ? (DescriptorTypeBuffer | DescriptorTypeRwBuffer)
-                                                                : (DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw));
-            vertexBufferDesc.Flags |= (pDesc->Flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
-                                          ? (BufferCreationFlagShaderDeviceAddress | BufferCreationFlagAccelerationStructureBuildInput)
-                                          : BufferCreationFlagNone;
+                DESCRIPTOR_TYPE_VERTEX_BUFFER | (structuredBuffers ? (DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER)
+                                                                   : (DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW));
+            vertexBufferDesc.Flags |=
+                (pDesc->Flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
+                    ? (BUFFER_CREATION_FLAG_SHADER_DEVICE_ADDRESS | BUFFER_CREATION_FLAG_ACCELERATION_STRUCTURE_BUILD_INPUT)
+                    : BUFFER_CREATION_FLAG_NONE;
             vertexBufferDesc.Size = Size;
             vertexBufferDesc.ElementCount =
                 (uint32_t)(vertexBufferDesc.Size / (structuredBuffers ? geom->vertexStrides[i] : sizeof(uint32_t)));
             vertexBufferDesc.StructStride = geom->vertexStrides[i];
-            vertexBufferDesc.MemoryUsage = MemoryUsageGpuOnly;
-            vertexBufferDesc.StartState = gUma ? gVertexBufferState : ResourceStateCopyDest;
+            vertexBufferDesc.MemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+            vertexBufferDesc.StartState = gUma ? gVertexBufferState : RESOURCE_STATE_COPY_DEST;
             vertexBufferDesc.Name = "VertexBuffer";
             addBuffer(pRenderer, &vertexBufferDesc, &geom->pVertexBuffers[bufferCounter]);
 
@@ -5018,7 +5022,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     Geometry*     geom = reader.pGeometry;
     GeometryData* geomData = reader.Data;
     geomData->pShadow = reader.pShadow;
-    const uint32_t indexStride = geom->indexType == IndexTypeUInt16 ? sizeof(uint16_t) : sizeof(uint32_t);
+    const uint32_t indexStride = geom->indexType == INDEX_TYPE_UINT16 ? sizeof(uint16_t) : sizeof(uint32_t);
     uint64_t       requiredShadowSize = sizeof(GeometryData::ShadowData) + (uint64_t)geom->indexCount * indexStride;
     for (uint32_t i = 0; i < MAX_SEMANTICS; ++i)
     {
@@ -5031,7 +5035,7 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     }
     const uint64_t jointBytes =
         round_up((uint64_t)geomData->jointCount * sizeof(Matrix4), 16) + round_up((uint64_t)geomData->jointCount * sizeof(uint32_t), 16);
-    if (!geom->vertexCount || !geom->indexCount || geom->indexType > IndexTypeUInt16 || requiredShadowSize > shadowSize ||
+    if (!geom->vertexCount || !geom->indexCount || geom->indexType > INDEX_TYPE_UINT16 || requiredShadowSize > shadowSize ||
         sizeof(Geometry) + (uint64_t)geom->drawArgCount * sizeof(IndirectDrawIndexArguments) > geomSize ||
         sizeof(GeometryData) + jointBytes + geomData->userDataSize > geomDataSize)
     {
@@ -5256,7 +5260,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 
     if (!gUma || (indexUpdateDesc.pMappedData && !indexUpdateDesc.pBuffer->pCpuMappedAddress))
     {
-        indexUpdateDesc.currentState = gUma ? indexUpdateDesc.currentState : ResourceStateCopyDest;
+        indexUpdateDesc.currentState = gUma ? indexUpdateDesc.currentState : RESOURCE_STATE_COPY_DEST;
         indexUpdateDesc.internal.mappedRange = allocateStagingMemory(pCopyEngine, indexUpdateDesc.Size, RESOURCE_BUFFER_ALIGNMENT);
         ASSERT(indexUpdateDesc.pMappedData);
         memcpy(indexUpdateDesc.internal.mappedRange.Data, indexUpdateDesc.pMappedData, indexUpdateDesc.Size);
@@ -5269,7 +5273,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
         uploadResult = UpdateBuffer(pRenderer, pCopyEngine, indexUpdateDesc);
     }
 
-    barriers[barrierCount++] = { indexUpdateDesc.pBuffer, ResourceStateCopyDest, gIndexBufferState };
+    barriers[barrierCount++] = { indexUpdateDesc.pBuffer, RESOURCE_STATE_COPY_DEST, gIndexBufferState };
 
     for (uint32_t i = 0; i < MAX_VERTEX_BINDINGS; ++i)
     {
@@ -5277,7 +5281,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
         {
             if (!gUma || (vertexUpdateDesc[i].pMappedData && !vertexUpdateDesc[i].pBuffer->pCpuMappedAddress))
             {
-                vertexUpdateDesc[i].currentState = gUma ? vertexUpdateDesc[i].currentState : ResourceStateCopyDest;
+                vertexUpdateDesc[i].currentState = gUma ? vertexUpdateDesc[i].currentState : RESOURCE_STATE_COPY_DEST;
                 vertexUpdateDesc[i].internal.mappedRange =
                     allocateStagingMemory(pCopyEngine, vertexUpdateDesc[i].Size, RESOURCE_BUFFER_ALIGNMENT);
                 ASSERT(vertexUpdateDesc[i].pMappedData);
@@ -5290,7 +5294,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
                 vertexUpdateDesc[i].pMappedData = vertexUpdateDesc[i].internal.mappedRange.Data;
                 uploadResult = UpdateBuffer(pRenderer, pCopyEngine, vertexUpdateDesc[i]);
             }
-            barriers[barrierCount++] = { vertexUpdateDesc[i].pBuffer, ResourceStateCopyDest, gVertexBufferState };
+            barriers[barrierCount++] = { vertexUpdateDesc[i].pBuffer, RESOURCE_STATE_COPY_DEST, gVertexBufferState };
         }
     }
 
@@ -5314,7 +5318,7 @@ static UploadFunctionResult CopyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
     if (pTextureCopy.pWaitSemaphore)
         arrpush(pCopyEngine->waitSemaphores, pTextureCopy.pWaitSemaphore);
 
-    TextureBarrier Barrier = { texture, pTextureCopy.textureState, ResourceStateCopySource };
+    TextureBarrier Barrier = { texture, pTextureCopy.textureState, RESOURCE_STATE_COPY_SOURCE };
     Barrier.acquire = 1;
     Barrier.QueueType = pTextureCopy.QueueType;
     cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
@@ -5341,7 +5345,7 @@ static UploadFunctionResult CopyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
     subresourceDesc.slicePitch = subSlicePitch;
     cmdCopySubresource(cmd, pTextureCopy.pBuffer, pTextureCopy.pTexture, &subresourceDesc);
 
-    Barrier = { texture, ResourceStateCopySource, pTextureCopy.textureState };
+    Barrier = { texture, RESOURCE_STATE_COPY_SOURCE, pTextureCopy.textureState };
     Barrier.Release = 1;
     Barrier.QueueType = pTextureCopy.QueueType;
     cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
@@ -5537,14 +5541,14 @@ static void initResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, R
 
     CopyEngineDesc desc = {};
     desc.bufferCount = pLoader->desc.bufferCount;
-    desc.QueueType = QueueTypeGraphics;
+    desc.QueueType = QUEUE_TYPE_GRAPHICS;
     desc.Size = pLoader->desc.bufferSize;
     desc.pQueueName = "UPLOAD";
     setupCopyEngine(pLoader->pRenderer, &desc, &pLoader->uploadEngine);
 
     desc = {};
     desc.bufferCount = pLoader->desc.bufferCount;
-    desc.QueueType = QueueTypeTransfer;
+    desc.QueueType = QUEUE_TYPE_TRANSFER;
     desc.Size = pLoader->desc.bufferSize;
     desc.pQueueName = "COPY";
     setupCopyEngine(pLoader->pRenderer, &desc, &pLoader->copyEngine);
@@ -5693,7 +5697,7 @@ static void queueTextureBarrier(ResourceLoader* pLoader, Texture* pTexture, Reso
 
     SyncToken t = tfrg_atomic64_add_relaxed(&pLoader->tokenCounter, 1) + 1;
 
-    arrpush(pLoader->requestQueue, UpdateRequest(TextureBarrier{ pTexture, ResourceStateUndefined, state }));
+    arrpush(pLoader->requestQueue, UpdateRequest(TextureBarrier{ pTexture, RESOURCE_STATE_UNDEFINED, state }));
     UpdateRequest* pLastRequest = arrback(pLoader->requestQueue);
     if (pLastRequest)
         pLastRequest->waitIndex = t;
@@ -6274,7 +6278,7 @@ uint32_t addMaterial(const char* pMaterialFileName, Material** pOutMaterial, Syn
                 desc.pFileName = pMaterialDesc->pTextureNames[pTextureSet->pTextureIdxs[j]];
                 desc.ppTexture = &pLib->ppMaterialTextures[textureIndex];
                 if (pMaterialDesc->pTextureFlags[j] & MaterialDesc::TextureFlags::SRGB)
-                    desc.creationFlag |= TextureCreationFlagSrgb;
+                    desc.creationFlag |= TEXTURE_CREATION_FLAG_SRGB;
                 addResource(&desc, &token);
 #ifdef TARGET_IOS
                 // Wait here to prevent overloading the staging buffer on iOS.
@@ -6445,7 +6449,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
     }
 
     ResourceState StartState = pBufferDesc->desc.StartState;
-    if (MemoryUsageGpuOnly == pBufferDesc->desc.MemoryUsage && !pBufferDesc->desc.StartState)
+    if (RESOURCE_MEMORY_USAGE_GPU_ONLY == pBufferDesc->desc.MemoryUsage && !pBufferDesc->desc.StartState)
     {
         StartState = ResourceStartState(&pBufferDesc->desc);
         LOADER_LOGF(Warning, "Buffer start state not provided. Determined the start state as (%u) based on the provided BufferDesc",
@@ -6454,11 +6458,11 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
 
     Renderer*  pRenderer = pResourceLoader->pRenderer;
     const bool Update = pBufferDesc->Data || pBufferDesc->forceReset;
-    const bool gpuUpdate = pBufferDesc->desc.MemoryUsage == MemoryUsageGpuOnly && Update && !gUma;
+    const bool gpuUpdate = pBufferDesc->desc.MemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY && Update && !gUma;
 
     if (gpuUpdate)
     {
-        pBufferDesc->desc.StartState = ResourceStateCopyDest;
+        pBufferDesc->desc.StartState = RESOURCE_STATE_COPY_DEST;
     }
     else
     {
@@ -6476,7 +6480,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
         loadDesc.pBuffer = *pBufferDesc->ppBuffer;
         loadDesc.Data = pBufferDesc->Data;
         loadDesc.dataSize = bufferSize;
-        if (gpuUpdate && MemoryUsageGpuOnly == loadDesc.pBuffer->MemoryUsage)
+        if (gpuUpdate && RESOURCE_MEMORY_USAGE_GPU_ONLY == loadDesc.pBuffer->MemoryUsage)
         {
             loadDesc.pSrcBuffer = pBufferDesc->pSrcBuffer;
             loadDesc.srcOffset = pBufferDesc->srcOffset;
@@ -6511,7 +6515,7 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
         if (pTextureDesc->forceReset)
         {
             // If we are going to mem zero using staging buffer Set start state to copy dest to avoid one Barrier in the beginning
-            textureDesc.StartState = ResourceStateCopyDest;
+            textureDesc.StartState = RESOURCE_STATE_COPY_DEST;
         }
 #endif
         // If texture is supposed to be filled later (UAV / Update later / ...) proceed with the StartState provided by the user in the
@@ -6533,9 +6537,9 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
         {
             ResourceState StartState = pTextureDesc->pDesc->StartState;
             // Check whether this is required (user specified a state other than undefined / common)
-            if (StartState == ResourceStateUndefined || StartState == ResourceStateCommon) //-V560
+            if (StartState == RESOURCE_STATE_UNDEFINED || StartState == RESOURCE_STATE_COMMON) //-V560
             {
-                StartState = ResourceStartState(pTextureDesc->pDesc->Descriptors & DescriptorTypeRwTexture);
+                StartState = ResourceStartState(pTextureDesc->pDesc->Descriptors & DESCRIPTOR_TYPE_RW_TEXTURE);
             }
             queueTextureBarrier(pResourceLoader, *pTextureDesc->ppTexture, StartState, token);
         }
@@ -6677,7 +6681,7 @@ static void removeBufferChunkAllocator(BufferChunkAllocator* pBuffer)
 
 void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
 {
-    DescriptorType Flags = DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw;
+    DescriptorType Flags = DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW;
 
     GeometryBuffer* pBuffer = (GeometryBuffer*)MemCallocate(1, sizeof *pBuffer);
 
@@ -6693,10 +6697,10 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
     Buffer* pIndexBuffer = NULL;
     Buffer* pVertexBuffer = NULL;
 
-    loadDesc.desc.MemoryUsage = MemoryUsageGpuOnly;
+    loadDesc.desc.MemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
     loadDesc.desc.Size = pDesc->indicesSize;
     loadDesc.ppBuffer = &pIndexBuffer;
-    loadDesc.desc.Descriptors = DescriptorTypeIndexBuffer | Flags;
+    loadDesc.desc.Descriptors = DESCRIPTOR_TYPE_INDEX_BUFFER | Flags;
     loadDesc.desc.StructStride = sizeof(uint32_t);
     loadDesc.desc.ElementCount = (uint32_t)(loadDesc.desc.Size / loadDesc.desc.StructStride);
     loadDesc.desc.StartState = gUma ? gIndexBufferState : pDesc->StartState;
@@ -6714,7 +6718,7 @@ void addGeometryBuffer(GeometryBufferLoadDesc* pDesc)
 
         loadDesc.desc.Size = pDesc->verticesSizes[i];
         loadDesc.ppBuffer = &pVertexBuffer;
-        loadDesc.desc.Descriptors = DescriptorTypeVertexBuffer | Flags;
+        loadDesc.desc.Descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | Flags;
         loadDesc.desc.StructStride = sizeof(uint32_t);
         loadDesc.desc.ElementCount = (uint32_t)(loadDesc.desc.Size / loadDesc.desc.StructStride);
         loadDesc.desc.StartState = gUma ? gVertexBufferState : pDesc->StartState;
@@ -6928,7 +6932,7 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
     ASSERT(pBufferUpdate->dstOffset + Size <= pBuffer->Size);
 
     ResourceMemoryUsage MemoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->MemoryUsage;
-    if (gUma || MemoryUsage != MemoryUsageGpuOnly)
+    if (gUma || MemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
     {
         ASSERTMSG(!pBufferUpdate->pSrcBuffer, "No point in staging buffer when we are directly writing into dst buffer. "
                                               "If this is not a GPU_ONLY buffer you can use use isUma() to handle this case, no need to "
@@ -6978,7 +6982,7 @@ void endUpdateResource(BufferUpdateDesc* pBufferUpdate)
     }
 
     ResourceMemoryUsage MemoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->MemoryUsage;
-    if (!gUma && MemoryUsage == MemoryUsageGpuOnly)
+    if (!gUma && MemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
     {
         MutexLock   lock(pResourceLoader->uploadEngineMutex);
         CopyEngine* pCopyEngine = &pResourceLoader->uploadEngine;
@@ -6998,7 +7002,7 @@ TextureSubresourceUpdate TextureUpdateDesc::GetSubresourceUpdateDesc(uint32_t mi
     Renderer*                pRenderer = pResourceLoader->pRenderer;
     const uint32_t           sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
 
-    bool success = util_get_surface_info(MipReduce(texture->Width, mip), MipReduce(texture->Height, mip), fmt, &ret.srcSliceStride,
+    bool success = util_get_surface_info(MIP_REDUCE(texture->Width, mip), MIP_REDUCE(texture->Height, mip), fmt, &ret.srcSliceStride,
                                          &ret.srcRowStride, &ret.rowCount);
     ASSERT(success);
     UNREF_PARAM(success);
@@ -7012,10 +7016,10 @@ TextureSubresourceUpdate TextureUpdateDesc::GetSubresourceUpdateDesc(uint32_t mi
         uint32_t srcSliceStride = 0;
         uint32_t srcRowStride = 0;
         uint32_t rowCount = 0;
-        success = util_get_surface_info(MipReduce(texture->Width, i), MipReduce(texture->Height, i), fmt, &srcSliceStride, &srcRowStride,
+        success = util_get_surface_info(MIP_REDUCE(texture->Width, i), MIP_REDUCE(texture->Height, i), fmt, &srcSliceStride, &srcRowStride,
                                         &rowCount);
         ASSERT(success);
-        uint32_t d = MipReduce(texture->Depth, i);
+        uint32_t d = MIP_REDUCE(texture->Depth, i);
 
         uint32_t dstRowStride = round_up(srcRowStride, util_get_texture_row_alignment(pRenderer));
         uint32_t dstSliceStride = round_up(dstRowStride * rowCount, sliceAlignment);
@@ -7058,10 +7062,10 @@ void beginUpdateResource(TextureUpdateDesc* pTextureUpdate)
         uint32_t srcSliceStride = 0;
         uint32_t srcRowStride = 0;
         uint32_t rowCount = 0;
-        bool     success = util_get_surface_info(MipReduce(texture->Width, mip), MipReduce(texture->Height, mip), fmt, &srcSliceStride,
+        bool     success = util_get_surface_info(MIP_REDUCE(texture->Width, mip), MIP_REDUCE(texture->Height, mip), fmt, &srcSliceStride,
                                                  &srcRowStride, &rowCount);
         ASSERT(success);
-        uint32_t d = MipReduce(texture->Depth, mip);
+        uint32_t d = MIP_REDUCE(texture->Depth, mip);
 
         uint32_t dstRowStride = round_up(srcRowStride, util_get_texture_row_alignment(pRenderer));
         uint32_t dstSliceStride = round_up(dstRowStride * rowCount, sliceAlignment);
@@ -7262,32 +7266,32 @@ static bool find_shader_stage(const char* extension, BinaryShaderDesc* pBinaryDe
     if (stricmp(extension, "vert") == 0)
     {
         *pOutStage = &pBinaryDesc->vert;
-        *pStage = ShaderStageVert;
+        *pStage = SHADER_STAGE_VERT;
     }
     else if (stricmp(extension, "frag") == 0)
     {
         *pOutStage = &pBinaryDesc->frag;
-        *pStage = ShaderStageFrag;
+        *pStage = SHADER_STAGE_FRAG;
     }
     else if (stricmp(extension, "tesc") == 0)
     {
         *pOutStage = &pBinaryDesc->hull;
-        *pStage = ShaderStageHull;
+        *pStage = SHADER_STAGE_HULL;
     }
     else if (stricmp(extension, "tese") == 0)
     {
         *pOutStage = &pBinaryDesc->domain;
-        *pStage = ShaderStageDomn;
+        *pStage = SHADER_STAGE_DOMN;
     }
     else if (stricmp(extension, "geom") == 0)
     {
         *pOutStage = &pBinaryDesc->geom;
-        *pStage = ShaderStageGeom;
+        *pStage = SHADER_STAGE_GEOM;
     }
     else if (stricmp(extension, "comp") == 0)
     {
         *pOutStage = &pBinaryDesc->comp;
-        *pStage = ShaderStageComp;
+        *pStage = SHADER_STAGE_COMP;
     }
     else
     {
@@ -7301,17 +7305,17 @@ static BinaryShaderStageDesc* get_shader_stage_desc(BinaryShaderDesc* pBinaryDes
 {
     switch (stage)
     {
-    case ShaderStageVert:
+    case SHADER_STAGE_VERT:
         return &pBinaryDesc->vert;
-    case ShaderStageFrag:
+    case SHADER_STAGE_FRAG:
         return &pBinaryDesc->frag;
-    case ShaderStageGeom:
+    case SHADER_STAGE_GEOM:
         return &pBinaryDesc->geom;
-    case ShaderStageHull:
+    case SHADER_STAGE_HULL:
         return &pBinaryDesc->hull;
-    case ShaderStageDomn:
+    case SHADER_STAGE_DOMN:
         return &pBinaryDesc->domain;
-    case ShaderStageComp:
+    case SHADER_STAGE_COMP:
         return &pBinaryDesc->comp;
     default:
         return nullptr;
@@ -7325,8 +7329,8 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
     alignas(256) uint8_t bytecodeStack[ShaderByteCodeBuffer::kStackSize];
     ShaderByteCodeBuffer shaderByteCodeBuffer = { .pStackMemory = bytecodeStack };
 
-    ShaderStage stages = ShaderStageNone;
-    for (uint32_t i = 0; i < ShaderStageCount; ++i)
+    ShaderStage stages = SHADER_STAGE_NONE;
+    for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
     {
         if (pDesc->stages[i].pFileName && pDesc->stages[i].pFileName[0] != 0)
         {
@@ -7338,7 +7342,7 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
                 stages |= stage;
         }
     }
-    for (uint32_t i = 0; i < ShaderStageCount; ++i)
+    for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
     {
         const char* fileName = pDesc->stages[i].pFileName;
         if (!fileName || !*fileName)
@@ -7379,7 +7383,7 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 
     Shader* pShader = *ppShader;
 
-    if (ShaderStageComp == binaryDesc.stages)
+    if (SHADER_STAGE_COMP == binaryDesc.stages)
     {
         pShader->numThreadsPerGroup[0] = pShader->pReflection->stageReflections[0].numThreadsPerGroup[0];
         pShader->numThreadsPerGroup[1] = pShader->pReflection->stageReflections[0].numThreadsPerGroup[1];
@@ -7394,8 +7398,8 @@ void addShaderSrc(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppS
     alignas(256) uint8_t bytecodeStack[ShaderByteCodeBuffer::kStackSize];
     ShaderByteCodeBuffer shaderByteCodeBuffer = { .pStackMemory = bytecodeStack };
 
-    ShaderStage stages = ShaderStageNone;
-    for (uint32_t i = 0; i < ShaderStageCount; ++i)
+    ShaderStage stages = SHADER_STAGE_NONE;
+    for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
     {
         if (pDesc->stages[i].pFileName && pDesc->stages[i].pFileName[0] != 0)
         {
@@ -7407,7 +7411,7 @@ void addShaderSrc(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppS
             stages |= pDesc->stages[i].stage;
         }
     }
-    for (uint32_t i = 0; i < ShaderStageCount; ++i)
+    for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
     {
         const char* fileName = pDesc->stages[i].pFileName;
         if (!fileName || !*fileName)
@@ -7416,7 +7420,7 @@ void addShaderSrc(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppS
         ShaderStage            stage = pDesc->stages[i].stage;
         BinaryShaderStageDesc* pStage = get_shader_stage_desc(&binaryDesc, stage);
 
-        if (stage == ShaderStage::ShaderStageNone || !pStage)
+        if (stage == ShaderStage::SHADER_STAGE_NONE || !pStage)
         {
             continue;
         }
@@ -7444,7 +7448,7 @@ void addShaderSrc(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppS
 
     Shader* pShader = *ppShader;
 
-    if (ShaderStageComp == binaryDesc.stages)
+    if (SHADER_STAGE_COMP == binaryDesc.stages)
     {
         pShader->numThreadsPerGroup[0] = pShader->pReflection->stageReflections[0].numThreadsPerGroup[0];
         pShader->numThreadsPerGroup[1] = pShader->pReflection->stageReflections[0].numThreadsPerGroup[1];

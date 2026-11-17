@@ -88,9 +88,9 @@ uint64_t RenderContext::GetPendingUseId() const
         }
         if (resources.submitId && resources.submitId < pending)
         {
-            FenceStatus status = FenceStatusComplete;
+            FenceStatus status = FENCE_STATUS_COMPLETE;
             getFenceStatus(pRenderer, resources.pFence, &status);
-            if (status == FenceStatusIncomplete)
+            if (status == FENCE_STATUS_INCOMPLETE)
             {
                 pending = resources.submitId;
             }
@@ -184,7 +184,7 @@ bool RenderContext::InitDevice()
         return false;
 
     QueueDesc queueDesc = {
-        .Type = QueueTypeGraphics,
+        .Type = QUEUE_TYPE_GRAPHICS,
         .flag = QUEUE_FLAG_NONE,
         .priority = QUEUE_PRIORITY_NORMAL,
         .Name = "RenderContext Graphics Queue",
@@ -289,7 +289,7 @@ bool RenderContext::CreateSwapChain()
     {
         swapDesc.colorFormat = hz::Format::UNDEFINED;
         // TODO: Prefer scRGB for windowed presentation and HDR10 for fullscreen presentation.
-        swapDesc.colorSpace = ColorSpaceP2020;
+        swapDesc.colorSpace = COLOR_SPACE_P2020;
         if (swapDesc.hdrMetadata.maxMasteringLuminance <= 0.0f)
             swapDesc.hdrMetadata.maxMasteringLuminance = 1000.0f;
         if (swapDesc.hdrMetadata.minMasteringLuminance <= 0.0f)
@@ -301,19 +301,19 @@ bool RenderContext::CreateSwapChain()
         swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
         if (swapDesc.colorFormat == hz::Format::UNDEFINED)
         {
-            swapDesc.colorSpace = ColorSpaceExtendedSrgb;
+            swapDesc.colorSpace = COLOR_SPACE_EXTENDED_SRGB;
             swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
         }
         if (swapDesc.colorFormat == hz::Format::UNDEFINED)
         {
             LOGF(LogLevel::Warning, "HDR presentation is unavailable; falling back to SDR sRGB");
-            swapDesc.colorSpace = ColorSpaceSdrSrgb;
+            swapDesc.colorSpace = COLOR_SPACE_SDR_SRGB;
             swapDesc.hdrMetadata = {};
         }
     }
     else if (swapDesc.colorFormat == hz::Format::UNDEFINED)
     {
-        swapDesc.colorSpace = ColorSpaceSdrSrgb;
+        swapDesc.colorSpace = COLOR_SPACE_SDR_SRGB;
     }
 
     if (swapDesc.colorFormat == hz::Format::UNDEFINED)
@@ -331,11 +331,11 @@ bool RenderContext::CreateSwapChain()
         desc.colorSpace = pSwapChain->colorSpace;
         hdrDisplayInfo = pSwapChain->hdrDisplayInfo;
         hdrMetadata = pSwapChain->hdrMetadata;
-        if (pSwapChain->colorSpace == ColorSpaceP2020)
+        if (pSwapChain->colorSpace == COLOR_SPACE_P2020)
         {
             outputMode = OUTPUT_MODE_HDR10;
         }
-        else if (pSwapChain->colorSpace == ColorSpaceExtendedSrgb)
+        else if (pSwapChain->colorSpace == COLOR_SPACE_EXTENDED_SRGB)
         {
             outputMode = OUTPUT_MODE_SCRGB;
         }
@@ -344,7 +344,7 @@ bool RenderContext::CreateSwapChain()
         for (uint32_t i = 0; i < pSwapChain->imageCount; ++i)
         {
             RenderTarget* target = pSwapChain->ppRenderTargets[i];
-            backbuffers[i] = GPUTexture(nullptr, target->pTexture, target, ResourceStatePresent, false);
+            backbuffers[i] = GPUTexture(nullptr, target->pTexture, target, RESOURCE_STATE_PRESENT, false);
         }
     }
     return pSwapChain != nullptr;
@@ -542,9 +542,9 @@ CommandList& RenderContext::AcquireCommandList()
         CommandResources& resources = commandResources[(nextCommandIndex + offset) % maxCommandLists];
         if (resources.submitId)
         {
-            FenceStatus status = FenceStatusNotSubmitted;
+            FenceStatus status = FENCE_STATUS_NOTSUBMITTED;
             getFenceStatus(pRenderer, resources.pFence, &status);
-            if (status == FenceStatusComplete)
+            if (status == FENCE_STATUS_COMPLETE)
             {
                 resources.submitId = 0;
                 // Reclaim completed submissions even when a different command resources is selected.
@@ -592,10 +592,10 @@ SubmitHandle RenderContext::Submit(CommandList& commands, const GPUTexture* pPre
         RenderTargetBarrier presentBarrier = {
             .pRenderTarget = pPresent->pRenderTarget,
             .currentState = pPresent->state,
-            .newState = ResourceStatePresent,
+            .newState = RESOURCE_STATE_PRESENT,
         };
         commands.Barrier(0, nullptr, 0, nullptr, 1, &presentBarrier);
-        pPresent->state = ResourceStatePresent;
+        pPresent->state = RESOURCE_STATE_PRESENT;
     }
     commands.EndGpuFrameProfile();
     endCmd(resources.pCmd);
@@ -655,9 +655,9 @@ bool RenderContext::IsComplete(SubmitHandle Handle) const
     {
         return true;
     }
-    FenceStatus status = FenceStatusIncomplete;
+    FenceStatus status = FENCE_STATUS_INCOMPLETE;
     getFenceStatus(pRenderer, resources.pFence, &status);
-    return status != FenceStatusIncomplete;
+    return status != FENCE_STATUS_INCOMPLETE;
 }
 
 uint32_t              RenderContext::GetWidth() const { return desc.Width; }

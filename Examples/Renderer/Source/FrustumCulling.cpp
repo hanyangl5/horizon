@@ -21,11 +21,11 @@ constexpr uint32_t CullingStatisticsSlot = offsetof(CullingConstants, statistics
 FrustumCulling::FrustumCulling(hz::RenderContext& Context)
 {
     Pipeline = Context.CreateComputePipeline(
-        { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain", .Name = "Renderer.FrustumCull" } },
+        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain", .Name = "Renderer.FrustumCull" } },
                           .pFileName = "FrustumCulling.slang" },
           .Name = "Renderer.FrustumCull" });
     ClearPipeline =
-        Context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearStatistics" } },
+        Context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "ClearStatistics" } },
                                                         .pFileName = "FrustumCulling.slang" },
                                         .Name = "Renderer.ClearCullingStatistics" });
     for (hz::GPUBuffer& Buffer : Statistics)
@@ -33,9 +33,9 @@ FrustumCulling::FrustumCulling(hz::RenderContext& Context)
         Buffer = Context.CreateBuffer({ .Size = 16,
                                         .ElementCount = 4,
                                         .Name = "Renderer.CullingStatistics",
-                                        .usage = MemoryUsageGpuOnly,
-                                        .StartState = ResourceStateUnorderedAccess,
-                                        .Descriptors = DescriptorTypeRwBufferRaw });
+                                        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                        .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                        .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW });
         ASSERT(Buffer.IsValid());
     }
     ASSERT(Pipeline.IsValid() && ClearPipeline.IsValid());

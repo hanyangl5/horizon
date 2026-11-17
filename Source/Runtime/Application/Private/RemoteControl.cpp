@@ -958,8 +958,8 @@
 //         desc.ArraySize = 1;
 //         desc.MipLevels = 1;
 //         desc.Format = (TinyImageFormat)textureData->Format;
-//         desc.StartState = ResourceStateNonPixelShaderResource | ResourceStatePixelShaderResource;
-//         desc.Descriptors = DescriptorTypeTexture;
+//         desc.StartState = RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+//         desc.Descriptors = DESCRIPTOR_TYPE_TEXTURE;
 //         desc.SampleCount = SAMPLE_COUNT_1;
 //         loadDesc.pDesc = &desc;
 //         loadDesc.ppTexture = &texture;
@@ -968,7 +968,7 @@
 //         waitForToken(&token);
 
 //         TextureUpdateDesc updateDesc = { texture };
-//         updateDesc.currentState = ResourceStateNonPixelShaderResource | ResourceStatePixelShaderResource;
+//         updateDesc.currentState = RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 //         beginUpdateResource(&updateDesc);
 //         TextureSubresourceUpdate subresource = updateDesc.GetSubresourceUpdateDesc(0, 0);
 //         memcpy(subresource.pMappedData, ((unsigned char*)textureData) + sizeof(RemoteCommandUserInterfaceTexture),

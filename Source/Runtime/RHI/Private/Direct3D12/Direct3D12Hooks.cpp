@@ -112,12 +112,12 @@ void hook_remove_pipeline(Pipeline* pPipeline) { SAFE_RELEASE(pPipeline->dx.pPip
 HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE*,
                                   D3D12_RESOURCE_STATES state, uint32_t Flags, Buffer* pBuffer)
 {
-    if (!(Flags & BufferCreationFlagMarker))
+    if (!(Flags & BUFFER_CREATION_FLAG_MARKER))
     {
         return E_NOINTERFACE;
     }
     // CreatePlacedResource requires 64KB granularity for D3D12_RESOURCE_DIMENSION_BUFFER resources
-    const size_t requiredResourceHeapAlign = 64 * Kilobyte;
+    const size_t requiredResourceHeapAlign = 64 * TF_KB;
     size_t       requiredDataSize = pDesc->Width;
     size_t       bufferSize = round_up_64(requiredDataSize, requiredResourceHeapAlign);
     void*        allocatedData = VirtualAlloc(nullptr, bufferSize, MEM_COMMIT, PAGE_READWRITE);
@@ -248,21 +248,21 @@ bool hook_get_output_desc(Renderer* pRenderer, const WindowHandle* pWindow, DXGI
 
 hz::Format hook_get_recommended_swapchain_format(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
 {
-    if (ColorSpaceSdrLinear == colorSpace)
+    if (COLOR_SPACE_SDR_LINEAR == colorSpace)
     {
         return hz::Format::B8G8R8A8_UNORM;
     }
-    if (ColorSpaceSdrSrgb == colorSpace)
+    if (COLOR_SPACE_SDR_SRGB == colorSpace)
     {
         return hz::Format::B8G8R8A8_SRGB;
     }
 
     hz::Format Format = hz::Format::UNDEFINED;
-    if (ColorSpaceP2020 == colorSpace)
+    if (COLOR_SPACE_P2020 == colorSpace)
     {
         Format = hz::Format::R10G10B10A2_UNORM;
     }
-    if (ColorSpaceExtendedSrgb == colorSpace)
+    if (COLOR_SPACE_EXTENDED_SRGB == colorSpace)
     {
         Format = hz::Format::R16G16B16A16_SFLOAT;
     }

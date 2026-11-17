@@ -38,19 +38,19 @@
 #include "Core/IMemory.h"
 
 static DescriptorType sD3D12_TO_DESCRIPTOR[] = {
-    DescriptorTypeUniformBuffer,         // D3D_SIT_CBUFFER
-    DescriptorTypeBuffer,                // D3D_SIT_TBUFFER
-    DescriptorTypeTexture,               // D3D_SIT_TEXTURE
-    DescriptorTypeSampler,               // D3D_SIT_SAMPLER
-    DescriptorTypeRwTexture,             // D3D_SIT_UAV_RWTYPED
-    DescriptorTypeBuffer,                // D3D_SIT_STRUCTURED
-    DescriptorTypeRwBuffer,              // D3D_SIT_RWSTRUCTURED
-    DescriptorTypeBuffer,                // D3D_SIT_BYTEADDRESS
-    DescriptorTypeRwBuffer,              // D3D_SIT_UAV_RWBYTEADDRESS
-    DescriptorTypeRwBuffer,              // D3D_SIT_UAV_APPEND_STRUCTURED
-    DescriptorTypeRwBuffer,              // D3D_SIT_UAV_CONSUME_STRUCTURED
-    DescriptorTypeRwBuffer,              // D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER
-    DescriptorTypeAccelerationStructure, // D3D_SIT_RTACCELERATIONSTRUCTURE
+    DESCRIPTOR_TYPE_UNIFORM_BUFFER,         // D3D_SIT_CBUFFER
+    DESCRIPTOR_TYPE_BUFFER,                 // D3D_SIT_TBUFFER
+    DESCRIPTOR_TYPE_TEXTURE,                // D3D_SIT_TEXTURE
+    DESCRIPTOR_TYPE_SAMPLER,                // D3D_SIT_SAMPLER
+    DESCRIPTOR_TYPE_RW_TEXTURE,             // D3D_SIT_UAV_RWTYPED
+    DESCRIPTOR_TYPE_BUFFER,                 // D3D_SIT_STRUCTURED
+    DESCRIPTOR_TYPE_RW_BUFFER,              // D3D_SIT_RWSTRUCTURED
+    DESCRIPTOR_TYPE_BUFFER,                 // D3D_SIT_BYTEADDRESS
+    DESCRIPTOR_TYPE_RW_BUFFER,              // D3D_SIT_UAV_RWBYTEADDRESS
+    DESCRIPTOR_TYPE_RW_BUFFER,              // D3D_SIT_UAV_APPEND_STRUCTURED
+    DESCRIPTOR_TYPE_RW_BUFFER,              // D3D_SIT_UAV_CONSUME_STRUCTURED
+    DESCRIPTOR_TYPE_RW_BUFFER,              // D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER
+    DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE, // D3D_SIT_RTACCELERATIONSTRUCTURE
 };
 
 static TextureDimension sD3D12_TO_RESOURCE_DIM[D3D_SRV_DIMENSION_BUFFEREX + 1] = {
@@ -136,15 +136,15 @@ void fill_shader_resources(ID3D12ReflectionT* d3d12reflection, const D3D12_SHADE
             reflection.pShaderResources[i].name_size = len;
             reflection.pShaderResources[i].dim = sD3D12_TO_RESOURCE_DIM[bindDesc.Dimension];
 
-            // RWTyped is considered as DescriptorTypeTexture by default so we Handle the case for RWBuffer here
+            // RWTyped is considered as DESCRIPTOR_TYPE_TEXTURE by default so we Handle the case for RWBuffer here
             if (bindDesc.Type == D3D_SHADER_INPUT_TYPE::D3D_SIT_UAV_RWTYPED && bindDesc.Dimension == D3D_SRV_DIMENSION_BUFFER)
             {
-                reflection.pShaderResources[i].Type = DescriptorTypeRwBuffer;
+                reflection.pShaderResources[i].Type = DESCRIPTOR_TYPE_RW_BUFFER;
             }
-            // Buffer<> is considered as DescriptorTypeTexture by default so we Handle the case for Buffer<> here
+            // Buffer<> is considered as DESCRIPTOR_TYPE_TEXTURE by default so we Handle the case for Buffer<> here
             if (bindDesc.Type == D3D_SHADER_INPUT_TYPE::D3D_SIT_TEXTURE && bindDesc.Dimension == D3D_SRV_DIMENSION_BUFFER)
             {
-                reflection.pShaderResources[i].Type = DescriptorTypeBuffer;
+                reflection.pShaderResources[i].Type = DESCRIPTOR_TYPE_BUFFER;
             }
 
             // Copy over the name
@@ -234,7 +234,7 @@ void d3d12_createShaderReflection(ID3D12ShaderReflection* d3d12reflection, Shade
     // Get the number of input parameters
     reflection.vertexInputsCount = 0;
 
-    if (shaderStage == ShaderStageVert)
+    if (shaderStage == SHADER_STAGE_VERT)
     {
         reflection.vertexInputsCount = shaderDesc.InputParameters;
 
@@ -247,13 +247,13 @@ void d3d12_createShaderReflection(ID3D12ShaderReflection* d3d12reflection, Shade
         }
     }
     // Get the number of threads per group
-    else if (shaderStage == ShaderStageComp)
+    else if (shaderStage == SHADER_STAGE_COMP)
     {
         d3d12reflection->GetThreadGroupSize(&reflection.numThreadsPerGroup[0], &reflection.numThreadsPerGroup[1],
                                             &reflection.numThreadsPerGroup[2]);
     }
     // Get the number of cnotrol point
-    else if (shaderStage == ShaderStageTesc)
+    else if (shaderStage == SHADER_STAGE_TESC)
     {
         reflection.numControlPoint = shaderDesc.cControlPoints;
     }
@@ -264,7 +264,7 @@ void d3d12_createShaderReflection(ID3D12ShaderReflection* d3d12reflection, Shade
     char* pCurrentName = reflection.pNamePool;
 
     reflection.pVertexInputs = NULL;
-    if (shaderStage == ShaderStageVert && reflection.vertexInputsCount > 0)
+    if (shaderStage == SHADER_STAGE_VERT && reflection.vertexInputsCount > 0)
     {
         reflection.pVertexInputs = (VertexInput*)MemAllocate(sizeof(VertexInput) * reflection.vertexInputsCount);
 

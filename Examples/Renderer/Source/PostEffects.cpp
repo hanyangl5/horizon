@@ -74,29 +74,29 @@ static uint32_t BloomLevelSize(uint32_t Size, uint32_t Level)
 PostEffects::PostEffects(hz::RenderContext& Context): Context(Context)
 {
     Sampler = Context.CreateSampler(
-        { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .AddressW = AddressModeClampToEdge });
+        { .AddressU = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressV = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressW = ADDRESS_MODE_CLAMP_TO_EDGE });
     MeteringPipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } }, .pFileName = "PostMetering.slang" },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostMetering.slang" },
         .Name = "Renderer.HDR.Metering",
     });
     ReducePipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSReduce" } }, .pFileName = "PostLuminance.slang" },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSReduce" } }, .pFileName = "PostLuminance.slang" },
         .Name = "Renderer.HDR.ReduceLuminance",
     });
     InitializePipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSInitialize" } }, .pFileName = "PostLuminance.slang" },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSInitialize" } }, .pFileName = "PostLuminance.slang" },
         .Name = "Renderer.HDR.InitializeExposure",
     });
     AdaptationPipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSAdapt" } }, .pFileName = "PostLuminance.slang" },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSAdapt" } }, .pFileName = "PostLuminance.slang" },
         .Name = "Renderer.HDR.Adaptation",
     });
     BloomDownsamplePipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomDownsample.slang" },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomDownsample.slang" },
         .Name = "Renderer.HDR.BloomDownsample",
     });
     BloomUpsamplePipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomUpsample.slang" },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomUpsample.slang" },
         .Name = "Renderer.HDR.BloomUpsample",
     });
     ASSERT(Sampler.IsValid() && MeteringPipeline.IsValid() && ReducePipeline.IsValid() && InitializePipeline.IsValid() &&
@@ -109,8 +109,8 @@ void PostEffects::Resize()
     {
         ColorFormat = Context.GetColorFormat();
         ToneMapPipeline = Context.CreateGraphicsPipeline({
-            .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
-                                        { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
+            .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
+                                        { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
                             .pFileName = "PostToneMap.slang" },
             .colorTargets = { { .Format = Context.GetColorFormat() } },
             .Name = "Renderer.HDR.ToneMap",
@@ -259,7 +259,7 @@ void PostEffects::ToneMap(hz::CommandList& Commands, const hz::GPUTexture& Scene
         .peakNits = Context.IsHDREnabled() ? Context.GetHDRMetadata().maxContentLightLevel : 100.0f,
     };
     Commands.BeginRendering(
-        { .colorAttachments = { { .pTexture = &RenderTarget, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
+        { .colorAttachments = { { .pTexture = &RenderTarget, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
         Dependencies.Get());
     Commands.SetViewport(0, 0, (float)Width, (float)Height);
     Commands.SetScissor(0, 0, Width, Height);

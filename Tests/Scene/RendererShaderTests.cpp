@@ -17,14 +17,14 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "RendererMotionTest", .enableGpuValidation = true });
     hz::GPUPipeline   pipeline = context.CreateGraphicsPipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
-                                    { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
-                        .sourceDirectory = DirectoryOtherFiles,
-                        .pFileName = "Geometry.slang" },
-        .colorTargets = { { .Format = hz::Format::R8G8B8A8_UNORM },
-                          { .Format = hz::Format::R8G8B8A8_UNORM },
-                          { .Format = hz::Format::R8G8B8A8_UNORM },
-                          { .Format = hz::Format::R8G8B8A8_UNORM } },
+          .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
+                                      { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
+                          .sourceDirectory = DirectoryOtherFiles,
+                          .pFileName = "Geometry.slang" },
+          .colorTargets = { { .Format = hz::Format::R8G8B8A8_UNORM },
+                            { .Format = hz::Format::R8G8B8A8_UNORM },
+                            { .Format = hz::Format::R8G8B8A8_UNORM },
+                            { .Format = hz::Format::R8G8B8A8_UNORM } },
     });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     ASSERT_TRUE(pipeline.IsValid());
@@ -53,9 +53,9 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
                                       .StructStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = MemoryUsageCpuToGpu,
-                                      .StartState = ResourceStateShaderResource,
-                                      .Descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw });
+                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                      .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                      .Descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
     };
     hz::GPUBuffer  frame = input(&frameData, sizeof(frameData), sizeof(frameData));
     hz::GPUBuffer  instances = input(&instance, sizeof(instance)), materials = input(&material, sizeof(material));
@@ -67,8 +67,8 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
         target = context.CreateTexture({ .Width = 64,
                                          .Height = 64,
                                          .Format = hz::Format::R8G8B8A8_UNORM,
-                                         .StartState = ResourceStateRenderTarget,
-                                         .Descriptors = DescriptorTypeTexture,
+                                         .StartState = RESOURCE_STATE_RENDER_TARGET,
+                                         .Descriptors = DESCRIPTOR_TYPE_TEXTURE,
                                          .GetRenderTarget = true });
     const char      readPixel[] = R"hlsl(
         cbuffer RootConstant0 { uint textureIndex; uint outputIndex; };
@@ -81,24 +81,24 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     hz::GPUPipeline reader = context.CreateComputePipeline(
         { .shaderDesc = {
               .stages = {
-                  { .stage = ShaderStageComp, .pSource = readPixel, .sourceSize = sizeof(readPixel) - 1, .pEntryPoint = "CSMain" } } } });
+                  { .stage = SHADER_STAGE_COMP, .pSource = readPixel, .sourceSize = sizeof(readPixel) - 1, .pEntryPoint = "CSMain" } } } });
     hz::GPUBuffer output = context.CreateBuffer({ .Size = 16,
                                                   .ElementCount = 1,
                                                   .StructStride = 16,
-                                                  .usage = MemoryUsageGpuOnly,
-                                                  .StartState = ResourceStateUnorderedAccess,
-                                                  .Descriptors = DescriptorTypeRwBuffer });
+                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                  .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
     hz::GPUBuffer readback = context.CreateBuffer({ .Size = 16,
-                                                    .usage = MemoryUsageGpuToCpu,
-                                                    .StartState = ResourceStateCopyDest,
-                                                    .Flags = BufferCreationFlagPersistentMapBit });
+                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                    .StartState = RESOURCE_STATE_COPY_DEST,
+                                                    .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     ASSERT_TRUE(reader.IsValid() && sampler.IsValid());
     hz::CommandList& commands = context.AcquireCommandList();
     commands.BeginRendering({ .colorAttachments = {
-        { .pTexture = &targets[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
-        { .pTexture = &targets[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
-        { .pTexture = &targets[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
-        { .pTexture = &targets[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
+        { .pTexture = &targets[0], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
+        { .pTexture = &targets[1], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
+        { .pTexture = &targets[2], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
+        { .pTexture = &targets[3], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
     } }, { .buffers = { &frame, &instances, &materials, &vertices, &normal, &uv } });
     commands.SetViewport(0, 0, 64, 64);
     commands.SetScissor(0, 0, 64, 64);
@@ -129,11 +129,11 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingFillsFilteredDrawLists)
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "RendererCullingTest", .enableGpuValidation = true });
     hz::GPUPipeline   pipeline =
-        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "CSMain" } },
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } },
                                                         .sourceDirectory = DirectoryOtherFiles,
                                                         .pFileName = "FrustumCulling.slang" } });
     hz::GPUPipeline Clear =
-        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "ClearStatistics" } },
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "ClearStatistics" } },
                                                         .sourceDirectory = DirectoryOtherFiles,
                                                         .pFileName = "FrustumCulling.slang" } });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
@@ -172,10 +172,10 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingFillsFilteredDrawLists)
                                       .StructStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = MemoryUsageCpuToGpu,
-                                      .StartState = ResourceStateShaderResource,
-                                      .Descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw,
-                                      .Flags = BufferCreationFlagPersistentMapBit });
+                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                      .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                      .Descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW,
+                                      .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     };
     hz::GPUBuffer frame = input(&camera, sizeof(camera), sizeof(camera));
     hz::GPUBuffer instanceBuffer = input(instances, sizeof(instances));
@@ -187,15 +187,15 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingFillsFilteredDrawLists)
     {
         buffer = context.CreateBuffer({ .Size = 100,
                                         .ElementCount = 25,
-                                        .usage = MemoryUsageGpuOnly,
-                                        .StartState = ResourceStateUnorderedAccess,
-                                        .Descriptors = DescriptorTypeRwBufferRaw });
+                                        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                        .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                        .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW });
     }
-    hz::GPUBuffer  statistics = context.CreateBuffer({ .Size = 16,
-                                                       .ElementCount = 4,
-                                                       .usage = MemoryUsageGpuOnly,
-                                                       .StartState = ResourceStateUnorderedAccess,
-                                                       .Descriptors = DescriptorTypeRwBufferRaw });
+    hz::GPUBuffer      statistics = context.CreateBuffer({ .Size = 16,
+                                                           .ElementCount = 4,
+                                                           .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                           .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                           .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW });
     // Opaque and masked, blended, uncullable casters, and opaque draws whose material has tag bit 2.
     const uint32_t opaqueModes = hz::DrawListAlphaMode(hz::MaterialAlphaMode::Opaque) | hz::DrawListAlphaMode(hz::MaterialAlphaMode::Mask);
     hz::DrawListFilter filters[ListCount] = { { .alphaModes = opaqueModes },
@@ -206,9 +206,9 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingFillsFilteredDrawLists)
         filters[i].commandsIndex = outputs[i].GetUavIndex();
     hz::GPUBuffer  filterBuffer = input(filters, sizeof(filters), sizeof(hz::DrawListFilter));
     hz::GPUBuffer  readback = context.CreateBuffer({ .Size = ListCount * 100 + 16,
-                                                     .usage = MemoryUsageGpuToCpu,
-                                                     .StartState = ResourceStateCopyDest,
-                                                     .Flags = BufferCreationFlagPersistentMapBit });
+                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                     .StartState = RESOURCE_STATE_COPY_DEST,
+                                                     .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     // With a 90-degree frustum, the first camera sees centers (3,0,-2) and (4,0,-2), while (12,0,-2) is outside right.
     // Moving to (9,0,2) and looking diagonally toward +X/-Z makes that outside box visible and leaves both old boxes behind.
     const float    perspectiveBounds[5][6] = { { 2.75f, -.25f, -2.25f, 3.25f, .25f, -1.75f },
@@ -291,7 +291,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     text.insert(materialEnd, "," + blend);
     writeTexture();
     writeScene(text.c_str());
-    writeGeometry(IndexTypeUInt16, true);
+    writeGeometry(INDEX_TYPE_UINT16, true);
     hz::SceneAsset asset;
     ASSERT_TRUE(asset.Parse({ text.data(), (uint32_t)text.size() }));
     hz::AssetCatalog catalog;
@@ -369,7 +369,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     hz::GPUPipeline trace = context.CreateComputePipeline(
         { .shaderDesc = {
               .stages = {
-                  { .stage = ShaderStageComp, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "CSMain" } } } });
+                  { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "CSMain" } } } });
     ASSERT_TRUE(trace.IsValid());
 
     struct FrameData
@@ -381,19 +381,19 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
                                                  .ElementCount = sizeof(camera) / 4,
                                                  .pInitialData = &camera,
                                                  .initialDataSize = sizeof(camera),
-                                                 .usage = MemoryUsageCpuToGpu,
-                                                 .StartState = ResourceStateShaderResource,
-                                                 .Descriptors = DescriptorTypeBufferRaw });
+                                                 .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                 .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                 .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
     hz::GPUBuffer output = context.CreateBuffer({ .Size = 16,
                                                   .ElementCount = 4,
                                                   .StructStride = 4,
-                                                  .usage = MemoryUsageGpuOnly,
-                                                  .StartState = ResourceStateUnorderedAccess,
-                                                  .Descriptors = DescriptorTypeRwBuffer });
+                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                  .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
     hz::GPUBuffer readback = context.CreateBuffer({ .Size = 96,
-                                                    .usage = MemoryUsageGpuToCpu,
-                                                    .StartState = ResourceStateCopyDest,
-                                                    .Flags = BufferCreationFlagPersistentMapBit });
+                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                    .StartState = RESOURCE_STATE_COPY_DEST,
+                                                    .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
 
     for (uint32_t pass = 0; pass < 4; ++pass)
     {
@@ -470,7 +470,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
 {
     writeTexture();
     writeScene();
-    writeGeometry(IndexTypeUInt16);
+    writeGeometry(INDEX_TYPE_UINT16);
     hz::SceneAsset asset;
     ASSERT_TRUE(asset.Parse(kTypedScene));
     hz::AssetCatalog catalog;
@@ -484,15 +484,15 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     ASSERT_EQ(assetManager.GetState(Handle), hz::AssetState::Ready);
     const hz::MeshAsset* mesh = assetManager.GetMesh(Handle);
     ASSERT_NE(mesh, nullptr);
-    ASSERT_EQ(mesh->GetIndexType(), IndexTypeUInt16);
+    ASSERT_EQ(mesh->GetIndexType(), INDEX_TYPE_UINT16);
     // Three indices consume six bytes; RAW loads require a second complete DWORD.
     ASSERT_EQ(mesh->GetIndexBuffer().GetSize(), 8u);
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::GPUPipeline pipeline = context.CreateGraphicsPipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
-                                    { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
+                                    { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
                         .sourceDirectory = DirectoryOtherFiles,
                         .pFileName = "Geometry.slang" },
         .colorTargets = { { .Format = hz::Format::R8G8B8A8_UNORM },
@@ -526,9 +526,9 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
                                       .StructStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = MemoryUsageCpuToGpu,
-                                      .StartState = ResourceStateShaderResource,
-                                      .Descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw });
+                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                      .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                      .Descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
     };
     hz::GPUBuffer frame = input(&frameData, sizeof(frameData), sizeof(frameData));
     hz::GPUBuffer instanceBuffer = input(instances, sizeof(instances)), materialBuffer = input(materials, sizeof(materials));
@@ -565,9 +565,9 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     hz::GPUBuffer     indirect = context.CreateBuffer({ .Size = sizeof(arguments),
                                                         .pInitialData = arguments,
                                                         .initialDataSize = sizeof(arguments),
-                                                        .usage = MemoryUsageCpuToGpu,
-                                                        .StartState = ResourceStateIndirectArgument,
-                                                        .Descriptors = DescriptorTypeIndirectBuffer });
+                                                        .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                        .StartState = RESOURCE_STATE_INDIRECT_ARGUMENT,
+                                                        .Descriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER });
     hz::GPUSampler    sampler = context.CreateSampler();
     hz::GPUTexture    targets[4];
     for (hz::GPUTexture& target : targets)
@@ -575,8 +575,8 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
         target = context.CreateTexture({ .Width = 64,
                                          .Height = 64,
                                          .Format = hz::Format::R8G8B8A8_UNORM,
-                                         .StartState = ResourceStateRenderTarget,
-                                         .Descriptors = DescriptorTypeTexture,
+                                         .StartState = RESOURCE_STATE_RENDER_TARGET,
+                                         .Descriptors = DESCRIPTOR_TYPE_TEXTURE,
                                          .GetRenderTarget = true });
     }
     const char      readPixel[] = R"hlsl(
@@ -591,23 +591,23 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     hz::GPUPipeline reader = context.CreateComputePipeline(
         { .shaderDesc = {
               .stages = {
-                  { .stage = ShaderStageComp, .pSource = readPixel, .sourceSize = sizeof(readPixel) - 1, .pEntryPoint = "CSMain" } } } });
+                  { .stage = SHADER_STAGE_COMP, .pSource = readPixel, .sourceSize = sizeof(readPixel) - 1, .pEntryPoint = "CSMain" } } } });
     hz::GPUBuffer    output = context.CreateBuffer({ .Size = 32,
                                                      .ElementCount = 2,
                                                      .StructStride = 16,
-                                                     .usage = MemoryUsageGpuOnly,
-                                                     .StartState = ResourceStateUnorderedAccess,
-                                                     .Descriptors = DescriptorTypeRwBuffer });
+                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                     .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                     .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
     hz::GPUBuffer    readback = context.CreateBuffer({ .Size = 32,
-                                                       .usage = MemoryUsageGpuToCpu,
-                                                       .StartState = ResourceStateCopyDest,
-                                                       .Flags = BufferCreationFlagPersistentMapBit });
+                                                       .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                       .StartState = RESOURCE_STATE_COPY_DEST,
+                                                       .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     hz::CommandList& commands = context.AcquireCommandList();
     commands.BeginRendering({ .colorAttachments = {
-        { .pTexture = &targets[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
-        { .pTexture = &targets[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
-        { .pTexture = &targets[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
-        { .pTexture = &targets[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
+        { .pTexture = &targets[0], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
+        { .pTexture = &targets[1], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
+        { .pTexture = &targets[2], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
+        { .pTexture = &targets[3], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
     } }, { .buffers = { &frame, &instanceBuffer, &materialBuffer, &vertices, &normal, &uv, &draws, &mesh->GetIndexBuffer() } });
     commands.SetViewport(0, 0, 64, 64);
     commands.SetScissor(0, 0, 64, 64);
@@ -684,7 +684,7 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
             output[id.x] += 1000;
         }
     )hlsl";
-    hz::GPUPipeline increment = context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
+    hz::GPUPipeline increment = context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
                                                                                               .pSource = incrementSource,
                                                                                               .sourceSize = sizeof(incrementSource) - 1,
                                                                                               .pEntryPoint = "CSMain" } } } });
@@ -695,16 +695,16 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
                                                                               .ElementCount = 9,
                                                                               .pInitialData = positions,
                                                                               .initialDataSize = sizeof(positions),
-                                                                              .usage = MemoryUsageCpuToGpu,
-                                                                              .StartState = ResourceStateShaderResource,
-                                                                              .Descriptors = DescriptorTypeBufferRaw });
+                                                                              .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                                              .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                                              .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
     hz::GPUBuffer                           indexBuffer = context.CreateBuffer({ .Size = sizeof(indices),
                                                                                  .ElementCount = 3,
                                                                                  .pInitialData = indices,
                                                                                  .initialDataSize = sizeof(indices),
-                                                                                 .usage = MemoryUsageCpuToGpu,
-                                                                                 .StartState = ResourceStateShaderResource,
-                                                                                 .Descriptors = DescriptorTypeBufferRaw });
+                                                                                 .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                                                 .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                                                 .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
     const hz::AccelerationStructureGeometry geometry = { .pVertexBuffer = &vertices,
                                                          .pIndexBuffer = &indexBuffer,
                                                          .vertexCount = 3,
@@ -724,13 +724,13 @@ TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
     hz::GPUBuffer output = context.CreateBuffer({ .Size = 8,
                                                   .ElementCount = 2,
                                                   .StructStride = 4,
-                                                  .usage = MemoryUsageGpuOnly,
-                                                  .StartState = ResourceStateUnorderedAccess,
-                                                  .Descriptors = DescriptorTypeRwBuffer });
+                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                  .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
     hz::GPUBuffer readback = context.CreateBuffer({ .Size = 40,
-                                                    .usage = MemoryUsageGpuToCpu,
-                                                    .StartState = ResourceStateCopyDest,
-                                                    .Flags = BufferCreationFlagPersistentMapBit });
+                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                    .StartState = RESOURCE_STATE_COPY_DEST,
+                                                    .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     const auto    validateDevice = [&](const char* phase)
     {
         ID3D12Device* device = nullptr;
@@ -878,7 +878,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     hz::GPUPipeline reader =
-        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
@@ -890,19 +890,19 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
                                       .StructStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = MemoryUsageCpuToGpu,
-                                      .StartState = ResourceStateShaderResource,
-                                      .Descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw,
-                                      .Flags = BufferCreationFlagPersistentMapBit });
+                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                      .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                      .Descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW,
+                                      .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     };
     const auto image = [&](hz::Format Format, bool target)
     {
         return context.CreateTexture({ .Width = 1,
                                        .Height = 1,
                                        .Format = Format,
-                                       .StartState = target ? ResourceStateRenderTarget : ResourceStateUnorderedAccess,
-                                       .Descriptors = DescriptorType(DescriptorTypeTexture | DescriptorTypeRwTexture),
-                                       .Flags = TextureCreationFlagForce2D,
+                                       .StartState = target ? RESOURCE_STATE_RENDER_TARGET : RESOURCE_STATE_UNORDERED_ACCESS,
+                                       .Descriptors = DescriptorType(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
+                                       .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                        .GetRenderTarget = target });
     };
     hz::GPUTexture normal = image(hz::Format::R32G32B32A32_SFLOAT, true), Depth = image(hz::Format::R32_SFLOAT, true);
@@ -957,7 +957,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
                                                    .indexOffset = sizeof(uint16_t),
                                                    .vertexCount = 3,
                                                    .indexCount = 3,
-                                                   .indexType = IndexTypeUInt16 };
+                                                   .indexType = INDEX_TYPE_UINT16 };
     hz::GPUAccelerationStructure      opaque = context.CreateAccelerationStructure({ .geometries = { &geometry, 1 } });
     geometry.opaque = false;
     hz::GPUAccelerationStructure      masked = context.CreateAccelerationStructure({ .geometries = { &geometry, 1 } });
@@ -985,13 +985,13 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     hz::GPUBuffer output = context.CreateBuffer({ .Size = 16,
                                                   .ElementCount = 1,
                                                   .StructStride = 16,
-                                                  .usage = MemoryUsageGpuOnly,
-                                                  .StartState = ResourceStateUnorderedAccess,
-                                                  .Descriptors = DescriptorTypeRwBuffer });
+                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                  .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
     hz::GPUBuffer readback = context.CreateBuffer({ .Size = 16,
-                                                    .usage = MemoryUsageGpuToCpu,
-                                                    .StartState = ResourceStateCopyDest,
-                                                    .Flags = BufferCreationFlagPersistentMapBit });
+                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                    .StartState = RESOURCE_STATE_COPY_DEST,
+                                                    .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     struct ReflectionConstants
     {
         uint32_t frame, lighting, draws, materials, textures, sampler, tlas, normal, Depth, output, noise;
@@ -1055,8 +1055,8 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
         const auto Clear = [&](const hz::GPUTexture& texture, ClearValue value)
         {
             commands.BeginRendering({ .colorAttachments = { { .pTexture = &texture,
-                                                              .loadAction = LoadActionClear,
-                                                              .storeAction = StoreActionStore,
+                                                              .loadAction = LOAD_ACTION_CLEAR,
+                                                              .storeAction = STORE_ACTION_STORE,
                                                               .ClearValue = value } } });
             commands.EndRendering();
         };
@@ -1140,12 +1140,12 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::GPUPipeline shadow =
-        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } },
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } },
                                                         .sourceDirectory = DirectoryOtherFiles,
                                                         .pFileName = "RTShadowAO.slang" } });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     hz::GPUPipeline reader =
-        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
@@ -1157,18 +1157,18 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
                                       .StructStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = MemoryUsageCpuToGpu,
-                                      .StartState = ResourceStateShaderResource,
-                                      .Descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw });
+                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                      .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                      .Descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
     };
     const auto image = [&](hz::Format Format, bool target)
     {
         return context.CreateTexture({ .Width = 1,
                                        .Height = 1,
                                        .Format = Format,
-                                       .StartState = target ? ResourceStateRenderTarget : ResourceStateUnorderedAccess,
-                                       .Descriptors = DescriptorType(DescriptorTypeTexture | DescriptorTypeRwTexture),
-                                       .Flags = TextureCreationFlagForce2D,
+                                       .StartState = target ? RESOURCE_STATE_RENDER_TARGET : RESOURCE_STATE_UNORDERED_ACCESS,
+                                       .Descriptors = DescriptorType(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
+                                       .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                        .GetRenderTarget = target });
     };
     hz::GPUTexture normal = image(hz::Format::R32G32B32A32_SFLOAT, true), Depth = image(hz::Format::R32_SFLOAT, true);
@@ -1216,7 +1216,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
                                                    .pIndexBuffer = &indexBuffer,
                                                    .vertexCount = 3,
                                                    .indexCount = 3,
-                                                   .indexType = IndexTypeUInt16 };
+                                                   .indexType = INDEX_TYPE_UINT16 };
     hz::GPUAccelerationStructure      opaque = context.CreateAccelerationStructure({ .geometries = { &geometry, 1 } });
     geometry.opaque = false;
     hz::GPUAccelerationStructure            masked = context.CreateAccelerationStructure({ .geometries = { &geometry, 1 } });
@@ -1232,13 +1232,13 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     hz::GPUBuffer output = context.CreateBuffer({ .Size = 16,
                                                   .ElementCount = 1,
                                                   .StructStride = 16,
-                                                  .usage = MemoryUsageGpuOnly,
-                                                  .StartState = ResourceStateUnorderedAccess,
-                                                  .Descriptors = DescriptorTypeRwBuffer });
+                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                  .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
     hz::GPUBuffer readback = context.CreateBuffer({ .Size = 16,
-                                                    .usage = MemoryUsageGpuToCpu,
-                                                    .StartState = ResourceStateCopyDest,
-                                                    .Flags = BufferCreationFlagPersistentMapBit });
+                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                    .StartState = RESOURCE_STATE_COPY_DEST,
+                                                    .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     struct ShadowConstants
     {
         uint32_t frame, lighting, draws, materials, textures, sampler, top, normal, Depth, output, noise;
@@ -1275,8 +1275,8 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         const auto Clear = [&](const hz::GPUTexture& texture, ClearValue value)
         {
             commands.BeginRendering({ .colorAttachments = { { .pTexture = &texture,
-                                                              .loadAction = LoadActionClear,
-                                                              .storeAction = StoreActionStore,
+                                                              .loadAction = LOAD_ACTION_CLEAR,
+                                                              .storeAction = STORE_ACTION_STORE,
                                                               .ClearValue = value } } });
             commands.EndRendering();
         };
@@ -1305,8 +1305,8 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     // Reuse the same scene to exercise the production raster shadow alpha test as well.
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::GPUPipeline raster =
-        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSIndirect" },
-                                                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSShadow" } },
+        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
+                                                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSShadow" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "ShadowMap.slang" },
                                          .Depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
@@ -1320,15 +1320,15 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     hz::GPUBuffer            indirect = context.CreateBuffer({ .Size = sizeof(arguments),
                                                                .pInitialData = arguments,
                                                                .initialDataSize = sizeof(arguments),
-                                                               .usage = MemoryUsageGpuOnly,
-                                                               .StartState = ResourceStateIndirectArgument,
-                                                               .Descriptors = DescriptorTypeIndirectBuffer });
+                                                               .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                               .StartState = RESOURCE_STATE_INDIRECT_ARGUMENT,
+                                                               .Descriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER });
     hz::GPUTexture           shadowDepth = context.CreateTexture({ .Width = 1,
                                                                    .Height = 1,
                                                                    .Format = hz::Format::D16_UNORM,
-                                                                   .StartState = ResourceStateDepthWrite,
-                                                                   .Descriptors = DescriptorTypeTexture,
-                                                                   .Flags = TextureCreationFlagForce2D,
+                                                                   .StartState = RESOURCE_STATE_DEPTH_WRITE,
+                                                                   .Descriptors = DESCRIPTOR_TYPE_TEXTURE,
+                                                                   .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                                                    .GetRenderTarget = true });
     ASSERT_TRUE(instanceBuffer.IsValid() && indirect.IsValid() && shadowDepth.IsValid());
     for (uint32_t scenario = 0; scenario < 3; ++scenario)
@@ -1336,15 +1336,15 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         SCOPED_TRACE(scenario);
         hz::CommandList& commands = context.AcquireCommandList();
         commands.BeginRendering({ .colorAttachments = { { .pTexture = &alpha,
-                                                          .loadAction = LoadActionClear,
-                                                          .storeAction = StoreActionStore,
+                                                          .loadAction = LOAD_ACTION_CLEAR,
+                                                          .storeAction = STORE_ACTION_STORE,
                                                           .ClearValue = { .a = scenario == 2 ? 0.75f : 0.25f } } } });
         commands.EndRendering();
         commands.SetPipeline(raster);
         commands.BeginRendering(
             { .depthAttachment = { .pTexture = &shadowDepth,
-                                   .loadAction = LoadActionClear,
-                                   .storeAction = StoreActionStore,
+                                   .loadAction = LOAD_ACTION_CLEAR,
+                                   .storeAction = STORE_ACTION_STORE,
                                    .ClearValue = { .Depth = 1 } } },
             { .sampledTextures = { &alpha },
               .buffers = { &frame, &instanceBuffer, &materialBuffer, &textureBuffer, &drawBuffer, &vertices, &indexBuffer, &uv },
@@ -1374,22 +1374,22 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "CookbookPpllTest", .enableGpuValidation = true });
     hz::GPUPipeline   gather =
-        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
-                                                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSTransparent" } },
+        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
+                                                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSTransparent" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "Transparency.slang" },
                                          .Depth = { .depthTest = true, .depthWrite = false, .depthFunc = CMP_LEQUAL },
                                          .depthStencilFormat = hz::Format::D32_SFLOAT });
     const auto compute = [&](const char* entry)
     {
-        return context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = entry } },
+        return context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = entry } },
                                                                .sourceDirectory = DirectoryOtherFiles,
                                                                .pFileName = "Transparency.slang" } });
     };
     hz::GPUPipeline Clear = compute("ClearMain"), resolve = compute("ResolveMain");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     hz::GPUPipeline reader =
-        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
@@ -1401,9 +1401,9 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                       .StructStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = MemoryUsageCpuToGpu,
-                                      .StartState = ResourceStateShaderResource,
-                                      .Descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw });
+                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                      .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                      .Descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
     };
     struct FrameData
     {
@@ -1434,30 +1434,30 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         return context.CreateTexture({ .Width = 8,
                                        .Height = 8,
                                        .Format = Format,
-                                       .StartState = ResourceStateUnorderedAccess,
-                                       .Descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
+                                       .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                       .Descriptors = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
                                        .GetRenderTarget = target });
     };
     hz::GPUTexture heads = image(hz::Format::R32_UINT, false), result = image(hz::Format::R32G32B32A32_SFLOAT, false);
     hz::GPUTexture opaque = image(hz::Format::R32G32B32A32_SFLOAT, true);
     hz::GPUTexture Depth = context.CreateTexture(
-        { .Width = 8, .Height = 8, .Format = hz::Format::D32_SFLOAT, .StartState = ResourceStateDepthWrite, .GetRenderTarget = true });
+        { .Width = 8, .Height = 8, .Format = hz::Format::D32_SFLOAT, .StartState = RESOURCE_STATE_DEPTH_WRITE, .GetRenderTarget = true });
     hz::GPUBuffer counters =
         context.CreateBuffer({ .Size = 16,
                                .ElementCount = 4,
-                               .usage = MemoryUsageGpuOnly,
-                               .StartState = ResourceStateUnorderedAccess,
-                               .Descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
+                               .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                               .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                               .Descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) });
     hz::GPUBuffer pixels = context.CreateBuffer({ .Size = 64 * 16,
                                                   .ElementCount = 64,
                                                   .StructStride = 16,
-                                                  .usage = MemoryUsageGpuOnly,
-                                                  .StartState = ResourceStateUnorderedAccess,
-                                                  .Descriptors = DescriptorTypeRwBuffer });
+                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                  .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
     hz::GPUBuffer readback = context.CreateBuffer({ .Size = 64 * 16 + 16,
-                                                    .usage = MemoryUsageGpuToCpu,
-                                                    .StartState = ResourceStateCopyDest,
-                                                    .Flags = BufferCreationFlagPersistentMapBit });
+                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                    .StartState = RESOURCE_STATE_COPY_DEST,
+                                                    .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     for (uint32_t scenario = 0; scenario < 4; ++scenario)
     {
         SCOPED_TRACE(scenario);
@@ -1465,13 +1465,13 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         hz::GPUBuffer  nodes =
             context.CreateBuffer({ .Size = Capacity * 16,
                                    .ElementCount = Capacity * 4,
-                                   .usage = MemoryUsageGpuOnly,
-                                   .StartState = ResourceStateUnorderedAccess,
-                                   .Descriptors = (DescriptorType)(DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw) });
+                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                   .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                   .Descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) });
         hz::CommandList& commands = context.AcquireCommandList();
         commands.BeginRendering({ .colorAttachments = { { .pTexture = &opaque,
-                                                          .loadAction = LoadActionClear,
-                                                          .storeAction = StoreActionStore,
+                                                          .loadAction = LOAD_ACTION_CLEAR,
+                                                          .storeAction = STORE_ACTION_STORE,
                                                           .ClearValue = { .b = 1, .a = 1 } } } });
         commands.EndRendering();
         uint32_t constants[28];
@@ -1495,8 +1495,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         commands.SetRootConstant(constants);
         commands.Dispatch(1, 1, 1, { .storageTextures = { &heads }, .storageBuffers = { &counters } });
         commands.BeginRendering({ .depthAttachment = { .pTexture = &Depth,
-                                                       .loadAction = LoadActionClear,
-                                                       .storeAction = StoreActionStore,
+                                                       .loadAction = LOAD_ACTION_CLEAR,
+                                                       .storeAction = STORE_ACTION_STORE,
                                                        .ClearValue = { .Depth = scenario == 2 ? 0.5f : 1.0f } } },
                                 { .storageTextures = { &heads },
                                   .buffers = { &frame, &light, &instanceBuffer, &materialBuffer, &vertices, &normal, &uv },
@@ -1564,7 +1564,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::RenderContext context({ .pAppName = "CookbookPostTest", .enableGpuValidation = true });
     const auto        compute = [&](const char* file, const char* entry)
     {
-        return context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = entry } },
+        return context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = entry } },
                                                                .sourceDirectory = DirectoryOtherFiles,
                                                                .pFileName = file } });
     };
@@ -1574,14 +1574,14 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::GPUPipeline downsample = compute("PostBloomDownsample.slang", "CSMain");
     hz::GPUPipeline upsample = compute("PostBloomUpsample.slang", "CSMain");
     hz::GPUPipeline tone =
-        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
-                                                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
+        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
+                                                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "PostToneMap.slang" },
                                          .colorTargets = { { .Format = hz::Format::R32G32B32A32_SFLOAT } } });
     hz::GPUPipeline deferred =
-        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
-                                                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
+        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
+                                                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "DeferredLighting.slang" },
                                          .colorTargets = { { .Format = hz::Format::R32G32B32A32_SFLOAT } } });
@@ -1605,7 +1605,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     {
         return context.CreateComputePipeline(
             { .shaderDesc = {
-                  .stages = { { .stage = ShaderStageComp, .pSource = source, .sourceSize = Size, .pEntryPoint = entry } } } });
+                  .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = Size, .pEntryPoint = entry } } } });
     };
 
     hz::GPUPipeline seedLogs = helper(seedSource, sizeof(seedSource) - 1, "CSLogGrid");
@@ -1619,9 +1619,9 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         return context.CreateTexture({ .Width = Width,
                                        .Height = Height,
                                        .Format = Format,
-                                       .StartState = ResourceStateRenderTarget,
-                                       .Descriptors = (DescriptorType)(DescriptorTypeTexture | DescriptorTypeRwTexture),
-                                       .Flags = TextureCreationFlagForce2D,
+                                       .StartState = RESOURCE_STATE_RENDER_TARGET,
+                                       .Descriptors = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
+                                       .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                        .GetRenderTarget = true });
     };
     constexpr hz::Format rgba = hz::Format::R32G32B32A32_SFLOAT, scalar = hz::Format::R32_SFLOAT;
@@ -1630,17 +1630,17 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::GPUTexture       reduced = image(1, 1, scalar), previous = image(1, 1, scalar), adapted = image(1, 1, scalar);
     hz::GPUTexture       impulse = image(9, 9, rgba), blurred = image(9, 9, rgba);
     hz::GPUSampler       sampler = context.CreateSampler(
-        { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .AddressW = AddressModeClampToEdge });
-    hz::GPUBuffer  output = context.CreateBuffer({ .Size = 256 * 16,
-                                                   .ElementCount = 256,
-                                                   .StructStride = 16,
-                                                   .usage = MemoryUsageGpuOnly,
-                                                   .StartState = ResourceStateUnorderedAccess,
-                                                   .Descriptors = DescriptorTypeRwBuffer });
-    hz::GPUBuffer  readback = context.CreateBuffer({ .Size = 256 * 16,
-                                                     .usage = MemoryUsageGpuToCpu,
-                                                     .StartState = ResourceStateCopyDest,
-                                                     .Flags = BufferCreationFlagPersistentMapBit });
+        { .AddressU = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressV = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressW = ADDRESS_MODE_CLAMP_TO_EDGE });
+    hz::GPUBuffer output = context.CreateBuffer({ .Size = 256 * 16,
+                                                  .ElementCount = 256,
+                                                  .StructStride = 16,
+                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                  .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+    hz::GPUBuffer readback = context.CreateBuffer({ .Size = 256 * 16,
+                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                    .StartState = RESOURCE_STATE_COPY_DEST,
+                                                    .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
 
     hz::GPUTexture peakSource = image(2, 2, rgba), peakBright = image(1, 1, rgba);
     hz::GPUTexture peakNormal = image(1, 1, rgba), peakBase = image(1, 1, rgba);
@@ -1660,17 +1660,17 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                       .StructStride = Size,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = MemoryUsageCpuToGpu,
-                                      .StartState = ResourceStateShaderResource,
-                                      .Descriptors = DescriptorTypeBuffer });
+                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                      .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                      .Descriptors = DESCRIPTOR_TYPE_BUFFER });
     };
     hz::GPUBuffer    peakFrame = Upload(&peakCamera, sizeof(peakCamera)), peakLighting = Upload(&peakLight, sizeof(peakLight));
     hz::CommandList& commands = context.AcquireCommandList();
     const auto       Clear = [&](const hz::GPUTexture& texture, float value)
     {
         commands.BeginRendering({ .colorAttachments = { { .pTexture = &texture,
-                                                          .loadAction = LoadActionClear,
-                                                          .storeAction = StoreActionStore,
+                                                          .loadAction = LOAD_ACTION_CLEAR,
+                                                          .storeAction = STORE_ACTION_STORE,
                                                           .ClearValue = { .r = value, .g = value, .b = value, .a = 1 } } } });
         commands.EndRendering();
     };
@@ -1695,7 +1695,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     for (uint32_t mode = 0; mode < 4; ++mode)
     {
         commands.BeginRendering(
-            { .colorAttachments = { { .pTexture = &mapped, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
+            { .colorAttachments = { { .pTexture = &mapped, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
             { .sampledTextures = { &source, &average, &black } });
         commands.SetViewport(0, 0, 1, 1);
         commands.SetScissor(0, 0, 1, 1);
@@ -1717,17 +1717,17 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     read(logOutput, 8);
     // Real deferred shader: N=V=L, white dielectric, roughness=.2, quantized Specular=8/16. No environment, shadow or AO.
     commands.BeginRendering({ .colorAttachments = { { .pTexture = &peakNormal,
-                                                      .loadAction = LoadActionClear,
-                                                      .storeAction = StoreActionStore,
+                                                      .loadAction = LOAD_ACTION_CLEAR,
+                                                      .storeAction = STORE_ACTION_STORE,
                                                       .ClearValue = { .r = .5f, .g = .5f, .b = 51.0f / 1023.0f, .a = 2.0f / 3.0f } },
                                                     { .pTexture = &peakBase,
-                                                      .loadAction = LoadActionClear,
-                                                      .storeAction = StoreActionStore,
+                                                      .loadAction = LOAD_ACTION_CLEAR,
+                                                      .storeAction = STORE_ACTION_STORE,
                                                       .ClearValue = { .r = 1, .g = 1, .b = 1, .a = 0 } } } });
     commands.EndRendering();
     commands.SetPipeline(deferred);
     commands.BeginRendering(
-        { .colorAttachments = { { .pTexture = &mapped, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
+        { .colorAttachments = { { .pTexture = &mapped, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
         { .sampledTextures = { &black, &average, &peakNormal, &peakBase }, .buffers = { &peakFrame, &peakLighting } });
     commands.SetViewport(0, 0, 1, 1);
     commands.SetScissor(0, 0, 1, 1);
@@ -1801,7 +1801,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         toneConstants.outputMode = mode;
         commands.SetPipeline(tone);
         commands.BeginRendering(
-            { .colorAttachments = { { .pTexture = &mapped, .loadAction = LoadActionDontCare, .storeAction = StoreActionStore } } },
+            { .colorAttachments = { { .pTexture = &mapped, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
             { .sampledTextures = { &source, &average, &black } });
         commands.SetViewport(0, 0, 1, 1);
         commands.SetScissor(0, 0, 1, 1);
@@ -1911,8 +1911,8 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     ASSERT_EQ(normalMap.GetFormat(), hz::Format::DXBC5_UNORM);
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
     hz::GPUPipeline geometry =
-        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
-                                                                     { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
+        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" },
+                                                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "Geometry.slang" },
                                          .colorTargets = { { .Format = hz::Format::R8G8B8A8_UNORM },
@@ -1921,7 +1921,7 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
                                                            { .Format = hz::Format::R8G8B8A8_UNORM } } });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     hz::GPUPipeline reader =
-        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageComp,
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
                                                                       .pSource = kCookbookTextureReadback,
                                                                       .sourceSize = sizeof(kCookbookTextureReadback) - 1,
                                                                       .pEntryPoint = "CSMain" } } } });
@@ -1933,19 +1933,19 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
                                       .StructStride = stride,
                                       .pInitialData = data,
                                       .initialDataSize = Size,
-                                      .usage = MemoryUsageCpuToGpu,
-                                      .StartState = ResourceStateShaderResource,
-                                      .Descriptors = stride ? DescriptorTypeBuffer : DescriptorTypeBufferRaw,
-                                      .Flags = BufferCreationFlagPersistentMapBit });
+                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                      .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                      .Descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW,
+                                      .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     };
     const auto image = [&](hz::Format Format)
     {
         return context.CreateTexture({ .Width = 4,
                                        .Height = 4,
                                        .Format = Format,
-                                       .StartState = ResourceStateRenderTarget,
-                                       .Descriptors = DescriptorTypeTexture,
-                                       .Flags = TextureCreationFlagForce2D,
+                                       .StartState = RESOURCE_STATE_RENDER_TARGET,
+                                       .Descriptors = DESCRIPTOR_TYPE_TEXTURE,
+                                       .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
                                        .GetRenderTarget = true });
     };
     hz::GPUTexture alpha = image(hz::Format::R32G32B32A32_SFLOAT), targets[4];
@@ -1979,13 +1979,13 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     hz::GPUBuffer  output = context.CreateBuffer({ .Size = 16 * 16,
                                                    .ElementCount = 16,
                                                    .StructStride = 16,
-                                                   .usage = MemoryUsageGpuOnly,
-                                                   .StartState = ResourceStateUnorderedAccess,
-                                                   .Descriptors = DescriptorTypeRwBuffer });
+                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                   .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                   .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
     hz::GPUBuffer  readback = context.CreateBuffer({ .Size = 2 * 16 * 16,
-                                                     .usage = MemoryUsageGpuToCpu,
-                                                     .StartState = ResourceStateCopyDest,
-                                                     .Flags = BufferCreationFlagPersistentMapBit });
+                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                     .StartState = RESOURCE_STATE_COPY_DEST,
+                                                     .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     struct Case
     {
         uint32_t mode;
@@ -2002,16 +2002,16 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
         ASSERT_TRUE(context.UpdateBuffer(uv, 0, scenario.distant ? farUV : nearUV, sizeof(nearUV)));
         hz::CommandList& commands = context.AcquireCommandList();
         commands.BeginRendering({ .colorAttachments = { { .pTexture = &alpha,
-                                                          .loadAction = LoadActionClear,
-                                                          .storeAction = StoreActionStore,
+                                                          .loadAction = LOAD_ACTION_CLEAR,
+                                                          .storeAction = STORE_ACTION_STORE,
                                                           .ClearValue = { .r = 1, .g = 1, .b = 1, .a = scenario.alpha } } } });
         commands.EndRendering();
         commands.SetPipeline(geometry);
         commands.BeginRendering(
-            { .colorAttachments = { { .pTexture = &targets[0], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
-                                    { .pTexture = &targets[1], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
-                                    { .pTexture = &targets[2], .loadAction = LoadActionClear, .storeAction = StoreActionStore },
-                                    { .pTexture = &targets[3], .loadAction = LoadActionClear, .storeAction = StoreActionStore } } },
+            { .colorAttachments = { { .pTexture = &targets[0], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
+                                    { .pTexture = &targets[1], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
+                                    { .pTexture = &targets[2], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE },
+                                    { .pTexture = &targets[3], .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE } } },
             { .sampledTextures = { &alpha, &normalMap },
               .buffers = { &frame, &instances, &materials, &textures, &vertices, &normal, &uv } });
         commands.SetViewport(0, 0, 4, 4);
@@ -2063,10 +2063,10 @@ TEST_F(SceneAssetLoaderTest, RendererScreenSpaceAOShadersCompile)
     // The AO pass produces the indirect-light occlusion the deferred shader consumes, so both entry points must link.
     for (const char* entry : { "CSMain", "BlurMain" })
     {
-        const hz::GPUPipeline pipeline = context.CreateComputePipeline(
-            { .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = entry } },
-                              .sourceDirectory = DirectoryOtherFiles,
-                              .pFileName = "ScreenSpaceAO.slang" } });
+        const hz::GPUPipeline pipeline =
+            context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = entry } },
+                                                            .sourceDirectory = DirectoryOtherFiles,
+                                                            .pFileName = "ScreenSpaceAO.slang" } });
         EXPECT_TRUE(pipeline.IsValid()) << entry;
     }
 }

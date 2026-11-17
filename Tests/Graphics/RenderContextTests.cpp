@@ -41,7 +41,7 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         .Height = 0,
         .imageCount = 2,
         .colorFormat = hz::Format::B8G8R8A8_SRGB,
-        .colorSpace = ColorSpaceSdrSrgb,
+        .colorSpace = COLOR_SPACE_SDR_SRGB,
     };
     hz::RenderContext context(desc);
     EXPECT_TRUE(context.IsSuspended());
@@ -56,10 +56,10 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         .Name = "RenderContextTest.Buffer",
         .pInitialData = &initial,
         .initialDataSize = sizeof(initial),
-        .usage = MemoryUsageGpuOnly,
-        .StartState = ResourceStateShaderResource,
-        .Descriptors = DescriptorTypeBuffer,
-        .Flags = BufferCreationFlagNone,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+        .Descriptors = DESCRIPTOR_TYPE_BUFFER,
+        .Flags = BUFFER_CREATION_FLAG_NONE,
     };
     {
         hz::GPUBuffer first = context.CreateBuffer(bufferDesc);
@@ -73,7 +73,7 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
                                          "[numthreads(1, 1, 1)] void CSMain(uint3 id : SV_DispatchThreadID) {"
                                          "RWStructuredBuffer<uint> output = ResourceDescriptorHeap[outputIndex]; output[id.x] = id.x; }";
     const hz::ShaderStageDesc stages[] = {
-        { .stage = ShaderStageComp,
+        { .stage = SHADER_STAGE_COMP,
           .pSource = source,
           .sourceSize = sizeof(source) - 1,
           .pEntryPoint = "CSMain",
@@ -104,8 +104,8 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
         second = context.CreateGraphicsPipeline({
             .shaderDesc = {
                 .stages = {
-                    { .stage = ShaderStageVert, .pSource = vertexSource, .sourceSize = sizeof(vertexSource) - 1 },
-                    { .stage = ShaderStageFrag, .pSource = fragmentSource, .sourceSize = sizeof(fragmentSource) - 1 },
+                    { .stage = SHADER_STAGE_VERT, .pSource = vertexSource, .sourceSize = sizeof(vertexSource) - 1 },
+                    { .stage = SHADER_STAGE_FRAG, .pSource = fragmentSource, .sourceSize = sizeof(fragmentSource) - 1 },
                 },
             },
             .colorTargets = {
@@ -139,25 +139,25 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
     )";
     hz::GPUPipeline pipeline = context.CreateComputePipeline({
         .shaderDesc = {
-            .stages = { { .stage = ShaderStageComp, .pSource = source, .sourceSize = sizeof(source) - 1,
+            .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1,
                           .pEntryPoint = "CSMain" } },
             .language = hz::ShaderLanguage::Slang,
         },
     });
     ASSERT_TRUE(pipeline.IsValid());
     hz::GPUBuffer    output = context.CreateBuffer({
-        .Size = 4 * sizeof(uint32_t),
-        .ElementCount = 4,
-        .StructStride = sizeof(uint32_t),
-        .usage = MemoryUsageGpuOnly,
-        .StartState = ResourceStateUnorderedAccess,
-        .Descriptors = DescriptorTypeRwBuffer,
+           .Size = 4 * sizeof(uint32_t),
+           .ElementCount = 4,
+           .StructStride = sizeof(uint32_t),
+           .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+           .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+           .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
     });
     hz::GPUBuffer    readback = context.CreateBuffer({
-        .Size = 4 * sizeof(uint32_t),
-        .usage = MemoryUsageGpuToCpu,
-        .StartState = ResourceStateCopyDest,
-        .Flags = BufferCreationFlagPersistentMapBit,
+           .Size = 4 * sizeof(uint32_t),
+           .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+           .StartState = RESOURCE_STATE_COPY_DEST,
+           .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
     });
     hz::CommandList& commands = context.AcquireCommandList();
     commands.SetPipeline(pipeline);
@@ -188,9 +188,9 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
     hz::GPUPipeline graphics = context.CreateGraphicsPipeline({
         .shaderDesc = {
             .stages = {
-                { .stage = ShaderStageVert, .pSource = graphicsSource, .sourceSize = sizeof(graphicsSource) - 1,
+                { .stage = SHADER_STAGE_VERT, .pSource = graphicsSource, .sourceSize = sizeof(graphicsSource) - 1,
                   .pEntryPoint = "VSMain" },
-                { .stage = ShaderStageFrag, .pSource = graphicsSource, .sourceSize = sizeof(graphicsSource) - 1,
+                { .stage = SHADER_STAGE_FRAG, .pSource = graphicsSource, .sourceSize = sizeof(graphicsSource) - 1,
                   .pEntryPoint = "PSMain" },
             },
             .language = hz::ShaderLanguage::Slang,
@@ -212,22 +212,22 @@ TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
         values[i] = 100 + i;
     hz::GPUBuffer staging = context.CreateBuffer({
         .Size = sizeof(values),
-        .usage = MemoryUsageCpuToGpu,
-        .StartState = ResourceStateGenericRead,
-        .Flags = BufferCreationFlagPersistentMapBit,
+        .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+        .StartState = RESOURCE_STATE_GENERIC_READ,
+        .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
     });
     hz::GPUBuffer target = context.CreateBuffer({
         .Size = sizeof(values),
         .ElementCount = 16,
-        .usage = MemoryUsageGpuOnly,
-        .StartState = ResourceStateShaderResource,
-        .Descriptors = DescriptorTypeBufferRaw,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+        .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
     });
     hz::GPUBuffer readback = context.CreateBuffer({
         .Size = sizeof(values),
-        .usage = MemoryUsageGpuToCpu,
-        .StartState = ResourceStateCopyDest,
-        .Flags = BufferCreationFlagPersistentMapBit,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+        .StartState = RESOURCE_STATE_COPY_DEST,
+        .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
     });
     ASSERT_TRUE(staging.IsValid() && target.IsValid() && readback.IsValid());
     ASSERT_TRUE(context.UpdateBuffer(staging, 0, values, sizeof(values)));
@@ -253,9 +253,9 @@ TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
     const hz::BufferDesc rawDesc = {
         .Size = sizeof(values),
         .ElementCount = 16,
-        .usage = MemoryUsageGpuOnly,
-        .StartState = ResourceStateShaderResource,
-        .Descriptors = DescriptorTypeBufferRaw,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+        .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
     };
     hz::GPUBuffer released = context.CreateBuffer(rawDesc);
     ASSERT_TRUE(released.IsValid());
@@ -310,12 +310,12 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
     )";
     hz::GPUPipeline   write = context.CreateComputePipeline(
         { .shaderDesc = {
-              .stages = { { .stage = ShaderStageComp, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Write" } },
-              .language = hz::ShaderLanguage::Slang,
+                .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Write" } },
+                .language = hz::ShaderLanguage::Slang,
           } });
     hz::GPUPipeline read = context.CreateComputePipeline(
         { .shaderDesc = {
-              .stages = { { .stage = ShaderStageComp, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Read" } },
+              .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Read" } },
               .language = hz::ShaderLanguage::Slang,
           } });
     ASSERT_TRUE(write.IsValid() && read.IsValid());
@@ -324,45 +324,45 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
         .Height = 2,
         .MipLevels = 2,
         .Format = hz::Format::R8G8B8A8_UNORM,
-        .StartState = ResourceStateUnorderedAccess,
-        .Descriptors = DescriptorTypeTexture | DescriptorTypeRwTexture,
+        .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .Descriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE,
     };
     hz::GPUTexture textures[] = { context.CreateTexture(textureDesc), context.CreateTexture(textureDesc) };
     hz::GPUSampler sampler = context.CreateSampler({ .MinFilter = FILTER_NEAREST, .MagFilter = FILTER_NEAREST });
     const uint32_t configData[64] = { 2 };
     const uint32_t bias = 3;
     hz::GPUBuffer  config = context.CreateBuffer({
-        .Size = 256,
-        .ElementCount = 64,
-        .StructStride = 4,
-        .pInitialData = configData,
-        .initialDataSize = sizeof(configData),
-        .usage = MemoryUsageGpuOnly,
-        .StartState = ResourceStateVertexAndConstantBuffer,
-        .Descriptors = DescriptorTypeUniformBuffer | DescriptorTypeRwBuffer,
+         .Size = 256,
+         .ElementCount = 64,
+         .StructStride = 4,
+         .pInitialData = configData,
+         .initialDataSize = sizeof(configData),
+         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+         .StartState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
+         .Descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER,
     });
     hz::GPUBuffer  raw = context.CreateBuffer({
-        .Size = 4,
-        .ElementCount = 1,
-        .pInitialData = &bias,
-        .initialDataSize = sizeof(bias),
-        .usage = MemoryUsageGpuOnly,
-        .StartState = ResourceStateShaderResource,
-        .Descriptors = DescriptorTypeBufferRaw,
+         .Size = 4,
+         .ElementCount = 1,
+         .pInitialData = &bias,
+         .initialDataSize = sizeof(bias),
+         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+         .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+         .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
     });
     hz::GPUBuffer  output = context.CreateBuffer({
-        .Size = 32,
-        .ElementCount = 2,
-        .StructStride = 16,
-        .usage = MemoryUsageGpuOnly,
-        .StartState = ResourceStateUnorderedAccess,
-        .Descriptors = DescriptorTypeRwBuffer,
+         .Size = 32,
+         .ElementCount = 2,
+         .StructStride = 16,
+         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+         .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+         .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
     });
     hz::GPUBuffer  readback = context.CreateBuffer({
-        .Size = 32,
-        .usage = MemoryUsageGpuToCpu,
-        .StartState = ResourceStateCopyDest,
-        .Flags = BufferCreationFlagPersistentMapBit,
+         .Size = 32,
+         .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+         .StartState = RESOURCE_STATE_COPY_DEST,
+         .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
     });
     EXPECT_NE(config.GetCbvIndex(), config.GetUavIndex());
     EXPECT_EQ(textures[0].GetUavIndex(1), textures[0].GetUavIndex(0) + 1);
@@ -420,7 +420,7 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
         .Height = 480,
         .imageCount = 2,
         .colorFormat = hz::Format::B8G8R8A8_SRGB,
-        .colorSpace = ColorSpaceSdrSrgb,
+        .colorSpace = COLOR_SPACE_SDR_SRGB,
     };
     hz::RenderContext context(desc);
 
@@ -436,8 +436,8 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
         commands.BeginRendering({
             .colorAttachments = { {
                 .pTexture = &backbuffer,
-                .loadAction = LoadActionClear,
-                .storeAction = StoreActionStore,
+                .loadAction = LOAD_ACTION_CLEAR,
+                .storeAction = STORE_ACTION_STORE,
                 .ClearValue = { .r = 0.0f, .g = 0.0f, .b = 0.0f, .a = 1.0f },
             } },
         });
