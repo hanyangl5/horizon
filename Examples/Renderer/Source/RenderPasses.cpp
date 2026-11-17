@@ -104,7 +104,7 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const Sc
                              .loadAction = LoadActionClear,
                              .storeAction = StoreActionStore,
                              .ClearValue = { .Depth = 1.0f } },
-    }, Draws.GetDependencies(Frame, View, &Draws.GetCommands(View.FrameIndex)));
+    }, Draws.GetDependencies(Frame, View, &Draws.GetCommands(View.FrameIndex, Draws.GetOpaqueList())));
     Cmd.SetViewport(0, 0, (float)Width, (float)Height);
     Cmd.SetScissor(0, 0, Width, Height);
     Cmd.SetPipeline(Pipeline);
@@ -120,7 +120,7 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const Sc
     Cmd.SetRootConstant({ Draws.GetDrawData(View.FrameIndex).GetSrvIndex() }, GeometryDrawSlot);
     if (Draws.GetCount(View.FrameIndex))
     {
-        Cmd.DrawIndirect(Draws.GetCommands(View.FrameIndex), 0, Draws.GetCount(View.FrameIndex));
+        Cmd.DrawIndirect(Draws.GetCommands(View.FrameIndex, Draws.GetOpaqueList()), 0, Draws.GetCount(View.FrameIndex));
     }
     Cmd.EndRendering();
     Cmd.EndGpuTimestamp();

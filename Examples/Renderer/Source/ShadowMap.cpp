@@ -159,7 +159,7 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
                                                    .loadAction = LoadActionClear,
                                                    .storeAction = StoreActionStore,
                                                    .ClearValue = { .Depth = 1 } } },
-                            Draws.GetDependencies(ShadowFrames[Backing], View, &Draws.GetShadowCommands(Backing)));
+                            Draws.GetDependencies(ShadowFrames[Backing], View, &Draws.GetCommands(Backing, Draws.GetShadowCasterList())));
     Commands.SetPipeline(Pipeline);
     Commands.SetViewport(0, 0, (float)Resolution, (float)Resolution);
     Commands.SetScissor(0, 0, Resolution, Resolution);
@@ -175,7 +175,7 @@ void ShadowMap::Execute(hz::CommandList& Commands, const SceneView& View, const 
     Commands.SetRootConstant({ Draws.GetDrawData(Backing).GetSrvIndex() }, GeometryDrawSlot);
     if (Draws.GetCount(Backing))
     {
-        Commands.DrawIndirect(Draws.GetShadowCommands(Backing), 0, Draws.GetCount(Backing));
+        Commands.DrawIndirect(Draws.GetCommands(Backing, Draws.GetShadowCasterList()), 0, Draws.GetCount(Backing));
     }
     Commands.EndRendering();
     Commands.EndGpuTimestamp();

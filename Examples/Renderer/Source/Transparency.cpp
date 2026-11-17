@@ -113,7 +113,7 @@ const hz::GPUTexture& Transparency::Execute(hz::CommandList& Commands, const hz:
     const uint32_t Backing = View.FrameIndex;
     if (Draws.GetCount(Backing))
     {
-        const hz::GPUBuffer& Indirect = Draws.GetCommands(Backing, true);
+        const hz::GPUBuffer& Indirect = Draws.GetCommands(Backing, Draws.GetTransparentList());
         hz::Dependencies     Dependencies = Draws.GetDependencies(Frame, View, &Indirect);
         Sampled.Clear();
         Buffers.Clear();

@@ -68,7 +68,10 @@ struct GpuMaterialData
     float         alphaCutoff = 0.5f;
     uint32_t      alphaMode = 0;
     uint32_t      doubleSided = 0;
+    uint32_t      tags = 0;
 };
+// Shaders index this table by sizeof(GpuMaterialData); keep it in step with their GpuMaterialData struct.
+static_assert(sizeof(GpuMaterialData) == 76);
 struct GpuTextureData
 {
     GpuTextureID id;

@@ -453,6 +453,7 @@ public:
             mapping.alphaCutoff = material.alphaCutoff;
             mapping.alphaMode = (uint32_t)material.alphaMode;
             mapping.doubleSided = material.doubleSided;
+            mapping.tags = material.tags;
         }
         assets[index].tableDirty = false;
         assets[index].tableEncoded = true;

@@ -38,6 +38,8 @@ struct SceneAssetMaterial
     MaterialAlphaMode alphaMode = MaterialAlphaMode::Opaque;
     float             alphaCutoff = 0.5f;
     bool              doubleSided = false;
+    // Application-defined bits that renderer lists filter on, for example to draw an outline for a subset of materials.
+    uint32_t          tags = 0;
 };
 
 struct SceneAssetSubmesh

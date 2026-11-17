@@ -1,17 +1,28 @@
 // Adapted from Cookbook Renderer/shaders/FrustumCulling.comp.slang.
 // Copyright (c) 2024 Packt. MIT license: ../Cookbook-LICENSE.txt.
 #include "Common.slang"
+#include "Material.slang"
 cbuffer RootConstant0
 {
     uint frameIndex;
     uint drawsIndex;
     uint instancesIndex;
-    uint opaqueIndex;
-    uint transparentIndex;
+    uint materialsIndex;
+    uint filtersIndex;
+    uint filterCount;
     uint statisticsIndex;
     uint drawCount;
     uint cullingEnabled;
-    uint shadowsIndex;
+};
+
+// Matches DrawListFilter in GpuDrawList.h. A draw enters a list when its alpha mode bit is set in alphaModes and its
+// material carries every bit of requiredTags; frustum culling applies only to lists that ask for it.
+struct DrawListFilter
+{
+    uint alphaModes;
+    uint requiredTags;
+    uint frustumCull;
+    uint commandsIndex;
 };
 
 struct AABB
@@ -132,9 +143,8 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     StructuredBuffer<FrameData> frames = ResourceDescriptorHeap[frameIndex];
     ByteAddressBuffer           draws = ResourceDescriptorHeap[drawsIndex];
     ByteAddressBuffer           instances = ResourceDescriptorHeap[instancesIndex];
-    RWByteAddressBuffer         opaque = ResourceDescriptorHeap[opaqueIndex];
-    RWByteAddressBuffer         transparent = ResourceDescriptorHeap[transparentIndex];
-    RWByteAddressBuffer         shadows = ResourceDescriptorHeap[shadowsIndex];
+    ByteAddressBuffer           materials = ResourceDescriptorHeap[materialsIndex];
+    StructuredBuffer<DrawListFilter> filters = ResourceDescriptorHeap[filtersIndex];
     RWByteAddressBuffer         statistics = ResourceDescriptorHeap[statisticsIndex];
     uint4                       object = draws.Load4(id.x * 48);
     uint                        indexCount = draws.Load(id.x * 48 + 44);
@@ -143,12 +153,17 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float3                      maximum = asfloat(instances.Load3(boundsOffset + 12));
     AABB                        box = { { minimum.x, minimum.y, minimum.z, maximum.x, maximum.y, maximum.z } };
     bool keep = cullingEnabled == 0 || IsAABBInFrustum(box, frames[0].viewProjection, frames[0].inverseViewProjection);
-    opaque.Store(id.x * 20, id.x);
-    opaque.Store4(id.x * 20 + 4, uint4(indexCount, keep && object.w != 2 ? 1 : 0, 0, 0));
-    transparent.Store(id.x * 20, id.x);
-    transparent.Store4(id.x * 20 + 4, uint4(indexCount, keep && object.w == 2 ? 1 : 0, 0, 0));
-    shadows.Store(id.x * 20, id.x);
-    shadows.Store4(id.x * 20 + 4, uint4(indexCount, object.w != 2 ? 1 : 0, 0, 0));
+    const uint tags = materials.Load<GpuMaterialData>(object.y * sizeof(GpuMaterialData)).tags;
+    // Every list holds one slot per draw, so a draw id selects the same entry in all of them.
+    for (uint i = 0; i < filterCount; ++i)
+    {
+        const DrawListFilter filter = filters[i];
+        RWByteAddressBuffer  commands = ResourceDescriptorHeap[filter.commandsIndex];
+        const bool selected = (filter.alphaModes & (1u << object.w)) != 0 && (tags & filter.requiredTags) == filter.requiredTags &&
+                              (filter.frustumCull == 0 || keep);
+        commands.Store(id.x * 20, id.x);
+        commands.Store4(id.x * 20 + 4, uint4(indexCount, selected ? 1 : 0, 0, 0));
+    }
     if (keep)
     {
         uint ignored;

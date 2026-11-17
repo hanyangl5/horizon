@@ -121,7 +121,7 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     EXPECT_NEAR((float)(packed >> 12) / 4095.0f * 2 - 1, 0, 1.0f / 4095.0f + 1e-5f);
 }
 
-TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCasters)
+TEST_F(SceneAssetLoaderTest, RendererGpuCullingFillsFilteredDrawLists)
 {
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
@@ -152,13 +152,17 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
                                         { -.2f, -.2f, .2f, .2f, .2f, .8f },
                                         { -2, -2, -1, 2, 2, 2 } };
     uint32_t           drawData[5][12] = {};
+    // Draw i uses material i; materials 1 and 4 carry tag bit 2.
+    hz::GpuMaterialData materials[5] = {};
     for (uint32_t i = 0; i < 5; ++i)
     {
         memcpy(instances[i].bounds.minimum, bounds[i], 12);
         memcpy(instances[i].bounds.maximum, bounds[i] + 3, 12);
         drawData[i][0] = i;
+        drawData[i][1] = i;
         drawData[i][3] = i == 3 ? 2u : 0u;
         drawData[i][11] = 3 * (i + 1);
+        materials[i].tags = i == 1 || i == 4 ? 4u : 0u;
     }
     const auto input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
@@ -175,7 +179,9 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
     hz::GPUBuffer frame = input(&camera, sizeof(camera), sizeof(camera));
     hz::GPUBuffer instanceBuffer = input(instances, sizeof(instances));
     hz::GPUBuffer drawBuffer = input(drawData, sizeof(drawData));
-    hz::GPUBuffer outputs[3];
+    hz::GPUBuffer materialBuffer = input(materials, sizeof(materials));
+    constexpr uint32_t ListCount = 4;
+    hz::GPUBuffer outputs[ListCount];
     for (hz::GPUBuffer& buffer : outputs)
     {
         buffer = context.CreateBuffer({ .Size = 100,
@@ -189,7 +195,16 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
                                                        .usage = MemoryUsageGpuOnly,
                                                        .StartState = ResourceStateUnorderedAccess,
                                                        .Descriptors = DescriptorTypeRwBufferRaw });
-    hz::GPUBuffer  readback = context.CreateBuffer({ .Size = 316,
+    // Opaque and masked, blended, uncullable casters, and opaque draws whose material has tag bit 2.
+    const uint32_t opaqueModes = DrawListAlphaMode(hz::MaterialAlphaMode::Opaque) | DrawListAlphaMode(hz::MaterialAlphaMode::Mask);
+    DrawListFilter filters[ListCount] = { { .alphaModes = opaqueModes },
+                                          { .alphaModes = DrawListAlphaMode(hz::MaterialAlphaMode::Blend) },
+                                          { .alphaModes = opaqueModes, .frustumCull = 0 },
+                                          { .alphaModes = opaqueModes, .requiredTags = 4 } };
+    for (uint32_t i = 0; i < ListCount; ++i)
+        filters[i].commandsIndex = outputs[i].GetUavIndex();
+    hz::GPUBuffer  filterBuffer = input(filters, sizeof(filters), sizeof(DrawListFilter));
+    hz::GPUBuffer  readback = context.CreateBuffer({ .Size = ListCount * 100 + 16,
                                                      .usage = MemoryUsageGpuToCpu,
                                                      .StartState = ResourceStateCopyDest,
                                                      .Flags = BufferCreationFlagPersistentMapBit });
@@ -225,38 +240,40 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingSeparatesDrawsAndKeepsShadowCaste
             SCOPED_TRACE(culling);
             hz::CommandList& commands = context.AcquireCommandList();
             commands.SetPipeline(Clear);
-            commands.SetRootConstant({ statistics.GetUavIndex() }, 5);
+            commands.SetRootConstant({ statistics.GetUavIndex() }, 6);
             commands.Dispatch(1, 1, 1, { .storageBuffers = { &statistics } });
             commands.SetPipeline(pipeline);
             commands.SetRootConstant({ frame.GetSrvIndex(), drawBuffer.GetSrvIndex(), instanceBuffer.GetSrvIndex(),
-                                       outputs[0].GetUavIndex(), outputs[1].GetUavIndex(), statistics.GetUavIndex(), 5, culling ? 1u : 0u,
-                                       outputs[2].GetUavIndex() });
+                                       materialBuffer.GetSrvIndex(), filterBuffer.GetSrvIndex(), ListCount, statistics.GetUavIndex(), 5,
+                                       culling ? 1u : 0u });
             commands.Dispatch(1, 1, 1,
-                              { .buffers = { &frame, &drawBuffer, &instanceBuffer },
-                                .storageBuffers = { &outputs[0], &outputs[1], &outputs[2], &statistics } });
-            for (uint32_t i = 0; i < 3; ++i)
+                              { .buffers = { &frame, &drawBuffer, &instanceBuffer, &materialBuffer, &filterBuffer },
+                                .storageBuffers = { &outputs[0], &outputs[1], &outputs[2], &outputs[3], &statistics } });
+            for (uint32_t i = 0; i < ListCount; ++i)
             {
                 commands.CopyBuffer(readback, i * 100, outputs[i], 0, 100);
             }
-            commands.CopyBuffer(readback, 300, statistics, 0, 16);
+            commands.CopyBuffer(readback, ListCount * 100, statistics, 0, 16);
             context.Wait(context.Submit(commands));
             const uint32_t* data = (const uint32_t*)readback.Get()->pCpuMappedAddress;
             ASSERT_NE(data, nullptr);
             for (uint32_t i = 0; i < 5; ++i)
             {
                 const bool visible = !culling || (visibleMasks[cameraCase] & (1u << i));
-                for (uint32_t stream = 0; stream < 3; ++stream)
+                const bool opaque = i != 3, tagged = i == 1 || i == 4;
+                const bool expected[ListCount] = { visible && opaque, visible && !opaque, opaque, visible && opaque && tagged };
+                for (uint32_t stream = 0; stream < ListCount; ++stream)
                 {
                     const uint32_t* args = data + stream * 25 + i * 5;
                     EXPECT_EQ(args[0], i);
                     EXPECT_EQ(args[1], 3 * (i + 1));
-                    EXPECT_EQ(args[2], stream == 2 ? uint32_t(i != 3) : uint32_t(visible && (stream == 1 ? i == 3 : i != 3)));
+                    EXPECT_EQ(args[2], uint32_t(expected[stream])) << "list " << stream;
                     EXPECT_EQ(args[3], 0u);
                     EXPECT_EQ(args[4], 0u);
                 }
             }
-            EXPECT_EQ(data[75], culling ? (cameraCase == 2 ? 2u : 3u) : 5u);
-            EXPECT_EQ(data[76], culling ? triangleCounts[cameraCase] : 15u);
+            EXPECT_EQ(data[ListCount * 25], culling ? (cameraCase == 2 ? 2u : 3u) : 5u);
+            EXPECT_EQ(data[ListCount * 25 + 1], culling ? triangleCounts[cameraCase] : 15u);
         }
     }
 }
@@ -423,7 +440,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
             commands.SetRootConstant({ rayScene.GetSceneTLAS().GetSrvIndex(), output.GetUavIndex() });
             commands.Dispatch(1, 1, 1, { .storageBuffers = { &output }, .pShared = &sceneDependencies });
             commands.CopyBuffer(readback, 0, output, 0, 16);
-            commands.CopyBuffer(readback, 16, draws.GetCommands(view.FrameIndex), 0, prepared.Count * 20);
+            commands.CopyBuffer(readback, 16, draws.GetCommands(view.FrameIndex, draws.GetOpaqueList()), 0, prepared.Count * 20);
         }
 
         const hz::SubmitHandle submission = context.Submit(commands);

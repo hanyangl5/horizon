@@ -215,6 +215,11 @@ bool SceneAssetReader::readMaterials(const cJSON* pArray)
             return invalidField("material factors/alpha mode");
         material.alphaMode = (MaterialAlphaMode)field(pItem, "alphaMode")->valueint;
         material.doubleSided = cJSON_IsTrue(field(pItem, "doubleSided"));
+        // Optional, so assets cooked before tags existed stay valid.
+        const cJSON* pTags = field(pItem, "tags");
+        if (pTags && !readInteger(pTags, 0, UINT32_MAX))
+            return invalidField("material tags");
+        material.tags = pTags ? (uint32_t)pTags->valuedouble : 0;
         data.materials.PushBack(material);
     }
     return true;

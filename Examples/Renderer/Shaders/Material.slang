@@ -16,4 +16,5 @@ struct GpuMaterialData
     float  alphaCutoff;
     uint   alphaMode;
     uint   doubleSided;
+    uint   tags;
 };
