@@ -51,15 +51,13 @@ public:
     bool Init() override
     {
         ConfigureResourceDirectories();
-        BeginSceneCook();
         int64_t Start = GetUSec(true);
+        if (!CookScene())
+            return false;
+        LOGF(Info, "Startup: scene cook check %.1f ms", (GetUSec(true) - Start) / 1000.0);
+        Start = GetUSec(true);
         InitRenderContext();
         LOGF(Info, "Startup: RenderContext %.1f ms", (GetUSec(true) - Start) / 1000.0);
-        if (!FinishSceneCook())
-        {
-            Exit();
-            return false;
-        }
         Start = GetUSec(true);
         if (!InitSceneAsset())
         {
@@ -229,39 +227,18 @@ public:
     void Draw() override { Passes->Execute(); }
 
 private:
-    // The glTF cook check only touches files, so it runs while the device is created.
-    void BeginSceneCook()
+    // The cooker runs serially on the main thread, as its interface requires; an unchanged scene only hashes its inputs.
+    // Only builds that link the AssetPipeline tool can cook; shipping builds receive cooked assets instead.
+    static bool CookScene()
     {
-        ThreadDesc Thread = { .Func = SceneCookTask, .Data = this, .threadName = "SceneCook" };
-        if (!InitThread(&Thread, &CookThread))
-            CookThread = nullptr;
-    }
-
-    bool FinishSceneCook()
-    {
-        if (CookThread)
-        {
-            JoinThread(CookThread);
-            CookThread = nullptr;
-        }
-        else
-        {
-            SceneCookTask(this);
-        }
-        if (!CookSucceeded)
-            LOGF(Error, "Failed to cook scene '%s'", SceneSource);
-        return CookSucceeded;
-    }
-
-    static void SceneCookTask(void* Data)
-    {
-        RendererApp* App = (RendererApp*)Data;
-        // Only builds that link the AssetPipeline tool can cook; shipping builds receive cooked assets instead.
 #if defined(HORIZON_RENDERER_ASSET_COOKING)
-        App->CookSucceeded = ensureSceneGltfCooked(DirectoryTextures, SceneSource, DirectoryOtherFiles);
-#else
-        App->CookSucceeded = true;
+        if (!ensureSceneGltfCooked(DirectoryTextures, SceneSource, DirectoryOtherFiles))
+        {
+            LOGF(Error, "Failed to cook scene '%s'", SceneSource);
+            return false;
+        }
 #endif
+        return true;
     }
 
     void InitCamera()
@@ -328,6 +305,4 @@ private:
     hz::UniquePtr<hz::RenderScene>      Scene;
     hz::UniquePtr<RenderPasses>         Passes;
     hz::Entity                           CameraEntity;
-    ThreadHandle                         CookThread = nullptr;
-    bool                                 CookSucceeded = false;
 };
