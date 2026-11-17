@@ -2,9 +2,9 @@
 
 #include "Scene/SceneAssetLoader.h"
 #include "Scene/SceneAsset.h"
+#include "AssetDependencies.h"
 #include "Core/IContainer.h"
 #include "Core/IThread.h"
-#include <stdlib.h>
 
 #include "Core/IMemory.h"
 
@@ -21,19 +21,8 @@ public:
         Array<AssetID> dependencies;
         dependencies.Reserve(pScene->GetNodes().Count);
         for (const SceneAssetNode& node : pScene->GetNodes())
-            if (node.mesh.IsValid())
-                dependencies.PushBack(node.mesh);
-        if (!dependencies.Empty())
-            qsort(dependencies.GetData(), dependencies.Size(), sizeof(AssetID), compareIDs);
-        uint32_t Count = 0;
-        for (uint32_t i = 0; i < dependencies.Size(); ++i)
-        {
-            if (i && dependencies[i] == dependencies[i - 1])
-                continue;
-            if (Count == entry.dependencies.Count || dependencies[i] != entry.dependencies.Data[Count++])
-                return false;
-        }
-        return Count == entry.dependencies.Count;
+            dependencies.PushBack(node.mesh);
+        return matchesAssetDependencies(entry, dependencies);
     }
 
     bool decode()
@@ -84,14 +73,6 @@ public:
     ResourceDirectory        directory;
     SceneAsset*              pScene = nullptr;
     tfrg_atomic32_t          status = (uint32_t)AssetLoadStatus::Pending;
-
-private:
-    static int compareIDs(const void* pA, const void* pB)
-    {
-        const AssetID& a = *(const AssetID*)pA;
-        const AssetID& b = *(const AssetID*)pB;
-        return (b < a) - (a < b);
-    }
 };
 
 class SceneAssetLoaderData

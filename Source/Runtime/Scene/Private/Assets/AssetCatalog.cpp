@@ -1,6 +1,7 @@
 /* Copyright (c) 2026 Horizon */
 
 #include "Scene/AssetCatalog.h"
+#include "AssetDependencies.h"
 #include "Scene/SceneAsset.h"
 #include "Core/IContainer.h"
 #include <ThirdParty/cJSON/cJSON.h>
@@ -55,13 +56,6 @@ public:
     CatalogIndex*             pIndices = nullptr;
     Array<AssetCatalogEntry*> retiredEntries;
 };
-
-static int compareIDs(const void* pA, const void* pB)
-{
-    const AssetID& a = *(const AssetID*)pA;
-    const AssetID& b = *(const AssetID*)pB;
-    return (b < a) - (a < b);
-}
 
 class CatalogBatch
 {
@@ -136,15 +130,8 @@ private:
 
     Span<AssetID> finishDependencies(uint32_t start)
     {
-        if (start == dependencies.Size())
-            return {};
-        qsort(dependencies.GetData() + start, dependencies.Size() - start, sizeof(AssetID), compareIDs);
-        uint32_t end = start + 1;
-        for (uint32_t i = end; i < dependencies.Size(); ++i)
-            if (dependencies[i] != dependencies[end - 1])
-                dependencies[end++] = dependencies[i];
-        dependencies.Resize(end);
-        return { dependencies.GetData() + start, end - start };
+        const Span<AssetID> sorted = normalizeAssetDependencies(dependencies, start);
+        return sorted.Count ? sorted : Span<AssetID>{};
     }
 
     Array<AssetCatalogEntry> entries;
@@ -473,7 +460,7 @@ bool AssetCatalog::Load(ResourceDirectory directory, const char* pFileName)
 
 static int compareEntries(const void* pA, const void* pB)
 {
-    return compareIDs(&(*(const AssetCatalogEntry* const*)pA)->id, &(*(const AssetCatalogEntry* const*)pB)->id);
+    return compareAssetIDs(&(*(const AssetCatalogEntry* const*)pA)->id, &(*(const AssetCatalogEntry* const*)pB)->id);
 }
 
 bool AssetCatalog::Serialize(Array<char>& json) const

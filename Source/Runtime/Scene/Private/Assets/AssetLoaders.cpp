@@ -6,6 +6,7 @@
 #include "Scene/SceneAssetLoader.h"
 #include "Scene/TextureAsset.h"
 #include "SceneResourceAccess.h"
+#include "AssetDependencies.h"
 #include "Resources/IResourceLoader.h"
 #include "Core/IThread.h"
 #include <float.h>
@@ -165,26 +166,6 @@ public:
         return MemNew(SubassetRequest, entry, loader.acquireSource(entry.location.pPath));
     }
 
-    static int compareIDs(const void* pA, const void* pB)
-    {
-        const AssetID& a = *(const AssetID*)pA;
-        const AssetID& b = *(const AssetID*)pB;
-        return (b < a) - (a < b);
-    }
-    static bool matchesDependencies(const AssetCatalogEntry& entry, Array<AssetID>& ids)
-    {
-        if (!ids.Empty())
-            qsort(ids.GetData(), ids.Size(), sizeof(AssetID), compareIDs);
-        uint32_t Count = 0;
-        for (uint32_t i = 0; i < ids.Size(); ++i)
-        {
-            if (!ids[i].IsValid() || (i && ids[i] == ids[i - 1]))
-                continue;
-            if (Count == entry.dependencies.Count || ids[i] != entry.dependencies.Data[Count++])
-                return false;
-        }
-        return Count == entry.dependencies.Count;
-    }
     static AssetLoadResult poll(void* pJob, void*)
     {
         SubassetRequest&      Request = *(SubassetRequest*)pJob;
@@ -203,7 +184,7 @@ public:
             dependencies.PushBack(material.normalTexture);
             dependencies.PushBack(material.metallicRoughnessTexture);
             dependencies.PushBack(material.emissiveTexture);
-            if (!matchesDependencies(Request.entry, dependencies))
+            if (!matchesAssetDependencies(Request.entry, dependencies))
                 return invalid(Request);
             MaterialAsset* pAsset = MemNew(MaterialAsset);
             pAsset->pSource = Request.pSource;
@@ -215,7 +196,7 @@ public:
             return invalid(Request);
         for (const SceneAssetSubmesh& submesh : scene.GetMeshes().Data[index].submeshes)
             dependencies.PushBack(submesh.material);
-        if (!matchesDependencies(Request.entry, dependencies))
+        if (!matchesAssetDependencies(Request.entry, dependencies))
             return invalid(Request);
         MeshAsset* pAsset = MemNew(MeshAsset);
         pAsset->pSource = Request.pSource;
