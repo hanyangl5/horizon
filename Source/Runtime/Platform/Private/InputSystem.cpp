@@ -172,12 +172,8 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
     /************************************************************************/
     // States
     /************************************************************************/
-    SamplerDesc samplerDesc = { FILTER_LINEAR,
-                                FILTER_LINEAR,
-                                MIPMAP_MODE_NEAREST,
-                                AddressModeClampToEdge,
-                                AddressModeClampToEdge,
-                                AddressModeClampToEdge };
+    SamplerDesc samplerDesc = { FILTER_LINEAR,          FILTER_LINEAR,          MIPMAP_MODE_NEAREST,
+                                AddressModeClampToEdge, AddressModeClampToEdge, AddressModeClampToEdge };
     addSampler(pRenderer, &samplerDesc, &gVirtualJoystick->pSampler);
     /************************************************************************/
     // Resources
@@ -889,7 +885,9 @@ struct InputSystemImpl: public gainput::InputListener
             IControl* control = controls[touchDeviceID][gainput::Touch0Down][i];
 
             if (control->Type != CONTROL_GESTURE)
+            {
                 continue;
+            }
 
             GestureControl* pControl = (GestureControl*)control;
 
@@ -1784,7 +1782,9 @@ struct InputSystemImpl: public gainput::InputListener
             return;
 
         if ((Type > 0) != virtualKeyboardActive)
+        {
             virtualKeyboardActive = (Type > 0);
+        }
         else
             return;
 

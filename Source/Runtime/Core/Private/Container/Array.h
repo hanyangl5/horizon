@@ -19,7 +19,9 @@ public:
         ASSERT(values.Data || !values.Count);
         Reserve(values.Count);
         for (uint32_t i = 0; i < values.Count; ++i)
+        {
             ::new ((void*)(Data + i)) T(values.Data[i]);
+        }
         stbds_arrsetlen(Data, values.Count);
     }
 
@@ -52,7 +54,7 @@ public:
     uint32_t Capacity() const { return (uint32_t)stbds_arrcap(Data); }
     bool     Empty() const { return Size() == 0; }
 
-    T* GetData() { return Data; }
+    T*       GetData() { return Data; }
     const T* GetData() const { return Data; }
     T*       begin() { return Data; }
     const T* begin() const { return Data; }
@@ -73,7 +75,9 @@ public:
     void Reserve(uint32_t Count)
     {
         if (Count <= Capacity())
+        {
             return;
+        }
         // stb_ds realloc cannot relocate objects or preserve an over-aligned payload's offset.
         if constexpr (__is_trivially_copyable(T) && alignof(T) <= 16)
             stbds_arrsetcap(Data, Count);
@@ -96,7 +100,9 @@ public:
         DestroyFrom(Count);
         Reserve(Count);
         for (uint32_t i = oldCount; i < Count; ++i)
+        {
             ::new ((void*)(Data + i)) T{};
+        }
         stbds_arrsetlen(Data, Count);
     }
     template<typename... Args>
@@ -147,7 +153,9 @@ private:
         if constexpr (!__is_trivially_destructible(T))
         {
             for (uint32_t i = Size(); i > first; --i)
+            {
                 Data[i - 1].~T();
+            }
         }
     }
 

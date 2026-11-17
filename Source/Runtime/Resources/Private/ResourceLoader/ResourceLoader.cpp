@@ -3538,18 +3538,18 @@
 
 extern "C"
 {
-    void GetParentPath(const char* path, char* output);
-    void GetPathExtension(const char* path, char* output);
-    bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+void GetParentPath(const char* path, char* output);
+void GetPathExtension(const char* path, char* output);
+bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
 }
 
 #define MipReduce(s, mip) (max(1u, (uint32_t)((s) >> (mip))))
 
-#define SAFE_FREE(x)    \
-    if ((x) != nullptr) \
-    {                   \
-        MemDeallocate((x));   \
-        (x) = nullptr;  \
+#define SAFE_FREE(x)        \
+    if ((x) != nullptr)     \
+    {                       \
+        MemDeallocate((x)); \
+        (x) = nullptr;      \
     }
 
 #define MAX_FRAMES 3U
@@ -4297,8 +4297,7 @@ static Cmd* acquireCmd(CopyEngine* pCopyEngine)
         resetCopyEngineSet(pResourceLoader->pRenderer, pCopyEngine);
         resetCmdPool(pResourceLoader->pRenderer, resourceSet.pCmdPool);
         beginCmd(resourceSet.pCmd);
-        cmdBeginDebugMarker(resourceSet.pCmd, 1.0f, 0.5f, 0.1f,
-                            QueueTypeTransfer == pCopyEngine->pQueue->Type ? "Copy Cmd" : "Upload Cmd");
+        cmdBeginDebugMarker(resourceSet.pCmd, 1.0f, 0.5f, 0.1f, QueueTypeTransfer == pCopyEngine->pQueue->Type ? "Copy Cmd" : "Upload Cmd");
         pCopyEngine->isRecording = true;
     }
     return resourceSet.pCmd;
@@ -4525,8 +4524,8 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
         cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
     }
 
-    // #TODO: Investigate - ReadStream crashes if we pass the Upload buffer mapped address. Allocating temporary buffer as a workaround. Does NX
-    // support loading from disk to GPU shared memory?
+    // #TODO: Investigate - ReadStream crashes if we pass the Upload buffer mapped address. Allocating temporary buffer as a workaround.
+    // Does NX support loading from disk to GPU shared memory?
 #ifdef NX64
     void* nxTempBuffer = NULL;
     if (!dataAlreadyFilled)
@@ -4549,7 +4548,9 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
     if (!Upload.Data)
     {
         if (stream.FileSystem)
+        {
             CloseStream(&stream);
+        }
         return UPLOAD_FUNCTION_RESULT_STAGING_BUFFER_FULL;
     }
 
@@ -4591,7 +4592,9 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
                 if (!ret)
                 {
                     if (stream.FileSystem)
+                    {
                         CloseStream(&stream);
+                    }
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
                 }
 
@@ -4663,7 +4666,7 @@ static UploadFunctionResult LoadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         const uint32_t    sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
         const uint32_t    rowAlignment = util_get_texture_row_alignment(pRenderer);
         const uint64_t    requiredSize = util_get_surface_size(fmt, texture->Width, texture->Height, texture->Depth, rowAlignment,
-                                                            sliceAlignment, 0, texture->MipLevels, 0, texture->arraySizeMinusOne + 1u);
+                                                               sliceAlignment, 0, texture->MipLevels, 0, texture->arraySizeMinusOne + 1u);
         MappedMemoryRange range = allocateStagingMemory(pCopyEngine, requiredSize, sliceAlignment);
         memset(range.Data, 0, range.Size);
 
@@ -4763,7 +4766,9 @@ static UploadFunctionResult LoadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                 singleTexelNormal[0] = decodeBC5SingleTexelChannel(block);
                 singleTexelNormal[1] = decodeBC5SingleTexelChannel(block + 8);
                 if (!OpenStreamFromMemory(singleTexelNormal, sizeof(singleTexelNormal), FileModeRead, false, &stream))
+                {
                     return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+                }
                 textureDesc.Format = hz::Format::R8G8_UNORM;
             }
             // Copy queues implicitly promote from COMMON and decay back after submission.
@@ -4805,8 +4810,7 @@ static UploadFunctionResult LoadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             if (IssueTextureCopyBarriers() && UPLOAD_FUNCTION_RESULT_COMPLETED == res)
             {
                 TextureBarrier Barrier = { *pTextureDesc->ppTexture,
-                                           pCopyEngine->pQueue->Type == QueueTypeTransfer ? ResourceStateCommon
-                                                                                            : ResourceStateCopyDest,
+                                           pCopyEngine->pQueue->Type == QueueTypeTransfer ? ResourceStateCommon : ResourceStateCopyDest,
                                            ResourceStateShaderResource };
                 Cmd*           cmd = acquirePostCopyBarrierCmd(pCopyEngine);
                 cmdResourceBarrier(cmd, 0, NULL, 1, &Barrier, 0, NULL);
@@ -4815,7 +4819,9 @@ static UploadFunctionResult LoadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             return res;
         }
         if (stream.FileSystem)
+        {
             CloseStream(&stream);
+        }
     }
 
     LOGF(Error, "Failed to open texture file %s", pTextureDesc->pFileName ? pTextureDesc->pFileName : "<NULL>");
@@ -4846,9 +4852,8 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
     else
     {
         BufferDesc loadDesc = {};
-        loadDesc.Descriptors =
-            DescriptorTypeIndexBuffer | (structuredBuffers ? (DescriptorTypeBuffer | DescriptorTypeRwBuffer)
-                                                              : (DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw));
+        loadDesc.Descriptors = DescriptorTypeIndexBuffer | (structuredBuffers ? (DescriptorTypeBuffer | DescriptorTypeRwBuffer)
+                                                                              : (DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw));
         loadDesc.Flags |= (pDesc->Flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
                               ? (BufferCreationFlagShaderDeviceAddress | BufferCreationFlagAccelerationStructureBuildInput)
                               : BufferCreationFlagNone;
@@ -4897,11 +4902,10 @@ static void fillGeometryUpdateDesc(Renderer* pRenderer, CopyEngine* pCopyEngine,
             BufferDesc vertexBufferDesc = {};
             vertexBufferDesc.Descriptors =
                 DescriptorTypeVertexBuffer | (structuredBuffers ? (DescriptorTypeBuffer | DescriptorTypeRwBuffer)
-                                                                   : (DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw));
-            vertexBufferDesc.Flags |=
-                (pDesc->Flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
-                    ? (BufferCreationFlagShaderDeviceAddress | BufferCreationFlagAccelerationStructureBuildInput)
-                    : BufferCreationFlagNone;
+                                                                : (DescriptorTypeBufferRaw | DescriptorTypeRwBufferRaw));
+            vertexBufferDesc.Flags |= (pDesc->Flags & GEOMETRY_LOAD_FLAG_RAYTRACING_INPUT)
+                                          ? (BufferCreationFlagShaderDeviceAddress | BufferCreationFlagAccelerationStructureBuildInput)
+                                          : BufferCreationFlagNone;
             vertexBufferDesc.Size = Size;
             vertexBufferDesc.ElementCount =
                 (uint32_t)(vertexBufferDesc.Size / (structuredBuffers ? geom->vertexStrides[i] : sizeof(uint32_t)));
@@ -4942,7 +4946,9 @@ public:
     ~GeometryFileRead()
     {
         if (file.FileSystem)
+        {
             CloseStream(&file);
+        }
         MemDeallocate(pMeshlets);
         MemDeallocate(pShadow);
         MemDeallocate(Data);
@@ -4959,7 +4965,9 @@ public:
     {
         if (!read(pSize, sizeof(*pSize)) || *pSize < minimum ||
             *pSize > (uint64_t)GetStreamFileSize(&file) - (uint64_t)GetStreamPosition(&file))
+        {
             return false;
+        }
         *ppDestination = MemCallocate(1, *pSize);
         return read(*ppDestination, *pSize);
     }
@@ -5046,7 +5054,9 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         uint64_t alloc_size = meshlets_size + meshlets_data_size + vertices_size + triangles_size;
 
         if (alloc_size > (uint64_t)GetStreamFileSize(&reader.file) - (uint64_t)GetStreamPosition(&reader.file))
+        {
             return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+        }
         void* mem = reader.pMeshlets = MemAllocate(alloc_size);
 
         geom->meshlets.meshlets = (Meshlet*)mem;
@@ -5072,8 +5082,8 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
     if (geomData->userDataSize > 0)
     {
         geomData->UserData = geomData->jointCount > 0
-                                  ? ((uint8_t*)geomData->pJointRemaps + round_up(geomData->jointCount * sizeof(uint32_t), 16))
-                                  : (uint8_t*)(geomData + 1);
+                                 ? ((uint8_t*)geomData->pJointRemaps + round_up(geomData->jointCount * sizeof(uint32_t), 16))
+                                 : (uint8_t*)(geomData + 1);
     }
 
     geomData->pShadow->pIndices = geomData->pShadow + 1;
@@ -5810,9 +5820,9 @@ void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
     }
 #else
     LOGF(Warning, "ReloadServer is DISABLED. Shaders will not be updated dynamically on the device "
-                   "when they are recompiled while App is running. If this behaviour is desired then you can ignore this warning. "
-                   "If you want to re-enable ReloadServer you need to #define ENABLE_FORGE_RELOAD_SHADER in Application/Config.h"
-                   "This message is here to remind everyone to re-enable ReloadServer if it has been disabled for whatever reason.");
+                  "when they are recompiled while App is running. If this behaviour is desired then you can ignore this warning. "
+                  "If you want to re-enable ReloadServer you need to #define ENABLE_FORGE_RELOAD_SHADER in Application/Config.h"
+                  "This message is here to remind everyone to re-enable ReloadServer if it has been disabled for whatever reason.");
 #endif
 }
 
@@ -6740,7 +6750,9 @@ void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t Size, uint32_
                            BufferChunk* pRequestedChunk)
 {
     if (Size == 0)
+    {
         return;
+    }
     if (Size > pBuffer->Size)
     {
         *pOut = {};
@@ -6808,7 +6820,9 @@ void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t Size, uint32_
         BufferChunk* chunk = &pBuffer->unusedChunks[i];
 
         if (chunk->Size < Size)
+        {
             continue;
+        }
 
         if (alignment > 0)
         {
@@ -6817,7 +6831,9 @@ void addGeometryBufferPart(BufferChunkAllocator* pBuffer, uint32_t Size, uint32_
                 padding = alignment - padding;
 
             if (chunk->Size - padding < Size)
+            {
                 continue;
+            }
 
             if (padding > 0)
             {
@@ -6858,7 +6874,9 @@ void removeGeometryBufferPart(BufferChunkAllocator* pBuffer, BufferChunk* pChunk
 {
     ASSERT(pChunk->Size ? pBuffer != NULL : true);
     if (!pBuffer || pChunk->Size == 0)
+    {
         return;
+    }
 
     ASSERT(pBuffer->usedChunkCount);
 
@@ -7041,7 +7059,7 @@ void beginUpdateResource(TextureUpdateDesc* pTextureUpdate)
         uint32_t srcRowStride = 0;
         uint32_t rowCount = 0;
         bool     success = util_get_surface_info(MipReduce(texture->Width, mip), MipReduce(texture->Height, mip), fmt, &srcSliceStride,
-                                             &srcRowStride, &rowCount);
+                                                 &srcRowStride, &rowCount);
         ASSERT(success);
         uint32_t d = MipReduce(texture->Depth, mip);
 
@@ -7180,7 +7198,9 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
 
     FSLHeader header = {};
     if (sizeof(FSLHeader) != ReadFromStream(&binaryFileStream, (void*)&header, sizeof(FSLHeader)))
+    {
         ASSERT(false);
+    }
 
     if (strncmp("@FSL", header.magic, 4) != 0)
     {
@@ -7196,7 +7216,9 @@ static bool load_shader_stage_byte_code(Renderer* pRenderer, const char* name, S
         const size_t   derivativesSize = sizeof(FSLDerivative) * header.derivativeCount;
         FSLDerivative* pDerivatives = (FSLDerivative*)alloca(derivativesSize);
         if (derivativesSize != ReadFromStream(&binaryFileStream, (void*)pDerivatives, derivativesSize))
+        {
             ASSERT(false);
+        }
 
         if (pOutMetadata)
             *pOutMetadata = header.metadata;
@@ -7395,7 +7417,9 @@ void addShaderSrc(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppS
         BinaryShaderStageDesc* pStage = get_shader_stage_desc(&binaryDesc, stage);
 
         if (stage == ShaderStage::ShaderStageNone || !pStage)
+        {
             continue;
+        }
 
         FSLMetadata metadata = {};
         if (!load_shader_stage_byte_code(pRenderer, fileName, stage, pStage, &shaderByteCodeBuffer, &metadata))

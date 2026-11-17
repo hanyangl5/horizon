@@ -57,17 +57,15 @@ typedef void (*PropertySetter)(GPUSettings* pSetting, uint64_t value);
         }                                                                           \
     }
 
-#define GPU_CONFIG_PROPERTY_READ_ONLY(name, prop)                                   \
-    {                                                                               \
-        name, [](const GPUSettings* pSetting) { return (uint64_t)pSetting->prop; }, \
-            [](GPUSettings* pSetting, uint64_t value)                               \
-        {                                                                           \
-            UNREF_PARAM(value);                                                     \
-            UNREF_PARAM(pSetting);                                                  \
-            LOGF(Debug, "GPUConfig: Unsupported setting %s", name);                \
-            ASSERT(false);                                                          \
-        }                                                                           \
-    }
+#define GPU_CONFIG_PROPERTY_READ_ONLY(name, prop)                                 \
+    { name, [](const GPUSettings* pSetting) { return (uint64_t)pSetting->prop; }, \
+      [](GPUSettings* pSetting, uint64_t value)                                   \
+      {                                                                           \
+          UNREF_PARAM(value);                                                     \
+          UNREF_PARAM(pSetting);                                                  \
+          LOGF(Debug, "GPUConfig: Unsupported setting %s", name);                 \
+          ASSERT(false);                                                          \
+      } }
 
 struct GPUProperty
 {
@@ -322,8 +320,8 @@ void parseGPUDataFile()
         }
         else if (versionMajor != GPUCFG_VERSION_MAJOR || versionMinor != GPUCFG_VERSION_MINOR)
         {
-            LOGF(Info, "Legacy GPU data version mismatch. Expected version %u.%u but got %u.%u", GPUCFG_VERSION_MAJOR,
-                 GPUCFG_VERSION_MINOR, versionMajor, versionMinor);
+            LOGF(Info, "Legacy GPU data version mismatch. Expected version %u.%u but got %u.%u", GPUCFG_VERSION_MAJOR, GPUCFG_VERSION_MINOR,
+                 versionMajor, versionMinor);
             CloseStream(&fh);
             return;
         }

@@ -36,7 +36,6 @@
 
 #define MAX_FLAGS     100
 
-
 // Error codes returned by AssetPipelineRun
 typedef enum AssetPipelineErrorCode
 {
@@ -96,7 +95,6 @@ struct AssetPipelineParams
 
     ResourceDirectory mRDInput;
     ResourceDirectory mRDOutput;
-
 };
 
 // Callback used to provide the user with the 'extras' in Each cgltf_mesh node of the gltf file.
@@ -143,8 +141,6 @@ struct ProcessGLTFParams
     MeshWriteExtrasCallback pWriteExtrasCallback;
     void*                   pCallbackUserData; // User data passed to all the callbacks in this structure
 };
-
-
 
 void CreateDirectoryForFile(ResourceDirectory resourceDir, const char* filename);
 

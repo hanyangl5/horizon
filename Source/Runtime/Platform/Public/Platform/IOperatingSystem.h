@@ -266,10 +266,10 @@ typedef struct
     char    PublicAdapterName[64];
     char    PublicDisplayName[64];
 #else
-    char                     AdapterName[32];
-    char                     DisplayName[32];
-    char                     PublicAdapterName[64];
-    char                     PublicDisplayName[64];
+    char AdapterName[32];
+    char DisplayName[32];
+    char PublicAdapterName[64];
+    char PublicDisplayName[64];
 #endif
     // stb_ds array of Resolutions
     Resolution* Resolutions;
@@ -283,7 +283,7 @@ typedef enum ThermalStatus
     ThermalStatusMin = -2,
 
     ThermalStatusNotSupported = -2, // Current platform/device/build doesn't support ThermalStatus queries
-    ThermalStatusError = -1,         // There was an error retrieving thermal status
+    ThermalStatusError = -1,        // There was an error retrieving thermal status
 
     // Note: These enum names are taken from Android, we might want to rename them or create our own
     ThermalStatusNone = 0,     // Means we didn't Get any thermal status data yet (maybe device doesn't support it)
@@ -463,7 +463,7 @@ extern "C"
 {
 #endif
     /// @param stdOutFile The file to which the output of the command should be written. May be NULL.
-    FORGE_API int SystemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile);
+FORGE_API int SystemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile);
 #ifdef __cplusplus
 }
 #endif

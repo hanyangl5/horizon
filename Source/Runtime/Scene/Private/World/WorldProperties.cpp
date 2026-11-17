@@ -43,7 +43,9 @@ static void writeProperty(void* pDestination, const PropertyDesc& property, cons
     const size_t Size = value.kind == PropertyKind::String ? strlen((const char*)value.Data) + 1 : value.Size;
     memmove(pDestination, value.Data, Size);
     if (Size < property.Size)
+    {
         memset((uint8_t*)pDestination + Size, 0, property.Size - Size);
+    }
 }
 
 void* WorldImpl::findEditableProperty(ecs_entity_t entity, TypeID Type, PropertyID property, const PropertyDesc*& pProperty)
@@ -75,13 +77,17 @@ void WorldImpl::notifyPropertyChange(ecs_entity_t entity, TypeID Type) { ecs_mod
 bool World::SetProperty(Entity entity, TypeID Type, PropertyID property, const PropertyValue& value)
 {
     if (!IsAlive(entity))
+    {
         return false;
+    }
     const PropertyDesc* pProperty = nullptr;
     void*               pDestination = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
     if (!pDestination || !validatePropertyValue(*pProperty, value))
         return false;
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    {
         return false;
+    }
     writeProperty(pDestination, *pProperty, value);
     pImpl->notifyPropertyChange(entity.value, Type);
     return true;
@@ -98,15 +104,21 @@ static bool validateArray(const PropertyDesc& property)
 bool World::ResizeArray(Entity entity, TypeID Type, PropertyID property, uint32_t Count)
 {
     if (!IsAlive(entity))
+    {
         return false;
+    }
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
     if (!pArray || !validateArray(*pProperty))
         return false;
     if (Count == pProperty->pArrayOperations->pCount(pArray))
+    {
         return true;
+    }
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    {
         return false;
+    }
     pProperty->pArrayOperations->pResize(pArray, Count);
     pImpl->notifyPropertyChange(entity.value, Type);
     return true;
@@ -115,7 +127,9 @@ bool World::ResizeArray(Entity entity, TypeID Type, PropertyID property, uint32_
 bool World::InsertArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index, const void* pValue)
 {
     if (!IsAlive(entity))
+    {
         return false;
+    }
     ASSERT(pValue);
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
@@ -128,9 +142,13 @@ bool World::InsertArrayElement(Entity entity, TypeID Type, PropertyID property, 
     }
     for (const PropertyDesc& field : pProperty->pElementType->properties)
         if (!validatePropertyValue(field, { .kind = field.kind, .Data = (const uint8_t*)pValue + field.offset, .Size = field.Size }))
+        {
             return false;
+        }
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    {
         return false;
+    }
     if (!pProperty->pArrayOperations->pInsert(pArray, index, pValue))
         return false;
     pImpl->notifyPropertyChange(entity.value, Type);
@@ -140,7 +158,9 @@ bool World::InsertArrayElement(Entity entity, TypeID Type, PropertyID property, 
 bool World::RemoveArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index)
 {
     if (!IsAlive(entity))
+    {
         return false;
+    }
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
     if (!pArray || !validateArray(*pProperty))
@@ -151,7 +171,9 @@ bool World::RemoveArrayElement(Entity entity, TypeID Type, PropertyID property, 
         return false;
     }
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    {
         return false;
+    }
     if (!pProperty->pArrayOperations->pRemove(pArray, index))
         return false;
     pImpl->notifyPropertyChange(entity.value, Type);
@@ -162,7 +184,9 @@ bool World::setArrayElementProperty(Entity entity, TypeID Type, PropertyID prope
                                     const PropertyValue& value)
 {
     if (!IsAlive(entity))
+    {
         return false;
+    }
     const PropertyDesc* pProperty = nullptr;
     void*               pArray = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
     if (!pArray || !validateArray(*pProperty))
@@ -181,7 +205,9 @@ bool World::setArrayElementProperty(Entity entity, TypeID Type, PropertyID prope
     if (!validatePropertyValue(*pField, value))
         return false;
     if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    {
         return false;
+    }
     void* Data = const_cast<void*>(pProperty->pArrayOperations->Data(pArray));
     writeProperty((uint8_t*)Data + (size_t)index * pProperty->pElementType->Size + pField->offset, *pField, value);
     pImpl->notifyPropertyChange(entity.value, Type);

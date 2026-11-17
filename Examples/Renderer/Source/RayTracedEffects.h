@@ -6,23 +6,23 @@
 
 struct RayTracedEffectsSettings
 {
-    bool          Shadows = true;
-    bool          AO = true;
-    bool          Reflection = true;
-    uint32_t      AOSamples = 1;
-    float         AORadius = 2.0f;
-    float         AOPower = 1.0f;
-    float         ShadowRadius = 0.02f;
+    bool     Shadows = true;
+    bool     AO = true;
+    bool     Reflection = true;
+    uint32_t AOSamples = 1;
+    float    AORadius = 2.0f;
+    float    AOPower = 1.0f;
+    float    ShadowRadius = 0.02f;
     // 0: opaque candidates, 1: any-hit alpha test, 2: bounded closest-hit retracing.
-    uint32_t      ShadowAlphaTestMethod = 1;
-    uint32_t      RetraceMaxDepth = 3;
+    uint32_t ShadowAlphaTestMethod = 1;
+    uint32_t RetraceMaxDepth = 3;
     // Minimum blend weight of the current frame once the per-pixel history is long.
-    float         TemporalAlpha = 0.05f;
+    float    TemporalAlpha = 0.05f;
     // History is rejected when its view depth differs by more than this fraction.
-    float         TemporalDepthThreshold = 0.05f;
+    float    TemporalDepthThreshold = 0.05f;
     // A-trous plane distance falloff as a fraction of the view distance.
-    float         AtrousPlaneSigma = 0.01f;
-    bool          operator==(const RayTracedEffectsSettings&) const = default;
+    float    AtrousPlaneSigma = 0.01f;
+    bool     operator==(const RayTracedEffectsSettings&) const = default;
 };
 
 class RayTracingScene;
@@ -62,18 +62,18 @@ public:
     RayTracedEffectsSettings Settings;
 
 private:
-    hz::RenderContext&                Context;
-    hz::UniquePtr<RayTracingScene>   RayScene;
-    hz::GPUPipeline                   ShadowPipeline;
-    hz::GPUPipeline                   TemporalPipeline;
-    hz::GPUPipeline                   AtrousPipeline;
-    hz::GPUPipeline                   DepthCopyPipeline;
-    hz::GPURayTracingPipeline         ReflectionPipeline;
-    hz::GPUSampler                    MaterialSampler;
-    hz::GPUTexture                    BlueNoise;
-    RayTracedEffectsSettings          PreviousSettings;
-    uint32_t                          FrameIndex = 0;
-    uint64_t                          AssetRevision = 0;
-    bool                              MarkedDirty = true;
-    bool                              Supported = false;
+    hz::RenderContext&             Context;
+    hz::UniquePtr<RayTracingScene> RayScene;
+    hz::GPUPipeline                ShadowPipeline;
+    hz::GPUPipeline                TemporalPipeline;
+    hz::GPUPipeline                AtrousPipeline;
+    hz::GPUPipeline                DepthCopyPipeline;
+    hz::GPURayTracingPipeline      ReflectionPipeline;
+    hz::GPUSampler                 MaterialSampler;
+    hz::GPUTexture                 BlueNoise;
+    RayTracedEffectsSettings       PreviousSettings;
+    uint32_t                       FrameIndex = 0;
+    uint64_t                       AssetRevision = 0;
+    bool                           MarkedDirty = true;
+    bool                           Supported = false;
 };

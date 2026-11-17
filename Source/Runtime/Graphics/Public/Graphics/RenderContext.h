@@ -298,7 +298,7 @@ public:
 
 private:
     GPUPipeline(RenderContext*, Pipeline*, RootSignature*, GPUShader&&, CommandSignature* = nullptr);
-    void           Destroy();
+    void              Destroy();
     RenderContext* pContext = nullptr;
     Pipeline*      pPipeline = nullptr;
     RootSignature* pRootSignature = nullptr;
@@ -328,51 +328,81 @@ public:
     uint32_t sample(const GPUTexture* pTexture)
     {
         if (!pTexture || !pTexture->IsValid())
+        {
             return UINT32_MAX;
+        }
         if (sampledCount < textureCapacity)
+        {
             sampledTextures[sampledCount++] = pTexture;
+        }
         else
+        {
             ASSERT(false);
+        }
         return pTexture->GetSrvIndex();
     }
     uint32_t store(const GPUTexture* pTexture)
     {
         if (!pTexture || !pTexture->IsValid())
+        {
             return UINT32_MAX;
+        }
         if (storageCount < textureCapacity)
+        {
             storageTextures[storageCount++] = pTexture;
+        }
         else
+        {
             ASSERT(false);
+        }
         return pTexture->GetUavIndex();
     }
     uint32_t read(const GPUBuffer& buffer)
     {
         if (!buffer.IsValid())
+        {
             return UINT32_MAX;
+        }
         if (bufferCount < bufferCapacity)
+        {
             buffers[bufferCount++] = &buffer;
+        }
         else
+        {
             ASSERT(false);
+        }
         return buffer.GetSrvIndex();
     }
     uint32_t write(const GPUBuffer& buffer)
     {
         if (!buffer.IsValid())
+        {
             return UINT32_MAX;
+        }
         if (storageBufferCount < bufferCapacity)
+        {
             storageBuffers[storageBufferCount++] = &buffer;
+        }
         else
+        {
             ASSERT(false);
+        }
         return buffer.GetUavIndex();
     }
     void indirect(const GPUBuffer& buffer)
     {
         if (!buffer.IsValid())
+        {
             return;
+        }
         if (indirectCount < bufferCapacity)
+        {
             indirectBuffers[indirectCount++] = &buffer;
+        }
         else
+        {
             ASSERT(false);
+        }
     }
     Dependencies Get() const
     {
@@ -386,16 +416,16 @@ public:
 private:
     static constexpr uint32_t textureCapacity = 16;
     static constexpr uint32_t bufferCapacity = 8;
-    const GPUTexture* sampledTextures[textureCapacity] = {};
-    const GPUTexture* storageTextures[textureCapacity] = {};
-    const GPUBuffer*  buffers[bufferCapacity] = {};
-    const GPUBuffer*  storageBuffers[bufferCapacity] = {};
-    const GPUBuffer*  indirectBuffers[bufferCapacity] = {};
-    uint32_t          sampledCount = 0;
-    uint32_t          storageCount = 0;
-    uint32_t          bufferCount = 0;
-    uint32_t          storageBufferCount = 0;
-    uint32_t          indirectCount = 0;
+    const GPUTexture*         sampledTextures[textureCapacity] = {};
+    const GPUTexture*         storageTextures[textureCapacity] = {};
+    const GPUBuffer*          buffers[bufferCapacity] = {};
+    const GPUBuffer*          storageBuffers[bufferCapacity] = {};
+    const GPUBuffer*          indirectBuffers[bufferCapacity] = {};
+    uint32_t                  sampledCount = 0;
+    uint32_t                  storageCount = 0;
+    uint32_t                  bufferCount = 0;
+    uint32_t                  storageBufferCount = 0;
+    uint32_t                  indirectCount = 0;
 };
 
 struct BufferCopyRegion
@@ -522,21 +552,21 @@ public:
     bool                     SupportsRayTracing() const;
     GPUAccelerationStructure CreateAccelerationStructure(const AccelerationStructureDesc&);
     GPURayTracingPipeline    CreateRayTracingPipeline(const RayTracingPipelineDesc&);
-    GPUBuffer   CreateBuffer(const BufferDesc&);
-    GPUTexture  CreateTexture(const TextureDesc&);
+    GPUBuffer                CreateBuffer(const BufferDesc&);
+    GPUTexture               CreateTexture(const TextureDesc&);
     // Pooled per-frame target, or null when every matching slot is still in use. The pool keeps the
     // Handle alive between frames, so its resource state survives; ReleaseTransient parks it again.
-    GPUTexture* AcquireTransient(const TextureDesc&);
-    void        ReleaseTransient(GPUTexture* pTexture);
+    GPUTexture*              AcquireTransient(const TextureDesc&);
+    void                     ReleaseTransient(GPUTexture* pTexture);
     // Destroys parked targets, for example when the render Size changes and their Descriptors no longer
     // match. Call after waiting for the GPU; targets still in use are kept.
-    void        PurgeTransients();
+    void                     PurgeTransients();
     GPUTexture               LoadTexture(ResourceDirectory, const char* pFileName, TextureCreationFlags = TextureCreationFlagNone);
-    GPUSampler  CreateSampler(const SamplerDesc& = {});
-    GPUPipeline CreateGraphicsPipeline(const GraphicsPipelineDesc&);
-    GPUPipeline CreateComputePipeline(const ComputePipelineDesc&);
-    bool        GetGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
-    bool        UpdateBuffer(const GPUBuffer&, uint64_t offset, const void* Data, uint64_t Size);
+    GPUSampler               CreateSampler(const SamplerDesc& = {});
+    GPUPipeline              CreateGraphicsPipeline(const GraphicsPipelineDesc&);
+    GPUPipeline              CreateComputePipeline(const ComputePipelineDesc&);
+    bool                     GetGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
+    bool                     UpdateBuffer(const GPUBuffer&, uint64_t offset, const void* Data, uint64_t Size);
     // Destroys the buffer once the open command list and all earlier submissions complete.
     void                     DeferRelease(GPUBuffer&& buffer);
     // Identifies the open command list, or the latest submission when none is open.

@@ -92,8 +92,8 @@ extern "C"
     MutexTypeNX             mutexPlatformNX;
     uint32_t                SpinCount;
 #else
-    pthread_mutex_t Handle;
-    uint32_t        SpinCount;
+        pthread_mutex_t Handle;
+        uint32_t        SpinCount;
 #endif
     } Mutex;
 
@@ -113,7 +113,7 @@ extern "C"
 #elif defined(NX64)
     ConditionVariableTypeNX condPlatformNX;
 #else
-    pthread_cond_t  Handle;
+        pthread_cond_t Handle;
 #endif
     } ConditionVariable;
 
@@ -193,7 +193,7 @@ typedef pthread_t ThreadHandle;
 #endif
 
 #ifdef __cplusplus
-} // extern "C"
+    } // extern "C"
 
 struct MutexLock
 {

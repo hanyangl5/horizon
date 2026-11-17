@@ -113,7 +113,9 @@ public:
     {
         for (const RenderLightEntity& light : lightEntities)
             if (light.texture.IsValid())
+            {
                 assetManager.Release(light.texture);
+            }
         hmfree(pIndices);
         hmfree(pLightIndices);
         hmfree(pCameraIndices);
@@ -162,13 +164,17 @@ public:
             if (!entity.seen)
             {
                 if (entity.texture.IsValid())
+                {
                     textureReleases.PushBack(entity.texture);
+                }
                 lights.Remove(entity.id);
                 hmdel(pLightIndices, entity.entity);
                 lightEntities[i] = lightEntities[lightEntities.Size() - 1];
                 lightEntities.PopBack();
                 if (i < lightEntities.Size())
+                {
                     hmgetp_null(pLightIndices, lightEntities[i].entity)->value = i;
+                }
                 continue;
             }
             const Light& source = *(const Light*)world.GetComponent(entity.entity, SceneTypes::light);
@@ -201,7 +207,9 @@ public:
                 .ready = !entity.textureID.IsValid() || assetManager.GetTexture(entity.texture) ? 1u : 0u,
             };
             if (entity.textureID.IsValid() && next.ready)
+            {
                 next.texture = { .index = entity.texture.index, .generation = entity.texture.generation };
+            }
             if (source.Type == LightType::Mesh)
             {
                 const RenderEntityIndex* pIndex = hmgetp_null(pIndices, entity.entity);
@@ -219,7 +227,9 @@ public:
             ++i;
         }
         for (AssetHandle Handle : textureReleases)
+        {
             assetManager.Release(Handle);
+        }
         textureReleases.Clear();
     }
     static bool extractCamera(Entity entity, Span<const void*> fields, void* User)
@@ -271,7 +281,9 @@ public:
             cameraEntities[i] = cameraEntities[cameraEntities.Size() - 1];
             cameraEntities.PopBack();
             if (i < cameraEntities.Size())
+            {
                 hmgetp_null(pCameraIndices, cameraEntities[i].entity)->value = i;
+            }
         }
     }
 
@@ -466,10 +478,14 @@ public:
         instances.Remove(entity.instance);
         hmdel(pIndices, entity.entity);
         if (i + 1 < entities.Size())
+        {
             entities[i] = std::move(entities[entities.Size() - 1]);
+        }
         entities.PopBack();
         if (i < entities.Size())
+        {
             hmgetp_null(pIndices, entities[i].entity)->value = i;
+        }
     }
     // Extraction reads the MeshRenderer binding, the world transform, the Guid and asset states. The World change log names
     // entities whose components or transforms changed, the asset state revision covers asset loads, and history follow-ups
@@ -485,13 +501,21 @@ public:
         {
             historyFollowUp.Clear();
             for (RenderEntity& entity : entities)
+            {
                 entity.seen = false;
+            }
             query.Each(extractEntity, this);
             for (uint32_t i = 0; i < entities.Size();)
+            {
                 if (entities[i].seen)
+                {
                     ++i;
+                }
                 else
+                {
                     removeEntity(i);
+                }
+            }
             return;
         }
         for (uint32_t pass = 0; pass < 2; ++pass)
@@ -500,12 +524,16 @@ public:
             for (Entity entity : list)
             {
                 if (!entity.IsValid())
+                {
                     continue;
+                }
                 const RenderEntityIndex* pIndex = hmgetp_null(pIndices, entity);
                 if (!world.GetComponent(entity, SceneTypes::meshRenderer))
                 {
                     if (pIndex)
+                    {
                         removeEntity(pIndex->value);
+                    }
                     continue;
                 }
                 extract(pIndex ? entities[pIndex->value] : Add(entity));
@@ -643,7 +671,7 @@ public:
     World&                                          world;
     AssetManager&                                   assetManager;
     WorldAssetBindings                              bindings;
-    WorldChangeLog                                  changes;
+    WorldChangeLog                                    changes;
     WorldQuery                                      query;
     WorldQuery                                      lightQuery;
     WorldQuery                                      cameraQuery;
@@ -667,10 +695,10 @@ public:
     Array<RenderHistory>                            instanceHistory;
     Array<uint32_t>                                 historyPending;
     // Asset states seen by the last extraction; a change re-extracts every mesh entity.
-    uint64_t                                        extractedAssetRevision = 0;
+    uint64_t                                          extractedAssetRevision = 0;
     // History submitted since the last Update changes each moved instance's previous transform once more.
-    Array<Entity>                                   historyFollowUp;
-    Array<Entity>                                   instanceEntities;
+    Array<Entity>                                     historyFollowUp;
+    Array<Entity>                                     instanceEntities;
     Array<RenderRange>                              uploadRanges[6];
     uint64_t                                        revision = 0;
     bool                                            frameLocked = false;
@@ -739,9 +767,12 @@ const RenderLight*    RenderScene::GetLight(RenderLightID id) const { return Dat
 const RenderCamera*   RenderScene::GetCamera(RenderCameraID id) const { return Data->cameras.Get(id); }
 Span<RenderPrimitive> RenderScene::GetPrimitives() const { return { Data->primitives.values.GetData(), Data->primitives.values.Size() }; }
 Span<RenderInstance>  RenderScene::GetInstances() const { return { Data->instances.values.GetData(), Data->instances.values.Size() }; }
-Span<RenderMeshBatch> RenderScene::GetMeshBatches() const { return { Data->meshBatches.values.GetData(), Data->meshBatches.values.Size() }; }
-Span<RenderLight>     RenderScene::GetLights() const { return { Data->lights.values.GetData(), Data->lights.values.Size() }; }
-Span<RenderCamera>    RenderScene::GetCameras() const { return { Data->cameras.values.GetData(), Data->cameras.values.Size() }; }
+Span<RenderMeshBatch> RenderScene::GetMeshBatches() const
+{
+    return { Data->meshBatches.values.GetData(), Data->meshBatches.values.Size() };
+}
+Span<RenderLight>  RenderScene::GetLights() const { return { Data->lights.values.GetData(), Data->lights.values.Size() }; }
+Span<RenderCamera> RenderScene::GetCameras() const { return { Data->cameras.values.GetData(), Data->cameras.values.Size() }; }
 Span<uint32_t> RenderScene::GetActivePrimitives() const { return { Data->primitives.active.GetData(), Data->primitives.active.Size() }; }
 Span<uint32_t> RenderScene::GetActiveInstances() const { return { Data->instances.active.GetData(), Data->instances.active.Size() }; }
 Span<uint32_t> RenderScene::GetActiveMeshBatches() const { return { Data->meshBatches.active.GetData(), Data->meshBatches.active.Size() }; }

@@ -61,8 +61,7 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
         .Name = "Renderer.RT.ShadowAO",
     });
     TemporalPipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } },
-                        .pFileName = "rt_denoise_temporal.comp.slang" },
+        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_temporal.comp.slang" },
         .Name = "Renderer.RT.Temporal",
     });
     AtrousPipeline = Context.CreateComputePipeline({
@@ -82,8 +81,8 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
         .maxRecursionDepth = 2,
         .Name = "Renderer.RT.Reflection",
     });
-    ASSERT(MaterialSampler.IsValid() && ShadowPipeline.IsValid() && TemporalPipeline.IsValid() &&
-           AtrousPipeline.IsValid() && DepthCopyPipeline.IsValid() && ReflectionPipeline.IsValid());
+    ASSERT(MaterialSampler.IsValid() && ShadowPipeline.IsValid() && TemporalPipeline.IsValid() && AtrousPipeline.IsValid() &&
+           DepthCopyPipeline.IsValid() && ReflectionPipeline.IsValid());
 }
 
 RayTracedEffects::~RayTracedEffects() = default;
@@ -137,29 +136,29 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     const hz::GPUBuffer&                DrawData = Draws.GetDrawData(View.FrameIndex);
     auto        Index = [](const hz::GPUTexture* Texture) { return Texture && Texture->IsValid() ? Texture->GetSrvIndex() : UINT32_MAX; };
     RTConstants Constants = {
-                                .frame = Frame.GetSrvIndex(),
-                                .lighting = Lighting.LightingFrame->GetSrvIndex(),
-                                .draws = DrawData.GetSrvIndex(),
-                                .materials = View.GpuScene.GetBuffers().materials.GetSrvIndex(),
-                                .textures = View.GpuScene.GetBuffers().textures.GetSrvIndex(),
-                                .sampler = MaterialSampler.GetIndex(),
-                                .tlas = TLAS.IsValid() ? TLAS.GetSrvIndex() : UINT32_MAX,
-                                .normal = GBuffer.NormalMaterial->GetSrvIndex(),
-                                .Depth = GBuffer.Depth->GetSrvIndex(),
-                                .output = Result.GetUavIndex(),
-                                .blueNoise = BlueNoise.GetSrvIndex(),
-                                .environment = Index(Lighting.Environment),
-                                .irradiance = Index(Lighting.Irradiance),
-                                .brdf = Index(Lighting.BRDFLut),
-                                .environmentSampler = Lighting.EnvironmentSampler ? Lighting.EnvironmentSampler->GetIndex() : UINT32_MAX,
-                                .shadows = Settings.Shadows,
-                                .ao = Settings.AO,
-                                .aoSamples = TF_MAX(Settings.AOSamples, 1u),
-                                .frameNumber = FrameIndex++,
-                                .alphaMethod = Settings.ShadowAlphaTestMethod,
-                                .retraceDepth = Settings.RetraceMaxDepth,
-                                .aoRadius = Settings.AORadius,
-                                .shadowRadius = Settings.ShadowRadius,
+        .frame = Frame.GetSrvIndex(),
+        .lighting = Lighting.LightingFrame->GetSrvIndex(),
+        .draws = DrawData.GetSrvIndex(),
+        .materials = View.GpuScene.GetBuffers().materials.GetSrvIndex(),
+        .textures = View.GpuScene.GetBuffers().textures.GetSrvIndex(),
+        .sampler = MaterialSampler.GetIndex(),
+        .tlas = TLAS.IsValid() ? TLAS.GetSrvIndex() : UINT32_MAX,
+        .normal = GBuffer.NormalMaterial->GetSrvIndex(),
+        .Depth = GBuffer.Depth->GetSrvIndex(),
+        .output = Result.GetUavIndex(),
+        .blueNoise = BlueNoise.GetSrvIndex(),
+        .environment = Index(Lighting.Environment),
+        .irradiance = Index(Lighting.Irradiance),
+        .brdf = Index(Lighting.BRDFLut),
+        .environmentSampler = Lighting.EnvironmentSampler ? Lighting.EnvironmentSampler->GetIndex() : UINT32_MAX,
+        .shadows = Settings.Shadows,
+        .ao = Settings.AO,
+        .aoSamples = TF_MAX(Settings.AOSamples, 1u),
+        .frameNumber = FrameIndex++,
+        .alphaMethod = Settings.ShadowAlphaTestMethod,
+        .retraceDepth = Settings.RetraceMaxDepth,
+        .aoRadius = Settings.AORadius,
+        .shadowRadius = Settings.ShadowRadius,
     };
     const hz::Dependencies SceneDependencies = Draws.GetDependencies(Frame, View);
     Commands.BeginGpuTimestamp("RT Shadow AO");
@@ -227,8 +226,8 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     Commands.SetPipeline(ReflectionPipeline);
     Commands.SetRootConstants(Constants);
     Commands.TraceRays(ReflectionPipeline, Width, Height, 1,
-                       { .sampledTextures = { GBuffer.NormalMaterial, GBuffer.Depth, &BlueNoise, Lighting.Environment,
-                                              Lighting.Irradiance, Lighting.BRDFLut },
+                       { .sampledTextures = { GBuffer.NormalMaterial, GBuffer.Depth, &BlueNoise, Lighting.Environment, Lighting.Irradiance,
+                                              Lighting.BRDFLut },
                          .storageTextures = { &Reflection },
                          .buffers = { Lighting.LightingFrame },
 

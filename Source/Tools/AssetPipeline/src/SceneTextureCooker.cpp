@@ -36,7 +36,9 @@ bool SceneTextureCooker::readImage(const char* pPath, hz::Array<uint8_t>& bytes)
 {
     FileStream stream = {};
     if (!OpenStreamFromPath(sourceDirectory, pPath, FileModeRead, &stream))
+    {
         return false;
+    }
     const ssize_t Size = GetStreamFileSize(&stream);
     if (Size <= 0 || Size > INT_MAX)
     {
@@ -78,17 +80,23 @@ bool SceneTextureCooker::writeDDS(const char* pPath, const void* pBytes, size_t 
     char temporary[FS_MAX_PATH];
     if (snprintf(temporary, sizeof(temporary), "%s.tmp", pPath) >= (int)sizeof(temporary) ||
         !MakeDirectory(outputDirectory, "Textures", true))
+    {
         return false;
+    }
     FileStream stream = {};
     if (!OpenStreamFromPath(outputDirectory, temporary, FileModeWrite, &stream))
+    {
         return false;
+    }
     const bool written = WriteToStream(&stream, pBytes, Size) == Size;
     const bool closed = CloseStream(&stream);
     if (!written || !closed)
         return false;
     // Content-addressed output never overwrites a texture used by a previous cook.
     if (FileExists(outputDirectory, pPath))
+    {
         return RemoveFile(outputDirectory, temporary);
+    }
     return RenameFile(outputDirectory, temporary, pPath);
 }
 
@@ -249,7 +257,9 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
         Size = view.size;
     }
     if (!pBytes || !Size || Size > INT_MAX)
+    {
         return false;
+    }
     output.signature = cookHash(pBytes, Size);
 #if defined(_WIN32)
     const uint32_t settings[] = { 1, (uint32_t)(srgb ? DXGI_FORMAT_BC7_UNORM_SRGB : DXGI_FORMAT_BC7_UNORM) };
@@ -259,7 +269,9 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
     if (output.source[0])
         output.signature = cookHash(output.source, strlen(output.source));
     if (FileExists(outputDirectory, output.path))
+    {
         return true;
+    }
     DirectX::Blob dds;
     if (!pEncoder->encode(pBytes, Size, srgb, output.source[0] ? output.source : output.path, dds))
     {

@@ -23,7 +23,9 @@ DrawListID GpuDrawList::AddList(const DrawListFilter& Filter)
     Filters[ListCount] = Filter;
     // Frames were sized for the previous lists; the next Prepare recreates them.
     for (Frame& Backing : Frames)
+    {
         Backing.Capacity = 0;
+    }
     return { ListCount++ };
 }
 
@@ -68,7 +70,7 @@ void GpuDrawList::Prepare(const SceneView& View)
         }
         ASSERT(Mesh->vertexStreamCount == 3 && Primitive.id == Draw.primitive);
         const GpuSubmeshData& Submesh = Tables.submeshes.Data[Mesh->submeshOffset + Draw.mesh.submeshIndex];
-        uint32_t                  GeometryIndex = UINT32_MAX;
+        uint32_t              GeometryIndex = UINT32_MAX;
         if (Material->alphaMode != uint32_t(MaterialAlphaMode::Blend))
         {
             const bool Opaque = Material->alphaMode == uint32_t(MaterialAlphaMode::Opaque);
@@ -131,13 +133,15 @@ void GpuDrawList::Prepare(const SceneView& View)
                                                        .Descriptors = DescriptorTypeBufferRaw,
                                                        .Flags = BufferCreationFlagPersistentMapBit });
         const BufferDesc Arguments = { .Size = uint64_t(CurrentFrame.Capacity) * 20,
-                                           .ElementCount = CurrentFrame.Capacity * 5,
-                                           .Name = "Renderer.IndirectDraws",
-                                           .usage = MemoryUsageGpuOnly,
-                                           .StartState = ResourceStateUnorderedAccess,
-                                           .Descriptors = DescriptorTypeRwBufferRaw | DescriptorTypeIndirectBuffer };
+                                       .ElementCount = CurrentFrame.Capacity * 5,
+                                       .Name = "Renderer.IndirectDraws",
+                                       .usage = MemoryUsageGpuOnly,
+                                       .StartState = ResourceStateUnorderedAccess,
+                                       .Descriptors = DescriptorTypeRwBufferRaw | DescriptorTypeIndirectBuffer };
         for (uint32_t List = 0; List < ListCount; ++List)
+        {
             CurrentFrame.Lists[List] = Context.CreateBuffer(Arguments);
+        }
         CurrentFrame.Filters = Context.CreateBuffer({ .Size = sizeof(DrawListFilter) * MaxLists,
                                                       .ElementCount = MaxLists,
                                                       .StructStride = sizeof(DrawListFilter),
@@ -160,12 +164,12 @@ void GpuDrawList::Prepare(const SceneView& View)
     {
         return;
     }
-    const bool Uploaded = Context.UpdateBuffer(CurrentFrame.DrawData, 0, DrawData.GetData(), uint64_t(CurrentFrame.Count) * sizeof(GpuDrawData));
+    const bool Uploaded =
+        Context.UpdateBuffer(CurrentFrame.DrawData, 0, DrawData.GetData(), uint64_t(CurrentFrame.Count) * sizeof(GpuDrawData));
     ASSERT(Uploaded);
 }
 
-Dependencies GpuDrawList::GetDependencies(const GPUBuffer& Frame, const SceneView& View,
-                                             const GPUBuffer* Indirect) const
+Dependencies GpuDrawList::GetDependencies(const GPUBuffer& Frame, const SceneView& View, const GPUBuffer* Indirect) const
 {
     Buffers.Clear();
     Textures.Clear();

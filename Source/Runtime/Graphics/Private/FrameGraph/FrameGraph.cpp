@@ -103,7 +103,9 @@ void SetFrameGraphPassEnabled(FrameGraph* Graph, FrameGraphPass Pass, bool Enabl
 {
     FrameGraphPassEntry& Entry = Graph->Passes[Pass.Index];
     if (Entry.Desc.Enabled == Enabled)
+    {
         return;
+    }
     Entry.Desc.Enabled = Enabled;
     Graph->Dirty = true;
 }
@@ -117,13 +119,19 @@ void InvalidateFrameGraphHistory(FrameGraph* Graph, FrameGraphTexture Texture)
 bool ResizeFrameGraph(FrameGraph* Graph, uint32_t Width, uint32_t Height)
 {
     if (!Width || !Height)
+    {
         return false;
+    }
     if (Graph->Width == Width && Graph->Height == Height)
+    {
         return true;
+    }
     Graph->Width = Width;
     Graph->Height = Height;
     for (FrameGraphTextureEntry& Entry : Graph->Textures)
+    {
         Entry.HistoryValid = false;
+    }
     Graph->Dirty = true;
     return CompileFrameGraph(Graph);
 }
@@ -134,12 +142,16 @@ void ExecuteFrameGraph(FrameGraph* Graph, CommandList& Commands, void* FrameData
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ExecuteFrameGraph");
     if (Graph->Dirty && !CompileFrameGraph(Graph))
+    {
         return;
+    }
     for (uint32_t Index = 0; Index < Graph->Passes.Size(); ++Index)
     {
         const FrameGraphPassEntry& Pass = Graph->Passes[Index];
         if (!Pass.Live)
+        {
             continue;
+        }
         const FrameGraphContext Context = {
             .Commands = Commands,
             .Graph = *Graph,
@@ -158,7 +170,9 @@ void FinishFrameGraphFrame(FrameGraph* Graph)
     for (FrameGraphTextureEntry& Entry : Graph->Textures)
     {
         if (Entry.Kind != FrameGraphResourceKind::History)
+        {
             continue;
+        }
         // Last frame's copy is valid only if a live pass wrote this frame's copy.
         Entry.HistoryValid = Entry.Produced;
         Entry.HistoryCurrent ^= 1u;
@@ -173,7 +187,9 @@ static bool passDeclares(const FrameGraph& Graph, FrameGraphPass Pass, FrameGrap
     {
         const FrameGraphTextureUse& Use = Graph.TextureUses[Entry.FirstTextureUse + i];
         if (Use.Texture.Index == Texture.Index && (Use.Access == FrameGraphAccessReadHistory) == History)
+        {
             return true;
+        }
     }
     return false;
 }
@@ -217,7 +233,9 @@ const GPUBuffer* GetFrameGraphBuffer(const FrameGraphContext& Context, FrameGrap
 {
     const FrameGraphBufferEntry& Entry = Context.Graph.Buffers[Buffer.Index];
     if (Entry.Kind == FrameGraphResourceKind::Imported)
+    {
         return Entry.pImported;
+    }
     return Entry.Produced ? &Entry.Buffer : nullptr;
 }
 } // namespace hz

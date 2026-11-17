@@ -33,7 +33,9 @@ public:
     void record(ecs_entity_t entity, uint32_t world)
     {
         if (overflowed)
+        {
             return;
+        }
         if (entries.Size() == kCapacity)
         {
             overflowed = true;
@@ -75,7 +77,9 @@ private:
     void             recordChange(ecs_entity_t entity)
     {
         for (WorldChangeLogImpl* pLog : changeLogs)
+        {
             pLog->record(entity, id);
+        }
     }
     static void      removeEntityGuids(ecs_iter_t* pIterator);
 
@@ -89,7 +93,7 @@ private:
     ecs_world_t*     pWorld = nullptr;
     WorldType*       pTypes = nullptr;
     // Unique per process; stamped into every Entity this World hands out.
-    uint32_t         id = 0;
+    uint32_t                   id = 0;
     ecs_entity_t     entityTag = 0;
     ecs_entity_t     parentRelation = 0;
     ecs_entity_t     entityIdentityType = 0;
@@ -98,9 +102,9 @@ private:
     Array<Guid>      pendingGuids;
     WorldHierarchy*  pHierarchy = nullptr;
     // Queries own flecs state in this World, so it must not be destroyed or replaced while any are live.
-    uint32_t         queryCount = 0;
+    uint32_t                   queryCount = 0;
     Array<WorldChangeLogImpl*> changeLogs;
-    ThreadID         thread = GetCurrentThreadID();
+    ThreadID                   thread = GetCurrentThreadID();
 };
 
 } // namespace hz

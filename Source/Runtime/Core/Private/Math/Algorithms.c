@@ -161,13 +161,13 @@ void StableSortDouble(double* pArr, size_t memberCount)
 // V_RET_NOT_NULL, function:partitionImpl
 static char* partitionImpl(char* pBegin, char* pEnd, char* pPivot, size_t memberSize, LessFn less,
                            void* UserData){ PARTITION_IMPL(char, pBegin, pEnd, pPivot, LESS_GENERIC, CREATE_TEMP_GENERIC,
-                                                            DESTROY_TEMP_GENERIC, COPY_GENERIC, PTR_INC_GENERIC, PTR_SUB_GENERIC) } size_t
+                                                           DESTROY_TEMP_GENERIC, COPY_GENERIC, PTR_INC_GENERIC, PTR_SUB_GENERIC) } size_t
     Partition(void* Data, size_t pivot, size_t memberCount, size_t memberSize, LessFn less, void* UserData)
 {
     if (memberCount == 0)
         return 0;
-    char* pPivot = partitionImpl((char*)Data, (char*)Data + memberSize * memberCount, (char*)Data + pivot * memberSize, memberSize, less,
-                                 UserData);
+    char* pPivot =
+        partitionImpl((char*)Data, (char*)Data + memberSize * memberCount, (char*)Data + pivot * memberSize, memberSize, less, UserData);
     return (pPivot - (char*)Data) / memberSize;
 }
 

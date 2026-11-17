@@ -64,12 +64,16 @@ static bool wndValidateWindowPos(int32_t x, int32_t y)
         int32_t Y = FullscreenHalfHeight - windowHalfHeight;
 
         if ((abs(winDesc->WindowedRect.left + clientWidthStart - X) > 1) || (abs(winDesc->WindowedRect.top + clientHeightStart - Y) > 1))
+        {
             return false;
+        }
     }
     else
     {
         if ((abs(x - winDesc->WindowedRect.left - clientWidthStart) > 1) || (abs(y - winDesc->WindowedRect.top - clientHeightStart) > 1))
+        {
             return false;
+        }
     }
 
     return true;
@@ -79,7 +83,9 @@ static bool wndValidateWindowSize(int32_t Width, int32_t Height)
 {
     RectDesc windowRect = pWindowRef->WindowedRect;
     if ((abs(GetRectWidth(&windowRect) - Width) > 1) || (abs(GetRectHeight(&windowRect) - Height) > 1))
+    {
         return false;
+    }
     return true;
 }
 
@@ -154,11 +160,13 @@ void wndMoveWindow(void* UserData)
     wndSetWindowed(UserData);
     int clientWidthStart = (GetRectWidth(&pWindow->WindowedRect) - GetRectWidth(&pWindow->ClientRect)) >> 1,
         clientHeightStart = GetRectHeight(&pWindow->WindowedRect) - GetRectHeight(&pWindow->ClientRect) - clientWidthStart;
-    RectDesc rectDesc{ pWindowRef->WindowX, pWindowRef->WindowY, pWindowRef->WindowX + pWindowRef->WindowWidth, pWindowRef->WindowY + pWindowRef->WindowHeight };
+    RectDesc rectDesc{ pWindowRef->WindowX, pWindowRef->WindowY, pWindowRef->WindowX + pWindowRef->WindowWidth,
+                       pWindowRef->WindowY + pWindowRef->WindowHeight };
     SetWindowRect(pWindow, &rectDesc);
     LOGF(LogLevel::Info, "MoveWindow() Position check: %s",
          wndValidateWindowPos(pWindowRef->WindowX + clientWidthStart, pWindowRef->WindowY + clientHeightStart) ? "SUCCESS" : "FAIL");
-    LOGF(LogLevel::Info, "MoveWindow() Size check: %s", wndValidateWindowSize(pWindowRef->WindowWidth, pWindowRef->WindowHeight) ? "SUCCESS" : "FAIL");
+    LOGF(LogLevel::Info, "MoveWindow() Size check: %s",
+         wndValidateWindowSize(pWindowRef->WindowWidth, pWindowRef->WindowHeight) ? "SUCCESS" : "FAIL");
 }
 
 void wndSetRecommendedWindowSize(void* UserData)
@@ -308,7 +316,8 @@ void platformUpdateWindowSystem()
     bformat(&pWindowRef->pForceLowDPILabel, "ForceLowDPI: %s", pWindowRef->ForceLowDpi ? "True" : "False");
     bdestroy(&pWindowRef->pWindowModeLabel);
     bformat(&pWindowRef->pWindowModeLabel, "WindowMode: %s",
-            pWindowRef->Mode == WindowModeBorderless ? "Borderless" : (pWindowRef->Mode == WindowModeFullscreen ? "Fullscreen" : "Windowed"));
+            pWindowRef->Mode == WindowModeBorderless ? "Borderless"
+                                                     : (pWindowRef->Mode == WindowModeFullscreen ? "Fullscreen" : "Windowed"));
 #endif
 }
 
@@ -598,7 +607,9 @@ extern void platformSetupWindowSystemUI(IApp* pApp)
         char PublicDisplayName[128];
 #if defined(_WINDOWS) || defined(XBOX) // Win platform uses wide chars
         if (128 == wcstombs(PublicDisplayName, monitor->PublicDisplayName, sizeof(PublicDisplayName)))
+        {
             PublicDisplayName[127] = '\0';
+        }
 #elif !defined(TARGET_IOS)
         strcpy(PublicDisplayName, monitor->PublicDisplayName);
 #endif

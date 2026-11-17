@@ -170,7 +170,7 @@ extern "C"
             {
                 bstring key;
                 char    value;
-            }* Hash = NULL;
+            }*      Hash = NULL;
             bstring name = bconstfromliteral("jen");
             bstring bob = bconstfromliteral("bob");
             bhput(Hash, bob, 'h');

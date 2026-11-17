@@ -69,14 +69,14 @@ private:
     void ToneMap(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const hz::GPUTexture& RenderTarget,
                  const PostEffectsTargets& Targets);
 
-    hz::RenderContext&                              Context;
-    hz::GPUSampler                                  Sampler;
-    hz::GPUPipeline                                 MeteringPipeline;
-    hz::GPUPipeline                                 ReducePipeline;
-    hz::GPUPipeline                                 InitializePipeline;
-    hz::GPUPipeline                                 AdaptationPipeline;
-    hz::GPUPipeline                                 BloomDownsamplePipeline;
-    hz::GPUPipeline                                 BloomUpsamplePipeline;
-    hz::GPUPipeline                                 ToneMapPipeline;
-    hz::Format                                      ColorFormat = {};
+    hz::RenderContext& Context;
+    hz::GPUSampler     Sampler;
+    hz::GPUPipeline    MeteringPipeline;
+    hz::GPUPipeline    ReducePipeline;
+    hz::GPUPipeline    InitializePipeline;
+    hz::GPUPipeline    AdaptationPipeline;
+    hz::GPUPipeline    BloomDownsamplePipeline;
+    hz::GPUPipeline    BloomUpsamplePipeline;
+    hz::GPUPipeline    ToneMapPipeline;
+    hz::Format         ColorFormat = {};
 };

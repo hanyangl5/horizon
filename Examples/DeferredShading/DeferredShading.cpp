@@ -327,7 +327,9 @@ bool GBufferPass::Resize(hz::RenderContext& context, uint32_t Width, uint32_t He
     normal = context.CreateTexture(normalDesc);
     Depth = context.CreateTexture(depthDesc);
     if (!albedo.IsValid() || !normal.IsValid() || !Depth.IsValid())
+    {
         return false;
+    }
     return true;
 }
 
@@ -502,13 +504,19 @@ public:
     {
         PROFILER_SET_CPU_SCOPE("DeferredShading", "Load", kCpuProfileColor);
         if (!(pReloadDesc->Type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
+        {
             return true;
+        }
         const uint32_t Width = (uint32_t)settings.Width;
         const uint32_t Height = (uint32_t)settings.Height;
         if (!context->Resize(Width, Height))
+        {
             return false;
+        }
         if (!gBufferPass->Resize(*context, Width, Height))
+        {
             return false;
+        }
         return true;
     }
 
@@ -525,7 +533,9 @@ public:
         PROFILER_SET_CPU_SCOPE("DeferredShading", "Draw", kCpuProfileColor);
 
         if (context->IsSuspended())
+        {
             return;
+        }
         hz::CommandList& commands = context->AcquireCommandList();
         updateSceneUniforms(commands);
 
@@ -583,11 +593,11 @@ private:
         commands.UpdateBuffer(sceneUniformBuffers[1], 0, &floor, sizeof(floor));
     }
 
-    std::UniquePtr<hz::RenderContext> context;
+    std::UniquePtr<hz::RenderContext>  context;
     hz::GPUBuffer                      sceneUniformBuffers[kSceneObjectCount];
-    std::UniquePtr<GeometryBuildPass> geometryBuildPass;
-    std::UniquePtr<GBufferPass>       gBufferPass;
-    std::UniquePtr<LightingPass>      lightingPass;
+    std::UniquePtr<GeometryBuildPass>  geometryBuildPass;
+    std::UniquePtr<GBufferPass>        gBufferPass;
+    std::UniquePtr<LightingPass>       lightingPass;
     float                              elapsedTime = 0.0f;
 };
 

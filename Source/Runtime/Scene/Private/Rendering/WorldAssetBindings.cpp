@@ -31,7 +31,9 @@ public:
         seen = true;
         bool changed = !initialized || meshID != renderer.mesh || overrides.Size() != renderer.overrides.Size();
         for (uint32_t i = 0; !changed && i < overrides.Size(); ++i)
+        {
             changed = overrides[i].submesh != renderer.overrides[i].submesh || overrides[i].material != renderer.overrides[i].material;
+        }
         if (!changed)
             return;
 
@@ -40,16 +42,22 @@ public:
         needsResolve = true;
         overrides.Resize(renderer.overrides.Size());
         for (uint32_t i = 0; i < overrides.Size(); ++i)
+        {
             overrides[i] = renderer.overrides[i];
+        }
         if (!initialized || meshID != renderer.mesh)
         {
             const AssetHandle previous = view.mesh;
             view.mesh = {};
             meshID = renderer.mesh;
             if (!meshID.IsValid() || !acquire(meshID, view.mesh))
+            {
                 fail("Invalid or unavailable mesh asset");
+            }
             if (previous.IsValid())
+            {
                 releases.PushBack(previous);
+            }
         }
         initialized = true;
     }
@@ -122,7 +130,9 @@ private:
     AssetBindingState state(AssetHandle Handle) const
     {
         if (!Handle.IsValid())
+        {
             return AssetBindingState::Pending;
+        }
         switch (assetManager.GetState(Handle))
         {
         case AssetState::Ready:
@@ -140,7 +150,9 @@ private:
     {
         for (const MaterialAssetBinding& material : materials)
             if (material.Handle.IsValid())
+            {
                 releases.PushBack(material.Handle);
+            }
         materials.Clear();
         view.materials = {};
     }
@@ -158,10 +170,16 @@ private:
     {
         Array<MaterialOverride> sorted({ overrides.GetData(), overrides.Size() });
         if (!sorted.Empty())
+        {
             qsort(sorted.GetData(), sorted.Size(), sizeof(MaterialOverride), compareMaterialOverrides);
+        }
         for (uint32_t i = 0; i < sorted.Size(); ++i)
+        {
             if (!sorted[i].submesh || !sorted[i].material.IsValid() || (i && sorted[i - 1].submesh == sorted[i].submesh))
+            {
                 return false;
+            }
+        }
 
         Array<MaterialAssetBinding>   next;
         const Span<SceneAssetSubmesh> submeshes = mesh.GetDescription().submeshes;
@@ -183,7 +201,9 @@ private:
             next.PushBack({ .submesh = submesh.id, .asset = overridden ? sorted[first].material : submesh.material });
         }
         if (matched != sorted.Size())
+        {
             return false;
+        }
         // Acquire replacements before releasing old leases, including handoffs between entities in this Update.
         bool acquired = true;
         for (MaterialAssetBinding& material : next)
@@ -258,7 +278,9 @@ public:
         bindings[index] = bindings[bindings.Size() - 1];
         bindings.PopBack();
         if (index < bindings.Size())
+        {
             hmgetp_null(pIndices, bindings[index]->entity)->value = index;
+        }
     }
 
     // Syncs one entity named by the change log; returns false when it no longer has a MeshRenderer.
@@ -269,7 +291,9 @@ public:
         if (!pRenderer)
         {
             if (pIndex)
+            {
                 remove(pIndex->value);
+            }
             return;
         }
         const void* field = pRenderer;
@@ -289,24 +313,42 @@ public:
         if (rescan)
         {
             for (WorldMeshBinding* pBinding : bindings)
+            {
                 pBinding->seen = false;
+            }
             query.Each(sync, this);
             for (uint32_t i = 0; i < bindings.Size();)
+            {
                 if (bindings[i]->seen)
+                {
                     ++i;
+                }
                 else
+                {
                     remove(i);
+                }
+            }
         }
         else
+        {
             for (Entity entity : changed)
+            {
                 syncChanged(entity);
+            }
+        }
         const bool assetsChanged = rescan || assetRevision != syncedAssetRevision;
         for (WorldMeshBinding* pBinding : bindings)
+        {
             if (assetsChanged || pBinding->IsWaiting())
+            {
                 pBinding->Update();
+            }
+        }
         syncedAssetRevision = assetRevision;
         for (AssetHandle Handle : releases)
+        {
             assetManager.Release(Handle);
+        }
         releases.Clear();
     }
 

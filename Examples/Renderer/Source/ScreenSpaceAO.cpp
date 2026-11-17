@@ -56,7 +56,7 @@ void ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fram
     const uint32_t Width = Occlusion.GetWidth();
     const uint32_t Height = Occlusion.GetHeight();
     // The Cookbook kernel and bilateral blur use Depth; the deferred pass multiplies the result into indirect light.
-    hz::DependencyList        Dependencies;
+    hz::DependencyList           Dependencies;
     const ScreenSpaceAOConstants Constants = { .frameIndex = Dependencies.read(Frame),
                                                .depthIndex = Dependencies.sample(&Depth),
                                                .rotationsIndex = Dependencies.sample(&Rotations),

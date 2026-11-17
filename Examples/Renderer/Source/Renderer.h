@@ -53,7 +53,9 @@ public:
         ConfigureResourceDirectories();
         int64_t Start = GetUSec(true);
         if (!CookScene())
+        {
             return false;
+        }
         LOGF(Info, "Startup: scene cook check %.1f ms", (GetUSec(true) - Start) / 1000.0);
         Start = GetUSec(true);
         InitRenderContext();
@@ -277,16 +279,16 @@ private:
         };
         Camera = hz::MakeUnique<FreeCameraController>(Desc);
         CameraEntity = World->CreatePersistentEntity();
-        const hz::Camera      CameraData = { .verticalFov = PI / 3.0f };
-        const Matrix4         Pose = Camera->GetWorldMatrix();
+        const hz::Camera CameraData = { .verticalFov = PI / 3.0f };
+        const Matrix4    Pose = Camera->GetWorldMatrix();
         // Cookbook theta=90, phi=-26; both scene imports preserve the same Y-up basis.
-        const float           SunAngle = 26.0f * PI / 180.0f;
-        const Vector3         Z(-sinf(SunAngle), cosf(SunAngle), 0);
-        const Vector3         X = normalize(cross(Vector3(0, 1, 0), Z));
-        const hz::Light       Sun = { .Type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 1000 };
-        const Matrix4         SunPose = Matrix4(Vector4(X, 0), Vector4(cross(Z, X), 0), Vector4(Z, 0), Vector4(0, 0, 0, 1));
-        const hz::Entity      SunEntity = World->CreatePersistentEntity();
-        const bool            Created = World->SetComponent(CameraEntity, hz::SceneTypes::camera, &CameraData) &&
+        const float      SunAngle = 26.0f * PI / 180.0f;
+        const Vector3    Z(-sinf(SunAngle), cosf(SunAngle), 0);
+        const Vector3    X = normalize(cross(Vector3(0, 1, 0), Z));
+        const hz::Light  Sun = { .Type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 1000 };
+        const Matrix4    SunPose = Matrix4(Vector4(X, 0), Vector4(cross(Z, X), 0), Vector4(Z, 0), Vector4(0, 0, 0, 1));
+        const hz::Entity SunEntity = World->CreatePersistentEntity();
+        const bool       Created = World->SetComponent(CameraEntity, hz::SceneTypes::camera, &CameraData) &&
                              World->SetComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose) &&
                              World->SetComponent(SunEntity, hz::SceneTypes::light, &Sun) &&
                              World->SetComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
@@ -297,12 +299,12 @@ private:
 
     hz::UniquePtr<FreeCameraController> Camera;
     hz::UniquePtr<hz::RenderContext>    Context;
-    hz::AssetCatalog                     Catalog;
+    hz::AssetCatalog                    Catalog;
     hz::UniquePtr<hz::AssetLoaders>     Loaders;
     hz::UniquePtr<hz::AssetManager>     AssetManager;
     hz::UniquePtr<hz::TypeRegistry>     Types;
     hz::UniquePtr<hz::World>            World;
     hz::UniquePtr<hz::RenderScene>      Scene;
     hz::UniquePtr<RenderPasses>         Passes;
-    hz::Entity                           CameraEntity;
+    hz::Entity                          CameraEntity;
 };

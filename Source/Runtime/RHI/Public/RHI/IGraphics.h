@@ -325,7 +325,7 @@ enum ShaderStage : uint32_t
     ShaderStageFrag = 0X00000010,
     ShaderStageComp = 0X00000020,
     ShaderStageAllGraphics = ((uint32_t)ShaderStageVert | (uint32_t)ShaderStageTesc | (uint32_t)ShaderStageTese |
-                                 (uint32_t)ShaderStageGeom | (uint32_t)ShaderStageFrag),
+                              (uint32_t)ShaderStageGeom | (uint32_t)ShaderStageFrag),
     ShaderStageHull = ShaderStageTesc,
     ShaderStageDomn = ShaderStageTese,
     ShaderStageCount = 6,
@@ -609,7 +609,7 @@ enum ColorSpace : uint32_t
 {
     ColorSpaceSdrLinear = 0x0,
     ColorSpaceSdrSrgb,
-    ColorSpaceP2020,         // BT2020 color space with PQ EOTF
+    ColorSpaceP2020,        // BT2020 color space with PQ EOTF
     ColorSpaceExtendedSrgb, // Extended sRGB with linear EOTF
 };
 
@@ -2039,7 +2039,8 @@ FORGE_RENDERER_API void FORGE_CALLCONV beginCmd(Cmd* pCmd);
 FORGE_RENDERER_API void FORGE_CALLCONV endCmd(Cmd* pCmd);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdSetSampleLocations(Cmd* pCmd, SampleCount samplesCount, uint32_t gridSizeX, uint32_t gridSizeY, SampleLocations* plocations);
-FORGE_RENDERER_API void FORGE_CALLCONV cmdSetViewport(Cmd* pCmd, float x, float y, float Width, float Height, float minDepth, float maxDepth);
+FORGE_RENDERER_API void FORGE_CALLCONV cmdSetViewport(Cmd* pCmd, float x, float y, float Width, float Height, float minDepth,
+                                                      float maxDepth);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t Width, uint32_t Height);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val);
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline);
@@ -2080,7 +2081,7 @@ FORGE_RENDERER_API HRESULT FORGE_CALLCONV openDirectStorageFile(DirectStorage* p
                                                                DirectStorageFile** ppFile);
 FORGE_RENDERER_API void FORGE_CALLCONV closeDirectStorageFile(DirectStorageFile* pFile);
 FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t Capacity, const char* Name,
-                                                                     DirectStorageStatusArray** ppStatusArray);
+                                                                      DirectStorageStatusArray** ppStatusArray);
 FORGE_RENDERER_API void FORGE_CALLCONV removeDirectStorageStatusArray(DirectStorageStatusArray* pStatusArray);
 FORGE_RENDERER_API bool FORGE_CALLCONV isDirectStorageStatusComplete(DirectStorageStatusArray* pStatusArray, uint32_t index);
 FORGE_RENDERER_API HRESULT FORGE_CALLCONV getDirectStorageStatus(DirectStorageStatusArray* pStatusArray, uint32_t index);
@@ -2093,18 +2094,21 @@ FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueStatus(DirectStorageQ
 FORGE_RENDERER_API void FORGE_CALLCONV directStorageEnqueueSignal(DirectStorageQueue* pQueue, Fence* pFence, uint64_t value);
 FORGE_RENDERER_API void FORGE_CALLCONV directStorageSubmit(DirectStorageQueue* pQueue);
 
-//Returns the recommended Format for the swapchain.
-//If true is passed for the hintHDR parameter, it will return an HDR Format IF the platform supports it
-//If false is passed or the platform does not support HDR a non HDR Format is returned.
-//If true is passed for the hintSrgb parameter, it will return Format that is will do gamma correction automatically
-//If false is passed for the hintSrgb parameter the gamma correction should be done as a postprocess step before submitting image to swapchain
+// Returns the recommended Format for the swapchain.
+// If true is passed for the hintHDR parameter, it will return an HDR Format IF the platform supports it
+// If false is passed or the platform does not support HDR a non HDR Format is returned.
+// If true is passed for the hintSrgb parameter, it will return Format that is will do gamma correction automatically
+// If false is passed for the hintSrgb parameter the gamma correction should be done as a postprocess step before submitting image to
+// swapchain
 FORGE_RENDERER_API hz::Format FORGE_CALLCONV getSupportedSwapchainFormat(Renderer* pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace);
 FORGE_RENDERER_API uint32_t FORGE_CALLCONV getRecommendedSwapchainImageCount(Renderer* pRenderer, const WindowHandle* hwnd);
 
 //indirect Draw functions
 FORGE_RENDERER_API void FORGE_CALLCONV addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature);
 FORGE_RENDERER_API void FORGE_CALLCONV removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature);
-FORGE_RENDERER_API void FORGE_CALLCONV cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, unsigned int maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* CounterBuffer, uint64_t counterBufferOffset);
+FORGE_RENDERER_API void FORGE_CALLCONV cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, unsigned int maxCommandCount,
+                                                          Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* CounterBuffer,
+                                                          uint64_t counterBufferOffset);
 
 /************************************************************************/
 // GPU Query Interface

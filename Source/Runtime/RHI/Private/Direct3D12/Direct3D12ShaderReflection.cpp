@@ -39,13 +39,13 @@
 
 static DescriptorType sD3D12_TO_DESCRIPTOR[] = {
     DescriptorTypeUniformBuffer,         // D3D_SIT_CBUFFER
-    DescriptorTypeBuffer,                 // D3D_SIT_TBUFFER
-    DescriptorTypeTexture,                // D3D_SIT_TEXTURE
-    DescriptorTypeSampler,                // D3D_SIT_SAMPLER
+    DescriptorTypeBuffer,                // D3D_SIT_TBUFFER
+    DescriptorTypeTexture,               // D3D_SIT_TEXTURE
+    DescriptorTypeSampler,               // D3D_SIT_SAMPLER
     DescriptorTypeRwTexture,             // D3D_SIT_UAV_RWTYPED
-    DescriptorTypeBuffer,                 // D3D_SIT_STRUCTURED
+    DescriptorTypeBuffer,                // D3D_SIT_STRUCTURED
     DescriptorTypeRwBuffer,              // D3D_SIT_RWSTRUCTURED
-    DescriptorTypeBuffer,                 // D3D_SIT_BYTEADDRESS
+    DescriptorTypeBuffer,                // D3D_SIT_BYTEADDRESS
     DescriptorTypeRwBuffer,              // D3D_SIT_UAV_RWBYTEADDRESS
     DescriptorTypeRwBuffer,              // D3D_SIT_UAV_APPEND_STRUCTURED
     DescriptorTypeRwBuffer,              // D3D_SIT_UAV_CONSUME_STRUCTURED

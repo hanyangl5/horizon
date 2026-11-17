@@ -32,7 +32,9 @@ unsigned GetTimerMSec(Timer* Timer, bool Reset)
     unsigned CurrentTime = GetTickCountMs();
     unsigned ElapsedTime = CurrentTime - Timer->StartTime;
     if (Reset)
+    {
         Timer->StartTime = CurrentTime;
+    }
 
     return ElapsedTime;
 }
@@ -52,10 +54,14 @@ int64_t GetHiresTimerUSec(HiresTimer* Timer, bool Reset)
 
     // Correct for possible weirdness with changing internal frequency
     if (ElapsedTime < 0)
+    {
         ElapsedTime = 0;
+    }
 
     if (Reset)
+    {
         Timer->StartTime = CurrentTime;
+    }
 
     Timer->History[Timer->HistoryIndex] = ElapsedTime;
     Timer->HistoryIndex = (Timer->HistoryIndex + 1) % HIRES_TIMER_LENGTH_OF_HISTORY;
@@ -72,7 +78,9 @@ int64_t GetHiresTimerUSecAverage(HiresTimer* Timer)
 
     // Correct for overflow
     if (ElapsedTime < 0)
+    {
         ElapsedTime = 0;
+    }
 
     return ElapsedTime;
 }

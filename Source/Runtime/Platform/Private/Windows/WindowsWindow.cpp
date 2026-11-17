@@ -449,7 +449,9 @@ void collectMonitorInfo()
                 Resolution* pLhs = (Resolution*)lhs;
                 Resolution* pRhs = (Resolution*)rhs;
                 if (pLhs->Height == pRhs->Height)
+                {
                     return pLhs->Width < pRhs->Width;
+                }
 
                 return pLhs->Height < pRhs->Height;
             },
@@ -544,8 +546,8 @@ void OpenWindow(const char* app_name, WindowDesc* winDesc)
 
     // Adjust windowed rect for windowed mode rendering.
     RECT  rect = { (LONG)winDesc->ClientRect.left, (LONG)winDesc->ClientRect.top,
-                  (LONG)winDesc->ClientRect.left + (LONG)winDesc->ClientRect.right,
-                  (LONG)winDesc->ClientRect.top + (LONG)winDesc->ClientRect.bottom };
+                   (LONG)winDesc->ClientRect.left + (LONG)winDesc->ClientRect.right,
+                   (LONG)winDesc->ClientRect.top + (LONG)winDesc->ClientRect.bottom };
     DWORD windowStyle = PrepareStyleMask(winDesc);
 
     float dpiScale[2] = { 1.0f, 1.0f };
@@ -785,7 +787,9 @@ void SetBorderless(WindowDesc* winDesc, unsigned Width, unsigned Height)
     {
         toggleFullscreen(winDesc);
         if (!winDesc->Borderless)
+        {
             toggleBorderless(winDesc, Width, Height);
+        }
         winDesc->Mode = WindowMode::WindowModeBorderless;
     }
     else if (!winDesc->Borderless)
@@ -793,7 +797,9 @@ void SetBorderless(WindowDesc* winDesc, unsigned Width, unsigned Height)
         winDesc->Mode = WindowMode::WindowModeBorderless;
         toggleBorderless(winDesc, Width, Height);
         if (!winDesc->Borderless)
+        {
             winDesc->Mode = WindowMode::WindowModeWindowed;
+        }
     }
 }
 
@@ -1078,7 +1084,9 @@ bool IsResolutionSupported(const MonitorDesc* pMonitor, const Resolution* pRes)
     for (ptrdiff_t i = 0; i < arrlen(pMonitor->Resolutions); ++i)
     {
         if (pMonitor->Resolutions[i].Width == pRes->Width && pMonitor->Resolutions[i].Height == pRes->Height)
+        {
             return true;
+        }
     }
 
     return false;
@@ -1102,7 +1110,9 @@ uint32_t GetActiveMonitorIndex()
     for (uint32_t i = 0; i < gMonitorCount; ++i)
     {
         if (wcscmp(info.szDevice, gMonitors[i].AdapterName) == 0)
+        {
             return i;
+        }
     }
 
     return 0;
@@ -1189,7 +1199,9 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         UpdateWindowDescFullScreenRect(gWindow);
         if (!gWindow->Fullscreen)
+        {
             UpdateWindowDescWindowedRect(gWindow);
+        }
         break;
     }
     case WM_STYLECHANGING:

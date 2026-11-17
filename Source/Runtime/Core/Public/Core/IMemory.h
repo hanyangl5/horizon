@@ -81,21 +81,21 @@ extern "C"
 {
 #endif
     // appName is used to create dump file, pass NULL to avoid it
-    FORGE_API bool                InitMemoryAlloc(const char* appName);
-    FORGE_API void                ExitMemoryAlloc(void);
-    FORGE_API MemoryTrackingStats GetMemoryTrackingStats(void);
-    FORGE_API void                PlotMemoryTrackingStats(void);
+FORGE_API bool                InitMemoryAlloc(const char* appName);
+FORGE_API void                ExitMemoryAlloc(void);
+FORGE_API MemoryTrackingStats GetMemoryTrackingStats(void);
+FORGE_API void                PlotMemoryTrackingStats(void);
 
 #ifdef ENABLE_MEMORY_TRACKING
-    FORGE_API MemoryStatistics GetMemoryStatistics(void);
+FORGE_API MemoryStatistics GetMemoryStatistics(void);
 #endif
 
-    FORGE_API void* MemAllocateInternal(size_t Size, const char* f, int l, const char* sf);
-    FORGE_API void* MemAllocateAlignedInternal(size_t align, size_t Size, const char* f, int l, const char* sf);
-    FORGE_API void* MemCallocateInternal(size_t Count, size_t Size, const char* f, int l, const char* sf);
-    FORGE_API void* MemCallocateAlignedInternal(size_t Count, size_t align, size_t Size, const char* f, int l, const char* sf);
-    FORGE_API void* MemReallocateInternal(void* ptr, size_t Size, const char* f, int l, const char* sf);
-    FORGE_API void  MemDeallocateInternal(void* ptr, const char* f, int l, const char* sf);
+FORGE_API void* MemAllocateInternal(size_t Size, const char* f, int l, const char* sf);
+FORGE_API void* MemAllocateAlignedInternal(size_t align, size_t Size, const char* f, int l, const char* sf);
+FORGE_API void* MemCallocateInternal(size_t Count, size_t Size, const char* f, int l, const char* sf);
+FORGE_API void* MemCallocateAlignedInternal(size_t Count, size_t align, size_t Size, const char* f, int l, const char* sf);
+FORGE_API void* MemReallocateInternal(void* ptr, size_t Size, const char* f, int l, const char* sf);
+FORGE_API void  MemDeallocateInternal(void* ptr, const char* f, int l, const char* sf);
 
 #ifdef __cplusplus
 } // extern "C"

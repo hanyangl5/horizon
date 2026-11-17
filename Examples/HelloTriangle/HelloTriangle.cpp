@@ -96,12 +96,16 @@ public:
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Load", kCpuProfileColor);
         if (!(pReloadDesc->Type & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET)))
+        {
             return true;
+        }
 
         const uint32_t Width = (uint32_t)settings.Width;
         const uint32_t Height = (uint32_t)settings.Height;
         if (!context->Resize(Width, Height))
+        {
             return false;
+        }
         return true;
     }
 
@@ -113,10 +117,14 @@ public:
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Draw", kCpuProfileColor);
         if (vSync != settings.vSyncEnabled && context->SetVSync(settings.vSyncEnabled))
+        {
             vSync = settings.vSyncEnabled;
+        }
 
         if (context->IsSuspended())
+        {
             return;
+        }
         hz::CommandList&      commands = context->AcquireCommandList();
         const hz::GPUTexture& backbuffer = context->GetCurrentBackbuffer();
 
@@ -198,7 +206,7 @@ private:
         hz::GPUPipeline pipeline;
     };
 
-    hz::UniquePtr<hz::RenderContext> context;
+    hz::UniquePtr<hz::RenderContext>  context;
     std::optional<Resources>          resources;
     bool                              vSync = true;
 };

@@ -109,7 +109,9 @@ static struct ThreadSystemTask getTask(struct ThreadSystemData* t, uint64_t tid)
         }
 
         if (t->Stop)
+        {
             break;
+        }
 
         if (!idleSet && tid != UINT64_MAX)
         {
@@ -167,7 +169,9 @@ static void taskThreadFunc(void* threadUserData)
 
         task = getTask(t, tid);
         if (t->Stop && !task.func)
+        {
             break;
+        }
     }
 
     releaseThreadSystemHandle(t);
@@ -183,10 +187,14 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
     uint64_t Count = desc->threadCount;
 
     if (Count > cpuCount)
+    {
         Count = cpuCount;
+    }
 
     if (Count == 0) // something went wrong (maybe GetNumCpuCores returned 0)
+    {
         return false;
+    }
 
     struct ThreadSystemData* t = MemCallocate(1, sizeof(*t) + sizeof(ThreadHandle) * Count);
     if (!t)
@@ -250,7 +258,9 @@ bool threadSystemInit(ThreadSystem* out, const struct ThreadSystemInitDesc* desc
         acquireThreadSystemHandle(t);
 
         if (InitThread(&threadDesc, t->threads + ti))
+        {
             continue;
+        }
 
         t->Stop = true;
         t->stopAbandon = true;
@@ -295,7 +305,9 @@ void threadSystemExit(ThreadSystem* thandle, const struct ThreadSystemExitDesc* 
 void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t Count, uint64_t userSize, void* users)
 {
     if (Count == 0)
+    {
         return;
+    }
     if (!VERIFY(func))
         return;
 
@@ -304,7 +316,9 @@ void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t Count, u
     if (!t) // dummy run
     {
         for (uint64_t ti = 0; ti < Count; ++ti)
+        {
             func((uint8_t*)users + ti * userSize, 0);
+        }
         return;
     }
 
@@ -334,7 +348,9 @@ void threadSystemAddTasks(ThreadSystem thandle, TaskFunc func, uint64_t Count, u
     }
 
     if (Count == 1)
+    {
         SignalConditionVariable(&t->conditionTasks);
+    }
     else
         BroadcastConditionVariable(&t->conditionTasks);
 

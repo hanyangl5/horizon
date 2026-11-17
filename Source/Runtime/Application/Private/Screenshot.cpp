@@ -233,7 +233,7 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
         uint32_t                   floatBufferSize = pRenderTarget->Width * pRenderTarget->Height * sizeof(float4);
         float*                     pDecoded = (float*)MemAllocate(floatBufferSize);
         const bool                 result = TinyImageFormat_DecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->Format, &fetchInput,
-                                                                 pRenderTarget->Width * pRenderTarget->Height, pDecoded);
+                                                                                 pRenderTarget->Width * pRenderTarget->Height, pDecoded);
         ASSERT(result);
 
         pEncoded = MemAllocate(floatBufferSize);

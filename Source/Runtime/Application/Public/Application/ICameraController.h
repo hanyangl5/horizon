@@ -59,7 +59,7 @@ public:
     virtual void    MoveTo(const Vector3& location) = 0;
     virtual void    LookAt(const Vector3& LookAt) = 0;
     virtual void    SetViewRotationXY(const Vector2& v) = 0;
-    virtual void ResetView() = 0;
+    virtual void    ResetView() = 0;
 
     virtual void OnMove(const float2& vec) = 0;
     virtual void OnMoveY(float y) = 0;

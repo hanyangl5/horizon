@@ -24,7 +24,9 @@ public:
     UniquePtr& operator=(UniquePtr&& Other) noexcept
     {
         if (this != &Other)
+        {
             Reset(Other.Release());
+        }
         return *this;
     }
 
@@ -36,8 +38,8 @@ public:
 
     ~UniquePtr() { Reset(); }
 
-    T&      operator*() const noexcept { return *Ptr; }
-    Pointer operator->() const noexcept { return Ptr; }
+    T&       operator*() const noexcept { return *Ptr; }
+    Pointer  operator->() const noexcept { return Ptr; }
     explicit operator bool() const noexcept { return Ptr != nullptr; }
 
     Pointer Get() const noexcept { return Ptr; }

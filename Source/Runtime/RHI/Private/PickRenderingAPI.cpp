@@ -105,8 +105,8 @@ extern void d3d12_endCmd(Cmd* pCmd);
 extern void d3d12_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc);
 extern void d3d12_cmdSetSampleLocations(Cmd* pCmd, SampleCount samplesCount, uint32_t gridSizeX, uint32_t gridSizeY,
                                         SampleLocations* plocations);
-extern void d3d12_cmdSetViewport(Cmd* pCmd, float x, float y, float Width, float Height, float minDepth, float maxDepth);
-extern void d3d12_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t Width, uint32_t Height);
+extern void       d3d12_cmdSetViewport(Cmd* pCmd, float x, float y, float Width, float Height, float minDepth, float maxDepth);
+extern void       d3d12_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t Width, uint32_t Height);
 extern void d3d12_cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val);
 extern void d3d12_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline);
 extern void d3d12_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants,

@@ -47,17 +47,25 @@ void hz::CommandList::AddBufferBarriers(hz::Span<const hz::GPUBuffer*> buffers, 
     for (const hz::GPUBuffer* buffer : buffers)
     {
         if (!buffer || buffer->usage != MemoryUsageGpuOnly)
+        {
             continue;
+        }
         ResourceState state = ResourceStateUnorderedAccess;
         if (!storage)
         {
             state = ResourceStateShaderResource;
             if (buffer->Descriptors & (DescriptorTypeVertexBuffer | DescriptorTypeUniformBuffer))
+            {
                 state |= ResourceStateVertexAndConstantBuffer;
+            }
             if (buffer->Descriptors & DescriptorTypeIndexBuffer)
+            {
                 state |= ResourceStateIndexBuffer;
+            }
             if (buffer->Descriptors & DescriptorTypeIndirectBuffer)
+            {
                 state |= ResourceStateIndirectArgument;
+            }
         }
         if (buffer->state != state || storage)
         {
@@ -228,8 +236,8 @@ void hz::CommandList::BeginRendering(const hz::RenderPassDesc& desc, const hz::D
         bind.depthStencil = {
             .pDepthStencil = input.pTexture->pRenderTarget,
             .loadAction = input.loadAction,
-            .loadActionStencil = TinyImageFormat_HasStencil((TinyImageFormat)input.pTexture->pRenderTarget->Format) ? input.loadAction
-                                                                                                                    : LoadActionDontCare,
+            .loadActionStencil =
+                TinyImageFormat_HasStencil((TinyImageFormat)input.pTexture->pRenderTarget->Format) ? input.loadAction : LoadActionDontCare,
             .storeAction = input.storeAction,
             .ClearValue = input.ClearValue,
             .overrideClearValue = input.loadAction == LoadActionClear,

@@ -332,9 +332,13 @@ bool RenderContext::CreateSwapChain()
         hdrDisplayInfo = pSwapChain->hdrDisplayInfo;
         hdrMetadata = pSwapChain->hdrMetadata;
         if (pSwapChain->colorSpace == ColorSpaceP2020)
+        {
             outputMode = OUTPUT_MODE_HDR10;
+        }
         else if (pSwapChain->colorSpace == ColorSpaceExtendedSrgb)
+        {
             outputMode = OUTPUT_MODE_SCRGB;
+        }
         else
             outputMode = OUTPUT_MODE_SDR;
         for (uint32_t i = 0; i < pSwapChain->imageCount; ++i)
@@ -483,7 +487,9 @@ bool RenderContext::Resize(uint32_t Width, uint32_t Height)
     }
     ASSERT(!imageAcquired);
     if (!suspended && desc.Width == Width && desc.Height == Height)
+    {
         return true;
+    }
 
     DestroySwapChain();
     desc.Width = Width;

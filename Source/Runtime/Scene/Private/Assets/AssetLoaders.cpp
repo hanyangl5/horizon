@@ -178,14 +178,18 @@ public:
         if (Request.entry.Type == AssetType::Material)
         {
             if (index >= scene.GetMaterials().Count || scene.GetMaterials().Data[index].id != Request.entry.id)
+            {
                 return invalid(Request);
+            }
             const SceneAssetMaterial& material = scene.GetMaterials().Data[index];
             dependencies.PushBack(material.baseColorTexture);
             dependencies.PushBack(material.normalTexture);
             dependencies.PushBack(material.metallicRoughnessTexture);
             dependencies.PushBack(material.emissiveTexture);
             if (!matchesAssetDependencies(Request.entry, dependencies))
+            {
                 return invalid(Request);
+            }
             MaterialAsset* pAsset = MemNew(MaterialAsset);
             pAsset->pSource = Request.pSource;
             pAsset->index = index;
@@ -193,11 +197,17 @@ public:
             return { .status = AssetLoadStatus::Succeeded, .pPayload = pAsset };
         }
         if (index >= scene.GetMeshes().Count || scene.GetMeshes().Data[index].id != Request.entry.id)
+        {
             return invalid(Request);
+        }
         for (const SceneAssetSubmesh& submesh : scene.GetMeshes().Data[index].submeshes)
+        {
             dependencies.PushBack(submesh.material);
+        }
         if (!matchesAssetDependencies(Request.entry, dependencies))
+        {
             return invalid(Request);
+        }
         MeshAsset* pAsset = MemNew(MeshAsset);
         pAsset->pSource = Request.pSource;
         pAsset->index = index;
@@ -270,7 +280,9 @@ bool AssetSource::read(ResourceDirectory directory)
 {
     FileStream stream = {};
     if (!OpenStreamFromPath(directory, pPath, FileModeRead, &stream))
+    {
         return false;
+    }
     const ssize_t Size = GetStreamFileSize(&stream);
     if (Size <= 0 || Size > 64 * 1024 * 1024)
     {
@@ -329,7 +341,9 @@ bool AssetGeometry::buildBounds()
         Draw.arguments = pUpload->pDrawArgs[i];
         if (!Draw.arguments.indexCount || Draw.arguments.startIndex > pUpload->indexCount ||
             Draw.arguments.indexCount > pUpload->indexCount - Draw.arguments.startIndex)
+        {
             return false;
+        }
         for (uint32_t axis = 0; axis < 3; ++axis)
         {
             Draw.bounds.minimum[axis] = FLT_MAX;
@@ -350,9 +364,13 @@ bool AssetGeometry::buildBounds()
                 if (!isfinite(value))
                     return false;
                 if (value < Draw.bounds.minimum[axis])
+                {
                     Draw.bounds.minimum[axis] = value;
+                }
                 if (value > Draw.bounds.maximum[axis])
+                {
                     Draw.bounds.maximum[axis] = value;
+                }
             }
         }
     }

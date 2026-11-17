@@ -46,8 +46,8 @@ constexpr uint32_t DrawListAlphaMode(MaterialAlphaMode Mode) { return 1u << (uin
 struct DrawGeometry
 {
     GpuSubmeshRef Mesh;
-    bool              Opaque = true;
-    uint32_t          PreviousIndex = UINT32_MAX; // Geometry index in the preceding revision.
+    bool          Opaque = true;
+    uint32_t      PreviousIndex = UINT32_MAX; // Geometry index in the preceding revision.
 };
 
 // Flattens the render scene into per-draw data and owns the indirect lists that the renderer's culling fills. Every list
@@ -59,51 +59,50 @@ public:
 
     explicit GpuDrawList(RenderContext& Context);
     // Lists are registered at initialization.
-    DrawListID            AddList(const DrawListFilter& Filter);
+    DrawListID         AddList(const DrawListFilter& Filter);
     // Builds and uploads this frame's draw data. The lists stay unwritten until a culling pass fills them.
-    void                  Prepare(const SceneView&);
+    void               Prepare(const SceneView&);
     // Draw indices refer to the complete draw data.
     Span<GpuDrawData>  GetDraws() const { return { DrawData.GetData(), DrawData.Size() }; }
     Span<DrawGeometry> GetGeometries() const { return { Geometries.GetData(), Geometries.Size() }; }
-    uint32_t               GetGeometryIndex(uint32_t DrawIndex) const { return GeometryIndices[DrawIndex]; }
-    uint64_t               GetGeometryRevision() const { return GeometryRevision; }
+    uint32_t           GetGeometryIndex(uint32_t DrawIndex) const { return GeometryIndices[DrawIndex]; }
+    uint64_t           GetGeometryRevision() const { return GeometryRevision; }
     const GPUBuffer&   GetDrawData(uint32_t Backing) const { return Frames[Backing].DrawData; }
     const GPUBuffer&   GetCommands(uint32_t Backing, DrawListID List) const { return Frames[Backing].Lists[List.index]; }
     // The renderer's standard lists, registered at construction.
-    DrawListID             GetOpaqueList() const { return OpaqueList; }
-    DrawListID             GetTransparentList() const { return TransparentList; }
-    DrawListID             GetShadowCasterList() const { return ShadowCasterList; }
-    Dependencies     GetDependencies(const GPUBuffer& Frame, const SceneView& View,
-                                         const GPUBuffer* Indirect = nullptr) const;
+    DrawListID         GetOpaqueList() const { return OpaqueList; }
+    DrawListID         GetTransparentList() const { return TransparentList; }
+    DrawListID         GetShadowCasterList() const { return ShadowCasterList; }
+    Dependencies       GetDependencies(const GPUBuffer& Frame, const SceneView& View, const GPUBuffer* Indirect = nullptr) const;
     // The registered filters with each list's UAV index filled in, one DrawListFilter per list.
-    const GPUBuffer& GetFilters(uint32_t Backing) const { return Frames[Backing].Filters; }
-    uint32_t             GetListCount() const { return ListCount; }
-    uint32_t             GetCount(uint32_t Backing) const { return Frames[Backing].Count; }
+    const GPUBuffer&   GetFilters(uint32_t Backing) const { return Frames[Backing].Filters; }
+    uint32_t           GetListCount() const { return ListCount; }
+    uint32_t           GetCount(uint32_t Backing) const { return Frames[Backing].Count; }
 
 private:
     struct Frame
     {
-        GPUBuffer                           DrawData;
+        GPUBuffer                       DrawData;
         FixedArray<GPUBuffer, MaxLists> Lists;
-        GPUBuffer                           Filters;
-        uint32_t                                Capacity = 0;
-        uint32_t                                Count = 0;
+        GPUBuffer                       Filters;
+        uint32_t                        Capacity = 0;
+        uint32_t                        Count = 0;
     };
     FixedArray<DrawListFilter, MaxLists> Filters;
-    uint32_t                                 ListCount = 0;
-    DrawListID                               OpaqueList;
-    DrawListID                               TransparentList;
-    DrawListID                               ShadowCasterList;
+    uint32_t                             ListCount = 0;
+    DrawListID                           OpaqueList;
+    DrawListID                           TransparentList;
+    DrawListID                           ShadowCasterList;
     RenderContext&                       Context;
     FixedArray<Frame, 3>                 Frames;
     Array<GpuDrawData>                   DrawData;
     Array<DrawGeometry>                  Geometries;
     Array<uint32_t>                      GeometryIndices;
-    uint64_t                                 GeometryRevision = 0;
+    uint64_t                             GeometryRevision = 0;
     Array<uint32_t>                      MaterialIds;
-    uint64_t                                 MaterialRevision = 0;
-    mutable Array<const GPUBuffer*>  Buffers;
-    mutable Array<const GPUTexture*> Textures;
+    uint64_t                             MaterialRevision = 0;
+    mutable Array<const GPUBuffer*>      Buffers;
+    mutable Array<const GPUTexture*>     Textures;
     mutable const GPUBuffer*             IndirectDependency = nullptr;
 };
 } // namespace hz

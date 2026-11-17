@@ -31,8 +31,8 @@ static_assert(sizeof(DeferredLightingConstants) == 15 * sizeof(uint32_t));
 DeferredLighting::DeferredLighting(hz::RenderContext& Context)
 {
     Pipeline = Context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = ShaderStageVert, .pEntryPoint = "VSMain" },
-                                                                           { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
-                                                               .pFileName = "DeferredLighting.slang" },
+                                                                            { .stage = ShaderStageFrag, .pEntryPoint = "PSMain" } },
+                                                                .pFileName = "DeferredLighting.slang" },
                                                 .colorTargets = { { .Format = ColorFormat } },
                                                 .Name = "Renderer.DeferredLighting" });
     ASSERT(Pipeline.IsValid());
@@ -44,7 +44,7 @@ void DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     ASSERT(Color.IsValid() && Resources.LightingFrame && Resources.LightingFrame->IsValid());
     ASSERT(GBuffer.Emissive && GBuffer.NormalMaterial && GBuffer.BaseColorMetallic && GBuffer.Depth);
     ASSERT(Resources.Environment && Resources.Irradiance && Resources.BRDFLut && Resources.EnvironmentSampler);
-    hz::DependencyList Dependencies;
+    hz::DependencyList              Dependencies;
     const DeferredLightingConstants Constants = {
         .frameIndex = Dependencies.read(Frame),
         .lightingFrameIndex = Dependencies.read(*Resources.LightingFrame),

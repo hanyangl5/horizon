@@ -52,7 +52,7 @@ struct AssetLoadResult
     AssetLoadStatus status = AssetLoadStatus::Pending;
     void*           pPayload = nullptr;
     // Optional human readable reason for a failure; the asset manager copies it during poll.
-    const char* pError = nullptr;
+    const char*     pError = nullptr;
 };
 
 class AssetManager;

@@ -287,12 +287,8 @@ bool initFontSystem(FontSystemDesc* pDesc)
     /************************************************************************/
     // Rendering resources
     /************************************************************************/
-    SamplerDesc samplerDesc = { FILTER_LINEAR,
-                                FILTER_LINEAR,
-                                MIPMAP_MODE_NEAREST,
-                                AddressModeClampToEdge,
-                                AddressModeClampToEdge,
-                                AddressModeClampToEdge };
+    SamplerDesc samplerDesc = { FILTER_LINEAR,          FILTER_LINEAR,          MIPMAP_MODE_NEAREST,
+                                AddressModeClampToEdge, AddressModeClampToEdge, AddressModeClampToEdge };
     addSampler(gFontstash.pRenderer, &samplerDesc, &gFontstash.pDefaultSampler);
 
     const BufferDesc uniformDesc = { .Size = 65536,

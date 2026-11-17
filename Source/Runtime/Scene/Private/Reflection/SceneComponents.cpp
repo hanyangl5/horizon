@@ -37,11 +37,15 @@ static bool insertOverride(void* pArray, uint32_t index, const void* pValue)
     Array<MaterialOverride>& values = *(Array<MaterialOverride>*)pArray;
     ASSERT(pValue);
     if (index > values.Size())
+    {
         return false;
+    }
     const MaterialOverride value = *(const MaterialOverride*)pValue;
     values.Resize(values.Size() + 1);
     for (uint32_t i = values.Size() - 1; i > index; --i)
+    {
         values[i] = values[i - 1];
+    }
     values[index] = value;
     return true;
 }
@@ -50,9 +54,13 @@ static bool removeOverride(void* pArray, uint32_t index)
 {
     Array<MaterialOverride>& values = *(Array<MaterialOverride>*)pArray;
     if (index >= values.Size())
+    {
         return false;
+    }
     for (uint32_t i = index; i + 1 < values.Size(); ++i)
+    {
         values[i] = values[i + 1];
+    }
     values.PopBack();
     return true;
 }
@@ -140,12 +148,7 @@ static const PropertyDesc lightProperties[] = {
       .Size = sizeof(LightType),
       .enumValues = lightValues },
     { .id = 2, .Name = "color", .kind = PropertyKind::Color, .offset = offsetof(Light, color), .Size = sizeof(Vector3) },
-    { .id = 3,
-      .Name = "intensity",
-      .kind = PropertyKind::Float,
-      .offset = offsetof(Light, intensity),
-      .Size = sizeof(float),
-      .step = 0.1 },
+    { .id = 3, .Name = "intensity", .kind = PropertyKind::Float, .offset = offsetof(Light, intensity), .Size = sizeof(float), .step = 0.1 },
     { .id = 4, .Name = "range", .kind = PropertyKind::Float, .offset = offsetof(Light, range), .Size = sizeof(float), .step = 0.1 },
     { .id = 5,
       .Name = "innerConeAngle",

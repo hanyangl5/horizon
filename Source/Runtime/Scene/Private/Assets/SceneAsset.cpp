@@ -90,7 +90,9 @@ static bool readFloats(const cJSON* pObject, const char* Name, float* pOutput, u
 {
     const cJSON* pArray = field(pObject, Name);
     if (!cJSON_IsArray(pArray) || cJSON_GetArraySize(pArray) != (int)Count)
+    {
         return invalidField(Name);
+    }
     uint32_t index = 0;
     for (const cJSON* pValue = pArray->child; pValue; pValue = pValue->next)
         if (!readFloat(pValue, pOutput[index++], minimum, maximum))
@@ -151,7 +153,9 @@ bool SceneAssetReader::readID(const cJSON* pObject, AssetID& id, AssetKind kind)
 {
     const cJSON* pValue = field(pObject, "id");
     if (!cJSON_IsString(pValue) || !id.Parse(pValue->valuestring) || !id.IsValid() || hmgetp_null(pAssets, id))
+    {
         return invalidField("id (invalid or duplicate AssetID)");
+    }
     const AssetEntry entry = { .key = id, .value = kind };
     hmputs(pAssets, entry);
     return true;
@@ -163,7 +167,9 @@ bool SceneAssetReader::readReference(const cJSON* pObject, const char* pField, A
     if (cJSON_IsNull(pValue) || (!pValue && optional))
         return true;
     if (!cJSON_IsString(pValue) || !id.Parse(pValue->valuestring) || !id.IsValid())
+    {
         return invalidField(pField);
+    }
     const AssetEntry* pEntry = hmgetp_null(pAssets, id);
     return (pEntry && pEntry->value == kind) || invalidField(pField);
 }
@@ -207,7 +213,9 @@ bool SceneAssetReader::readMaterials(const cJSON* pArray)
             !readReference(pItem, "emissiveTexture", material.emissiveTexture, AssetKind::Texture) ||
             !readFloats(pItem, "baseColorFactor", material.baseColorFactor, 4, 0.0f, 1.0f) ||
             !readFloats(pItem, "emissiveFactor", material.emissiveFactor, 3, 0.0f))
+        {
             return false;
+        }
         if (!readFloat(field(pItem, "metallicFactor"), material.metallicFactor, 0.0f, 1.0f) ||
             !readFloat(field(pItem, "roughnessFactor"), material.roughnessFactor, 0.0f, 1.0f) ||
             !readFloat(field(pItem, "alphaCutoff"), material.alphaCutoff, 0.0f) || !readInteger(field(pItem, "alphaMode"), 0, 2) ||
@@ -218,7 +226,9 @@ bool SceneAssetReader::readMaterials(const cJSON* pArray)
         // Optional, so assets cooked before tags existed stay valid.
         const cJSON* pTags = field(pItem, "tags");
         if (pTags && !readInteger(pTags, 0, UINT32_MAX))
+        {
             return invalidField("material tags");
+        }
         material.tags = pTags ? (uint32_t)pTags->valuedouble : 0;
         data.materials.PushBack(material);
     }
@@ -244,7 +254,9 @@ bool SceneAssetReader::readMeshes(const cJSON* pArray)
         SceneAssetMesh mesh;
         if (!readID(pItem, mesh.id, AssetKind::Mesh) || !readString(pItem, "name", mesh.Name) ||
             !readString(pItem, "geometry", mesh.pGeometry, true))
+        {
             return false;
+        }
         const uint32_t first = data.submeshes.Size();
         ids.Clear();
         for (const cJSON* pSubmesh = field(pItem, "submeshes")->child; pSubmesh; pSubmesh = pSubmesh->next)
@@ -260,14 +272,18 @@ bool SceneAssetReader::readMeshes(const cJSON* pArray)
             if (!readReference(pSubmesh, "material", submesh.material, AssetKind::Material))
                 return false;
             if (!submesh.material.IsValid())
+            {
                 return invalidField("submesh material");
+            }
             data.submeshes.PushBack(submesh);
             ids.PushBack(submesh.id);
         }
         qsort(ids.GetData(), ids.Size(), sizeof(SubmeshID), compareSubmeshIDs);
         for (uint32_t i = 1; i < ids.Size(); ++i)
+        {
             if (ids[i - 1] == ids[i])
                 return invalidField("submeshes (duplicate SubmeshID within mesh)");
+        }
         mesh.submeshes = { data.submeshes.GetData() + first, data.submeshes.Size() - first };
         data.meshes.PushBack(mesh);
     }
@@ -307,9 +323,13 @@ bool SceneAssetReader::readNodes(const cJSON* pArray)
     {
         SceneAssetNode node;
         if (!readString(pItem, "name", node.Name) || !readReference(pItem, "mesh", node.mesh, AssetKind::Mesh, true))
+        {
             return false;
+        }
         if (!readInteger(field(pItem, "parent"), -1, (double)Count - 1))
+        {
             return invalidField("nodes.parent");
+        }
         const double parent = field(pItem, "parent")->valuedouble;
         node.parent = parent < 0 ? UINT32_MAX : (uint32_t)parent;
         node.hasMatrix = field(pItem, "matrix") != nullptr;
@@ -349,17 +369,25 @@ bool SceneAssetReader::read(Span<char> json)
 {
     const char* pEnd = nullptr;
     if (json.Data && json.Count && json.Count <= 64 * 1024 * 1024)
+    {
         pRoot = cJSON_ParseWithLengthOpts(json.Data, json.Count, &pEnd, false);
+    }
     if (pRoot)
     {
         while (pEnd < json.Data + json.Count && isspace((unsigned char)*pEnd))
+        {
             ++pEnd;
+        }
         // Accept both byte spans and string literals, which include their final null.
         if (pEnd < json.Data + json.Count && !*pEnd && pEnd + 1 == json.Data + json.Count)
+        {
             ++pEnd;
+        }
     }
     if (!cJSON_IsObject(pRoot) || pEnd != json.Data + json.Count)
+    {
         return invalidField("JSON (expected one object, at most 64 MiB)");
+    }
     const cJSON* pFormat = field(pRoot, "format");
     const cJSON* pVersion = field(pRoot, "version");
     if (!cJSON_IsString(pFormat) || strcmp(pFormat->valuestring, "Horizon.SceneAsset") != 0 || !readInteger(pVersion, 1, 1))
@@ -447,7 +475,9 @@ Entity SceneAsset::instantiate(World& world, Entity parent) const
     ASSERT(Data && !world.IsDeferred() && (!parent.IsValid() || world.IsAlive(parent)));
     const Entity root = world.CreatePersistentEntity();
     if (!root.IsValid())
+    {
         return {};
+    }
     Array<Entity> entities;
     entities.Reserve(Data->nodes.Size());
     {
@@ -459,7 +489,9 @@ Entity SceneAsset::instantiate(World& world, Entity parent) const
         {
             const Entity entity = world.CreatePersistentEntity();
             if (!entity.IsValid())
+            {
                 break;
+            }
             entities.PushBack(entity);
             copyName(name, node.Name);
             copied &= world.SetComponent(entity, SceneTypes::name, &name);
@@ -481,9 +513,13 @@ Entity SceneAsset::instantiate(World& world, Entity parent) const
         return {};
     }
     if (parent.IsValid())
+    {
         world.AttachParent(root, parent);
+    }
     for (uint32_t i = 0; i < entities.Size(); ++i)
+    {
         world.AttachParent(entities[i], Data->nodes[i].parent == UINT32_MAX ? root : entities[Data->nodes[i].parent]);
+    }
     return root;
 }
 } // namespace hz

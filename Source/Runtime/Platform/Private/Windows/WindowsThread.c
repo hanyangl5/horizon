@@ -225,7 +225,9 @@ bool InitThread(ThreadDesc* pDesc, ThreadHandle* Handle)
 void JoinThread(ThreadHandle Handle)
 {
     if (!Handle)
+    {
         return;
+    }
     WaitForSingleObject((HANDLE)Handle, INFINITE);
     CloseHandle((HANDLE)Handle);
 }
@@ -233,7 +235,9 @@ void JoinThread(ThreadHandle Handle)
 void DetachThread(ThreadHandle Handle)
 {
     if (!Handle)
+    {
         return;
+    }
     CloseHandle((HANDLE)Handle);
 }
 
@@ -361,7 +365,9 @@ PerformanceStats GetPerformanceStats()
 {
     PerformanceStats ret = { { 0 } };
     for (uint32_t i = 0; i < GetNumCpuCores(); i++)
+    {
         ret.coreUsagePercentage[i] = -1;
+    }
 
 #if defined(XBOX)
     FILETIME currTime;

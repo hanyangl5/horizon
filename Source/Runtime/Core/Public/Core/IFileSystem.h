@@ -41,79 +41,79 @@ extern "C"
 {
 #endif
 
-    typedef enum ResourceMount
-    {
-        /// Installed game directory / bundle resource directory
-        MountProject = 0,
-        MountContent,
-        /// For storing debug data such as log files. To be used only during development
-        MountDebug,
-        /// Documents directory
-        MountDocuments,
+typedef enum ResourceMount
+{
+    /// Installed game directory / bundle resource directory
+    MountProject = 0,
+    MountContent,
+    /// For storing debug data such as log files. To be used only during development
+    MountDebug,
+    /// Documents directory
+    MountDocuments,
 #if defined(ANDROID)
-        // System level files (/proc/ or equivalent if available)
-        MountSystem,
+    // System level files (/proc/ or equivalent if available)
+    MountSystem,
 #endif
-        /// Save game data mount 0
-        MountSave0,
+    /// Save game data mount 0
+    MountSave0,
 #ifdef ENABLE_FS_EMPTY_MOUNT
-        /// Empty mount for absolute paths
-        MountEmpty,
+    /// Empty mount for absolute paths
+    MountEmpty,
 #endif
-        MountCount,
-    } ResourceMount;
+    MountCount,
+} ResourceMount;
 
-    typedef enum ResourceDirectory
-    {
-        /// The main application's shader binaries directory
-        DirectoryShaderBinaries = 0,
-        /// The main application's shader source directory
-        DirectoryShaderSources,
+typedef enum ResourceDirectory
+{
+    /// The main application's shader binaries directory
+    DirectoryShaderBinaries = 0,
+    /// The main application's shader source directory
+    DirectoryShaderSources,
 
-        DirectoryPipelineCache,
-        /// The main application's texture source directory (TODO processed texture folder)
-        DirectoryTextures,
-        DirectoryCompiledMaterials,
-        DirectoryMeshes,
-        DirectoryFonts,
-        DirectoryAnimations,
-        DirectoryAudio,
-        DirectoryGpuConfig,
-        DirectoryLog,
-        DirectoryScripts,
-        DirectoryScreenshots,
-        DirectoryDebug,
+    DirectoryPipelineCache,
+    /// The main application's texture source directory (TODO processed texture folder)
+    DirectoryTextures,
+    DirectoryCompiledMaterials,
+    DirectoryMeshes,
+    DirectoryFonts,
+    DirectoryAnimations,
+    DirectoryAudio,
+    DirectoryGpuConfig,
+    DirectoryLog,
+    DirectoryScripts,
+    DirectoryScreenshots,
+    DirectoryDebug,
 #if defined(ANDROID)
-        // #TODO: Add for others if necessary
-        DirectorySystem,
+    // #TODO: Add for others if necessary
+    DirectorySystem,
 #endif
-        DirectoryOtherFiles,
+    DirectoryOtherFiles,
 
-        // Libraries can have their own directories.
-        // Up to 100 libraries are supported.
-        ____rd_lib_counter_begin = DirectoryOtherFiles + 1,
+    // Libraries can have their own directories.
+    // Up to 100 libraries are supported.
+    ____rd_lib_counter_begin = DirectoryOtherFiles + 1,
 
-        // Add libraries here
-        DirectoryMiddleware0 = ____rd_lib_counter_begin,
-        DirectoryMiddleware1,
-        DirectoryMiddleware2,
-        DirectoryMiddleware3,
-        DirectoryMiddleware4,
-        DirectoryMiddleware5,
-        DirectoryMiddleware6,
-        DirectoryMiddleware7,
-        DirectoryMiddleware8,
-        DirectoryMiddleware9,
-        DirectoryMiddleware10,
-        DirectoryMiddleware11,
-        DirectoryMiddleware12,
-        DirectoryMiddleware13,
-        DirectoryMiddleware14,
-        DirectoryMiddleware15,
+    // Add libraries here
+    DirectoryMiddleware0 = ____rd_lib_counter_begin,
+    DirectoryMiddleware1,
+    DirectoryMiddleware2,
+    DirectoryMiddleware3,
+    DirectoryMiddleware4,
+    DirectoryMiddleware5,
+    DirectoryMiddleware6,
+    DirectoryMiddleware7,
+    DirectoryMiddleware8,
+    DirectoryMiddleware9,
+    DirectoryMiddleware10,
+    DirectoryMiddleware11,
+    DirectoryMiddleware12,
+    DirectoryMiddleware13,
+    DirectoryMiddleware14,
+    DirectoryMiddleware15,
 
-        ____rd_lib_counter_end = ____rd_lib_counter_begin + 99 * 2,
-        DirectoryCount
-    } ResourceDirectory;
+    ____rd_lib_counter_end = ____rd_lib_counter_begin + 99 * 2,
+    DirectoryCount
+} ResourceDirectory;
 
     typedef enum SeekBaseOffset
     {
@@ -356,7 +356,7 @@ extern "C"
     /************************************************************************/
 
     static inline bool IoOpenStreamFromPath(IFileSystem* FileSystem, const ResourceDirectory rd, const char* fileName, FileMode mode,
-                                              FileStream* pOut)
+                                            FileStream* pOut)
     {
         return FileSystem->Open(FileSystem, rd, fileName, mode, pOut);
     }
@@ -365,7 +365,9 @@ extern "C"
     static inline bool CloseStream(FileStream* fs)
     {
         if (!fs->FileSystem)
+        {
             return true;
+        }
         bool success = fs->FileSystem->Close(fs);
         memset(fs, 0, sizeof *fs);
         return success;
@@ -382,7 +384,9 @@ extern "C"
     static inline size_t WriteToStream(FileStream* fs, const void* pSourceBuffer, size_t byteCount)
     {
         if (!fs->FileSystem->Write)
+        {
             return 0;
+        }
         return fs->FileSystem->Write(fs, pSourceBuffer, byteCount);
     }
 
@@ -402,7 +406,9 @@ extern "C"
     static inline bool FlushStream(FileStream* fs)
     {
         if (!fs->FileSystem->Flush)
+        {
             return false;
+        }
         return fs->FileSystem->Flush(fs);
     }
 
@@ -412,28 +418,36 @@ extern "C"
     static inline const char* IoGetResourceMount(IFileSystem* FileSystem, ResourceMount mount)
     {
         if (!FileSystem->GetResourceMount)
+        {
             return "";
+        }
         return FileSystem->GetResourceMount(mount);
     }
 
     static inline bool IoGetFileUid(IFileSystem* FileSystem, ResourceDirectory rd, const char* fileName, uint64_t* outUid)
     {
         if (!FileSystem->GetFileUid)
+        {
             return false;
+        }
         return FileSystem->GetFileUid(FileSystem, rd, fileName, outUid);
     }
 
     static inline bool IoOpenByUid(IFileSystem* FileSystem, uint64_t index, FileMode mode, FileStream* pOutStream)
     {
         if (!FileSystem->OpenByUid)
+        {
             return false;
+        }
         return FileSystem->OpenByUid(FileSystem, index, mode, pOutStream);
     }
 
     static inline bool StreamMemoryMap(FileStream* fs, size_t* outSize, void const** outData)
     {
         if (!fs->FileSystem->MemoryMap)
+        {
             return false;
+        }
         return fs->FileSystem->MemoryMap(fs, outSize, outData);
     }
 
@@ -450,7 +464,8 @@ extern "C"
     /// When `mount` is Set to `MountContent` for a `resourceDir`, this directory is marked as a bundled resource folder.
     /// Bundled resource folders should only be used for Read operations.
     /// Sets or replaces the location associated with a resource directory.
-    FORGE_API void SetResourceDirectoryPath(IFileSystem* FileSystem, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder);
+    FORGE_API void SetResourceDirectoryPath(IFileSystem* FileSystem, ResourceMount mount, ResourceDirectory resourceDir,
+                                            const char* bundledFolder);
 
     /************************************************************************/
     // MARK: - File Queries
@@ -584,11 +599,11 @@ extern "C"
         // BunyArBlockPointer blockPointers[blockCount];
     };
 
-// Block pointer represents Format, offset, and Size of the block
-// 1 + 40 + 23
-// 1  bit   boolean Set when block is compressed
-// 40 bits  block offset, max offset is 1024GB-1B
-// 23 bits  block Size minus one, max Size is 8MB
+    // Block pointer represents Format, offset, and Size of the block
+    // 1 + 40 + 23
+    // 1  bit   boolean Set when block is compressed
+    // 40 bits  block offset, max offset is 1024GB-1B
+    // 23 bits  block Size minus one, max Size is 8MB
 #define BUNYAR_BLOCK_MAX_SIZE_MINUS_ONE (((uint32_t)1 << 23) - 1)
 #define BUNYAR_BLOCK_MAX_OFFSET         (((uint64_t)1 << 40) - 1)
     typedef uint64_t BunyArBlockPointer;
@@ -620,7 +635,9 @@ extern "C"
         info.Size -= 1;
 
         if (info.offset > BUNYAR_BLOCK_MAX_OFFSET || info.Size > BUNYAR_BLOCK_MAX_SIZE_MINUS_ONE)
+        {
             return false;
+        }
 
         *dst = ((uint64_t)info.isCompressed) | ((uint64_t)info.offset << 1) | ((uint64_t)info.Size << 41);
         return true;
@@ -675,7 +692,7 @@ extern "C"
     FORGE_API bool GetArchiveNodeId(IFileSystem* fs, const char* fileName, uint64_t* outUid);
 
     FORGE_API bool GetArchiveFileBlockMetadata(FileStream* pFile, struct BunyArBlockFormatHeader* outHeader,
-                                                 const BunyArBlockPointer** outBlockPtrs);
+                                               const BunyArBlockPointer** outBlockPtrs);
 
     /************************************************************************/
     /************************************************************************/

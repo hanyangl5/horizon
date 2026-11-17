@@ -203,7 +203,10 @@ bool WorldArchive::capture(World& world, Guid id)
 class ComponentValue
 {
 public:
-    explicit ComponentValue(const TypeDesc& Type): Type(Type), pValue(MemAllocateAligned(Type.alignment, Type.Size)) { Type.Construct(pValue); }
+    explicit ComponentValue(const TypeDesc& Type): Type(Type), pValue(MemAllocateAligned(Type.alignment, Type.Size))
+    {
+        Type.Construct(pValue);
+    }
     ~ComponentValue()
     {
         Type.Destroy(pValue);
@@ -386,7 +389,7 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
             }
         }
     }
-    UniquePtr<World> staging = MakeUnique<World>(types, entityGuids);
+    UniquePtr<World>  staging = MakeUnique<World>(types, entityGuids);
     WorldLoadPlan     plan;
     if (!plan.prepare(field(Data->pRoot, "entities"), *staging))
     {
