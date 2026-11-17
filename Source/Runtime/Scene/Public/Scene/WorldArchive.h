@@ -39,7 +39,7 @@ public:
     Guid GetID() const;
     // Captures persistent entities only; an existing archive ID is retained unless explicitly replaced.
     bool capture(World& world, Guid id = {});
-    // Replaces target only after complete validation. Destroy its queries/scopes before calling.
+    // Replaces target only after complete validation. Fails while target has live queries or scopes.
     bool instantiate(const TypeRegistry& types, UniquePtr<World>& target, Span<ComponentMigration> migrations = {},
                      const IDGenerator& entityGuids = {}) const;
 

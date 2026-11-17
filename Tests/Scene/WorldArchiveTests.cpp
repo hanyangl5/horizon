@@ -172,6 +172,26 @@ TEST_F(WorldArchiveTest, FailedLoadsPreserveExistingWorldAndDocument)
     EXPECT_EQ(text(archive), previous);
 }
 
+TEST_F(WorldArchiveTest, RefusesToReplaceWorldWithLiveQueries)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.RegisterBuiltins());
+    hz::UniquePtr<hz::World> target = hz::MakeUnique<hz::World>(types);
+    const hz::Entity          original = target->CreatePersistentEntity(id(50));
+    hz::World*                pOriginal = target.Get();
+    hz::WorldArchive          archive;
+    ASSERT_TRUE(Parse(archive, envelope(entityJson(1))));
+    {
+        hz::TypeID      transform = hz::SceneTypes::localTransform;
+        hz::WorldQuery query(*target, { &transform, 1 });
+        EXPECT_FALSE(archive.instantiate(types, target));
+        EXPECT_EQ(target.Get(), pOriginal);
+        EXPECT_TRUE(target->IsAlive(original));
+    }
+    EXPECT_TRUE(archive.instantiate(types, target));
+    EXPECT_NE(target.Get(), pOriginal);
+}
+
 TEST_F(WorldArchiveTest, CameraValidationAlsoAppliesToCaptureAndPreservesDocument)
 {
     hz::TypeRegistry types;

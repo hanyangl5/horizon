@@ -157,6 +157,7 @@ WorldImpl::~WorldImpl()
 {
     checkThread();
     ASSERT(!ecs_is_deferred(pWorld));
+    ASSERTMSG(queryCount == 0, "World destroyed with %u live queries", queryCount);
     MemDelete(pHierarchy);
     ecs_fini(pWorld);
     hmfree(pEntityGuids);
@@ -285,6 +286,7 @@ WorldQueryImpl::WorldQueryImpl(World& world, Span<TypeID> types): pOwner(&world)
 {
     world.pImpl->checkThread();
     ASSERT(!world.IsDeferred());
+    ++world.pImpl->queryCount;
     fields.Resize(types.Count);
     Array<ecs_term_t> terms(types.Count + 1);
     terms[0].id = world.pImpl->entityTag;
@@ -312,6 +314,7 @@ WorldQueryImpl::~WorldQueryImpl()
     ASSERT(!iterating);
     if (pQuery)
         ecs_query_fini(pQuery);
+    --pOwner->pImpl->queryCount;
 }
 
 WorldQuery::WorldQuery(World& world, Span<TypeID> types): pImpl(MemNew(WorldQueryImpl, world, types)) {}

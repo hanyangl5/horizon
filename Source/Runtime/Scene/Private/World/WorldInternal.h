@@ -63,6 +63,8 @@ private:
     EntityGuidEntry* pEntityGuids = nullptr;
     Array<Guid>      pendingGuids;
     WorldHierarchy*  pHierarchy = nullptr;
+    // Queries own flecs state in this World, so it must not be destroyed or replaced while any are live.
+    uint32_t         queryCount = 0;
     ThreadID         thread = GetCurrentThreadID();
 };
 

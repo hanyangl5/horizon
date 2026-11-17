@@ -361,6 +361,12 @@ bool WorldArchive::instantiate(const TypeRegistry& types, UniquePtr<World>& targ
     {
         return false;
     }
+    // Queries, and the render scene and asset bindings that hold them, would outlive the replaced World.
+    if (target && target->pImpl->queryCount != 0)
+    {
+        LOGF(Error, "Cannot replace a World that still has %u live queries", target->pImpl->queryCount);
+        return false;
+    }
     if (!validWorldJsonStrings({ Data->text.GetData(), Data->text.Size() }))
     {
         return false;
