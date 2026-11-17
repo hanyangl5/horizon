@@ -206,7 +206,9 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
             continue;
         char dependencyPath[FS_MAX_PATH] = {};
         AppendPathComponent(sourceParent, pBuffer->uri, dependencyPath);
-        if (!addSceneAssetCookStatDependency(resourceDirectory, pFingerprint, dependencyPath, pBuffer->size))
+        // Buffers are already loaded for the cook, so their bytes cost nothing extra to hash and catch edits that keep the
+        // modification time.
+        if (!addSceneAssetCookDependency(pFingerprint, dependencyPath, pBuffer->data, pBuffer->size))
             return false;
     }
     for (cgltf_size i = 0; i < Data->images_count; ++i)
@@ -216,7 +218,13 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
             continue;
         char dependencyPath[FS_MAX_PATH] = {};
         AppendPathComponent(sourceParent, pImage->uri, dependencyPath);
-        if (!addSceneAssetCookStatDependency(resourceDirectory, pFingerprint, dependencyPath, 0))
+        // Scene images can total gigabytes, so the startup check hashes their size and modification time, not their bytes.
+        FileStream image = {};
+        if (!OpenStreamFromPath(resourceDirectory, dependencyPath, FileModeRead, &image))
+            return false;
+        const ssize_t imageSize = GetStreamFileSize(&image);
+        CloseStream(&image);
+        if (imageSize < 0 || !addSceneAssetCookStatDependency(resourceDirectory, pFingerprint, dependencyPath, (uint64_t)imageSize))
             return false;
     }
     return true;

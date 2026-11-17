@@ -3,6 +3,7 @@
 import base64
 import copy
 import json
+import os
 from pathlib import Path
 import struct
 import subprocess
@@ -212,6 +213,7 @@ def run(executable):
     texture_regressions(executable, work / 'textures')
     partial_attribute_regression(executable, work / 'partial', work / 'albedo.dds')
     malformed_input_regression(executable, work / 'malformed', work / 'albedo.dds')
+    external_buffer_content_regression(executable, work / 'external-buffer', work / 'albedo.dds')
     default_material_regression(executable, work / 'default-material')
     nonindexed_geometry_regression(executable, work / 'nonindexed', work / 'albedo.dds')
     geometry_publish_regression(executable, work / 'geometry-publish', work / 'albedo.dds')
@@ -399,6 +401,37 @@ def partial_attribute_regression(executable, work, albedo):
         sizes.append((output / 'partial.bin').stat().st_size)
     assert sizes[0] == sizes[1]  # Missing UVs keep their zero-filled slots in the shared stream.
     print('Partial vertex attribute regression passed:', work)
+
+
+def external_buffer_content_regression(executable, work, albedo):
+    work.mkdir()
+    output = work / 'cooked'
+    output.mkdir()
+    (work / 'albedo.dds').write_bytes(albedo.read_bytes())
+    document = fixture()
+    buffer = bytearray(base64.b64decode(document['buffers'][0]['uri'].split(',')[1]))
+    external = work / 'external.bin'
+    external.write_bytes(buffer)
+    document['buffers'][0]['uri'] = 'external.bin'
+    source = work / 'external.gltf'
+    source.write_text(json.dumps(document), encoding='utf-8')
+
+    def cook():
+        result = subprocess.run([str(executable), '-pgltf', '--input-file', source.as_posix(), '--output', output.as_posix()],
+                                cwd=work, capture_output=True, text=True, errors='replace', timeout=30)
+        assert result.returncode == 0, result.stdout + result.stderr
+        return 'content Hash unchanged' in result.stdout + result.stderr
+
+    assert not cook()
+    assert cook()
+    # Moving a vertex in place keeps the size, and restoring the timestamp hides the edit from a stat-based check.
+    stat = external.stat()
+    position = document['accessors'][document['meshes'][0]['primitives'][0]['attributes']['POSITION']]
+    struct.pack_into('<f', buffer, document['bufferViews'][position['bufferView']]['byteOffset'], 0.5)
+    external.write_bytes(buffer)
+    os.utime(external, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+    assert not cook()
+    print('External buffer content regression passed:', work)
 
 
 def malformed_input_regression(executable, work, albedo):
