@@ -184,6 +184,9 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
     static const uint32_t kCookerRevision = 12;
     pFingerprint->mHash = kCookHashSeed;
     pFingerprint->mHash = cookHash(&kCookerRevision, sizeof(kCookerRevision), pFingerprint->mHash);
+    // Output written for another geometry format or struct layout must be recooked, not just rejected at load.
+    pFingerprint->mHash = cookHash(&GEOMETRY_FILE_VERSION, sizeof(GEOMETRY_FILE_VERSION), pFingerprint->mHash);
+    pFingerprint->mHash = cookHash(GEOMETRY_FILE_LAYOUT, sizeof(GEOMETRY_FILE_LAYOUT), pFingerprint->mHash);
     pFingerprint->mHash = cookHash(&additionalModifiedTime, sizeof(additionalModifiedTime), pFingerprint->mHash);
     pFingerprint->mHash = cookHash(pParams->pVertexLayout, sizeof(*pParams->pVertexLayout), pFingerprint->mHash);
     pFingerprint->mHash = cookHash(&pParams->mIgnoreMissingAttributes, sizeof(pParams->mIgnoreMissingAttributes), pFingerprint->mHash);
@@ -1253,6 +1256,8 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
 
         CookedFile         geometryFile(assetParams->mRDOutput, newFileName);
         geometryFile.Write(GEOMETRY_FILE_MAGIC_STR, sizeof(GEOMETRY_FILE_MAGIC_STR));
+        geometryFile.Write(&GEOMETRY_FILE_VERSION, sizeof(GEOMETRY_FILE_VERSION));
+        geometryFile.Write(GEOMETRY_FILE_LAYOUT, sizeof(GEOMETRY_FILE_LAYOUT));
         geometryFile.Write(&totalGeomSize, sizeof(totalGeomSize));
         geometryFile.Write(geom, totalGeomSize);
 

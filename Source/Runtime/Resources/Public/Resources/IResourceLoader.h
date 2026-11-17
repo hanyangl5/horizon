@@ -136,6 +136,8 @@ typedef struct GeometryBuffer
 } GeometryBuffer;
 
 FORGE_CONSTEXPR const char GEOMETRY_FILE_MAGIC_STR[] = { 'G', 'e', 'o', 'm', 'e', 't', 'r', 'y', 'T', 'F' };
+// Follows the magic. Bump the version when the serialized blocks change meaning without changing size.
+FORGE_CONSTEXPR const uint32_t GEOMETRY_FILE_VERSION = 2;
 
 typedef struct Meshlet
 {
@@ -274,6 +276,14 @@ typedef struct GeometryData
 } GeometryData;
 
 static_assert(sizeof(GeometryData) % 16 == 0, "GeometryData size must be a multiple of 16");
+
+// Written after GEOMETRY_FILE_VERSION. The blocks are raw struct images, so files from a build with a different
+// layout are rejected rather than reinterpreted.
+FORGE_CONSTEXPR const uint32_t GEOMETRY_FILE_LAYOUT[] = {
+    (uint32_t)sizeof(Geometry),       (uint32_t)sizeof(GeometryData), (uint32_t)sizeof(GeometryData::ShadowData),
+    (uint32_t)sizeof(IndirectDrawIndexArguments), (uint32_t)sizeof(Meshlet), (uint32_t)sizeof(MeshletData), MAX_SEMANTICS,
+    MAX_VERTEX_BINDINGS,
+};
 
 typedef enum GeometryLoadFlags
 {

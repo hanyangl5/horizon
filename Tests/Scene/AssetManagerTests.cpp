@@ -1,4 +1,5 @@
 #include "AssetTestFixtures.h"
+#include <fstream>
 
 #define IMEMORY_FROM_HEADER
 #include "Core/IMemory.h"
@@ -1974,7 +1975,8 @@ TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancels
 
     // Every prefix must fail without leaking partially decoded blocks or publishing GPU buffers.
     const uintmax_t Size = std::filesystem::file_size(directory / "scene.bin");
-    const uintmax_t prefixes[] = { 0, 10, 14, 14 + sizeof(Geometry), Size - 1 };
+    const uintmax_t header = sizeof(GEOMETRY_FILE_MAGIC_STR) + sizeof(GEOMETRY_FILE_VERSION) + sizeof(GEOMETRY_FILE_LAYOUT);
+    const uintmax_t prefixes[] = { 0, 10, 14, header, header + 4, header + 4 + sizeof(Geometry), Size - 1 };
     for (uintmax_t prefix : prefixes)
     {
         writeGeometry();
@@ -1985,6 +1987,21 @@ TEST_F(TypedAssetLiveTest, RejectsBrokenGeometryAndMismatchedSubassetsAndCancels
         Wait(assetManager, mesh);
         EXPECT_EQ(assetManager.GetError(mesh), hz::AssetError::UploadFailed) << prefix;
         EXPECT_EQ(assetManager.GetMesh(mesh), nullptr);
+    }
+    // A file from another format version or struct layout is rejected instead of reinterpreted.
+    for (uintmax_t offset : { sizeof(GEOMETRY_FILE_MAGIC_STR), sizeof(GEOMETRY_FILE_MAGIC_STR) + sizeof(GEOMETRY_FILE_VERSION) })
+    {
+        writeGeometry();
+        std::fstream file(directory / "scene.bin", std::ios::in | std::ios::out | std::ios::binary);
+        file.seekp((std::streamoff)offset);
+        const uint32_t stale = 1;
+        file.write((const char*)&stale, sizeof(stale));
+        file.close();
+        hz::AssetManager assetManager(catalog);
+        loaders.RegisterLoaders(assetManager);
+        const hz::AssetHandle mesh = assetManager.Request(scene.GetMeshes().Data[0].id);
+        Wait(assetManager, mesh);
+        EXPECT_EQ(assetManager.GetError(mesh), hz::AssetError::UploadFailed) << offset;
     }
     writeGeometry((IndexType)2);
     {

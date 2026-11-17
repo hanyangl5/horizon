@@ -293,6 +293,8 @@ protected:
         FileStream     stream = {};
         ASSERT_TRUE(OpenStreamFromPath(DirectoryOtherFiles, "scene.bin", FileModeWrite, &stream));
         WriteToStream(&stream, GEOMETRY_FILE_MAGIC_STR, sizeof(GEOMETRY_FILE_MAGIC_STR));
+        WriteToStream(&stream, &GEOMETRY_FILE_VERSION, sizeof(GEOMETRY_FILE_VERSION));
+        WriteToStream(&stream, GEOMETRY_FILE_LAYOUT, sizeof(GEOMETRY_FILE_LAYOUT));
         WriteToStream(&stream, &geometrySize, sizeof(geometrySize));
         WriteToStream(&stream, &geometry, sizeof(geometry));
         WriteToStream(&stream, &Draw, sizeof(Draw));

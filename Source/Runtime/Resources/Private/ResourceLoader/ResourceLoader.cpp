@@ -4989,6 +4989,15 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         LOGF(Error, "File '%s' is not a Geometry file.", pDesc->pFileName);
         return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
     }
+    uint32_t version = 0;
+    uint32_t layout[TF_ARRAY_COUNT(GEOMETRY_FILE_LAYOUT)] = {};
+    if (!reader.read(&version, sizeof(version)) || !reader.read(layout, sizeof(layout)) || version != GEOMETRY_FILE_VERSION ||
+        memcmp(layout, GEOMETRY_FILE_LAYOUT, sizeof(layout)))
+    {
+        LOGF(Error, "Geometry file '%s' was cooked for version %u or a different struct layout; expected version %u. Recook it.",
+             pDesc->pFileName, version, GEOMETRY_FILE_VERSION);
+        return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+    }
 
     uint32_t geomSize = 0, geomDataSize = 0, shadowSize = 0;
     if (!reader.readBlock((void**)&reader.pGeometry, sizeof(Geometry), &geomSize) ||

@@ -228,12 +228,17 @@ def nonindexed_geometry_regression(executable, work, albedo):
     def geometry():
         data = (output / 'scene.bin').read_bytes()
         assert data[:10] == b'GeometryTF'
-        geometry_size = struct.unpack_from('<I', data, 10)[0]
-        header = data[14:14 + geometry_size]
+        # Version, then the layout signature: Geometry, GeometryData and ShadowData sizes, draw, meshlet and meshlet data
+        # sizes, semantic and vertex binding counts.
+        version, *layout = struct.unpack_from('<9I', data, 10)
+        assert version == 2 and layout[0] == 352 and layout[6] == 19, (version, layout)
+        start = 10 + 4 * 9
+        geometry_size = struct.unpack_from('<I', data, start)[0]
+        header = data[start + 4:start + 4 + geometry_size]
         flags, index_count, vertex_count = struct.unpack_from('<3I', header, 196)
         index_type, draw_count = (flags >> 8) & 3, flags >> 10
         draws = [struct.unpack_from('<5I', header, 352 + i * 20) for i in range(draw_count)]
-        offset = 14 + geometry_size
+        offset = start + 4 + geometry_size
         offset += 4 + struct.unpack_from('<I', data, offset)[0]
         shadow_size = struct.unpack_from('<I', data, offset)[0]
         shadow = data[offset + 4:offset + 4 + shadow_size]
