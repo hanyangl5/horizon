@@ -310,6 +310,7 @@ void RenderPasses::Execute()
     Shadows->Data.environmentMipCount = Environment->GetPrefilteredMipCount();
     Shadows->Data.rtShadowEnabled = RayTracing->IsSupported() && RayTracing->Settings.Shadows ? 1u : 0u;
     Shadows->Data.rtAOEnabled = RayTracing->IsSupported() && RayTracing->Settings.AO ? 1u : 0u;
+    Shadows->Data.rtAOPower = RayTracing->Settings.AOPower;
     const hz::GPUTexture& Backbuffer = Context.GetCurrentBackbuffer();
     FrameContext          FrameState = { .Commands = Commands,
                                          .Draws = Draws,

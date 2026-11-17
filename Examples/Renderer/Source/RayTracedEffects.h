@@ -4,18 +4,11 @@
 #include "GpuDrawList.h"
 #include "Core/IUniquePtr.h"
 
-enum class RTDenoiseMode : uint32_t
-{
-    Gaussian,
-    Atrous
-};
-
 struct RayTracedEffectsSettings
 {
     bool          Shadows = true;
     bool          AO = true;
     bool          Reflection = true;
-    RTDenoiseMode DenoiseMode = RTDenoiseMode::Atrous;
     uint32_t      AOSamples = 1;
     float         AORadius = 2.0f;
     float         AOPower = 1.0f;
@@ -23,10 +16,12 @@ struct RayTracedEffectsSettings
     // 0: opaque candidates, 1: any-hit alpha test, 2: bounded closest-hit retracing.
     uint32_t      ShadowAlphaTestMethod = 1;
     uint32_t      RetraceMaxDepth = 3;
-    float         TemporalAlpha = 0.1f;
-    float         TemporalDepthThreshold = 0.1f;
-    float         SpatialDepthThreshold = 50000.0f;
-    float         AtrousDepthSigma = 0.0015f;
+    // Minimum blend weight of the current frame once the per-pixel history is long.
+    float         TemporalAlpha = 0.05f;
+    // History is rejected when its view depth differs by more than this fraction.
+    float         TemporalDepthThreshold = 0.05f;
+    // A-trous plane distance falloff as a fraction of the view distance.
+    float         AtrousPlaneSigma = 0.01f;
     bool          operator==(const RayTracedEffectsSettings&) const = default;
 };
 
@@ -53,11 +48,9 @@ private:
     hz::UniquePtr<RayTracingScene>   RayScene;
     hz::GPUPipeline                   ShadowPipeline;
     hz::GPUPipeline                   TemporalPipeline;
-    hz::GPUPipeline                   SpatialPipeline;
     hz::GPUPipeline                   AtrousPipeline;
     hz::GPUPipeline                   DepthCopyPipeline;
     hz::GPURayTracingPipeline         ReflectionPipeline;
-    hz::GPUSampler                    Sampler;
     hz::GPUSampler                    MaterialSampler;
     hz::GPUTexture                    BlueNoise;
     hz::GPUTexture                    Result;

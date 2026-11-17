@@ -30,10 +30,9 @@ experimental first-hit retracing; the surface normal is decoded in float like th
 deferred pass, while the occlusion accumulation keeps the reference half arithmetic.
 The fragment pass is dispatched as a compute kernel over the same pixel centers and
 writes the same shadow/AO channels. HLSL requires InstanceID queries
-instead of Vulkan CustomIndex queries. Temporal, spatial and atrous denoising use
-the original kernel files and math; history invalidation adds an initialization
-guard. RT reflection restores the original entry names and FORCE_OPAQUE ray flag;
-the added AnyHit path and extra hit-roughness clamp are removed. Consequently,
+instead of Vulkan CustomIndex queries. The shadow/AO denoiser departs from the
+reference kernels; see the Denoising row below. RT reflection restores the
+original entry names and FORCE_OPAQUE ray flag; the added AnyHit path and extra hit-roughness clamp are removed. Consequently,
 reflection treats masked geometry as opaque, as in the reference; raster geometry
 and RT shadows still perform their own mask tests.
 
@@ -54,7 +53,7 @@ and the input assets prevent text-level or pixel-level identity.
 | Indirect draw | GPU-generated opaque, transparent and shadow commands. D3D12 root constants provide draw IDs; manual index/vertex pulling supports World mesh buffers. Raster readback checks distinct materials and the last of three uint16 indices. |
 | Shadow map | Default 2048x2048 D16, masked geometry, hardware comparison filtering. The shared geometry shader passes opaque/masked depth tests; the light projection quantizes its light-space extents and snaps their centre to the texel grid instead of following the scene bounds exactly, so the map stays stable while the bounds move. D3D12 uses integer constant depth bias 1 for the reference Vulkan value 1.1. |
 | RT shadow/AO | Actual inline ray queries with the original blue-noise texels, alpha candidates/retracing and cosine AO. Production-shader tests verify opaque occlusion and alpha-cutoff rejection. |
-| Denoising | Camera reprojection, temporal depth rejection, Gaussian or atrous filtering. Settings/asset/resize changes reset history; no extra motion compensation beyond the reference. Both filter paths execute in the bounded Renderer check. |
+| Denoising | Camera reprojection with per-tap relative view-depth rejection, per-pixel history length and variance clipping, then two edge-aware 5x5 a-trous iterations weighted by normal and plane distance. Settings/asset/resize changes reset history; object motion is not compensated. |
 | RT reflection | Actual DXIL raygen/miss/closest-hit, DXR state object and shader table. Hit/miss, TLAS update and subsequent compute readback pass; Bistro reflection is nonzero and finite. Receiver Fresnel is applied once. |
 | Lighting | GGX, correlated Smith, Schlick, diffuse/specular IBL and BRDF LUT. A production-shader highlight test preserves about 229501 in RGBA32F and matches the analytic BRDF value; the 4-bit specular default round-trips 0.5, so the deferred and ray traced paths share F0 0.04. |
 | Skybox | Original prefiltered cubemap, irradiance and LUT, with the same cube orientation used by IBL and reflection misses. |

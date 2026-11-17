@@ -27,7 +27,6 @@ struct RTConstants
     uint32_t alphaMethod;
     uint32_t retraceDepth;
     float    aoRadius;
-    float    aoPower;
     float    shadowRadius;
 };
 // Mirrors the RootConstant0 block of the denoise shaders field for field.
@@ -38,14 +37,15 @@ struct RTDenoiseConstants
     uint32_t history;
     uint32_t Depth;
     uint32_t previousDepth;
+    uint32_t normal;
     uint32_t output;
-    uint32_t sampler;
     uint32_t historyValid;
     float    alpha;
     float    depthThreshold;
-    uint32_t horizontal;
+    float    planeSigma;
     uint32_t step;
 };
+static_assert(sizeof(RTDenoiseConstants) == 12 * sizeof(uint32_t));
 
 RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context), Supported(Context.SupportsRayTracing())
 {
@@ -54,8 +54,6 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
         return;
     }
     RayScene = hz::MakeUnique<RayTracingScene>(Context);
-    Sampler = Context.CreateSampler(
-        { .AddressU = AddressModeClampToEdge, .AddressV = AddressModeClampToEdge, .AddressW = AddressModeClampToEdge });
     MaterialSampler = Context.CreateSampler();
     ShadowPipeline = Context.CreateComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "RTShadowAO.slang" },
@@ -65,10 +63,6 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } },
                         .pFileName = "rt_denoise_temporal.comp.slang" },
         .Name = "Renderer.RT.Temporal",
-    });
-    SpatialPipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_spatial.comp.slang" },
-        .Name = "Renderer.RT.Spatial",
     });
     AtrousPipeline = Context.CreateComputePipeline({
         .shaderDesc = { .stages = { { .stage = ShaderStageComp, .pEntryPoint = "main" } }, .pFileName = "rt_denoise_atrous.comp.slang" },
@@ -87,8 +81,8 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
         .maxRecursionDepth = 2,
         .Name = "Renderer.RT.Reflection",
     });
-    ASSERT(Sampler.IsValid() && MaterialSampler.IsValid() && ShadowPipeline.IsValid() && TemporalPipeline.IsValid() &&
-           SpatialPipeline.IsValid() && AtrousPipeline.IsValid() && DepthCopyPipeline.IsValid() && ReflectionPipeline.IsValid());
+    ASSERT(MaterialSampler.IsValid() && ShadowPipeline.IsValid() && TemporalPipeline.IsValid() &&
+           AtrousPipeline.IsValid() && DepthCopyPipeline.IsValid() && ReflectionPipeline.IsValid());
 }
 
 RayTracedEffects::~RayTracedEffects() = default;
@@ -111,8 +105,11 @@ void RayTracedEffects::Resize(uint32_t Width, uint32_t Height)
                                   .Flags = TextureCreationFlagForce2D,
                                   .Name = "Renderer.RT.ShadowAO" };
     Result = Context.CreateTexture(Desc);
+    Desc.Format = hz::Format::R16G16_SFLOAT;
     Desc.Name = "Renderer.RT.DenoiseScratch";
     Scratch = Context.CreateTexture(Desc);
+    // Shadow, AO and the per-pixel history length.
+    Desc.Format = hz::Format::R16G16B16A16_SFLOAT;
     Desc.Name = "Renderer.RT.History";
     for (hz::GPUTexture& Texture : History)
     {
@@ -184,7 +181,6 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
                                 .alphaMethod = Settings.ShadowAlphaTestMethod,
                                 .retraceDepth = Settings.RetraceMaxDepth,
                                 .aoRadius = Settings.AORadius,
-                                .aoPower = Settings.AOPower,
                                 .shadowRadius = Settings.ShadowRadius,
     };
     const hz::Dependencies SceneDependencies = Draws.GetDependencies(Frame, View);
@@ -208,11 +204,12 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         .history = History[Previous].GetSrvIndex(),
         .Depth = GBuffer.Depth->GetSrvIndex(),
         .previousDepth = PreviousDepth.GetSrvIndex(),
+        .normal = GBuffer.NormalMaterial->GetSrvIndex(),
         .output = History[Current].GetUavIndex(),
-        .sampler = Sampler.GetIndex(),
         .historyValid = !MarkedDirty,
         .alpha = Settings.TemporalAlpha,
         .depthThreshold = Settings.TemporalDepthThreshold,
+        .planeSigma = Settings.AtrousPlaneSigma,
     };
     Commands.SetPipeline(TemporalPipeline);
     Commands.SetRootConstants(Denoise);
@@ -220,26 +217,25 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
                       { .sampledTextures = { &Result, &History[Previous], GBuffer.Depth, &PreviousDepth },
                         .storageTextures = { &History[Current] },
                         .buffers = { &Frame } });
-    const bool Atrous = Settings.DenoiseMode == RTDenoiseMode::Atrous;
-    Denoise.depthThreshold = Atrous ? Settings.AtrousDepthSigma : Settings.SpatialDepthThreshold;
+    // The traced input is consumed, so the a-trous iterations ping-pong through Scratch and finish in Result.
+    const hz::GPUTexture* Passes[] = { &History[Current], &Scratch, &Result };
     for (uint32_t Pass = 0; Pass < 2; ++Pass)
     {
-        const hz::GPUTexture& Input = Pass ? Scratch : History[Current];
-        const hz::GPUTexture& Output = Pass ? Result : Scratch;
-        Denoise.input = Input.GetSrvIndex();
-        Denoise.output = Output.GetUavIndex();
-        Denoise.horizontal = Pass == 0;
-        Denoise.step = Pass + 1;
-        Commands.SetPipeline(Atrous ? AtrousPipeline : SpatialPipeline);
+        Denoise.input = Passes[Pass]->GetSrvIndex();
+        Denoise.output = Passes[Pass + 1]->GetUavIndex();
+        Denoise.step = 1u << Pass;
+        Commands.SetPipeline(AtrousPipeline);
         Commands.SetRootConstants(Denoise);
         Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
-                          { .sampledTextures = { &Input, GBuffer.Depth }, .storageTextures = { &Output } });
+                          { .sampledTextures = { Passes[Pass], GBuffer.Depth, GBuffer.NormalMaterial },
+                            .storageTextures = { Passes[Pass + 1] },
+                            .buffers = { &Frame } });
     }
     Denoise.output = PreviousDepth.GetUavIndex();
     Commands.SetPipeline(DepthCopyPipeline);
     Commands.SetRootConstants(Denoise);
     Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
-                      { .sampledTextures = { GBuffer.Depth }, .storageTextures = { &PreviousDepth } });
+                      { .sampledTextures = { GBuffer.Depth }, .storageTextures = { &PreviousDepth }, .buffers = { &Frame } });
     HistoryIndex = Previous;
     MarkedDirty = false;
     Commands.EndGpuTimestamp();

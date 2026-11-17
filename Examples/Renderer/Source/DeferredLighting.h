@@ -4,7 +4,7 @@
 #include "Graphics/RenderContext.h"
 #include "SceneView.h"
 
-// Shared CPU/Slang layout, 128 bytes. Direction follows emitted rays; w is perpendicular illuminance in lux.
+// Shared CPU/Slang layout, 144 bytes. Direction follows emitted rays; w is perpendicular illuminance in lux.
 // Fields mirror the shader block, so they keep the shader's names.
 struct alignas(16) LightingFrameData
 {
@@ -19,7 +19,12 @@ struct alignas(16) LightingFrameData
     uint32_t environmentMipCount = 1;
     uint32_t frameIndex = 0;
     uint32_t shadowFilterRadius = 0;
+    float    rtAOPower = 1;
+    uint32_t padding0 = 0;
+    uint32_t padding1 = 0;
+    uint32_t padding2 = 0;
 };
+static_assert(sizeof(LightingFrameData) == 144);
 
 struct LightingResources
 {

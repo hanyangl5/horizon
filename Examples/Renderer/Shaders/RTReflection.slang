@@ -1,4 +1,5 @@
 #include "RTShared.slang"
+#include "Common.slang"
 
 struct RayPayload
 {
@@ -31,15 +32,18 @@ void rayGenMain()
     }
     RaytracingAccelerationStructure scene = ResourceDescriptorHeap[tlasIndex];
     float2                          sourceUV = (float2(sourcePixel) + 0.5) / float2(depthSize);
-    float3                          n = decodeOctNormal(normals.Load(int3(sourcePixel, 0)).xy);
+    float4                          g1 = normals.Load(int3(sourcePixel, 0));
+    float3                          n = decodeOctNormal(g1.xy);
+    float2                          properties = unpackMaterialProperties(float2(g1.ba));
     float3                          worldPos = reconstructWorldPosition(sourceUV, depth, frame[0].inverseViewProjection);
     float3                          viewDir = normalize(frame[0].eye.xyz - worldPos);
-    RayDesc                         ray;
-    ray.Origin = worldPos + n * 0.01;
-
-    ray.Direction = reflect(-viewDir, n);
-    ray.TMin = 0.01;
-    ray.TMax = 1e6;
+    if (properties.x >= kRTReflectionMaxRoughness)
+    {
+        output[pixel] = float4(0.0);
+        return;
+    }
+    RayDesc ray = { rtGBufferRayOrigin(sourceUV, depth, worldPos, n, frame[0].eye.xyz, frame[0].inverseViewProjection), 0.0,
+                    reflect(-viewDir, n), 1e6 };
     RayPayload payload;
     payload.color = float3(0.0);
     payload.depth = 0;
@@ -85,6 +89,14 @@ void closestHitMain(inout RayPayload payload, BuiltInTriangleIntersectionAttribu
     {
         N = -N;
     }
+    ByteAddressBuffer positions = ResourceDescriptorHeap[NonUniformResourceIndex(draw.positions)];
+    const float3      p0 = asfloat(positions.Load3(indices.x * sizeof(float3)));
+    const float3      p1 = asfloat(positions.Load3(indices.y * sizeof(float3)));
+    const float3      p2 = asfloat(positions.Load3(indices.z * sizeof(float3)));
+    float3            geometricNormal = normalize(mul(cross(p1 - p0, p2 - p0), (float3x3)WorldToObject3x4()));
+    geometricNormal = dot(geometricNormal, V) < 0.0 ? -geometricNormal : geometricNormal;
+    const float3 hitPosition =
+        rtOffsetHitPosition(mul(ObjectToWorld3x4(), float4(p0 * bary.x + p1 * bary.y + p2 * bary.z, 1.0)), geometricNormal);
     float2            uv = interpolateRTUV(draw, indices, attributes.barycentrics);
     ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
     GpuMaterialData   material = materials.Load<GpuMaterialData>(draw.material * sizeof(GpuMaterialData));
@@ -112,9 +124,17 @@ void closestHitMain(inout RayPayload payload, BuiltInTriangleIntersectionAttribu
     }
     StructuredBuffer<LightingFrameData> light = ResourceDescriptorHeap[lightingIndex];
     float3                              L = -normalize(light[0].lightDirection.xyz);
-    PBRLighting lighting = evaluatePBRLighting(baseColor, metallic, roughness, N, V, L, 1.0, 1.0, light[0], rtLightingBindings(), false);
-    // Reference renderer uses one unshadowed bounce and no recursive TraceRay in closest-hit.
-    payload.color = emissive + (lighting.direct + lighting.indirectDiffuse + lighting.indirectSpecular);
+    float                               visibility = 1.0;
+    if (shadowsEnabled != 0)
+    {
+        RaytracingAccelerationStructure scene = ResourceDescriptorHeap[tlasIndex];
+        RayDesc                         ray = { hitPosition, 0.0, L, 1e4 };
+        visibility = dot(geometricNormal, L) > 0.0 ? traceRTShadow(scene, ray, alphaTestMethod != 0) : 0.0;
+    }
+    PBRLighting lighting =
+        evaluatePBRLighting(baseColor, metallic, roughness, N, V, L, visibility, 1.0, light[0], rtLightingBindings(), false);
+    // One bounce: the hit is shadowed by an inline query, without recursive TraceRay.
+    payload.color = emissive + (lighting.direct + lighting.indirectDiffuse);
 }
 
 // Only masked geometry invokes Any-Hit; opaque geometry is accepted by traversal.

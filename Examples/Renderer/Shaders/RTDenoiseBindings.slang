@@ -1,4 +1,4 @@
-// Horizon resource bindings for the original Cookbook denoise kernels.
+// Horizon resource bindings for the ray traced shadow/AO denoise kernels.
 #pragma once
 #include "Common.slang"
 #include "Math.slang"
@@ -10,27 +10,14 @@ cbuffer RootConstant0
     uint  historyIndex;
     uint  depthIndex;
     uint  previousDepthIndex;
+    uint  normalIndex;
     uint  outputIndex;
-    uint  samplerIndex;
     uint  historyValid;
     float temporalAlpha;
     float depthThreshold;
-    uint  horizontal;
+    float planeSigma;
     uint  stepWidth;
 };
 
-float4 textureBindless2D(uint textureId, uint samplerId, float2 uv)
-{
-    Texture2D<float4> texture = ResourceDescriptorHeap[textureId];
-    SamplerState      sampler = SamplerDescriptorHeap[samplerId];
-    return texture.SampleLevel(sampler, uv, 0);
-}
-
-int2 textureBindlessSize2D(uint textureId)
-{
-    Texture2D<float4> texture = ResourceDescriptorHeap[textureId];
-    uint              width;
-    uint              height;
-    texture.GetDimensions(width, height);
-    return int2(width, height);
-}
+// Clip-space w is the view depth for the renderer's perspective projections.
+float viewDepth(float4x4 viewProjection, float3 worldPosition) { return mul(viewProjection, float4(worldPosition, 1.0)).w; }

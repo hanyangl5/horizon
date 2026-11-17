@@ -78,7 +78,7 @@ float4 PSMain(PSInput input): SV_Target0
         }
         if (light.rtAOEnabled != 0)
         {
-            ao *= rtData.g;
+            ao *= pow(saturate(rtData.g), light.rtAOPower);
         }
     }
     else
@@ -96,12 +96,12 @@ float4 PSMain(PSInput input): SV_Target0
     float       metallic = saturate(surface.a);
     float       roughness = saturate(properties.x);
     PBRLighting lighting =
-        evaluatePBRLighting(float3(baseColor), metallic, roughness, n, v, l, visibility, ao, light, bindings, false, properties.y);
-    if (rtReflectionIndex != INVALID_TEXTURE)
+        evaluatePBRLighting(float3(baseColor), metallic, roughness, n, v, l, visibility, ao, light, bindings, true, properties.y);
+    if (rtReflectionIndex != INVALID_TEXTURE && roughness < kRTReflectionMaxRoughness)
     {
         Texture2D<float4> reflection = ResourceDescriptorHeap[rtReflectionIndex];
-        lighting.indirectSpecular = lighting.fresnel * reflection.Load(pixel).rgb;
+        lighting.indirectSpecular = lerp(lighting.specularWeight * reflection.Load(pixel).rgb, lighting.indirectSpecular,
+                                         smoothstep(kRTReflectionFadeStart, kRTReflectionMaxRoughness, roughness));
     }
-    float3 color = float3(scene) + lighting.direct + lighting.indirectDiffuse + lighting.indirectSpecular;
-    return float4(color, 1.0);
+    return float4(float3(scene) + lighting.direct + lighting.indirectDiffuse + lighting.indirectSpecular, 1.0);
 }

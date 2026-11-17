@@ -14,6 +14,11 @@ struct LightingFrameData
     uint     environmentMipCount;
     uint     frameIndex;
     uint     shadowFilterRadius;
+    // Applied after denoising so the filters average linear occlusion.
+    float    rtAOPower;
+    uint     padding0;
+    uint     padding1;
+    uint     padding2;
 };
 
 struct LightingBindings
@@ -34,9 +39,14 @@ struct PBRLighting
     float3 indirectDiffuse;
     float3 indirectSpecular;
     float3 fresnel;
+    // Split-sum weight f0 * A + B applied to incident specular radiance.
+    float3 specularWeight;
 };
 
 static const float kPbrPi = 3.141592653589793;
+// Ray traced reflections stop at the maximum roughness and fade to the prefiltered environment from the start value.
+static const float kRTReflectionFadeStart = 0.3;
+static const float kRTReflectionMaxRoughness = 0.4;
 
 // glTF metallic-roughness: Lambert diffuse + GGX, correlated Smith visibility, Schlick Fresnel.
 float3 pbrFresnel(float3 f0, float cosTheta)
@@ -80,13 +90,6 @@ float3 pbrMetallicRoughness(float3 baseColor, float metallic, float roughness, f
 float3 pbrIndirectDiffuse(float3 baseColor, float metallic, float3 F, float3 diffuseEnvironment, float ao)
 {
     return (float3(1.0) - F) * (1.0 - saturate(metallic)) * baseColor * diffuseEnvironment * saturate(ao);
-}
-
-// Split-sum GGX IBL: the LUT integrates the BRDF, so do not multiply by Fresnel or NdotL again.
-// brdf.xy = scale/bias sampled at (NdotV, perceptual roughness).
-float3 pbrIndirectSpecular(float3 f0, float2 brdf, float3 prefilteredEnvironment)
-{
-    return prefilteredEnvironment * (f0 * brdf.x + float3(brdf.y));
 }
 
 float shadowVisibility(float3 worldPosition, LightingFrameData light, LightingBindings bindings)
@@ -134,6 +137,7 @@ PBRLighting evaluatePBRLighting(float3 baseColor, float metallic, float roughnes
     float3      f0 = pbrF0(baseColor, metallic, specular);
     PBRLighting result;
     result.fresnel = pbrFresnel(f0, NdotV);
+    result.specularWeight = result.fresnel;
     result.direct = pbrMetallicRoughness(baseColor, metallic, roughness, N, V, L, f0) * saturate(visibility) *
                     max(light.lightDirection.w, 0.0) * max(light.lightColor.rgb, 0.0);
     result.indirectDiffuse = 0;
@@ -158,8 +162,10 @@ PBRLighting evaluatePBRLighting(float3 baseColor, float metallic, float roughnes
         Texture2D<float4>   brdfLut = ResourceDescriptorHeap[bindings.brdfLut];
         const float         lod = roughness * float(max(light.environmentMipCount, 1u) - 1u);
         const float3        radiance = environment.SampleLevel(sampler, float3(-r.x, r.y, -r.z), lod).rgb;
+        // The LUT integrates the BRDF over (NdotV, perceptual roughness), so Fresnel and NdotL are not applied again.
         const float2        brdf = brdfLut.SampleLevel(sampler, float2(NdotV, roughness), 0).rg;
-        result.indirectSpecular = pbrIndirectSpecular(f0, brdf, radiance) * max(light.environmentIntensity, 0.0);
+        result.specularWeight = f0 * brdf.x + float3(brdf.y);
+        result.indirectSpecular = result.specularWeight * radiance * max(light.environmentIntensity, 0.0);
     }
     return result;
 }

@@ -29,7 +29,6 @@ cbuffer RootConstant0
     uint  alphaTestMethod;
     uint  retraceMaxDepth;
     float aoRadius;
-    float aoPower;
     float shadowRadius;
 };
 
@@ -111,6 +110,54 @@ float2 blueNoiseVec2(uint texBlueNoise, uint smpl, float2 screenCoord, uint fram
     Texture2D<float4> texture = ResourceDescriptorHeap[texBlueNoise];
     SamplerState      sampler = SamplerDescriptorHeap[smpl];
     return texture.SampleLevel(sampler, uv, 0).rg;
+}
+
+// A GBuffer position is off by the depth quantization error along the view ray, which grows with distance. Pulling the
+// origin toward the eye by a few depth steps keeps it on the visible side of the surface without a fixed world-space gap;
+// the floor covers float precision of large world coordinates near the camera.
+float3 rtGBufferRayOrigin(float2 uv, float depth, float3 position, float3 normal, float3 eye, float4x4 inverseViewProjection)
+{
+    const float3 toEye = eye - position;
+    const float3 magnitude = abs(position);
+    const float  offset = max(length(reconstructWorldPosition(uv, max(depth - 8.0 / 16777215.0, 0.0), inverseViewProjection) - position),
+                              max(max(magnitude.x, magnitude.y), max(magnitude.z, 1.0)) / 65536.0);
+    normal = dot(normal, toEye) < 0.0 ? -normal : normal;
+    return position + (normalize(toEye) + normal) * offset;
+}
+
+// Wächter and Binder, "A Fast and Robust Method for Avoiding Self-Intersection", Ray Tracing Gems chapter 6.
+// For positions interpolated from triangle vertices; the normal is the geometric normal on the ray's side.
+float3 rtOffsetHitPosition(float3 position, float3 normal)
+{
+    const float  origin = 1.0 / 32.0;
+    const float  floatScale = 1.0 / 65536.0;
+    const float  intScale = 256.0;
+    const int3   offset = int3(intScale * normal);
+    const float3 shifted = asfloat(asint(position) + select(position < 0.0, -offset, offset));
+    return select(abs(position) < origin, position + floatScale * normal, shifted);
+}
+
+// Returns 1 when the ray reaches TMax. Masked geometry is alpha tested when alphaTest is set.
+float traceRTShadow(RaytracingAccelerationStructure scene, RayDesc ray, bool alphaTest)
+{
+    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> rq;
+    rq.TraceRayInline(scene, RAY_FLAG_NONE, 0xff, ray);
+    while (rq.Proceed())
+    {
+        GpuDrawData mesh = loadRTDraw(uint(rq.CandidateInstanceID()));
+        if (!alphaTest || mesh.alphaMode != 1)
+        {
+            rq.CommitNonOpaqueTriangleHit();
+            continue;
+        }
+        ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
+        GpuMaterialData   material = materials.Load<GpuMaterialData>(mesh.material * sizeof(GpuMaterialData));
+        if (sampleRayTracingAlpha(mesh, material, rq.CandidatePrimitiveIndex(), rq.CandidateTriangleBarycentrics()) >= material.alphaCutoff)
+        {
+            rq.CommitNonOpaqueTriangleHit();
+        }
+    }
+    return rq.CommittedStatus() == COMMITTED_TRIANGLE_HIT ? 0.0 : 1.0;
 }
 
 LightingBindings rtLightingBindings()
