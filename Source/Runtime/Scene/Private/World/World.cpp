@@ -318,6 +318,43 @@ WorldQueryImpl::~WorldQueryImpl()
     --pOwner->pImpl->queryCount;
 }
 
+WorldChangeLog::WorldChangeLog(World& world): pImpl(MemNew(WorldChangeLogImpl, world))
+{
+    world.pImpl->checkThread();
+    // Counted with the queries: a log names entities of this World, so it must not outlive a replacement.
+    ++world.pImpl->queryCount;
+    world.pImpl->changeLogs.PushBack(pImpl);
+}
+
+WorldChangeLog::~WorldChangeLog()
+{
+    WorldImpl&                 world = *pImpl->world.pImpl;
+    Array<WorldChangeLogImpl*>& logs = world.changeLogs;
+    world.checkThread();
+    for (uint32_t i = 0; i < logs.Size(); ++i)
+        if (logs[i] == pImpl)
+        {
+            logs[i] = logs[logs.Size() - 1];
+            logs.PopBack();
+            break;
+        }
+    --world.queryCount;
+    MemDelete(pImpl);
+}
+
+Span<Entity> WorldChangeLog::Drain(bool& overflowed)
+{
+    pImpl->world.pImpl->checkThread();
+    overflowed = pImpl->overflowed;
+    pImpl->overflowed = false;
+    // Swap so the returned entries stay valid while new changes are recorded.
+    Array<Entity> previous = std::move(pImpl->drained);
+    pImpl->drained = std::move(pImpl->entries);
+    pImpl->entries = std::move(previous);
+    pImpl->entries.Clear();
+    return { pImpl->drained.GetData(), pImpl->drained.Size() };
+}
+
 WorldQuery::WorldQuery(World& world, Span<TypeID> types): pImpl(MemNew(WorldQueryImpl, world, types)) {}
 WorldQuery::~WorldQuery() { MemDelete(pImpl); }
 

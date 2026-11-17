@@ -100,6 +100,9 @@ public:
         }
     }
 
+    // Pending bindings, including ones a MeshRenderer edit just reset, still need Update to acquire and resolve assets.
+    bool IsWaiting() const { return view.state == AssetBindingState::Pending; }
+
     Entity           entity;
     MeshAssetBinding view;
     bool             seen = false;
@@ -211,7 +214,7 @@ class WorldAssetBindingsData
 {
 public:
     WorldAssetBindingsData(World& world, AssetManager& assetManager):
-        world(world), assetManager(assetManager), query(world, { SceneTypes::meshRenderer })
+        world(world), assetManager(assetManager), query(world, { SceneTypes::meshRenderer }), changes(world)
     {
         ASSERT(query.IsValid());
     }
@@ -229,6 +232,7 @@ public:
             MemDelete(pBinding);
         }
         bindings.Clear();
+        rescanPending = true;
     }
 
     static bool sync(Entity entity, Span<const void*> fields, void* User)
@@ -246,30 +250,61 @@ public:
         return true;
     }
 
+    void remove(uint32_t index)
+    {
+        WorldMeshBinding* pBinding = bindings[index];
+        hmdel(pIndices, pBinding->entity);
+        MemDelete(pBinding);
+        bindings[index] = bindings[bindings.Size() - 1];
+        bindings.PopBack();
+        if (index < bindings.Size())
+            hmgetp_null(pIndices, bindings[index]->entity)->value = index;
+    }
+
+    // Syncs one entity named by the change log; returns false when it no longer has a MeshRenderer.
+    void syncChanged(Entity entity)
+    {
+        const WorldBindingIndex* pIndex = hmgetp_null(pIndices, entity);
+        const MeshRenderer*      pRenderer = (const MeshRenderer*)world.GetComponent(entity, SceneTypes::meshRenderer);
+        if (!pRenderer)
+        {
+            if (pIndex)
+                remove(pIndex->value);
+            return;
+        }
+        const void* field = pRenderer;
+        sync(entity, { &field, 1 }, this);
+    }
+
     void Update()
     {
         ASSERT(!world.IsDeferred());
-        for (WorldMeshBinding* pBinding : bindings)
-            pBinding->seen = false;
-        query.Each(sync, this);
-        for (WorldMeshBinding* pBinding : bindings)
-            if (pBinding->seen)
-                pBinding->Update();
-        for (uint32_t i = 0; i < bindings.Size();)
+        // Bindings depend only on their MeshRenderer and on asset states, so a frame without component changes and without
+        // asset state changes only revisits bindings that are still waiting for an asset.
+        bool               rescan = false;
+        const Span<Entity> changed = changes.Drain(rescan);
+        const uint64_t     assetRevision = assetManager.GetStateRevision();
+        rescan |= rescanPending;
+        rescanPending = false;
+        if (rescan)
         {
-            WorldMeshBinding* pBinding = bindings[i];
-            if (pBinding->seen)
-            {
-                ++i;
-                continue;
-            }
-            hmdel(pIndices, pBinding->entity);
-            MemDelete(pBinding);
-            bindings[i] = bindings[bindings.Size() - 1];
-            bindings.PopBack();
-            if (i < bindings.Size())
-                hmgetp_null(pIndices, bindings[i]->entity)->value = i;
+            for (WorldMeshBinding* pBinding : bindings)
+                pBinding->seen = false;
+            query.Each(sync, this);
+            for (uint32_t i = 0; i < bindings.Size();)
+                if (bindings[i]->seen)
+                    ++i;
+                else
+                    remove(i);
         }
+        else
+            for (Entity entity : changed)
+                syncChanged(entity);
+        const bool assetsChanged = rescan || assetRevision != syncedAssetRevision;
+        for (WorldMeshBinding* pBinding : bindings)
+            if (assetsChanged || pBinding->IsWaiting())
+                pBinding->Update();
+        syncedAssetRevision = assetRevision;
         for (AssetHandle Handle : releases)
             assetManager.Release(Handle);
         releases.Clear();
@@ -278,9 +313,12 @@ public:
     World&                   world;
     AssetManager&            assetManager;
     WorldQuery               query;
+    WorldChangeLog           changes;
     Array<WorldMeshBinding*> bindings;
     Array<AssetHandle>       releases;
     WorldBindingIndex*       pIndices = nullptr;
+    uint64_t                 syncedAssetRevision = 0;
+    bool                     rescanPending = false;
 };
 
 WorldAssetBindings::WorldAssetBindings(World& world, AssetManager& assetManager): Data(MemNew(WorldAssetBindingsData, world, assetManager))

@@ -52,6 +52,7 @@ uint32_t WorldHierarchy::Find(ecs_entity_t entity) const
 
 void WorldHierarchy::addRoot(ecs_entity_t entity)
 {
+    world.recordChange(entity);
     if (structureDirty || ecs_is_deferred(world.pWorld))
     {
         // A deferred entity is not visible to the rebuild query until the scope commits.
@@ -88,6 +89,9 @@ void WorldHierarchy::markTransformDirty(ecs_entity_t entity)
 
 bool WorldHierarchy::prepareLocalChange(ecs_entity_t entity, TypeID Type, bool adding)
 {
+    // Every component edit passes through here, including ones that turn out to be rejected; a spurious entry only
+    // costs the consumer one comparison.
+    world.recordChange(entity);
     if (Type != SceneTypes::localTransform && Type != SceneTypes::localMatrix)
         return true;
     const uint32_t    bit = Type == SceneTypes::localTransform ? 1u : 2u;
@@ -200,6 +204,12 @@ void WorldHierarchy::rebuild()
         const Index mapping = { .key = nodes[i].entity, .value = i };
         hmputs(pIndices, mapping);
     }
+    // A rebuild touches every node, so consumers rescan instead of replaying one entry per entity.
+    for (WorldChangeLogImpl* pLog : world.changeLogs)
+    {
+        pLog->overflowed = true;
+        pLog->entries.Clear();
+    }
     dirtyRoots.Clear();
     dirtyRoots.Reserve(nodes.Size());
     historyDirty.Clear();
@@ -237,6 +247,7 @@ void WorldHierarchy::Update()
                 node.initialized = true;
             }
             node.dirty = false;
+            world.recordChange(node.entity);
             if (!node.historyDirty)
             {
                 node.historyDirty = true;
@@ -369,6 +380,7 @@ bool WorldHierarchy::Destroy(ecs_entity_t entity, bool subtree)
         ecs_iter_fini(&children);
     if (!hasChildren)
     {
+        world.recordChange(entity);
         ecs_delete(world.pWorld, entity);
         // A deferred delete still shows its entity to the rebuild query until the scope commits.
         const uint32_t index = structureDirty || ecs_is_deferred(world.pWorld) ? UINT32_MAX : Find(entity);
@@ -395,7 +407,10 @@ bool WorldHierarchy::Destroy(ecs_entity_t entity, bool subtree)
     {
         for (uint32_t i = end; i > root; --i)
             if (nodes[i - 1].entity)
+            {
+                world.recordChange(nodes[i - 1].entity);
                 ecs_delete(world.pWorld, nodes[i - 1].entity);
+            }
     }
     else
     {

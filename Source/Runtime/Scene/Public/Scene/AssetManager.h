@@ -107,6 +107,8 @@ public:
     AssetHandle          Find(AssetID id) const;
     // Encodes the ready payload Set once per revision. Views expire when the ready Set changes.
     GpuAssetTables       GetGpuTables();
+    // Changes whenever an asset becomes ready, fails or retires; equal values mean no asset changed state.
+    uint64_t             GetStateRevision() const;
     uint32_t             GetCount() const;
     void                 Shutdown();
 

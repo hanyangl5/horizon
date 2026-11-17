@@ -611,6 +611,8 @@ AssetHandle AssetManager::Find(AssetID id) const
     return pIndex ? pIndex->value : AssetHandle{};
 }
 
+uint64_t AssetManager::GetStateRevision() const { return Data->tableRevision; }
+
 GpuAssetTables AssetManager::GetGpuTables()
 {
     AssetManagerData& data = *Data;

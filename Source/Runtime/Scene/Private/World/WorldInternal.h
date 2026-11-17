@@ -22,6 +22,33 @@ struct EntityGuidEntry
     ecs_entity_t value;
 };
 
+class WorldChangeLogImpl
+{
+public:
+    explicit WorldChangeLogImpl(World& world): world(world) {}
+
+    // Past this many entries a full rescan is cheaper than replaying the log.
+    static constexpr uint32_t kCapacity = 65536;
+
+    void record(ecs_entity_t entity, uint32_t world)
+    {
+        if (overflowed)
+            return;
+        if (entries.Size() == kCapacity)
+        {
+            overflowed = true;
+            entries.Clear();
+            return;
+        }
+        entries.PushBack(Entity(entity, world));
+    }
+
+    World&        world;
+    Array<Entity> entries;
+    Array<Entity> drained;
+    bool          overflowed = true;
+};
+
 class WorldImpl
 {
 public:
@@ -34,6 +61,7 @@ private:
     friend class World;
     friend class WorldQuery;
     friend class WorldQueryImpl;
+    friend class WorldChangeLog;
     friend class DeferredChanges;
     friend class WorldHierarchy;
     friend class WorldArchive;
@@ -43,6 +71,12 @@ private:
     void             finishGuidChanges();
     void*            findEditableProperty(ecs_entity_t entity, TypeID Type, PropertyID property, const PropertyDesc*& pProperty);
     void             notifyPropertyChange(ecs_entity_t entity, TypeID Type);
+    // Feeds every live WorldChangeLog. Structural changes made inside a Defer scope are recorded when requested.
+    void             recordChange(ecs_entity_t entity)
+    {
+        for (WorldChangeLogImpl* pLog : changeLogs)
+            pLog->record(entity, id);
+    }
     static void      removeEntityGuids(ecs_iter_t* pIterator);
 
     static void constructComponents(void* pDestination, int32_t Count, const ecs_type_info_t* pInfo);
@@ -65,6 +99,7 @@ private:
     WorldHierarchy*  pHierarchy = nullptr;
     // Queries own flecs state in this World, so it must not be destroyed or replaced while any are live.
     uint32_t         queryCount = 0;
+    Array<WorldChangeLogImpl*> changeLogs;
     ThreadID         thread = GetCurrentThreadID();
 };
 

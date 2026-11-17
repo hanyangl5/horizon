@@ -10,6 +10,7 @@ class World;
 class WorldQuery;
 class WorldImpl;
 class WorldQueryImpl;
+class WorldChangeLogImpl;
 
 // Runtime identity, scoped to the World that created it. IsValid does not test liveness.
 class Entity
@@ -22,6 +23,7 @@ public:
 private:
     friend class World;
     friend class WorldQuery;
+    friend class WorldChangeLogImpl;
     // Two 64-bit fields keep the Type padding-free: Hash maps key on the raw bytes.
     explicit Entity(uint64_t value, uint64_t world): value(value), world(world) {}
     uint64_t value = 0;
@@ -106,12 +108,33 @@ private:
     friend class DeferredChanges;
     friend class WorldQuery;
     friend class WorldQueryImpl;
+    friend class WorldChangeLog;
+    friend class WorldChangeLogImpl;
     friend class WorldArchive;
     friend class SceneAsset;
     // False for an invalid Entity; foreign entities fail the comparison and assert in debug.
     bool       Owns(Entity entity) const;
     void       AttachParent(Entity entity, Entity parent);
     WorldImpl* pImpl = nullptr;
+};
+
+// Collects entities whose components, hierarchy or world transform changed, so consumers can update incrementally.
+// Entries may repeat and may name entities destroyed since. When the log overflows it drops its entries and reports
+// overflow instead, and the consumer rescans the World. The World must not be destroyed or replaced while a log is live.
+class WorldChangeLog
+{
+public:
+    explicit WorldChangeLog(World& world);
+    ~WorldChangeLog();
+    WorldChangeLog(const WorldChangeLog&) = delete;
+    WorldChangeLog& operator=(const WorldChangeLog&) = delete;
+
+    // Changes recorded since the previous call, which are then cleared. Call after UpdateTransforms so transform
+    // propagation is included. The span expires at the next call.
+    Span<Entity> Drain(bool& overflowed);
+
+private:
+    WorldChangeLogImpl* pImpl = nullptr;
 };
 
 class WorldQuery
