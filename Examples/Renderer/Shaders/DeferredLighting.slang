@@ -34,6 +34,52 @@ PSInput VSMain(uint vertexId : SV_VertexID)
     output.uv = uv;
     return output;
 }
+// Depth-aware upsample of the reduced-resolution ray traced results: bilinear weights over the four nearest texels,
+// each scaled down by its source pixel's relative view distance difference, so the results do not bleed across edges.
+static const float kRTUpsampleDepthScale = 50.0;
+struct RTUpsample
+{
+    int2  taps[4];
+    float weights[4];
+};
+RTUpsample rtUpsample(int2 pixel, int2 size, int2 lowSize, float viewDistance, Texture2D<float> depthTexture, FrameData frame)
+{
+    const float2 position = float2(pixel) * float2(lowSize) / float2(size);
+    const int2   base = int2(floor(position));
+    const float2 fraction = position - float2(base);
+    RTUpsample   result;
+    float        weightSum = 0.0;
+    float        closest = 1e30;
+    int          closestTap = 0;
+    for (int i = 0; i < 4; ++i)
+    {
+        const int2   offset = int2(i & 1, i >> 1);
+        const int2   tap = min(base + offset, lowSize - 1);
+        const int2   source = rtSourcePixel(tap, lowSize, size);
+        const float  tapDepth = depthTexture.Load(int3(source, 0));
+        const float2 bilinear = lerp(1.0 - fraction, fraction, float2(offset));
+        const float  difference =
+            tapDepth >= 1.0
+                ? 1e30
+                : abs(length(reconstructWorldPosition((float2(source) + 0.5) / float2(size), tapDepth, frame.inverseViewProjection) -
+                             frame.eye.xyz) - viewDistance) / viewDistance;
+        result.taps[i] = tap;
+        result.weights[i] = bilinear.x * bilinear.y * exp(-difference * kRTUpsampleDepthScale);
+        weightSum += result.weights[i];
+        if (difference < closest)
+        {
+            closest = difference;
+            closestTap = i;
+        }
+    }
+    for (int i = 0; i < 4; ++i)
+    {
+        // Thin geometry may match none of the texels; it takes the nearest in depth instead of a blend of the background.
+        result.weights[i] = weightSum > 1e-4 ? result.weights[i] / weightSum : float(i == closestTap);
+    }
+    return result;
+}
+
 float4 PSMain(PSInput input): SV_Target0
 {
     const int3        pixel = int3(int2(input.position.xy), 0);
@@ -60,6 +106,16 @@ float4 PSMain(PSInput input): SV_Target0
     half3                               baseColor = half3(surface.rgb);
 
     float3           worldPos = reconstructWorldPosition(input.uv, depth, frame[0].inverseViewProjection);
+    int2             size;
+    depthTexture.GetDimensions(size.x, size.y);
+    RTUpsample upsample;
+    if (rtShadowAOIndex != INVALID_TEXTURE || rtReflectionIndex != INVALID_TEXTURE)
+    {
+        Texture2D<float4> traced = ResourceDescriptorHeap[rtShadowAOIndex != INVALID_TEXTURE ? rtShadowAOIndex : rtReflectionIndex];
+        int2              lowSize;
+        traced.GetDimensions(lowSize.x, lowSize.y);
+        upsample = rtUpsample(pixel.xy, size, lowSize, length(worldPos - frame[0].eye.xyz), depthTexture, frame[0]);
+    }
     LightingBindings bindings = { shadowMapIndex, shadowSamplerIndex,      environmentIndex, irradianceIndex,
                                   brdfLutIndex,   environmentSamplerIndex, rtShadowAOIndex,  rtReflectionIndex };
     float            visibility = 1.0;
@@ -67,7 +123,11 @@ float4 PSMain(PSInput input): SV_Target0
     if (rtShadowAOIndex != INVALID_TEXTURE)
     {
         Texture2D<float2> traced = ResourceDescriptorHeap[rtShadowAOIndex];
-        float2            rtData = traced.Load(pixel);
+        float2            rtData = 0.0;
+        for (int i = 0; i < 4; ++i)
+        {
+            rtData += traced.Load(int3(upsample.taps[i], 0)) * upsample.weights[i];
+        }
         if (light.rtShadowEnabled != 0)
         {
             visibility = rtData.r;
@@ -100,7 +160,12 @@ float4 PSMain(PSInput input): SV_Target0
     if (rtReflectionIndex != INVALID_TEXTURE && roughness < kRTReflectionMaxRoughness)
     {
         Texture2D<float4> reflection = ResourceDescriptorHeap[rtReflectionIndex];
-        lighting.indirectSpecular = lerp(lighting.specularWeight * reflection.Load(pixel).rgb, lighting.indirectSpecular,
+        float3            reflected = 0.0;
+        for (int i = 0; i < 4; ++i)
+        {
+            reflected += reflection.Load(int3(upsample.taps[i], 0)).rgb * upsample.weights[i];
+        }
+        lighting.indirectSpecular = lerp(lighting.specularWeight * reflected, lighting.indirectSpecular,
                                          smoothstep(kRTReflectionFadeStart, kRTReflectionMaxRoughness, roughness));
     }
     return float4(float3(scene) + lighting.direct + lighting.indirectDiffuse + lighting.indirectSpecular, 1.0);

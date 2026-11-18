@@ -50,6 +50,8 @@ public:
     static constexpr hz::Format HistoryFormat = hz::Format::R16G16B16A16_SFLOAT;
     static constexpr hz::Format DepthFormat = hz::Format::R32_SFLOAT;
     static constexpr hz::Format ReflectionFormat = hz::Format::R32G32B32A32_SFLOAT;
+    // The effects trace one ray per texel at half the viewport resolution; lighting upsamples them by depth.
+    static constexpr uint32_t   ResolutionShift = 1;
 
     explicit RayTracedEffects(hz::RenderContext& Context);
     ~RayTracedEffects();

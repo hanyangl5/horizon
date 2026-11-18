@@ -11,6 +11,10 @@ struct FrameData
     float4   eye;
 };
 
+// The ray traced effects run at a reduced resolution. Each of their texels samples one full-resolution GBuffer pixel,
+// so tracing, denoising and the lighting upsample read the same surface.
+int2 rtSourcePixel(int2 pixel, int2 size, int2 sourceSize) { return min(pixel * sourceSize / size, sourceSize - 1); }
+
 float2 signNotZero(float2 value) { return float2(value.x >= 0.0 ? 1.0 : -1.0, value.y >= 0.0 ? 1.0 : -1.0); }
 
 float2 encodeOctNormal(float3 normal)

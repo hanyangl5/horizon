@@ -20,10 +20,9 @@ void rayGenMain()
 
     uint2  pixel = DispatchRaysIndex().xy;
     uint2  size = DispatchRaysDimensions().xy;
-    float2 uv = (float2(pixel) + 0.5) / float2(size);
     // Load depth and normal from the same full-resolution pixel, without blending across silhouettes.
     int2   depthSize = int2(width, height);
-    int2   sourcePixel = min(int2(uv * float2(depthSize)), depthSize - 1);
+    int2   sourcePixel = rtSourcePixel(int2(pixel), int2(size), depthSize);
     float  depth = depthTexture.Load(int3(sourcePixel, 0));
     if (depth >= 1.0 || tlasIndex == INVALID_TEXTURE)
     {

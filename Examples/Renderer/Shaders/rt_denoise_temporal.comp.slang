@@ -25,8 +25,11 @@ void main(uint3 thread : SV_DispatchThreadID)
     Texture2D<float>  depthTexture = ResourceDescriptorHeap[depthIndex];
     const int2        size = int2(width, height);
     const int2        pixel = int2(thread.xy);
-    const float2      current = input.Load(int3(pixel, 0));
-    const float       depth = depthTexture.Load(int3(pixel, 0));
+    uint2             sourceSize;
+    depthTexture.GetDimensions(sourceSize.x, sourceSize.y);
+    const int2   source = rtSourcePixel(pixel, size, int2(sourceSize));
+    const float2 current = input.Load(int3(pixel, 0));
+    const float  depth = depthTexture.Load(int3(source, 0));
     if (depth >= 1.0)
     {
         output[pixel] = float4(1.0, 1.0, 0.0, 0.0);
@@ -54,9 +57,12 @@ void main(uint3 thread : SV_DispatchThreadID)
         StructuredBuffer<FrameData> frames = ResourceDescriptorHeap[frameIndex];
         Texture2D<float4>           historyTexture = ResourceDescriptorHeap[historyIndex];
         Texture2D<float>            previousDepth = ResourceDescriptorHeap[previousDepthIndex];
-        const float3 worldPosition = reconstructWorldPosition((float2(pixel) + 0.5) / float2(size), depth, frames[0].inverseViewProjection);
+        const float3 worldPosition =
+            reconstructWorldPosition((float2(source) + 0.5) / float2(sourceSize), depth, frames[0].inverseViewProjection);
         const float4 previousClip = mul(frames[0].previousViewProjection, float4(worldPosition, 1.0));
-        const float2 previousPixel = (previousClip.xy / previousClip.w * float2(0.5, -0.5) + 0.5) * float2(size) - 0.5;
+        // Texels sit at their source pixels, so a static view maps each texel back onto itself.
+        const float2 previousSource = (previousClip.xy / previousClip.w * float2(0.5, -0.5) + 0.5) * float2(sourceSize) - 0.5;
+        const float2 previousPixel = previousSource * float2(size) / float2(sourceSize);
         const int2   base = int2(floor(previousPixel));
         const float2 fraction = previousPixel - float2(base);
         float4       sum = 0.0;

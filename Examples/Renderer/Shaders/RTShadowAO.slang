@@ -31,7 +31,10 @@ void main(uint3 thread : SV_DispatchThreadID)
 
     Texture2D<float>  depth = ResourceDescriptorHeap[depthIndex];
     Texture2D<float4> normals = ResourceDescriptorHeap[normalIndex];
-    float             d = depth.Load(int3(thread.xy, 0));
+    uint2             sourceSize;
+    depth.GetDimensions(sourceSize.x, sourceSize.y);
+    const int2 source = rtSourcePixel(int2(thread.xy), int2(width, height), int2(sourceSize));
+    float      d = depth.Load(int3(source, 0));
     if (d >= 1.0 || tlasIndex == INVALID_TEXTURE)
     {
         output[thread.xy] = 1.0;
@@ -42,9 +45,9 @@ void main(uint3 thread : SV_DispatchThreadID)
     StructuredBuffer<LightingFrameData> lights = ResourceDescriptorHeap[lightingIndex];
     RaytracingAccelerationStructure     scene = ResourceDescriptorHeap[tlasIndex];
     float2 pixel = float2(thread.xy) + 0.5;
-    float2 uv = pixel / float2(width, height);
+    float2 uv = (float2(source) + 0.5) / float2(sourceSize);
     // Decode in float, like the deferred pass, so the shadow ray leaves along the shaded normal.
-    float3 n = decodeOctNormal(normals.Load(int3(thread.xy, 0)).xy);
+    float3 n = decodeOctNormal(normals.Load(int3(source, 0)).xy);
     float3 worldPos = reconstructWorldPosition(uv, d, frames[0].inverseViewProjection);
     float3 origin = rtGBufferRayOrigin(uv, d, worldPos, n, frames[0].eye.xyz, frames[0].inverseViewProjection);
 
