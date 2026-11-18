@@ -1,16 +1,12 @@
-// ReSTIR DI resource layer; the sampling and reuse stages live in RestirDI.slang. See Docs/RestirDI.md.
+// ReSTIR DI lighting pass; the sampling and reuse stages live in RestirDI.slang. See Docs/RestirDI.md.
 #include "RestirDI.h"
 #include "Profiler/IProfiler.h"
+#include "Scene/GpuDrawList.h"
 
 #include <math.h>
 
 // Same daylight-white calibration ShadowMap applies to the sun: 100 lm/W.
 static constexpr float kLightEfficacy = 100.0f;
-
-static uint32_t LightingSamplerIndex(const hz::GPUSampler* Sampler)
-{
-    return Sampler && Sampler->IsValid() ? Sampler->GetIndex() : UINT32_MAX;
-}
 
 // Mirrors the RootConstant0 block of RestirDI.slang field for field.
 struct RestirDIConstants
@@ -32,21 +28,39 @@ struct RestirDIConstants
     uint32_t environmentSamplerIndex;
     uint32_t previousReservoirIndex;
     uint32_t outputReservoirIndex;
+    uint32_t currentReservoirIndex;
     uint32_t colorIndex;
     uint32_t rtShadowAOIndex;
     uint32_t rtReflectionIndex;
     uint32_t ssaoIndex;
+    uint32_t tlasIndex;
+    uint32_t drawsIndex;
+    uint32_t materialsIndex;
+    uint32_t samplerIndex;
     uint32_t width;
     uint32_t height;
+    uint32_t frameNumber;
+    uint32_t initialCandidates;
+    uint32_t temporalReuse;
+    uint32_t spatialSamples;
+    float    spatialRadius;
+    uint32_t maxHistory;
+    uint32_t reference;
 };
-static_assert(sizeof(RestirDIConstants) == 23 * sizeof(uint32_t));
+static_assert(sizeof(RestirDIConstants) == 35 * sizeof(uint32_t));
+
+static uint32_t SamplerIndex(const hz::GPUSampler* Sampler) { return Sampler && Sampler->IsValid() ? Sampler->GetIndex() : UINT32_MAX; }
 
 RestirDI::RestirDI(hz::RenderContext& Context): Context(Context)
 {
-    Pipeline = Context.CreateComputePipeline(
-        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "RestirDI.slang" },
-          .Name = "Renderer.RestirDI" });
-    ASSERT(Pipeline.IsValid());
+    CandidatesPipeline = Context.CreateComputePipeline(
+        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSCandidates" } }, .pFileName = "RestirDI.slang" },
+          .Name = "Renderer.RestirDI.Candidates" });
+    ShadePipeline = Context.CreateComputePipeline(
+        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSShade" } }, .pFileName = "RestirDI.slang" },
+          .Name = "Renderer.RestirDI.Shade" });
+    MaterialSampler = Context.CreateSampler();
+    ASSERT(CandidatesPipeline.IsValid() && ShadePipeline.IsValid() && MaterialSampler.IsValid());
     // One light table per frame in flight, so a submitted frame keeps reading the lights it sampled.
     for (hz::GPUBuffer& Buffer : Lights)
     {
@@ -66,19 +80,19 @@ void RestirDI::Resize(uint32_t NewWidth, uint32_t NewHeight)
 {
     Width = NewWidth;
     Height = NewHeight;
-    for (hz::GPUBuffer& Buffer : Reservoirs)
+    const hz::BufferDesc Desc = { .Size = (uint64_t)Width * Height * sizeof(RestirDIReservoir),
+                                  .ElementCount = Width * Height,
+                                  .StructStride = sizeof(RestirDIReservoir),
+                                  .Name = "Renderer.RestirDI.Reservoirs",
+                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                  .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                  .Descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER) };
+    for (hz::GPUBuffer& Buffer : History)
     {
-        Buffer = Context.CreateBuffer({ .Size = (uint64_t)Width * Height * sizeof(RestirDIReservoir),
-                                        .ElementCount = Width * Height,
-                                        .StructStride = sizeof(RestirDIReservoir),
-                                        .Name = "Renderer.RestirDI.Reservoir",
-                                        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                        .StartState = RESOURCE_STATE_SHADER_RESOURCE,
-                                        .Descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER) });
+        Buffer = Context.CreateBuffer(Desc);
         ASSERT(Buffer.IsValid());
     }
-    // Dimensions changed: the old history describes pixels that no longer exist.
-    ClearReservoirs = true;
+    ClearHistory = true;
 }
 
 void RestirDI::UploadLights(const hz::SceneView& View)
@@ -88,7 +102,8 @@ void RestirDI::UploadLights(const hz::SceneView& View)
     for (uint32_t Index : View.Scene.GetActiveLights())
     {
         const hz::RenderLight& Source = Sources.Data[Index];
-        if (!Source.ready)
+        // The sun stays on the analytic path; the other area emitters are not sampled yet.
+        if (!Source.ready || (Source.Type != hz::LightType::Point && Source.Type != hz::LightType::Spot))
         {
             continue;
         }
@@ -97,106 +112,105 @@ void RestirDI::UploadLights(const hz::SceneView& View)
             LOGF(Warning, "ReSTIR DI truncates the scene light table at %u lights", MaxLights);
             break;
         }
-        const float   Intensity = Source.intensity * exp2f(Source.exposure) * kLightEfficacy;
-        const Vector3 Position = Source.transform.getCol3().getXYZ();
-        const Vector3 Forward = -normalize(Source.transform.getCol2().getXYZ());
-        RestirDILight& Light = LightUpload[LightCount++];
-        Light = { .position = Vector4(Position, Source.range),
-                  .direction = Vector4(Forward, cosf(Source.outerConeAngle)),
-                  .color = Vector4(Source.color[0] * Intensity, Source.color[1] * Intensity, Source.color[2] * Intensity,
-                                   cosf(Source.innerConeAngle)),
-                  .type = (uint32_t)Source.Type,
-                  .width = 0,
-                  .height = 0,
-                  .area = 0 };
-        switch (Source.Type)
-        {
-        case hz::LightType::Rect:
-            Light.width = Source.Width;
-            Light.height = Source.Height;
-            Light.area = Source.Width * Source.Height;
-            break;
-        case hz::LightType::Disk:
-            Light.width = Source.radius;
-            Light.area = 3.14159265359f * Source.radius * Source.radius;
-            break;
-        case hz::LightType::Sphere:
-            Light.width = Source.radius;
-            Light.area = 4.0f * 3.14159265359f * Source.radius * Source.radius;
-            break;
-        case hz::LightType::Cylinder:
-            Light.width = Source.radius;
-            Light.height = Source.length;
-            Light.area = 2.0f * 3.14159265359f * Source.radius * Source.length;
-            break;
-        default:
-            break;
-        }
+        const float Intensity = Source.intensity * exp2f(Source.exposure) * kLightEfficacy;
+        LightUpload[LightCount++] = {
+            .position = Vector4(Source.transform.getCol3().getXYZ(), Source.range),
+            .direction = Vector4(-normalize(Source.transform.getCol2().getXYZ()), cosf(Source.outerConeAngle)),
+            .color = Vector4(Source.color[0] * Intensity, Source.color[1] * Intensity, Source.color[2] * Intensity,
+                             cosf(Source.innerConeAngle)),
+            .type = (uint32_t)Source.Type,
+        };
     }
-    if (!LightCount)
+    if (!LoggedLights && LightCount)
     {
-        return;
-    }
-    if (!LoggedLights)
-    {
-        LOGF(Info, "ReSTIR DI samples %u lights", LightCount);
+        LOGF(Info, "ReSTIR DI samples %u local lights", LightCount);
         LoggedLights = true;
     }
-    // The buffer is persistent-mapped and per frame in flight, so the copy happens now rather than in the
-    // command list: earlier submissions were still reading their own copy.
-    const bool Updated = Context.UpdateBuffer(Lights[View.FrameIndex], 0, LightUpload, LightCount * sizeof(RestirDILight));
-    ASSERT(Updated);
+    if (LightCount)
+    {
+        // Persistent-mapped and per frame in flight, so earlier submissions keep reading their own copy.
+        const bool Updated = Context.UpdateBuffer(Lights[View.FrameIndex], 0, LightUpload, LightCount * sizeof(RestirDILight));
+        ASSERT(Updated);
+    }
 }
 
 void RestirDI::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const hz::SceneView& View,
-                       const LightingResources& Resources, const hz::GPUTexture& Color)
+                       const hz::GpuDrawList& Draws, const hz::GPUAccelerationStructure* TLAS, const LightingResources& Resources,
+                       const hz::GPUTexture& Color)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RestirDI::Execute");
-    ASSERT(Color.IsValid() && Width && Resources.LightingFrame && Resources.LightingFrame->IsValid());
+    ASSERT(Color.IsValid() && Width == Color.GetWidth() && Height == Color.GetHeight() && Resources.LightingFrame);
     ASSERT(GBuffer.Emissive && GBuffer.NormalMaterial && GBuffer.BaseColorMetallic && GBuffer.MotionMaterialId && GBuffer.Depth);
-    ASSERT(Resources.Environment && Resources.Irradiance && Resources.BRDFLut && Resources.EnvironmentSampler);
     UploadLights(View);
+    if (!(Settings == PreviousSettings))
+    {
+        ClearHistory = true;
+        PreviousSettings = Settings;
+    }
 
-    const uint32_t Current = View.FrameIndex % ReservoirCount;
-    const uint32_t Previous = (Current + ReservoirCount - 1) % ReservoirCount;
-    hz::DependencyList Dependencies;
-    const RestirDIConstants Constants = {
-        .frameIndex = Dependencies.read(Frame),
-        .lightingFrameIndex = Dependencies.read(*Resources.LightingFrame),
-        .lightsIndex = Dependencies.read(Lights[View.FrameIndex]),
+    const hz::GPUBuffer& Previous = History[CurrentHistory ^ 1u];
+    const hz::GPUBuffer& Output = History[CurrentHistory];
+    // Resource indices are filled in below as each dispatch declares its dependencies.
+    RestirDIConstants Constants = {
         .lightCount = LightCount,
-        .emissiveIndex = Dependencies.sample(GBuffer.Emissive),
-        .normalMaterialIndex = Dependencies.sample(GBuffer.NormalMaterial),
-        .baseColorMetallicIndex = Dependencies.sample(GBuffer.BaseColorMetallic),
-        .depthIndex = Dependencies.sample(GBuffer.Depth),
-        .motionIndex = Dependencies.sample(GBuffer.MotionMaterialId),
-        .shadowMapIndex = Dependencies.sample(Resources.ShadowMap),
-        .shadowSamplerIndex = LightingSamplerIndex(Resources.ShadowSampler),
-        .environmentIndex = Dependencies.sample(Resources.Environment),
-        .irradianceIndex = Dependencies.sample(Resources.Irradiance),
-        .brdfLutIndex = Dependencies.sample(Resources.BRDFLut),
-        .environmentSamplerIndex = LightingSamplerIndex(Resources.EnvironmentSampler),
-        .previousReservoirIndex = Dependencies.read(Reservoirs[Previous]),
-        .outputReservoirIndex = Dependencies.write(Reservoirs[Current]),
-        .colorIndex = Dependencies.store(&Color),
-        .rtShadowAOIndex = Dependencies.sample(Resources.RTShadowAO),
-        .rtReflectionIndex = Dependencies.sample(Resources.RTReflection),
-        .ssaoIndex = Dependencies.sample(Resources.SSAO),
+        .shadowSamplerIndex = SamplerIndex(Resources.ShadowSampler),
+        .environmentSamplerIndex = SamplerIndex(Resources.EnvironmentSampler),
+        .tlasIndex = TLAS ? TLAS->GetSrvIndex() : UINT32_MAX,
+        .drawsIndex = Draws.GetDrawData(View.FrameIndex).GetSrvIndex(),
+        .materialsIndex = View.GpuScene.GetBuffers().materials.GetSrvIndex(),
+        .samplerIndex = MaterialSampler.GetIndex(),
         .width = Width,
         .height = Height,
+        .frameNumber = FrameNumber++,
+        .initialCandidates = TF_MAX(Settings.InitialCandidates, 1u),
+        .temporalReuse = Settings.TemporalReuse && !ClearHistory ? 1u : 0u,
+        .spatialSamples = Settings.SpatialSamples,
+        .spatialRadius = Settings.SpatialRadius,
+        .maxHistory = Settings.MaxHistory,
+        .reference = Settings.Reference ? 1u : 0u,
     };
 
-    Commands.BeginGpuTimestamp("RestirDI");
-    if (ClearReservoirs)
-    {
-        for (hz::GPUBuffer& Buffer : Reservoirs)
-        {
-            Commands.FillBuffer(Buffer, 0, 0, Buffer.GetSize());
-        }
-        ClearReservoirs = false;
-    }
-    Commands.SetPipeline(Pipeline);
+    Commands.BeginGpuTimestamp("ReSTIR DI");
+    hz::DependencyList Candidate;
+    Constants.lightingFrameIndex = Candidate.read(*Resources.LightingFrame);
+    Constants.frameIndex = Candidate.read(Frame);
+    Constants.lightsIndex = Candidate.read(Lights[View.FrameIndex]);
+    Constants.normalMaterialIndex = Candidate.sample(GBuffer.NormalMaterial);
+    Constants.baseColorMetallicIndex = Candidate.sample(GBuffer.BaseColorMetallic);
+    Constants.depthIndex = Candidate.sample(GBuffer.Depth);
+    Constants.motionIndex = Candidate.sample(GBuffer.MotionMaterialId);
+    Constants.previousReservoirIndex = Candidate.read(Previous);
+    Constants.outputReservoirIndex = Candidate.write(Output);
+    Commands.SetPipeline(CandidatesPipeline);
     Commands.SetRootConstants(Constants);
-    Commands.Dispatch((Width + 7) / 8, (Height + 7) / 8, 1, Dependencies.Get());
+    Commands.Dispatch((Width + 7) / 8, (Height + 7) / 8, 1, Candidate.Get());
+
+    // The shading pass reads the draw and material tables for alpha-tested shadow rays.
+    const hz::Dependencies Scene = Draws.GetDependencies(Frame, View);
+    hz::DependencyList     Shade;
+    Shade.read(*Resources.LightingFrame);
+    Shade.read(Lights[View.FrameIndex]);
+    Constants.emissiveIndex = Shade.sample(GBuffer.Emissive);
+    Shade.sample(GBuffer.NormalMaterial);
+    Shade.sample(GBuffer.BaseColorMetallic);
+    Shade.sample(GBuffer.Depth);
+    Shade.sample(GBuffer.MotionMaterialId);
+    Constants.shadowMapIndex = Shade.sample(Resources.ShadowMap);
+    Constants.environmentIndex = Shade.sample(Resources.Environment);
+    Constants.irradianceIndex = Shade.sample(Resources.Irradiance);
+    Constants.brdfLutIndex = Shade.sample(Resources.BRDFLut);
+    Constants.rtShadowAOIndex = Shade.sample(Resources.RTShadowAO);
+    Constants.rtReflectionIndex = Shade.sample(Resources.RTReflection);
+    Constants.ssaoIndex = Shade.sample(Resources.SSAO);
+    Constants.colorIndex = Shade.store(&Color);
+    Constants.currentReservoirIndex = Shade.read(Output);
+    hz::Dependencies ShadeDependencies = Shade.Get();
+    ShadeDependencies.pShared = &Scene;
+    Commands.SetPipeline(ShadePipeline);
+    Commands.SetRootConstants(Constants);
+    Commands.Dispatch((Width + 7) / 8, (Height + 7) / 8, 1, ShadeDependencies);
     Commands.EndGpuTimestamp();
+
+    CurrentHistory ^= 1u;
+    ClearHistory = false;
 }

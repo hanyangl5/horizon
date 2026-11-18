@@ -71,9 +71,8 @@ light of 1000 W/m^2 becomes 100000 lux at the renderer boundary. This is a white
 light assumption, not a general lux/watt conversion. Environment calibration is
 1000 cd/m^2 per HDR unit and is shared by sky, lighting, OIT and reflection.
 
-The lighting pass is a ReSTIR DI scaffold: it owns the per-frame light table, the reservoir history and the
-G-buffer bindings, and shades the light table in full until the sampling and reuse stages are filled in.
-[RestirDI](RestirDI.md) documents the stages, the reservoir contract and the validation plan.
+The lighting pass resamples the point and spot lights with ReSTIR DI and traces one shadow ray per pixel; the sun
+and image-based light keep the Cookbook evaluation. See [RestirDI](RestirDI.md).
 Agility SDK 722 fixed the earlier SDKLayers DXIL-library instrumentation error that affected the deferred
 graphics pass; the current lighting pass is a compute dispatch and no longer needs a pre-bound PSO.
 

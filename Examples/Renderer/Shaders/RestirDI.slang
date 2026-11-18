@@ -1,93 +1,100 @@
-// Cookbook deferred lighting adapted to Horizon's GBuffer and turned into a ReSTIR DI scaffold;
-// see ../Cookbook-LICENSE.txt.
+// ReSTIR DI over the local lights (Bitterli et al. 2020, "Spatiotemporal reservoir resampling for real-time ray tracing
+// with dynamic direct lighting"), plus the Cookbook deferred sun and image-based lighting; see ../Cookbook-LICENSE.txt.
 //
-// The resource layer below is complete: bindings, the per-frame light table, the reservoir history and the
-// G-buffer reader. The four ReSTIR DI stages are stubs; see Docs/RestirDI.md for the implementation steps.
+// CSCandidates draws initial candidates from the light table, merges the reprojected reservoir of the previous frame and
+// stores the result as this frame's history. CSShade merges a few neighbouring reservoirs for shading only, traces one
+// shadow ray toward the selected light and composes the lit color. Keeping spatial reuse out of the history stops one
+// bright sample from spreading through both reuse passes frame after frame. Reuse is the biased variant: neighbours are reweighted by the target function at
+// the receiver, without visibility. The sun keeps its analytic evaluation with the denoised ray traced or mapped shadow,
+// because its illuminance would win almost every unshadowed resampling and leave shadowed pixels without a sample.
 #include "Common.slang"
 #include "LightingBRDF.slang"
 #include "Math.slang"
 
 cbuffer RootConstant0
 {
-    uint frameIndex;
-    uint lightingFrameIndex;
-    uint lightsIndex;
-    uint lightCount;
-    uint emissiveIndex;
-    uint normalMaterialIndex;
-    uint baseColorMetallicIndex;
-    uint depthIndex;
-    uint motionIndex;
-    uint shadowMapIndex;
-    uint shadowSamplerIndex;
-    uint environmentIndex;
-    uint irradianceIndex;
-    uint brdfLutIndex;
-    uint environmentSamplerIndex;
-    uint previousReservoirIndex;
-    uint outputReservoirIndex;
-    uint colorIndex;
-    uint rtShadowAOIndex;
-    uint rtReflectionIndex;
-    uint ssaoIndex;
-    uint width;
-    uint height;
+    uint  frameIndex;
+    uint  lightingFrameIndex;
+    uint  lightsIndex;
+    uint  lightCount;
+    uint  emissiveIndex;
+    uint  normalMaterialIndex;
+    uint  baseColorMetallicIndex;
+    uint  depthIndex;
+    uint  motionIndex;
+    uint  shadowMapIndex;
+    uint  shadowSamplerIndex;
+    uint  environmentIndex;
+    uint  irradianceIndex;
+    uint  brdfLutIndex;
+    uint  environmentSamplerIndex;
+    uint  previousReservoirIndex;
+    uint  outputReservoirIndex;
+    uint  currentReservoirIndex;
+    uint  colorIndex;
+    uint  rtShadowAOIndex;
+    uint  rtReflectionIndex;
+    uint  ssaoIndex;
+    uint  tlasIndex;
+    uint  drawsIndex;
+    uint  materialsIndex;
+    uint  samplerIndex;
+    uint  width;
+    uint  height;
+    uint  frameNumber;
+    uint  initialCandidates;
+    uint  temporalReuse;
+    uint  spatialSamples;
+    float spatialRadius;
+    uint  maxHistory;
+    uint  reference;
 };
 
-// Mirrors RestirDILight on the CPU. Sampled emitters are stored per frame by RestirDI::UploadLights.
+#include "RTTrace.slang"
+
+// Mirrors RestirDILight on the CPU, 64 bytes.
 struct RestirDILight
 {
     float4 position;  // xyz emitter centre, w range in metres (0 = unbounded)
     float4 direction; // xyz unit direction the emitter faces (local -Z), w cos of the outer cone half angle
-    float4 color;     // rgb colour * intensity (candela; lux for Directional), w cos of the inner cone half angle
+    float4 color;     // rgb intensity in candela, w cos of the inner cone half angle
     uint   type;      // hz::LightType
-    float  lwidth;    // Rect width, or radius for Disk, Sphere and Cylinder
-    float  lheight;   // Rect height, or length for Cylinder
-    float  area;      // emitting surface area in m^2, zero for delta lights
+    float  lwidth;
+    float  lheight;
+    float  area;
 };
 
-// Mirrors RestirDIReservoir on the CPU, 64 bytes. One entry per pixel; the history is a ring of three
-// buffers so the previous frame's reservoir is still resident while the next one is written.
+// Mirrors RestirDIReservoir on the CPU, 16 bytes. The point and spot lights in the table are delta lights, so the light
+// index identifies the sample. viewDepth and the material ID describe the receiver and reject stale history.
 struct RestirDIReservoir
 {
-    float4 samplePoint;    // xyz world position of the sampled point on the emitter, w target pdf
-    float4 sampleNormal;   // xyz emitter normal at the sampled point, w solid-angle pdf of the sample
-    float4 sampleRadiance; // rgb incident radiance at the receiver, w reservoir weight W
-    uint   lightIndex;
-    uint   sampleCount; // M
-    uint2  padding;
+    uint  light;     // light index in the low 16 bits, receiver material ID in the high 16 bits
+    float weight;    // W = wSum / (M * pHat(selected))
+    float count;     // M
+    float viewDepth; // receiver view depth, 0 for an empty reservoir
 };
+
+static const uint  kLightTypePoint = 1;
+static const uint  kLightTypeSpot = 2;
+static const uint  kInvalidLight = 0xffffu;
+// Relative view depth difference that still counts as the same surface.
+static const float kDepthTolerance = 0.1;
+static const float kNormalTolerance = 0.9;
 
 struct RestirDISurface
 {
     float3 position;
     float3 normal;
     float3 baseColor;
+    float3 f0;
     float  metallic;
     float  roughness;
     float  specular;
-    float  depth;
+    float  viewDepth;
+    uint   material;
 };
 
-struct RestirDILightSample
-{
-    float3 direction; // unit direction from the receiver toward the sampled point
-    float3 radiance;  // incident radiance at the receiver (irradiance for Directional)
-    float  pdf;       // solid-angle pdf of the sample
-    float  distance;
-};
-
-static const uint kLightTypeDirectional = 0;
-static const uint kLightTypePoint = 1;
-static const uint kLightTypeSpot = 2;
-
-// Small stateless hash RNG. Sampling and reuse draw from it, so every candidate of a pixel is reproducible
-// from the pixel coordinate and the frame index.
-struct RestirDIRandom
-{
-    uint state;
-};
-
+// Stateless PCG hash RNG seeded from the pixel and the frame.
 uint restirDIHash(uint value)
 {
     const uint state = value * 747796405u + 2891336453u;
@@ -95,57 +102,215 @@ uint restirDIHash(uint value)
     return (word >> 22u) ^ word;
 }
 
-RestirDIRandom restirDICreateRandom(int2 pixel, uint frame)
+struct RestirDIRandom
+{
+    uint state;
+};
+
+RestirDIRandom restirDICreateRandom(int2 pixel, uint salt)
 {
     RestirDIRandom random;
-    random.state = restirDIHash((uint)pixel.x | ((uint)pixel.y << 16) ^ (frame * 0x9e3779b9u));
+    random.state = restirDIHash(uint(pixel.x) ^ restirDIHash(uint(pixel.y) ^ restirDIHash(frameNumber * 4u + salt)));
     return random;
 }
 
 float restirDINextRandom(inout RestirDIRandom random)
 {
     random.state = restirDIHash(random.state);
-    return float(random.state) * (1.0 / 4294967296.0);
+    return float(random.state >> 8) * (1.0 / 16777216.0);
 }
 
-// ---------------------------------------------------------------------------------------------
-// Resource layer: G-buffer, lights and reservoir storage. Implemented; extend the light reader when a
-// new emitter type is sampled.
-// ---------------------------------------------------------------------------------------------
+float luminance(float3 color) { return dot(color, float3(0.2126, 0.7152, 0.0722)); }
 
-RestirDISurface loadSurface(int3 pixel, float depth, float4x4 inverseViewProjection)
+bool loadSurface(int2 pixel, FrameData frame, out RestirDISurface surface)
 {
+    Texture2D<float> depthTexture = ResourceDescriptorHeap[depthIndex];
+    const float      depth = depthTexture.Load(int3(pixel, 0));
+    surface.position = 0.0;
+    surface.normal = 0.0;
+    surface.baseColor = 0.0;
+    surface.f0 = 0.0;
+    surface.metallic = 0.0;
+    surface.roughness = 0.0;
+    surface.specular = 0.0;
+    surface.viewDepth = 0.0;
+    surface.material = 0;
+    if (depth >= 1.0)
+    {
+        return false;
+    }
     Texture2D<float4> normalMaterial = ResourceDescriptorHeap[normalMaterialIndex];
     Texture2D<float4> baseColorMetallic = ResourceDescriptorHeap[baseColorMetallicIndex];
-    const float4      g1 = normalMaterial.Load(pixel);
-    const float4      surface = baseColorMetallic.Load(pixel);
+    Texture2D<float4> motion = ResourceDescriptorHeap[motionIndex];
+    const float4      g1 = normalMaterial.Load(int3(pixel, 0));
+    const float4      albedo = baseColorMetallic.Load(int3(pixel, 0));
     const float2      properties = unpackMaterialProperties(float2(g1.ba));
-    RestirDISurface   result;
-    result.position = reconstructWorldPosition((float2(pixel.xy) + float2(0.5)) / float2(width, height), depth,
-                                               inverseViewProjection);
-    result.normal = decodeOctNormal(float2(g1.xy));
-    result.baseColor = surface.rgb;
-    result.metallic = saturate(surface.a);
-    result.roughness = saturate(properties.x);
-    result.specular = properties.y;
-    result.depth = depth;
-    return result;
+    surface.position = reconstructWorldPosition((float2(pixel) + 0.5) / float2(width, height), depth, frame.inverseViewProjection);
+    surface.normal = decodeOctNormal(g1.xy);
+    surface.baseColor = albedo.rgb;
+    surface.metallic = saturate(albedo.a);
+    surface.roughness = saturate(properties.x);
+    surface.specular = properties.y;
+    surface.f0 = pbrF0(surface.baseColor, surface.metallic, surface.specular);
+    surface.viewDepth = mul(frame.viewProjection, float4(surface.position, 1.0)).w;
+    surface.material = uint(round(motion.Load(int3(pixel, 0)).a * 255.0));
+    return true;
 }
 
-// Returns the screen-space motion vector in UV units; previousUV = uv - motion.
-float2 loadMotion(int3 pixel, out float materialId)
+// Unshadowed reflected radiance f * Le * cos from one light, and the segment toward it for the shadow ray.
+float3 evaluateLight(uint index, RestirDISurface surface, float3 v, out float3 direction, out float distance)
 {
-    Texture2D<float4> motionTexture = ResourceDescriptorHeap[motionIndex];
-    const float4      encoded = motionTexture.Load(pixel);
-    materialId = encoded.a;
-    return decodeMotionVector(encoded.rgb);
+    StructuredBuffer<RestirDILight> lights = ResourceDescriptorHeap[lightsIndex];
+    const RestirDILight             light = lights[index];
+    const float3                    offset = light.position.xyz - surface.position;
+    distance = length(offset);
+    direction = offset / max(distance, 1e-4);
+    if (distance < 1e-4 || (light.position.w > 0.0 && distance > light.position.w))
+    {
+        return 0.0;
+    }
+    float3 radiance = light.color.rgb / (distance * distance);
+    if (light.type == kLightTypeSpot)
+    {
+        const float cosAngle = dot(-direction, light.direction.xyz);
+        if (cosAngle < light.direction.w)
+        {
+            return 0.0;
+        }
+        radiance *= smoothstep(light.direction.w, light.color.w, cosAngle);
+    }
+    return pbrMetallicRoughness(surface.baseColor, surface.metallic, surface.roughness, surface.normal, v, direction, surface.f0) *
+           radiance;
 }
 
-LightingBindings makeLightingBindings()
+float targetPdf(uint index, RestirDISurface surface, float3 v)
 {
-    LightingBindings bindings = { shadowMapIndex, shadowSamplerIndex,      environmentIndex, irradianceIndex,
-                                  brdfLutIndex,   environmentSamplerIndex, rtShadowAOIndex,  rtReflectionIndex };
-    return bindings;
+    float3 direction;
+    float  distance;
+    return luminance(evaluateLight(index, surface, v, direction, distance));
+}
+
+RestirDIReservoir emptyReservoir(RestirDISurface surface)
+{
+    RestirDIReservoir reservoir;
+    reservoir.light = kInvalidLight | (surface.material << 16);
+    reservoir.weight = 0.0;
+    reservoir.count = 0.0;
+    reservoir.viewDepth = surface.viewDepth;
+    return reservoir;
+}
+
+uint reservoirLight(RestirDIReservoir reservoir) { return reservoir.light & 0xffffu; }
+
+// Streaming merge of one weighted sample. Returns true when it replaces the selection.
+bool mergeSample(inout RestirDIReservoir reservoir, inout float weightSum, inout float selectedPdf, uint light, float pdf, float weight,
+                 float count, inout RestirDIRandom random)
+{
+    weightSum += weight;
+    reservoir.count += count;
+    if (weight > 0.0 && restirDINextRandom(random) * weightSum < weight)
+    {
+        reservoir.light = (reservoir.light & 0xffff0000u) | light;
+        selectedPdf = pdf;
+        return true;
+    }
+    return false;
+}
+
+void finalizeReservoir(inout RestirDIReservoir reservoir, float weightSum, float selectedPdf)
+{
+    reservoir.weight = selectedPdf > 0.0 && reservoir.count > 0.0 ? weightSum / (reservoir.count * selectedPdf) : 0.0;
+    if (reservoir.weight == 0.0)
+    {
+        reservoir.light |= kInvalidLight;
+    }
+}
+
+// Merges another reservoir, reweighted by the target function at this receiver.
+void mergeReservoir(inout RestirDIReservoir reservoir, inout float weightSum, inout float selectedPdf, RestirDIReservoir other,
+                    float countLimit, RestirDISurface surface, float3 v, inout RestirDIRandom random)
+{
+    const uint light = reservoirLight(other);
+    if (light >= lightCount || other.count <= 0.0)
+    {
+        return;
+    }
+    const float count = min(other.count, countLimit);
+    const float pdf = targetPdf(light, surface, v);
+    mergeSample(reservoir, weightSum, selectedPdf, light, pdf, pdf * other.weight * count, count, random);
+}
+
+bool sameSurface(RestirDISurface surface, float viewDepth, uint material)
+{
+    return viewDepth > 0.0 && abs(viewDepth - surface.viewDepth) <= kDepthTolerance * surface.viewDepth && material == surface.material;
+}
+
+RestirDIReservoir loadReservoir(uint buffer, int2 pixel)
+{
+    StructuredBuffer<RestirDIReservoir> reservoirs = ResourceDescriptorHeap[buffer];
+    return reservoirs[pixel.y * width + pixel.x];
+}
+
+void storeReservoir(uint buffer, int2 pixel, RestirDIReservoir reservoir)
+{
+    RWStructuredBuffer<RestirDIReservoir> reservoirs = ResourceDescriptorHeap[buffer];
+    reservoirs[pixel.y * width + pixel.x] = reservoir;
+}
+
+[shader("compute")]
+[numthreads(8, 8, 1)]
+void CSCandidates(uint3 thread : SV_DispatchThreadID)
+{
+    if (thread.x >= width || thread.y >= height)
+    {
+        return;
+    }
+    const int2                  pixel = int2(thread.xy);
+    StructuredBuffer<FrameData> frames = ResourceDescriptorHeap[frameIndex];
+    const FrameData             frame = frames[0];
+    RestirDISurface             surface;
+    if (!loadSurface(pixel, frame, surface) || lightCount == 0 || reference != 0)
+    {
+        storeReservoir(outputReservoirIndex, pixel, emptyReservoir(surface));
+        return;
+    }
+    const float3      v = normalize(frame.eye.xyz - surface.position);
+    RestirDIRandom    random = restirDICreateRandom(pixel, 0);
+    RestirDIReservoir reservoir = emptyReservoir(surface);
+    float             weightSum = 0.0;
+    float             selectedPdf = 0.0;
+    // Uniform light selection: each candidate has source pdf 1 / lightCount.
+    for (uint i = 0; i < initialCandidates; ++i)
+    {
+        const uint  light = min(uint(restirDINextRandom(random) * float(lightCount)), lightCount - 1);
+        const float pdf = targetPdf(light, surface, v);
+        mergeSample(reservoir, weightSum, selectedPdf, light, pdf, pdf * float(lightCount), 1.0, random);
+    }
+    finalizeReservoir(reservoir, weightSum, selectedPdf);
+
+    if (temporalReuse != 0)
+    {
+        Texture2D<float4> motion = ResourceDescriptorHeap[motionIndex];
+        const float2      uv = (float2(pixel) + 0.5) / float2(width, height);
+        const float2      previousUv = uv - decodeMotionVector(motion.Load(int3(pixel, 0)).rgb);
+        if (all(previousUv >= 0.0) && all(previousUv < 1.0))
+        {
+            const RestirDIReservoir previous = loadReservoir(previousReservoirIndex, int2(previousUv * float2(width, height)));
+            // The previous view depth of this point, which the reservoir stored when it was that frame's receiver.
+            const float previousDepth = mul(frame.previousViewProjection, float4(surface.position, 1.0)).w;
+            RestirDISurface previousSurface = surface;
+            previousSurface.viewDepth = previousDepth;
+            if (sameSurface(previousSurface, previous.viewDepth, previous.light >> 16))
+            {
+                // Rebuild wSum from the finalized current reservoir, then merge the history clamped to maxHistory * M.
+                weightSum = reservoir.weight * reservoir.count * selectedPdf;
+                mergeReservoir(reservoir, weightSum, selectedPdf, previous, float(maxHistory) * float(initialCandidates), surface, v,
+                               random);
+                finalizeReservoir(reservoir, weightSum, selectedPdf);
+            }
+        }
+    }
+    storeReservoir(outputReservoirIndex, pixel, reservoir);
 }
 
 // Depth-aware upsample of the reduced-resolution ray traced results: bilinear weights over the four nearest texels,
@@ -176,7 +341,9 @@ RTUpsample rtUpsample(int2 pixel, int2 size, int2 lowSize, float viewDistance, T
             tapDepth >= 1.0
                 ? 1e30
                 : abs(length(reconstructWorldPosition((float2(source) + 0.5) / float2(size), tapDepth, frame.inverseViewProjection) -
-                             frame.eye.xyz) - viewDistance) / viewDistance;
+                             frame.eye.xyz) -
+                      viewDistance) /
+                      viewDistance;
         result.taps[i] = tap;
         result.weights[i] = bilinear.x * bilinear.y * exp(-difference * kRTUpsampleDepthScale);
         weightSum += result.weights[i];
@@ -194,7 +361,6 @@ RTUpsample rtUpsample(int2 pixel, int2 size, int2 lowSize, float viewDistance, T
     return result;
 }
 
-// The ray traced results at this pixel, upsampled from their reduced resolution.
 struct RestirDITraced
 {
     float2 shadowAO;
@@ -235,19 +401,115 @@ RestirDITraced loadTraced(int2 pixel, float viewDistance, FrameData frame)
     return traced;
 }
 
-// Visibility of the directional light. Local-light visibility needs shadow rays and is left to the pass
-// implementation; the reference path lights local emitters unshadowed.
-float evaluateShadowVisibility(float3 worldPosition, RestirDITraced traced, LightingFrameData light, LightingBindings bindings)
+float traceVisibility(RestirDISurface surface, int2 pixel, FrameData frame, float3 direction, float distance)
 {
-    if (rtShadowAOIndex != INVALID_TEXTURE && light.rtShadowEnabled != 0)
+    if (tlasIndex == INVALID_TEXTURE)
     {
-        return traced.shadowAO.r;
+        return 1.0;
     }
-    return shadowVisibility(worldPosition, light, bindings);
+    Texture2D<float>                depthTexture = ResourceDescriptorHeap[depthIndex];
+    const float2                    uv = (float2(pixel) + 0.5) / float2(width, height);
+    const float                     depth = depthTexture.Load(int3(pixel, 0));
+    RaytracingAccelerationStructure scene = ResourceDescriptorHeap[tlasIndex];
+    const float3 origin = rtGBufferRayOrigin(uv, depth, surface.position, surface.normal, frame.eye.xyz, frame.inverseViewProjection);
+    // Stop short of the light so an emitter mesh at the light position does not occlude itself.
+    RayDesc ray = { origin, 0.0, direction, max(distance * 0.999 - 0.01, 0.0) };
+    return traceRTShadow(scene, ray, true);
 }
 
-float evaluateAmbientOcclusion(int3 pixel, RestirDITraced traced, LightingFrameData light, LightingBindings bindings)
+// Ground truth for the reservoir path: every local light with its own shadow ray.
+float3 referenceLocalLighting(RestirDISurface surface, float3 v, int2 pixel, FrameData frame)
 {
+    float3 result = 0.0;
+    for (uint light = 0; light < lightCount; ++light)
+    {
+        float3       direction;
+        float        distance;
+        const float3 contribution = evaluateLight(light, surface, v, direction, distance);
+        if (any(contribution > 0.0))
+        {
+            result += contribution * traceVisibility(surface, pixel, frame, direction, distance);
+        }
+    }
+    return result;
+}
+
+[shader("compute")]
+[numthreads(8, 8, 1)]
+void CSShade(uint3 thread : SV_DispatchThreadID)
+{
+    if (thread.x >= width || thread.y >= height)
+    {
+        return;
+    }
+    const int2                  pixel = int2(thread.xy);
+    Texture2D<float4>           emissive = ResourceDescriptorHeap[emissiveIndex];
+    RWTexture2D<float4>         color = ResourceDescriptorHeap[colorIndex];
+    StructuredBuffer<FrameData> frames = ResourceDescriptorHeap[frameIndex];
+    const FrameData             frame = frames[0];
+    const float3                scene = emissive.Load(int3(pixel, 0)).rgb;
+    RestirDISurface             surface;
+    // Only the cleared depth means "no geometry"; the environment pass then shades the sky into those pixels.
+    if (!loadSurface(pixel, frame, surface))
+    {
+        color[pixel] = float4(scene, 1.0);
+        return;
+    }
+    const float3 v = normalize(frame.eye.xyz - surface.position);
+
+    float3 local = 0.0;
+    if (reference != 0)
+    {
+        local = referenceLocalLighting(surface, v, pixel, frame);
+    }
+    else if (lightCount != 0)
+    {
+        RestirDIReservoir reservoir = loadReservoir(currentReservoirIndex, pixel);
+        if (spatialSamples != 0)
+        {
+            RestirDIRandom random = restirDICreateRandom(pixel, 1);
+            const uint     light = reservoirLight(reservoir);
+            float          selectedPdf = light < lightCount ? targetPdf(light, surface, v) : 0.0;
+            float          weightSum = reservoir.weight * reservoir.count * selectedPdf;
+            Texture2D<float4> normals = ResourceDescriptorHeap[normalMaterialIndex];
+            for (uint i = 0; i < spatialSamples; ++i)
+            {
+                const float  angle = 2.0 * PI * restirDINextRandom(random);
+                const float  radius = spatialRadius * sqrt(restirDINextRandom(random));
+                const int2   neighbour = pixel + int2(round(float2(cos(angle), sin(angle)) * radius));
+                if (any(neighbour < 0) || any(neighbour >= int2(width, height)) || all(neighbour == pixel))
+                {
+                    continue;
+                }
+                const RestirDIReservoir other = loadReservoir(currentReservoirIndex, neighbour);
+                if (!sameSurface(surface, other.viewDepth, other.light >> 16) ||
+                    dot(surface.normal, decodeOctNormal(normals.Load(int3(neighbour, 0)).xy)) < kNormalTolerance)
+                {
+                    continue;
+                }
+                mergeReservoir(reservoir, weightSum, selectedPdf, other, other.count, surface, v, random);
+            }
+            finalizeReservoir(reservoir, weightSum, selectedPdf);
+        }
+        const uint light = reservoirLight(reservoir);
+        if (light < lightCount)
+        {
+            float3       direction;
+            float        distance;
+            const float3 contribution = evaluateLight(light, surface, v, direction, distance);
+            const float  visibility = traceVisibility(surface, pixel, frame, direction, distance);
+            local = contribution * reservoir.weight * visibility;
+        }
+    }
+
+    // The sun, image-based lighting and ray traced reflections, as in the Cookbook deferred pass.
+    StructuredBuffer<LightingFrameData> lightingFrames = ResourceDescriptorHeap[lightingFrameIndex];
+    const LightingFrameData             light = lightingFrames[0];
+    const LightingBindings              bindings = { shadowMapIndex,     shadowSamplerIndex, environmentIndex,  irradianceIndex,
+                                                     brdfLutIndex,       environmentSamplerIndex, rtShadowAOIndex, rtReflectionIndex };
+    const RestirDITraced traced = loadTraced(pixel, length(surface.position - frame.eye.xyz), frame);
+    const float visibility = rtShadowAOIndex != INVALID_TEXTURE && light.rtShadowEnabled != 0 ? traced.shadowAO.r
+                                                                                               : shadowVisibility(surface.position, light, bindings);
     float ao = 1.0;
     if (rtShadowAOIndex != INVALID_TEXTURE && light.rtAOEnabled != 0)
     {
@@ -256,223 +518,14 @@ float evaluateAmbientOcclusion(int3 pixel, RestirDITraced traced, LightingFrameD
     if (ssaoIndex != INVALID_TEXTURE)
     {
         Texture2D<float4> occlusion = ResourceDescriptorHeap[ssaoIndex];
-        ao *= occlusion.Load(pixel).r;
+        ao *= occlusion.Load(int3(pixel, 0)).r;
     }
-    return ao;
-}
-
-RestirDIReservoir emptyReservoir()
-{
-    RestirDIReservoir reservoir;
-    reservoir.samplePoint = 0;
-    reservoir.sampleNormal = 0;
-    reservoir.sampleRadiance = 0;
-    reservoir.lightIndex = 0;
-    reservoir.sampleCount = 0;
-    reservoir.padding = 0;
-    return reservoir;
-}
-
-RestirDIReservoir loadReservoir(int3 pixel, uint bufferIndex)
-{
-    StructuredBuffer<RestirDIReservoir> history = ResourceDescriptorHeap[bufferIndex];
-    return history[pixel.y * width + pixel.x];
-}
-
-void storeReservoir(RWStructuredBuffer<RestirDIReservoir> output, int3 pixel, RestirDIReservoir reservoir)
-{
-    output[pixel.y * width + pixel.x] = reservoir;
-}
-
-// ---------------------------------------------------------------------------------------------
-// ReSTIR DI algorithm: four stages to implement. Each signature already receives every resource the
-// stage needs; Docs/RestirDI.md gives the formulas, the order and the validation plan.
-// ---------------------------------------------------------------------------------------------
-
-// Step 1. Draw M candidates from the light table into one reservoir, then finalize W = wSum / (M * targetPdf).
-RestirDIReservoir initialCandidates(int3 pixel, RestirDISurface surface, float3 v, LightingBindings bindings,
-                                    inout RestirDIRandom random)
-{
-    RestirDIReservoir reservoir = emptyReservoir();
-    // TODO(restir-di): sample lightCount lights, build a RestirDILightSample for each, accumulate the
-    // streaming weight and store the selected emitter in the reservoir fields.
-    return reservoir;
-}
-
-// Step 2. Reproject the previous frame's reservoir with the motion vector and merge it with the candidate.
-void temporalReuse(inout RestirDIReservoir reservoir, int3 pixel, RestirDISurface surface, float3 v, float2 motion,
-                   LightingBindings bindings)
-{
-    // TODO(restir-di): rebuild the previous UV, reject invalid history, re-evaluate the stored emitter at
-    // this pixel and merge it with the bias-corrected temporal weight.
-}
-
-// Step 3. Merge the reservoirs of a few neighbouring pixels.
-void spatialReuse(inout RestirDIReservoir reservoir, int3 pixel, RestirDISurface surface, float3 v, LightingBindings bindings,
-                  inout RestirDIRandom random)
-{
-    // TODO(restir-di): sample neighbours, re-evaluate their emitters against this pixel, merge with
-    // pairwise MIS weights and finalize the reservoir.
-}
-
-// Step 4. Shade the selected emitter. Until this returns the reservoir's contribution the pass uses the
-// reference path below, so the frame stays lit.
-float3 shadeReservoir(RestirDIReservoir reservoir, RestirDISurface surface, float3 v, LightingFrameData light,
-                      LightingBindings bindings, RestirDITraced traced)
-{
-    // TODO(restir-di): return reservoir.sampleRadiance.rgb * reservoir.sampleRadiance.w, or re-evaluate the
-    // stored emitter with its BRDF and visibility here.
-    return float3(0.0, 0.0, 0.0);
-}
-
-// ---------------------------------------------------------------------------------------------
-// Reference shading: brute-force direct lighting over the light table plus image-based indirect light.
-// It is the ground truth the reservoir path is compared against and keeps the pass useful meanwhile.
-// ---------------------------------------------------------------------------------------------
-
-float3 referenceDirectLighting(RestirDISurface surface, float3 v, LightingFrameData lightingFrame, LightingBindings bindings,
-                               RestirDITraced traced)
-{
-    StructuredBuffer<RestirDILight> lights = ResourceDescriptorHeap[lightsIndex];
-    const float3                    f0 = pbrF0(surface.baseColor, surface.metallic, surface.specular);
-    float3                          result = float3(0.0, 0.0, 0.0);
-    for (uint index = 0; index < lightCount; ++index)
+    PBRLighting lighting = evaluatePBRLighting(surface.baseColor, surface.metallic, surface.roughness, surface.normal, v,
+                                               -normalize(light.lightDirection.xyz), visibility, ao, light, bindings, true, surface.specular);
+    if (rtReflectionIndex != INVALID_TEXTURE && surface.roughness < kRTReflectionMaxRoughness)
     {
-        const RestirDILight light = lights[index];
-        float3              toLight;
-        float3              radiance;
-        if (light.type == kLightTypeDirectional)
-        {
-            toLight = -normalize(light.direction.xyz);
-            radiance = light.color.rgb;
-        }
-        else
-        {
-            const float3 offset = light.position.xyz - surface.position;
-            const float  distance = length(offset);
-            if (distance < 1e-4)
-            {
-                continue;
-            }
-            toLight = offset / distance;
-            radiance = light.color.rgb / (distance * distance);
-            if (light.position.w > 0.0 && distance > light.position.w)
-            {
-                continue;
-            }
-            if (light.type == kLightTypeSpot)
-            {
-                const float cosAngle = dot(-toLight, light.direction.xyz);
-                if (cosAngle < light.direction.w)
-                {
-                    continue;
-                }
-                radiance *= smoothstep(light.direction.w, light.color.w, cosAngle);
-            }
-        }
-        if (dot(surface.normal, toLight) <= 0.0)
-        {
-            continue;
-        }
-        const float visibility =
-            light.type == kLightTypeDirectional ? evaluateShadowVisibility(surface.position, traced, lightingFrame, bindings) : 1.0;
-        result += pbrMetallicRoughness(surface.baseColor, surface.metallic, surface.roughness, surface.normal, v, toLight, f0) *
-                  radiance * visibility;
+        lighting.indirectSpecular = lerp(lighting.specularWeight * traced.reflection, lighting.indirectSpecular,
+                                         smoothstep(kRTReflectionFadeStart, kRTReflectionMaxRoughness, surface.roughness));
     }
-    return result;
-}
-
-float3 evaluateIndirectLighting(RestirDISurface surface, float3 v, float ao, LightingFrameData light, LightingBindings bindings,
-                                RestirDITraced traced)
-{
-    if (bindings.environmentSampler == INVALID_TEXTURE)
-    {
-        return float3(0.0, 0.0, 0.0);
-    }
-    const float3 f0 = pbrF0(surface.baseColor, surface.metallic, surface.specular);
-    const float3 fresnel = pbrFresnel(f0, saturate(dot(surface.normal, v)));
-    SamplerState sampler = SamplerDescriptorHeap[bindings.environmentSampler];
-    const float  intensity = max(light.environmentIntensity, 0.0);
-    float3       result = float3(0.0, 0.0, 0.0);
-    if (bindings.irradiance != INVALID_TEXTURE)
-    {
-        TextureCube<float4> irradiance = ResourceDescriptorHeap[bindings.irradiance];
-        const float3        sky = float3(-surface.normal.x, surface.normal.y, -surface.normal.z);
-        const float3        diffuseEnvironment = irradiance.SampleLevel(sampler, sky, 0).rgb;
-        result += pbrIndirectDiffuse(surface.baseColor, surface.metallic, fresnel, diffuseEnvironment, ao) * intensity;
-    }
-    if (bindings.environment != INVALID_TEXTURE && bindings.brdfLut != INVALID_TEXTURE)
-    {
-        TextureCube<float4> environment = ResourceDescriptorHeap[bindings.environment];
-        Texture2D<float4>   brdfLut = ResourceDescriptorHeap[bindings.brdfLut];
-        const float3        r = reflect(-v, surface.normal);
-        const float         lod = surface.roughness * float(max(light.environmentMipCount, 1u) - 1u);
-        const float3        radiance = environment.SampleLevel(sampler, float3(-r.x, r.y, -r.z), lod).rgb;
-        const float2        brdf =
-            brdfLut.SampleLevel(sampler, float2(saturate(dot(surface.normal, v)), surface.roughness), 0).rg;
-        const float3 specularWeight = f0 * brdf.x + float3(brdf.y);
-        result += specularWeight * radiance * intensity;
-        if (rtReflectionIndex != INVALID_TEXTURE && surface.roughness < kRTReflectionMaxRoughness)
-        {
-            result += lerp(specularWeight * traced.reflection, specularWeight * radiance,
-                           smoothstep(kRTReflectionFadeStart, kRTReflectionMaxRoughness, surface.roughness));
-        }
-    }
-    return result;
-}
-
-// Flip to true once the four stages above are implemented.
-static const bool kUseReSTIRDI = false;
-
-[numthreads(8, 8, 1)]
-void CSMain(uint3 threadId : SV_DispatchThreadID)
-{
-    if (threadId.x >= width || threadId.y >= height)
-    {
-        return;
-    }
-    const int3          pixel = int3(threadId.xy, 0);
-    Texture2D<float>    depthTexture = ResourceDescriptorHeap[depthIndex];
-    Texture2D<float4>   emissiveTexture = ResourceDescriptorHeap[emissiveIndex];
-    RWTexture2D<float4> colorTexture = ResourceDescriptorHeap[colorIndex];
-    const float         depth = depthTexture.Load(pixel);
-    const float3        scene = emissiveTexture.Load(pixel).rgb;
-
-    // The depth target clears to 1.0 and the projection maps the far plane there, so only the cleared value
-    // means "no geometry". The environment pass then shades the sky into those pixels.
-    if (depth >= 1.0)
-    {
-        colorTexture[pixel.xy] = float4(scene, 1.0);
-        return;
-    }
-
-    StructuredBuffer<FrameData>         frameBuffer = ResourceDescriptorHeap[frameIndex];
-    StructuredBuffer<LightingFrameData> lightingBuffer = ResourceDescriptorHeap[lightingFrameIndex];
-    const FrameData                     frame = frameBuffer[0];
-    const LightingFrameData             light = lightingBuffer[0];
-    const RestirDISurface               surface = loadSurface(pixel, depth, frame.inverseViewProjection);
-    const float3                        v = normalize(frame.eye.xyz - surface.position);
-    const LightingBindings              bindings = makeLightingBindings();
-    const RestirDITraced                traced = loadTraced(pixel.xy, length(surface.position - frame.eye.xyz), frame);
-    const float                         ao = evaluateAmbientOcclusion(pixel, traced, light, bindings);
-
-    if (kUseReSTIRDI)
-    {
-        RestirDIRandom    random = restirDICreateRandom(pixel.xy, light.frameIndex);
-        RestirDIReservoir reservoir = initialCandidates(pixel, surface, v, bindings, random);
-        float             materialId = 0.0;
-        const float2      motion = loadMotion(pixel, materialId);
-        temporalReuse(reservoir, pixel, surface, v, motion, bindings);
-        spatialReuse(reservoir, pixel, surface, v, bindings, random);
-        RWStructuredBuffer<RestirDIReservoir> output = ResourceDescriptorHeap[outputReservoirIndex];
-        storeReservoir(output, pixel, reservoir);
-        colorTexture[pixel.xy] = float4(scene + shadeReservoir(reservoir, surface, v, light, bindings, traced) +
-                                            evaluateIndirectLighting(surface, v, ao, light, bindings, traced),
-                                        1.0);
-        return;
-    }
-
-    colorTexture[pixel.xy] = float4(scene + referenceDirectLighting(surface, v, light, bindings, traced) +
-                                        evaluateIndirectLighting(surface, v, ao, light, bindings, traced),
-                                    1.0);
+    color[pixel] = float4(scene + local + lighting.direct + lighting.indirectDiffuse + lighting.indirectSpecular, 1.0);
 }

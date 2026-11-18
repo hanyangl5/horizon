@@ -43,8 +43,8 @@ The next launch recooks changed assets automatically.
 
 Geometry uses manual vertex pulling and Slang shaders. Materials resolve texture
 IDs through the GPU asset tables. Lighting reads the World light table: the sample
-creates a directional sun plus a ring of local point lights, and the ReSTIR DI pass
-samples all of them. Motion vectors use the previously submitted object and camera
+creates a directional sun plus a ring of local point lights; the ReSTIR DI pass
+resamples the point lights and evaluates the sun analytically. Motion vectors use the previously submitted object and camera
 transforms, and feed both temporal reuse and the ray traced effects. The preview reconstructs Z from Bistro's BC5 normal maps and supports metallic/roughness
 and emissive maps. MASK follows
 the reference shader's alpha dither and derivative-adjusted cutoff; BLEND uses

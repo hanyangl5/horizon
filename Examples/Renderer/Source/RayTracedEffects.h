@@ -58,6 +58,11 @@ public:
     bool Load();
 
     void MarkDirty();
+    // Rebuilds changed bottom-level structures and refits the scene TLAS. Runs every frame before any pass traces rays,
+    // including the lighting pass, so it is not tied to the effects being enabled.
+    void                                UpdateScene(hz::CommandList& Commands, const hz::SceneView& View, const hz::GpuDrawList& Draws);
+    // Invalid when ray tracing is unsupported or the scene has no ray traced geometry.
+    const hz::GPUAccelerationStructure* GetSceneTLAS() const;
     void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const hz::SceneView& View,
                  const hz::GpuDrawList& Draws, const LightingResources& Lighting, const RayTracedEffectsTargets& Targets);
     bool IsSupported() const { return Supported; }

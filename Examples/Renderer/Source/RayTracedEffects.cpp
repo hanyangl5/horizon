@@ -107,6 +107,22 @@ bool RayTracedEffects::Load()
 
 void RayTracedEffects::MarkDirty() { MarkedDirty = true; }
 
+void RayTracedEffects::UpdateScene(hz::CommandList& Commands, const hz::SceneView& View, const hz::GpuDrawList& Draws)
+{
+    if (!Supported)
+    {
+        return;
+    }
+    Commands.BeginGpuTimestamp("RT Acceleration Structures");
+    RayScene->Update(Commands, View, Draws);
+    Commands.EndGpuTimestamp();
+}
+
+const hz::GPUAccelerationStructure* RayTracedEffects::GetSceneTLAS() const
+{
+    return Supported && RayScene->GetSceneTLAS().IsValid() ? &RayScene->GetSceneTLAS() : nullptr;
+}
+
 void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
                                const hz::SceneView& View, const hz::GpuDrawList& Draws, const LightingResources& Lighting,
                                const RayTracedEffectsTargets& Targets)
@@ -133,9 +149,6 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         MarkDirty();
     }
     AssetRevision = View.GpuScene.GetAssetTables().revision;
-    Commands.BeginGpuTimestamp("RT Acceleration Structures");
-    RayScene->Update(Commands, View, Draws);
-    Commands.EndGpuTimestamp();
     const hz::GPUAccelerationStructure& TLAS = RayScene->GetSceneTLAS();
     const hz::GPUBuffer&                DrawData = Draws.GetDrawData(View.FrameIndex);
     auto        Index = [](const hz::GPUTexture* Texture) { return Texture && Texture->IsValid() ? Texture->GetSrvIndex() : UINT32_MAX; };

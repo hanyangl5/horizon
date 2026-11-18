@@ -113,6 +113,8 @@ struct FrameInputs
     hz::GPUSampler&      LinearSampler;
     const RenderTargets& Targets;
     LightingResources    Lighting = {};
+    // Owns the scene acceleration structure that the ray traced effects and the lighting shadow rays trace.
+    const RayTracedEffects& RayTracing;
     float                DeltaSeconds = 0.0f;
     float                EnvironmentIntensity = 0.0f;
     bool                 RayTracedShadows = false;
@@ -172,6 +174,12 @@ static void ExecuteScreenSpaceAO(const hz::FrameGraphContext& Context, void* Use
                   *hz::GetFrameGraphTexture(Context, Frame.Targets.OcclusionScratch));
 }
 
+static void ExecuteAccelerationStructures(const hz::FrameGraphContext& Context, void* UserData)
+{
+    const FrameInputs& Frame = Inputs(Context);
+    ((RayTracedEffects*)UserData)->UpdateScene(Context.Commands, Frame.View, Frame.Draws);
+}
+
 static void ExecuteRayTracing(const hz::FrameGraphContext& Context, void* UserData)
 {
     const FrameInputs&            Frame = Inputs(Context);
@@ -203,7 +211,7 @@ static void ExecuteLighting(const hz::FrameGraphContext& Context, void* UserData
     Lighting.RTShadowAO = Frame.RayTracedShadows ? hz::GetFrameGraphTexture(Context, Targets.RTResult) : nullptr;
     Lighting.RTReflection = Frame.RayTracedReflection ? hz::GetFrameGraphTexture(Context, Targets.RTReflection) : nullptr;
     ((RestirDI*)UserData)
-        ->Execute(Context.Commands, Frame.Frame, GetGBuffer(Context), Frame.View, Lighting,
+        ->Execute(Context.Commands, Frame.Frame, GetGBuffer(Context), Frame.View, Frame.Draws, Frame.RayTracing.GetSceneTLAS(), Lighting,
                   *hz::GetFrameGraphTexture(Context, Targets.SceneColor));
 }
 
@@ -375,6 +383,14 @@ void RenderPasses::BuildGraph()
                                 { T.Depth, Write } };
     hz::AddFrameGraphPass(
         G, { .Name = "GBuffer", .Execute = ExecuteGBuffer, .UserData = GBufferPass.Get(), .Textures = GBufferUses, .Buffers = ReadLists });
+    // Writes no graph resource: the ray traced effects and the lighting pass trace the structure it refits.
+    if (RayTracing->IsSupported())
+    {
+        hz::AddFrameGraphPass(G, { .Name = "Acceleration Structures",
+                                   .Execute = ExecuteAccelerationStructures,
+                                   .UserData = RayTracing.Get(),
+                                   .SideEffects = true });
+    }
     const Use SSAOUses[] = { { T.Depth, Read }, { T.Occlusion, Write }, { T.OcclusionScratch, Write } };
     SSAOPass = hz::AddFrameGraphPass(G, { .Name = "SSAO", .Execute = ExecuteScreenSpaceAO, .UserData = SSAO.Get(), .Textures = SSAOUses });
     const Use RTUses[] = { { T.GBuffer[1], Read },      { T.Depth, Read },        { T.RTResult, Write },  { T.RTScratch, Write },
@@ -564,6 +580,7 @@ void RenderPasses::Execute()
                                          .Irradiance = &Environment->GetIrradiance(),
                                          .BRDFLut = &Environment->GetBrdfLut(),
                                          .EnvironmentSampler = &Environment->GetSampler() },
+                           .RayTracing = *RayTracing,
                            .DeltaSeconds = DeltaSeconds,
                            .EnvironmentIntensity = Shadows->Data.environmentIntensity,
                            .RayTracedShadows = RayTracingReady && (RayTracing->Settings.Shadows || RayTracing->Settings.AO),
