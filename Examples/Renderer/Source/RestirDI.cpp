@@ -116,8 +116,8 @@ void RestirDI::UploadLights(const hz::SceneView& View)
         LightUpload[LightCount++] = {
             .position = Vector4(Source.transform.getCol3().getXYZ(), Source.range),
             .direction = Vector4(-normalize(Source.transform.getCol2().getXYZ()), cosf(Source.outerConeAngle)),
-            .color = Vector4(Source.color[0] * Intensity, Source.color[1] * Intensity, Source.color[2] * Intensity,
-                             cosf(Source.innerConeAngle)),
+            .color =
+                Vector4(Source.color[0] * Intensity, Source.color[1] * Intensity, Source.color[2] * Intensity, cosf(Source.innerConeAngle)),
             .type = (uint32_t)Source.Type,
         };
     }
@@ -151,23 +151,23 @@ void RestirDI::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, co
     const hz::GPUBuffer& Previous = History[CurrentHistory ^ 1u];
     const hz::GPUBuffer& Output = History[CurrentHistory];
     // Resource indices are filled in below as each dispatch declares its dependencies.
-    RestirDIConstants Constants = {
-        .lightCount = LightCount,
-        .shadowSamplerIndex = SamplerIndex(Resources.ShadowSampler),
-        .environmentSamplerIndex = SamplerIndex(Resources.EnvironmentSampler),
-        .tlasIndex = TLAS ? TLAS->GetSrvIndex() : UINT32_MAX,
-        .drawsIndex = Draws.GetDrawData(View.FrameIndex).GetSrvIndex(),
-        .materialsIndex = View.GpuScene.GetBuffers().materials.GetSrvIndex(),
-        .samplerIndex = MaterialSampler.GetIndex(),
-        .width = Width,
-        .height = Height,
-        .frameNumber = FrameNumber++,
-        .initialCandidates = TF_MAX(Settings.InitialCandidates, 1u),
-        .temporalReuse = Settings.TemporalReuse && !ClearHistory ? 1u : 0u,
-        .spatialSamples = Settings.SpatialSamples,
-        .spatialRadius = Settings.SpatialRadius,
-        .maxHistory = Settings.MaxHistory,
-        .reference = Settings.Reference ? 1u : 0u,
+    RestirDIConstants    Constants = {
+           .lightCount = LightCount,
+           .shadowSamplerIndex = SamplerIndex(Resources.ShadowSampler),
+           .environmentSamplerIndex = SamplerIndex(Resources.EnvironmentSampler),
+           .tlasIndex = TLAS ? TLAS->GetSrvIndex() : UINT32_MAX,
+           .drawsIndex = Draws.GetDrawData(View.FrameIndex).GetSrvIndex(),
+           .materialsIndex = View.GpuScene.GetBuffers().materials.GetSrvIndex(),
+           .samplerIndex = MaterialSampler.GetIndex(),
+           .width = Width,
+           .height = Height,
+           .frameNumber = FrameNumber++,
+           .initialCandidates = TF_MAX(Settings.InitialCandidates, 1u),
+           .temporalReuse = Settings.TemporalReuse && !ClearHistory ? 1u : 0u,
+           .spatialSamples = Settings.SpatialSamples,
+           .spatialRadius = Settings.SpatialRadius,
+           .maxHistory = Settings.MaxHistory,
+           .reference = Settings.Reference ? 1u : 0u,
     };
 
     Commands.BeginGpuTimestamp("ReSTIR DI");
