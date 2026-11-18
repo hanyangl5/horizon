@@ -299,10 +299,14 @@ void RenderPasses::BuildGraph()
     T.Occlusion = ViewportTexture(G, ScreenSpaceAO::TargetFormat, "Renderer.SSAO", false);
     T.OcclusionScratch = ViewportTexture(G, ScreenSpaceAO::TargetFormat, "Renderer.SSAO.Scratch", false);
     T.RTResult = ViewportTexture(G, RayTracedEffects::ResultFormat, "Renderer.RT.ShadowAO", false, RayTracedEffects::ResolutionShift);
-    T.RTScratch = ViewportTexture(G, RayTracedEffects::ScratchFormat, "Renderer.RT.DenoiseScratch", false, RayTracedEffects::ResolutionShift);
-    T.RTReflection = ViewportTexture(G, RayTracedEffects::ReflectionFormat, "Renderer.RT.Reflection", false, RayTracedEffects::ResolutionShift);
-    T.RTHistory = ViewportTexture(G, RayTracedEffects::HistoryFormat, "Renderer.RT.History", false, RayTracedEffects::ResolutionShift, true);
-    T.RTPreviousDepth = ViewportTexture(G, RayTracedEffects::DepthFormat, "Renderer.RT.PreviousDepth", false, RayTracedEffects::ResolutionShift, true);
+    T.RTScratch =
+        ViewportTexture(G, RayTracedEffects::ScratchFormat, "Renderer.RT.DenoiseScratch", false, RayTracedEffects::ResolutionShift);
+    T.RTReflection =
+        ViewportTexture(G, RayTracedEffects::ReflectionFormat, "Renderer.RT.Reflection", false, RayTracedEffects::ResolutionShift);
+    T.RTHistory =
+        ViewportTexture(G, RayTracedEffects::HistoryFormat, "Renderer.RT.History", false, RayTracedEffects::ResolutionShift, true);
+    T.RTPreviousDepth =
+        ViewportTexture(G, RayTracedEffects::DepthFormat, "Renderer.RT.PreviousDepth", false, RayTracedEffects::ResolutionShift, true);
     T.SceneColor = ViewportTexture(G, DeferredLighting::ColorFormat, "Renderer.DeferredLighting.Color", true);
     T.OITHeads = ViewportTexture(G, Transparency::HeadsFormat, "Renderer.OIT.Heads", false);
     T.TransparentColor = ViewportTexture(G, Transparency::ColorFormat, "Renderer.OIT.Resolved", false);
