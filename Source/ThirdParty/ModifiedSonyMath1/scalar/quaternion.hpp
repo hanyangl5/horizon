@@ -445,12 +445,12 @@ inline const Quat select(const Quat & quat0, const Quat & quat1, bool select1)
 
 inline void print(const Quat & quat)
 {
-    LOGF(eINFO, "( %f %f %f %f )\n", quat.getX(), quat.getY(), quat.getZ(), quat.getW());
+    LOGF(Info, "( %f %f %f %f )\n", quat.getX(), quat.getY(), quat.getZ(), quat.getW());
 }
 
 inline void print(const Quat & quat, const char * name)
 {
-    LOGF(eINFO, "%s: ( %f %f %f %f )\n", name, quat.getX(), quat.getY(), quat.getZ(), quat.getW());
+    LOGF(Info, "%s: ( %f %f %f %f )\n", name, quat.getX(), quat.getY(), quat.getZ(), quat.getW());
 }
 
 #endif // VECTORMATH_DEBUG

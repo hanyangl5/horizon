@@ -157,7 +157,7 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t Size, bool srgb, const
         DirectX::CompressOptions options = { .threshold = DirectX::TEX_THRESHOLD_DEFAULT,
                                              .alphaWeight = DirectX::TEX_ALPHA_WEIGHT_DEFAULT };
 #if defined(_OPENMP)
-        options.Flags = DirectX::TEX_COMPRESS_PARALLEL;
+        options.flags = DirectX::TEX_COMPRESS_PARALLEL;
 #endif
         const int64_t start = GetUSec(true);
         LOGF(Info, "Compress '%s': %zux%zu, BC7, %zu mip levels (%s)", Name, pInput->GetMetadata().width, pInput->GetMetadata().height,
