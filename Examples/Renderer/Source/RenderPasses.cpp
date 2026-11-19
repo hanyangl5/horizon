@@ -193,8 +193,11 @@ static void ExecuteRayTracing(const hz::FrameGraphContext& Context, void* UserDa
         .PreviousHistory = hz::GetFrameGraphHistory(Context, Targets.RTHistory),
         .PreviousDepth = hz::GetFrameGraphTexture(Context, Targets.RTPreviousDepth),
         .PreviousFrameDepth = hz::GetFrameGraphHistory(Context, Targets.RTPreviousDepth),
+        .ReflectionHistory = hz::GetFrameGraphTexture(Context, Targets.RTReflectionHistory),
+        .PreviousReflectionHistory = hz::GetFrameGraphHistory(Context, Targets.RTReflectionHistory),
         .HistoryValid =
             hz::IsFrameGraphHistoryValid(Context, Targets.RTHistory) && hz::IsFrameGraphHistoryValid(Context, Targets.RTPreviousDepth),
+        .ReflectionHistoryValid = hz::IsFrameGraphHistoryValid(Context, Targets.RTReflectionHistory),
     };
     ((RayTracedEffects*)UserData)
         ->Execute(Context.Commands, Frame.Frame,
@@ -212,7 +215,7 @@ static void ExecuteLighting(const hz::FrameGraphContext& Context, void* UserData
     Lighting.SSAO = hz::GetFrameGraphTexture(Context, Targets.Occlusion);
     // The pass writes both images whenever it runs; hand over only the effects that are enabled, as the shader expects.
     Lighting.RTShadowAO = Frame.RayTracedShadows ? hz::GetFrameGraphTexture(Context, Targets.RTResult) : nullptr;
-    Lighting.RTReflection = Frame.RayTracedReflection ? hz::GetFrameGraphTexture(Context, Targets.RTReflection) : nullptr;
+    Lighting.RTReflection = Frame.RayTracedReflection ? hz::GetFrameGraphTexture(Context, Targets.RTReflectionHistory) : nullptr;
     ((RestirDI*)UserData)
         ->Execute(Context.Commands, Frame.Frame, GetGBuffer(Context), Frame.View, Frame.Draws, Frame.RayTracing.GetSceneTLAS(), Lighting,
                   *hz::GetFrameGraphTexture(Context, Targets.SceneColor));
@@ -314,6 +317,8 @@ void RenderPasses::BuildGraph()
     T.RTResult = ViewportTexture(G, RayTracedEffects::ResultFormat, "Renderer.RT.ShadowAO", false, RayTracedEffects::ResolutionShift);
     T.RTScratch = ViewportTexture(G, RayTracedEffects::ScratchFormat, "Renderer.RT.DenoiseScratch", false, RayTracedEffects::ResolutionShift);
     T.RTReflection = ViewportTexture(G, RayTracedEffects::ReflectionFormat, "Renderer.RT.Reflection", false, RayTracedEffects::ResolutionShift);
+    T.RTReflectionHistory = ViewportTexture(G, RayTracedEffects::ReflectionFormat, "Renderer.RT.ReflectionHistory", false,
+                                            RayTracedEffects::ResolutionShift, true);
     T.RTHistory = ViewportTexture(G, RayTracedEffects::HistoryFormat, "Renderer.RT.History", false, RayTracedEffects::ResolutionShift, true);
     T.RTPreviousDepth = ViewportTexture(G, RayTracedEffects::DepthFormat, "Renderer.RT.PreviousDepth", false, RayTracedEffects::ResolutionShift, true);
     // ReSTIR DI writes the lit color from a compute shader and the sky pass then renders into it.
@@ -398,12 +403,13 @@ void RenderPasses::BuildGraph()
     SSAOPass = hz::AddFrameGraphPass(G, { .Name = "SSAO", .Execute = ExecuteScreenSpaceAO, .UserData = SSAO.Get(), .Textures = SSAOUses });
     const Use RTUses[] = { { T.GBuffer[1], Read },      { T.Depth, Read },        { T.RTResult, Write },  { T.RTScratch, Write },
                            { T.RTReflection, Write },   { T.RTHistory, History }, { T.RTHistory, Write }, { T.RTPreviousDepth, History },
+                           { T.RTReflectionHistory, History }, { T.RTReflectionHistory, Write },
                            { T.RTPreviousDepth, Write } };
     RayTracingPass =
         hz::AddFrameGraphPass(G, { .Name = "Ray Tracing", .Execute = ExecuteRayTracing, .UserData = RayTracing.Get(), .Textures = RTUses });
     const Use LightingUses[] = { { T.GBuffer[0], Read },   { T.GBuffer[1], Read },       { T.GBuffer[2], Read },       { T.GBuffer[3], Read },
                                  { T.Depth, Read },        { T.ShadowMap, Read },        { T.Occlusion, Optional },
-                                 { T.RTResult, Optional }, { T.RTReflection, Optional }, { T.SceneColor, Write } };
+                                 { T.RTResult, Optional }, { T.RTReflectionHistory, Optional }, { T.SceneColor, Write } };
     hz::AddFrameGraphPass(G, { .Name = "ReSTIR DI", .Execute = ExecuteLighting, .UserData = Lighting.Get(), .Textures = LightingUses });
     const Use EnvironmentUses[] = { { T.SceneColor, Modify }, { T.Depth, Read } };
     hz::AddFrameGraphPass(

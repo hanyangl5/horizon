@@ -22,6 +22,8 @@ struct RayTracedEffectsSettings
     float    TemporalDepthThreshold = 0.05f;
     // A-trous plane distance falloff as a fraction of the view distance.
     float    AtrousPlaneSigma = 0.01f;
+    // Minimum blend weight of the current reflection once its history is long.
+    float    ReflectionTemporalAlpha = 0.1f;
     bool     operator==(const RayTracedEffectsSettings&) const = default;
 };
 
@@ -38,7 +40,11 @@ struct RayTracedEffectsTargets
     const hz::GPUTexture* PreviousHistory = nullptr;
     const hz::GPUTexture* PreviousDepth = nullptr;
     const hz::GPUTexture* PreviousFrameDepth = nullptr;
+    // Temporally accumulated reflection, which lighting reads instead of the traced Reflection.
+    const hz::GPUTexture* ReflectionHistory = nullptr;
+    const hz::GPUTexture* PreviousReflectionHistory = nullptr;
     bool                  HistoryValid = false;
+    bool                  ReflectionHistoryValid = false;
 };
 
 class RayTracedEffects
@@ -76,6 +82,7 @@ private:
     hz::GPUPipeline                AtrousPipeline;
     hz::GPUPipeline                DepthCopyPipeline;
     hz::GPURayTracingPipeline      ReflectionPipeline;
+    hz::GPUPipeline                ReflectionTemporalPipeline;
     hz::GPUSampler                 MaterialSampler;
     hz::GPUTexture                 BlueNoise;
     RayTracedEffectsSettings       PreviousSettings;

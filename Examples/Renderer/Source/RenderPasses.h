@@ -49,6 +49,7 @@ struct RenderTargets
     hz::FrameGraphTexture RTResult;
     hz::FrameGraphTexture RTScratch;
     hz::FrameGraphTexture RTReflection;
+    hz::FrameGraphTexture RTReflectionHistory;
     hz::FrameGraphTexture RTHistory;
     hz::FrameGraphTexture RTPreviousDepth;
     hz::FrameGraphTexture SceneColor;
