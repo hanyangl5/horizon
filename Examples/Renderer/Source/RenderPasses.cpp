@@ -381,15 +381,24 @@ void RenderPasses::BuildGraph()
         G, { .Name = "GBuffer", .Execute = ExecuteGBuffer, .UserData = GBufferPass.Get(), .Textures = GBufferUses, .Buffers = ReadLists });
     const Use SSAOUses[] = { { T.Depth, Read }, { T.Occlusion, Write }, { T.OcclusionScratch, Write } };
     SSAOPass = hz::AddFrameGraphPass(G, { .Name = "SSAO", .Execute = ExecuteScreenSpaceAO, .UserData = SSAO.Get(), .Textures = SSAOUses });
-    const Use RTUses[] = { { T.GBuffer[1], Read },      { T.Depth, Read },        { T.RTResult, Write },  { T.RTScratch, Write },
-                           { T.RTReflection, Write },   { T.RTHistory, History }, { T.RTHistory, Write }, { T.RTPreviousDepth, History },
-                           { T.RTReflectionHistory, History }, { T.RTReflectionHistory, Write },
+    const Use RTUses[] = { { T.GBuffer[1], Read },
+                           { T.Depth, Read },
+                           { T.RTResult, Write },
+                           { T.RTScratch, Write },
+                           { T.RTReflection, Write },
+                           { T.RTHistory, History },
+                           { T.RTHistory, Write },
+                           { T.RTPreviousDepth, History },
+                           { T.RTReflectionHistory, History },
+                           { T.RTReflectionHistory, Write },
                            { T.RTPreviousDepth, Write } };
     RayTracingPass =
         hz::AddFrameGraphPass(G, { .Name = "Ray Tracing", .Execute = ExecuteRayTracing, .UserData = RayTracing.Get(), .Textures = RTUses });
-    const Use LightingUses[] = { { T.GBuffer[0], Read },   { T.GBuffer[1], Read },       { T.GBuffer[2], Read },
-                                 { T.Depth, Read },        { T.ShadowMap, Read },        { T.Occlusion, Optional },
-                                 { T.RTResult, Optional }, { T.RTReflectionHistory, Optional }, { T.SceneColor, Write } };
+    const Use LightingUses[] = { { T.GBuffer[0], Read },   { T.GBuffer[1], Read },
+                                 { T.GBuffer[2], Read },   { T.Depth, Read },
+                                 { T.ShadowMap, Read },    { T.Occlusion, Optional },
+                                 { T.RTResult, Optional }, { T.RTReflectionHistory, Optional },
+                                 { T.SceneColor, Write } };
     hz::AddFrameGraphPass(G, { .Name = "Lighting", .Execute = ExecuteLighting, .UserData = Lighting.Get(), .Textures = LightingUses });
     const Use EnvironmentUses[] = { { T.SceneColor, Modify }, { T.Depth, Read } };
     hz::AddFrameGraphPass(

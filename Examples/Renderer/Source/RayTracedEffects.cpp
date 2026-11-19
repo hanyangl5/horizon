@@ -122,7 +122,8 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         return;
     }
     ASSERT(Targets.Result && Targets.Scratch && Targets.Reflection && Targets.History && Targets.PreviousHistory && Targets.PreviousDepth &&
-           Targets.PreviousFrameDepth && Targets.ReflectionHistory && Targets.PreviousReflectionHistory && GBuffer.NormalMaterial && GBuffer.Depth && Lighting.LightingFrame);
+           Targets.PreviousFrameDepth && Targets.ReflectionHistory && Targets.PreviousReflectionHistory && GBuffer.NormalMaterial &&
+           GBuffer.Depth && Lighting.LightingFrame);
     const hz::GPUTexture& Result = *Targets.Result;
     const hz::GPUTexture& Scratch = *Targets.Scratch;
     const hz::GPUTexture& Reflection = *Targets.Reflection;
