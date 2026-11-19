@@ -197,7 +197,10 @@ static void ExecuteRayTracing(const hz::FrameGraphContext& Context, void* UserDa
             hz::IsFrameGraphHistoryValid(Context, Targets.RTHistory) && hz::IsFrameGraphHistoryValid(Context, Targets.RTPreviousDepth),
     };
     ((RayTracedEffects*)UserData)
-        ->Execute(Context.Commands, Frame.Frame, GetGBuffer(Context), Frame.View, Frame.Draws, Lighting, RTTargets);
+        ->Execute(Context.Commands, Frame.Frame,
+                  { .NormalMaterial = hz::GetFrameGraphTexture(Context, Targets.GBuffer[1]),
+                    .Depth = hz::GetFrameGraphTexture(Context, Targets.Depth) },
+                  Frame.View, Frame.Draws, Lighting, RTTargets);
 }
 
 static void ExecuteLighting(const hz::FrameGraphContext& Context, void* UserData)
