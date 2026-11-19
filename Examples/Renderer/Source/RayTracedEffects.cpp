@@ -73,6 +73,11 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSCopyDepth" } }, .pFileName = "RTDenoise.slang" },
         .Name = "Renderer.RT.DepthHistory",
     });
+    ReflectionTemporalPipeline = Context.CreateComputePipeline({
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } },
+                        .pFileName = "rt_reflection_temporal.comp.slang" },
+        .Name = "Renderer.RT.ReflectionTemporal",
+    });
     ReflectionPipeline = Context.CreateRayTracingPipeline({
         .pFileName = "RTReflection.slang",
         .pRayGeneration = "rayGenMain",
@@ -83,7 +88,7 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
         .Name = "Renderer.RT.Reflection",
     });
     ASSERT(MaterialSampler.IsValid() && ShadowPipeline.IsValid() && TemporalPipeline.IsValid() && AtrousPipeline.IsValid() &&
-           DepthCopyPipeline.IsValid() && ReflectionPipeline.IsValid());
+           DepthCopyPipeline.IsValid() && ReflectionPipeline.IsValid() && ReflectionTemporalPipeline.IsValid());
 }
 
 RayTracedEffects::~RayTracedEffects() = default;
@@ -117,7 +122,7 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         return;
     }
     ASSERT(Targets.Result && Targets.Scratch && Targets.Reflection && Targets.History && Targets.PreviousHistory && Targets.PreviousDepth &&
-           Targets.PreviousFrameDepth && GBuffer.NormalMaterial && GBuffer.Depth && Lighting.LightingFrame);
+           Targets.PreviousFrameDepth && Targets.ReflectionHistory && Targets.PreviousReflectionHistory && GBuffer.NormalMaterial && GBuffer.Depth && Lighting.LightingFrame);
     const hz::GPUTexture& Result = *Targets.Result;
     const hz::GPUTexture& Scratch = *Targets.Scratch;
     const hz::GPUTexture& Reflection = *Targets.Reflection;
@@ -218,7 +223,6 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     Commands.SetRootConstants(Denoise);
     Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
                       { .sampledTextures = { GBuffer.Depth }, .storageTextures = { Targets.PreviousDepth }, .buffers = { &Frame } });
-    MarkedDirty = false;
     Commands.EndGpuTimestamp();
 
     Commands.BeginGpuTimestamp("RT Reflection");
@@ -236,5 +240,21 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
                          .buffers = { Lighting.LightingFrame },
 
                          .pShared = &SceneDependencies });
+
+    // Reads last frame's view depth, which the depth copy above did not overwrite: it writes this frame's copy.
+    const hz::GPUTexture& ReflectionHistory = *Targets.ReflectionHistory;
+    const hz::GPUTexture& PreviousReflectionHistory = *Targets.PreviousReflectionHistory;
+    Denoise.input = Reflection.GetSrvIndex();
+    Denoise.history = PreviousReflectionHistory.GetSrvIndex();
+    Denoise.output = ReflectionHistory.GetUavIndex();
+    Denoise.historyValid = Targets.ReflectionHistoryValid && Targets.HistoryValid && !MarkedDirty;
+    Denoise.alpha = Settings.ReflectionTemporalAlpha;
+    Commands.SetPipeline(ReflectionTemporalPipeline);
+    Commands.SetRootConstants(Denoise);
+    Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
+                      { .sampledTextures = { &Reflection, &PreviousReflectionHistory, GBuffer.Depth, &PreviousFrameDepth },
+                        .storageTextures = { &ReflectionHistory },
+                        .buffers = { &Frame } });
+    MarkedDirty = false;
     Commands.EndGpuTimestamp();
 }
