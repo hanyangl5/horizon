@@ -62,8 +62,8 @@ public:
 class AssetManagerData
 {
 public:
-    AssetManagerData(const AssetCatalog& catalog, const AssetManager& assetManager, RenderContext* pContext):
-        catalog(catalog), assetManager(assetManager), pContext(pContext)
+    AssetManagerData(const AssetCatalog& Catalog, const AssetManager& AssetManagerValue, RenderContext* Context):
+        catalog(Catalog), assetManager(AssetManagerValue), pContext(Context)
     {
     }
     ~AssetManagerData() { hmfree(pIndices); }
@@ -74,308 +74,308 @@ public:
         {
             return nullptr;
         }
-        ManagedAsset& asset = assets[Handle.index];
-        return asset.pEntry && asset.generation == Handle.generation ? &asset : nullptr;
+        ManagedAsset& AssetValue = assets[Handle.index];
+        return AssetValue.pEntry && AssetValue.generation == Handle.generation ? &AssetValue : nullptr;
     }
 
     const void* getPayload(AssetHandle Handle, AssetType Type)
     {
-        const ManagedAsset* pAsset = Find(Handle);
-        return pAsset && pAsset->state == AssetState::Ready && pAsset->pEntry->Type == Type ? pAsset->pPayload : nullptr;
+        const ManagedAsset* AssetPointer = Find(Handle);
+        return AssetPointer && AssetPointer->state == AssetState::Ready && AssetPointer->pEntry->Type == Type ? AssetPointer->pPayload : nullptr;
     }
 
-    void queueRetirement(uint32_t index)
+    void queueRetirement(uint32_t IndexValue)
     {
-        ManagedAsset& asset = assets[index];
-        if (asset.state == AssetState::Retiring && !asset.pRequest && !asset.uploading && !asset.retirementQueued)
+        ManagedAsset& AssetValue = assets[IndexValue];
+        if (AssetValue.state == AssetState::Retiring && !AssetValue.pRequest && !AssetValue.uploading && !AssetValue.retirementQueued)
         {
-            asset.retirementQueued = true;
-            retirements.PushBack(index);
+            AssetValue.retirementQueued = true;
+            retirements.PushBack(IndexValue);
         }
     }
 
-    AssetError visit(AssetID id, AssetRequestPlan& plan)
+    AssetError visit(AssetID Id, AssetRequestPlan& Plan)
     {
-        const AssetIndex* pIndex = hmgetp_null(pIndices, id);
-        if (pIndex)
+        const AssetIndex* IndexPointer = hmgetp_null(pIndices, Id);
+        if (IndexPointer)
         {
-            return assets[pIndex->value.index].state == AssetState::Retiring ? AssetError::Retiring : AssetError::None;
+            return assets[IndexPointer->value.index].state == AssetState::Retiring ? AssetError::Retiring : AssetError::None;
         }
-        const AssetVisit* pVisit = hmgetp_null(plan.pVisits, id);
-        if (pVisit)
+        const AssetVisit* VisitPointer = hmgetp_null(Plan.pVisits, Id);
+        if (VisitPointer)
         {
-            return pVisit->complete ? AssetError::None : AssetError::DependencyCycle;
+            return VisitPointer->complete ? AssetError::None : AssetError::DependencyCycle;
         }
-        const AssetCatalogEntry* pEntry = catalog.Find(id);
-        if (!pEntry)
+        const AssetCatalogEntry* EntryPointer = catalog.Find(Id);
+        if (!EntryPointer)
         {
             return AssetError::UnknownAsset;
         }
-        if (!loaders[(uint32_t)pEntry->Type].pBegin)
+        if (!loaders[(uint32_t)EntryPointer->Type].pBegin)
         {
             return AssetError::MissingLoader;
         }
-        const AssetVisit visit = { .key = id };
-        hmputs(plan.pVisits, visit);
-        plan.stack.PushBack({ .pEntry = pEntry });
+        const AssetVisit VisitValue = { .key = Id };
+        hmputs(Plan.pVisits, VisitValue);
+        Plan.stack.PushBack({ .pEntry = EntryPointer });
         return AssetError::None;
     }
 
-    AssetError prepare(AssetID id, AssetRequestPlan& plan)
+    AssetError prepare(AssetID Id, AssetRequestPlan& Plan)
     {
-        AssetError error = visit(id, plan);
-        while (error == AssetError::None && !plan.stack.Empty())
+        AssetError ErrorValue = visit(Id, Plan);
+        while (ErrorValue == AssetError::None && !Plan.stack.Empty())
         {
-            AssetTraversal& traversal = plan.stack[plan.stack.Size() - 1];
-            if (traversal.nextDependency < traversal.pEntry->dependencies.Count)
+            AssetTraversal& Traversal = Plan.stack[Plan.stack.Size() - 1];
+            if (Traversal.nextDependency < Traversal.pEntry->dependencies.Count)
             {
-                error = visit(traversal.pEntry->dependencies.Data[traversal.nextDependency++], plan);
+                ErrorValue = visit(Traversal.pEntry->dependencies.Data[Traversal.nextDependency++], Plan);
             }
             else
             {
-                hmgetp_null(plan.pVisits, traversal.pEntry->id)->complete = true;
-                plan.entries.PushBack(traversal.pEntry);
-                plan.stack.PopBack();
+                hmgetp_null(Plan.pVisits, Traversal.pEntry->id)->complete = true;
+                Plan.entries.PushBack(Traversal.pEntry);
+                Plan.stack.PopBack();
             }
         }
-        return error;
+        return ErrorValue;
     }
 
-    void create(const AssetCatalogEntry& entry)
+    void create(const AssetCatalogEntry& EntryValue)
     {
-        uint32_t index = assets.Size();
+        uint32_t IndexValue = assets.Size();
         if (!freeIndices.Empty())
         {
-            index = freeIndices[freeIndices.Size() - 1];
+            IndexValue = freeIndices[freeIndices.Size() - 1];
             freeIndices.PopBack();
         }
         else
         {
             assets.PushBack({});
         }
-        ManagedAsset& asset = assets[index];
-        asset.pEntry = &entry;
-        asset.state = AssetState::Queued;
-        if (entry.dependencies.Count)
+        ManagedAsset& AssetValue = assets[IndexValue];
+        AssetValue.pEntry = &EntryValue;
+        AssetValue.state = AssetState::Queued;
+        if (EntryValue.dependencies.Count)
         {
-            asset.pDependencies = (AssetHandle*)MemAllocate(entry.dependencies.Count * sizeof(AssetHandle));
-            for (uint32_t i = 0; i < entry.dependencies.Count; ++i)
+            AssetValue.pDependencies = (AssetHandle*)MemAllocate(EntryValue.dependencies.Count * sizeof(AssetHandle));
+            for (uint32_t I = 0; I < EntryValue.dependencies.Count; ++I)
             {
-                const AssetHandle dependency = hmgetp_null(pIndices, entry.dependencies.Data[i])->value;
-                asset.pDependencies[i] = dependency;
-                ++assets[dependency.index].references;
+                const AssetHandle Dependency = hmgetp_null(pIndices, EntryValue.dependencies.Data[I])->value;
+                AssetValue.pDependencies[I] = Dependency;
+                ++assets[Dependency.index].references;
             }
         }
-        const AssetIndex mapping = { .key = entry.id, .value = { .index = index, .generation = asset.generation } };
-        hmputs(pIndices, mapping);
-        pending.PushBack(index);
+        const AssetIndex Mapping = { .key = EntryValue.id, .value = { .index = IndexValue, .generation = AssetValue.generation } };
+        hmputs(pIndices, Mapping);
+        pending.PushBack(IndexValue);
     }
 
     bool Release(AssetHandle Handle)
     {
-        ManagedAsset* pAsset = Find(Handle);
-        if (!pAsset || !pAsset->references)
+        ManagedAsset* AssetPointer = Find(Handle);
+        if (!AssetPointer || !AssetPointer->references)
         {
             return false;
         }
-        if (--pAsset->references == 0)
+        if (--AssetPointer->references == 0)
         {
-            pAsset->state = AssetState::Retiring;
+            AssetPointer->state = AssetState::Retiring;
             // The payload left the ready Set; work recorded until now may still reference it.
-            pAsset->gpuUse = pContext ? pContext->GetResourceUseId() : 0;
+            AssetPointer->gpuUse = pContext ? pContext->GetResourceUseId() : 0;
             markTableDirty(Handle.index);
             queueRetirement(Handle.index);
         }
         return true;
     }
 
-    void destroyPayload(ManagedAsset& asset)
+    void destroyPayload(ManagedAsset& AssetValue)
     {
-        if (asset.pPayload)
+        if (AssetValue.pPayload)
         {
-            loaders[(uint32_t)asset.pEntry->Type].pDestroyPayload(asset.pPayload, loaders[(uint32_t)asset.pEntry->Type].UserData);
-            asset.pPayload = nullptr;
+            loaders[(uint32_t)AssetValue.pEntry->Type].pDestroyPayload(AssetValue.pPayload, loaders[(uint32_t)AssetValue.pEntry->Type].UserData);
+            AssetValue.pPayload = nullptr;
         }
     }
 
-    void releaseDependencies(ManagedAsset& asset)
+    void releaseDependencies(ManagedAsset& AssetValue)
     {
-        if (!asset.pDependencies)
+        if (!AssetValue.pDependencies)
         {
             return;
         }
-        for (uint32_t i = 0; i < asset.pEntry->dependencies.Count; ++i)
+        for (uint32_t I = 0; I < AssetValue.pEntry->dependencies.Count; ++I)
         {
-            Release(asset.pDependencies[i]);
+            Release(AssetValue.pDependencies[I]);
         }
-        MemDeallocate(asset.pDependencies);
-        asset.pDependencies = nullptr;
+        MemDeallocate(AssetValue.pDependencies);
+        AssetValue.pDependencies = nullptr;
     }
 
     void retire()
     {
-        for (uint32_t i = 0; i < retirements.Size();)
+        for (uint32_t I = 0; I < retirements.Size();)
         {
-            const uint32_t index = retirements[i];
-            ManagedAsset&  asset = assets[index];
-            if (pContext && !pContext->IsResourceUseComplete(asset.gpuUse))
+            const uint32_t IndexValue = retirements[I];
+            ManagedAsset&  AssetValue = assets[IndexValue];
+            if (pContext && !pContext->IsResourceUseComplete(AssetValue.gpuUse))
             {
-                ++i;
+                ++I;
                 continue;
             }
-            retirements[i] = retirements[retirements.Size() - 1];
+            retirements[I] = retirements[retirements.Size() - 1];
             retirements.PopBack();
-            ASSERT(asset.state == AssetState::Retiring && !asset.references && !asset.pRequest && !asset.uploading);
-            destroyPayload(asset);
-            releaseDependencies(asset);
-            hmdel(pIndices, asset.pEntry->id);
+            ASSERT(AssetValue.state == AssetState::Retiring && !AssetValue.references && !AssetValue.pRequest && !AssetValue.uploading);
+            destroyPayload(AssetValue);
+            releaseDependencies(AssetValue);
+            hmdel(pIndices, AssetValue.pEntry->id);
             // A Release already drops the entry; only a slot that was still encoded needs clearing here.
-            if (asset.tableEncoded)
+            if (AssetValue.tableEncoded)
             {
-                markTableDirty(index);
+                markTableDirty(IndexValue);
             }
-            const uint32_t generation = asset.generation + 1;
-            asset = { .generation = generation ? generation : 1 };
-            freeIndices.PushBack(index);
+            const uint32_t Generation = AssetValue.generation + 1;
+            AssetValue = { .generation = Generation ? Generation : 1 };
+            freeIndices.PushBack(IndexValue);
         }
     }
 
     // Records the failure and its reason together so callers can query the diagnostic immediately.
-    void fail(ManagedAsset& asset, AssetError error, const char* pReason)
+    void fail(ManagedAsset& AssetValue, AssetError ErrorValue, const char* Reason)
     {
-        asset.state = AssetState::Failed;
-        asset.error = error;
-        if (pReason && pReason[0])
+        AssetValue.state = AssetState::Failed;
+        AssetValue.error = ErrorValue;
+        if (Reason && Reason[0])
         {
-            snprintf(asset.diagnostic, sizeof(asset.diagnostic), "%s", pReason);
+            snprintf(AssetValue.diagnostic, sizeof(AssetValue.diagnostic), "%s", Reason);
         }
-        else if (!asset.diagnostic[0])
+        else if (!AssetValue.diagnostic[0])
         {
-            snprintf(asset.diagnostic, sizeof(asset.diagnostic), "Cannot Load %s", asset.pEntry->location.pPath);
+            snprintf(AssetValue.diagnostic, sizeof(AssetValue.diagnostic), "Cannot Load %s", AssetValue.pEntry->location.pPath);
         }
     }
 
     // Returns true while the asset still has work to poll; Ready, Failed and retired slots drop out.
-    bool Update(ManagedAsset& asset)
+    bool Update(ManagedAsset& AssetValue)
     {
-        const uint32_t index = (uint32_t)(&asset - assets.GetData());
-        if (!asset.pEntry || asset.state == AssetState::Ready)
+        const uint32_t IndexValue = (uint32_t)(&AssetValue - assets.GetData());
+        if (!AssetValue.pEntry || AssetValue.state == AssetState::Ready)
         {
             return false;
         }
-        bool dependenciesReady = true;
-        if (asset.state != AssetState::Retiring && asset.state != AssetState::Failed && asset.pDependencies)
+        bool DependenciesReady = true;
+        if (AssetValue.state != AssetState::Retiring && AssetValue.state != AssetState::Failed && AssetValue.pDependencies)
         {
-            for (uint32_t i = 0; i < asset.pEntry->dependencies.Count; ++i)
+            for (uint32_t I = 0; I < AssetValue.pEntry->dependencies.Count; ++I)
             {
-                const ManagedAsset& dependency = assets[asset.pDependencies[i].index];
+                const ManagedAsset& Dependency = assets[AssetValue.pDependencies[I].index];
                 // A material keeps its factors when a texture fails: the GPU table leaves that slot unbound.
-                const bool          optional = asset.pEntry->Type == AssetType::Material && dependency.pEntry->Type == AssetType::Texture;
-                if (dependency.state == AssetState::Failed && optional)
+                const bool          Optional = AssetValue.pEntry->Type == AssetType::Material && Dependency.pEntry->Type == AssetType::Texture;
+                if (Dependency.state == AssetState::Failed && Optional)
                 {
                     continue;
                 }
-                dependenciesReady &= dependency.state == AssetState::Ready;
-                if (dependency.state == AssetState::Failed)
+                DependenciesReady &= Dependency.state == AssetState::Ready;
+                if (Dependency.state == AssetState::Failed)
                 {
-                    fail(asset, AssetError::DependencyFailed, "A dependency failed to Load");
+                    fail(AssetValue, AssetError::DependencyFailed, "A dependency failed to Load");
                 }
             }
         }
-        const AssetLoader& loader = loaders[(uint32_t)asset.pEntry->Type];
-        if (asset.state == AssetState::Queued)
+        const AssetLoader& Loader = loaders[(uint32_t)AssetValue.pEntry->Type];
+        if (AssetValue.state == AssetState::Queued)
         {
-            asset.pRequest = loader.pBegin(*asset.pEntry, { .index = index, .generation = asset.generation }, loader.UserData);
-            if (!asset.pRequest)
-                fail(asset, AssetError::LoadFailed, "The loader rejected the asset");
+            AssetValue.pRequest = Loader.pBegin(*AssetValue.pEntry, { .index = IndexValue, .generation = AssetValue.generation }, Loader.UserData);
+            if (!AssetValue.pRequest)
+                fail(AssetValue, AssetError::LoadFailed, "The loader rejected the asset");
             else
             {
-                asset.state = AssetState::LoadingCPU;
+                AssetValue.state = AssetState::LoadingCPU;
             }
         }
-        if (asset.pRequest)
+        if (AssetValue.pRequest)
         {
-            const AssetLoadResult result = loader.pPoll(asset.pRequest, loader.UserData);
-            if (result.status == AssetLoadStatus::Pending)
+            const AssetLoadResult Result = Loader.pPoll(AssetValue.pRequest, Loader.UserData);
+            if (Result.status == AssetLoadStatus::Pending)
             {
-                ASSERT(!result.pPayload);
+                ASSERT(!Result.pPayload);
                 return true;
             }
-            loader.pDestroyRequest(asset.pRequest, loader.UserData);
-            asset.pRequest = nullptr;
-            asset.pPayload = result.pPayload;
-            if (asset.state == AssetState::Retiring)
+            Loader.pDestroyRequest(AssetValue.pRequest, Loader.UserData);
+            AssetValue.pRequest = nullptr;
+            AssetValue.pPayload = Result.pPayload;
+            if (AssetValue.state == AssetState::Retiring)
             {
-                queueRetirement(index);
+                queueRetirement(IndexValue);
             }
-            else if (asset.state != AssetState::Failed)
+            else if (AssetValue.state != AssetState::Failed)
             {
-                if (result.status == AssetLoadStatus::Succeeded && result.pPayload)
+                if (Result.status == AssetLoadStatus::Succeeded && Result.pPayload)
                 {
-                    asset.state = AssetState::WaitingDependencies;
+                    AssetValue.state = AssetState::WaitingDependencies;
                 }
                 else
                 {
-                    fail(asset, AssetError::LoadFailed, result.pError);
+                    fail(AssetValue, AssetError::LoadFailed, Result.pError);
                 }
             }
         }
-        if (asset.state == AssetState::WaitingDependencies && dependenciesReady)
+        if (AssetValue.state == AssetState::WaitingDependencies && DependenciesReady)
         {
-            if (loader.pUpload)
+            if (Loader.pUpload)
             {
-                asset.uploading = true;
-                asset.state = AssetState::UploadingGPU;
-                loader.pUpload(asset.pPayload, assetManager, { asset.pDependencies, asset.pEntry->dependencies.Count }, loader.UserData);
+                AssetValue.uploading = true;
+                AssetValue.state = AssetState::UploadingGPU;
+                Loader.pUpload(AssetValue.pPayload, assetManager, { AssetValue.pDependencies, AssetValue.pEntry->dependencies.Count }, Loader.UserData);
             }
             else
             {
-                asset.state = AssetState::Ready;
+                AssetValue.state = AssetState::Ready;
             }
         }
-        if (asset.uploading)
+        if (AssetValue.uploading)
         {
-            const AssetLoadStatus status = loader.pPollUpload(asset.pPayload, loader.UserData);
-            if (status == AssetLoadStatus::Pending)
+            const AssetLoadStatus Status = Loader.pPollUpload(AssetValue.pPayload, Loader.UserData);
+            if (Status == AssetLoadStatus::Pending)
             {
                 return true;
             }
-            asset.uploading = false;
-            if (asset.state == AssetState::Retiring)
+            AssetValue.uploading = false;
+            if (AssetValue.state == AssetState::Retiring)
             {
-                queueRetirement(index);
+                queueRetirement(IndexValue);
             }
-            else if (asset.state != AssetState::Failed)
+            else if (AssetValue.state != AssetState::Failed)
             {
-                if (status == AssetLoadStatus::Succeeded)
+                if (Status == AssetLoadStatus::Succeeded)
                 {
-                    asset.state = AssetState::Ready;
+                    AssetValue.state = AssetState::Ready;
                 }
                 else
                 {
-                    fail(asset, AssetError::UploadFailed, nullptr);
+                    fail(AssetValue, AssetError::UploadFailed, nullptr);
                 }
             }
         }
-        if (asset.state == AssetState::Ready)
+        if (AssetValue.state == AssetState::Ready)
         {
-            markTableDirty(index);
+            markTableDirty(IndexValue);
             return false;
         }
-        if (asset.state == AssetState::Failed)
+        if (AssetValue.state == AssetState::Failed)
         {
-            if (!asset.diagnostic[0])
+            if (!AssetValue.diagnostic[0])
             {
-                snprintf(asset.diagnostic, sizeof(asset.diagnostic), "Cannot Load %s", asset.pEntry->location.pPath);
+                snprintf(AssetValue.diagnostic, sizeof(AssetValue.diagnostic), "Cannot Load %s", AssetValue.pEntry->location.pPath);
             }
-            destroyPayload(asset);
-            releaseDependencies(asset);
-            markTableDirty(index);
+            destroyPayload(AssetValue);
+            releaseDependencies(AssetValue);
+            markTableDirty(IndexValue);
             return false;
         }
-        if (asset.state == AssetState::Retiring && !asset.pRequest && !asset.uploading)
+        if (AssetValue.state == AssetState::Retiring && !AssetValue.pRequest && !AssetValue.uploading)
         {
-            queueRetirement(index);
+            queueRetirement(IndexValue);
             return false;
         }
         return true;
@@ -383,110 +383,110 @@ public:
 
     // Marks one asset for the next GPU table Update. Materials bake texture Descriptors into their entry,
     // so any texture change invalidates every material.
-    void markTableDirty(uint32_t index)
+    void markTableDirty(uint32_t IndexValue)
     {
-        ManagedAsset& asset = assets[index];
-        if (asset.tableDirty)
+        ManagedAsset& AssetValue = assets[IndexValue];
+        if (AssetValue.tableDirty)
         {
             return;
         }
-        asset.tableDirty = true;
-        tableDirty.PushBack(index);
+        AssetValue.tableDirty = true;
+        tableDirty.PushBack(IndexValue);
         ++tableRevision;
-        if (asset.pEntry && asset.pEntry->Type == AssetType::Texture)
+        if (AssetValue.pEntry && AssetValue.pEntry->Type == AssetType::Texture)
         {
-            for (uint32_t i = 0; i < assets.Size(); ++i)
+            for (uint32_t I = 0; I < assets.Size(); ++I)
             {
-                if (assets[i].pEntry && assets[i].pEntry->Type == AssetType::Material)
+                if (assets[I].pEntry && assets[I].pEntry->Type == AssetType::Material)
                 {
-                    markTableDirty(i);
+                    markTableDirty(I);
                 }
             }
         }
     }
 
-    void clearTableEntry(uint32_t index)
+    void clearTableEntry(uint32_t IndexValue)
     {
         // Vertex stream and submesh ranges are append only; a full rebuild is what reclaims them.
-        tableGarbage += meshes[index].submeshCount + meshes[index].vertexStreamCount;
-        meshes[index] = {};
-        materials[index] = {};
-        textures[index] = {};
-        assets[index].tableDirty = false;
-        assets[index].tableEncoded = false;
+        tableGarbage += meshes[IndexValue].submeshCount + meshes[IndexValue].vertexStreamCount;
+        meshes[IndexValue] = {};
+        materials[IndexValue] = {};
+        textures[IndexValue] = {};
+        assets[IndexValue].tableDirty = false;
+        assets[IndexValue].tableEncoded = false;
     }
 
-    void encodeTableEntry(uint32_t index)
+    void encodeTableEntry(uint32_t IndexValue)
     {
-        const ManagedAsset& asset = assets[index];
-        if (asset.state != AssetState::Ready || !asset.pPayload)
+        const ManagedAsset& AssetValue = assets[IndexValue];
+        if (AssetValue.state != AssetState::Ready || !AssetValue.pPayload)
         {
-            clearTableEntry(index);
+            clearTableEntry(IndexValue);
             return;
         }
-        if (asset.pEntry->Type == AssetType::Texture)
+        if (AssetValue.pEntry->Type == AssetType::Texture)
         {
-            textures[index] = { .id = { .index = index, .generation = asset.generation },
-                                .srv = ((const TextureAsset*)asset.pPayload)->GetTexture().GetSrvIndex() };
+            textures[IndexValue] = { .id = { .index = IndexValue, .generation = AssetValue.generation },
+                                .srv = ((const TextureAsset*)AssetValue.pPayload)->GetTexture().GetSrvIndex() };
         }
-        else if (asset.pEntry->Type == AssetType::Mesh)
+        else if (AssetValue.pEntry->Type == AssetType::Mesh)
         {
-            const MeshAsset& mesh = *(const MeshAsset*)asset.pPayload;
-            tableGarbage += meshes[index].submeshCount + meshes[index].vertexStreamCount;
-            meshes[index] = { .id = { .index = index, .generation = asset.generation },
-                              .indexSrv = mesh.GetIndexBuffer().GetSrvIndex(),
-                              .indexStride = mesh.GetIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u,
+            const MeshAsset& MeshValue = *(const MeshAsset*)AssetValue.pPayload;
+            tableGarbage += meshes[IndexValue].submeshCount + meshes[IndexValue].vertexStreamCount;
+            meshes[IndexValue] = { .id = { .index = IndexValue, .generation = AssetValue.generation },
+                              .indexSrv = MeshValue.GetIndexBuffer().GetSrvIndex(),
+                              .indexStride = MeshValue.GetIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u,
                               .vertexStreamOffset = vertexStreams.Size(),
-                              .vertexStreamCount = mesh.GetVertexBufferCount(),
+                              .vertexStreamCount = MeshValue.GetVertexBufferCount(),
                               .submeshOffset = submeshes.Size(),
-                              .submeshCount = mesh.GetDescription().submeshes.Count };
-            for (uint32_t stream = 0; stream < mesh.GetVertexBufferCount(); ++stream)
+                              .submeshCount = MeshValue.GetDescription().submeshes.Count };
+            for (uint32_t Stream = 0; Stream < MeshValue.GetVertexBufferCount(); ++Stream)
             {
-                const GPUBuffer& buffer = mesh.GetVertexBuffer(stream);
+                const GPUBuffer& BufferValue = MeshValue.GetVertexBuffer(Stream);
                 vertexStreams.PushBack(
-                    { .srv = buffer.IsValid() ? buffer.GetSrvIndex() : UINT32_MAX, .stride = mesh.GetVertexStride(stream) });
+                    { .srv = BufferValue.IsValid() ? BufferValue.GetSrvIndex() : UINT32_MAX, .stride = MeshValue.GetVertexStride(Stream) });
             }
-            for (uint32_t Draw = 0; Draw < mesh.GetDescription().submeshes.Count; ++Draw)
+            for (uint32_t Draw = 0; Draw < MeshValue.GetDescription().submeshes.Count; ++Draw)
             {
-                const IndirectDrawIndexArguments& args = mesh.GetDraw(Draw);
+                const IndirectDrawIndexArguments& Args = MeshValue.GetDraw(Draw);
                 submeshes.PushBack(
-                    { .indexCount = args.indexCount, .firstIndex = args.startIndex, .vertexOffset = (int32_t)args.vertexOffset });
+                    { .indexCount = Args.indexCount, .firstIndex = Args.startIndex, .vertexOffset = (int32_t)Args.vertexOffset });
             }
         }
-        else if (asset.pEntry->Type == AssetType::Material)
+        else if (AssetValue.pEntry->Type == AssetType::Material)
         {
-            const SceneAssetMaterial& material = ((const MaterialAsset*)asset.pPayload)->GetDescription();
-            GpuMaterialData&          mapping = materials[index];
-            mapping.id = { .index = index, .generation = asset.generation };
-            const AssetID textureIDs[] = { material.baseColorTexture, material.normalTexture, material.metallicRoughnessTexture,
-                                           material.emissiveTexture };
-            uint32_t*     ppTextures[] = { &mapping.baseColorTexture, &mapping.normalTexture, &mapping.metallicRoughnessTexture,
-                                           &mapping.emissiveTexture };
-            for (uint32_t texture = 0; texture < 4; ++texture)
+            const SceneAssetMaterial& MaterialValue = ((const MaterialAsset*)AssetValue.pPayload)->GetDescription();
+            GpuMaterialData&          Mapping = materials[IndexValue];
+            Mapping.Id = { .index = IndexValue, .generation = AssetValue.generation };
+            const AssetID TextureIDs[] = { MaterialValue.baseColorTexture, MaterialValue.normalTexture, MaterialValue.metallicRoughnessTexture,
+                                           MaterialValue.emissiveTexture };
+            uint32_t*     Textures[] = { &Mapping.BaseColorTexture, &Mapping.NormalTexture, &Mapping.MetallicRoughnessTexture,
+                                           &Mapping.EmissiveTexture };
+            for (uint32_t TextureValue = 0; TextureValue < 4; ++TextureValue)
             {
-                if (!textureIDs[texture].IsValid())
+                if (!TextureIDs[TextureValue].IsValid())
                 {
                     continue;
                 }
-                const AssetIndex*   pIndex = hmgetp_null(pIndices, textureIDs[texture]);
-                const ManagedAsset* pTexture = pIndex ? &assets[pIndex->value.index] : nullptr;
+                const AssetIndex*   IndexPointer = hmgetp_null(pIndices, TextureIDs[TextureValue]);
+                const ManagedAsset* TexturePointer = IndexPointer ? &assets[IndexPointer->value.index] : nullptr;
                 // Only a released texture lease can leave this Empty; keep the previous mapping instead of crashing.
-                if (pTexture && pTexture->state == AssetState::Ready && pTexture->pPayload)
+                if (TexturePointer && TexturePointer->state == AssetState::Ready && TexturePointer->pPayload)
                 {
-                    *ppTextures[texture] = ((const TextureAsset*)pTexture->pPayload)->GetTexture().GetSrvIndex();
+                    *Textures[TextureValue] = ((const TextureAsset*)TexturePointer->pPayload)->GetTexture().GetSrvIndex();
                 }
             }
-            memcpy(mapping.baseColorFactor, material.baseColorFactor, sizeof(mapping.baseColorFactor));
-            memcpy(mapping.emissiveFactor, material.emissiveFactor, sizeof(mapping.emissiveFactor));
-            mapping.metallicFactor = material.metallicFactor;
-            mapping.roughnessFactor = material.roughnessFactor;
-            mapping.alphaCutoff = material.alphaCutoff;
-            mapping.alphaMode = (uint32_t)material.alphaMode;
-            mapping.doubleSided = material.doubleSided;
-            mapping.tags = material.tags;
+            memcpy(Mapping.BaseColorFactor, MaterialValue.baseColorFactor, sizeof(Mapping.BaseColorFactor));
+            memcpy(Mapping.EmissiveFactor, MaterialValue.emissiveFactor, sizeof(Mapping.EmissiveFactor));
+            Mapping.MetallicFactor = MaterialValue.metallicFactor;
+            Mapping.RoughnessFactor = MaterialValue.roughnessFactor;
+            Mapping.AlphaCutoff = MaterialValue.alphaCutoff;
+            Mapping.AlphaMode = (uint32_t)MaterialValue.alphaMode;
+            Mapping.DoubleSided = MaterialValue.doubleSided;
+            Mapping.Tags = MaterialValue.tags;
         }
-        assets[index].tableDirty = false;
-        assets[index].tableEncoded = true;
+        assets[IndexValue].tableDirty = false;
+        assets[IndexValue].tableEncoded = true;
     }
 
     void encodeTables()
@@ -499,26 +499,26 @@ public:
             vertexStreams.Clear();
             submeshes.Clear();
             tableGarbage = 0;
-            for (uint32_t i = 0; i < assets.Size(); ++i)
+            for (uint32_t I = 0; I < assets.Size(); ++I)
             {
-                meshes[i] = {};
-                materials[i] = {};
-                textures[i] = {};
-                assets[i].tableDirty = false;
+                meshes[I] = {};
+                materials[I] = {};
+                textures[I] = {};
+                assets[I].tableDirty = false;
             }
-            for (uint32_t i = 0; i < assets.Size(); ++i)
+            for (uint32_t I = 0; I < assets.Size(); ++I)
             {
-                if (assets[i].state == AssetState::Ready && assets[i].pPayload)
+                if (assets[I].state == AssetState::Ready && assets[I].pPayload)
                 {
-                    encodeTableEntry(i);
+                    encodeTableEntry(I);
                 }
             }
             tableDirty.Clear();
             return;
         }
-        for (uint32_t index : tableDirty)
+        for (uint32_t IndexValue : tableDirty)
         {
-            encodeTableEntry(index);
+            encodeTableEntry(IndexValue);
         }
         tableDirty.Clear();
     }
@@ -546,7 +546,7 @@ public:
     Array<GpuTextureData>    textures;
 };
 
-AssetManager::AssetManager(const AssetCatalog& catalog, RenderContext* pContext): Data(MemNew(AssetManagerData, catalog, *this, pContext))
+AssetManager::AssetManager(const AssetCatalog& Catalog, RenderContext* Context): Data(MemNew(AssetManagerData, Catalog, *this, Context))
 {
 }
 AssetManager::~AssetManager()
@@ -555,36 +555,36 @@ AssetManager::~AssetManager()
     MemDelete(Data);
 }
 
-void AssetManager::SetLoader(AssetType Type, const AssetLoader& loader)
+void AssetManager::SetLoader(AssetType Type, const AssetLoader& Loader)
 {
     ASSERT(Type <= AssetType::AnimationClip && !GetCount() && !Data->shuttingDown);
-    ASSERT(loader.pBegin && loader.pPoll && loader.pDestroyRequest && loader.pDestroyPayload);
-    ASSERT((loader.pUpload && loader.pPollUpload && loader.pWaitUpload) || (!loader.pUpload && !loader.pPollUpload && !loader.pWaitUpload));
-    Data->loaders[(uint32_t)Type] = loader;
+    ASSERT(Loader.pBegin && Loader.pPoll && Loader.pDestroyRequest && Loader.pDestroyPayload);
+    ASSERT((Loader.pUpload && Loader.pPollUpload && Loader.pWaitUpload) || (!Loader.pUpload && !Loader.pPollUpload && !Loader.pWaitUpload));
+    Data->loaders[(uint32_t)Type] = Loader;
 }
 
-AssetHandle AssetManager::Request(AssetID id, AssetError* pError)
+AssetHandle AssetManager::Request(AssetID Id, AssetError* ErrorPointer)
 {
-    AssetRequestPlan plan;
-    const AssetError error = Data->shuttingDown ? AssetError::ShuttingDown : Data->prepare(id, plan);
-    if (pError)
+    AssetRequestPlan Plan;
+    const AssetError ErrorValue = Data->shuttingDown ? AssetError::ShuttingDown : Data->prepare(Id, Plan);
+    if (ErrorPointer)
     {
-        *pError = error;
+        *ErrorPointer = ErrorValue;
     }
-    if (error != AssetError::None)
+    if (ErrorValue != AssetError::None)
     {
-        char text[kIDStringCapacity];
-        id.ToString(text);
-        LOGF(Error, "Asset Request '%s' rejected (error %u)", text, (uint32_t)error);
+        char Text[kIDStringCapacity];
+        Id.ToString(Text);
+        LOGF(Error, "Asset Request '%s' rejected (error %u)", Text, (uint32_t)ErrorValue);
         return {};
     }
-    Data->freeIndices.Reserve(Data->assets.Size() + plan.entries.Size());
-    Data->retirements.Reserve(Data->assets.Size() + plan.entries.Size());
-    for (const AssetCatalogEntry* pEntry : plan.entries)
+    Data->freeIndices.Reserve(Data->assets.Size() + Plan.entries.Size());
+    Data->retirements.Reserve(Data->assets.Size() + Plan.entries.Size());
+    for (const AssetCatalogEntry* EntryPointer : Plan.entries)
     {
-        Data->create(*pEntry);
+        Data->create(*EntryPointer);
     }
-    const AssetHandle Handle = hmgetp_null(Data->pIndices, id)->value;
+    const AssetHandle Handle = hmgetp_null(Data->pIndices, Id)->value;
     ++Data->assets[Handle.index].references;
     return Handle;
 }
@@ -594,37 +594,37 @@ bool AssetManager::Release(AssetHandle Handle) { return Data->Release(Handle); }
 void AssetManager::Update()
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("AssetManager::Update");
-    AssetManagerData& data = *Data;
-    data.retire();
+    AssetManagerData& DataValue = *Data;
+    DataValue.retire();
     // Only assets with work in flight are polled. A slot freed while still listed drops out here.
-    uint32_t kept = 0;
-    for (uint32_t i = 0; i < data.pending.Size(); ++i)
+    uint32_t Kept = 0;
+    for (uint32_t I = 0; I < DataValue.pending.Size(); ++I)
     {
-        if (data.Update(data.assets[data.pending[i]]))
+        if (DataValue.Update(DataValue.assets[DataValue.pending[I]]))
         {
-            data.pending[kept++] = data.pending[i];
+            DataValue.pending[Kept++] = DataValue.pending[I];
         }
     }
-    data.pending.Resize(kept);
-    data.retire();
+    DataValue.pending.Resize(Kept);
+    DataValue.retire();
 }
 
 AssetState AssetManager::GetState(AssetHandle Handle) const
 {
-    const ManagedAsset* pAsset = Data->Find(Handle);
-    return pAsset ? pAsset->state : AssetState::Invalid;
+    const ManagedAsset* AssetPointer = Data->Find(Handle);
+    return AssetPointer ? AssetPointer->state : AssetState::Invalid;
 }
 
 AssetError AssetManager::GetError(AssetHandle Handle) const
 {
-    const ManagedAsset* pAsset = Data->Find(Handle);
-    return pAsset ? pAsset->error : AssetError::UnknownAsset;
+    const ManagedAsset* AssetPointer = Data->Find(Handle);
+    return AssetPointer ? AssetPointer->error : AssetError::UnknownAsset;
 }
 
 const char* AssetManager::GetDiagnostic(AssetHandle Handle) const
 {
-    const ManagedAsset* pAsset = Data->Find(Handle);
-    return pAsset ? pAsset->diagnostic : "";
+    const ManagedAsset* AssetPointer = Data->Find(Handle);
+    return AssetPointer ? AssetPointer->diagnostic : "";
 }
 
 const SceneAsset* AssetManager::GetScene(AssetHandle Handle) const { return (const SceneAsset*)Data->getPayload(Handle, AssetType::Scene); }
@@ -647,29 +647,29 @@ const AnimationClipAsset* AssetManager::GetAnimationClip(AssetHandle Handle) con
     return (const AnimationClipAsset*)Data->getPayload(Handle, AssetType::AnimationClip);
 }
 
-AssetHandle AssetManager::Find(AssetID id) const
+AssetHandle AssetManager::Find(AssetID Id) const
 {
-    const AssetIndex* pIndex = hmgetp_null(Data->pIndices, id);
-    return pIndex ? pIndex->value : AssetHandle{};
+    const AssetIndex* IndexPointer = hmgetp_null(Data->pIndices, Id);
+    return IndexPointer ? IndexPointer->value : AssetHandle{};
 }
 
 uint64_t AssetManager::GetStateRevision() const { return Data->tableRevision; }
 
 GpuAssetTables AssetManager::GetGpuTables()
 {
-    AssetManagerData& data = *Data;
-    if (data.builtRevision != data.tableRevision)
+    AssetManagerData& DataValue = *Data;
+    if (DataValue.builtRevision != DataValue.tableRevision)
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("AssetManager::encodeGpuTables");
-        data.encodeTables();
-        data.builtRevision = data.tableRevision;
+        DataValue.encodeTables();
+        DataValue.builtRevision = DataValue.tableRevision;
     }
-    return { .meshes = { data.meshes.GetData(), data.meshes.Size() },
-             .vertexStreams = { data.vertexStreams.GetData(), data.vertexStreams.Size() },
-             .submeshes = { data.submeshes.GetData(), data.submeshes.Size() },
-             .materials = { data.materials.GetData(), data.materials.Size() },
-             .textures = { data.textures.GetData(), data.textures.Size() },
-             .revision = data.builtRevision };
+    return { .meshes = { DataValue.meshes.GetData(), DataValue.meshes.Size() },
+             .vertexStreams = { DataValue.vertexStreams.GetData(), DataValue.vertexStreams.Size() },
+             .submeshes = { DataValue.submeshes.GetData(), DataValue.submeshes.Size() },
+             .materials = { DataValue.materials.GetData(), DataValue.materials.Size() },
+             .textures = { DataValue.textures.GetData(), DataValue.textures.Size() },
+             .revision = DataValue.builtRevision };
 }
 
 uint32_t AssetManager::GetCount() const { return (uint32_t)hmlen(Data->pIndices); }
@@ -682,23 +682,23 @@ void AssetManager::Shutdown()
     }
     Data->shuttingDown = true;
     Data->pending.Clear();
-    for (ManagedAsset& asset : Data->assets)
+    for (ManagedAsset& AssetValue : Data->assets)
     {
-        if (!asset.pEntry)
+        if (!AssetValue.pEntry)
         {
             continue;
         }
-        if (asset.pRequest)
+        if (AssetValue.pRequest)
         {
-            const AssetLoader& loader = Data->loaders[(uint32_t)asset.pEntry->Type];
-            loader.pDestroyRequest(asset.pRequest, loader.UserData);
-            asset.pRequest = nullptr;
+            const AssetLoader& Loader = Data->loaders[(uint32_t)AssetValue.pEntry->Type];
+            Loader.pDestroyRequest(AssetValue.pRequest, Loader.UserData);
+            AssetValue.pRequest = nullptr;
         }
-        if (asset.uploading)
+        if (AssetValue.uploading)
         {
-            const AssetLoader& loader = Data->loaders[(uint32_t)asset.pEntry->Type];
-            loader.pWaitUpload(asset.pPayload, loader.UserData);
-            asset.uploading = false;
+            const AssetLoader& Loader = Data->loaders[(uint32_t)AssetValue.pEntry->Type];
+            Loader.pWaitUpload(AssetValue.pPayload, Loader.UserData);
+            AssetValue.uploading = false;
         }
     }
     // Shutdown happens between frames, so idling covers every submission that could reference a payload.
@@ -707,33 +707,33 @@ void AssetManager::Shutdown()
         Data->pContext->WaitIdle();
     }
     Data->retirements.Clear();
-    for (ManagedAsset& asset : Data->assets)
+    for (ManagedAsset& AssetValue : Data->assets)
     {
-        if (!asset.pEntry)
+        if (!AssetValue.pEntry)
         {
             continue;
         }
-        asset.references = 0;
-        asset.state = AssetState::Retiring;
-        asset.gpuUse = 0;
-        asset.retirementQueued = false;
+        AssetValue.references = 0;
+        AssetValue.state = AssetState::Retiring;
+        AssetValue.gpuUse = 0;
+        AssetValue.retirementQueued = false;
     }
     // Discard external references, retaining dependency edges so parents retire first.
-    for (const ManagedAsset& asset : Data->assets)
+    for (const ManagedAsset& AssetValue : Data->assets)
     {
-        if (asset.pDependencies)
+        if (AssetValue.pDependencies)
         {
-            for (uint32_t i = 0; i < asset.pEntry->dependencies.Count; ++i)
+            for (uint32_t I = 0; I < AssetValue.pEntry->dependencies.Count; ++I)
             {
-                ++Data->assets[asset.pDependencies[i].index].references;
+                ++Data->assets[AssetValue.pDependencies[I].index].references;
             }
         }
     }
-    for (uint32_t i = 0; i < Data->assets.Size(); ++i)
+    for (uint32_t I = 0; I < Data->assets.Size(); ++I)
     {
-        if (Data->assets[i].pEntry && !Data->assets[i].references)
+        if (Data->assets[I].pEntry && !Data->assets[I].references)
         {
-            Data->queueRetirement(i);
+            Data->queueRetirement(I);
         }
     }
     Data->retire();

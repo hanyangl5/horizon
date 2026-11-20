@@ -3,16 +3,16 @@
 // Matches GpuDrawData uploaded by the renderer.
 struct GpuDrawData
 {
-    uint instance;
-    uint material;
-    uint materialId;
-    uint alphaMode;
-    uint positions;
-    uint normals;
-    uint texcoords;
-    uint indices;
-    uint indexStride;
-    uint firstIndex;
-    int  vertexOffset;
-    uint indexCount;
+    uint Instance;
+    uint Material;
+    uint MaterialId;
+    uint AlphaMode;
+    uint Positions;
+    uint Normals;
+    uint Texcoords;
+    uint Indices;
+    uint IndexStride;
+    uint FirstIndex;
+    int  VertexOffset;
+    uint IndexCount;
 };

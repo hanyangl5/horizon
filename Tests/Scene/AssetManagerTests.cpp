@@ -560,8 +560,8 @@ TEST_F(TypedAssetLiveTest, MissingTextureLeavesMaterialSlotUnboundInsteadOfFaili
     const hz::GpuAssetTables tables = assetManager.GetGpuTables();
     const hz::GpuMaterialData* pMapping = tables.GetMaterial({ .index = material.index, .generation = material.generation });
     ASSERT_NE(pMapping, nullptr);
-    EXPECT_EQ(pMapping->baseColorTexture, UINT32_MAX);
-    EXPECT_FLOAT_EQ(pMapping->roughnessFactor, 0.8f);
+    EXPECT_EQ(pMapping->BaseColorTexture, UINT32_MAX);
+    EXPECT_FLOAT_EQ(pMapping->RoughnessFactor, 0.8f);
     assetManager.Release(root);
     assetManager.Shutdown();
     EXPECT_EQ(assetManager.GetCount(), 0u);
@@ -1526,9 +1526,9 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     EXPECT_EQ(copiedMesh.submeshCount, 1u);
     EXPECT_EQ(copiedMesh.indexSrv, assetManager.GetMesh(meshHandle)->GetIndexBuffer().GetSrvIndex());
     const hz::GpuMaterialData& copiedMaterial = *(const hz::GpuMaterialData*)(pBytes + 512);
-    EXPECT_EQ(copiedMaterial.id, materialID);
-    EXPECT_FLOAT_EQ(copiedMaterial.roughnessFactor, 0.8f);
-    EXPECT_EQ(copiedMaterial.baseColorTexture, textureSrv);
+    EXPECT_EQ(copiedMaterial.Id, materialID);
+    EXPECT_FLOAT_EQ(copiedMaterial.RoughnessFactor, 0.8f);
+    EXPECT_EQ(copiedMaterial.BaseColorTexture, textureSrv);
     const hz::RenderSceneUploads acknowledged = scene.GetPendingUploads();
     EXPECT_EQ(acknowledged.primitives.Count + acknowledged.instances.Count + acknowledged.meshBatches.Count +
                   acknowledged.instanceIndices.Count,
@@ -1550,7 +1550,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsChangesAndAdvancesHistoryOnlyForSubmit
     EXPECT_FLOAT_EQ(translationX(copiedInstance.previous), 1);
     const hz::GpuTextureData& copiedTexture = *(const hz::GpuTextureData*)(pBytes + 768);
     EXPECT_TRUE(copiedTexture.id.IsValid());
-    EXPECT_EQ(copiedTexture.srv, copiedMaterial.baseColorTexture);
+    EXPECT_EQ(copiedTexture.srv, copiedMaterial.BaseColorTexture);
     EXPECT_EQ(copiedTexture.srv, textureSrv);
 
     // A cancelled frame keeps its changes pending and does not advance history.
@@ -1959,7 +1959,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         EXPECT_EQ(meshBatch->submesh, renderer.overrides[0].submesh);
         const hz::GpuMaterialData* material = gpu->GetAssetTables().GetMaterial(meshBatch->material);
         ASSERT_NE(material, nullptr);
-        EXPECT_NE(material->baseColorTexture, UINT32_MAX);
+        EXPECT_NE(material->BaseColorTexture, UINT32_MAX);
         const hz::MeshAsset* mesh = assetManager.GetMesh(assetManager.Find(renderer.mesh));
         ASSERT_NE(mesh, nullptr);
         hz::CommandList& commands = context.AcquireCommandList();
@@ -1984,8 +1984,8 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         EXPECT_FLOAT_EQ((float)copied->previous.getElem(3, 0), 6);
         EXPECT_FLOAT_EQ((float)copied->current.getElem(1, 0), 0.25f);
         const hz::GpuMaterialData* copiedMaterial = (const hz::GpuMaterialData*)((const uint8_t*)copied + sizeof(*copied));
-        EXPECT_FLOAT_EQ(copiedMaterial->roughnessFactor, 0.8f);
-        EXPECT_FLOAT_EQ(copiedMaterial->baseColorFactor[1], 0.5f);
+        EXPECT_FLOAT_EQ(copiedMaterial->RoughnessFactor, 0.8f);
+        EXPECT_FLOAT_EQ(copiedMaterial->BaseColorFactor[1], 0.5f);
         const float* vertices = (const float*)((const uint8_t*)copiedMaterial + sizeof(*copiedMaterial));
         EXPECT_FLOAT_EQ(vertices[0], -1);
         EXPECT_FLOAT_EQ(vertices[4], -5);

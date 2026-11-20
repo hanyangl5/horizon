@@ -8,21 +8,21 @@
 // Fields mirror the shader block, so they keep the shader's names.
 struct alignas(16) LightingFrameData
 {
-    Matrix4  shadowViewProjection = Matrix4::identity();
-    Vector4  lightDirection = Vector4(0, -1, 0, 0);
-    Vector4  lightColor = Vector4(1, 1, 1, 1);
-    float    environmentIntensity = 1000; // cd/m^2 per unit HDR environment radiance.
-    float    shadowBias = 0;
-    uint32_t shadowEnabled = 0;
-    uint32_t rtShadowEnabled = 0;
-    uint32_t rtAOEnabled = 0;
-    uint32_t environmentMipCount = 1;
-    uint32_t frameIndex = 0;
-    uint32_t shadowFilterRadius = 0;
-    float    rtAOPower = 1;
-    uint32_t padding0 = 0;
-    uint32_t padding1 = 0;
-    uint32_t padding2 = 0;
+    Matrix4  ShadowViewProjection = Matrix4::identity();
+    Vector4  LightDirection = Vector4(0, -1, 0, 0);
+    Vector4  LightColor = Vector4(1, 1, 1, 1);
+    float    EnvironmentIntensity = 1000; // cd/m^2 per unit HDR environment radiance.
+    float    ShadowBias = 0;
+    uint32_t ShadowEnabled = 0;
+    uint32_t RTShadowEnabled = 0;
+    uint32_t RTAOEnabled = 0;
+    uint32_t EnvironmentMipCount = 1;
+    uint32_t FrameIndex = 0;
+    uint32_t ShadowFilterRadius = 0;
+    float    RTAOPower = 1;
+    uint32_t Padding0 = 0;
+    uint32_t Padding1 = 0;
+    uint32_t Padding2 = 0;
 };
 static_assert(sizeof(LightingFrameData) == 144);
 

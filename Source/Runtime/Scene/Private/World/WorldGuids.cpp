@@ -8,11 +8,11 @@ namespace hz
 Entity World::CreatePersistentEntity()
 {
     pImpl->checkThread();
-    const Guid id = Guid::Create(pImpl->entityGuids);
-    return id.IsValid() ? CreatePersistentEntity(id) : Entity{};
+    const Guid Id = Guid::Create(pImpl->entityGuids);
+    return Id.IsValid() ? CreatePersistentEntity(Id) : Entity{};
 }
 
-Entity World::CreatePersistentEntity(const Guid& id)
+Entity World::CreatePersistentEntity(const Guid& Id)
 {
     pImpl->checkThread();
     if (!pImpl->entityIdentityType)
@@ -20,71 +20,71 @@ Entity World::CreatePersistentEntity(const Guid& id)
         LOGF(Error, "Creating a persistent entity requires registered EntityIdentity support");
         return {};
     }
-    if (!id.IsValid())
+    if (!Id.IsValid())
     {
         LOGF(Error, "A persistent entity requires a nonzero Guid");
         return {};
     }
-    if (hmgetp_null(pImpl->pEntityGuids, id))
+    if (hmgetp_null(pImpl->pEntityGuids, Id))
     {
-        char text[kIDStringCapacity];
-        id.ToString(text);
-        LOGF(Error, "Duplicate Guid: %s", text);
+        char Text[kIDStringCapacity];
+        Id.ToString(Text);
+        LOGF(Error, "Duplicate Guid: %s", Text);
         return {};
     }
 
-    const Entity         entity = CreateEntity();
-    const EntityIdentity identity = { .value = id };
-    ecs_set_id(pImpl->pWorld, entity.value, pImpl->entityIdentityType, sizeof(identity), &identity);
-    const EntityGuidEntry entry = { .key = id, .value = entity.value };
-    hmputs(pImpl->pEntityGuids, entry);
+    const Entity         EntityHandle = CreateEntity();
+    const EntityIdentity IdentityValue = { .value = Id };
+    ecs_set_id(pImpl->pWorld, EntityHandle.value, pImpl->entityIdentityType, sizeof(IdentityValue), &IdentityValue);
+    const EntityGuidEntry EntryValue = { .key = Id, .value = EntityHandle.value };
+    hmputs(pImpl->pEntityGuids, EntryValue);
     if (IsDeferred())
     {
-        pImpl->pendingGuids.PushBack(id);
+        pImpl->pendingGuids.PushBack(Id);
     }
-    return entity;
+    return EntityHandle;
 }
 
-Entity World::GetEntity(const Guid& id) const
+Entity World::GetEntity(const Guid& Id) const
 {
     pImpl->checkThread();
-    if (!id.IsValid())
+    if (!Id.IsValid())
     {
         return {};
     }
-    const EntityGuidEntry* pEntry = hmgetp_null(pImpl->pEntityGuids, id);
-    if (!pEntry || !ecs_is_alive(pImpl->pWorld, pEntry->value) || !ecs_has_id(pImpl->pWorld, pEntry->value, pImpl->entityIdentityType))
+    const EntityGuidEntry* EntryPointer = hmgetp_null(pImpl->pEntityGuids, Id);
+    if (!EntryPointer || !ecs_is_alive(pImpl->pWorld, EntryPointer->value) || !ecs_has_id(pImpl->pWorld, EntryPointer->value, pImpl->entityIdentityType))
     {
         return {};
     }
-    return Entity(pEntry->value, pImpl->id);
+    return Entity(EntryPointer->value, pImpl->id);
 }
 
-Guid World::GetEntityGuid(Entity entity) const
+Guid World::GetEntityGuid(Entity EntityHandle) const
 {
-    const EntityIdentity* pIdentity = (const EntityIdentity*)GetComponent(entity, SceneTypes::entityIdentity);
-    return pIdentity ? pIdentity->value : Guid{};
+    const EntityIdentity* IdentityPointer = (const EntityIdentity*)GetComponent(EntityHandle, SceneTypes::entityIdentity);
+    return IdentityPointer ? IdentityPointer->value : Guid{};
 }
 
-void WorldImpl::removeEntityGuids(ecs_iter_t* pIterator)
+void WorldImpl::removeEntityGuids(ecs_iter_t* Iterator)
 {
-    WorldImpl&            world = *(WorldImpl*)pIterator->binding_ctx;
-    const EntityIdentity* pIdentities = (const EntityIdentity*)ecs_field_w_size(pIterator, sizeof(EntityIdentity), 1);
-    for (int32_t i = 0; i < pIterator->count; ++i)
+    WorldImpl&            WorldData = *(WorldImpl*)Iterator->binding_ctx;
+    const EntityIdentity* Identities = (const EntityIdentity*)ecs_field_w_size(Iterator, sizeof(EntityIdentity), 1);
+    for (int32_t I = 0; I < Iterator->count; ++I)
     {
-        hmdel(world.pEntityGuids, pIdentities[i].value);
+        hmdel(WorldData.pEntityGuids, Identities[I].value);
     }
 }
 
 void WorldImpl::finishGuidChanges()
 {
     // A deferred create followed by delete may never Add EntityIdentity, so its Remove hook cannot run.
-    for (const Guid& id : pendingGuids)
+    for (const Guid& Id : pendingGuids)
     {
-        const EntityGuidEntry* pEntry = hmgetp_null(pEntityGuids, id);
-        if (pEntry && (!ecs_is_alive(pWorld, pEntry->value) || !ecs_has_id(pWorld, pEntry->value, entityIdentityType)))
+        const EntityGuidEntry* EntryPointer = hmgetp_null(pEntityGuids, Id);
+        if (EntryPointer && (!ecs_is_alive(pWorld, EntryPointer->value) || !ecs_has_id(pWorld, EntryPointer->value, entityIdentityType)))
         {
-            hmdel(pEntityGuids, id);
+            hmdel(pEntityGuids, Id);
         }
     }
     pendingGuids.Clear();

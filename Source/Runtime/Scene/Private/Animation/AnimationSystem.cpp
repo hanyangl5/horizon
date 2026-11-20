@@ -15,14 +15,14 @@ namespace hz
 {
 struct AnimatedEntity
 {
-    Entity        entity;
-    AssetID       skeletonID;
-    AssetHandle   skeleton;
-    AssetID       clipID;
-    AssetHandle   clip;
-    SkinningCore* pose = nullptr;
-    bool          reportedMismatch = false;
-    bool          seen = false;
+    Entity        Target;
+    AssetID       SkeletonID;
+    AssetHandle   Skeleton;
+    AssetID       ClipID;
+    AssetHandle   Clip;
+    SkinningCore* Pose = nullptr;
+    bool          ReportedMismatch = false;
+    bool          Seen = false;
 };
 
 struct AnimatedEntityIndex
@@ -34,146 +34,146 @@ struct AnimatedEntityIndex
 class AnimationSystemData
 {
 public:
-    AnimationSystemData(World& world, AssetManager& assetManager):
-        world(world), assetManager(assetManager), query(world, { SceneTypes::skeleton })
+    AnimationSystemData(World& World, AssetManager& AssetManager):
+        SceneWorld(World), Assets(AssetManager), Query(World, { SceneTypes::skeleton })
     {
-        ASSERT(query.IsValid());
+        ASSERT(Query.IsValid());
     }
     ~AnimationSystemData()
     {
-        for (AnimatedEntity& entity : entities)
-            release(entity);
-        hmfree(indices);
+        for (AnimatedEntity& Entity : Entities)
+            Release(Entity);
+        hmfree(Indices);
     }
 
-    void release(AnimatedEntity& entity)
+    void Release(AnimatedEntity& Entity)
     {
-        MemDelete(entity.pose);
-        entity.pose = nullptr;
-        if (entity.skeleton.IsValid())
-            assetManager.Release(entity.skeleton);
-        if (entity.clip.IsValid())
-            assetManager.Release(entity.clip);
-        entity.skeleton = {};
-        entity.clip = {};
+        MemDelete(Entity.Pose);
+        Entity.Pose = nullptr;
+        if (Entity.Skeleton.IsValid())
+            Assets.Release(Entity.Skeleton);
+        if (Entity.Clip.IsValid())
+            Assets.Release(Entity.Clip);
+        Entity.Skeleton = {};
+        Entity.Clip = {};
     }
 
     // A changed ID releases the previous asset; the new one is requested and becomes usable once ready.
-    void retain(AssetID id, AssetID& currentID, AssetHandle& handle)
+    void Retain(AssetID Id, AssetID& CurrentID, AssetHandle& Handle)
     {
-        if (currentID == id)
+        if (CurrentID == Id)
             return;
-        if (handle.IsValid())
-            assetManager.Release(handle);
-        currentID = id;
-        handle = id.IsValid() ? assetManager.Request(id) : AssetHandle{};
+        if (Handle.IsValid())
+            Assets.Release(Handle);
+        CurrentID = Id;
+        Handle = Id.IsValid() ? Assets.Request(Id) : AssetHandle{};
     }
 
-    static bool sync(Entity entity, Span<const void*> fields, void* userData)
+    static bool Sync(Entity Entity, Span<const void*> Fields, void* UserData)
     {
-        AnimationSystemData&       data = *(AnimationSystemData*)userData;
-        const AnimatedEntityIndex* entry = hmgetp_null(data.indices, entity);
-        if (!entry)
+        AnimationSystemData&       Data = *(AnimationSystemData*)UserData;
+        const AnimatedEntityIndex* Entry = hmgetp_null(Data.Indices, Entity);
+        if (!Entry)
         {
-            AnimatedEntity& added = data.entities.EmplaceBack();
-            added.entity = entity;
-            const AnimatedEntityIndex index = { .key = entity, .value = data.entities.Size() - 1 };
-            hmputs(data.indices, index);
-            entry = hmgetp_null(data.indices, entity);
+            AnimatedEntity& Added = Data.Entities.EmplaceBack();
+            Added.Target = Entity;
+            const AnimatedEntityIndex Index = { .key = Entity, .value = Data.Entities.Size() - 1 };
+            hmputs(Data.Indices, Index);
+            Entry = hmgetp_null(Data.Indices, Entity);
         }
-        AnimatedEntity& animated = data.entities[entry->value];
-        animated.seen = true;
-        const Skeleton&        skeleton = *(const Skeleton*)fields.Data[0];
-        const AnimationPlayer* player = (const AnimationPlayer*)data.world.GetComponent(entity, SceneTypes::animationPlayer);
-        if (animated.skeletonID != skeleton.asset)
+        AnimatedEntity& Animated = Data.Entities[Entry->value];
+        Animated.Seen = true;
+        const Skeleton&        Component = *(const Skeleton*)Fields.Data[0];
+        const AnimationPlayer* Player = (const AnimationPlayer*)Data.SceneWorld.GetComponent(Entity, SceneTypes::animationPlayer);
+        if (Animated.SkeletonID != Component.asset)
         {
-            MemDelete(animated.pose);
-            animated.pose = nullptr;
-            animated.reportedMismatch = false;
+            MemDelete(Animated.Pose);
+            Animated.Pose = nullptr;
+            Animated.ReportedMismatch = false;
         }
-        data.retain(skeleton.asset, animated.skeletonID, animated.skeleton);
-        if (player && animated.clipID != player->clip)
-            animated.reportedMismatch = false;
-        data.retain(player ? player->clip : AssetID{}, animated.clipID, animated.clip);
-        data.animate(animated, player);
+        Data.Retain(Component.asset, Animated.SkeletonID, Animated.Skeleton);
+        if (Player && Animated.ClipID != Player->clip)
+            Animated.ReportedMismatch = false;
+        Data.Retain(Player ? Player->clip : AssetID{}, Animated.ClipID, Animated.Clip);
+        Data.Animate(Animated, Player);
         return true;
     }
 
-    void animate(AnimatedEntity& animated, const AnimationPlayer* player)
+    void Animate(AnimatedEntity& Animated, const AnimationPlayer* Player)
     {
-        const SkeletonAsset* skeleton = assetManager.GetSkeleton(animated.skeleton);
-        if (!skeleton)
+        const SkeletonAsset* Skeleton = Assets.GetSkeleton(Animated.Skeleton);
+        if (!Skeleton)
             return;
-        if (!animated.pose)
-            animated.pose = MemNew(SkinningCore, *skeleton);
-        const AnimationClipAsset* clip = assetManager.GetAnimationClip(animated.clip);
-        AnimationLayer            layer;
-        if (player && clip)
+        if (!Animated.Pose)
+            Animated.Pose = MemNew(SkinningCore, *Skeleton);
+        const AnimationClipAsset* Clip = Assets.GetAnimationClip(Animated.Clip);
+        AnimationLayer            Layer;
+        if (Player && Clip)
         {
-            AnimationPlayer advanced = *player;
-            const float     duration = clip->GetDuration();
-            if (advanced.playing && advanced.speed != 0.0f)
+            AnimationPlayer Advanced = *Player;
+            const float     Duration = Clip->GetDuration();
+            if (Advanced.playing && Advanced.speed != 0.0f)
             {
-                advanced.time += deltaSeconds * advanced.speed;
-                if (advanced.loop)
-                    advanced.time -= floorf(advanced.time / duration) * duration;
-                else if (advanced.time <= 0.0f || advanced.time >= duration)
+                Advanced.time += DeltaSeconds * Advanced.speed;
+                if (Advanced.loop)
+                    Advanced.time -= floorf(Advanced.time / Duration) * Duration;
+                else if (Advanced.time <= 0.0f || Advanced.time >= Duration)
                 {
-                    advanced.time = fminf(fmaxf(advanced.time, 0.0f), duration);
-                    advanced.playing = false;
+                    Advanced.time = fminf(fmaxf(Advanced.time, 0.0f), Duration);
+                    Advanced.playing = false;
                 }
-                const bool updated = world.SetComponent(animated.entity, SceneTypes::animationPlayer, &advanced);
-                ASSERT(updated);
+                const bool Updated = SceneWorld.SetComponent(Animated.Target, SceneTypes::animationPlayer, &Advanced);
+                ASSERT(Updated);
             }
-            layer = { .clip = clip, .time = advanced.time };
+            Layer = { .Clip = Clip, .Time = Advanced.time };
         }
-        if (!animated.pose->Evaluate({ &layer, layer.clip ? 1u : 0u }) && !animated.reportedMismatch)
+        if (!Animated.Pose->Evaluate({ &Layer, Layer.Clip ? 1u : 0u }) && !Animated.ReportedMismatch)
         {
-            animated.reportedMismatch = true;
+            Animated.ReportedMismatch = true;
             LOGF(Error, "Animation clip does not match the skeleton of its entity; the skeleton keeps its last pose");
         }
     }
 
-    void Update(float elapsed)
+    void Update(float Elapsed)
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("AnimationSystem::Update");
-        ASSERT(!world.IsDeferred());
-        deltaSeconds = elapsed;
-        for (AnimatedEntity& entity : entities)
-            entity.seen = false;
-        query.Each(sync, this);
-        for (uint32_t i = 0; i < entities.Size();)
+        ASSERT(!SceneWorld.IsDeferred());
+        DeltaSeconds = Elapsed;
+        for (AnimatedEntity& Entity : Entities)
+            Entity.Seen = false;
+        Query.Each(Sync, this);
+        for (uint32_t I = 0; I < Entities.Size();)
         {
-            if (entities[i].seen)
+            if (Entities[I].Seen)
             {
-                ++i;
+                ++I;
                 continue;
             }
-            release(entities[i]);
-            hmdel(indices, entities[i].entity);
-            if (i + 1 < entities.Size())
+            Release(Entities[I]);
+            hmdel(Indices, Entities[I].Target);
+            if (I + 1 < Entities.Size())
             {
-                entities[i] = entities[entities.Size() - 1];
-                hmgetp_null(indices, entities[i].entity)->value = i;
+                Entities[I] = Entities[Entities.Size() - 1];
+                hmgetp_null(Indices, Entities[I].Target)->value = I;
             }
-            entities.PopBack();
+            Entities.PopBack();
         }
     }
 
-    World&                world;
-    AssetManager&         assetManager;
-    WorldQuery            query;
-    Array<AnimatedEntity> entities;
-    AnimatedEntityIndex*  indices = nullptr;
-    float                 deltaSeconds = 0.0f;
+    World&                SceneWorld;
+    AssetManager&         Assets;
+    WorldQuery            Query;
+    Array<AnimatedEntity> Entities;
+    AnimatedEntityIndex*  Indices = nullptr;
+    float                 DeltaSeconds = 0.0f;
 };
 
-AnimationSystem::AnimationSystem(World& world, AssetManager& assetManager): Data(MemNew(AnimationSystemData, world, assetManager)) {}
+AnimationSystem::AnimationSystem(World& World, AssetManager& AssetManager): Data(MemNew(AnimationSystemData, World, AssetManager)) {}
 AnimationSystem::~AnimationSystem() { MemDelete(Data); }
-void                AnimationSystem::Update(float deltaSeconds) { Data->Update(deltaSeconds); }
-const SkinningCore* AnimationSystem::GetPose(Entity entity) const
+void                AnimationSystem::Update(float DeltaSeconds) { Data->Update(DeltaSeconds); }
+const SkinningCore* AnimationSystem::GetPose(Entity Entity) const
 {
-    const AnimatedEntityIndex* entry = hmgetp_null(Data->indices, entity);
-    return entry ? Data->entities[entry->value].pose : nullptr;
+    const AnimatedEntityIndex* Entry = hmgetp_null(Data->Indices, Entity);
+    return Entry ? Data->Entities[Entry->value].Pose : nullptr;
 }
 } // namespace hz

@@ -12,10 +12,10 @@ namespace hz
 template<typename T>
 struct ComponentLifecycle
 {
-    static void                    Construct(void* pDestination) { ::new (pDestination) T{}; }
-    static void                    Destroy(void* pValue) { ((T*)pValue)->~T(); }
-    static void                    CopyConstruct(void* pDestination, const void* pSource) { ::new (pDestination) T(*(const T*)pSource); }
-    static void                    MoveConstruct(void* pDestination, void* pSource) { ::new (pDestination) T(std::move(*(T*)pSource)); }
+    static void                    Construct(void* Destination) { ::new (Destination) T{}; }
+    static void                    Destroy(void* ValueData) { ((T*)ValueData)->~T(); }
+    static void                    CopyConstruct(void* Destination, const void* Source) { ::new (Destination) T(*(const T*)Source); }
+    static void                    MoveConstruct(void* Destination, void* Source) { ::new (Destination) T(std::move(*(T*)Source)); }
     static constexpr TypeLifecycle Get()
     {
         return { .pConstruct = Construct, .pDestroy = Destroy, .pCopyConstruct = CopyConstruct, .pMoveConstruct = MoveConstruct };
@@ -23,56 +23,56 @@ struct ComponentLifecycle
 };
 
 template<>
-void ComponentLifecycle<Matrix4>::Construct(void* pDestination)
+void ComponentLifecycle<Matrix4>::Construct(void* Destination)
 {
-    ::new (pDestination) Matrix4(Matrix4::identity());
+    ::new (Destination) Matrix4(Matrix4::identity());
 }
 
-static uint32_t    overrideCount(const void* pArray) { return ((const Array<MaterialOverride>*)pArray)->Size(); }
-static const void* overrideData(const void* pArray) { return ((const Array<MaterialOverride>*)pArray)->GetData(); }
-static void        resizeOverrides(void* pArray, uint32_t Count) { ((Array<MaterialOverride>*)pArray)->Resize(Count); }
+static uint32_t    OverrideCount(const void* ArrayPointer) { return ((const Array<MaterialOverride>*)ArrayPointer)->Size(); }
+static const void* OverrideData(const void* ArrayPointer) { return ((const Array<MaterialOverride>*)ArrayPointer)->GetData(); }
+static void        ResizeOverrides(void* ArrayPointer, uint32_t Count) { ((Array<MaterialOverride>*)ArrayPointer)->Resize(Count); }
 
-static bool insertOverride(void* pArray, uint32_t index, const void* pValue)
+static bool InsertOverride(void* ArrayPointer, uint32_t IndexValue, const void* ValueData)
 {
-    Array<MaterialOverride>& values = *(Array<MaterialOverride>*)pArray;
-    ASSERT(pValue);
-    if (index > values.Size())
+    Array<MaterialOverride>& Values = *(Array<MaterialOverride>*)ArrayPointer;
+    ASSERT(ValueData);
+    if (IndexValue > Values.Size())
     {
         return false;
     }
-    const MaterialOverride value = *(const MaterialOverride*)pValue;
-    values.Resize(values.Size() + 1);
-    for (uint32_t i = values.Size() - 1; i > index; --i)
+    const MaterialOverride ValueValue = *(const MaterialOverride*)ValueData;
+    Values.Resize(Values.Size() + 1);
+    for (uint32_t I = Values.Size() - 1; I > IndexValue; --I)
     {
-        values[i] = values[i - 1];
+        Values[I] = Values[I - 1];
     }
-    values[index] = value;
+    Values[IndexValue] = ValueValue;
     return true;
 }
 
-static bool removeOverride(void* pArray, uint32_t index)
+static bool RemoveOverride(void* ArrayPointer, uint32_t IndexValue)
 {
-    Array<MaterialOverride>& values = *(Array<MaterialOverride>*)pArray;
-    if (index >= values.Size())
+    Array<MaterialOverride>& Values = *(Array<MaterialOverride>*)ArrayPointer;
+    if (IndexValue >= Values.Size())
     {
         return false;
     }
-    for (uint32_t i = index; i + 1 < values.Size(); ++i)
+    for (uint32_t I = IndexValue; I + 1 < Values.Size(); ++I)
     {
-        values[i] = values[i + 1];
+        Values[I] = Values[I + 1];
     }
-    values.PopBack();
+    Values.PopBack();
     return true;
 }
 
 static const ArrayOperations overrideOperations = {
     .Size = sizeof(Array<MaterialOverride>),
     .alignment = alignof(Array<MaterialOverride>),
-    .pCount = overrideCount,
-    .Data = overrideData,
-    .pResize = resizeOverrides,
-    .pInsert = insertOverride,
-    .pRemove = removeOverride,
+    .pCount = OverrideCount,
+    .Data = OverrideData,
+    .pResize = ResizeOverrides,
+    .pInsert = InsertOverride,
+    .pRemove = RemoveOverride,
 };
 
 static const PropertyDesc overrideProperties[] = {
@@ -233,7 +233,7 @@ static const PropertyDesc skinnedMeshProperties[] = {
 
 bool TypeRegistry::RegisterBuiltins()
 {
-    static const TypeDesc types[] = {
+    static const TypeDesc Types[] = {
         { .id = SceneTypes::entityIdentity,
           .Name = "EntityIdentity",
           .Size = sizeof(EntityIdentity),
@@ -305,6 +305,6 @@ bool TypeRegistry::RegisterBuiltins()
           .triviallyCopyable = __is_trivially_copyable(SkinnedMesh),
           .lifecycle = ComponentLifecycle<SkinnedMesh>::Get() },
     };
-    return RegisterTypes(types);
+    return RegisterTypes(Types);
 }
 } // namespace hz

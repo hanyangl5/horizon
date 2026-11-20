@@ -3,52 +3,52 @@
 
 cbuffer RootConstant0
 {
-    uint  instanceIndex;
-    uint  materialIndex;
-    uint  materialId;
-    uint  frameIndex;
-    uint  instancesIndex;
-    uint  materialsIndex;
-    uint  texturesIndex;
-    uint  samplerIndex;
-    uint  positionsIndex;
-    uint  normalsIndex;
-    uint  texcoordsIndex;
-    uint  drawsIndex;
-    uint  oitHeadsIndex;
-    uint  oitCounterIndex;
-    uint  oitNodesIndex;
-    uint  oitMaxNodes;
-    uint  lightingFrameIndex;
-    uint  shadowMapIndex;
-    uint  shadowSamplerIndex;
-    uint  environmentIndex;
-    uint  irradianceIndex;
-    uint  brdfLutIndex;
-    uint  environmentSamplerIndex;
-    uint  oitOpaqueIndex;
-    float oitOpacityBoost;
-    uint  oitShowHeatmap;
-    uint  oitOutputIndex;
-    float oitTime;
+    uint  InstanceIndex;
+    uint  MaterialIndex;
+    uint  MaterialId;
+    uint  FrameIndex;
+    uint  InstancesIndex;
+    uint  MaterialsIndex;
+    uint  TexturesIndex;
+    uint  SamplerIndex;
+    uint  PositionsIndex;
+    uint  NormalsIndex;
+    uint  TexcoordsIndex;
+    uint  DrawsIndex;
+    uint  OitHeadsIndex;
+    uint  OitCounterIndex;
+    uint  OitNodesIndex;
+    uint  OitMaxNodes;
+    uint  LightingFrameIndex;
+    uint  ShadowMapIndex;
+    uint  ShadowSamplerIndex;
+    uint  EnvironmentIndex;
+    uint  IrradianceIndex;
+    uint  BrdfLutIndex;
+    uint  EnvironmentSamplerIndex;
+    uint  OitOpaqueIndex;
+    float OitOpacityBoost;
+    uint  OitShowHeatmap;
+    uint  OitOutputIndex;
+    float OitTime;
 };
 
 #include "Material.slang"
 
-float4x4 LoadMatrix(ByteAddressBuffer buffer, uint offset)
+float4x4 LoadMatrix(ByteAddressBuffer Buffer, uint Offset)
 {
     // Runtime matrices store four columns; construct then transpose HLSL's row vectors.
-    return transpose(float4x4(asfloat(buffer.Load4(offset)), asfloat(buffer.Load4(offset + 16)), asfloat(buffer.Load4(offset + 32)),
-                              asfloat(buffer.Load4(offset + 48))));
+    return transpose(float4x4(asfloat(Buffer.Load4(Offset)), asfloat(Buffer.Load4(Offset + 16)), asfloat(Buffer.Load4(Offset + 32)),
+                              asfloat(Buffer.Load4(Offset + 48))));
 }
 
-float3 TransformNormal(float4x4 world, float3 Normal)
+float3 TransformNormal(float4x4 World, float3 Normal)
 {
-    const float3 x = float3(world[0][0], world[1][0], world[2][0]);
-    const float3 y = float3(world[0][1], world[1][1], world[2][1]);
-    const float3 z = float3(world[0][2], world[1][2], world[2][2]);
-    const float3 cofactor = cross(y, z) * Normal.x + cross(z, x) * Normal.y + cross(x, y) * Normal.z;
-    return normalize(cofactor * (dot(x, cross(y, z)) < 0.0 ? -1.0 : 1.0));
+    const float3 X = float3(World[0][0], World[1][0], World[2][0]);
+    const float3 Y = float3(World[0][1], World[1][1], World[2][1]);
+    const float3 Z = float3(World[0][2], World[1][2], World[2][2]);
+    const float3 Cofactor = cross(Y, Z) * Normal.x + cross(Z, X) * Normal.y + cross(X, Y) * Normal.z;
+    return normalize(Cofactor * (dot(X, cross(Y, Z)) < 0.0 ? -1.0 : 1.0));
 }
 
 struct PSInput
@@ -70,180 +70,180 @@ struct PSOutput
     float4 MotionMaterialId: SV_Target3;
 };
 
-PSInput BuildVertex(uint vertexId, uint instance, uint material, uint id, uint positionBuffer, uint normalBuffer, uint uvBuffer)
+PSInput BuildVertex(uint VertexId, uint Instance, uint Material, uint ID, uint PositionBuffer, uint NormalBuffer, uint UvBuffer)
 {
-    StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[frameIndex];
-    ByteAddressBuffer           Instances = ResourceDescriptorHeap[instancesIndex];
-    ByteAddressBuffer           Positions = ResourceDescriptorHeap[NonUniformResourceIndex(positionBuffer)];
-    float3                      Position = asfloat(Positions.Load3(vertexId * sizeof(float3)));
+    StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[FrameIndex];
+    ByteAddressBuffer           Instances = ResourceDescriptorHeap[InstancesIndex];
+    ByteAddressBuffer           Positions = ResourceDescriptorHeap[NonUniformResourceIndex(PositionBuffer)];
+    float3                      Position = asfloat(Positions.Load3(VertexId * sizeof(float3)));
     // Meshes without texture coordinates have no stream; they sample texel (0, 0).
     uint                        Uv = 0;
-    if (uvBuffer != INVALID_TEXTURE)
+    if (UvBuffer != INVALID_TEXTURE)
     {
-        ByteAddressBuffer Texcoords = ResourceDescriptorHeap[NonUniformResourceIndex(uvBuffer)];
-        Uv = Texcoords.Load(vertexId * 4);
+        ByteAddressBuffer Texcoords = ResourceDescriptorHeap[NonUniformResourceIndex(UvBuffer)];
+        Uv = Texcoords.Load(VertexId * 4);
     }
-    const float4x4              world = LoadMatrix(Instances, instance * 192 + 32);
-    const float4x4              previousWorld = LoadMatrix(Instances, instance * 192 + 96);
-    float4                      WorldPosition = mul(world, float4(Position, 1.0));
-    PSInput                     output;
-    output.CurrentClip = mul(Frame[0].viewProjection, WorldPosition);
-    output.PreviousClip = mul(Frame[0].previousViewProjection, mul(previousWorld, float4(Position, 1.0)));
-    output.Position = output.CurrentClip;
-    output.WorldPosition = WorldPosition.xyz;
+    const float4x4              World = LoadMatrix(Instances, Instance * 192 + 32);
+    const float4x4              PreviousWorld = LoadMatrix(Instances, Instance * 192 + 96);
+    float4                      WorldPosition = mul(World, float4(Position, 1.0));
+    PSInput                     Output;
+    Output.CurrentClip = mul(Frame[0].ViewProjection, WorldPosition);
+    Output.PreviousClip = mul(Frame[0].PreviousViewProjection, mul(PreviousWorld, float4(Position, 1.0)));
+    Output.Position = Output.CurrentClip;
+    Output.WorldPosition = WorldPosition.xyz;
     // Meshes without a normal stream pass a zero normal; SurfaceNormal shades them with the face normal.
-    output.Normal = 0.0;
-    if (normalBuffer != INVALID_TEXTURE)
+    Output.Normal = 0.0;
+    if (NormalBuffer != INVALID_TEXTURE)
     {
-        ByteAddressBuffer Normals = ResourceDescriptorHeap[NonUniformResourceIndex(normalBuffer)];
-        output.Normal = TransformNormal(world, decodeVertexNormal(Normals.Load(vertexId * 4)));
+        ByteAddressBuffer Normals = ResourceDescriptorHeap[NonUniformResourceIndex(NormalBuffer)];
+        Output.Normal = TransformNormal(World, DecodeVertexNormal(Normals.Load(VertexId * 4)));
     }
-    output.Uv = float2(f16tof32(Uv & 0xffffu), f16tof32(Uv >> 16));
-    output.MaterialData = uint2(material, id);
-    return output;
+    Output.Uv = float2(f16tof32(Uv & 0xffffu), f16tof32(Uv >> 16));
+    Output.MaterialData = uint2(Material, ID);
+    return Output;
 }
 
-float3 SurfaceNormal(float3 normal, float3 worldPosition)
+float3 SurfaceNormal(float3 Normal, float3 WorldPosition)
 {
-    if (dot(normal, normal) > 0.0)
+    if (dot(Normal, Normal) > 0.0)
     {
-        return normalize(normal);
+        return normalize(Normal);
     }
-    StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[frameIndex];
-    const float3                face = normalize(cross(ddx(worldPosition), ddy(worldPosition)));
-    return dot(face, Frame[0].eye.xyz - worldPosition) < 0.0 ? -face : face;
+    StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[FrameIndex];
+    const float3                Face = normalize(cross(ddx(WorldPosition), ddy(WorldPosition)));
+    return dot(Face, Frame[0].Eye.xyz - WorldPosition) < 0.0 ? -Face : Face;
 }
 
-PSInput VSMain(uint vertexId : SV_VertexID)
+PSInput VSMain(uint VertexId : SV_VertexID)
 {
-    return BuildVertex(vertexId, instanceIndex, materialIndex, materialId, positionsIndex, normalsIndex, texcoordsIndex);
+    return BuildVertex(VertexId, InstanceIndex, MaterialIndex, MaterialId, PositionsIndex, NormalsIndex, TexcoordsIndex);
 }
 
-PSInput VSIndirect(uint vertexId : SV_VertexID)
+PSInput VSIndirect(uint VertexId : SV_VertexID)
 {
-    const uint        drawId = instanceIndex;
-    ByteAddressBuffer draws = ResourceDescriptorHeap[drawsIndex];
-    uint4             object = draws.Load4(drawId * 48);
-    uint4             buffers = draws.Load4(drawId * 48 + 16);
-    uint4             geometry = draws.Load4(drawId * 48 + 32);
-    ByteAddressBuffer indices = ResourceDescriptorHeap[NonUniformResourceIndex(buffers.w)];
-    uint              indexPosition = (geometry.y + vertexId) * geometry.x;
-    uint              packed = indices.Load(indexPosition & ~3u);
-    uint              index = geometry.x == 2 ? ((packed >> ((indexPosition & 2u) * 8u)) & 0xffffu) : packed;
-    return BuildVertex(uint(int(index) + asint(geometry.z)), object.x, object.y, object.z, buffers.x, buffers.y, buffers.z);
+    const uint        DrawId = InstanceIndex;
+    ByteAddressBuffer Draws = ResourceDescriptorHeap[DrawsIndex];
+    uint4             Object = Draws.Load4(DrawId * 48);
+    uint4             Buffers = Draws.Load4(DrawId * 48 + 16);
+    uint4             Geometry = Draws.Load4(DrawId * 48 + 32);
+    ByteAddressBuffer Indices = ResourceDescriptorHeap[NonUniformResourceIndex(Buffers.w)];
+    uint              IndexPosition = (Geometry.y + VertexId) * Geometry.x;
+    uint              Packed = Indices.Load(IndexPosition & ~3u);
+    uint              Index = Geometry.x == 2 ? ((Packed >> ((IndexPosition & 2u) * 8u)) & 0xffffu) : Packed;
+    return BuildVertex(uint(int(Index) + asint(Geometry.z)), Object.x, Object.y, Object.z, Buffers.x, Buffers.y, Buffers.z);
 }
 
-float3x3 CotangentFrame(float3 N, float3 p, float2 Uv)
+float3x3 CotangentFrame(float3 N, float3 P, float2 Uv)
 {
-    float3 dp1 = ddx(p);
-    float3 dp2 = ddy(p);
-    float2 duv1 = ddx(Uv);
-    float2 duv2 = ddy(Uv);
+    float3 Dp1 = ddx(P);
+    float3 Dp2 = ddy(P);
+    float2 Duv1 = ddx(Uv);
+    float2 Duv2 = ddy(Uv);
 
-    float3 dp2perp = cross(dp2, N);
-    float3 dp1perp = cross(N, dp1);
-    float3 T = dp2perp * duv1.x + dp1perp * duv2.x;
-    float3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+    float3 Dp2perp = cross(Dp2, N);
+    float3 Dp1perp = cross(N, Dp1);
+    float3 T = Dp2perp * Duv1.x + Dp1perp * Duv2.x;
+    float3 B = Dp2perp * Duv1.y + Dp1perp * Duv2.y;
 
-    float invmax = rsqrt(max(max(dot(T, T), dot(B, B)), 1e-20));
+    float Invmax = rsqrt(max(max(dot(T, T), dot(B, B)), 1e-20));
 
-    float w = (dot(cross(N, T), B) < 0.0) ? -1.0 : 1.0;
+    float W = (dot(cross(N, T), B) < 0.0) ? -1.0 : 1.0;
 
-    T = T * w;
+    T = T * W;
 
-    return transpose(float3x3(T * invmax, B * invmax, N));
+    return transpose(float3x3(T * Invmax, B * Invmax, N));
 }
 
-float3 PerturbNormal(float3 n, float3 v, float3 normalSample, float2 Uv)
+float3 PerturbNormal(float3 N, float3 V, float3 NormalSample, float2 Uv)
 {
-    float3   map = normalize(2.0 * normalSample - float3(1.0));
-    float3x3 TBN = CotangentFrame(n, v, Uv);
-    float3 perturbed = mul(TBN, map);
-    return dot(perturbed, perturbed) > 1e-20 ? normalize(perturbed) : n;
+    float3   Map = normalize(2.0 * NormalSample - float3(1.0));
+    float3x3 TBN = CotangentFrame(N, V, Uv);
+    float3 Perturbed = mul(TBN, Map);
+    return dot(Perturbed, Perturbed) > 1e-20 ? normalize(Perturbed) : N;
 }
 
-void RunAlphaTest(float alpha, float alphaThreshold, float2 pixel)
+void RunAlphaTest(float Alpha, float AlphaThreshold, float2 Pixel)
 {
-    if (alphaThreshold > 0.0)
+    if (AlphaThreshold > 0.0)
     {
         // http://alex-charlton.com/posts/Dithering_on_the_GPU/
         // https://forums.khronos.org/showthread.php/5091-screen-door-transparency
-        float4x4 thresholdMatrix =
+        float4x4 ThresholdMatrix =
             float4x4(1.0 / 17.0, 9.0 / 17.0, 3.0 / 17.0, 11.0 / 17.0, 13.0 / 17.0, 5.0 / 17.0, 15.0 / 17.0, 7.0 / 17.0, 4.0 / 17.0,
                      12.0 / 17.0, 2.0 / 17.0, 10.0 / 17.0, 16.0 / 17.0, 8.0 / 17.0, 14.0 / 17.0, 6.0 / 17.0);
 
-        alpha = clamp(alpha - 0.5 * thresholdMatrix[int(fmod(pixel.x, 4.0))][int(fmod(pixel.y, 4.0))], 0.0, 1.0);
+        Alpha = clamp(Alpha - 0.5 * ThresholdMatrix[int(fmod(Pixel.x, 4.0))][int(fmod(Pixel.y, 4.0))], 0.0, 1.0);
 
-        if (alpha < alphaThreshold)
+        if (Alpha < AlphaThreshold)
         {
             discard;
         }
     }
 }
 
-PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
+PSOutput PSMain(PSInput Input, bool FrontFace : SV_IsFrontFace)
 {
-    SamplerState      SurfaceSampler = SamplerDescriptorHeap[samplerIndex];
-    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
-    GpuMaterialData   material = materials.Load<GpuMaterialData>(input.MaterialData.x * sizeof(GpuMaterialData));
+    SamplerState      SurfaceSampler = SamplerDescriptorHeap[SamplerIndex];
+    ByteAddressBuffer Materials = ResourceDescriptorHeap[MaterialsIndex];
+    GpuMaterialData   Material = Materials.Load<GpuMaterialData>(Input.MaterialData.x * sizeof(GpuMaterialData));
 
-    float4 baseColor = material.baseColorFactor;
-    if (material.baseColorTexture != INVALID_TEXTURE)
+    float4 BaseColorValue = Material.BaseColorFactor;
+    if (Material.BaseColorTexture != INVALID_TEXTURE)
     {
-        Texture2D<float4> BaseColor = ResourceDescriptorHeap[NonUniformResourceIndex(material.baseColorTexture)];
-        baseColor *= BaseColor.Sample(SurfaceSampler, input.Uv);
+        Texture2D<float4> BaseColor = ResourceDescriptorHeap[NonUniformResourceIndex(Material.BaseColorTexture)];
+        BaseColorValue *= BaseColor.Sample(SurfaceSampler, Input.Uv);
     }
-    if (material.alphaMode == 1)
+    if (Material.AlphaMode == 1)
     {
-        RunAlphaTest(baseColor.a, material.alphaCutoff / max(32.0 * fwidth(float(input.Uv.x)), 1.0), input.Position.xy);
+        RunAlphaTest(BaseColorValue.a, Material.AlphaCutoff / max(32.0 * fwidth(float(Input.Uv.x)), 1.0), Input.Position.xy);
     }
 
-    float3 n = SurfaceNormal(input.Normal, input.WorldPosition);
-    if (material.normalTexture != INVALID_TEXTURE)
+    float3 N = SurfaceNormal(Input.Normal, Input.WorldPosition);
+    if (Material.NormalTexture != INVALID_TEXTURE)
     {
-        Texture2D<float4> NormalMap = ResourceDescriptorHeap[NonUniformResourceIndex(material.normalTexture)];
-        float3            normalSample = NormalMap.Sample(SurfaceSampler, input.Uv).xyz;
+        Texture2D<float4> NormalMap = ResourceDescriptorHeap[NonUniformResourceIndex(Material.NormalTexture)];
+        float3            NormalSample = NormalMap.Sample(SurfaceSampler, Input.Uv).xyz;
         // Bistro uses BC5 Normal maps: reconstruct Z before the reference RGB Normal mapping.
-        float2 normalXY = normalSample.xy * 2.0 - 1.0;
-        normalSample.z = 0.5 + 0.5 * sqrt(saturate(1.0 - dot(normalXY, normalXY)));
-        if (length(normalSample) > 0.5)
+        float2 NormalXY = NormalSample.xy * 2.0 - 1.0;
+        NormalSample.z = 0.5 + 0.5 * sqrt(saturate(1.0 - dot(NormalXY, NormalXY)));
+        if (length(NormalSample) > 0.5)
         {
-            n = PerturbNormal(n, input.WorldPosition, normalSample, input.Uv);
+            N = PerturbNormal(N, Input.WorldPosition, NormalSample, Input.Uv);
         }
     }
 
-    n = frontFace ? n : -n;
+    N = FrontFace ? N : -N;
 
-    float roughness = material.roughnessFactor;
-    float metallic = material.metallicFactor;
-    if (material.metallicRoughnessTexture != INVALID_TEXTURE)
+    float Roughness = Material.RoughnessFactor;
+    float Metallic = Material.MetallicFactor;
+    if (Material.MetallicRoughnessTexture != INVALID_TEXTURE)
     {
-        Texture2D<float4> MetallicRoughness = ResourceDescriptorHeap[NonUniformResourceIndex(material.metallicRoughnessTexture)];
-        float4            metallicRoughness = MetallicRoughness.Sample(SurfaceSampler, input.Uv);
-        roughness *= metallicRoughness.g;
-        metallic *= metallicRoughness.b;
+        Texture2D<float4> MetallicRoughness = ResourceDescriptorHeap[NonUniformResourceIndex(Material.MetallicRoughnessTexture)];
+        float4            MetallicRoughnessValue = MetallicRoughness.Sample(SurfaceSampler, Input.Uv);
+        Roughness *= MetallicRoughnessValue.g;
+        Metallic *= MetallicRoughnessValue.b;
     }
-    roughness = saturate(roughness);
-    metallic = saturate(metallic);
+    Roughness = saturate(Roughness);
+    Metallic = saturate(Metallic);
 
-    float3 Emissive = material.emissiveFactor;
-    if (material.emissiveTexture != INVALID_TEXTURE)
+    float3 Emissive = Material.EmissiveFactor;
+    if (Material.EmissiveTexture != INVALID_TEXTURE)
     {
-        Texture2D<float4> EmissiveTexture = ResourceDescriptorHeap[NonUniformResourceIndex(material.emissiveTexture)];
-        Emissive *= EmissiveTexture.Sample(SurfaceSampler, input.Uv).rgb;
+        Texture2D<float4> EmissiveTexture = ResourceDescriptorHeap[NonUniformResourceIndex(Material.EmissiveTexture)];
+        Emissive *= EmissiveTexture.Sample(SurfaceSampler, Input.Uv).rgb;
     }
 
-    float2 currentNdc = input.CurrentClip.xy / input.CurrentClip.w;
-    float2 previousNdc = input.PreviousClip.xy / input.PreviousClip.w;
-    float2 motion = (currentNdc - previousNdc) * float2(0.5, -0.5);
+    float2 CurrentNdc = Input.CurrentClip.xy / Input.CurrentClip.w;
+    float2 PreviousNdc = Input.PreviousClip.xy / Input.PreviousClip.w;
+    float2 Motion = (CurrentNdc - PreviousNdc) * float2(0.5, -0.5);
 
     // Disney/UE default: Specular 0.5 maps to a dielectric F0 of 0.04.
-    float2 packedMaterial = packMaterialProperties(roughness, 0.5);
+    float2 PackedMaterial = PackMaterialProperties(Roughness, 0.5);
 
-    PSOutput output;
-    output.Emissive = float4(Emissive, 0.0);
-    output.NormalMaterial = float4(encodeOctNormal(n), packedMaterial.x, packedMaterial.y);
-    output.BaseColorMetallic = float4(baseColor.rgb, metallic);
-    output.MotionMaterialId = float4(encodeMotionVector(motion), min(input.MaterialData.y, 255u) / 255.0);
-    return output;
+    PSOutput Output;
+    Output.Emissive = float4(Emissive, 0.0);
+    Output.NormalMaterial = float4(EncodeOctNormal(N), PackedMaterial.x, PackedMaterial.y);
+    Output.BaseColorMetallic = float4(BaseColorValue.rgb, Metallic);
+    Output.MotionMaterialId = float4(EncodeMotionVector(Motion), min(Input.MaterialData.y, 255u) / 255.0);
+    return Output;
 }

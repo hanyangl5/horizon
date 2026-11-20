@@ -13,52 +13,52 @@
 
 namespace hz
 {
-static bool equalMatrix(const Matrix4& a, const Matrix4& b)
+static bool EqualMatrix(const Matrix4& A, const Matrix4& B)
 {
-    for (uint32_t column = 0; column < 4; ++column)
-        for (uint32_t row = 0; row < 4; ++row)
-            if ((float)a.getElem(column, row) != (float)b.getElem(column, row))
+    for (uint32_t Column = 0; Column < 4; ++Column)
+        for (uint32_t Row = 0; Row < 4; ++Row)
+            if ((float)A.getElem(Column, Row) != (float)B.getElem(Column, Row))
                 return false;
     return true;
 }
-static bool equalBounds(const RenderBounds& a, const RenderBounds& b)
+static bool EqualBounds(const RenderBounds& A, const RenderBounds& B)
 {
-    for (uint32_t i = 0; i < 3; ++i)
-        if (a.minimum[i] != b.minimum[i] || a.maximum[i] != b.maximum[i])
+    for (uint32_t I = 0; I < 3; ++I)
+        if (A.minimum[I] != B.minimum[I] || A.maximum[I] != B.maximum[I])
             return false;
     return true;
 }
-static bool equalLens(const Camera& a, const Camera& b)
+static bool EqualLens(const Camera& A, const Camera& B)
 {
-    return a.verticalFov == b.verticalFov && a.nearPlane == b.nearPlane && a.farPlane == b.farPlane;
+    return A.verticalFov == B.verticalFov && A.nearPlane == B.nearPlane && A.farPlane == B.farPlane;
 }
-static bool equalLight(const RenderLight& a, const RenderLight& b)
+static bool EqualLight(const RenderLight& A, const RenderLight& B)
 {
-    return a.entityGuid == b.entityGuid && equalMatrix(a.transform, b.transform) && a.Type == b.Type && a.color[0] == b.color[0] &&
-           a.color[1] == b.color[1] && a.color[2] == b.color[2] && a.intensity == b.intensity && a.range == b.range &&
-           a.innerConeAngle == b.innerConeAngle && a.outerConeAngle == b.outerConeAngle && a.exposure == b.exposure &&
-           a.angularDiameter == b.angularDiameter && a.Width == b.Width && a.Height == b.Height && a.radius == b.radius &&
-           a.length == b.length && a.colorTemperature == b.colorTemperature && a.enableColorTemperature == b.enableColorTemperature &&
-           a.normalize == b.normalize && a.twoSided == b.twoSided && a.texture == b.texture && a.primitive == b.primitive &&
-           a.ready == b.ready;
+    return A.entityGuid == B.entityGuid && EqualMatrix(A.transform, B.transform) && A.Type == B.Type && A.color[0] == B.color[0] &&
+           A.color[1] == B.color[1] && A.color[2] == B.color[2] && A.intensity == B.intensity && A.range == B.range &&
+           A.innerConeAngle == B.innerConeAngle && A.outerConeAngle == B.outerConeAngle && A.exposure == B.exposure &&
+           A.angularDiameter == B.angularDiameter && A.Width == B.Width && A.Height == B.Height && A.radius == B.radius &&
+           A.length == B.length && A.colorTemperature == B.colorTemperature && A.enableColorTemperature == B.enableColorTemperature &&
+           A.normalize == B.normalize && A.twoSided == B.twoSided && A.texture == B.texture && A.primitive == B.primitive &&
+           A.ready == B.ready;
 }
-static RenderBounds transformBounds(const MeshBounds& bounds, const Matrix4& matrix)
+static RenderBounds TransformBounds(const MeshBounds& Bounds, const Matrix4& Matrix)
 {
-    RenderBounds result;
-    for (uint32_t row = 0; row < 3; ++row)
+    RenderBounds Result;
+    for (uint32_t Row = 0; Row < 3; ++Row)
     {
-        float minimum = (float)matrix.getElem(3, row), maximum = minimum;
-        for (uint32_t column = 0; column < 3; ++column)
+        float MinimumValue = (float)Matrix.getElem(3, Row), MaximumValue = MinimumValue;
+        for (uint32_t Column = 0; Column < 3; ++Column)
         {
-            const float a = (float)matrix.getElem(column, row) * bounds.minimum[column];
-            const float b = (float)matrix.getElem(column, row) * bounds.maximum[column];
-            minimum += fminf(a, b);
-            maximum += fmaxf(a, b);
+            const float A = (float)Matrix.getElem(Column, Row) * Bounds.minimum[Column];
+            const float B = (float)Matrix.getElem(Column, Row) * Bounds.maximum[Column];
+            MinimumValue += fminf(A, B);
+            MaximumValue += fmaxf(A, B);
         }
-        result.minimum[row] = minimum;
-        result.maximum[row] = maximum;
+        Result.minimum[Row] = MinimumValue;
+        Result.maximum[Row] = MaximumValue;
     }
-    return result;
+    return Result;
 }
 
 struct RenderEntity
@@ -108,128 +108,128 @@ struct RenderCameraEntity
 class RenderSceneData
 {
 public:
-    RenderSceneData(World& world, AssetManager& assetManager, const AnimationSystem* animation):
-        world(world), assetManager(assetManager), animation(animation), bindings(world, assetManager), changes(world), query(world, { SceneTypes::meshRenderer }),
-        lightQuery(world, { SceneTypes::light }), cameraQuery(world, { SceneTypes::camera })
+    RenderSceneData(World& WorldData, AssetManager& AssetManagerValue, const AnimationSystem* Animation):
+        world(WorldData), assetManager(AssetManagerValue), animation(Animation), bindings(WorldData, AssetManagerValue), changes(WorldData), query(WorldData, { SceneTypes::meshRenderer }),
+        lightQuery(WorldData, { SceneTypes::light }), cameraQuery(WorldData, { SceneTypes::camera })
     {
         ASSERT(query.IsValid() && lightQuery.IsValid() && cameraQuery.IsValid());
     }
     ~RenderSceneData()
     {
-        for (const RenderLightEntity& light : lightEntities)
-            if (light.texture.IsValid())
+        for (const RenderLightEntity& LightValue : lightEntities)
+            if (LightValue.texture.IsValid())
             {
-                assetManager.Release(light.texture);
+                assetManager.Release(LightValue.texture);
             }
         hmfree(pIndices);
         hmfree(pLightIndices);
         hmfree(pCameraIndices);
     }
 
-    static bool syncLight(Entity entity, Span<const void*> fields, void* User)
+    static bool syncLight(Entity EntityHandle, Span<const void*> Fields, void* User)
     {
-        RenderSceneData&         data = *(RenderSceneData*)User;
-        const RenderEntityIndex* pIndex = hmgetp_null(data.pLightIndices, entity);
-        if (!pIndex)
+        RenderSceneData&         DataValue = *(RenderSceneData*)User;
+        const RenderEntityIndex* IndexPointer = hmgetp_null(DataValue.pLightIndices, EntityHandle);
+        if (!IndexPointer)
         {
-            RenderLightEntity& lightEntity = data.lightEntities.EmplaceBack();
-            lightEntity.entity = entity;
-            lightEntity.id = data.lights.Add();
-            data.textureReleases.Reserve(data.lightEntities.Size());
-            const RenderEntityIndex index = { .key = entity, .value = data.lightEntities.Size() - 1 };
-            hmputs(data.pLightIndices, index);
-            pIndex = hmgetp_null(data.pLightIndices, entity);
+            RenderLightEntity& LightEntity = DataValue.lightEntities.EmplaceBack();
+            LightEntity.entity = EntityHandle;
+            LightEntity.id = DataValue.lights.Add();
+            DataValue.textureReleases.Reserve(DataValue.lightEntities.Size());
+            const RenderEntityIndex IndexValue = { .key = EntityHandle, .value = DataValue.lightEntities.Size() - 1 };
+            hmputs(DataValue.pLightIndices, IndexValue);
+            IndexPointer = hmgetp_null(DataValue.pLightIndices, EntityHandle);
         }
-        RenderLightEntity& lightEntity = data.lightEntities[pIndex->value];
-        lightEntity.seen = true;
-        const Light&  light = *(const Light*)fields.Data[0];
-        const AssetID textureID = light.Type >= LightType::Rect ? light.texture : AssetID{};
-        if (lightEntity.textureID != textureID)
+        RenderLightEntity& LightEntity = DataValue.lightEntities[IndexPointer->value];
+        LightEntity.seen = true;
+        const Light&  LightValue = *(const Light*)Fields.Data[0];
+        const AssetID TextureId = LightValue.Type >= LightType::Rect ? LightValue.texture : AssetID{};
+        if (LightEntity.textureID != TextureId)
         {
-            if (lightEntity.texture.IsValid())
+            if (LightEntity.texture.IsValid())
             {
-                data.textureReleases.PushBack(lightEntity.texture);
+                DataValue.textureReleases.PushBack(LightEntity.texture);
             }
-            lightEntity.textureID = textureID;
-            lightEntity.texture = {};
-            lightEntity.error = AssetError::None;
+            LightEntity.textureID = TextureId;
+            LightEntity.texture = {};
+            LightEntity.error = AssetError::None;
         }
-        if (textureID.IsValid() && !lightEntity.texture.IsValid() &&
-            (lightEntity.error == AssetError::None || lightEntity.error == AssetError::Retiring))
+        if (TextureId.IsValid() && !LightEntity.texture.IsValid() &&
+            (LightEntity.error == AssetError::None || LightEntity.error == AssetError::Retiring))
         {
-            lightEntity.texture = data.assetManager.Request(textureID, &lightEntity.error);
+            LightEntity.texture = DataValue.assetManager.Request(TextureId, &LightEntity.error);
         }
         return true;
     }
     void extractLights()
     {
-        for (uint32_t i = 0; i < lightEntities.Size();)
+        for (uint32_t I = 0; I < lightEntities.Size();)
         {
-            RenderLightEntity& entity = lightEntities[i];
-            if (!entity.seen)
+            RenderLightEntity& EntityHandle = lightEntities[I];
+            if (!EntityHandle.seen)
             {
-                if (entity.texture.IsValid())
+                if (EntityHandle.texture.IsValid())
                 {
-                    textureReleases.PushBack(entity.texture);
+                    textureReleases.PushBack(EntityHandle.texture);
                 }
-                lights.Remove(entity.id);
-                hmdel(pLightIndices, entity.entity);
-                lightEntities[i] = lightEntities[lightEntities.Size() - 1];
+                lights.Remove(EntityHandle.id);
+                hmdel(pLightIndices, EntityHandle.entity);
+                lightEntities[I] = lightEntities[lightEntities.Size() - 1];
                 lightEntities.PopBack();
-                if (i < lightEntities.Size())
+                if (I < lightEntities.Size())
                 {
-                    hmgetp_null(pLightIndices, lightEntities[i].entity)->value = i;
+                    hmgetp_null(pLightIndices, lightEntities[I].entity)->value = I;
                 }
                 continue;
             }
-            const Light& source = *(const Light*)world.GetComponent(entity.entity, SceneTypes::light);
-            if (assetManager.GetState(entity.texture) == AssetState::Ready && !assetManager.GetTexture(entity.texture) &&
-                entity.error != AssetError::LoadFailed)
+            const Light& Source = *(const Light*)world.GetComponent(EntityHandle.entity, SceneTypes::light);
+            if (assetManager.GetState(EntityHandle.texture) == AssetState::Ready && !assetManager.GetTexture(EntityHandle.texture) &&
+                EntityHandle.error != AssetError::LoadFailed)
             {
-                entity.error = AssetError::LoadFailed;
+                EntityHandle.error = AssetError::LoadFailed;
                 LOGF(Error, "Light emission map has the wrong asset type");
             }
-            RenderLight next = {
-                .id = entity.id,
-                .entityGuid = world.GetEntityGuid(entity.entity),
-                .transform = world.GetWorldTransform(entity.entity)->current,
-                .Type = source.Type,
-                .color = { (float)source.color.getX(), (float)source.color.getY(), (float)source.color.getZ() },
-                .intensity = source.intensity,
-                .range = source.range,
-                .innerConeAngle = source.innerConeAngle,
-                .outerConeAngle = source.outerConeAngle,
-                .exposure = source.exposure,
-                .angularDiameter = source.angularDiameter,
-                .Width = source.Width,
-                .Height = source.Height,
-                .radius = source.radius,
-                .length = source.length,
-                .colorTemperature = source.colorTemperature,
-                .enableColorTemperature = source.enableColorTemperature ? 1u : 0u,
-                .normalize = source.normalize ? 1u : 0u,
-                .twoSided = source.twoSided ? 1u : 0u,
-                .ready = !entity.textureID.IsValid() || assetManager.GetTexture(entity.texture) ? 1u : 0u,
+            RenderLight Next = {
+                .id = EntityHandle.id,
+                .entityGuid = world.GetEntityGuid(EntityHandle.entity),
+                .transform = world.GetWorldTransform(EntityHandle.entity)->current,
+                .Type = Source.Type,
+                .color = { (float)Source.color.getX(), (float)Source.color.getY(), (float)Source.color.getZ() },
+                .intensity = Source.intensity,
+                .range = Source.range,
+                .innerConeAngle = Source.innerConeAngle,
+                .outerConeAngle = Source.outerConeAngle,
+                .exposure = Source.exposure,
+                .angularDiameter = Source.angularDiameter,
+                .Width = Source.Width,
+                .Height = Source.Height,
+                .radius = Source.radius,
+                .length = Source.length,
+                .colorTemperature = Source.colorTemperature,
+                .enableColorTemperature = Source.enableColorTemperature ? 1u : 0u,
+                .normalize = Source.normalize ? 1u : 0u,
+                .twoSided = Source.twoSided ? 1u : 0u,
+                .ready = !EntityHandle.textureID.IsValid() || assetManager.GetTexture(EntityHandle.texture) ? 1u : 0u,
             };
-            if (entity.textureID.IsValid() && next.ready)
+            if (EntityHandle.textureID.IsValid() && Next.ready)
             {
-                next.texture = { .index = entity.texture.index, .generation = entity.texture.generation };
+                Next.texture = { .index = EntityHandle.texture.index, .generation = EntityHandle.texture.generation };
             }
-            if (source.Type == LightType::Mesh)
+            if (Source.Type == LightType::Mesh)
             {
-                const RenderEntityIndex* pIndex = hmgetp_null(pIndices, entity.entity);
-                if (pIndex)
-                    next.primitive = entities[pIndex->value].primitive;
-                const RenderPrimitive* pPrimitive = primitives.Get(next.primitive);
-                next.ready = next.ready && pPrimitive && pPrimitive->instanceCount ? 1u : 0u;
+                const RenderEntityIndex* IndexPointer = hmgetp_null(pIndices, EntityHandle.entity);
+                if (IndexPointer)
+                    Next.primitive = entities[IndexPointer->value].primitive;
+                const RenderPrimitive* PrimitivePointer = primitives.Get(Next.primitive);
+                Next.ready = Next.ready && PrimitivePointer && PrimitivePointer->instanceCount ? 1u : 0u;
             }
-            RenderLight& light = lights.values[entity.id.index];
-            if (!equalLight(light, next))
+            RenderLight& LightValue = lights.Values[EntityHandle.id.index];
+            if (!EqualLight(LightValue, Next))
             {
-                light = next;
-                lights.MarkDirty(entity.id.index);
+                LightValue = Next;
+                lights.MarkDirty(EntityHandle.id.index);
             }
-            ++i;
+            ++I;
         }
         for (AssetHandle Handle : textureReleases)
         {
@@ -237,284 +237,284 @@ public:
         }
         textureReleases.Clear();
     }
-    static bool extractCamera(Entity entity, Span<const void*> fields, void* User)
+    static bool extractCamera(Entity EntityHandle, Span<const void*> Fields, void* User)
     {
-        RenderSceneData&         data = *(RenderSceneData*)User;
-        const RenderEntityIndex* pIndex = hmgetp_null(data.pCameraIndices, entity);
-        if (!pIndex)
+        RenderSceneData&         DataValue = *(RenderSceneData*)User;
+        const RenderEntityIndex* IndexPointer = hmgetp_null(DataValue.pCameraIndices, EntityHandle);
+        if (!IndexPointer)
         {
-            RenderCameraEntity& cameraEntity = data.cameraEntities.EmplaceBack();
-            cameraEntity.entity = entity;
-            cameraEntity.id = data.cameras.Add();
-            const RenderEntityIndex index = { .key = entity, .value = data.cameraEntities.Size() - 1 };
-            hmputs(data.pCameraIndices, index);
-            pIndex = hmgetp_null(data.pCameraIndices, entity);
+            RenderCameraEntity& CameraEntity = DataValue.cameraEntities.EmplaceBack();
+            CameraEntity.entity = EntityHandle;
+            CameraEntity.id = DataValue.cameras.Add();
+            const RenderEntityIndex IndexValue = { .key = EntityHandle, .value = DataValue.cameraEntities.Size() - 1 };
+            hmputs(DataValue.pCameraIndices, IndexValue);
+            IndexPointer = hmgetp_null(DataValue.pCameraIndices, EntityHandle);
         }
-        RenderCameraEntity& cameraEntity = data.cameraEntities[pIndex->value];
-        cameraEntity.seen = true;
-        const Matrix4& current = data.world.GetWorldTransform(entity)->current;
-        const Camera&  lens = *(const Camera*)fields.Data[0];
-        const Matrix4& previous = cameraEntity.historyValid ? cameraEntity.submitted : current;
-        const Camera&  previousLens = cameraEntity.historyValid ? cameraEntity.submittedLens : lens;
-        const Guid     entityGuid = data.world.GetEntityGuid(entity);
-        RenderCamera&  camera = data.cameras.values[cameraEntity.id.index];
-        if (camera.entityGuid != entityGuid || !equalMatrix(camera.current, current) || !equalMatrix(camera.previous, previous) ||
-            !equalLens(camera.lens, lens) || !equalLens(camera.previousLens, previousLens))
+        RenderCameraEntity& CameraEntity = DataValue.cameraEntities[IndexPointer->value];
+        CameraEntity.seen = true;
+        const Matrix4& Current = DataValue.world.GetWorldTransform(EntityHandle)->current;
+        const Camera&  Lens = *(const Camera*)Fields.Data[0];
+        const Matrix4& Previous = CameraEntity.historyValid ? CameraEntity.submitted : Current;
+        const Camera&  PreviousLens = CameraEntity.historyValid ? CameraEntity.submittedLens : Lens;
+        const Guid     EntityGuid = DataValue.world.GetEntityGuid(EntityHandle);
+        RenderCamera&  CameraData = DataValue.cameras.Values[CameraEntity.id.index];
+        if (CameraData.entityGuid != EntityGuid || !EqualMatrix(CameraData.current, Current) || !EqualMatrix(CameraData.previous, Previous) ||
+            !EqualLens(CameraData.lens, Lens) || !EqualLens(CameraData.previousLens, PreviousLens))
         {
-            camera.entityGuid = entityGuid;
-            camera.current = current;
-            camera.previous = previous;
-            camera.lens = lens;
-            camera.previousLens = previousLens;
-            data.cameras.MarkDirty(cameraEntity.id.index);
+            CameraData.entityGuid = EntityGuid;
+            CameraData.current = Current;
+            CameraData.previous = Previous;
+            CameraData.lens = Lens;
+            CameraData.previousLens = PreviousLens;
+            DataValue.cameras.MarkDirty(CameraEntity.id.index);
         }
-        cameraEntity.historyReset = false;
+        CameraEntity.historyReset = false;
         return true;
     }
     void removeCameras()
     {
-        for (uint32_t i = 0; i < cameraEntities.Size();)
+        for (uint32_t I = 0; I < cameraEntities.Size();)
         {
-            const RenderCameraEntity& entity = cameraEntities[i];
-            if (entity.seen)
+            const RenderCameraEntity& EntityHandle = cameraEntities[I];
+            if (EntityHandle.seen)
             {
-                ++i;
+                ++I;
                 continue;
             }
-            cameras.Remove(entity.id);
-            hmdel(pCameraIndices, entity.entity);
-            cameraEntities[i] = cameraEntities[cameraEntities.Size() - 1];
+            cameras.Remove(EntityHandle.id);
+            hmdel(pCameraIndices, EntityHandle.entity);
+            cameraEntities[I] = cameraEntities[cameraEntities.Size() - 1];
             cameraEntities.PopBack();
-            if (i < cameraEntities.Size())
+            if (I < cameraEntities.Size())
             {
-                hmgetp_null(pCameraIndices, cameraEntities[i].entity)->value = i;
+                hmgetp_null(pCameraIndices, cameraEntities[I].entity)->value = I;
             }
         }
     }
 
-    void removeMeshBatches(RenderEntity& entity)
+    void removeMeshBatches(RenderEntity& EntityHandle)
     {
-        for (RenderMeshBatchID meshBatch : entity.meshBatches)
+        for (RenderMeshBatchID MeshBatch : EntityHandle.meshBatches)
         {
-            meshBatches.Remove(meshBatch);
+            meshBatches.Remove(MeshBatch);
         }
-        entity.meshBatches.Clear();
+        EntityHandle.meshBatches.Clear();
     }
-    void setInstanceIndex(uint32_t index, uint32_t value)
+    void setInstanceIndex(uint32_t IndexValue, uint32_t Value)
     {
-        if (instanceIndices.Size() <= index)
+        if (instanceIndices.Size() <= IndexValue)
         {
-            indicesDirty.Reserve(index + 1);
-            indicesRanges.Reserve(index + 1);
-            indicesPending.Reserve(index + 1);
+            indicesDirty.Reserve(IndexValue + 1);
+            indicesRanges.Reserve(IndexValue + 1);
+            indicesPending.Reserve(IndexValue + 1);
         }
-        while (instanceIndices.Size() <= index)
+        while (instanceIndices.Size() <= IndexValue)
         {
             markIndex(instanceIndices.Size());
             instanceIndices.PushBack(UINT32_MAX);
             indicesPendingFlags.PushBack(true);
         }
-        if (instanceIndices[index] != value)
+        if (instanceIndices[IndexValue] != Value)
         {
-            instanceIndices[index] = value;
-            markIndex(index);
+            instanceIndices[IndexValue] = Value;
+            markIndex(IndexValue);
         }
     }
-    void markIndex(uint32_t index)
+    void markIndex(uint32_t IndexValue)
     {
-        indicesDirty.PushBack(index);
-        if (index >= indicesPendingFlags.Size() || !indicesPendingFlags[index])
+        indicesDirty.PushBack(IndexValue);
+        if (IndexValue >= indicesPendingFlags.Size() || !indicesPendingFlags[IndexValue])
         {
-            if (index < indicesPendingFlags.Size())
+            if (IndexValue < indicesPendingFlags.Size())
             {
-                indicesPendingFlags[index] = true;
+                indicesPendingFlags[IndexValue] = true;
             }
-            indicesPending.PushBack(index);
+            indicesPending.PushBack(IndexValue);
         }
     }
-    void markHistory(uint32_t instance)
+    void markHistory(uint32_t Instance)
     {
-        RenderHistory& history = instanceHistory[instance];
-        if (!history.pending)
+        RenderHistory& History = instanceHistory[Instance];
+        if (!History.pending)
         {
-            history.pending = true;
-            historyPending.PushBack(instance);
+            History.pending = true;
+            historyPending.PushBack(Instance);
         }
     }
-    RenderEntity& Add(Entity entity)
+    RenderEntity& Add(Entity EntityHandle)
     {
-        RenderEntity& renderEntity = entities.EmplaceBack();
-        renderEntity.entity = entity;
-        renderEntity.primitive = primitives.Add();
-        renderEntity.instance = instances.Add();
-        primitives.values[renderEntity.primitive.index].instanceOffset = renderEntity.primitive.index;
-        instances.values[renderEntity.instance.index].primitive = renderEntity.primitive;
-        if (instanceHistory.Size() <= renderEntity.instance.index)
+        RenderEntity& RenderEntityValue = entities.EmplaceBack();
+        RenderEntityValue.entity = EntityHandle;
+        RenderEntityValue.primitive = primitives.Add();
+        RenderEntityValue.instance = instances.Add();
+        primitives.Values[RenderEntityValue.primitive.index].instanceOffset = RenderEntityValue.primitive.index;
+        instances.Values[RenderEntityValue.instance.index].primitive = RenderEntityValue.primitive;
+        if (instanceHistory.Size() <= RenderEntityValue.instance.index)
         {
-            historyPending.Reserve(renderEntity.instance.index + 1);
-            historyFollowUp.Reserve(renderEntity.instance.index + 1);
-            instanceHistory.Resize(renderEntity.instance.index + 1);
-            instanceEntities.Resize(renderEntity.instance.index + 1);
+            historyPending.Reserve(RenderEntityValue.instance.index + 1);
+            historyFollowUp.Reserve(RenderEntityValue.instance.index + 1);
+            instanceHistory.Resize(RenderEntityValue.instance.index + 1);
+            instanceEntities.Resize(RenderEntityValue.instance.index + 1);
         }
-        instanceEntities[renderEntity.instance.index] = entity;
-        instanceHistory[renderEntity.instance.index].valid = false;
-        instanceHistory[renderEntity.instance.index].Reset = false;
-        setInstanceIndex(renderEntity.primitive.index, UINT32_MAX);
-        const RenderEntityIndex index = { .key = entity, .value = entities.Size() - 1 };
-        hmputs(pIndices, index);
-        return renderEntity;
+        instanceEntities[RenderEntityValue.instance.index] = EntityHandle;
+        instanceHistory[RenderEntityValue.instance.index].valid = false;
+        instanceHistory[RenderEntityValue.instance.index].Reset = false;
+        setInstanceIndex(RenderEntityValue.primitive.index, UINT32_MAX);
+        const RenderEntityIndex IndexValue = { .key = EntityHandle, .value = entities.Size() - 1 };
+        hmputs(pIndices, IndexValue);
+        return RenderEntityValue;
     }
-    void buildMeshBatches(RenderEntity& entity, const MeshAssetBinding& binding, const MeshAsset& mesh)
+    void buildMeshBatches(RenderEntity& EntityHandle, const MeshAssetBinding& BindingValue, const MeshAsset& MeshValue)
     {
-        removeMeshBatches(entity);
-        entity.meshBatches.Reserve(binding.materials.Count);
-        entity.localBounds = binding.materials.Count ? mesh.GetBounds(0) : MeshBounds{};
-        for (uint32_t i = 0; i < binding.materials.Count; ++i)
+        removeMeshBatches(EntityHandle);
+        EntityHandle.meshBatches.Reserve(BindingValue.materials.Count);
+        EntityHandle.localBounds = BindingValue.materials.Count ? MeshValue.GetBounds(0) : MeshBounds{};
+        for (uint32_t I = 0; I < BindingValue.materials.Count; ++I)
         {
-            const MaterialAssetBinding& material = binding.materials.Data[i];
-            const RenderMeshBatchID     id = meshBatches.Add();
-            RenderMeshBatch&            meshBatch = meshBatches.values[id.index];
-            meshBatch.primitive = entity.primitive;
-            meshBatch.submesh = material.submesh;
-            meshBatch.mesh = { .mesh = primitives.values[entity.primitive.index].mesh, .submeshIndex = i };
-            meshBatch.material = { .index = material.Handle.index, .generation = material.Handle.generation };
-            entity.meshBatches.PushBack(id);
-            const MeshBounds& bounds = mesh.GetBounds(i);
-            for (uint32_t axis = 0; axis < 3; ++axis)
+            const MaterialAssetBinding& MaterialValue = BindingValue.materials.Data[I];
+            const RenderMeshBatchID     Id = meshBatches.Add();
+            RenderMeshBatch&            MeshBatch = meshBatches.Values[Id.index];
+            MeshBatch.primitive = EntityHandle.primitive;
+            MeshBatch.submesh = MaterialValue.submesh;
+            MeshBatch.mesh = { .mesh = primitives.Values[EntityHandle.primitive.index].mesh, .submeshIndex = I };
+            MeshBatch.material = { .index = MaterialValue.Handle.index, .generation = MaterialValue.Handle.generation };
+            EntityHandle.meshBatches.PushBack(Id);
+            const MeshBounds& Bounds = MeshValue.GetBounds(I);
+            for (uint32_t Axis = 0; Axis < 3; ++Axis)
             {
-                entity.localBounds.minimum[axis] = fminf(entity.localBounds.minimum[axis], bounds.minimum[axis]);
-                entity.localBounds.maximum[axis] = fmaxf(entity.localBounds.maximum[axis], bounds.maximum[axis]);
+                EntityHandle.localBounds.minimum[Axis] = fminf(EntityHandle.localBounds.minimum[Axis], Bounds.minimum[Axis]);
+                EntityHandle.localBounds.maximum[Axis] = fmaxf(EntityHandle.localBounds.maximum[Axis], Bounds.maximum[Axis]);
             }
         }
     }
-    void extract(RenderEntity& entity)
+    void extract(RenderEntity& EntityHandle)
     {
-        entity.seen = true;
-        const SkinnedMesh* skinned = (const SkinnedMesh*)world.GetComponent(entity.entity, SceneTypes::skinnedMesh);
-        const uint32_t     skin = skinned ? skinned->skin : UINT32_MAX;
-        if ((skin == UINT32_MAX) != (entity.skin == UINT32_MAX))
+        EntityHandle.seen = true;
+        const SkinnedMesh* Skinned = (const SkinnedMesh*)world.GetComponent(EntityHandle.entity, SceneTypes::skinnedMesh);
+        const uint32_t     Skin = Skinned ? Skinned->skin : UINT32_MAX;
+        if ((Skin == UINT32_MAX) != (EntityHandle.skin == UINT32_MAX))
         {
-            if (skin == UINT32_MAX)
-                removeSkinnedEntity(entity.entity);
+            if (Skin == UINT32_MAX)
+                removeSkinnedEntity(EntityHandle.entity);
             else
-                skinnedEntities.PushBack(entity.entity);
+                skinnedEntities.PushBack(EntityHandle.entity);
         }
-        entity.skin = skin;
-        RenderPrimitive&        primitive = primitives.values[entity.primitive.index];
-        const MeshAssetBinding* pBinding = bindings.Get(entity.entity);
-        ASSERT(pBinding);
-        const bool       ready = pBinding->state == AssetBindingState::Ready;
-        const MeshAsset* pMesh = assetManager.GetMesh(pBinding->mesh);
-        const GpuMeshID  mesh = pMesh ? GpuMeshID{ .index = pBinding->mesh.index, .generation = pBinding->mesh.generation } : GpuMeshID{};
-        const uint32_t   Count = ready ? 1u : 0u;
-        if (primitive.mesh != mesh)
+        EntityHandle.skin = Skin;
+        RenderPrimitive&        PrimitiveValue = primitives.Values[EntityHandle.primitive.index];
+        const MeshAssetBinding* BindingPointer = bindings.Get(EntityHandle.entity);
+        ASSERT(BindingPointer);
+        const bool       ReadyValue = BindingPointer->state == AssetBindingState::Ready;
+        const MeshAsset* MeshPointer = assetManager.GetMesh(BindingPointer->mesh);
+        const GpuMeshID  MeshValue = MeshPointer ? GpuMeshID{ .index = BindingPointer->mesh.index, .generation = BindingPointer->mesh.generation } : GpuMeshID{};
+        const uint32_t   Count = ReadyValue ? 1u : 0u;
+        if (PrimitiveValue.mesh != MeshValue)
         {
-            removeMeshBatches(entity);
-            entity.localBounds = {};
+            removeMeshBatches(EntityHandle);
+            EntityHandle.localBounds = {};
         }
-        if (primitive.mesh != mesh || primitive.instanceCount != Count)
+        if (PrimitiveValue.mesh != MeshValue || PrimitiveValue.instanceCount != Count)
         {
-            if (ready && (primitive.mesh != mesh || !primitive.instanceCount))
+            if (ReadyValue && (PrimitiveValue.mesh != MeshValue || !PrimitiveValue.instanceCount))
             {
-                instanceHistory[entity.instance.index].valid = false;
-                markHistory(entity.instance.index);
+                instanceHistory[EntityHandle.instance.index].valid = false;
+                markHistory(EntityHandle.instance.index);
             }
-            primitive.mesh = mesh;
-            primitive.instanceCount = Count;
-            primitives.MarkDirty(entity.primitive.index);
-            setInstanceIndex(entity.primitive.index, ready ? entity.instance.index : UINT32_MAX);
+            PrimitiveValue.mesh = MeshValue;
+            PrimitiveValue.instanceCount = Count;
+            primitives.MarkDirty(EntityHandle.primitive.index);
+            setInstanceIndex(EntityHandle.primitive.index, ReadyValue ? EntityHandle.instance.index : UINT32_MAX);
         }
-        if (ready && entity.meshBatches.Empty())
+        if (ReadyValue && EntityHandle.meshBatches.Empty())
         {
-            buildMeshBatches(entity, *pBinding, *pMesh);
+            buildMeshBatches(EntityHandle, *BindingPointer, *MeshPointer);
         }
-        if (ready)
+        if (ReadyValue)
         {
-            ASSERT(entity.meshBatches.Size() == pBinding->materials.Count);
-            for (uint32_t i = 0; i < entity.meshBatches.Size(); ++i)
+            ASSERT(EntityHandle.meshBatches.Size() == BindingPointer->materials.Count);
+            for (uint32_t I = 0; I < EntityHandle.meshBatches.Size(); ++I)
             {
-                RenderMeshBatch&    meshBatch = meshBatches.values[entity.meshBatches[i].index];
-                const AssetHandle   Handle = pBinding->materials.Data[i].Handle;
-                const GpuMaterialID material = { .index = Handle.index, .generation = Handle.generation };
-                if (meshBatch.material != material)
+                RenderMeshBatch&    MeshBatch = meshBatches.Values[EntityHandle.meshBatches[I].index];
+                const AssetHandle   Handle = BindingPointer->materials.Data[I].Handle;
+                const GpuMaterialID MaterialValue = { .index = Handle.index, .generation = Handle.generation };
+                if (MeshBatch.material != MaterialValue)
                 {
-                    meshBatch.material = material;
-                    meshBatches.MarkDirty(meshBatch.id.index);
+                    MeshBatch.material = MaterialValue;
+                    meshBatches.MarkDirty(MeshBatch.id.index);
                 }
             }
         }
         else
-            for (RenderMeshBatchID id : entity.meshBatches)
+            for (RenderMeshBatchID Id : EntityHandle.meshBatches)
             {
-                RenderMeshBatch& meshBatch = meshBatches.values[id.index];
-                if (meshBatch.material.IsValid())
+                RenderMeshBatch& MeshBatch = meshBatches.Values[Id.index];
+                if (MeshBatch.material.IsValid())
                 {
-                    meshBatch.material = {};
-                    meshBatches.MarkDirty(id.index);
+                    MeshBatch.material = {};
+                    meshBatches.MarkDirty(Id.index);
                 }
             }
-        const WorldTransform& transform = *world.GetWorldTransform(entity.entity);
-        RenderInstance&       instance = instances.values[entity.instance.index];
-        const Guid            entityGuid = world.GetEntityGuid(entity.entity);
+        const WorldTransform& Transform = *world.GetWorldTransform(EntityHandle.entity);
+        RenderInstance&       Instance = instances.Values[EntityHandle.instance.index];
+        const Guid            EntityGuid = world.GetEntityGuid(EntityHandle.entity);
         // updateSkins bounds skinned instances by their pose.
-        const RenderBounds    bounds = !ready ? RenderBounds{}
-                                       : entity.skin != UINT32_MAX ? instance.bounds
-                                                                   : transformBounds(entity.localBounds, transform.current);
-        RenderHistory&        history = instanceHistory[entity.instance.index];
-        const Matrix4&        previous = history.valid ? history.submitted : transform.current;
-        if (instance.entityGuid != entityGuid || !equalMatrix(instance.current, transform.current) ||
-            !equalMatrix(instance.previous, previous) || !equalBounds(instance.bounds, bounds))
+        const RenderBounds    Bounds = !ReadyValue ? RenderBounds{}
+                                       : EntityHandle.skin != UINT32_MAX ? Instance.bounds
+                                                                   : TransformBounds(EntityHandle.localBounds, Transform.current);
+        RenderHistory&        History = instanceHistory[EntityHandle.instance.index];
+        const Matrix4&        Previous = History.valid ? History.submitted : Transform.current;
+        if (Instance.entityGuid != EntityGuid || !EqualMatrix(Instance.current, Transform.current) ||
+            !EqualMatrix(Instance.previous, Previous) || !EqualBounds(Instance.bounds, Bounds))
         {
-            instance.entityGuid = entityGuid;
-            instance.current = transform.current;
-            instance.previous = previous;
-            instance.bounds = bounds;
-            instances.MarkDirty(instance.id.index);
-            markHistory(entity.instance.index);
+            Instance.entityGuid = EntityGuid;
+            Instance.current = Transform.current;
+            Instance.previous = Previous;
+            Instance.bounds = Bounds;
+            instances.MarkDirty(Instance.id.index);
+            markHistory(EntityHandle.instance.index);
         }
-        if (history.Reset)
+        if (History.Reset)
         {
-            history.Reset = false;
-            markHistory(entity.instance.index);
+            History.Reset = false;
+            markHistory(EntityHandle.instance.index);
         }
     }
-    void removeSkinnedEntity(Entity entity)
+    void removeSkinnedEntity(Entity EntityHandle)
     {
-        for (uint32_t i = 0; i < skinnedEntities.Size(); ++i)
-            if (skinnedEntities[i] == entity)
+        for (uint32_t I = 0; I < skinnedEntities.Size(); ++I)
+            if (skinnedEntities[I] == EntityHandle)
             {
-                skinnedEntities[i] = skinnedEntities[skinnedEntities.Size() - 1];
+                skinnedEntities[I] = skinnedEntities[skinnedEntities.Size() - 1];
                 skinnedEntities.PopBack();
                 return;
             }
     }
-    static bool extractEntity(Entity entity, Span<const void*>, void* User)
+    static bool extractEntity(Entity EntityHandle, Span<const void*>, void* User)
     {
-        RenderSceneData&         data = *(RenderSceneData*)User;
-        const RenderEntityIndex* pIndex = hmgetp_null(data.pIndices, entity);
-        RenderEntity&            renderEntity = pIndex ? data.entities[pIndex->value] : data.Add(entity);
-        data.extract(renderEntity);
+        RenderSceneData&         DataValue = *(RenderSceneData*)User;
+        const RenderEntityIndex* IndexPointer = hmgetp_null(DataValue.pIndices, EntityHandle);
+        RenderEntity&            RenderEntityValue = IndexPointer ? DataValue.entities[IndexPointer->value] : DataValue.Add(EntityHandle);
+        DataValue.extract(RenderEntityValue);
         return true;
     }
-    void removeEntity(uint32_t i)
+    void removeEntity(uint32_t I)
     {
-        RenderEntity& entity = entities[i];
-        if (entity.skin != UINT32_MAX)
-            removeSkinnedEntity(entity.entity);
-        removeMeshBatches(entity);
-        setInstanceIndex(entity.primitive.index, UINT32_MAX);
-        instanceEntities[entity.instance.index] = {};
-        primitives.Remove(entity.primitive);
-        instances.Remove(entity.instance);
-        hmdel(pIndices, entity.entity);
-        if (i + 1 < entities.Size())
+        RenderEntity& EntityHandle = entities[I];
+        if (EntityHandle.skin != UINT32_MAX)
+            removeSkinnedEntity(EntityHandle.entity);
+        removeMeshBatches(EntityHandle);
+        setInstanceIndex(EntityHandle.primitive.index, UINT32_MAX);
+        instanceEntities[EntityHandle.instance.index] = {};
+        primitives.Remove(EntityHandle.primitive);
+        instances.Remove(EntityHandle.instance);
+        hmdel(pIndices, EntityHandle.entity);
+        if (I + 1 < entities.Size())
         {
-            entities[i] = std::move(entities[entities.Size() - 1]);
+            entities[I] = std::move(entities[entities.Size() - 1]);
         }
         entities.PopBack();
-        if (i < entities.Size())
+        if (I < entities.Size())
         {
-            hmgetp_null(pIndices, entities[i].entity)->value = i;
+            hmgetp_null(pIndices, entities[I].entity)->value = I;
         }
     }
     // Extraction reads the MeshRenderer binding, the world transform, the Guid and asset states. The World change log names
@@ -522,51 +522,51 @@ public:
     // cover previous transforms that advanced on submission. Anything else would compare equal, so it is skipped.
     void extractMeshEntities()
     {
-        bool               rescan = false;
-        const Span<Entity> changed = changes.Drain(rescan);
-        const uint64_t     assetRevision = assetManager.GetStateRevision();
-        rescan |= assetRevision != extractedAssetRevision;
-        extractedAssetRevision = assetRevision;
-        if (rescan)
+        bool               Rescan = false;
+        const Span<Entity> Changed = changes.Drain(Rescan);
+        const uint64_t     AssetRevision = assetManager.GetStateRevision();
+        Rescan |= AssetRevision != extractedAssetRevision;
+        extractedAssetRevision = AssetRevision;
+        if (Rescan)
         {
             historyFollowUp.Clear();
-            for (RenderEntity& entity : entities)
+            for (RenderEntity& EntityHandle : entities)
             {
-                entity.seen = false;
+                EntityHandle.seen = false;
             }
             query.Each(extractEntity, this);
-            for (uint32_t i = 0; i < entities.Size();)
+            for (uint32_t I = 0; I < entities.Size();)
             {
-                if (entities[i].seen)
+                if (entities[I].seen)
                 {
-                    ++i;
+                    ++I;
                 }
                 else
                 {
-                    removeEntity(i);
+                    removeEntity(I);
                 }
             }
             return;
         }
-        for (uint32_t pass = 0; pass < 2; ++pass)
+        for (uint32_t Pass = 0; Pass < 2; ++Pass)
         {
-            const Span<Entity> list = pass ? Span<Entity>{ historyFollowUp.GetData(), historyFollowUp.Size() } : changed;
-            for (Entity entity : list)
+            const Span<Entity> List = Pass ? Span<Entity>{ historyFollowUp.GetData(), historyFollowUp.Size() } : Changed;
+            for (Entity EntityHandle : List)
             {
-                if (!entity.IsValid())
+                if (!EntityHandle.IsValid())
                 {
                     continue;
                 }
-                const RenderEntityIndex* pIndex = hmgetp_null(pIndices, entity);
-                if (!world.GetComponent(entity, SceneTypes::meshRenderer))
+                const RenderEntityIndex* IndexPointer = hmgetp_null(pIndices, EntityHandle);
+                if (!world.GetComponent(EntityHandle, SceneTypes::meshRenderer))
                 {
-                    if (pIndex)
+                    if (IndexPointer)
                     {
-                        removeEntity(pIndex->value);
+                        removeEntity(IndexPointer->value);
                     }
                     continue;
                 }
-                extract(pIndex ? entities[pIndex->value] : Add(entity));
+                extract(IndexPointer ? entities[IndexPointer->value] : Add(EntityHandle));
             }
         }
         historyFollowUp.Clear();
@@ -577,35 +577,35 @@ public:
     {
         skins.Clear();
         skinMatrices.Clear();
-        for (Entity skinnedEntity : skinnedEntities)
+        for (Entity SkinnedEntity : skinnedEntities)
         {
-            const RenderEntity& entity = entities[hmgetp_null(pIndices, skinnedEntity)->value];
-            if (entity.skin == UINT32_MAX || !primitives.values[entity.primitive.index].instanceCount)
+            const RenderEntity& EntityHandle = entities[hmgetp_null(pIndices, SkinnedEntity)->value];
+            if (EntityHandle.skin == UINT32_MAX || !primitives.Values[EntityHandle.primitive.index].instanceCount)
             {
                 continue;
             }
-            const SkinningCore* pose = animation ? animation->GetPose(world.GetParent(entity.entity)) : nullptr;
-            MeshBounds          local = entity.localBounds;
-            if (pose && entity.skin < pose->GetSkeleton().GetSkinCount())
+            const SkinningCore* Pose = animation ? animation->GetPose(world.GetParent(EntityHandle.entity)) : nullptr;
+            MeshBounds          Local = EntityHandle.localBounds;
+            if (Pose && EntityHandle.skin < Pose->GetSkeleton().GetSkinCount())
             {
-                const uint32_t jointCount = pose->GetSkeleton().GetSkinJointCount(entity.skin);
-                const uint32_t jointOffset = skinMatrices.Size();
-                skinMatrices.Resize(jointOffset + jointCount);
-                pose->WriteSkinMatrices(entity.skin, skinMatrices.GetData() + jointOffset);
-                skins.PushBack({ .instance = entity.instance, .jointOffset = jointOffset, .jointCount = jointCount });
-                SkinBounds skinBounds;
-                if (pose->GetSkinBounds(entity.skin, skinBounds))
+                const uint32_t JointCount = Pose->GetSkeleton().GetSkinJointCount(EntityHandle.skin);
+                const uint32_t JointOffset = skinMatrices.Size();
+                skinMatrices.Resize(JointOffset + JointCount);
+                Pose->WriteSkinMatrices(EntityHandle.skin, skinMatrices.GetData() + JointOffset);
+                skins.PushBack({ .instance = EntityHandle.instance, .jointOffset = JointOffset, .jointCount = JointCount });
+                SkinBounds SkinBoundsValue;
+                if (Pose->GetSkinBounds(EntityHandle.skin, SkinBoundsValue))
                 {
-                    memcpy(local.minimum, skinBounds.minimum, sizeof(local.minimum));
-                    memcpy(local.maximum, skinBounds.maximum, sizeof(local.maximum));
+                    memcpy(Local.minimum, SkinBoundsValue.Minimum, sizeof(Local.minimum));
+                    memcpy(Local.maximum, SkinBoundsValue.Maximum, sizeof(Local.maximum));
                 }
             }
-            RenderInstance&    instance = instances.values[entity.instance.index];
-            const RenderBounds bounds = transformBounds(local, instance.current);
-            if (!equalBounds(instance.bounds, bounds))
+            RenderInstance&    Instance = instances.Values[EntityHandle.instance.index];
+            const RenderBounds Bounds = TransformBounds(Local, Instance.current);
+            if (!EqualBounds(Instance.bounds, Bounds))
             {
-                instance.bounds = bounds;
-                instances.MarkDirty(instance.id.index);
+                Instance.bounds = Bounds;
+                instances.MarkDirty(Instance.id.index);
             }
         }
     }
@@ -617,16 +617,16 @@ public:
             PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::UpdateTransforms");
             world.UpdateTransforms();
         }
-        primitives.beginUpdate();
-        instances.beginUpdate();
-        meshBatches.beginUpdate();
-        lights.beginUpdate();
-        cameras.beginUpdate();
+        primitives.BeginUpdate();
+        instances.BeginUpdate();
+        meshBatches.BeginUpdate();
+        lights.BeginUpdate();
+        cameras.BeginUpdate();
         indicesDirty.Clear();
-        for (RenderLightEntity& entity : lightEntities)
-            entity.seen = false;
-        for (RenderCameraEntity& entity : cameraEntities)
-            entity.seen = false;
+        for (RenderLightEntity& EntityHandle : lightEntities)
+            EntityHandle.seen = false;
+        for (RenderCameraEntity& EntityHandle : cameraEntities)
+            EntityHandle.seen = false;
         // Retain new emission maps before mesh/material bindings Release old dependencies.
         lightQuery.Each(syncLight, this);
         {
@@ -641,12 +641,12 @@ public:
         extractLights();
         cameraQuery.Each(extractCamera, this);
         removeCameras();
-        primitives.finishUpdate();
-        instances.finishUpdate();
-        meshBatches.finishUpdate();
-        lights.finishUpdate();
-        cameras.finishUpdate();
-        mergeRenderRanges(indicesDirty, indicesRanges);
+        primitives.FinishUpdate();
+        instances.FinishUpdate();
+        meshBatches.FinishUpdate();
+        lights.FinishUpdate();
+        cameras.FinishUpdate();
+        MergeRenderRanges(indicesDirty, indicesRanges);
         if (primitives.GetChanges().ranges.Count || instances.GetChanges().ranges.Count || meshBatches.GetChanges().ranges.Count ||
             lights.GetChanges().ranges.Count || cameras.GetChanges().ranges.Count || !indicesRanges.Empty())
         {
@@ -655,85 +655,85 @@ public:
     }
     RenderSceneUploads GetPendingUploads()
     {
-        primitives.getPending(uploadRanges[0]);
-        instances.getPending(uploadRanges[1]);
-        meshBatches.getPending(uploadRanges[2]);
-        mergeRenderRanges(indicesPending, uploadRanges[3]);
-        lights.getPending(uploadRanges[4]);
-        cameras.getPending(uploadRanges[5]);
+        primitives.GetPending(uploadRanges[0]);
+        instances.GetPending(uploadRanges[1]);
+        meshBatches.GetPending(uploadRanges[2]);
+        MergeRenderRanges(indicesPending, uploadRanges[3]);
+        lights.GetPending(uploadRanges[4]);
+        cameras.GetPending(uploadRanges[5]);
         return { .primitives = { uploadRanges[0].GetData(), uploadRanges[0].Size() },
                  .instances = { uploadRanges[1].GetData(), uploadRanges[1].Size() },
                  .meshBatches = { uploadRanges[2].GetData(), uploadRanges[2].Size() },
                  .instanceIndices = { uploadRanges[3].GetData(), uploadRanges[3].Size() },
                  .lights = { uploadRanges[4].GetData(), uploadRanges[4].Size() },
                  .cameras = { uploadRanges[5].GetData(), uploadRanges[5].Size() },
-                 .activePrimitives = primitives.isActivePending(),
-                 .activeInstances = instances.isActivePending(),
-                 .activeMeshBatches = meshBatches.isActivePending(),
-                 .activeLights = lights.isActivePending(),
-                 .activeCameras = cameras.isActivePending() };
+                 .activePrimitives = primitives.IsActivePending(),
+                 .activeInstances = instances.IsActivePending(),
+                 .activeMeshBatches = meshBatches.IsActivePending(),
+                 .activeLights = lights.IsActivePending(),
+                 .activeCameras = cameras.IsActivePending() };
     }
     void AcknowledgeUploads()
     {
-        primitives.clearPending();
-        instances.clearPending();
-        meshBatches.clearPending();
-        lights.clearPending();
-        cameras.clearPending();
-        for (uint32_t index : indicesPending)
+        primitives.ClearPending();
+        instances.ClearPending();
+        meshBatches.ClearPending();
+        lights.ClearPending();
+        cameras.ClearPending();
+        for (uint32_t IndexValue : indicesPending)
         {
-            indicesPendingFlags[index] = false;
+            indicesPendingFlags[IndexValue] = false;
         }
         indicesPending.Clear();
     }
     void CommitHistory()
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::CommitHistory");
-        for (uint32_t index : historyPending)
+        for (uint32_t IndexValue : historyPending)
         {
-            RenderHistory& history = instanceHistory[index];
-            history.pending = false;
-            const RenderInstance&  instance = instances.values[index];
-            const RenderPrimitive* pPrimitive = primitives.Get(instance.primitive);
+            RenderHistory& History = instanceHistory[IndexValue];
+            History.pending = false;
+            const RenderInstance&  Instance = instances.Values[IndexValue];
+            const RenderPrimitive* PrimitivePointer = primitives.Get(Instance.primitive);
             // A Reset since the last Update renders previous == current first.
-            if (history.Reset || !instance.id.IsValid() || !pPrimitive || !pPrimitive->instanceCount)
+            if (History.Reset || !Instance.id.IsValid() || !PrimitivePointer || !PrimitivePointer->instanceCount)
             {
-                historyFollowUp.PushBack(instanceEntities[index]);
+                historyFollowUp.PushBack(instanceEntities[IndexValue]);
                 continue;
             }
-            history.submitted = instance.current;
-            history.valid = true;
+            History.submitted = Instance.current;
+            History.valid = true;
             // The next Update must see the new previous transform even if the entity does not change again.
-            historyFollowUp.PushBack(instanceEntities[index]);
+            historyFollowUp.PushBack(instanceEntities[IndexValue]);
         }
         historyPending.Clear();
-        for (RenderCameraEntity& entity : cameraEntities)
+        for (RenderCameraEntity& EntityHandle : cameraEntities)
         {
-            if (entity.historyReset)
+            if (EntityHandle.historyReset)
             {
                 continue;
             }
-            const RenderCamera& camera = cameras.values[entity.id.index];
-            entity.submitted = camera.current;
-            entity.submittedLens = camera.lens;
-            entity.historyValid = true;
+            const RenderCamera& CameraData = cameras.Values[EntityHandle.id.index];
+            EntityHandle.submitted = CameraData.current;
+            EntityHandle.submittedLens = CameraData.lens;
+            EntityHandle.historyValid = true;
         }
     }
-    void MarkDirty(Entity target)
+    void MarkDirty(Entity Target)
     {
         ASSERT(!frameLocked);
-        for (RenderEntity& entity : entities)
-            if (!target.IsValid() || entity.entity == target)
+        for (RenderEntity& EntityHandle : entities)
+            if (!Target.IsValid() || EntityHandle.entity == Target)
             {
-                instanceHistory[entity.instance.index].valid = false;
-                instanceHistory[entity.instance.index].Reset = true;
-                historyFollowUp.PushBack(entity.entity);
+                instanceHistory[EntityHandle.instance.index].valid = false;
+                instanceHistory[EntityHandle.instance.index].Reset = true;
+                historyFollowUp.PushBack(EntityHandle.entity);
             }
-        for (RenderCameraEntity& entity : cameraEntities)
-            if (!target.IsValid() || entity.entity == target)
+        for (RenderCameraEntity& EntityHandle : cameraEntities)
+            if (!Target.IsValid() || EntityHandle.entity == Target)
             {
-                entity.historyValid = false;
-                entity.historyReset = true;
+                EntityHandle.historyValid = false;
+                EntityHandle.historyReset = true;
             }
     }
 
@@ -778,41 +778,41 @@ public:
     bool                                            frameLocked = false;
 };
 
-RenderScene::RenderScene(World& world, AssetManager& assetManager, const AnimationSystem* animation):
-    Data(MemNew(RenderSceneData, world, assetManager, animation))
+RenderScene::RenderScene(World& WorldData, AssetManager& AssetManagerValue, const AnimationSystem* Animation):
+    Data(MemNew(RenderSceneData, WorldData, AssetManagerValue, Animation))
 {
 }
 RenderScene::~RenderScene() { MemDelete(Data); }
-void RenderScene::Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount, uint32_t cameraCount)
+void RenderScene::Reserve(uint32_t PrimitiveCount, uint32_t MeshBatchCount, uint32_t LightCount, uint32_t CameraCount)
 {
-    Data->primitives.Reserve(primitiveCount);
-    Data->instances.Reserve(primitiveCount);
-    Data->meshBatches.Reserve(meshBatchCount);
-    Data->entities.Reserve(primitiveCount);
-    Data->instanceIndices.Reserve(primitiveCount);
-    Data->indicesDirty.Reserve(primitiveCount);
-    Data->indicesRanges.Reserve(primitiveCount);
-    Data->indicesPending.Reserve(primitiveCount);
-    Data->indicesPendingFlags.Reserve(primitiveCount);
-    Data->instanceHistory.Reserve(primitiveCount);
-    Data->historyPending.Reserve(primitiveCount);
-    for (Array<RenderRange>& ranges : Data->uploadRanges)
+    Data->primitives.Reserve(PrimitiveCount);
+    Data->instances.Reserve(PrimitiveCount);
+    Data->meshBatches.Reserve(MeshBatchCount);
+    Data->entities.Reserve(PrimitiveCount);
+    Data->instanceIndices.Reserve(PrimitiveCount);
+    Data->indicesDirty.Reserve(PrimitiveCount);
+    Data->indicesRanges.Reserve(PrimitiveCount);
+    Data->indicesPending.Reserve(PrimitiveCount);
+    Data->indicesPendingFlags.Reserve(PrimitiveCount);
+    Data->instanceHistory.Reserve(PrimitiveCount);
+    Data->historyPending.Reserve(PrimitiveCount);
+    for (Array<RenderRange>& Ranges : Data->uploadRanges)
     {
-        ranges.Reserve(primitiveCount > meshBatchCount ? primitiveCount : meshBatchCount);
+        Ranges.Reserve(PrimitiveCount > MeshBatchCount ? PrimitiveCount : MeshBatchCount);
     }
-    Data->lights.Reserve(lightCount);
-    Data->cameras.Reserve(cameraCount);
-    Data->lightEntities.Reserve(lightCount);
-    Data->cameraEntities.Reserve(cameraCount);
-    Data->textureReleases.Reserve(lightCount);
+    Data->lights.Reserve(LightCount);
+    Data->cameras.Reserve(CameraCount);
+    Data->lightEntities.Reserve(LightCount);
+    Data->cameraEntities.Reserve(CameraCount);
+    Data->textureReleases.Reserve(LightCount);
 }
 void               RenderScene::Update() { Data->Update(); }
 uint64_t           RenderScene::GetRevision() const { return Data->revision; }
 RenderSceneUploads RenderScene::GetPendingUploads() { return Data->GetPendingUploads(); }
 void               RenderScene::AcknowledgeUploads() { Data->AcknowledgeUploads(); }
 void               RenderScene::CommitHistory() { Data->CommitHistory(); }
-void               RenderScene::SetFrameLocked(bool locked) { Data->frameLocked = locked; }
-void               RenderScene::MarkDirty(Entity entity) { Data->MarkDirty(entity); }
+void               RenderScene::SetFrameLocked(bool Locked) { Data->frameLocked = Locked; }
+void               RenderScene::MarkDirty(Entity EntityHandle) { Data->MarkDirty(EntityHandle); }
 RenderSceneChanges RenderScene::GetChanges() const
 {
     return { .primitives = Data->primitives.GetChanges(),
@@ -822,39 +822,39 @@ RenderSceneChanges RenderScene::GetChanges() const
              .cameras = Data->cameras.GetChanges(),
              .instanceIndices = { Data->indicesRanges.GetData(), Data->indicesRanges.Size() } };
 }
-RenderPrimitiveID RenderScene::FindPrimitive(Entity entity) const
+RenderPrimitiveID RenderScene::FindPrimitive(Entity EntityHandle) const
 {
-    const RenderEntityIndex* pIndex = hmgetp_null(Data->pIndices, entity);
-    return pIndex ? Data->entities[pIndex->value].primitive : RenderPrimitiveID{};
+    const RenderEntityIndex* IndexPointer = hmgetp_null(Data->pIndices, EntityHandle);
+    return IndexPointer ? Data->entities[IndexPointer->value].primitive : RenderPrimitiveID{};
 }
-const RenderPrimitive* RenderScene::GetPrimitive(RenderPrimitiveID id) const { return Data->primitives.Get(id); }
-const RenderInstance*  RenderScene::GetInstance(RenderInstanceID id) const { return Data->instances.Get(id); }
-const RenderMeshBatch* RenderScene::GetMeshBatch(RenderMeshBatchID id) const { return Data->meshBatches.Get(id); }
-RenderLightID          RenderScene::FindLight(Entity entity) const
+const RenderPrimitive* RenderScene::GetPrimitive(RenderPrimitiveID Id) const { return Data->primitives.Get(Id); }
+const RenderInstance*  RenderScene::GetInstance(RenderInstanceID Id) const { return Data->instances.Get(Id); }
+const RenderMeshBatch* RenderScene::GetMeshBatch(RenderMeshBatchID Id) const { return Data->meshBatches.Get(Id); }
+RenderLightID          RenderScene::FindLight(Entity EntityHandle) const
 {
-    const RenderEntityIndex* pIndex = hmgetp_null(Data->pLightIndices, entity);
-    return pIndex ? Data->lightEntities[pIndex->value].id : RenderLightID{};
+    const RenderEntityIndex* IndexPointer = hmgetp_null(Data->pLightIndices, EntityHandle);
+    return IndexPointer ? Data->lightEntities[IndexPointer->value].id : RenderLightID{};
 }
-RenderCameraID RenderScene::FindCamera(Entity entity) const
+RenderCameraID RenderScene::FindCamera(Entity EntityHandle) const
 {
-    const RenderEntityIndex* pIndex = hmgetp_null(Data->pCameraIndices, entity);
-    return pIndex ? Data->cameraEntities[pIndex->value].id : RenderCameraID{};
+    const RenderEntityIndex* IndexPointer = hmgetp_null(Data->pCameraIndices, EntityHandle);
+    return IndexPointer ? Data->cameraEntities[IndexPointer->value].id : RenderCameraID{};
 }
-const RenderLight*    RenderScene::GetLight(RenderLightID id) const { return Data->lights.Get(id); }
-const RenderCamera*   RenderScene::GetCamera(RenderCameraID id) const { return Data->cameras.Get(id); }
-Span<RenderPrimitive> RenderScene::GetPrimitives() const { return { Data->primitives.values.GetData(), Data->primitives.values.Size() }; }
-Span<RenderInstance>  RenderScene::GetInstances() const { return { Data->instances.values.GetData(), Data->instances.values.Size() }; }
+const RenderLight*    RenderScene::GetLight(RenderLightID Id) const { return Data->lights.Get(Id); }
+const RenderCamera*   RenderScene::GetCamera(RenderCameraID Id) const { return Data->cameras.Get(Id); }
+Span<RenderPrimitive> RenderScene::GetPrimitives() const { return { Data->primitives.Values.GetData(), Data->primitives.Values.Size() }; }
+Span<RenderInstance>  RenderScene::GetInstances() const { return { Data->instances.Values.GetData(), Data->instances.Values.Size() }; }
 Span<RenderMeshBatch> RenderScene::GetMeshBatches() const
 {
-    return { Data->meshBatches.values.GetData(), Data->meshBatches.values.Size() };
+    return { Data->meshBatches.Values.GetData(), Data->meshBatches.Values.Size() };
 }
-Span<RenderLight>  RenderScene::GetLights() const { return { Data->lights.values.GetData(), Data->lights.values.Size() }; }
-Span<RenderCamera> RenderScene::GetCameras() const { return { Data->cameras.values.GetData(), Data->cameras.values.Size() }; }
-Span<uint32_t> RenderScene::GetActivePrimitives() const { return { Data->primitives.active.GetData(), Data->primitives.active.Size() }; }
-Span<uint32_t> RenderScene::GetActiveInstances() const { return { Data->instances.active.GetData(), Data->instances.active.Size() }; }
-Span<uint32_t> RenderScene::GetActiveMeshBatches() const { return { Data->meshBatches.active.GetData(), Data->meshBatches.active.Size() }; }
-Span<uint32_t> RenderScene::GetActiveLights() const { return { Data->lights.active.GetData(), Data->lights.active.Size() }; }
-Span<uint32_t> RenderScene::GetActiveCameras() const { return { Data->cameras.active.GetData(), Data->cameras.active.Size() }; }
+Span<RenderLight>  RenderScene::GetLights() const { return { Data->lights.Values.GetData(), Data->lights.Values.Size() }; }
+Span<RenderCamera> RenderScene::GetCameras() const { return { Data->cameras.Values.GetData(), Data->cameras.Values.Size() }; }
+Span<uint32_t> RenderScene::GetActivePrimitives() const { return { Data->primitives.Active.GetData(), Data->primitives.Active.Size() }; }
+Span<uint32_t> RenderScene::GetActiveInstances() const { return { Data->instances.Active.GetData(), Data->instances.Active.Size() }; }
+Span<uint32_t> RenderScene::GetActiveMeshBatches() const { return { Data->meshBatches.Active.GetData(), Data->meshBatches.Active.Size() }; }
+Span<uint32_t> RenderScene::GetActiveLights() const { return { Data->lights.Active.GetData(), Data->lights.Active.Size() }; }
+Span<uint32_t> RenderScene::GetActiveCameras() const { return { Data->cameras.Active.GetData(), Data->cameras.Active.Size() }; }
 Span<uint32_t> RenderScene::GetInstanceIndices() const { return { Data->instanceIndices.GetData(), Data->instanceIndices.Size() }; }
 Span<RenderSkin> RenderScene::GetSkins() const { return { Data->skins.GetData(), Data->skins.Size() }; }
 Span<Matrix4>    RenderScene::GetSkinMatrices() const { return { Data->skinMatrices.GetData(), Data->skinMatrices.Size() }; }

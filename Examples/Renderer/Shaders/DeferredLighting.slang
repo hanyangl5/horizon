@@ -5,168 +5,168 @@
 
 cbuffer RootConstant0
 {
-    uint frameIndex;
-    uint lightingFrameIndex;
-    uint emissiveIndex;
-    uint normalMaterialIndex;
-    uint baseColorMetallicIndex;
-    uint depthIndex;
-    uint shadowMapIndex;
-    uint shadowSamplerIndex;
-    uint environmentIndex;
-    uint irradianceIndex;
-    uint brdfLutIndex;
-    uint environmentSamplerIndex;
-    uint rtShadowAOIndex;
-    uint rtReflectionIndex;
-    uint ssaoIndex;
+    uint FrameIndex;
+    uint LightingFrameIndex;
+    uint EmissiveIndex;
+    uint NormalMaterialIndex;
+    uint BaseColorMetallicIndex;
+    uint DepthIndex;
+    uint ShadowMapIndex;
+    uint ShadowSamplerIndex;
+    uint EnvironmentIndex;
+    uint IrradianceIndex;
+    uint BrdfLutIndex;
+    uint EnvironmentSamplerIndex;
+    uint RtShadowAOIndex;
+    uint RtReflectionIndex;
+    uint SsaoIndex;
 };
 struct PSInput
 {
-    float4 position: SV_Position;
-    float2 uv: TEXCOORD0;
+    float4 Position: SV_Position;
+    float2 Uv: TEXCOORD0;
 };
-PSInput VSMain(uint vertexId : SV_VertexID)
+PSInput VSMain(uint VertexId : SV_VertexID)
 {
-    const float2 uv = float2((vertexId << 1) & 2, vertexId & 2);
-    PSInput      output;
-    output.position = float4(uv * float2(2, -2) + float2(-1, 1), 0, 1);
-    output.uv = uv;
-    return output;
+    const float2 UV = float2((VertexId << 1) & 2, VertexId & 2);
+    PSInput      Output;
+    Output.Position = float4(UV * float2(2, -2) + float2(-1, 1), 0, 1);
+    Output.Uv = UV;
+    return Output;
 }
 // Depth-aware upsample of the reduced-resolution ray traced results: bilinear weights over the four nearest texels,
 // each scaled down by its source pixel's relative view distance difference, so the results do not bleed across edges.
-static const float kRTUpsampleDepthScale = 50.0;
+static const float RTUpsampleDepthScale = 50.0;
 struct RTUpsample
 {
-    int2  taps[4];
-    float weights[4];
+    int2  Taps[4];
+    float Weights[4];
 };
-RTUpsample rtUpsample(int2 pixel, int2 size, int2 lowSize, float viewDistance, Texture2D<float> depthTexture, FrameData frame)
+RTUpsample UpsampleRT(int2 Pixel, int2 Size, int2 LowSize, float ViewDistance, Texture2D<float> DepthTexture, FrameData Frame)
 {
-    const float2 position = float2(pixel) * float2(lowSize) / float2(size);
-    const int2   base = int2(floor(position));
-    const float2 fraction = position - float2(base);
-    RTUpsample   result;
-    float        weightSum = 0.0;
-    float        closest = 1e30;
-    int          closestTap = 0;
-    for (int i = 0; i < 4; ++i)
+    const float2 Position = float2(Pixel) * float2(LowSize) / float2(Size);
+    const int2   Base = int2(floor(Position));
+    const float2 Fraction = Position - float2(Base);
+    RTUpsample   Result;
+    float        WeightSum = 0.0;
+    float        Closest = 1e30;
+    int          ClosestTap = 0;
+    for (int I = 0; I < 4; ++I)
     {
-        const int2   offset = int2(i & 1, i >> 1);
-        const int2   tap = min(base + offset, lowSize - 1);
-        const int2   source = rtSourcePixel(tap, lowSize, size);
-        const float  tapDepth = depthTexture.Load(int3(source, 0));
-        const float2 bilinear = lerp(1.0 - fraction, fraction, float2(offset));
-        const float  difference =
-            tapDepth >= 1.0
+        const int2   Offset = int2(I & 1, I >> 1);
+        const int2   Tap = min(Base + Offset, LowSize - 1);
+        const int2   Source = RTSourcePixel(Tap, LowSize, Size);
+        const float  TapDepth = DepthTexture.Load(int3(Source, 0));
+        const float2 Bilinear = lerp(1.0 - Fraction, Fraction, float2(Offset));
+        const float  Difference =
+            TapDepth >= 1.0
                 ? 1e30
-                : abs(length(reconstructWorldPosition((float2(source) + 0.5) / float2(size), tapDepth, frame.inverseViewProjection) -
-                             frame.eye.xyz) - viewDistance) / viewDistance;
-        result.taps[i] = tap;
-        result.weights[i] = bilinear.x * bilinear.y * exp(-difference * kRTUpsampleDepthScale);
-        weightSum += result.weights[i];
-        if (difference < closest)
+                : abs(length(ReconstructWorldPosition((float2(Source) + 0.5) / float2(Size), TapDepth, Frame.InverseViewProjection) -
+                             Frame.Eye.xyz) - ViewDistance) / ViewDistance;
+        Result.Taps[I] = Tap;
+        Result.Weights[I] = Bilinear.x * Bilinear.y * exp(-Difference * RTUpsampleDepthScale);
+        WeightSum += Result.Weights[I];
+        if (Difference < Closest)
         {
-            closest = difference;
-            closestTap = i;
+            Closest = Difference;
+            ClosestTap = I;
         }
     }
-    for (int i = 0; i < 4; ++i)
+    for (int I = 0; I < 4; ++I)
     {
         // Thin geometry may match none of the texels; it takes the nearest in depth instead of a blend of the background.
-        result.weights[i] = weightSum > 1e-4 ? result.weights[i] / weightSum : float(i == closestTap);
+        Result.Weights[I] = WeightSum > 1e-4 ? Result.Weights[I] / WeightSum : float(I == ClosestTap);
     }
-    return result;
+    return Result;
 }
 
-float4 PSMain(PSInput input): SV_Target0
+float4 PSMain(PSInput Input): SV_Target0
 {
-    const int3        pixel = int3(int2(input.position.xy), 0);
-    Texture2D<float4> emissive = ResourceDescriptorHeap[emissiveIndex];
-    Texture2D<float>  depthTexture = ResourceDescriptorHeap[depthIndex];
-    half3             scene = half3(emissive.Load(pixel).rgb);
-    float             depth = depthTexture.Load(pixel);
+    const int3        Pixel = int3(int2(Input.Position.xy), 0);
+    Texture2D<float4> Emissive = ResourceDescriptorHeap[EmissiveIndex];
+    Texture2D<float>  DepthTexture = ResourceDescriptorHeap[DepthIndex];
+    half3             Scene = half3(Emissive.Load(Pixel).rgb);
+    float             Depth = DepthTexture.Load(Pixel);
     // The depth target clears to 1.0 and the projection maps the far plane there, so only the cleared
     // value means "no geometry". Anything below it is lit, however far away the far plane puts it.
-    if (depth >= 1.0)
+    if (Depth >= 1.0)
     {
-        return float4(float3(scene), 1.0);
+        return float4(float3(Scene), 1.0);
     }
 
-    StructuredBuffer<FrameData>         frame = ResourceDescriptorHeap[frameIndex];
-    StructuredBuffer<LightingFrameData> lightBuffer = ResourceDescriptorHeap[lightingFrameIndex];
-    LightingFrameData                   light = lightBuffer[0];
-    Texture2D<float4>                   normalMaterial = ResourceDescriptorHeap[normalMaterialIndex];
-    Texture2D<float4>                   baseColorMetallic = ResourceDescriptorHeap[baseColorMetallicIndex];
-    half4                               g1 = half4(normalMaterial.Load(pixel));
-    float4                              surface = baseColorMetallic.Load(pixel);
-    float2                              properties = unpackMaterialProperties(float2(g1.ba));
-    float3                              n = decodeOctNormal(float2(g1.xy));
-    half3                               baseColor = half3(surface.rgb);
+    StructuredBuffer<FrameData>         Frame = ResourceDescriptorHeap[FrameIndex];
+    StructuredBuffer<LightingFrameData> LightBuffer = ResourceDescriptorHeap[LightingFrameIndex];
+    LightingFrameData                   Light = LightBuffer[0];
+    Texture2D<float4>                   NormalMaterial = ResourceDescriptorHeap[NormalMaterialIndex];
+    Texture2D<float4>                   BaseColorMetallic = ResourceDescriptorHeap[BaseColorMetallicIndex];
+    half4                               G1 = half4(NormalMaterial.Load(Pixel));
+    float4                              Surface = BaseColorMetallic.Load(Pixel);
+    float2                              Properties = UnpackMaterialProperties(float2(G1.ba));
+    float3                              N = DecodeOctNormal(float2(G1.xy));
+    half3                               BaseColor = half3(Surface.rgb);
 
-    float3           worldPos = reconstructWorldPosition(input.uv, depth, frame[0].inverseViewProjection);
-    int2             size;
-    depthTexture.GetDimensions(size.x, size.y);
-    RTUpsample upsample;
-    if (rtShadowAOIndex != INVALID_TEXTURE || rtReflectionIndex != INVALID_TEXTURE)
+    float3           WorldPos = ReconstructWorldPosition(Input.Uv, Depth, Frame[0].InverseViewProjection);
+    int2             Size;
+    DepthTexture.GetDimensions(Size.x, Size.y);
+    RTUpsample Upsample;
+    if (RtShadowAOIndex != INVALID_TEXTURE || RtReflectionIndex != INVALID_TEXTURE)
     {
-        Texture2D<float4> traced = ResourceDescriptorHeap[rtShadowAOIndex != INVALID_TEXTURE ? rtShadowAOIndex : rtReflectionIndex];
-        int2              lowSize;
-        traced.GetDimensions(lowSize.x, lowSize.y);
-        upsample = rtUpsample(pixel.xy, size, lowSize, length(worldPos - frame[0].eye.xyz), depthTexture, frame[0]);
+        Texture2D<float4> Traced = ResourceDescriptorHeap[RtShadowAOIndex != INVALID_TEXTURE ? RtShadowAOIndex : RtReflectionIndex];
+        int2              LowSize;
+        Traced.GetDimensions(LowSize.x, LowSize.y);
+        Upsample = UpsampleRT(Pixel.xy, Size, LowSize, length(WorldPos - Frame[0].Eye.xyz), DepthTexture, Frame[0]);
     }
-    LightingBindings bindings = { shadowMapIndex, shadowSamplerIndex,      environmentIndex, irradianceIndex,
-                                  brdfLutIndex,   environmentSamplerIndex, rtShadowAOIndex,  rtReflectionIndex };
-    float            visibility = 1.0;
-    float            ao = 1.0;
-    if (rtShadowAOIndex != INVALID_TEXTURE)
+    LightingBindings Bindings = { ShadowMapIndex, ShadowSamplerIndex,      EnvironmentIndex, IrradianceIndex,
+                                  BrdfLutIndex,   EnvironmentSamplerIndex, RtShadowAOIndex,  RtReflectionIndex };
+    float            Visibility = 1.0;
+    float            AO = 1.0;
+    if (RtShadowAOIndex != INVALID_TEXTURE)
     {
-        Texture2D<float2> traced = ResourceDescriptorHeap[rtShadowAOIndex];
-        float2            rtData = 0.0;
-        for (int i = 0; i < 4; ++i)
+        Texture2D<float2> Traced = ResourceDescriptorHeap[RtShadowAOIndex];
+        float2            RtData = 0.0;
+        for (int I = 0; I < 4; ++I)
         {
-            rtData += traced.Load(int3(upsample.taps[i], 0)) * upsample.weights[i];
+            RtData += Traced.Load(int3(Upsample.Taps[I], 0)) * Upsample.Weights[I];
         }
-        if (light.rtShadowEnabled != 0)
+        if (Light.RTShadowEnabled != 0)
         {
-            visibility = rtData.r;
+            Visibility = RtData.r;
         }
         else
         {
-            visibility = shadowVisibility(worldPos, light, bindings);
+            Visibility = ShadowVisibility(WorldPos, Light, Bindings);
         }
-        if (light.rtAOEnabled != 0)
+        if (Light.RTAOEnabled != 0)
         {
-            ao *= pow(saturate(rtData.g), light.rtAOPower);
+            AO *= pow(saturate(RtData.g), Light.RTAOPower);
         }
     }
     else
     {
-        visibility = shadowVisibility(worldPos, light, bindings);
+        Visibility = ShadowVisibility(WorldPos, Light, Bindings);
     }
-    if (ssaoIndex != INVALID_TEXTURE)
+    if (SsaoIndex != INVALID_TEXTURE)
     {
-        Texture2D<float4> occlusion = ResourceDescriptorHeap[ssaoIndex];
-        ao *= occlusion.Load(pixel).r;
+        Texture2D<float4> Occlusion = ResourceDescriptorHeap[SsaoIndex];
+        AO *= Occlusion.Load(Pixel).r;
     }
 
-    float3      l = -normalize(light.lightDirection.xyz);
-    float3      v = normalize(frame[0].eye.xyz - worldPos);
-    float       metallic = saturate(surface.a);
-    float       roughness = saturate(properties.x);
-    PBRLighting lighting =
-        evaluatePBRLighting(float3(baseColor), metallic, roughness, n, v, l, visibility, ao, light, bindings, true, properties.y);
-    if (rtReflectionIndex != INVALID_TEXTURE && roughness < kRTReflectionMaxRoughness)
+    float3      L = -normalize(Light.LightDirection.xyz);
+    float3      V = normalize(Frame[0].Eye.xyz - WorldPos);
+    float       Metallic = saturate(Surface.a);
+    float       Roughness = saturate(Properties.x);
+    PBRLighting Lighting =
+        EvaluatePBRLighting(float3(BaseColor), Metallic, Roughness, N, V, L, Visibility, AO, Light, Bindings, true, Properties.y);
+    if (RtReflectionIndex != INVALID_TEXTURE && Roughness < RTReflectionMaxRoughness)
     {
-        Texture2D<float4> reflection = ResourceDescriptorHeap[rtReflectionIndex];
-        float3            reflected = 0.0;
-        for (int i = 0; i < 4; ++i)
+        Texture2D<float4> Reflection = ResourceDescriptorHeap[RtReflectionIndex];
+        float3            Reflected = 0.0;
+        for (int I = 0; I < 4; ++I)
         {
-            reflected += reflection.Load(int3(upsample.taps[i], 0)).rgb * upsample.weights[i];
+            Reflected += Reflection.Load(int3(Upsample.Taps[I], 0)).rgb * Upsample.Weights[I];
         }
-        lighting.indirectSpecular = lerp(lighting.specularWeight * reflected, lighting.indirectSpecular,
-                                         smoothstep(kRTReflectionFadeStart, kRTReflectionMaxRoughness, roughness));
+        Lighting.IndirectSpecular = lerp(Lighting.SpecularWeight * Reflected, Lighting.IndirectSpecular,
+                                         smoothstep(RTReflectionFadeStart, RTReflectionMaxRoughness, Roughness));
     }
-    return float4(float3(scene) + lighting.direct + lighting.indirectDiffuse + lighting.indirectSpecular, 1.0);
+    return float4(float3(Scene) + Lighting.Direct + Lighting.IndirectDiffuse + Lighting.IndirectSpecular, 1.0);
 }

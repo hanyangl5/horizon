@@ -11,104 +11,104 @@
 
 namespace hz
 {
-bool validWorldJsonStrings(Span<char> json)
+bool ValidWorldJsonStrings(Span<char> json)
 {
     // cJSON loses decoded string lengths, so check for embedded nulls before consuming its strings.
-    bool inString = false;
-    for (uint32_t i = 0; i < json.Count; ++i)
+    bool InString = false;
+    for (uint32_t I = 0; I < json.Count; ++I)
     {
-        const char value = json.Data[i];
-        if (value == '"')
-            inString = !inString;
-        else if (inString)
+        const char ValueValue = json.Data[I];
+        if (ValueValue == '"')
+            InString = !InString;
+        else if (InString)
         {
-            if (!value || (value == '\\' && json.Count - i >= 6 && !memcmp(json.Data + i + 1, "u0000", 5)))
+            if (!ValueValue || (ValueValue == '\\' && json.Count - I >= 6 && !memcmp(json.Data + I + 1, "u0000", 5)))
             {
                 LOGF(Error, "World JSON strings cannot contain embedded nulls");
                 return false;
             }
-            if (value == '\\')
-                ++i;
+            if (ValueValue == '\\')
+                ++I;
         }
     }
     return true;
 }
-cJSON* parseWorldJson(Span<char> json)
+cJSON* ParseWorldJson(Span<char> json)
 {
     if (!json.Data || !json.Count || json.Count > 64 * 1024 * 1024)
     {
         return nullptr;
     }
-    const char* pEnd = nullptr;
-    cJSON*      pValue = cJSON_ParseWithLengthOpts(json.Data, json.Count, &pEnd, false);
-    if (!pValue)
+    const char* End = nullptr;
+    cJSON*      ValueData = cJSON_ParseWithLengthOpts(json.Data, json.Count, &End, false);
+    if (!ValueData)
         return nullptr;
-    while (pEnd < json.Data + json.Count && isspace((unsigned char)*pEnd))
+    while (End < json.Data + json.Count && isspace((unsigned char)*End))
     {
-        ++pEnd;
+        ++End;
     }
-    if (pEnd < json.Data + json.Count && pEnd + 1 == json.Data + json.Count && !*pEnd)
+    if (End < json.Data + json.Count && End + 1 == json.Data + json.Count && !*End)
     {
-        ++pEnd;
+        ++End;
     }
-    if (pEnd != json.Data + json.Count)
+    if (End != json.Data + json.Count)
     {
-        cJSON_Delete(pValue);
+        cJSON_Delete(ValueData);
         return nullptr;
     }
-    return pValue;
+    return ValueData;
 }
-bool uniqueWorldFields(const cJSON* pObject)
+bool UniqueWorldFields(const cJSON* ObjectPointer)
 {
-    if (!cJSON_IsObject(pObject))
+    if (!cJSON_IsObject(ObjectPointer))
         return false;
-    for (const cJSON* pA = pObject->child; pA; pA = pA->next)
-        for (const cJSON* pB = pA->next; pB; pB = pB->next)
-            if (!strcmp(pA->string, pB->string))
+    for (const cJSON* LeftValue = ObjectPointer->child; LeftValue; LeftValue = LeftValue->next)
+        for (const cJSON* RightValue = LeftValue->next; RightValue; RightValue = RightValue->next)
+            if (!strcmp(LeftValue->string, RightValue->string))
                 return false;
     return true;
 }
-bool worldVersion(const cJSON* pValue, uint32_t& version)
+bool WorldVersion(const cJSON* ValueData, uint32_t& Version)
 {
-    if (!cJSON_IsNumber(pValue) || !(pValue->valuedouble >= 1 && pValue->valuedouble <= UINT32_MAX) ||
-        floor(pValue->valuedouble) != pValue->valuedouble)
+    if (!cJSON_IsNumber(ValueData) || !(ValueData->valuedouble >= 1 && ValueData->valuedouble <= UINT32_MAX) ||
+        floor(ValueData->valuedouble) != ValueData->valuedouble)
         return false;
-    version = (uint32_t)pValue->valuedouble;
+    Version = (uint32_t)ValueData->valuedouble;
     return true;
 }
-static bool serialized(const PropertyDesc& property) { return (property.Flags & PROPERTY_SERIALIZED) != 0; }
-static int  compareProperties(const void* pA, const void* pB)
+static bool IsSerializedProperty(const PropertyDesc& property) { return (property.Flags & PROPERTY_SERIALIZED) != 0; }
+static int  CompareProperties(const void* LeftValue, const void* RightValue)
 {
-    const PropertyID a = (*(const PropertyDesc* const*)pA)->id;
-    const PropertyID b = (*(const PropertyDesc* const*)pB)->id;
-    return (a > b) - (a < b);
+    const PropertyID AValue = (*(const PropertyDesc* const*)LeftValue)->id;
+    const PropertyID BValue = (*(const PropertyDesc* const*)RightValue)->id;
+    return (AValue > BValue) - (AValue < BValue);
 }
-static cJSON* number(double value, int precision)
+static cJSON* CreateJsonNumber(double ValueValue, int Precision)
 {
-    if (!isfinite(value))
+    if (!isfinite(ValueValue))
         return nullptr;
-    char                       text[64];
-    const std::to_chars_result result =
-        std::to_chars(text, text + sizeof(text) - 1, value == 0 ? 0.0 : value, std::chars_format::general, precision);
-    if (result.ec != std::errc{})
+    char                       Text[64];
+    const std::to_chars_result ResultValue =
+        std::to_chars(Text, Text + sizeof(Text) - 1, ValueValue == 0 ? 0.0 : ValueValue, std::chars_format::general, Precision);
+    if (ResultValue.ec != std::errc{})
         return nullptr;
-    *result.ptr = 0;
-    return cJSON_CreateRaw(text);
+    *ResultValue.ptr = 0;
+    return cJSON_CreateRaw(Text);
 }
-static uint64_t unsignedValue(const void* pValue, uint32_t Size)
+static uint64_t UnsignedValue(const void* ValueData, uint32_t Size)
 {
-    uint64_t value = 0;
-    memcpy(&value, pValue, Size);
-    return value;
+    uint64_t ValueValue = 0;
+    memcpy(&ValueValue, ValueData, Size);
+    return ValueValue;
 }
-static int64_t signedValue(const void* pValue, uint32_t Size)
+static int64_t SignedValue(const void* ValueData, uint32_t Size)
 {
-    const uint64_t value = unsignedValue(pValue, Size);
-    return (int64_t)(value << (64 - Size * 8)) >> (64 - Size * 8);
+    const uint64_t ValueValue = UnsignedValue(ValueData, Size);
+    return (int64_t)(ValueValue << (64 - Size * 8)) >> (64 - Size * 8);
 }
-static uint32_t floatCount(PropertyKind kind)
+static uint32_t FloatCount(PropertyKind Kind)
 {
-    switch (kind)
+    switch (Kind)
     {
     case PropertyKind::Vector2:
         return 2;
@@ -124,289 +124,289 @@ static uint32_t floatCount(PropertyKind kind)
         return 0;
     }
 }
-static cJSON* writeProperty(const PropertyDesc& property, const void* pValue)
+static cJSON* WriteProperty(const PropertyDesc& property, const void* ValueData)
 {
     switch (property.kind)
     {
     case PropertyKind::Boolean:
-        return cJSON_CreateBool(*(const bool*)pValue);
+        return cJSON_CreateBool(*(const bool*)ValueData);
     case PropertyKind::SignedInteger:
     case PropertyKind::UnsignedInteger:
     {
-        const bool sign = property.kind == PropertyKind::SignedInteger;
+        const bool Sign = property.kind == PropertyKind::SignedInteger;
         if (property.Size < 8)
         {
-            return cJSON_CreateNumber(sign ? (double)signedValue(pValue, property.Size) : (double)unsignedValue(pValue, property.Size));
+            return cJSON_CreateNumber(Sign ? (double)SignedValue(ValueData, property.Size) : (double)UnsignedValue(ValueData, property.Size));
         }
-        char                       text[32];
-        const std::to_chars_result result = sign ? std::to_chars(text, text + sizeof(text) - 1, signedValue(pValue, 8))
-                                                 : std::to_chars(text, text + sizeof(text) - 1, unsignedValue(pValue, 8));
-        *result.ptr = 0;
-        return cJSON_CreateString(text);
+        char                       Text[32];
+        const std::to_chars_result ResultValue = Sign ? std::to_chars(Text, Text + sizeof(Text) - 1, SignedValue(ValueData, 8))
+                                                 : std::to_chars(Text, Text + sizeof(Text) - 1, UnsignedValue(ValueData, 8));
+        *ResultValue.ptr = 0;
+        return cJSON_CreateString(Text);
     }
     case PropertyKind::Float:
     {
         if (property.Size == sizeof(float))
         {
-            float value;
-            memcpy(&value, pValue, sizeof(value));
-            return number(value, 9);
+            float ValueValue;
+            memcpy(&ValueValue, ValueData, sizeof(ValueValue));
+            return CreateJsonNumber(ValueValue, 9);
         }
-        double value;
-        memcpy(&value, pValue, sizeof(value));
-        return number(value, 17);
+        double ValueValue;
+        memcpy(&ValueValue, ValueData, sizeof(ValueValue));
+        return CreateJsonNumber(ValueValue, 17);
     }
     case PropertyKind::String:
-        return memchr(pValue, 0, property.Size) ? cJSON_CreateString((const char*)pValue) : nullptr;
+        return memchr(ValueData, 0, property.Size) ? cJSON_CreateString((const char*)ValueData) : nullptr;
     case PropertyKind::Enum:
-        for (const EnumValue& entry : property.enumValues)
-            if (entry.value == signedValue(pValue, property.Size))
+        for (const EnumValue& Entry : property.enumValues)
+            if (Entry.value == SignedValue(ValueData, property.Size))
             {
-                return cJSON_CreateString(entry.Name);
+                return cJSON_CreateString(Entry.Name);
             }
         return nullptr;
     case PropertyKind::AssetReference:
     {
-        const AssetID& id = *(const AssetID*)pValue;
-        char           text[kIDStringCapacity];
-        id.ToString(text);
-        return id.IsValid() ? cJSON_CreateString(text) : cJSON_CreateNull();
+        const AssetID& Id = *(const AssetID*)ValueData;
+        char           Text[kIDStringCapacity];
+        Id.ToString(Text);
+        return Id.IsValid() ? cJSON_CreateString(Text) : cJSON_CreateNull();
     }
     case PropertyKind::EntityReference:
     {
-        const Guid& id = *(const Guid*)pValue;
-        char        text[kIDStringCapacity];
-        id.ToString(text);
-        return id.IsValid() ? cJSON_CreateString(text) : cJSON_CreateNull();
+        const Guid& Id = *(const Guid*)ValueData;
+        char        Text[kIDStringCapacity];
+        Id.ToString(Text);
+        return Id.IsValid() ? cJSON_CreateString(Text) : cJSON_CreateNull();
     }
     case PropertyKind::Array:
     {
-        JsonValue      array(cJSON_CreateArray());
-        const uint8_t* pElements = (const uint8_t*)property.pArrayOperations->Data(pValue);
-        for (uint32_t i = 0; i < property.pArrayOperations->pCount(pValue); ++i)
+        JsonValue      ArrayValue(cJSON_CreateArray());
+        const uint8_t* Elements = (const uint8_t*)property.pArrayOperations->Data(ValueData);
+        for (uint32_t I = 0; I < property.pArrayOperations->pCount(ValueData); ++I)
         {
-            cJSON* pElement = writeWorldProperties(*property.pElementType, pElements + (size_t)i * property.pElementType->Size);
-            if (!pElement)
+            cJSON* Element = WriteWorldProperties(*property.pElementType, Elements + (size_t)I * property.pElementType->Size);
+            if (!Element)
                 return nullptr;
-            cJSON_AddItemToArray(array.pValue, pElement);
+            cJSON_AddItemToArray(ArrayValue.pValue, Element);
         }
-        cJSON* pResult = array.pValue;
-        array.pValue = nullptr;
-        return pResult;
+        cJSON* ResultPointer = ArrayValue.pValue;
+        ArrayValue.pValue = nullptr;
+        return ResultPointer;
     }
     default:
     {
-        const uint32_t Count = floatCount(property.kind);
-        float          values[16] = {};
+        const uint32_t Count = FloatCount(property.kind);
+        float          Values[16] = {};
         if (!Count)
         {
             return nullptr;
         }
         if (property.kind == PropertyKind::Matrix4)
-            for (uint32_t i = 0; i < 16; ++i)
-                values[i] = (float)((const Matrix4*)pValue)->getElem(i / 4, i % 4);
+            for (uint32_t I = 0; I < 16; ++I)
+                Values[I] = (float)((const Matrix4*)ValueData)->getElem(I / 4, I % 4);
         else
-            memcpy(values, pValue, Count * sizeof(float));
-        JsonValue array(cJSON_CreateArray());
-        for (uint32_t i = 0; i < Count; ++i)
+            memcpy(Values, ValueData, Count * sizeof(float));
+        JsonValue ArrayValue(cJSON_CreateArray());
+        for (uint32_t I = 0; I < Count; ++I)
         {
-            cJSON* pNumber = number(values[i], 9);
-            if (!pNumber)
+            cJSON* Number = CreateJsonNumber(Values[I], 9);
+            if (!Number)
                 return nullptr;
-            cJSON_AddItemToArray(array.pValue, pNumber);
+            cJSON_AddItemToArray(ArrayValue.pValue, Number);
         }
-        cJSON* pResult = array.pValue;
-        array.pValue = nullptr;
-        return pResult;
+        cJSON* ResultPointer = ArrayValue.pValue;
+        ArrayValue.pValue = nullptr;
+        return ResultPointer;
     }
     }
 }
-cJSON* writeWorldProperties(const TypeDesc& Type, const void* pValue)
+cJSON* WriteWorldProperties(const TypeDesc& Type, const void* ValueData)
 {
-    Array<const PropertyDesc*> properties;
+    Array<const PropertyDesc*> Properties;
     for (const PropertyDesc& property : Type.properties)
     {
-        if (serialized(property))
-            properties.PushBack(&property);
+        if (IsSerializedProperty(property))
+            Properties.PushBack(&property);
     }
-    if (!properties.Empty())
+    if (!Properties.Empty())
     {
-        qsort(properties.GetData(), properties.Size(), sizeof(properties[0]), compareProperties);
+        qsort(Properties.GetData(), Properties.Size(), sizeof(Properties[0]), CompareProperties);
     }
-    JsonValue object(cJSON_CreateObject());
-    for (const PropertyDesc* pProperty : properties)
+    JsonValue ObjectValue(cJSON_CreateObject());
+    for (const PropertyDesc* PropertyPointer : Properties)
     {
-        cJSON* pField = writeProperty(*pProperty, (const uint8_t*)pValue + pProperty->offset);
-        if (!pField)
+        cJSON* Field = WriteProperty(*PropertyPointer, (const uint8_t*)ValueData + PropertyPointer->offset);
+        if (!Field)
         {
-            LOGF(Error, "Cannot Serialize property '%s.%s'", Type.Name, pProperty->Name);
+            LOGF(Error, "Cannot Serialize property '%s.%s'", Type.Name, PropertyPointer->Name);
             return nullptr;
         }
-        cJSON_AddItemToObject(object.pValue, pProperty->Name, pField);
+        cJSON_AddItemToObject(ObjectValue.pValue, PropertyPointer->Name, Field);
     }
-    cJSON* pResult = object.pValue;
-    object.pValue = nullptr;
-    return pResult;
+    cJSON* ResultPointer = ObjectValue.pValue;
+    ObjectValue.pValue = nullptr;
+    return ResultPointer;
 }
-static bool readProperty(const PropertyDesc& property, const cJSON* pJson, void* pValue)
+static bool ReadProperty(const PropertyDesc& property, const cJSON* JsonPointer, void* ValueData)
 {
     switch (property.kind)
     {
     case PropertyKind::Boolean:
-        if (!cJSON_IsBool(pJson))
+        if (!cJSON_IsBool(JsonPointer))
             return false;
-        *(bool*)pValue = cJSON_IsTrue(pJson);
+        *(bool*)ValueData = cJSON_IsTrue(JsonPointer);
         return true;
     case PropertyKind::SignedInteger:
     case PropertyKind::UnsignedInteger:
     {
-        const bool sign = property.kind == PropertyKind::SignedInteger;
+        const bool Sign = property.kind == PropertyKind::SignedInteger;
         if (property.Size == 8)
         {
-            if (!cJSON_IsString(pJson))
+            if (!cJSON_IsString(JsonPointer))
                 return false;
-            const char*                  pEnd = pJson->valuestring + strlen(pJson->valuestring);
-            uint64_t                     unsignedNumber = 0;
-            int64_t                      signedNumber = 0;
-            const std::from_chars_result result =
-                sign ? std::from_chars(pJson->valuestring, pEnd, signedNumber) : std::from_chars(pJson->valuestring, pEnd, unsignedNumber);
-            if (result.ec != std::errc{} || result.ptr != pEnd)
+            const char*                  End = JsonPointer->valuestring + strlen(JsonPointer->valuestring);
+            uint64_t                     UnsignedNumber = 0;
+            int64_t                      SignedNumber = 0;
+            const std::from_chars_result ResultValue =
+                Sign ? std::from_chars(JsonPointer->valuestring, End, SignedNumber) : std::from_chars(JsonPointer->valuestring, End, UnsignedNumber);
+            if (ResultValue.ec != std::errc{} || ResultValue.ptr != End)
                 return false;
-            memcpy(pValue, sign ? (const void*)&signedNumber : (const void*)&unsignedNumber, 8);
+            memcpy(ValueData, Sign ? (const void*)&SignedNumber : (const void*)&UnsignedNumber, 8);
             return true;
         }
-        const double minimum = sign ? -(double)(UINT64_C(1) << (property.Size * 8 - 1)) : 0;
-        const double maximum = (double)((UINT64_C(1) << (property.Size * 8 - (sign ? 1 : 0))) - 1);
-        if (!cJSON_IsNumber(pJson) || !(pJson->valuedouble >= minimum && pJson->valuedouble <= maximum) ||
-            floor(pJson->valuedouble) != pJson->valuedouble)
+        const double Minimum = Sign ? -(double)(UINT64_C(1) << (property.Size * 8 - 1)) : 0;
+        const double Maximum = (double)((UINT64_C(1) << (property.Size * 8 - (Sign ? 1 : 0))) - 1);
+        if (!cJSON_IsNumber(JsonPointer) || !(JsonPointer->valuedouble >= Minimum && JsonPointer->valuedouble <= Maximum) ||
+            floor(JsonPointer->valuedouble) != JsonPointer->valuedouble)
             return false;
-        const uint64_t value = sign ? (uint64_t)(int64_t)pJson->valuedouble : (uint64_t)pJson->valuedouble;
-        memcpy(pValue, &value, property.Size);
+        const uint64_t ValueValue = Sign ? (uint64_t)(int64_t)JsonPointer->valuedouble : (uint64_t)JsonPointer->valuedouble;
+        memcpy(ValueData, &ValueValue, property.Size);
         return true;
     }
     case PropertyKind::Float:
-        if (!cJSON_IsNumber(pJson) || !isfinite(pJson->valuedouble))
+        if (!cJSON_IsNumber(JsonPointer) || !isfinite(JsonPointer->valuedouble))
             return false;
         if (property.Size == sizeof(float))
         {
-            if (fabs(pJson->valuedouble) > FLT_MAX)
+            if (fabs(JsonPointer->valuedouble) > FLT_MAX)
                 return false;
-            const float value = (float)pJson->valuedouble;
-            memcpy(pValue, &value, sizeof(value));
+            const float ValueValue = (float)JsonPointer->valuedouble;
+            memcpy(ValueData, &ValueValue, sizeof(ValueValue));
         }
         else
-            memcpy(pValue, &pJson->valuedouble, sizeof(double));
+            memcpy(ValueData, &JsonPointer->valuedouble, sizeof(double));
         return true;
     case PropertyKind::String:
-        if (!cJSON_IsString(pJson) || strlen(pJson->valuestring) >= property.Size)
+        if (!cJSON_IsString(JsonPointer) || strlen(JsonPointer->valuestring) >= property.Size)
         {
             return false;
         }
-        memset(pValue, 0, property.Size);
-        memcpy(pValue, pJson->valuestring, strlen(pJson->valuestring));
+        memset(ValueData, 0, property.Size);
+        memcpy(ValueData, JsonPointer->valuestring, strlen(JsonPointer->valuestring));
         return true;
     case PropertyKind::Enum:
-        if (!cJSON_IsString(pJson))
+        if (!cJSON_IsString(JsonPointer))
             return false;
-        for (const EnumValue& entry : property.enumValues)
-            if (!strcmp(entry.Name, pJson->valuestring))
+        for (const EnumValue& Entry : property.enumValues)
+            if (!strcmp(Entry.Name, JsonPointer->valuestring))
             {
-                memcpy(pValue, &entry.value, sizeof(entry.value));
+                memcpy(ValueData, &Entry.value, sizeof(Entry.value));
                 return true;
             }
         return false;
     case PropertyKind::AssetReference:
-        if (cJSON_IsNull(pJson))
+        if (cJSON_IsNull(JsonPointer))
         {
-            *(AssetID*)pValue = {};
+            *(AssetID*)ValueData = {};
             return true;
         }
-        return cJSON_IsString(pJson) && ((AssetID*)pValue)->Parse(pJson->valuestring);
+        return cJSON_IsString(JsonPointer) && ((AssetID*)ValueData)->Parse(JsonPointer->valuestring);
     case PropertyKind::EntityReference:
-        if (cJSON_IsNull(pJson))
+        if (cJSON_IsNull(JsonPointer))
         {
-            *(Guid*)pValue = {};
+            *(Guid*)ValueData = {};
             return true;
         }
-        return cJSON_IsString(pJson) && ((Guid*)pValue)->Parse(pJson->valuestring);
+        return cJSON_IsString(JsonPointer) && ((Guid*)ValueData)->Parse(JsonPointer->valuestring);
     case PropertyKind::Array:
     {
-        if (!cJSON_IsArray(pJson))
+        if (!cJSON_IsArray(JsonPointer))
             return false;
-        property.pArrayOperations->pResize(pValue, (uint32_t)cJSON_GetArraySize(pJson));
-        uint8_t* pElement = (uint8_t*)property.pArrayOperations->Data(pValue);
-        for (const cJSON* pItem = pJson->child; pItem; pItem = pItem->next, pElement += property.pElementType->Size)
+        property.pArrayOperations->pResize(ValueData, (uint32_t)cJSON_GetArraySize(JsonPointer));
+        uint8_t* Element = (uint8_t*)property.pArrayOperations->Data(ValueData);
+        for (const cJSON* Item = JsonPointer->child; Item; Item = Item->next, Element += property.pElementType->Size)
         {
-            if (!readWorldProperties(*property.pElementType, pItem, pElement))
+            if (!ReadWorldProperties(*property.pElementType, Item, Element))
                 return false;
         }
         return true;
     }
     default:
     {
-        const uint32_t Count = floatCount(property.kind);
-        if (!Count || !cJSON_IsArray(pJson) || cJSON_GetArraySize(pJson) != (int)Count)
+        const uint32_t Count = FloatCount(property.kind);
+        if (!Count || !cJSON_IsArray(JsonPointer) || cJSON_GetArraySize(JsonPointer) != (int)Count)
         {
             return false;
         }
-        float    values[16] = {};
-        uint32_t i = 0;
-        for (const cJSON* pItem = pJson->child; pItem; pItem = pItem->next)
+        float    Values[16] = {};
+        uint32_t I = 0;
+        for (const cJSON* Item = JsonPointer->child; Item; Item = Item->next)
         {
-            if (!cJSON_IsNumber(pItem) || !isfinite(pItem->valuedouble) || fabs(pItem->valuedouble) > FLT_MAX)
+            if (!cJSON_IsNumber(Item) || !isfinite(Item->valuedouble) || fabs(Item->valuedouble) > FLT_MAX)
                 return false;
-            values[i++] = (float)pItem->valuedouble;
+            Values[I++] = (float)Item->valuedouble;
         }
         if (property.kind == PropertyKind::Matrix4)
         {
-            Matrix4& matrix = *(Matrix4*)pValue;
-            for (i = 0; i < 16; ++i)
-                matrix.setElem(i / 4, i % 4, values[i]);
+            Matrix4& Matrix = *(Matrix4*)ValueData;
+            for (I = 0; I < 16; ++I)
+                Matrix.setElem(I / 4, I % 4, Values[I]);
         }
         else
         {
-            memset(pValue, 0, property.Size);
-            memcpy(pValue, values, Count * sizeof(float));
+            memset(ValueData, 0, property.Size);
+            memcpy(ValueData, Values, Count * sizeof(float));
         }
         return true;
     }
     }
 }
-bool readWorldProperties(const TypeDesc& Type, const cJSON* pObject, void* pValue)
+bool ReadWorldProperties(const TypeDesc& Type, const cJSON* ObjectPointer, void* ValueData)
 {
-    if (!uniqueWorldFields(pObject))
+    if (!UniqueWorldFields(ObjectPointer))
         return false;
-    for (const cJSON* pField = pObject->child; pField; pField = pField->next)
+    for (const cJSON* Field = ObjectPointer->child; Field; Field = Field->next)
     {
-        const PropertyDesc* pProperty = Type.GetProperty(pField->string);
-        if (!pProperty || !serialized(*pProperty) || !readProperty(*pProperty, pField, (uint8_t*)pValue + pProperty->offset))
+        const PropertyDesc* PropertyPointer = Type.GetProperty(Field->string);
+        if (!PropertyPointer || !IsSerializedProperty(*PropertyPointer) || !ReadProperty(*PropertyPointer, Field, (uint8_t*)ValueData + PropertyPointer->offset))
         {
-            LOGF(Error, "Invalid serialized property '%s.%s'", Type.Name, pField->string);
+            LOGF(Error, "Invalid serialized property '%s.%s'", Type.Name, Field->string);
             return false;
         }
     }
     return true;
 }
-bool validateWorldReferences(const TypeDesc& Type, const void* pValue, const World& world)
+bool ValidateWorldReferences(const TypeDesc& Type, const void* ValueData, const World& WorldData)
 {
     for (const PropertyDesc& property : Type.properties)
     {
-        if (!serialized(property))
+        if (!IsSerializedProperty(property))
             continue;
-        const void* pField = (const uint8_t*)pValue + property.offset;
+        const void* Field = (const uint8_t*)ValueData + property.offset;
         if (property.kind == PropertyKind::EntityReference)
         {
-            const Guid& id = *(const Guid*)pField;
-            if (id.IsValid() && !world.GetEntity(id).IsValid())
+            const Guid& Id = *(const Guid*)Field;
+            if (Id.IsValid() && !WorldData.GetEntity(Id).IsValid())
             {
                 return false;
             }
         }
         if (property.kind == PropertyKind::Array)
         {
-            const uint8_t* pElements = (const uint8_t*)property.pArrayOperations->Data(pField);
-            for (uint32_t i = 0; i < property.pArrayOperations->pCount(pField); ++i)
-                if (!validateWorldReferences(*property.pElementType, pElements + (size_t)i * property.pElementType->Size, world))
+            const uint8_t* Elements = (const uint8_t*)property.pArrayOperations->Data(Field);
+            for (uint32_t I = 0; I < property.pArrayOperations->pCount(Field); ++I)
+                if (!ValidateWorldReferences(*property.pElementType, Elements + (size_t)I * property.pElementType->Size, WorldData))
                 {
                     return false;
                 }
@@ -414,25 +414,25 @@ bool validateWorldReferences(const TypeDesc& Type, const void* pValue, const Wor
     }
     return true;
 }
-bool normalizeWorldComponent(TypeID Type, void* pValue, bool sortOverrides)
+bool NormalizeWorldComponent(TypeID Type, void* ValueData, bool SortOverrides)
 {
     if (Type == SceneTypes::camera)
     {
-        const Camera& camera = *(const Camera*)pValue;
-        if (!isfinite(camera.verticalFov) || camera.verticalFov <= 0.0f || camera.verticalFov >= 3.141592654f ||
-            !isfinite(camera.nearPlane) || !isfinite(camera.farPlane) || camera.nearPlane <= 0.0f || camera.farPlane <= camera.nearPlane)
+        const Camera& CameraData = *(const Camera*)ValueData;
+        if (!isfinite(CameraData.verticalFov) || CameraData.verticalFov <= 0.0f || CameraData.verticalFov >= 3.141592654f ||
+            !isfinite(CameraData.nearPlane) || !isfinite(CameraData.farPlane) || CameraData.nearPlane <= 0.0f || CameraData.farPlane <= CameraData.nearPlane)
             return false;
     }
     if (Type == SceneTypes::meshRenderer)
     {
-        Array<MaterialOverride>& overrides = ((MeshRenderer*)pValue)->overrides;
-        if (sortOverrides && !overrides.Empty())
+        Array<MaterialOverride>& Overrides = ((MeshRenderer*)ValueData)->overrides;
+        if (SortOverrides && !Overrides.Empty())
         {
-            qsort(overrides.GetData(), overrides.Size(), sizeof(MaterialOverride), compareMaterialOverrides);
+            qsort(Overrides.GetData(), Overrides.Size(), sizeof(MaterialOverride), CompareMaterialOverrides);
         }
-        for (uint32_t i = 0; i < overrides.Size(); ++i)
+        for (uint32_t I = 0; I < Overrides.Size(); ++I)
         {
-            if (!overrides[i].submesh || !overrides[i].material.IsValid() || (i && overrides[i - 1].submesh >= overrides[i].submesh))
+            if (!Overrides[I].submesh || !Overrides[I].material.IsValid() || (I && Overrides[I - 1].submesh >= Overrides[I].submesh))
             {
                 return false;
             }
@@ -440,16 +440,16 @@ bool normalizeWorldComponent(TypeID Type, void* pValue, bool sortOverrides)
     }
     if (Type == SceneTypes::localTransform)
     {
-        const Quat& rotation = ((const LocalTransform*)pValue)->rotation;
-        const float norm = (float)dot(rotation, rotation);
-        if (!isfinite(norm) || fabsf(norm - 1.0f) > 0.001f)
+        const Quat& Rotation = ((const LocalTransform*)ValueData)->rotation;
+        const float Norm = (float)dot(Rotation, Rotation);
+        if (!isfinite(Norm) || fabsf(Norm - 1.0f) > 0.001f)
             return false;
     }
     if (Type == SceneTypes::localMatrix)
     {
-        Matrix4* matrix = (Matrix4*)pValue;
-        for (uint32_t column = 0; column < 4; ++column)
-            if ((float)matrix->getElem(column, 3) != (column == 3 ? 1.0f : 0.0f))
+        Matrix4* Matrix = (Matrix4*)ValueData;
+        for (uint32_t Column = 0; Column < 4; ++Column)
+            if ((float)Matrix->getElem(Column, 3) != (Column == 3 ? 1.0f : 0.0f))
             {
                 return false;
             }

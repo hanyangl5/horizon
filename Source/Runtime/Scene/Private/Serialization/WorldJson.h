@@ -16,12 +16,12 @@ public:
     JsonValue& operator=(const JsonValue&) = delete;
     cJSON*     pValue;
 };
-cJSON* parseWorldJson(Span<char> json);
-bool   validWorldJsonStrings(Span<char> json);
-bool   uniqueWorldFields(const cJSON* pObject);
-bool   worldVersion(const cJSON* pValue, uint32_t& version);
-cJSON* writeWorldProperties(const TypeDesc& Type, const void* pValue);
-bool   readWorldProperties(const TypeDesc& Type, const cJSON* pObject, void* pValue);
-bool   validateWorldReferences(const TypeDesc& Type, const void* pValue, const World& world);
-bool   normalizeWorldComponent(TypeID Type, void* pValue, bool sortOverrides);
+cJSON* ParseWorldJson(Span<char> json);
+bool   ValidWorldJsonStrings(Span<char> json);
+bool   UniqueWorldFields(const cJSON* pObject);
+bool   WorldVersion(const cJSON* pValue, uint32_t& version);
+cJSON* WriteWorldProperties(const TypeDesc& Type, const void* pValue);
+bool   ReadWorldProperties(const TypeDesc& Type, const cJSON* pObject, void* pValue);
+bool   ValidateWorldReferences(const TypeDesc& Type, const void* pValue, const World& world);
+bool   NormalizeWorldComponent(TypeID Type, void* pValue, bool sortOverrides);
 } // namespace hz

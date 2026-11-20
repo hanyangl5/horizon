@@ -21,236 +21,261 @@ struct SkinnedSlot
 class GpuSkinningData
 {
 public:
-    GpuSkinningData(RenderScene& scene, AssetManager& assetManager, RenderContext& context, const GpuSkinningDesc& desc):
-        scene(scene), assetManager(assetManager), context(context), desc(desc)
+    GpuSkinningData(RenderScene& Scene, AssetManager& AssetManager, RenderContext& Context, const GpuSkinningDesc& Desc):
+        Scene(Scene), AssetManager(AssetManager), Context(Context), Desc(Desc)
     {
-        ASSERT(desc.frameCount);
-        palettes.Resize(desc.frameCount);
-        jobBuffers.Resize(desc.frameCount);
+        ASSERT(Desc.FrameCount);
+        Palettes.Resize(Desc.FrameCount);
+        JobBuffers.Resize(Desc.FrameCount);
     }
     ~GpuSkinningData()
     {
-        for (GpuSkinnedVertices& vertices : skinned)
-            retire(vertices);
-        for (GPUBuffer& buffer : palettes)
-            context.DeferRelease(std::move(buffer));
-        for (GPUBuffer& buffer : jobBuffers)
-            context.DeferRelease(std::move(buffer));
-        hmfree(slots);
+        for (GpuSkinnedVertices& Vertices : Skinned)
+        {
+            Retire(Vertices);
+        }
+        for (GPUBuffer& Buffer : Palettes)
+        {
+            Context.DeferRelease(std::move(Buffer));
+        }
+        for (GPUBuffer& Buffer : JobBuffers)
+        {
+            Context.DeferRelease(std::move(Buffer));
+        }
+        hmfree(Slots);
     }
 
-    GpuSkinnedVertices* find(RenderInstanceID instance)
+    GpuSkinnedVertices* Find(RenderInstanceID Instance)
     {
-        const SkinnedSlot* slot = hmgetp_null(slots, instance.index);
-        return slot && skinned[slot->value].instance == instance ? &skinned[slot->value] : nullptr;
+        const SkinnedSlot* Slot = hmgetp_null(Slots, Instance.index);
+        return Slot && Skinned[Slot->value].Instance == Instance ? &Skinned[Slot->value] : nullptr;
     }
 
     // Buffers may still be read by submitted frames.
-    void retire(GpuSkinnedVertices& vertices)
+    void Retire(GpuSkinnedVertices& Vertices)
     {
-        context.DeferRelease(std::move(vertices.positions));
-        context.DeferRelease(std::move(vertices.normals));
-        if (vertices.texcoords.IsValid())
-            context.DeferRelease(std::move(vertices.texcoords));
+        Context.DeferRelease(std::move(Vertices.Positions));
+        Context.DeferRelease(std::move(Vertices.Normals));
+        if (Vertices.Texcoords.IsValid())
+        {
+            Context.DeferRelease(std::move(Vertices.Texcoords));
+        }
     }
 
-    GPUBuffer createStream(uint32_t stride, uint32_t vertexCount, const char* name)
+    GPUBuffer CreateStream(uint32_t Stride, uint32_t VertexCount, const char* Name)
     {
-        const uint64_t size = (uint64_t)stride * vertexCount;
-        GPUBuffer      buffer = context.CreateBuffer({ .Size = size,
-                                                       .ElementCount = (uint32_t)(size / sizeof(uint32_t)),
-                                                       .Name = name,
-                                                       .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-                                                       .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                       .Descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) });
-        ASSERT(buffer.IsValid());
-        return buffer;
+        const uint64_t Size = (uint64_t)Stride * VertexCount;
+        GPUBuffer      Buffer =
+            Context.CreateBuffer({ .Size = Size,
+                                   .ElementCount = (uint32_t)(Size / sizeof(uint32_t)),
+                                   .Name = Name,
+                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                   .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                   .Descriptors = (DescriptorType)(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) });
+        ASSERT(Buffer.IsValid());
+        return Buffer;
     }
 
     // Upload buffers grow to the next power of two, so a stable scene stops allocating after the first frames.
-    void reserveUpload(GPUBuffer& buffer, uint64_t size, const char* name)
+    void ReserveUpload(GPUBuffer& Buffer, uint64_t Size, const char* Name)
     {
-        if (buffer.IsValid() && buffer.GetSize() >= size)
+        if (Buffer.IsValid() && Buffer.GetSize() >= Size)
+        {
             return;
-        uint64_t capacity = 256;
-        while (capacity < size)
-            capacity *= 2;
-        if (buffer.IsValid())
-            context.DeferRelease(std::move(buffer));
-        buffer = context.CreateBuffer({ .Size = capacity,
-                                        .ElementCount = (uint32_t)(capacity / sizeof(uint32_t)),
-                                        .Name = name,
+        }
+        uint64_t Capacity = 256;
+        while (Capacity < Size)
+        {
+            Capacity *= 2;
+        }
+        if (Buffer.IsValid())
+        {
+            Context.DeferRelease(std::move(Buffer));
+        }
+        Buffer = Context.CreateBuffer({ .Size = Capacity,
+                                        .ElementCount = (uint32_t)(Capacity / sizeof(uint32_t)),
+                                        .Name = Name,
                                         .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                         .StartState = RESOURCE_STATE_SHADER_RESOURCE,
                                         .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
                                         .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-        ASSERT(buffer.IsValid());
+        ASSERT(Buffer.IsValid());
     }
 
-    static bool hasStream(const MeshAsset& mesh, uint32_t binding)
+    static bool HasStream(const MeshAsset& Mesh, uint32_t Binding)
     {
-        return binding < mesh.GetVertexBufferCount() && mesh.GetVertexBuffer(binding).IsValid();
+        return Binding < Mesh.GetVertexBufferCount() && Mesh.GetVertexBuffer(Binding).IsValid();
     }
 
-    void Prepare(uint32_t frame)
+    void Prepare(uint32_t Frame)
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuSkinning::Prepare");
-        ASSERT(frame < palettes.Size());
-        for (GpuSkinnedVertices& vertices : skinned)
-            seen.PushBack(false);
-        jobs.Clear();
-        jobMeshes.Clear();
-        maxVertexCount = 0;
-        for (const RenderSkin& skin : scene.GetSkins())
+        ASSERT(Frame < Palettes.Size());
+        for (GpuSkinnedVertices& Vertices : Skinned)
         {
-            const RenderInstance*  instance = scene.GetInstance(skin.instance);
-            const RenderPrimitive* primitive = instance ? scene.GetPrimitive(instance->primitive) : nullptr;
-            const MeshAsset* mesh = primitive ? assetManager.GetMesh({ .index = primitive->mesh.index, .generation = primitive->mesh.generation })
-                                                : nullptr;
-            if (!mesh || !hasStream(*mesh, desc.positionBinding) || !hasStream(*mesh, desc.normalBinding) ||
-                !hasStream(*mesh, desc.jointBinding) || !hasStream(*mesh, desc.weightBinding))
+            Seen.PushBack(false);
+        }
+        Jobs.Clear();
+        JobMeshes.Clear();
+        MaxVertexCount = 0;
+        for (const RenderSkin& Skin : Scene.GetSkins())
+        {
+            const RenderInstance*  Instance = Scene.GetInstance(Skin.instance);
+            const RenderPrimitive* Primitive = Instance ? Scene.GetPrimitive(Instance->primitive) : nullptr;
+            const MeshAsset*       Mesh =
+                Primitive ? AssetManager.GetMesh({ .index = Primitive->mesh.index, .generation = Primitive->mesh.generation }) : nullptr;
+            if (!Mesh || !HasStream(*Mesh, Desc.PositionBinding) || !HasStream(*Mesh, Desc.NormalBinding) ||
+                !HasStream(*Mesh, Desc.JointBinding) || !HasStream(*Mesh, Desc.WeightBinding))
             {
                 continue;
             }
-            uint32_t first = UINT32_MAX, last = 0;
-            for (uint32_t submesh = 0; submesh < mesh->GetDescription().submeshes.Count; ++submesh)
+            uint32_t First = UINT32_MAX, Last = 0;
+            for (uint32_t Submesh = 0; Submesh < Mesh->GetDescription().submeshes.Count; ++Submesh)
             {
-                const MeshVertexRange& range = mesh->GetVertexRange(submesh);
-                first = TF_MIN(first, range.first);
-                last = TF_MAX(last, range.first + range.Count);
+                const MeshVertexRange& Range = Mesh->GetVertexRange(Submesh);
+                First = TF_MIN(First, Range.first);
+                Last = TF_MAX(Last, Range.first + Range.Count);
             }
-            const bool texcoords = hasStream(*mesh, desc.texcoordBinding);
+            const bool         Texcoords = HasStream(*Mesh, Desc.TexcoordBinding);
             // A slot reused by another instance generation, or a changed mesh, gets new streams.
-            const SkinnedSlot* slot = hmgetp_null(slots, skin.instance.index);
-            uint32_t           index = slot ? slot->value : skinned.Size();
-            if (slot && (skinned[index].instance != skin.instance || skinned[index].mesh != primitive->mesh ||
-                         skinned[index].vertexCount != last))
+            const SkinnedSlot* Slot = hmgetp_null(Slots, Skin.instance.index);
+            uint32_t           Index = Slot ? Slot->value : Skinned.Size();
+            if (Slot &&
+                (Skinned[Index].Instance != Skin.instance || Skinned[Index].Mesh != Primitive->mesh || Skinned[Index].VertexCount != Last))
             {
-                retire(skinned[index]);
-                skinned[index] = {};
-                skinned[index].instance = skin.instance;
+                Retire(Skinned[Index]);
+                Skinned[Index] = {};
+                Skinned[Index].Instance = Skin.instance;
             }
-            if (!slot)
+            if (!Slot)
             {
-                skinned.EmplaceBack().instance = skin.instance;
-                seen.PushBack(false);
-                hmput(slots, skin.instance.index, index);
+                Skinned.EmplaceBack().Instance = Skin.instance;
+                Seen.PushBack(false);
+                hmput(Slots, Skin.instance.index, Index);
             }
-            GpuSkinnedVertices& vertices = skinned[index];
-            seen[index] = true;
-            if (!vertices.positions.IsValid())
+            GpuSkinnedVertices& Vertices = Skinned[Index];
+            Seen[Index] = true;
+            if (!Vertices.Positions.IsValid())
             {
-                vertices.mesh = primitive->mesh;
-                vertices.vertexCount = last;
-                vertices.positions = createStream(mesh->GetVertexStride(desc.positionBinding), vertices.vertexCount, "GpuSkinning.Positions");
-                vertices.normals = createStream(mesh->GetVertexStride(desc.normalBinding), vertices.vertexCount, "GpuSkinning.Normals");
-                if (texcoords)
-                    vertices.texcoords =
-                        createStream(mesh->GetVertexStride(desc.texcoordBinding), vertices.vertexCount, "GpuSkinning.Texcoords");
+                Vertices.Mesh = Primitive->mesh;
+                Vertices.VertexCount = Last;
+                Vertices.Positions =
+                    CreateStream(Mesh->GetVertexStride(Desc.PositionBinding), Vertices.VertexCount, "GpuSkinning.Positions");
+                Vertices.Normals = CreateStream(Mesh->GetVertexStride(Desc.NormalBinding), Vertices.VertexCount, "GpuSkinning.Normals");
+                if (Texcoords)
+                {
+                    Vertices.Texcoords =
+                        CreateStream(Mesh->GetVertexStride(Desc.TexcoordBinding), Vertices.VertexCount, "GpuSkinning.Texcoords");
+                }
             }
-            jobs.PushBack({ .positions = mesh->GetVertexBuffer(desc.positionBinding).GetSrvIndex(),
-                            .normals = mesh->GetVertexBuffer(desc.normalBinding).GetSrvIndex(),
-                            .texcoords = texcoords ? mesh->GetVertexBuffer(desc.texcoordBinding).GetSrvIndex() : UINT32_MAX,
-                            .joints = mesh->GetVertexBuffer(desc.jointBinding).GetSrvIndex(),
-                            .weights = mesh->GetVertexBuffer(desc.weightBinding).GetSrvIndex(),
-                            .outputPositions = vertices.positions.GetUavIndex(),
-                            .outputNormals = vertices.normals.GetUavIndex(),
-                            .outputTexcoords = texcoords ? vertices.texcoords.GetUavIndex() : UINT32_MAX,
-                            .firstVertex = first,
-                            .vertexCount = last - first,
-                            .jointOffset = skin.jointOffset });
-            jobMeshes.PushBack(mesh);
-            maxVertexCount = TF_MAX(maxVertexCount, last - first);
+            Jobs.PushBack({ .Positions = Mesh->GetVertexBuffer(Desc.PositionBinding).GetSrvIndex(),
+                            .Normals = Mesh->GetVertexBuffer(Desc.NormalBinding).GetSrvIndex(),
+                            .Texcoords = Texcoords ? Mesh->GetVertexBuffer(Desc.TexcoordBinding).GetSrvIndex() : UINT32_MAX,
+                            .Joints = Mesh->GetVertexBuffer(Desc.JointBinding).GetSrvIndex(),
+                            .Weights = Mesh->GetVertexBuffer(Desc.WeightBinding).GetSrvIndex(),
+                            .OutputPositions = Vertices.Positions.GetUavIndex(),
+                            .OutputNormals = Vertices.Normals.GetUavIndex(),
+                            .OutputTexcoords = Texcoords ? Vertices.Texcoords.GetUavIndex() : UINT32_MAX,
+                            .FirstVertex = First,
+                            .VertexCount = Last - First,
+                            .JointOffset = Skin.jointOffset });
+            JobMeshes.PushBack(Mesh);
+            MaxVertexCount = TF_MAX(MaxVertexCount, Last - First);
         }
-        for (uint32_t i = 0; i < skinned.Size();)
+        for (uint32_t I = 0; I < Skinned.Size();)
         {
-            if (seen[i])
+            if (Seen[I])
             {
-                ++i;
+                ++I;
                 continue;
             }
-            retire(skinned[i]);
-            hmdel(slots, skinned[i].instance.index);
-            if (i + 1 < skinned.Size())
+            Retire(Skinned[I]);
+            hmdel(Slots, Skinned[I].Instance.index);
+            if (I + 1 < Skinned.Size())
             {
-                skinned[i] = std::move(skinned[skinned.Size() - 1]);
-                seen[i] = seen[seen.Size() - 1];
-                hmput(slots, skinned[i].instance.index, i);
+                Skinned[I] = std::move(Skinned[Skinned.Size() - 1]);
+                Seen[I] = Seen[Seen.Size() - 1];
+                hmput(Slots, Skinned[I].Instance.index, I);
             }
-            skinned.PopBack();
-            seen.PopBack();
+            Skinned.PopBack();
+            Seen.PopBack();
         }
-        seen.Clear();
-        const Span<Matrix4> matrices = scene.GetSkinMatrices();
-        if (!jobs.Empty())
+        Seen.Clear();
+        const Span<Matrix4> Matrices = Scene.GetSkinMatrices();
+        if (!Jobs.Empty())
         {
-            reserveUpload(palettes[frame], (uint64_t)matrices.Count * sizeof(Matrix4), "GpuSkinning.Palette");
-            reserveUpload(jobBuffers[frame], (uint64_t)jobs.Size() * sizeof(GpuSkinningJob), "GpuSkinning.Jobs");
-            const bool uploaded = context.UpdateBuffer(palettes[frame], 0, matrices.Data, (uint64_t)matrices.Count * sizeof(Matrix4)) &&
-                                  context.UpdateBuffer(jobBuffers[frame], 0, jobs.GetData(), (uint64_t)jobs.Size() * sizeof(GpuSkinningJob));
-            ASSERT(uploaded);
+            ReserveUpload(Palettes[Frame], (uint64_t)Matrices.Count * sizeof(Matrix4), "GpuSkinning.Palette");
+            ReserveUpload(JobBuffers[Frame], (uint64_t)Jobs.Size() * sizeof(GpuSkinningJob), "GpuSkinning.Jobs");
+            const bool Uploaded =
+                Context.UpdateBuffer(Palettes[Frame], 0, Matrices.Data, (uint64_t)Matrices.Count * sizeof(Matrix4)) &&
+                Context.UpdateBuffer(JobBuffers[Frame], 0, Jobs.GetData(), (uint64_t)Jobs.Size() * sizeof(GpuSkinningJob));
+            ASSERT(Uploaded);
         }
-        preparedFrame = frame;
+        PreparedFrame = Frame;
     }
 
-    Dependencies GetDependencies(uint32_t frame) const
+    Dependencies GetDependencies(uint32_t Frame) const
     {
-        ASSERT(frame == preparedFrame);
-        reads.Clear();
-        writes.Clear();
-        reads.PushBack(&palettes[frame]);
-        reads.PushBack(&jobBuffers[frame]);
-        for (const MeshAsset* mesh : jobMeshes)
+        ASSERT(Frame == PreparedFrame);
+        Reads.Clear();
+        Writes.Clear();
+        Reads.PushBack(&Palettes[Frame]);
+        Reads.PushBack(&JobBuffers[Frame]);
+        for (const MeshAsset* Mesh : JobMeshes)
         {
-            reads.PushBack(&mesh->GetVertexBuffer(desc.positionBinding));
-            reads.PushBack(&mesh->GetVertexBuffer(desc.normalBinding));
-            reads.PushBack(&mesh->GetVertexBuffer(desc.jointBinding));
-            reads.PushBack(&mesh->GetVertexBuffer(desc.weightBinding));
-            if (hasStream(*mesh, desc.texcoordBinding))
-                reads.PushBack(&mesh->GetVertexBuffer(desc.texcoordBinding));
+            Reads.PushBack(&Mesh->GetVertexBuffer(Desc.PositionBinding));
+            Reads.PushBack(&Mesh->GetVertexBuffer(Desc.NormalBinding));
+            Reads.PushBack(&Mesh->GetVertexBuffer(Desc.JointBinding));
+            Reads.PushBack(&Mesh->GetVertexBuffer(Desc.WeightBinding));
+            if (HasStream(*Mesh, Desc.TexcoordBinding))
+            {
+                Reads.PushBack(&Mesh->GetVertexBuffer(Desc.TexcoordBinding));
+            }
         }
-        for (const GpuSkinnedVertices& vertices : skinned)
+        for (const GpuSkinnedVertices& Vertices : Skinned)
         {
-            writes.PushBack(&vertices.positions);
-            writes.PushBack(&vertices.normals);
-            if (vertices.texcoords.IsValid())
-                writes.PushBack(&vertices.texcoords);
+            Writes.PushBack(&Vertices.Positions);
+            Writes.PushBack(&Vertices.Normals);
+            if (Vertices.Texcoords.IsValid())
+            {
+                Writes.PushBack(&Vertices.Texcoords);
+            }
         }
-        return { .buffers = { reads.GetData(), reads.Size() }, .storageBuffers = { writes.GetData(), writes.Size() } };
+        return { .buffers = { Reads.GetData(), Reads.Size() }, .storageBuffers = { Writes.GetData(), Writes.Size() } };
     }
 
-    RenderScene&                    scene;
-    AssetManager&                   assetManager;
-    RenderContext&                  context;
-    GpuSkinningDesc                 desc;
-    Array<GPUBuffer>                palettes;
-    Array<GPUBuffer>                jobBuffers;
-    Array<GpuSkinnedVertices>       skinned;
-    SkinnedSlot*                    slots = nullptr;
-    Array<bool>                     seen;
-    Array<GpuSkinningJob>           jobs;
-    Array<const MeshAsset*>         jobMeshes;
-    mutable Array<const GPUBuffer*> reads;
-    mutable Array<const GPUBuffer*> writes;
-    uint32_t                        maxVertexCount = 0;
-    uint32_t                        preparedFrame = UINT32_MAX;
+    RenderScene&                    Scene;
+    AssetManager&                   AssetManager;
+    RenderContext&                  Context;
+    GpuSkinningDesc                 Desc;
+    Array<GPUBuffer>                Palettes;
+    Array<GPUBuffer>                JobBuffers;
+    Array<GpuSkinnedVertices>       Skinned;
+    SkinnedSlot*                    Slots = nullptr;
+    Array<bool>                     Seen;
+    Array<GpuSkinningJob>           Jobs;
+    Array<const MeshAsset*>         JobMeshes;
+    mutable Array<const GPUBuffer*> Reads;
+    mutable Array<const GPUBuffer*> Writes;
+    uint32_t                        MaxVertexCount = 0;
+    uint32_t                        PreparedFrame = UINT32_MAX;
 };
 
-GpuSkinning::GpuSkinning(RenderScene& scene, AssetManager& assetManager, RenderContext& context, const GpuSkinningDesc& desc):
-    Data(MemNew(GpuSkinningData, scene, assetManager, context, desc))
+GpuSkinning::GpuSkinning(RenderScene& Scene, AssetManager& AssetManager, RenderContext& Context, const GpuSkinningDesc& Desc):
+    Data(MemNew(GpuSkinningData, Scene, AssetManager, Context, Desc))
 {
 }
 GpuSkinning::~GpuSkinning() { MemDelete(Data); }
-void             GpuSkinning::Prepare(uint32_t frame) { Data->Prepare(frame); }
-const GPUBuffer& GpuSkinning::GetPalette(uint32_t frame) const { return Data->palettes[frame]; }
-const GPUBuffer& GpuSkinning::GetJobs(uint32_t frame) const { return Data->jobBuffers[frame]; }
-uint32_t         GpuSkinning::GetJobCount() const { return Data->jobs.Size(); }
-uint32_t         GpuSkinning::GetMaxVertexCount() const { return Data->maxVertexCount; }
-const GpuSkinnedVertices* GpuSkinning::Find(RenderInstanceID instance) const
+void                      GpuSkinning::Prepare(uint32_t Frame) { Data->Prepare(Frame); }
+const GPUBuffer&          GpuSkinning::GetPalette(uint32_t Frame) const { return Data->Palettes[Frame]; }
+const GPUBuffer&          GpuSkinning::GetJobs(uint32_t Frame) const { return Data->JobBuffers[Frame]; }
+uint32_t                  GpuSkinning::GetJobCount() const { return Data->Jobs.Size(); }
+uint32_t                  GpuSkinning::GetMaxVertexCount() const { return Data->MaxVertexCount; }
+const GpuSkinnedVertices* GpuSkinning::Find(RenderInstanceID Instance) const
 {
-    const GpuSkinnedVertices* vertices = Data->find(instance);
-    return vertices && vertices->positions.IsValid() ? vertices : nullptr;
+    const GpuSkinnedVertices* Vertices = Data->Find(Instance);
+    return Vertices && Vertices->Positions.IsValid() ? Vertices : nullptr;
 }
-Span<GpuSkinnedVertices> GpuSkinning::GetSkinnedVertices() const { return { Data->skinned.GetData(), Data->skinned.Size() }; }
-Dependencies             GpuSkinning::GetDependencies(uint32_t frame) const { return Data->GetDependencies(frame); }
+Span<GpuSkinnedVertices> GpuSkinning::GetSkinnedVertices() const { return { Data->Skinned.GetData(), Data->Skinned.Size() }; }
+Dependencies             GpuSkinning::GetDependencies(uint32_t Frame) const { return Data->GetDependencies(Frame); }
 } // namespace hz

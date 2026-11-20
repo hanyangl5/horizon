@@ -7,43 +7,43 @@
 
 namespace hz
 {
-inline int compareAssetIDs(const void* pA, const void* pB)
+inline int CompareAssetIDs(const void* Left, const void* Right)
 {
-    const AssetID& a = *(const AssetID*)pA;
-    const AssetID& b = *(const AssetID*)pB;
-    return (b < a) - (a < b);
+    const AssetID& LeftId = *(const AssetID*)Left;
+    const AssetID& RightId = *(const AssetID*)Right;
+    return (RightId < LeftId) - (LeftId < RightId);
 }
 
 // Sorts ids[start, end) and drops invalid and repeated IDs, giving the order the catalog stores dependencies in.
-inline Span<AssetID> normalizeAssetDependencies(Array<AssetID>& ids, uint32_t start = 0)
+inline Span<AssetID> NormalizeAssetDependencies(Array<AssetID>& Ids, uint32_t Start = 0)
 {
-    if (start != ids.Size())
+    if (Start != Ids.Size())
     {
-        qsort(ids.GetData() + start, ids.Size() - start, sizeof(AssetID), compareAssetIDs);
+        qsort(Ids.GetData() + Start, Ids.Size() - Start, sizeof(AssetID), CompareAssetIDs);
     }
-    uint32_t end = start;
-    for (uint32_t i = start; i < ids.Size(); ++i)
+    uint32_t WriteIndex = Start;
+    for (uint32_t Index = Start; Index < Ids.Size(); ++Index)
     {
-        if (ids[i].IsValid() && (end == start || ids[i] != ids[end - 1]))
+        if (Ids[Index].IsValid() && (WriteIndex == Start || Ids[Index] != Ids[WriteIndex - 1]))
         {
-            ids[end++] = ids[i];
+            Ids[WriteIndex++] = Ids[Index];
         }
     }
-    ids.Resize(end);
-    return { ids.GetData() + start, end - start };
+    Ids.Resize(WriteIndex);
+    return { Ids.GetData() + Start, WriteIndex - Start };
 }
 
 // Loaded payloads must reference exactly the dependencies the catalog reserved for them.
-inline bool matchesAssetDependencies(const AssetCatalogEntry& entry, Array<AssetID>& ids)
+inline bool MatchesAssetDependencies(const AssetCatalogEntry& Entry, Array<AssetID>& Ids)
 {
-    const Span<AssetID> sorted = normalizeAssetDependencies(ids);
-    if (sorted.Count != entry.dependencies.Count)
+    const Span<AssetID> Sorted = NormalizeAssetDependencies(Ids);
+    if (Sorted.Count != Entry.dependencies.Count)
     {
         return false;
     }
-    for (uint32_t i = 0; i < sorted.Count; ++i)
+    for (uint32_t Index = 0; Index < Sorted.Count; ++Index)
     {
-        if (sorted.Data[i] != entry.dependencies.Data[i])
+        if (Sorted.Data[Index] != Entry.dependencies.Data[Index])
         {
             return false;
         }

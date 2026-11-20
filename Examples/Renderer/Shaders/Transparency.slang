@@ -4,21 +4,21 @@
 #include "Math.slang"
 
 [numthreads(16, 16, 1)]
-void ClearMain(uint3 id : SV_DispatchThreadID)
+void ClearMain(uint3 ID : SV_DispatchThreadID)
 {
-    RWTexture2D<uint> heads = ResourceDescriptorHeap[oitHeadsIndex];
-    uint              width;
-    uint              height;
-    heads.GetDimensions(width, height);
-    if (id.x >= width || id.y >= height)
+    RWTexture2D<uint> Heads = ResourceDescriptorHeap[OitHeadsIndex];
+    uint              Width;
+    uint              Height;
+    Heads.GetDimensions(Width, Height);
+    if (ID.x >= Width || ID.y >= Height)
     {
         return;
     }
-    heads[id.xy] = 0xffffffffu;
-    if (all(id.xy == 0))
+    Heads[ID.xy] = 0xffffffffu;
+    if (all(ID.xy == 0))
     {
-        RWByteAddressBuffer counters = ResourceDescriptorHeap[oitCounterIndex];
-        counters.Store4(0, 0);
+        RWByteAddressBuffer Counters = ResourceDescriptorHeap[OitCounterIndex];
+        Counters.Store4(0, 0);
     }
 }
 
@@ -29,113 +29,113 @@ struct OITNode
     uint Next;
 };
 
-uint2 PackFragment(float3 Color, float alpha)
+uint2 PackFragment(float3 Color, float Alpha)
 {
-    const float4 value = float4(Color, alpha);
-    const uint4  packed = f32tof16(value);
-    return uint2(packed.x | (packed.y << 16), packed.z | (packed.w << 16));
+    const float4 Value = float4(Color, Alpha);
+    const uint4  Packed = f32tof16(Value);
+    return uint2(Packed.x | (Packed.y << 16), Packed.z | (Packed.w << 16));
 }
-float4 UnpackFragment(uint2 packed)
+float4 UnpackFragment(uint2 Packed)
 {
-    return float4(f16tof32(packed.x & 0xffffu), f16tof32(packed.x >> 16), f16tof32(packed.y & 0xffffu), f16tof32(packed.y >> 16));
+    return float4(f16tof32(Packed.x & 0xffffu), f16tof32(Packed.x >> 16), f16tof32(Packed.y & 0xffffu), f16tof32(Packed.y >> 16));
 }
 
-[earlydepthstencil] void PSTransparent(PSInput input, bool frontFace : SV_IsFrontFace)
+[earlydepthstencil] void PSTransparent(PSInput Input, bool FrontFace : SV_IsFrontFace)
 {
-    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
-    GpuMaterialData   mat = materials.Load<GpuMaterialData>(input.MaterialData.x * sizeof(GpuMaterialData));
-    if (mat.alphaMode != 2)
+    ByteAddressBuffer Materials = ResourceDescriptorHeap[MaterialsIndex];
+    GpuMaterialData   Mat = Materials.Load<GpuMaterialData>(Input.MaterialData.x * sizeof(GpuMaterialData));
+    if (Mat.AlphaMode != 2)
     {
         return;
     }
-    SamplerState sampler = SamplerDescriptorHeap[samplerIndex];
-    float4       emissiveColor = float4(mat.emissiveFactor, 0);
-    if (mat.emissiveTexture != INVALID_TEXTURE)
+    SamplerState Sampler = SamplerDescriptorHeap[SamplerIndex];
+    float4       EmissiveColor = float4(Mat.EmissiveFactor, 0);
+    if (Mat.EmissiveTexture != INVALID_TEXTURE)
     {
-        Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(mat.emissiveTexture)];
-        emissiveColor *= texture.Sample(sampler, input.Uv);
+        Texture2D<float4> Texture = ResourceDescriptorHeap[NonUniformResourceIndex(Mat.EmissiveTexture)];
+        EmissiveColor *= Texture.Sample(Sampler, Input.Uv);
     }
-    float4 baseColor = mat.baseColorFactor;
-    if (mat.baseColorTexture != INVALID_TEXTURE)
+    float4 BaseColor = Mat.BaseColorFactor;
+    if (Mat.BaseColorTexture != INVALID_TEXTURE)
     {
-        Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(mat.baseColorTexture)];
-        baseColor *= texture.Sample(sampler, input.Uv);
+        Texture2D<float4> Texture = ResourceDescriptorHeap[NonUniformResourceIndex(Mat.BaseColorTexture)];
+        BaseColor *= Texture.Sample(Sampler, Input.Uv);
     }
 
-    float3 n = SurfaceNormal(input.Normal, input.WorldPosition);
-    if (mat.normalTexture != INVALID_TEXTURE)
+    float3 N = SurfaceNormal(Input.Normal, Input.WorldPosition);
+    if (Mat.NormalTexture != INVALID_TEXTURE)
     {
-        Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(mat.normalTexture)];
-        float3            normalSample = texture.Sample(sampler, input.Uv).xyz;
+        Texture2D<float4> Texture = ResourceDescriptorHeap[NonUniformResourceIndex(Mat.NormalTexture)];
+        float3            NormalSample = Texture.Sample(Sampler, Input.Uv).xyz;
         // Bistro uses BC5 normal maps: reconstruct Z before the reference RGB normal mapping.
-        float2            normalXY = normalSample.xy * 2.0 - 1.0;
-        normalSample.z = 0.5 + 0.5 * sqrt(saturate(1.0 - dot(normalXY, normalXY)));
-        if (length(normalSample) > 0.5)
+        float2            NormalXY = NormalSample.xy * 2.0 - 1.0;
+        NormalSample.z = 0.5 + 0.5 * sqrt(saturate(1.0 - dot(NormalXY, NormalXY)));
+        if (length(NormalSample) > 0.5)
         {
-            n = PerturbNormal(n, input.WorldPosition, normalSample, input.Uv);
+            N = PerturbNormal(N, Input.WorldPosition, NormalSample, Input.Uv);
         }
     }
 
-    StructuredBuffer<FrameData>         frame = ResourceDescriptorHeap[frameIndex];
-    StructuredBuffer<LightingFrameData> lighting = ResourceDescriptorHeap[lightingFrameIndex];
-    LightingFrameData                   light = lighting[0];
-    float                               NdotL = saturate(dot(n, -normalize(light.lightDirection.xyz)));
+    StructuredBuffer<FrameData>         Frame = ResourceDescriptorHeap[FrameIndex];
+    StructuredBuffer<LightingFrameData> Lighting = ResourceDescriptorHeap[LightingFrameIndex];
+    LightingFrameData                   Light = Lighting[0];
+    float                               NdotL = saturate(dot(N, -normalize(Light.LightDirection.xyz)));
     // Visibility comes from the shadow map: the ray traced buffer is traced from the opaque surface behind the
     // fragment, so its value describes a different point and would darken glass in front of a shadowed wall.
-    LightingBindings shadowBindings = { shadowMapIndex,          shadowSamplerIndex, INVALID_TEXTURE, INVALID_TEXTURE, INVALID_TEXTURE,
-                                       environmentSamplerIndex, INVALID_TEXTURE,    INVALID_TEXTURE };
-    const float      visibility = shadowVisibility(input.WorldPosition, light, shadowBindings);
+    LightingBindings ShadowBindings = { ShadowMapIndex,          ShadowSamplerIndex, INVALID_TEXTURE, INVALID_TEXTURE, INVALID_TEXTURE,
+                                       EnvironmentSamplerIndex, INVALID_TEXTURE,    INVALID_TEXTURE };
+    const float      Visibility = ShadowVisibility(Input.WorldPosition, Light, ShadowBindings);
 
-    const float4 f0 = float4(0.04);
-    float3       sky = float3(-n.x, n.y, -n.z);
-    float4       irradiance = float4(0.0);
-    float3       colorRefl = float3(0.0);
-    if (environmentSamplerIndex != INVALID_TEXTURE)
+    const float4 F0 = float4(0.04);
+    float3       Sky = float3(-N.x, N.y, -N.z);
+    float4       Irradiance = float4(0.0);
+    float3       ColorRefl = float3(0.0);
+    if (EnvironmentSamplerIndex != INVALID_TEXTURE)
     {
-        SamplerState environmentSampler = SamplerDescriptorHeap[environmentSamplerIndex];
-        if (irradianceIndex != INVALID_TEXTURE)
+        SamplerState EnvironmentSampler = SamplerDescriptorHeap[EnvironmentSamplerIndex];
+        if (IrradianceIndex != INVALID_TEXTURE)
         {
-            TextureCube<float4> texture = ResourceDescriptorHeap[irradianceIndex];
-            irradiance = texture.SampleLevel(environmentSampler, sky, 0);
+            TextureCube<float4> Texture = ResourceDescriptorHeap[IrradianceIndex];
+            Irradiance = Texture.SampleLevel(EnvironmentSampler, Sky, 0);
         }
-        if (environmentIndex != INVALID_TEXTURE)
+        if (EnvironmentIndex != INVALID_TEXTURE)
         {
-            TextureCube<float4> texture = ResourceDescriptorHeap[environmentIndex];
-            float3              v = normalize(frame[0].eye.xyz - input.WorldPosition);
-            float3              reflection = reflect(v, n);
-            reflection = float3(reflection.x, -reflection.y, reflection.z);
-            colorRefl = texture.SampleLevel(environmentSampler, reflection, 0).rgb * max(light.environmentIntensity, 0.0);
+            TextureCube<float4> Texture = ResourceDescriptorHeap[EnvironmentIndex];
+            float3              V = normalize(Frame[0].Eye.xyz - Input.WorldPosition);
+            float3              Reflection = reflect(V, N);
+            Reflection = float3(Reflection.x, -Reflection.y, Reflection.z);
+            ColorRefl = Texture.SampleLevel(EnvironmentSampler, Reflection, 0).rgb * max(Light.EnvironmentIntensity, 0.0);
         }
     }
-    float4 diffuse = (irradiance * max(light.environmentIntensity, 0.0) +
-                      float4(NdotL * visibility * max(light.lightDirection.w, 0.0) * max(light.lightColor.rgb, 0.0) / M_PI, 0.0)) *
-                     baseColor * (float4(1.0) - f0);
+    float4 Diffuse = (Irradiance * max(Light.EnvironmentIntensity, 0.0) +
+                      float4(NdotL * Visibility * max(Light.LightDirection.w, 0.0) * max(Light.LightColor.rgb, 0.0) / M_PI, 0.0)) *
+                     BaseColor * (float4(1.0) - F0);
 
-    float3 v = normalize(frame[0].eye.xyz - input.WorldPosition);
-    float3 kS = fresnelSchlickRoughness(clamp(dot(n, v), 0.0, 1.0), f0.rgb, 0.1);
-    float3 Color = emissiveColor.rgb + diffuse.rgb + colorRefl * kS;
+    float3 V = normalize(Frame[0].Eye.xyz - Input.WorldPosition);
+    float3 KS = FresnelSchlickRoughness(clamp(dot(N, V), 0.0, 1.0), F0.rgb, 0.1);
+    float3 Color = EmissiveColor.rgb + Diffuse.rgb + ColorRefl * KS;
 
     // Horizon's glTF material stores the final blend alpha in baseColor.
-    float alpha = clamp(baseColor.a, 0.0, 1.0);
-    bool  isTransparent = (alpha > 0.01) && (alpha < 0.99);
-    if (isTransparent && !IsHelperLane())
+    float Alpha = clamp(BaseColor.a, 0.0, 1.0);
+    bool  IsTransparent = (Alpha > 0.01) && (Alpha < 0.99);
+    if (IsTransparent && !IsHelperLane())
     {
-        RWByteAddressBuffer counters = ResourceDescriptorHeap[oitCounterIndex];
-        uint                index;
-        counters.InterlockedAdd(0, 1, index);
-        if (index < oitMaxNodes)
+        RWByteAddressBuffer Counters = ResourceDescriptorHeap[OitCounterIndex];
+        uint                Index;
+        Counters.InterlockedAdd(0, 1, Index);
+        if (Index < OitMaxNodes)
         {
-            RWTexture2D<uint> heads = ResourceDescriptorHeap[oitHeadsIndex];
-            uint              prevIndex;
-            InterlockedExchange(heads[uint2(input.Position.xy)], index, prevIndex);
-            uint2               packedColor = PackFragment(Color, alpha);
-            RWByteAddressBuffer nodes = ResourceDescriptorHeap[oitNodesIndex];
-            nodes.Store4(index * sizeof(OITNode), uint4(packedColor, asuint(input.Position.z), prevIndex));
+            RWTexture2D<uint> Heads = ResourceDescriptorHeap[OitHeadsIndex];
+            uint              PrevIndex;
+            InterlockedExchange(Heads[uint2(Input.Position.xy)], Index, PrevIndex);
+            uint2               PackedColor = PackFragment(Color, Alpha);
+            RWByteAddressBuffer Nodes = ResourceDescriptorHeap[OitNodesIndex];
+            Nodes.Store4(Index * sizeof(OITNode), uint4(PackedColor, asuint(Input.Position.z), PrevIndex));
         }
         else
         {
-            uint ignored;
-            counters.InterlockedAdd(4, 1, ignored);
+            uint Ignored;
+            Counters.InterlockedAdd(4, 1, Ignored);
         }
     }
 }
@@ -148,59 +148,59 @@ struct TransparentFragment
 };
 
 [numthreads(8, 8, 1)]
-void ResolveMain(uint3 id : SV_DispatchThreadID)
+void ResolveMain(uint3 ID : SV_DispatchThreadID)
 {
-    Texture2D<uint> heads = ResourceDescriptorHeap[oitHeadsIndex];
-    uint            width;
-    uint            height;
-    heads.GetDimensions(width, height);
-    if (id.x >= width || id.y >= height)
+    Texture2D<uint> Heads = ResourceDescriptorHeap[OitHeadsIndex];
+    uint            Width;
+    uint            Height;
+    Heads.GetDimensions(Width, Height);
+    if (ID.x >= Width || ID.y >= Height)
     {
         return;
     }
-    ByteAddressBuffer   nodes = ResourceDescriptorHeap[oitNodesIndex];
-    TransparentFragment frags[64];
-    uint                numFragments = 0;
-    uint                idx = heads.Load(int3(id.xy, 0));
-    while (idx != 0xffffffffu && idx < oitMaxNodes && numFragments < 64)
+    ByteAddressBuffer   Nodes = ResourceDescriptorHeap[OitNodesIndex];
+    TransparentFragment Frags[64];
+    uint                NumFragments = 0;
+    uint                Idx = Heads.Load(int3(ID.xy, 0));
+    while (Idx != 0xffffffffu && Idx < OitMaxNodes && NumFragments < 64)
     {
-        uint4 packed = nodes.Load4(idx * sizeof(OITNode));
-        OITNode node = { packed.xy, asfloat(packed.z), packed.w };
-        frags[numFragments].Color = half4(UnpackFragment(node.Color));
-        frags[numFragments].Depth = node.Depth;
-        frags[numFragments].Next = node.Next;
-        numFragments++;
-        idx = node.Next;
+        uint4 Packed = Nodes.Load4(Idx * sizeof(OITNode));
+        OITNode Node = { Packed.xy, asfloat(Packed.z), Packed.w };
+        Frags[NumFragments].Color = half4(UnpackFragment(Node.Color));
+        Frags[NumFragments].Depth = Node.Depth;
+        Frags[NumFragments].Next = Node.Next;
+        NumFragments++;
+        Idx = Node.Next;
     }
-    if (idx != 0xffffffffu)
+    if (Idx != 0xffffffffu)
     {
-        RWByteAddressBuffer counters = ResourceDescriptorHeap[oitCounterIndex];
-        uint                ignored;
-        counters.InterlockedAdd(8, 1, ignored);
+        RWByteAddressBuffer Counters = ResourceDescriptorHeap[OitCounterIndex];
+        uint                Ignored;
+        Counters.InterlockedAdd(8, 1, Ignored);
     }
 
-    for (int i = 1; i < numFragments; i++)
+    for (int I = 1; I < NumFragments; I++)
     {
-        TransparentFragment toInsert = frags[i];
-        uint                j = i;
-        while (j > 0 && toInsert.Depth > frags[j - 1].Depth)
+        TransparentFragment ToInsert = Frags[I];
+        uint                J = I;
+        while (J > 0 && ToInsert.Depth > Frags[J - 1].Depth)
         {
-            frags[j] = frags[j - 1];
-            j--;
+            Frags[J] = Frags[J - 1];
+            J--;
         }
-        frags[j] = toInsert;
+        Frags[J] = ToInsert;
     }
 
-    Texture2D<float4> opaque = ResourceDescriptorHeap[oitOpaqueIndex];
-    float4            Color = opaque.Load(int3(id.xy, 0));
-    for (uint i = 0; i < numFragments; i++)
+    Texture2D<float4> Opaque = ResourceDescriptorHeap[OitOpaqueIndex];
+    float4            Color = Opaque.Load(int3(ID.xy, 0));
+    for (uint I = 0; I < NumFragments; I++)
     {
-        Color = lerp(Color, float4(frags[i].Color), clamp(float(frags[i].Color.a + oitOpacityBoost), 0.0, 1.0));
+        Color = lerp(Color, float4(Frags[I].Color), clamp(float(Frags[I].Color.a + OitOpacityBoost), 0.0, 1.0));
     }
-    if (oitShowHeatmap > 0 && numFragments > 0)
+    if (OitShowHeatmap > 0 && NumFragments > 0)
     {
-        Color = (1.0 + sin(5.0 * oitTime)) * float4(float3(numFragments + 1, numFragments + 1, 0), 0.0) / 16.0;
+        Color = (1.0 + sin(5.0 * OitTime)) * float4(float3(NumFragments + 1, NumFragments + 1, 0), 0.0) / 16.0;
     }
-    RWTexture2D<float4> output = ResourceDescriptorHeap[oitOutputIndex];
-    output[id.xy] = Color;
+    RWTexture2D<float4> Output = ResourceDescriptorHeap[OitOutputIndex];
+    Output[ID.xy] = Color;
 }

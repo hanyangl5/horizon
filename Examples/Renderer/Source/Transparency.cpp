@@ -6,34 +6,34 @@
 // Mirrors the RootConstant0 block shared by the Transparency.slang entry points.
 struct TransparencyConstants
 {
-    uint32_t instanceIndex = 0;
-    uint32_t materialIndex = 0;
-    uint32_t materialId = 0;
-    uint32_t frameIndex = UINT32_MAX;
-    uint32_t instancesIndex = UINT32_MAX;
-    uint32_t materialsIndex = UINT32_MAX;
-    uint32_t texturesIndex = UINT32_MAX;
-    uint32_t samplerIndex = UINT32_MAX;
-    uint32_t positionsIndex = UINT32_MAX;
-    uint32_t normalsIndex = UINT32_MAX;
-    uint32_t texcoordsIndex = UINT32_MAX;
-    uint32_t drawsIndex = UINT32_MAX;
-    uint32_t oitHeadsIndex = UINT32_MAX;
-    uint32_t oitCounterIndex = UINT32_MAX;
-    uint32_t oitNodesIndex = UINT32_MAX;
-    uint32_t oitMaxNodes = 0;
-    uint32_t lightingFrameIndex = UINT32_MAX;
-    uint32_t shadowMapIndex = UINT32_MAX;
-    uint32_t shadowSamplerIndex = UINT32_MAX;
-    uint32_t environmentIndex = UINT32_MAX;
-    uint32_t irradianceIndex = UINT32_MAX;
-    uint32_t brdfLutIndex = UINT32_MAX;
-    uint32_t environmentSamplerIndex = UINT32_MAX;
-    uint32_t oitOpaqueIndex = UINT32_MAX;
-    float    oitOpacityBoost = 0;
-    uint32_t oitShowHeatmap = 0;
-    uint32_t oitOutputIndex = UINT32_MAX;
-    float    oitTime = 0;
+    uint32_t InstanceIndex = 0;
+    uint32_t MaterialIndex = 0;
+    uint32_t MaterialId = 0;
+    uint32_t FrameIndex = UINT32_MAX;
+    uint32_t InstancesIndex = UINT32_MAX;
+    uint32_t MaterialsIndex = UINT32_MAX;
+    uint32_t TexturesIndex = UINT32_MAX;
+    uint32_t SamplerIndex = UINT32_MAX;
+    uint32_t PositionsIndex = UINT32_MAX;
+    uint32_t NormalsIndex = UINT32_MAX;
+    uint32_t TexcoordsIndex = UINT32_MAX;
+    uint32_t DrawsIndex = UINT32_MAX;
+    uint32_t OitHeadsIndex = UINT32_MAX;
+    uint32_t OitCounterIndex = UINT32_MAX;
+    uint32_t OitNodesIndex = UINT32_MAX;
+    uint32_t OitMaxNodes = 0;
+    uint32_t LightingFrameIndex = UINT32_MAX;
+    uint32_t ShadowMapIndex = UINT32_MAX;
+    uint32_t ShadowSamplerIndex = UINT32_MAX;
+    uint32_t EnvironmentIndex = UINT32_MAX;
+    uint32_t IrradianceIndex = UINT32_MAX;
+    uint32_t BrdfLutIndex = UINT32_MAX;
+    uint32_t EnvironmentSamplerIndex = UINT32_MAX;
+    uint32_t OitOpaqueIndex = UINT32_MAX;
+    float    OitOpacityBoost = 0;
+    uint32_t OitShowHeatmap = 0;
+    uint32_t OitOutputIndex = UINT32_MAX;
+    float    OitTime = 0;
 };
 static_assert(sizeof(TransparencyConstants) == 28 * sizeof(uint32_t));
 
@@ -70,12 +70,12 @@ void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame
     const uint32_t        Width = Color.GetWidth();
     const uint32_t        Height = Color.GetHeight();
     const uint32_t        MaxNodes = (uint32_t)(Nodes.GetSize() / NodeBytes);
-    TransparencyConstants Constants = { .frameIndex = Frame.GetSrvIndex(),
-                                        .oitHeadsIndex = Heads.GetUavIndex(),
-                                        .oitCounterIndex = Counters.GetUavIndex(),
-                                        .oitNodesIndex = Nodes.GetUavIndex(),
-                                        .oitMaxNodes = MaxNodes,
-                                        .lightingFrameIndex = Lighting.LightingFrame->GetSrvIndex() };
+    TransparencyConstants Constants = { .FrameIndex = Frame.GetSrvIndex(),
+                                        .OitHeadsIndex = Heads.GetUavIndex(),
+                                        .OitCounterIndex = Counters.GetUavIndex(),
+                                        .OitNodesIndex = Nodes.GetUavIndex(),
+                                        .OitMaxNodes = MaxNodes,
+                                        .LightingFrameIndex = Lighting.LightingFrame->GetSrvIndex() };
     Commands.BeginGpuTimestamp("OIT");
     Commands.SetPipeline(ClearPipeline);
     Commands.SetRootConstants(Constants);
@@ -116,28 +116,28 @@ void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame
         Commands.SetScissor(0, 0, Width, Height);
         Commands.SetPipeline(GatherPipeline);
         const hz::GpuSceneBuffers& Gpu = View.GpuScene.GetBuffers();
-        Constants.instancesIndex = Gpu.instances.GetSrvIndex();
-        Constants.materialsIndex = Gpu.materials.GetSrvIndex();
-        Constants.texturesIndex = Gpu.textures.GetSrvIndex();
-        Constants.samplerIndex = SurfaceSampler.GetIndex();
-        Constants.drawsIndex = Draws.GetDrawData(Backing).GetSrvIndex();
-        Constants.shadowMapIndex = Lighting.ShadowMap ? Lighting.ShadowMap->GetSrvIndex() : UINT32_MAX;
-        Constants.shadowSamplerIndex = Lighting.ShadowSampler ? Lighting.ShadowSampler->GetIndex() : UINT32_MAX;
-        Constants.environmentIndex = Lighting.Environment ? Lighting.Environment->GetSrvIndex() : UINT32_MAX;
-        Constants.irradianceIndex = Lighting.Irradiance ? Lighting.Irradiance->GetSrvIndex() : UINT32_MAX;
-        Constants.brdfLutIndex = Lighting.BRDFLut ? Lighting.BRDFLut->GetSrvIndex() : UINT32_MAX;
-        Constants.environmentSamplerIndex = Lighting.EnvironmentSampler->GetIndex();
+        Constants.InstancesIndex = Gpu.instances.GetSrvIndex();
+        Constants.MaterialsIndex = Gpu.materials.GetSrvIndex();
+        Constants.TexturesIndex = Gpu.textures.GetSrvIndex();
+        Constants.SamplerIndex = SurfaceSampler.GetIndex();
+        Constants.DrawsIndex = Draws.GetDrawData(Backing).GetSrvIndex();
+        Constants.ShadowMapIndex = Lighting.ShadowMap ? Lighting.ShadowMap->GetSrvIndex() : UINT32_MAX;
+        Constants.ShadowSamplerIndex = Lighting.ShadowSampler ? Lighting.ShadowSampler->GetIndex() : UINT32_MAX;
+        Constants.EnvironmentIndex = Lighting.Environment ? Lighting.Environment->GetSrvIndex() : UINT32_MAX;
+        Constants.IrradianceIndex = Lighting.Irradiance ? Lighting.Irradiance->GetSrvIndex() : UINT32_MAX;
+        Constants.BrdfLutIndex = Lighting.BRDFLut ? Lighting.BRDFLut->GetSrvIndex() : UINT32_MAX;
+        Constants.EnvironmentSamplerIndex = Lighting.EnvironmentSampler->GetIndex();
         Commands.SetRootConstants(Constants);
         Commands.DrawIndirect(Indirect, 0, Draws.GetCount(Backing));
         Commands.EndRendering();
     }
-    Constants.oitHeadsIndex = Heads.GetSrvIndex();
-    Constants.oitNodesIndex = Nodes.GetSrvIndex();
-    Constants.oitOpaqueIndex = OpaqueColor.GetSrvIndex();
-    Constants.oitOpacityBoost = OpacityBoost;
-    Constants.oitShowHeatmap = ShowHeatmap ? 1u : 0u;
-    Constants.oitOutputIndex = Color.GetUavIndex();
-    Constants.oitTime = float(double(GetUSec(true)) * 1e-6);
+    Constants.OitHeadsIndex = Heads.GetSrvIndex();
+    Constants.OitNodesIndex = Nodes.GetSrvIndex();
+    Constants.OitOpaqueIndex = OpaqueColor.GetSrvIndex();
+    Constants.OitOpacityBoost = OpacityBoost;
+    Constants.OitShowHeatmap = ShowHeatmap ? 1u : 0u;
+    Constants.OitOutputIndex = Color.GetUavIndex();
+    Constants.OitTime = float(double(GetUSec(true)) * 1e-6);
     Commands.SetPipeline(ResolvePipeline);
     Commands.SetRootConstants(Constants);
     Commands.Dispatch((Width + 7) / 8, (Height + 7) / 8, 1,

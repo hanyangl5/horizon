@@ -42,7 +42,7 @@ struct ShaderCacheStageHeader
 CallOnceGuard          gSlangSessionGuard = INIT_CALL_ONCE_GUARD;
 slang::IGlobalSession* gSlangSession = nullptr;
 
-void initSlangGlobalSession()
+void InitSlangGlobalSession()
 {
     if (SLANG_FAILED(slang::createGlobalSession(&gSlangSession)))
     {
@@ -51,51 +51,51 @@ void initSlangGlobalSession()
     }
 }
 
-static bool checkSlangResult(SlangResult result, const char* operation, const Slang::ComPtr<ISlangBlob>& diagnostics = {})
+static bool CheckSlangResult(SlangResult ResultValue, const char* Operation, const Slang::ComPtr<ISlangBlob>& Diagnostics = {})
 {
-    if (diagnostics && diagnostics->getBufferSize())
-        LOGF(SLANG_FAILED(result) ? Error : Warning, "Slang %s: %s", operation, (const char*)diagnostics->getBufferPointer());
-    else if (SLANG_FAILED(result))
-        LOGF(Error, "Slang %s failed (0x%08x)", operation, (uint32_t)result);
-    return SLANG_SUCCEEDED(result);
+    if (Diagnostics && Diagnostics->getBufferSize())
+        LOGF(SLANG_FAILED(ResultValue) ? Error : Warning, "Slang %s: %s", Operation, (const char*)Diagnostics->getBufferPointer());
+    else if (SLANG_FAILED(ResultValue))
+        LOGF(Error, "Slang %s failed (0x%08x)", Operation, (uint32_t)ResultValue);
+    return SLANG_SUCCEEDED(ResultValue);
 }
 
-void hashShaderBytes(uint64_t& Hash, const void* Data, size_t Size)
+void HashShaderBytes(uint64_t& Hash, const void* Data, size_t Size)
 {
-    const uint8_t* pBytes = (const uint8_t*)Data;
-    for (size_t i = 0; i < Size; ++i)
+    const uint8_t* Bytes = (const uint8_t*)Data;
+    for (size_t I = 0; I < Size; ++I)
     {
-        Hash = (Hash ^ pBytes[i]) * UINT64_C(1099511628211);
+        Hash = (Hash ^ Bytes[I]) * UINT64_C(1099511628211);
     }
 }
 
 // Everything that changes the generated DXIL participates in the key, so a cache hit never hides a shader edit.
-uint64_t getShaderCacheKey(const ShaderSrcDesc& source, ShaderTarget target)
+uint64_t GetShaderCacheKey(const ShaderSrcDesc& Source, ShaderTarget Target)
 {
     uint64_t                  Hash = UINT64_C(14695981039346656037);
-    const uint32_t            version = kShaderCacheVersion;
-    const ShaderSrcStageDesc* stages[] = { &source.vert, &source.frag, &source.comp };
-    hashShaderBytes(Hash, &version, sizeof(version));
+    const uint32_t            Version = kShaderCacheVersion;
+    const ShaderSrcStageDesc* Stages[] = { &Source.vert, &Source.frag, &Source.comp };
+    HashShaderBytes(Hash, &Version, sizeof(Version));
     // The compiler build is what version-validates emitted DXIL; the driver never sees this cache, so it stays out of the key.
-    const char* pBuildTag = spGetBuildTagString();
-    hashShaderBytes(Hash, pBuildTag ? pBuildTag : "", pBuildTag ? strlen(pBuildTag) + 1 : 1);
-    hashShaderBytes(Hash, &target, sizeof(target));
-    for (uint32_t i = 0; i < kCachedStageCount; ++i)
+    const char* BuildTag = spGetBuildTagString();
+    HashShaderBytes(Hash, BuildTag ? BuildTag : "", BuildTag ? strlen(BuildTag) + 1 : 1);
+    HashShaderBytes(Hash, &Target, sizeof(Target));
+    for (uint32_t I = 0; I < kCachedStageCount; ++I)
     {
-        if (!(source.stages & kCachedStages[i]))
+        if (!(Source.stages & kCachedStages[I]))
         {
             continue;
         }
-        hashShaderBytes(Hash, &kCachedStages[i], sizeof(kCachedStages[i]));
-        hashShaderBytes(Hash, stages[i]->pByteCode, stages[i]->byteCodeSize);
-        hashShaderBytes(Hash, stages[i]->pEntryPoint, strlen(stages[i]->pEntryPoint) + 1);
+        HashShaderBytes(Hash, &kCachedStages[I], sizeof(kCachedStages[I]));
+        HashShaderBytes(Hash, Stages[I]->pByteCode, Stages[I]->byteCodeSize);
+        HashShaderBytes(Hash, Stages[I]->pEntryPoint, strlen(Stages[I]->pEntryPoint) + 1);
     }
     return Hash;
 }
 
-void getShaderCacheFile(uint64_t key, char* pFileName, size_t Size)
+void GetShaderCacheFile(uint64_t Key, char* FileNamePointer, size_t Size)
 {
-    snprintf(pFileName, Size, "%016llx.shadercache", (unsigned long long)key);
+    snprintf(FileNamePointer, Size, "%016llx.shadercache", (unsigned long long)Key);
 }
 
 // Owns the cache file bytes until the caller takes them; every early return frees.
@@ -105,145 +105,145 @@ struct ShaderCacheFile
 
     uint8_t* Release()
     {
-        uint8_t* pResult = pBytes;
+        uint8_t* ResultPointer = pBytes;
         pBytes = nullptr;
-        return pResult;
+        return ResultPointer;
     }
 
     uint8_t* pBytes = nullptr;
     size_t   Size = 0;
 };
 
-bool readShaderCacheFile(uint64_t key, ShaderCacheFile& file)
+bool ReadShaderCacheFile(uint64_t Key, ShaderCacheFile& File)
 {
-    char fileName[64] = {};
-    getShaderCacheFile(key, fileName, sizeof(fileName));
-    FileStream stream = {};
-    if (!OpenStreamFromPath(DirectoryShaderBinaries, fileName, FileModeRead, &stream))
+    char FileNameValue[64] = {};
+    GetShaderCacheFile(Key, FileNameValue, sizeof(FileNameValue));
+    FileStream Stream = {};
+    if (!OpenStreamFromPath(DirectoryShaderBinaries, FileNameValue, FileModeRead, &Stream))
     {
         return false;
     }
-    const ssize_t fileSize = GetStreamFileSize(&stream);
-    file.pBytes = fileSize > 0 ? (uint8_t*)MemAllocate((size_t)fileSize) : nullptr;
-    const bool read = file.pBytes && ReadFromStream(&stream, file.pBytes, (size_t)fileSize) == (size_t)fileSize;
-    CloseStream(&stream);
-    file.Size = read ? (size_t)fileSize : 0;
-    return read;
+    const ssize_t FileSize = GetStreamFileSize(&Stream);
+    File.pBytes = FileSize > 0 ? (uint8_t*)MemAllocate((size_t)FileSize) : nullptr;
+    const bool Read = File.pBytes && ReadFromStream(&Stream, File.pBytes, (size_t)FileSize) == (size_t)FileSize;
+    CloseStream(&Stream);
+    File.Size = Read ? (size_t)FileSize : 0;
+    return Read;
 }
 
-bool loadShaderCache(uint64_t key, const ShaderSrcDesc& source, BinaryShaderDesc& binary, void*& pStorage)
+bool LoadShaderCache(uint64_t Key, const ShaderSrcDesc& Source, BinaryShaderDesc& Binary, void*& Storage)
 {
-    ShaderCacheFile file;
-    if (!readShaderCacheFile(key, file) || file.Size <= sizeof(ShaderCacheHeader))
+    ShaderCacheFile File;
+    if (!ReadShaderCacheFile(Key, File) || File.Size <= sizeof(ShaderCacheHeader))
     {
         return false;
     }
 
-    const ShaderCacheHeader* pHeader = (const ShaderCacheHeader*)file.pBytes;
-    if (pHeader->magic != kShaderCacheMagic || pHeader->version != kShaderCacheVersion || pHeader->stages != (uint32_t)source.stages ||
-        pHeader->stageCount > kCachedStageCount)
+    const ShaderCacheHeader* HeaderPointer = (const ShaderCacheHeader*)File.pBytes;
+    if (HeaderPointer->magic != kShaderCacheMagic || HeaderPointer->version != kShaderCacheVersion || HeaderPointer->stages != (uint32_t)Source.stages ||
+        HeaderPointer->stageCount > kCachedStageCount)
     {
         return false;
     }
 
-    BinaryShaderDesc          result = { .stages = (ShaderStage)pHeader->stages };
-    BinaryShaderStageDesc*    stageDescs[] = { &result.vert, &result.frag, &result.comp };
-    const ShaderSrcStageDesc* sourceStages[] = { &source.vert, &source.frag, &source.comp };
-    size_t                    offset = sizeof(ShaderCacheHeader);
-    for (uint32_t i = 0; i < pHeader->stageCount; ++i)
+    BinaryShaderDesc          ResultValue = { .stages = (ShaderStage)HeaderPointer->stages };
+    BinaryShaderStageDesc*    StageDescs[] = { &ResultValue.vert, &ResultValue.frag, &ResultValue.comp };
+    const ShaderSrcStageDesc* SourceStages[] = { &Source.vert, &Source.frag, &Source.comp };
+    size_t                    Offset = sizeof(ShaderCacheHeader);
+    for (uint32_t I = 0; I < HeaderPointer->stageCount; ++I)
     {
-        if (offset + sizeof(ShaderCacheStageHeader) > file.Size)
+        if (Offset + sizeof(ShaderCacheStageHeader) > File.Size)
         {
             return false;
         }
-        const ShaderCacheStageHeader* pStage = (const ShaderCacheStageHeader*)(file.pBytes + offset);
-        offset += sizeof(ShaderCacheStageHeader);
-        if (!pStage->entryPointSize || !pStage->byteCodeSize || offset + pStage->entryPointSize + pStage->byteCodeSize > file.Size)
+        const ShaderCacheStageHeader* StagePointer = (const ShaderCacheStageHeader*)(File.pBytes + Offset);
+        Offset += sizeof(ShaderCacheStageHeader);
+        if (!StagePointer->entryPointSize || !StagePointer->byteCodeSize || Offset + StagePointer->entryPointSize + StagePointer->byteCodeSize > File.Size)
         {
             return false;
         }
-        char* pEntryPoint = (char*)(file.pBytes + offset);
-        if (pEntryPoint[pStage->entryPointSize - 1] != '\0')
+        char* EntryPoint = (char*)(File.pBytes + Offset);
+        if (EntryPoint[StagePointer->entryPointSize - 1] != '\0')
         {
             return false;
         }
-        offset += pStage->entryPointSize;
-        void* pByteCode = file.pBytes + offset;
-        offset += pStage->byteCodeSize;
-        for (uint32_t stageIndex = 0; stageIndex < kCachedStageCount; ++stageIndex)
+        Offset += StagePointer->entryPointSize;
+        void* ByteCode = File.pBytes + Offset;
+        Offset += StagePointer->byteCodeSize;
+        for (uint32_t StageIndex = 0; StageIndex < kCachedStageCount; ++StageIndex)
         {
-            if (kCachedStages[stageIndex] != (ShaderStage)pStage->stage)
+            if (kCachedStages[StageIndex] != (ShaderStage)StagePointer->stage)
             {
                 continue;
             }
-            stageDescs[stageIndex]->Name = sourceStages[stageIndex]->Name;
-            stageDescs[stageIndex]->pEntryPoint = pEntryPoint;
-            stageDescs[stageIndex]->pByteCode = pByteCode;
-            stageDescs[stageIndex]->byteCodeSize = pStage->byteCodeSize;
+            StageDescs[StageIndex]->Name = SourceStages[StageIndex]->Name;
+            StageDescs[StageIndex]->pEntryPoint = EntryPoint;
+            StageDescs[StageIndex]->pByteCode = ByteCode;
+            StageDescs[StageIndex]->byteCodeSize = StagePointer->byteCodeSize;
         }
     }
     // A truncated or foreign file must not turn into a null entry point inside addShaderBinary.
-    for (uint32_t i = 0; i < kCachedStageCount; ++i)
+    for (uint32_t I = 0; I < kCachedStageCount; ++I)
     {
-        if ((result.stages & kCachedStages[i]) && (!stageDescs[i]->pEntryPoint || !stageDescs[i]->pByteCode))
+        if ((ResultValue.stages & kCachedStages[I]) && (!StageDescs[I]->pEntryPoint || !StageDescs[I]->pByteCode))
         {
             return false;
         }
     }
-    binary = result;
-    pStorage = file.Release();
+    Binary = ResultValue;
+    Storage = File.Release();
     return true;
 }
 
-void storeShaderCache(uint64_t key, const BinaryShaderDesc& binary)
+void StoreShaderCache(uint64_t Key, const BinaryShaderDesc& Binary)
 {
-    const BinaryShaderStageDesc* stageDescs[] = { &binary.vert, &binary.frag, &binary.comp };
-    uint32_t                     stageCount = 0;
-    for (uint32_t i = 0; i < kCachedStageCount; ++i)
+    const BinaryShaderStageDesc* StageDescs[] = { &Binary.vert, &Binary.frag, &Binary.comp };
+    uint32_t                     StageCount = 0;
+    for (uint32_t I = 0; I < kCachedStageCount; ++I)
     {
-        stageCount += (binary.stages & kCachedStages[i]) ? 1u : 0u;
+        StageCount += (Binary.stages & kCachedStages[I]) ? 1u : 0u;
     }
 
-    char       fileName[64] = {};
-    FileStream stream = {};
-    getShaderCacheFile(key, fileName, sizeof(fileName));
-    if (!OpenStreamFromPath(DirectoryShaderBinaries, fileName, FileModeWrite, &stream))
+    char       FileNameValue[64] = {};
+    FileStream Stream = {};
+    GetShaderCacheFile(Key, FileNameValue, sizeof(FileNameValue));
+    if (!OpenStreamFromPath(DirectoryShaderBinaries, FileNameValue, FileModeWrite, &Stream))
     {
         return;
     }
-    const ShaderCacheHeader header = { .magic = kShaderCacheMagic,
+    const ShaderCacheHeader HeaderValue = { .magic = kShaderCacheMagic,
                                        .version = kShaderCacheVersion,
-                                       .stages = (uint32_t)binary.stages,
-                                       .stageCount = stageCount };
-    WriteToStream(&stream, &header, sizeof(header));
-    for (uint32_t i = 0; i < kCachedStageCount; ++i)
+                                       .stages = (uint32_t)Binary.stages,
+                                       .stageCount = StageCount };
+    WriteToStream(&Stream, &HeaderValue, sizeof(HeaderValue));
+    for (uint32_t I = 0; I < kCachedStageCount; ++I)
     {
-        if (!(binary.stages & kCachedStages[i]))
+        if (!(Binary.stages & kCachedStages[I]))
         {
             continue;
         }
-        const size_t                 entryPointSize = strlen(stageDescs[i]->pEntryPoint) + 1;
-        const ShaderCacheStageHeader stage = { .stage = (uint32_t)kCachedStages[i],
-                                               .entryPointSize = (uint32_t)entryPointSize,
-                                               .byteCodeSize = stageDescs[i]->byteCodeSize };
-        WriteToStream(&stream, &stage, sizeof(stage));
-        WriteToStream(&stream, stageDescs[i]->pEntryPoint, entryPointSize);
-        WriteToStream(&stream, stageDescs[i]->pByteCode, stageDescs[i]->byteCodeSize);
+        const size_t                 EntryPointSize = strlen(StageDescs[I]->pEntryPoint) + 1;
+        const ShaderCacheStageHeader StageValue = { .stage = (uint32_t)kCachedStages[I],
+                                               .entryPointSize = (uint32_t)EntryPointSize,
+                                               .byteCodeSize = StageDescs[I]->byteCodeSize };
+        WriteToStream(&Stream, &StageValue, sizeof(StageValue));
+        WriteToStream(&Stream, StageDescs[I]->pEntryPoint, EntryPointSize);
+        WriteToStream(&Stream, StageDescs[I]->pByteCode, StageDescs[I]->byteCodeSize);
     }
-    CloseStream(&stream);
+    CloseStream(&Stream);
 }
 } // namespace
 
-slang::IGlobalSession* getSlangGlobalSession()
+slang::IGlobalSession* GetSlangGlobalSession()
 {
-    CallOnce(&gSlangSessionGuard, initSlangGlobalSession);
+    CallOnce(&gSlangSessionGuard, InitSlangGlobalSession);
     return gSlangSession;
 }
 
-Shader* RenderContext::CreateSlangShader(const ShaderSrcDesc& input)
+Shader* RenderContext::CreateSlangShader(const ShaderSrcDesc& Input)
 {
-    slang::IGlobalSession* pGlobalSession = getSlangGlobalSession();
-    if (!pGlobalSession)
+    slang::IGlobalSession* GlobalSession = GetSlangGlobalSession();
+    if (!GlobalSession)
     {
         return nullptr;
     }
@@ -254,110 +254,110 @@ Shader* RenderContext::CreateSlangShader(const ShaderSrcDesc& input)
         return nullptr;
     }
 
-    const uint64_t   key = getShaderCacheKey(input, (ShaderTarget)pRenderer->shaderTarget);
-    BinaryShaderDesc cached = {};
-    void*            pCachedBytes = nullptr;
-    if (loadShaderCache(key, input, cached, pCachedBytes))
+    const uint64_t   Key = GetShaderCacheKey(Input, (ShaderTarget)pRenderer->shaderTarget);
+    BinaryShaderDesc Cached = {};
+    void*            CachedBytes = nullptr;
+    if (LoadShaderCache(Key, Input, Cached, CachedBytes))
     {
-        Shader* shader = nullptr;
-        addShaderBinary(pRenderer, &cached, &shader);
-        MemDeallocate(pCachedBytes);
-        return shader;
+        Shader* ShaderObject = nullptr;
+        addShaderBinary(pRenderer, &Cached, &ShaderObject);
+        MemDeallocate(CachedBytes);
+        return ShaderObject;
     }
 
-    char profile[16] = {};
-    snprintf(profile, sizeof(profile), "sm_6_%u", (uint32_t)(pRenderer->shaderTarget - SHADER_TARGET_6_0));
-    const slang::CompilerOptionEntry options[] = {
+    char Profile[16] = {};
+    snprintf(Profile, sizeof(Profile), "sm_6_%u", (uint32_t)(pRenderer->shaderTarget - SHADER_TARGET_6_0));
+    const slang::CompilerOptionEntry Options[] = {
         // Preserve resource names for the existing DXIL reflection and named bindings.
         { .name = slang::CompilerOptionName::NoMangle, .value = { .intValue0 = 1 } },
     };
-    const slang::TargetDesc  target = { .format = SLANG_DXIL, .profile = pGlobalSession->findProfile(profile) };
-    const slang::SessionDesc desc = {
-        .targets = &target,
+    const slang::TargetDesc  Target = { .format = SLANG_DXIL, .profile = GlobalSession->findProfile(Profile) };
+    const slang::SessionDesc Desc = {
+        .targets = &Target,
         .targetCount = 1,
         .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
-        .compilerOptionEntries = options,
+        .compilerOptionEntries = Options,
         .compilerOptionEntryCount = 1,
     };
-    Slang::ComPtr<slang::ISession> session;
-    if (!checkSlangResult(pGlobalSession->createSession(desc, session.writeRef()), "session creation"))
+    Slang::ComPtr<slang::ISession> Session;
+    if (!CheckSlangResult(GlobalSession->createSession(Desc, Session.writeRef()), "session creation"))
     {
         return nullptr;
     }
 
-    const ShaderSrcStageDesc*         sources[] = { &input.vert, &input.frag, &input.comp };
-    slang::IModule*                   modules[kCachedStageCount] = {};
-    const ShaderSrcStageDesc*         moduleSources[kCachedStageCount] = {};
-    Slang::ComPtr<slang::IEntryPoint> entryPoints[kCachedStageCount];
-    Slang::ComPtr<ISlangBlob>         diagnostics;
-    uint32_t                          moduleCount = 0;
-    uint32_t                          entryPointCount = 0;
-    for (uint32_t i = 0; i < kCachedStageCount; ++i)
+    const ShaderSrcStageDesc*         Sources[] = { &Input.vert, &Input.frag, &Input.comp };
+    slang::IModule*                   Modules[kCachedStageCount] = {};
+    const ShaderSrcStageDesc*         ModuleSources[kCachedStageCount] = {};
+    Slang::ComPtr<slang::IEntryPoint> EntryPoints[kCachedStageCount];
+    Slang::ComPtr<ISlangBlob>         Diagnostics;
+    uint32_t                          ModuleCount = 0;
+    uint32_t                          EntryPointCount = 0;
+    for (uint32_t I = 0; I < kCachedStageCount; ++I)
     {
-        if (!(input.stages & kCachedStages[i]))
+        if (!(Input.stages & kCachedStages[I]))
         {
             continue;
         }
-        uint32_t moduleIndex = 0;
-        while (moduleIndex < moduleCount && (moduleSources[moduleIndex]->pByteCode != sources[i]->pByteCode ||
-                                             moduleSources[moduleIndex]->byteCodeSize != sources[i]->byteCodeSize))
-            ++moduleIndex;
-        if (moduleIndex == moduleCount)
+        uint32_t ModuleIndex = 0;
+        while (ModuleIndex < ModuleCount && (ModuleSources[ModuleIndex]->pByteCode != Sources[I]->pByteCode ||
+                                             ModuleSources[ModuleIndex]->byteCodeSize != Sources[I]->byteCodeSize))
+            ++ModuleIndex;
+        if (ModuleIndex == ModuleCount)
         {
-            char moduleName[32] = {};
-            snprintf(moduleName, sizeof(moduleName), "HorizonShader%u", moduleCount);
-            Slang::ComPtr<ISlangBlob> source;
-            source.attach(slang_createBlob(sources[i]->pByteCode, sources[i]->byteCodeSize));
-            modules[moduleIndex] = session->loadModuleFromSource(moduleName, sources[i]->Name, source, diagnostics.writeRef());
-            if (!checkSlangResult(modules[moduleIndex] ? SLANG_OK : SLANG_FAIL, "module loading", diagnostics))
+            char ModuleName[32] = {};
+            snprintf(ModuleName, sizeof(ModuleName), "HorizonShader%u", ModuleCount);
+            Slang::ComPtr<ISlangBlob> Source;
+            Source.attach(slang_createBlob(Sources[I]->pByteCode, Sources[I]->byteCodeSize));
+            Modules[ModuleIndex] = Session->loadModuleFromSource(ModuleName, Sources[I]->Name, Source, Diagnostics.writeRef());
+            if (!CheckSlangResult(Modules[ModuleIndex] ? SLANG_OK : SLANG_FAIL, "module loading", Diagnostics))
                 return nullptr;
-            moduleSources[moduleCount++] = sources[i];
+            ModuleSources[ModuleCount++] = Sources[I];
         }
-        if (!checkSlangResult(modules[moduleIndex]->findAndCheckEntryPoint(sources[i]->pEntryPoint, kSlangStages[i],
-                                                                           entryPoints[entryPointCount].writeRef(), diagnostics.writeRef()),
-                              "entry point lookup", diagnostics))
+        if (!CheckSlangResult(Modules[ModuleIndex]->findAndCheckEntryPoint(Sources[I]->pEntryPoint, kSlangStages[I],
+                                                                           EntryPoints[EntryPointCount].writeRef(), Diagnostics.writeRef()),
+                              "entry point lookup", Diagnostics))
         {
             return nullptr;
         }
-        ++entryPointCount;
+        ++EntryPointCount;
     }
 
-    slang::IComponentType* components[6] = {};
-    for (uint32_t i = 0; i < moduleCount; ++i)
-        components[i] = modules[i];
-    for (uint32_t i = 0; i < entryPointCount; ++i)
-        components[moduleCount + i] = entryPoints[i];
-    Slang::ComPtr<slang::IComponentType> program;
-    Slang::ComPtr<slang::IComponentType> linkedProgram;
-    if (!checkSlangResult(
-            session->createCompositeComponentType(components, moduleCount + entryPointCount, program.writeRef(), diagnostics.writeRef()),
-            "program composition", diagnostics) ||
-        !checkSlangResult(program->link(linkedProgram.writeRef(), diagnostics.writeRef()), "linking", diagnostics))
+    slang::IComponentType* Components[6] = {};
+    for (uint32_t I = 0; I < ModuleCount; ++I)
+        Components[I] = Modules[I];
+    for (uint32_t I = 0; I < EntryPointCount; ++I)
+        Components[ModuleCount + I] = EntryPoints[I];
+    Slang::ComPtr<slang::IComponentType> Program;
+    Slang::ComPtr<slang::IComponentType> LinkedProgram;
+    if (!CheckSlangResult(
+            Session->createCompositeComponentType(Components, ModuleCount + EntryPointCount, Program.writeRef(), Diagnostics.writeRef()),
+            "program composition", Diagnostics) ||
+        !CheckSlangResult(Program->link(LinkedProgram.writeRef(), Diagnostics.writeRef()), "linking", Diagnostics))
         return nullptr;
 
-    BinaryShaderDesc          binary = { .stages = input.stages };
-    BinaryShaderStageDesc*    outputs[] = { &binary.vert, &binary.frag, &binary.comp };
-    Slang::ComPtr<ISlangBlob> bytecode[kCachedStageCount];
-    uint32_t                  entryPointIndex = 0;
-    for (uint32_t i = 0; i < kCachedStageCount; ++i)
+    BinaryShaderDesc          Binary = { .stages = Input.stages };
+    BinaryShaderStageDesc*    Outputs[] = { &Binary.vert, &Binary.frag, &Binary.comp };
+    Slang::ComPtr<ISlangBlob> Bytecode[kCachedStageCount];
+    uint32_t                  EntryPointIndex = 0;
+    for (uint32_t I = 0; I < kCachedStageCount; ++I)
     {
-        if (!(input.stages & kCachedStages[i]))
+        if (!(Input.stages & kCachedStages[I]))
         {
             continue;
         }
-        if (!checkSlangResult(linkedProgram->getEntryPointCode(entryPointIndex++, 0, bytecode[i].writeRef(), diagnostics.writeRef()),
-                              "DXIL generation", diagnostics))
+        if (!CheckSlangResult(LinkedProgram->getEntryPointCode(EntryPointIndex++, 0, Bytecode[I].writeRef(), Diagnostics.writeRef()),
+                              "DXIL generation", Diagnostics))
             return nullptr;
-        outputs[i]->Name = sources[i]->Name;
-        outputs[i]->pByteCode = (void*)bytecode[i]->getBufferPointer();
-        outputs[i]->byteCodeSize = (uint32_t)bytecode[i]->getBufferSize();
-        outputs[i]->pEntryPoint = sources[i]->pEntryPoint;
+        Outputs[I]->Name = Sources[I]->Name;
+        Outputs[I]->pByteCode = (void*)Bytecode[I]->getBufferPointer();
+        Outputs[I]->byteCodeSize = (uint32_t)Bytecode[I]->getBufferSize();
+        Outputs[I]->pEntryPoint = Sources[I]->pEntryPoint;
     }
     // Written before the shader is created so a later start skips the front end entirely.
-    storeShaderCache(key, binary);
+    StoreShaderCache(Key, Binary);
 
-    Shader* shader = nullptr;
-    addShaderBinary(pRenderer, &binary, &shader);
-    return shader;
+    Shader* ShaderObject = nullptr;
+    addShaderBinary(pRenderer, &Binary, &ShaderObject);
+    return ShaderObject;
 }
 } // namespace hz

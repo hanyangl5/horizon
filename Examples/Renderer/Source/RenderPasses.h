@@ -85,10 +85,10 @@ private:
     // Uploaded as the frame constant block, so the fields keep the shader's names.
     struct FrameData
     {
-        Matrix4 viewProjection;
-        Matrix4 previousViewProjection;
-        Matrix4 inverseViewProjection;
-        Vector4 eye;
+        Matrix4 ViewProjection;
+        Matrix4 PreviousViewProjection;
+        Matrix4 InverseViewProjection;
+        Vector4 Eye;
     };
 
     struct FrameConstantBuffer

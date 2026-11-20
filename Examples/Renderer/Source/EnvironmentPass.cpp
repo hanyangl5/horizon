@@ -69,10 +69,10 @@ bool EnvironmentPass::IsValid() const
 // Mirrors the RootConstant0 block of Skybox.slang field for field.
 struct SkyboxConstants
 {
-    uint32_t frameIndex;
-    uint32_t environmentIndex;
-    uint32_t samplerIndex;
-    float    intensity;
+    uint32_t FrameIndex;
+    uint32_t EnvironmentIndex;
+    uint32_t SamplerIndex;
+    float    Intensity;
 };
 static_assert(sizeof(SkyboxConstants) == 3 * sizeof(uint32_t) + sizeof(float));
 
@@ -82,10 +82,10 @@ void EnvironmentPass::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fr
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("EnvironmentPass::execute");
     ASSERT(IsValid());
     hz::DependencyList    Dependencies;
-    const SkyboxConstants Constants = { .frameIndex = Dependencies.read(Frame),
-                                        .environmentIndex = Dependencies.sample(&Prefiltered),
-                                        .samplerIndex = Sampler.GetIndex(),
-                                        .intensity = Intensity };
+    const SkyboxConstants Constants = { .FrameIndex = Dependencies.Read(Frame),
+                                        .EnvironmentIndex = Dependencies.Sample(&Prefiltered),
+                                        .SamplerIndex = Sampler.GetIndex(),
+                                        .Intensity = Intensity };
     Commands.BeginGpuTimestamp("Skybox");
     Commands.BeginRendering(
         { .colorAttachments = { { .pTexture = &Color, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } },

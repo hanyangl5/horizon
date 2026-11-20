@@ -3,150 +3,150 @@
 
 struct RayPayload
 {
-    float3 color;
-    uint   depth;
+    float3 Color;
+    uint   Depth;
 };
 
 [shader("raygeneration")]
 void rayGenMain()
 {
-    RWTexture2D<float4>         output = ResourceDescriptorHeap[outputIndex];
-    Texture2D<float>            depthTexture = ResourceDescriptorHeap[depthIndex];
-    Texture2D<float4>           normals = ResourceDescriptorHeap[normalIndex];
-    StructuredBuffer<FrameData> frame = ResourceDescriptorHeap[frameIndexBuffer];
-    uint                        width;
-    uint                        height;
-    depthTexture.GetDimensions(width, height);
+    RWTexture2D<float4>         Output = ResourceDescriptorHeap[OutputIndex];
+    Texture2D<float>            DepthTexture = ResourceDescriptorHeap[DepthIndex];
+    Texture2D<float4>           Normals = ResourceDescriptorHeap[NormalIndex];
+    StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[FrameIndexBuffer];
+    uint                        Width;
+    uint                        Height;
+    DepthTexture.GetDimensions(Width, Height);
 
-    uint2  pixel = DispatchRaysIndex().xy;
-    uint2  size = DispatchRaysDimensions().xy;
+    uint2  Pixel = DispatchRaysIndex().xy;
+    uint2  Size = DispatchRaysDimensions().xy;
     // Load depth and normal from the same full-resolution pixel, without blending across silhouettes.
-    int2   depthSize = int2(width, height);
-    int2   sourcePixel = rtSourcePixel(int2(pixel), int2(size), depthSize);
-    float  depth = depthTexture.Load(int3(sourcePixel, 0));
-    if (depth >= 1.0 || tlasIndex == INVALID_TEXTURE)
+    int2   DepthSize = int2(Width, Height);
+    int2   SourcePixel = RTSourcePixel(int2(Pixel), int2(Size), DepthSize);
+    float  Depth = DepthTexture.Load(int3(SourcePixel, 0));
+    if (Depth >= 1.0 || TlasIndex == INVALID_TEXTURE)
     {
-        output[pixel] = float4(0.0);
+        Output[Pixel] = float4(0.0);
         return;
     }
-    RaytracingAccelerationStructure scene = ResourceDescriptorHeap[tlasIndex];
-    float2                          sourceUV = (float2(sourcePixel) + 0.5) / float2(depthSize);
-    float4                          g1 = normals.Load(int3(sourcePixel, 0));
-    float3                          n = decodeOctNormal(g1.xy);
-    float2                          properties = unpackMaterialProperties(float2(g1.ba));
-    float3                          worldPos = reconstructWorldPosition(sourceUV, depth, frame[0].inverseViewProjection);
-    float3                          viewDir = normalize(frame[0].eye.xyz - worldPos);
-    if (properties.x >= kRTReflectionMaxRoughness)
+    RaytracingAccelerationStructure Scene = ResourceDescriptorHeap[TlasIndex];
+    float2                          SourceUV = (float2(SourcePixel) + 0.5) / float2(DepthSize);
+    float4                          G1 = Normals.Load(int3(SourcePixel, 0));
+    float3                          N = DecodeOctNormal(G1.xy);
+    float2                          Properties = UnpackMaterialProperties(float2(G1.ba));
+    float3                          WorldPos = ReconstructWorldPosition(SourceUV, Depth, Frame[0].InverseViewProjection);
+    float3                          ViewDir = normalize(Frame[0].Eye.xyz - WorldPos);
+    if (Properties.x >= RTReflectionMaxRoughness)
     {
-        output[pixel] = float4(0.0);
+        Output[Pixel] = float4(0.0);
         return;
     }
-    RayDesc ray = { rtGBufferRayOrigin(sourceUV, depth, worldPos, n, frame[0].eye.xyz, frame[0].inverseViewProjection), 0.0,
-                    reflect(-viewDir, n), 1e6 };
-    RayPayload payload;
-    payload.color = float3(0.0);
-    payload.depth = 0;
-    float3 accumulatedColor = float3(0.0, 0.0, 0.0);
+    RayDesc Ray = { RTGBufferRayOrigin(SourceUV, Depth, WorldPos, N, Frame[0].Eye.xyz, Frame[0].InverseViewProjection), 0.0,
+                    reflect(-ViewDir, N), 1e6 };
+    RayPayload Payload;
+    Payload.Color = float3(0.0);
+    Payload.Depth = 0;
+    float3 AccumulatedColor = float3(0.0, 0.0, 0.0);
     {
-        TraceRay(scene, RAY_FLAG_NONE, 0xff, 0, 0, 0, ray, payload);
-        accumulatedColor += payload.color;
-        payload.depth++;
+        TraceRay(Scene, RAY_FLAG_NONE, 0xff, 0, 0, 0, Ray, Payload);
+        AccumulatedColor += Payload.Color;
+        Payload.Depth++;
     }
     // Unweighted incoming radiance. The receiving surface's Fresnel is applied in Lighting.
-    output[pixel] = float4(accumulatedColor, 1.0);
+    Output[Pixel] = float4(AccumulatedColor, 1.0);
 }
 
 [shader("miss")]
-void missMain(inout RayPayload payload)
+void missMain(inout RayPayload Payload)
 {
-    payload.color = 0;
-    payload.depth = 0xff;
-    if (environmentIndex == INVALID_TEXTURE || environmentSamplerIndex == INVALID_TEXTURE)
+    Payload.Color = 0;
+    Payload.Depth = 0xff;
+    if (EnvironmentIndex == INVALID_TEXTURE || EnvironmentSamplerIndex == INVALID_TEXTURE)
     {
         return;
     }
-    StructuredBuffer<LightingFrameData> light = ResourceDescriptorHeap[lightingIndex];
-    TextureCube<float4>                 environment = ResourceDescriptorHeap[environmentIndex];
-    SamplerState                        sampler = SamplerDescriptorHeap[environmentSamplerIndex];
-    float3                              direction = WorldRayDirection();
-    payload.color =
-        environment.SampleLevel(sampler, float3(-direction.x, direction.y, -direction.z), 0).rgb * max(light[0].environmentIntensity, 0.0);
+    StructuredBuffer<LightingFrameData> Light = ResourceDescriptorHeap[LightingIndex];
+    TextureCube<float4>                 Environment = ResourceDescriptorHeap[EnvironmentIndex];
+    SamplerState                        Sampler = SamplerDescriptorHeap[EnvironmentSamplerIndex];
+    float3                              Direction = WorldRayDirection();
+    Payload.Color =
+        Environment.SampleLevel(Sampler, float3(-Direction.x, Direction.y, -Direction.z), 0).rgb * max(Light[0].EnvironmentIntensity, 0.0);
 }
 
 [shader("closesthit")]
-void closestHitMain(inout RayPayload payload, BuiltInTriangleIntersectionAttributes attributes)
+void closestHitMain(inout RayPayload Payload, BuiltInTriangleIntersectionAttributes Attributes)
 {
-    GpuDrawData draw = loadRTDraw(InstanceID());
-    uint3             indices = loadRTTriangle(draw, PrimitiveIndex());
-    float3            bary = float3(1.0 - attributes.barycentrics.x - attributes.barycentrics.y, attributes.barycentrics);
+    GpuDrawData Draw = LoadRTDraw(InstanceID());
+    uint3             Indices = LoadRTTriangle(Draw, PrimitiveIndex());
+    float3            Bary = float3(1.0 - Attributes.barycentrics.x - Attributes.barycentrics.y, Attributes.barycentrics);
     float3            V = -normalize(WorldRayDirection());
-    ByteAddressBuffer positions = ResourceDescriptorHeap[NonUniformResourceIndex(draw.positions)];
-    const float3      p0 = asfloat(positions.Load3(indices.x * sizeof(float3)));
-    const float3      p1 = asfloat(positions.Load3(indices.y * sizeof(float3)));
-    const float3      p2 = asfloat(positions.Load3(indices.z * sizeof(float3)));
-    float3            geometricNormal = normalize(mul(cross(p1 - p0, p2 - p0), (float3x3)WorldToObject3x4()));
-    geometricNormal = dot(geometricNormal, V) < 0.0 ? -geometricNormal : geometricNormal;
+    ByteAddressBuffer Positions = ResourceDescriptorHeap[NonUniformResourceIndex(Draw.Positions)];
+    const float3      P0 = asfloat(Positions.Load3(Indices.x * sizeof(float3)));
+    const float3      P1 = asfloat(Positions.Load3(Indices.y * sizeof(float3)));
+    const float3      P2 = asfloat(Positions.Load3(Indices.z * sizeof(float3)));
+    float3            GeometricNormal = normalize(mul(cross(P1 - P0, P2 - P0), (float3x3)WorldToObject3x4()));
+    GeometricNormal = dot(GeometricNormal, V) < 0.0 ? -GeometricNormal : GeometricNormal;
     // Meshes without a normal stream shade with the geometric normal.
-    float3 N = geometricNormal;
-    if (draw.normals != INVALID_TEXTURE)
+    float3 N = GeometricNormal;
+    if (Draw.Normals != INVALID_TEXTURE)
     {
-        ByteAddressBuffer normals = ResourceDescriptorHeap[NonUniformResourceIndex(draw.normals)];
-        const float3      normal = decodeVertexNormal(normals.Load(indices.x * 4)) * bary.x +
-                              decodeVertexNormal(normals.Load(indices.y * 4)) * bary.y + decodeVertexNormal(normals.Load(indices.z * 4)) * bary.z;
-        N = normalize(mul(normal, (float3x3)WorldToObject3x4()));
+        ByteAddressBuffer Normals = ResourceDescriptorHeap[NonUniformResourceIndex(Draw.Normals)];
+        const float3      Normal = DecodeVertexNormal(Normals.Load(Indices.x * 4)) * Bary.x +
+                              DecodeVertexNormal(Normals.Load(Indices.y * 4)) * Bary.y + DecodeVertexNormal(Normals.Load(Indices.z * 4)) * Bary.z;
+        N = normalize(mul(Normal, (float3x3)WorldToObject3x4()));
         N = dot(N, V) < 0.0 ? -N : N;
     }
-    const float3 hitPosition =
-        rtOffsetHitPosition(mul(ObjectToWorld3x4(), float4(p0 * bary.x + p1 * bary.y + p2 * bary.z, 1.0)), geometricNormal);
-    float2            uv = interpolateRTUV(draw, indices, attributes.barycentrics);
-    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
-    GpuMaterialData   material = materials.Load<GpuMaterialData>(draw.material * sizeof(GpuMaterialData));
-    SamplerState      sampler = SamplerDescriptorHeap[samplerIndex];
-    float3            baseColor = material.baseColorFactor.rgb;
-    if (material.baseColorTexture != INVALID_TEXTURE)
+    const float3 HitPosition =
+        RTOffsetHitPosition(mul(ObjectToWorld3x4(), float4(P0 * Bary.x + P1 * Bary.y + P2 * Bary.z, 1.0)), GeometricNormal);
+    float2            UV = InterpolateRTUV(Draw, Indices, Attributes.barycentrics);
+    ByteAddressBuffer Materials = ResourceDescriptorHeap[MaterialsIndex];
+    GpuMaterialData   Material = Materials.Load<GpuMaterialData>(Draw.Material * sizeof(GpuMaterialData));
+    SamplerState      Sampler = SamplerDescriptorHeap[SamplerIndex];
+    float3            BaseColor = Material.BaseColorFactor.rgb;
+    if (Material.BaseColorTexture != INVALID_TEXTURE)
     {
-        Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(material.baseColorTexture)];
-        baseColor *= texture.SampleLevel(sampler, uv, 0).rgb;
+        Texture2D<float4> Texture = ResourceDescriptorHeap[NonUniformResourceIndex(Material.BaseColorTexture)];
+        BaseColor *= Texture.SampleLevel(Sampler, UV, 0).rgb;
     }
-    float metallic = material.metallicFactor;
-    float roughness = material.roughnessFactor;
-    if (material.metallicRoughnessTexture != INVALID_TEXTURE)
+    float Metallic = Material.MetallicFactor;
+    float Roughness = Material.RoughnessFactor;
+    if (Material.MetallicRoughnessTexture != INVALID_TEXTURE)
     {
-        Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(material.metallicRoughnessTexture)];
-        float4            mr = texture.SampleLevel(sampler, uv, 0);
-        metallic *= mr.b;
-        roughness *= mr.g;
+        Texture2D<float4> Texture = ResourceDescriptorHeap[NonUniformResourceIndex(Material.MetallicRoughnessTexture)];
+        float4            Mr = Texture.SampleLevel(Sampler, UV, 0);
+        Metallic *= Mr.b;
+        Roughness *= Mr.g;
     }
-    float3 emissive = material.emissiveFactor;
-    if (material.emissiveTexture != INVALID_TEXTURE)
+    float3 Emissive = Material.EmissiveFactor;
+    if (Material.EmissiveTexture != INVALID_TEXTURE)
     {
-        Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(material.emissiveTexture)];
-        emissive *= texture.SampleLevel(sampler, uv, 0).rgb;
+        Texture2D<float4> Texture = ResourceDescriptorHeap[NonUniformResourceIndex(Material.EmissiveTexture)];
+        Emissive *= Texture.SampleLevel(Sampler, UV, 0).rgb;
     }
-    StructuredBuffer<LightingFrameData> light = ResourceDescriptorHeap[lightingIndex];
-    float3                              L = -normalize(light[0].lightDirection.xyz);
-    float                               visibility = 1.0;
-    if (shadowsEnabled != 0)
+    StructuredBuffer<LightingFrameData> Light = ResourceDescriptorHeap[LightingIndex];
+    float3                              L = -normalize(Light[0].LightDirection.xyz);
+    float                               Visibility = 1.0;
+    if (ShadowsEnabled != 0)
     {
-        RaytracingAccelerationStructure scene = ResourceDescriptorHeap[tlasIndex];
-        RayDesc                         ray = { hitPosition, 0.0, L, 1e4 };
-        visibility = dot(geometricNormal, L) > 0.0 ? traceRTShadow(scene, ray, alphaTestMethod != 0) : 0.0;
+        RaytracingAccelerationStructure Scene = ResourceDescriptorHeap[TlasIndex];
+        RayDesc                         Ray = { HitPosition, 0.0, L, 1e4 };
+        Visibility = dot(GeometricNormal, L) > 0.0 ? TraceRTShadow(Scene, Ray, AlphaTestMethod != 0) : 0.0;
     }
-    PBRLighting lighting =
-        evaluatePBRLighting(baseColor, metallic, roughness, N, V, L, visibility, 1.0, light[0], rtLightingBindings(), false);
+    PBRLighting Lighting =
+        EvaluatePBRLighting(BaseColor, Metallic, Roughness, N, V, L, Visibility, 1.0, Light[0], RTLightingBindings(), false);
     // One bounce: the hit is shadowed by an inline query, without recursive TraceRay.
-    payload.color = emissive + (lighting.direct + lighting.indirectDiffuse);
+    Payload.Color = Emissive + (Lighting.Direct + Lighting.IndirectDiffuse);
 }
 
 // Only masked geometry invokes Any-Hit; opaque geometry is accepted by traversal.
 [shader("anyhit")]
-void anyHitFoliage(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attribs)
+void anyHitFoliage(inout RayPayload Payload, in BuiltInTriangleIntersectionAttributes Attribs)
 {
-    GpuDrawData mesh = loadRTDraw(InstanceID());
-    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
-    GpuMaterialData   material = materials.Load<GpuMaterialData>(mesh.material * sizeof(GpuMaterialData));
-    float             alpha = sampleRayTracingAlpha(mesh, material, PrimitiveIndex(), attribs.barycentrics);
-    if (alpha < material.alphaCutoff)
+    GpuDrawData Mesh = LoadRTDraw(InstanceID());
+    ByteAddressBuffer Materials = ResourceDescriptorHeap[MaterialsIndex];
+    GpuMaterialData   Material = Materials.Load<GpuMaterialData>(Mesh.Material * sizeof(GpuMaterialData));
+    float             Alpha = SampleRayTracingAlpha(Mesh, Material, PrimitiveIndex(), Attribs.barycentrics);
+    if (Alpha < Material.AlphaCutoff)
     {
         IgnoreHit();
     }

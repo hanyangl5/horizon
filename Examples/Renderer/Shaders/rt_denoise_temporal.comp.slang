@@ -2,92 +2,92 @@
 
 // Writes (shadow, AO, history length). The blend weight follows the per-pixel sample count down to temporalAlpha, so
 // disoccluded pixels converge quickly and settled pixels average many frames.
-static const float kMaxHistoryLength = 64.0;
+static const float MaxHistoryLength = 64.0;
 // The 1 spp input is binary, so the clip box needs a floor: a converged penumbra must survive a neighborhood whose
 // samples all happened to agree this frame.
-static const float kClipGamma = 1.5;
-static const float kClipFloor = 0.1;
+static const float ClipGamma = 1.5;
+static const float ClipFloor = 0.1;
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
-void main(uint3 thread : SV_DispatchThreadID)
+void main(uint3 Thread : SV_DispatchThreadID)
 {
-    RWTexture2D<float4> output = ResourceDescriptorHeap[outputIndex];
-    uint                width;
-    uint                height;
-    output.GetDimensions(width, height);
-    if (thread.x >= width || thread.y >= height)
+    RWTexture2D<float4> Output = ResourceDescriptorHeap[OutputIndex];
+    uint                Width;
+    uint                Height;
+    Output.GetDimensions(Width, Height);
+    if (Thread.x >= Width || Thread.y >= Height)
     {
         return;
     }
 
-    Texture2D<float2> input = ResourceDescriptorHeap[inputIndex];
-    Texture2D<float>  depthTexture = ResourceDescriptorHeap[depthIndex];
-    const int2        size = int2(width, height);
-    const int2        pixel = int2(thread.xy);
-    uint2             sourceSize;
-    depthTexture.GetDimensions(sourceSize.x, sourceSize.y);
-    const int2   source = rtSourcePixel(pixel, size, int2(sourceSize));
-    const float2 current = input.Load(int3(pixel, 0));
-    const float  depth = depthTexture.Load(int3(source, 0));
-    if (depth >= 1.0)
+    Texture2D<float2> Input = ResourceDescriptorHeap[InputIndex];
+    Texture2D<float>  DepthTexture = ResourceDescriptorHeap[DepthIndex];
+    const int2        Size = int2(Width, Height);
+    const int2        Pixel = int2(Thread.xy);
+    uint2             SourceSize;
+    DepthTexture.GetDimensions(SourceSize.x, SourceSize.y);
+    const int2   Source = RTSourcePixel(Pixel, Size, int2(SourceSize));
+    const float2 Current = Input.Load(int3(Pixel, 0));
+    const float  Depth = DepthTexture.Load(int3(Source, 0));
+    if (Depth >= 1.0)
     {
-        output[pixel] = float4(1.0, 1.0, 0.0, 0.0);
+        Output[Pixel] = float4(1.0, 1.0, 0.0, 0.0);
         return;
     }
 
-    float2 mean = 0.0;
-    float2 meanSquare = 0.0;
-    for (int y = -1; y <= 1; ++y)
+    float2 Mean = 0.0;
+    float2 MeanSquare = 0.0;
+    for (int Y = -1; Y <= 1; ++Y)
     {
-        for (int x = -1; x <= 1; ++x)
+        for (int X = -1; X <= 1; ++X)
         {
-            const float2 value = input.Load(int3(clamp(pixel + int2(x, y), int2(0), size - 1), 0));
-            mean += value;
-            meanSquare += value * value;
+            const float2 Value = Input.Load(int3(clamp(Pixel + int2(X, Y), int2(0), Size - 1), 0));
+            Mean += Value;
+            MeanSquare += Value * Value;
         }
     }
-    mean /= 9.0;
-    const float2 extent = kClipGamma * sqrt(max(meanSquare / 9.0 - mean * mean, 0.0)) + kClipFloor;
+    Mean /= 9.0;
+    const float2 Extent = ClipGamma * sqrt(max(MeanSquare / 9.0 - Mean * Mean, 0.0)) + ClipFloor;
 
-    float2 history = current;
-    float  historyLength = 0.0;
-    if (historyValid != 0)
+    float2 History = Current;
+    float  HistoryLength = 0.0;
+    if (HistoryValid != 0)
     {
-        StructuredBuffer<FrameData> frames = ResourceDescriptorHeap[frameIndex];
-        Texture2D<float4>           historyTexture = ResourceDescriptorHeap[historyIndex];
-        Texture2D<float>            previousDepth = ResourceDescriptorHeap[previousDepthIndex];
-        const float3 worldPosition =
-            reconstructWorldPosition((float2(source) + 0.5) / float2(sourceSize), depth, frames[0].inverseViewProjection);
-        const float4 previousClip = mul(frames[0].previousViewProjection, float4(worldPosition, 1.0));
+        StructuredBuffer<FrameData> Frames = ResourceDescriptorHeap[FrameIndex];
+        Texture2D<float4>           HistoryTexture = ResourceDescriptorHeap[HistoryIndex];
+        Texture2D<float>            PreviousDepth = ResourceDescriptorHeap[PreviousDepthIndex];
+        const float3 WorldPosition =
+            ReconstructWorldPosition((float2(Source) + 0.5) / float2(SourceSize), Depth, Frames[0].InverseViewProjection);
+        const float4 PreviousClip = mul(Frames[0].PreviousViewProjection, float4(WorldPosition, 1.0));
         // Texels sit at their source pixels, so a static view maps each texel back onto itself.
-        const float2 previousSource = (previousClip.xy / previousClip.w * float2(0.5, -0.5) + 0.5) * float2(sourceSize) - 0.5;
-        const float2 previousPixel = previousSource * float2(size) / float2(sourceSize);
-        const int2   base = int2(floor(previousPixel));
-        const float2 fraction = previousPixel - float2(base);
-        float4       sum = 0.0;
-        float        weightSum = 0.0;
+        const float2 PreviousSource = (PreviousClip.xy / PreviousClip.w * float2(0.5, -0.5) + 0.5) * float2(SourceSize) - 0.5;
+        const float2 PreviousPixel = PreviousSource * float2(Size) / float2(SourceSize);
+        const int2   Base = int2(floor(PreviousPixel));
+        const float2 Fraction = PreviousPixel - float2(Base);
+        float4       Sum = 0.0;
+        float        WeightSum = 0.0;
         // Bilinear history with each tap validated separately, so a silhouette never blends foreground into background.
-        for (int i = 0; i < 4; ++i)
+        for (int I = 0; I < 4; ++I)
         {
-            const int2 offset = int2(i & 1, i >> 1);
-            const int2 tap = base + offset;
-            if (previousClip.w <= 0.0 || any(tap < 0) || any(tap >= size) ||
-                abs(previousDepth.Load(int3(tap, 0)) - previousClip.w) > depthThreshold * previousClip.w)
+            const int2 Offset = int2(I & 1, I >> 1);
+            const int2 Tap = Base + Offset;
+            if (PreviousClip.w <= 0.0 || any(Tap < 0) || any(Tap >= Size) ||
+                abs(PreviousDepth.Load(int3(Tap, 0)) - PreviousClip.w) > DepthThreshold * PreviousClip.w)
             {
                 continue;
             }
-            const float2 bilinear = lerp(1.0 - fraction, fraction, float2(offset));
-            sum += historyTexture.Load(int3(tap, 0)) * (bilinear.x * bilinear.y);
-            weightSum += bilinear.x * bilinear.y;
+            const float2 Bilinear = lerp(1.0 - Fraction, Fraction, float2(Offset));
+            Sum += HistoryTexture.Load(int3(Tap, 0)) * (Bilinear.x * Bilinear.y);
+            WeightSum += Bilinear.x * Bilinear.y;
         }
-        if (weightSum > 1e-3)
+        if (WeightSum > 1e-3)
         {
-            sum /= weightSum;
-            history = clamp(sum.xy, mean - extent, mean + extent);
-            historyLength = sum.z;
+            Sum /= WeightSum;
+            History = clamp(Sum.xy, Mean - Extent, Mean + Extent);
+            HistoryLength = Sum.z;
         }
     }
-    historyLength = min(historyLength + 1.0, kMaxHistoryLength);
-    output[pixel] = float4(lerp(history, current, max(1.0 / historyLength, temporalAlpha)), historyLength, 0.0);
+    HistoryLength = min(HistoryLength + 1.0, MaxHistoryLength);
+    Output[Pixel] = float4(lerp(History, Current, max(1.0 / HistoryLength, TemporalAlpha)), HistoryLength, 0.0);
 }

@@ -7,62 +7,62 @@
 // Mirrors the RootConstant0 block of PostMetering.slang.
 struct PostMeteringConstants
 {
-    uint32_t sceneColorIndex;
-    uint32_t luminanceOutputIndex;
+    uint32_t SceneColorIndex;
+    uint32_t LuminanceOutputIndex;
 };
 static_assert(sizeof(PostMeteringConstants) == 2 * sizeof(uint32_t));
 
 struct PostBloomDownsampleConstants
 {
-    uint32_t input;
-    uint32_t output;
-    uint32_t sampler;
-    uint32_t adaptedLuminance;
-    uint32_t threshold;
-    uint32_t autoExposure;
-    float    exposure;
+    uint32_t InputIndex;
+    uint32_t OutputIndex;
+    uint32_t SamplerIndex;
+    uint32_t AdaptedLuminanceIndex;
+    uint32_t Threshold;
+    uint32_t AutoExposure;
+    float    Exposure;
 };
 
 struct PostBloomUpsampleConstants
 {
-    uint32_t down;
-    uint32_t input;
-    uint32_t output;
-    uint32_t sampler;
+    uint32_t DownIndex;
+    uint32_t InputIndex;
+    uint32_t OutputIndex;
+    uint32_t SamplerIndex;
 };
 
 // Mirrors the RootConstant0 block that every PostLuminance.slang entry point shares.
 struct PostLuminanceConstants
 {
-    uint32_t inputIndex;
-    uint32_t outputIndex;
-    uint32_t previousIndex = 0;
-    float    adaptationTime = 0.0f;
+    uint32_t InputIndex;
+    uint32_t OutputIndex;
+    uint32_t PreviousIndex = 0;
+    float    AdaptationTime = 0.0f;
 };
 static_assert(sizeof(PostLuminanceConstants) == 3 * sizeof(uint32_t) + sizeof(float));
 
 struct PostToneConstants
 {
-    uint32_t sceneColor;
-    uint32_t adaptedLuminance;
-    uint32_t bloom;
-    uint32_t sampler;
-    uint32_t toneMapping;
-    float    exposure;
-    float    bloomStrength;
-    float    maxWhite;
+    uint32_t SceneColorIndex;
+    uint32_t AdaptedLuminanceIndex;
+    uint32_t BloomIndex;
+    uint32_t SamplerIndex;
+    uint32_t ToneMapping;
+    float    Exposure;
+    float    BloomStrength;
+    float    MaxWhite;
     float    P;
-    float    a;
-    float    m;
-    float    l;
-    float    c;
-    float    b;
-    float    startCompression;
-    float    desaturation;
-    uint32_t outputMode;
-    uint32_t encodeSRGB;
-    float    paperWhiteNits;
-    float    peakNits;
+    float    A;
+    float    M;
+    float    L;
+    float    C;
+    float    B;
+    float    StartCompression;
+    float    Desaturation;
+    uint32_t OutputMode;
+    uint32_t EncodeSRGB;
+    float    PaperWhiteNits;
+    float    PeakNits;
 };
 
 static uint32_t BloomLevelSize(uint32_t Size, uint32_t Level)
@@ -127,17 +127,17 @@ void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& Scene
     Commands.BeginGpuTimestamp("HDR");
     if (!Targets.AdaptedValid)
     {
-        hz::DependencyList           initializeDependencies;
-        const PostLuminanceConstants Initialize = { .inputIndex = initializeDependencies.store(Targets.PreviousAdapted),
-                                                    .outputIndex = initializeDependencies.store(Targets.Adapted) };
+        hz::DependencyList           InitializeDependencies;
+        const PostLuminanceConstants Initialize = { .InputIndex = InitializeDependencies.Store(Targets.PreviousAdapted),
+                                                    .OutputIndex = InitializeDependencies.Store(Targets.Adapted) };
         Commands.SetPipeline(InitializePipeline);
         Commands.SetRootConstants(Initialize);
-        Commands.Dispatch(1, 1, 1, initializeDependencies.Get());
+        Commands.Dispatch(1, 1, 1, InitializeDependencies.Get());
     }
     constexpr uint32_t          MeteringSize = PostEffectsTargets::MeteringSize;
     hz::DependencyList          MeteringDependencies;
-    const PostMeteringConstants Metering = { .sceneColorIndex = MeteringDependencies.sample(&SceneColor),
-                                             .luminanceOutputIndex = MeteringDependencies.store(Targets.Luminance[0]) };
+    const PostMeteringConstants Metering = { .SceneColorIndex = MeteringDependencies.Sample(&SceneColor),
+                                             .LuminanceOutputIndex = MeteringDependencies.Store(Targets.Luminance[0]) };
     Commands.SetPipeline(MeteringPipeline);
     Commands.SetRootConstants(Metering);
     Commands.Dispatch(MeteringSize / 16, MeteringSize / 16, 1, MeteringDependencies.Get());
@@ -145,11 +145,11 @@ void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& Scene
     for (uint32_t Level = 1; Level < PostEffectsTargets::LuminanceLevels; ++Level)
     {
         const uint32_t               Size = MeteringSize >> Level;
-        hz::DependencyList           reduceDependencies;
-        const PostLuminanceConstants Reduce = { .inputIndex = reduceDependencies.sample(Targets.Luminance[Level - 1]),
-                                                .outputIndex = reduceDependencies.store(Targets.Luminance[Level]) };
+        hz::DependencyList           ReduceDependencies;
+        const PostLuminanceConstants Reduce = { .InputIndex = ReduceDependencies.Sample(Targets.Luminance[Level - 1]),
+                                                .OutputIndex = ReduceDependencies.Store(Targets.Luminance[Level]) };
         Commands.SetRootConstants(Reduce);
-        Commands.Dispatch((Size + 15) / 16, (Size + 15) / 16, 1, reduceDependencies.Get());
+        Commands.Dispatch((Size + 15) / 16, (Size + 15) / 16, 1, ReduceDependencies.Get());
     }
     RunBloom(Commands, SceneColor, Targets);
     RunAdaptation(Commands, DeltaSeconds, Targets);
@@ -173,23 +173,23 @@ void PostEffects::RunBloom(hz::CommandList& Commands, const hz::GPUTexture& Scen
     Commands.BeginGpuTimestamp("Bloom");
     Commands.SetPipeline(BloomDownsamplePipeline);
     PostBloomDownsampleConstants Downsample = {
-        .input = SceneColor.GetSrvIndex(),
-        .output = BloomDown[0]->GetUavIndex(),
-        .sampler = Sampler.GetIndex(),
-        .adaptedLuminance = Previous.GetSrvIndex(),
-        .threshold = 1,
-        .autoExposure = Settings.ToneMapping != ToneMappingMode::None ? 1u : 0u,
-        .exposure = Settings.Exposure,
+        .InputIndex = SceneColor.GetSrvIndex(),
+        .OutputIndex = BloomDown[0]->GetUavIndex(),
+        .SamplerIndex = Sampler.GetIndex(),
+        .AdaptedLuminanceIndex = Previous.GetSrvIndex(),
+        .Threshold = 1,
+        .AutoExposure = Settings.ToneMapping != ToneMappingMode::None ? 1u : 0u,
+        .Exposure = Settings.Exposure,
     };
     Commands.SetRootConstants(Downsample);
     Commands.Dispatch((BloomWidth + 15) / 16, (BloomHeight + 15) / 16, 1,
                       { .sampledTextures = { &SceneColor, &Previous }, .storageTextures = { BloomDown[0] } });
     // Only the scene downsample is thresholded; the mip levels already carry bright values.
-    Downsample.threshold = 0;
+    Downsample.Threshold = 0;
     for (uint32_t Level = 1; Level < BloomLevels; ++Level)
     {
-        Downsample.input = BloomDown[Level - 1]->GetSrvIndex();
-        Downsample.output = BloomDown[Level]->GetUavIndex();
+        Downsample.InputIndex = BloomDown[Level - 1]->GetSrvIndex();
+        Downsample.OutputIndex = BloomDown[Level]->GetUavIndex();
         Commands.SetRootConstants(Downsample);
         const uint32_t Size = BloomLevelSize(BloomWidth, Level);
         Commands.Dispatch((Size + 15) / 16, (BloomLevelSize(BloomHeight, Level) + 15) / 16, 1,
@@ -201,10 +201,10 @@ void PostEffects::RunBloom(hz::CommandList& Commands, const hz::GPUTexture& Scen
     for (uint32_t Level = BloomLevels - 1; Level > 0;)
     {
         --Level;
-        const PostBloomUpsampleConstants Upsample = { .down = BloomDown[Level]->GetSrvIndex(),
-                                                      .input = Input->GetSrvIndex(),
-                                                      .output = BloomUp[Level]->GetUavIndex(),
-                                                      .sampler = Sampler.GetIndex() };
+        const PostBloomUpsampleConstants Upsample = { .DownIndex = BloomDown[Level]->GetSrvIndex(),
+                                                      .InputIndex = Input->GetSrvIndex(),
+                                                      .OutputIndex = BloomUp[Level]->GetUavIndex(),
+                                                      .SamplerIndex = Sampler.GetIndex() };
         Commands.SetRootConstants(Upsample);
         const uint32_t Size = BloomLevelSize(BloomWidth, Level);
         Commands.Dispatch((Size + 15) / 16, (BloomLevelSize(BloomHeight, Level) + 15) / 16, 1,
@@ -218,10 +218,10 @@ void PostEffects::RunAdaptation(hz::CommandList& Commands, float DeltaSeconds, c
 {
     hz::DependencyList           Dependencies;
     const PostLuminanceConstants Constants = {
-        .inputIndex = Dependencies.sample(Targets.Luminance[PostEffectsTargets::LuminanceLevels - 1]),
-        .outputIndex = Dependencies.store(Targets.Adapted),
-        .previousIndex = Dependencies.sample(Targets.PreviousAdapted),
-        .adaptationTime = fmaxf(DeltaSeconds, 0.0f) * fmaxf(Settings.AdaptationSpeed, 0.0f),
+        .InputIndex = Dependencies.Sample(Targets.Luminance[PostEffectsTargets::LuminanceLevels - 1]),
+        .OutputIndex = Dependencies.Store(Targets.Adapted),
+        .PreviousIndex = Dependencies.Sample(Targets.PreviousAdapted),
+        .AdaptationTime = fmaxf(DeltaSeconds, 0.0f) * fmaxf(Settings.AdaptationSpeed, 0.0f),
     };
     Commands.SetPipeline(AdaptationPipeline);
     Commands.SetRootConstants(Constants);
@@ -237,26 +237,26 @@ void PostEffects::ToneMap(hz::CommandList& Commands, const hz::GPUTexture& Scene
     hz::DependencyList Dependencies;
     const hz::GPUTexture*   Bloom = Settings.EnableBloom ? Targets.BloomUp[0] : nullptr;
     const PostToneConstants Constants = {
-        .sceneColor = Dependencies.sample(&SceneColor),
-        .adaptedLuminance = Dependencies.sample(Targets.PreviousAdapted),
-        .bloom = Dependencies.sample(Bloom),
-        .sampler = Sampler.GetIndex(),
-        .toneMapping = (uint32_t)Settings.ToneMapping,
-        .exposure = Settings.Exposure,
-        .bloomStrength = Settings.EnableBloom && Bloom ? Settings.BloomStrength : 0.0f,
-        .maxWhite = Settings.MaxWhite,
+        .SceneColorIndex = Dependencies.Sample(&SceneColor),
+        .AdaptedLuminanceIndex = Dependencies.Sample(Targets.PreviousAdapted),
+        .BloomIndex = Dependencies.Sample(Bloom),
+        .SamplerIndex = Sampler.GetIndex(),
+        .ToneMapping = (uint32_t)Settings.ToneMapping,
+        .Exposure = Settings.Exposure,
+        .BloomStrength = Settings.EnableBloom && Bloom ? Settings.BloomStrength : 0.0f,
+        .MaxWhite = Settings.MaxWhite,
         .P = Settings.UchimuraP,
-        .a = Settings.UchimuraA,
-        .m = Settings.UchimuraM,
-        .l = Settings.UchimuraL,
-        .c = Settings.UchimuraC,
-        .b = Settings.UchimuraB,
-        .startCompression = Settings.StartCompression,
-        .desaturation = Settings.Desaturation,
-        .outputMode = (uint32_t)Context.GetOutputMode(),
-        .encodeSRGB = Context.GetOutputMode() == hz::OUTPUT_MODE_SDR && !SrgbTarget ? 1u : 0u,
-        .paperWhiteNits = fmaxf(Settings.PaperWhiteNits, 1.0f),
-        .peakNits = Context.IsHDREnabled() ? Context.GetHDRMetadata().maxContentLightLevel : 100.0f,
+        .A = Settings.UchimuraA,
+        .M = Settings.UchimuraM,
+        .L = Settings.UchimuraL,
+        .C = Settings.UchimuraC,
+        .B = Settings.UchimuraB,
+        .StartCompression = Settings.StartCompression,
+        .Desaturation = Settings.Desaturation,
+        .OutputMode = (uint32_t)Context.GetOutputMode(),
+        .EncodeSRGB = Context.GetOutputMode() == hz::OUTPUT_MODE_SDR && !SrgbTarget ? 1u : 0u,
+        .PaperWhiteNits = fmaxf(Settings.PaperWhiteNits, 1.0f),
+        .PeakNits = Context.IsHDREnabled() ? Context.GetHDRMetadata().maxContentLightLevel : 100.0f,
     };
     Commands.BeginRendering(
         { .colorAttachments = { { .pTexture = &RenderTarget, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },

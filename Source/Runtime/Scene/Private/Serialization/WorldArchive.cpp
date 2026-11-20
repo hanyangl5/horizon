@@ -21,183 +21,183 @@ public:
     Guid        id;
     Array<char> text;
 };
-static const cJSON* field(const cJSON* pObject, const char* Name) { return cJSON_GetObjectItemCaseSensitive(pObject, Name); }
-static const char*  stringField(const cJSON* pObject, const char* Name)
+static const cJSON* FindArchiveField(const cJSON* Object, const char* Name) { return cJSON_GetObjectItemCaseSensitive(Object, Name); }
+static const char*  StringField(const cJSON* Object, const char* Name)
 {
-    const cJSON* pValue = field(pObject, Name);
-    return cJSON_IsString(pValue) ? pValue->valuestring : nullptr;
+    const cJSON* ValueData = FindArchiveField(Object, Name);
+    return cJSON_IsString(ValueData) ? ValueData->valuestring : nullptr;
 }
-static bool readID(const cJSON* pValue, Guid& id, bool nullable = false)
+static bool ReadID(const cJSON* ValueData, Guid& Id, bool Nullable = false)
 {
-    if (nullable && cJSON_IsNull(pValue))
+    if (Nullable && cJSON_IsNull(ValueData))
     {
-        id = {};
+        Id = {};
         return true;
     }
-    return cJSON_IsString(pValue) && id.Parse(pValue->valuestring) && id.IsValid();
+    return cJSON_IsString(ValueData) && Id.Parse(ValueData->valuestring) && Id.IsValid();
 }
-static void addID(cJSON* pObject, const char* Name, Guid id)
+static void AddID(cJSON* Object, const char* Name, Guid Id)
 {
-    char text[kIDStringCapacity];
-    id.ToString(text);
-    cJSON_AddItemToObject(pObject, Name, id.IsValid() ? cJSON_CreateString(text) : cJSON_CreateNull());
+    char TextValue[kIDStringCapacity];
+    Id.ToString(TextValue);
+    cJSON_AddItemToObject(Object, Name, Id.IsValid() ? cJSON_CreateString(TextValue) : cJSON_CreateNull());
 }
-static bool typeID(const cJSON* pComponent, TypeID& Type)
+static bool ReadTypeId(const cJSON* Component, TypeID& Type)
 {
-    const char* pText = stringField(pComponent, "type");
-    if (!pText || strlen(pText) != 16)
+    const char* TextPointer = StringField(Component, "type");
+    if (!TextPointer || strlen(TextPointer) != 16)
     {
         return false;
     }
-    const std::from_chars_result result = std::from_chars(pText, pText + 16, Type, 16);
-    return result.ec == std::errc{} && result.ptr == pText + 16 && Type != 0;
+    const std::from_chars_result Result = std::from_chars(TextPointer, TextPointer + 16, Type, 16);
+    return Result.ec == std::errc{} && Result.ptr == TextPointer + 16 && Type != 0;
 }
-static int compareGuids(const void* pA, const void* pB)
+static int CompareGuids(const void* LeftValue, const void* RightValue)
 {
-    const Guid& a = *(const Guid*)pA;
-    const Guid& b = *(const Guid*)pB;
-    return (b < a) - (a < b);
+    const Guid& AValue = *(const Guid*)LeftValue;
+    const Guid& BValue = *(const Guid*)RightValue;
+    return (BValue < AValue) - (AValue < BValue);
 }
-static int compareTypes(const void* pA, const void* pB)
+static int CompareTypes(const void* LeftValue, const void* RightValue)
 {
-    const TypeID a = (*(const TypeDesc* const*)pA)->id;
-    const TypeID b = (*(const TypeDesc* const*)pB)->id;
-    return (a > b) - (a < b);
+    const TypeID AValue = (*(const TypeDesc* const*)LeftValue)->id;
+    const TypeID BValue = (*(const TypeDesc* const*)RightValue)->id;
+    return (AValue > BValue) - (AValue < BValue);
 }
 
 WorldArchive::~WorldArchive() { MemDelete(Data); }
 Guid WorldArchive::GetID() const { return Data ? Data->id : Guid{}; }
-bool WorldArchive::Parse(Span<char> json)
+bool WorldArchive::Parse(Span<char> Json)
 {
-    UniquePtr<WorldArchiveData> candidate = MakeUnique<WorldArchiveData>();
-    candidate->pRoot = parseWorldJson(json);
-    const cJSON* pRoot = candidate->pRoot;
-    const char*  pFormat = stringField(pRoot, "format");
-    uint32_t     version = 0;
-    if (!uniqueWorldFields(pRoot) || !pFormat || strcmp(pFormat, "Horizon.World") || !worldVersion(field(pRoot, "version"), version) ||
-        version != 1 || !readID(field(pRoot, "id"), candidate->id) || !cJSON_IsArray(field(pRoot, "entities")))
+    UniquePtr<WorldArchiveData> Candidate = MakeUnique<WorldArchiveData>();
+    Candidate->pRoot = ParseWorldJson(Json);
+    const cJSON* RootPointer = Candidate->pRoot;
+    const char*  FormatPointer = StringField(RootPointer, "format");
+    uint32_t     Version = 0;
+    if (!UniqueWorldFields(RootPointer) || !FormatPointer || strcmp(FormatPointer, "Horizon.World") || !WorldVersion(FindArchiveField(RootPointer, "version"), Version) ||
+        Version != 1 || !ReadID(FindArchiveField(RootPointer, "id"), Candidate->id) || !cJSON_IsArray(FindArchiveField(RootPointer, "entities")))
     {
         LOGF(Error, "Invalid World archive schema");
         return false;
     }
-    uint32_t Count = json.Count;
-    if (Count && !json.Data[Count - 1])
+    uint32_t Count = Json.Count;
+    if (Count && !Json.Data[Count - 1])
     {
         --Count;
     }
-    candidate->text.Resize(Count + 1);
-    memcpy(candidate->text.GetData(), json.Data, Count);
-    candidate->text[Count] = 0;
+    Candidate->text.Resize(Count + 1);
+    memcpy(Candidate->text.GetData(), Json.Data, Count);
+    Candidate->text[Count] = 0;
     MemDelete(Data);
-    Data = candidate.Release();
+    Data = Candidate.Release();
     return true;
 }
-bool WorldArchive::Serialize(Array<char>& json) const
+bool WorldArchive::Serialize(Array<char>& Json) const
 {
     if (!Data)
     {
         return false;
     }
-    json = Data->text;
+    Json = Data->text;
     return true;
 }
-bool WorldArchive::Capture(World& world, Guid id)
+bool WorldArchive::Capture(World& WorldData, Guid Id)
 {
-    if (world.IsDeferred())
+    if (WorldData.IsDeferred())
     {
         LOGF(Error, "Cannot capture a deferred World");
         return false;
     }
-    if (!id.IsValid())
+    if (!Id.IsValid())
     {
-        id = Data ? Data->id : Guid::Create();
+        Id = Data ? Data->id : Guid::Create();
     }
-    if (!id.IsValid())
+    if (!Id.IsValid())
     {
         return false;
     }
-    Array<Guid> guids;
-    for (ptrdiff_t i = 0; i < hmlen(world.pImpl->pEntityGuids); ++i)
+    Array<Guid> Guids;
+    for (ptrdiff_t I = 0; I < hmlen(WorldData.pImpl->pEntityGuids); ++I)
     {
-        guids.PushBack(world.pImpl->pEntityGuids[i].key);
+        Guids.PushBack(WorldData.pImpl->pEntityGuids[I].key);
     }
-    if (!guids.Empty())
+    if (!Guids.Empty())
     {
-        qsort(guids.GetData(), guids.Size(), sizeof(Guid), compareGuids);
+        qsort(Guids.GetData(), Guids.Size(), sizeof(Guid), CompareGuids);
     }
-    Array<const TypeDesc*> types;
-    for (ptrdiff_t i = 0; i < hmlen(world.pImpl->pTypes); ++i)
+    Array<const TypeDesc*> Types;
+    for (ptrdiff_t I = 0; I < hmlen(WorldData.pImpl->pTypes); ++I)
     {
-        if (world.pImpl->pTypes[i].key != SceneTypes::entityIdentity && world.pImpl->pTypes[i].key != SceneTypes::name)
+        if (WorldData.pImpl->pTypes[I].key != SceneTypes::entityIdentity && WorldData.pImpl->pTypes[I].key != SceneTypes::name)
         {
-            types.PushBack(world.pImpl->pTypes[i].pType);
+            Types.PushBack(WorldData.pImpl->pTypes[I].pType);
         }
     }
-    if (!types.Empty())
+    if (!Types.Empty())
     {
-        qsort(types.GetData(), types.Size(), sizeof(types[0]), compareTypes);
+        qsort(Types.GetData(), Types.Size(), sizeof(Types[0]), CompareTypes);
     }
-    JsonValue root(cJSON_CreateObject());
-    cJSON_AddStringToObject(root.pValue, "format", "Horizon.World");
-    cJSON_AddNumberToObject(root.pValue, "version", 1);
-    addID(root.pValue, "id", id);
-    cJSON* pEntities = cJSON_AddArrayToObject(root.pValue, "entities");
-    for (Guid guid : guids)
+    JsonValue RootValue(cJSON_CreateObject());
+    cJSON_AddStringToObject(RootValue.pValue, "format", "Horizon.World");
+    cJSON_AddNumberToObject(RootValue.pValue, "version", 1);
+    AddID(RootValue.pValue, "id", Id);
+    cJSON* Entities = cJSON_AddArrayToObject(RootValue.pValue, "entities");
+    for (Guid GuidValue : Guids)
     {
-        const Entity entity = world.GetEntity(guid);
-        const Entity parent = world.GetParent(entity);
-        const Guid   parentID = world.GetEntityGuid(parent);
-        if (parent.IsValid() && !parentID.IsValid())
+        const Entity EntityHandle = WorldData.GetEntity(GuidValue);
+        const Entity Parent = WorldData.GetParent(EntityHandle);
+        const Guid   ParentId = WorldData.GetEntityGuid(Parent);
+        if (Parent.IsValid() && !ParentId.IsValid())
         {
             LOGF(Error, "A persistent entity's parent must have a Guid");
             return false;
         }
-        cJSON* pEntityJson = cJSON_CreateObject();
-        cJSON_AddItemToArray(pEntities, pEntityJson);
-        addID(pEntityJson, "id", guid);
-        addID(pEntityJson, "parent", parentID);
-        const Name* NameComponent = (const Name*)world.GetComponent(entity, SceneTypes::name);
+        cJSON* EntityJson = cJSON_CreateObject();
+        cJSON_AddItemToArray(Entities, EntityJson);
+        AddID(EntityJson, "id", GuidValue);
+        AddID(EntityJson, "parent", ParentId);
+        const Name* NameComponent = (const Name*)WorldData.GetComponent(EntityHandle, SceneTypes::name);
         if (NameComponent && !memchr(NameComponent->value, 0, sizeof(NameComponent->value)))
         {
             return false;
         }
-        cJSON_AddItemToObject(pEntityJson, "name", NameComponent ? cJSON_CreateString(NameComponent->value) : cJSON_CreateNull());
-        cJSON* pComponents = cJSON_AddArrayToObject(pEntityJson, "components");
-        for (const TypeDesc* pType : types)
+        cJSON_AddItemToObject(EntityJson, "name", NameComponent ? cJSON_CreateString(NameComponent->value) : cJSON_CreateNull());
+        cJSON* Components = cJSON_AddArrayToObject(EntityJson, "components");
+        for (const TypeDesc* TypeInfo : Types)
         {
-            const void* pValue = world.GetComponent(entity, pType->id);
-            if (!pValue)
+            const void* ValueData = WorldData.GetComponent(EntityHandle, TypeInfo->id);
+            if (!ValueData)
             {
                 continue;
             }
-            if (!normalizeWorldComponent(pType->id, (void*)pValue, false) || !validateWorldReferences(*pType, pValue, world))
+            if (!NormalizeWorldComponent(TypeInfo->id, (void*)ValueData, false) || !ValidateWorldReferences(*TypeInfo, ValueData, WorldData))
             {
-                LOGF(Error, "Cannot Save invalid '%s' component", pType->Name);
+                LOGF(Error, "Cannot Save invalid '%s' component", TypeInfo->Name);
                 return false;
             }
-            cJSON* pProperties = writeWorldProperties(*pType, pValue);
-            if (!pProperties)
+            cJSON* Properties = WriteWorldProperties(*TypeInfo, ValueData);
+            if (!Properties)
             {
                 return false;
             }
-            cJSON* pComponent = cJSON_CreateObject();
-            cJSON_AddItemToArray(pComponents, pComponent);
+            cJSON* Component = cJSON_CreateObject();
+            cJSON_AddItemToArray(Components, Component);
             char Type[17];
-            snprintf(Type, sizeof(Type), "%016llx", (unsigned long long)pType->id);
-            cJSON_AddStringToObject(pComponent, "type", Type);
-            cJSON_AddStringToObject(pComponent, "name", pType->Name);
-            cJSON_AddNumberToObject(pComponent, "version", pType->version);
-            cJSON_AddItemToObject(pComponent, "properties", pProperties);
+            snprintf(Type, sizeof(Type), "%016llx", (unsigned long long)TypeInfo->id);
+            cJSON_AddStringToObject(Component, "type", Type);
+            cJSON_AddStringToObject(Component, "name", TypeInfo->Name);
+            cJSON_AddNumberToObject(Component, "version", TypeInfo->version);
+            cJSON_AddItemToObject(Component, "properties", Properties);
         }
     }
-    char* pText = cJSON_Print(root.pValue);
-    if (!pText)
+    char* TextPointer = cJSON_Print(RootValue.pValue);
+    if (!TextPointer)
     {
         return false;
     }
-    const bool result = Parse({ pText, (uint32_t)strlen(pText) });
-    cJSON_free(pText);
-    return result;
+    const bool Result = Parse({ TextPointer, (uint32_t)strlen(TextPointer) });
+    cJSON_free(TextPointer);
+    return Result;
 }
 
 class ComponentValue
@@ -233,69 +233,69 @@ class WorldLoadPlan
 {
 public:
     ~WorldLoadPlan() { hmfree(pIndices); }
-    bool prepare(const cJSON* pEntities, World& world)
+    bool prepare(const cJSON* Entities, World& WorldData)
     {
-        for (const cJSON* pEntityJson = pEntities->child; pEntityJson; pEntityJson = pEntityJson->next)
+        for (const cJSON* EntityJson = Entities->child; EntityJson; EntityJson = EntityJson->next)
         {
-            WorldLoadNode node = { .pEntityJson = pEntityJson };
-            const cJSON*  NameField = field(pEntityJson, "name");
-            if (!uniqueWorldFields(pEntityJson) || !readID(field(pEntityJson, "id"), node.id) ||
-                !readID(field(pEntityJson, "parent"), node.parent, true) || hmgetp_null(pIndices, node.id) ||
+            WorldLoadNode NodeValue = { .pEntityJson = EntityJson };
+            const cJSON*  NameField = FindArchiveField(EntityJson, "name");
+            if (!UniqueWorldFields(EntityJson) || !ReadID(FindArchiveField(EntityJson, "id"), NodeValue.id) ||
+                !ReadID(FindArchiveField(EntityJson, "parent"), NodeValue.parent, true) || hmgetp_null(pIndices, NodeValue.id) ||
                 (!cJSON_IsNull(NameField) && (!cJSON_IsString(NameField) || strlen(NameField->valuestring) >= sizeof(Name::value))) ||
-                !cJSON_IsArray(field(pEntityJson, "components")))
+                !cJSON_IsArray(FindArchiveField(EntityJson, "components")))
             {
                 return false;
             }
-            node.entity = world.CreatePersistentEntity(node.id);
-            if (!node.entity.IsValid())
+            NodeValue.entity = WorldData.CreatePersistentEntity(NodeValue.id);
+            if (!NodeValue.entity.IsValid())
             {
                 return false;
             }
             if (cJSON_IsString(NameField))
             {
-                Name name;
-                strcpy(name.value, NameField->valuestring);
-                if (!world.SetComponent(node.entity, SceneTypes::name, &name))
+                Name NameValue;
+                strcpy(NameValue.value, NameField->valuestring);
+                if (!WorldData.SetComponent(NodeValue.entity, SceneTypes::name, &NameValue))
                 {
                     return false;
                 }
             }
-            const WorldNodeIndex index = { .key = node.id, .value = nodes.Size() };
-            hmputs(pIndices, index);
-            nodes.PushBack(node);
+            const WorldNodeIndex IndexValue = { .key = NodeValue.id, .value = nodes.Size() };
+            hmputs(pIndices, IndexValue);
+            nodes.PushBack(NodeValue);
         }
-        for (WorldLoadNode& node : nodes)
+        for (WorldLoadNode& NodeValue : nodes)
         {
-            if (!node.parent.IsValid())
+            if (!NodeValue.parent.IsValid())
             {
                 continue;
             }
-            const WorldNodeIndex* pIndex = hmgetp_null(pIndices, node.parent);
-            if (!pIndex)
+            const WorldNodeIndex* IndexPointer = hmgetp_null(pIndices, NodeValue.parent);
+            if (!IndexPointer)
             {
                 return false;
             }
-            node.parentIndex = pIndex->value;
+            NodeValue.parentIndex = IndexPointer->value;
         }
-        Array<uint32_t> path;
-        for (uint32_t i = 0; i < nodes.Size(); ++i)
+        Array<uint32_t> Path;
+        for (uint32_t I = 0; I < nodes.Size(); ++I)
         {
-            uint32_t current = i;
-            while (current != UINT32_MAX && !nodes[current].visit)
+            uint32_t Current = I;
+            while (Current != UINT32_MAX && !nodes[Current].visit)
             {
-                nodes[current].visit = 1;
-                path.PushBack(current);
-                current = nodes[current].parentIndex;
+                nodes[Current].visit = 1;
+                Path.PushBack(Current);
+                Current = nodes[Current].parentIndex;
             }
-            if (current != UINT32_MAX && nodes[current].visit == 1)
+            if (Current != UINT32_MAX && nodes[Current].visit == 1)
             {
                 return false;
             }
-            while (!path.Empty())
+            while (!Path.Empty())
             {
-                nodes[path[path.Size() - 1]].visit = 2;
-                order.PushBack(path[path.Size() - 1]);
-                path.PopBack();
+                nodes[Path[Path.Size() - 1]].visit = 2;
+                order.PushBack(Path[Path.Size() - 1]);
+                Path.PopBack();
             }
         }
         return true;
@@ -304,216 +304,216 @@ public:
     Array<uint32_t>      order;
     WorldNodeIndex*      pIndices = nullptr;
 };
-static bool loadComponent(const cJSON* pComponent, const TypeDesc& Type, uint32_t version, Span<ComponentMigration> migrations,
-                          World& world, Entity entity)
+static bool LoadComponent(const cJSON* Component, const TypeDesc& Type, uint32_t Version, Span<ComponentMigration> Migrations,
+                          World& WorldData, Entity EntityHandle)
 {
-    const cJSON* pProperties = field(pComponent, "properties");
-    if (version > Type.version)
+    const cJSON* Properties = FindArchiveField(Component, "properties");
+    if (Version > Type.version)
     {
         return false;
     }
-    JsonValue migrated;
-    while (version < Type.version)
+    JsonValue Migrated;
+    while (Version < Type.version)
     {
-        const ComponentMigration* pMigration = nullptr;
-        for (const ComponentMigration& migration : migrations)
+        const ComponentMigration* MigrationPointer = nullptr;
+        for (const ComponentMigration& MigrationValue : Migrations)
         {
-            if (migration.Type == Type.id && migration.fromVersion == version)
+            if (MigrationValue.Type == Type.id && MigrationValue.fromVersion == Version)
             {
-                pMigration = &migration;
+                MigrationPointer = &MigrationValue;
             }
         }
-        if (!pMigration || !pMigration->pMigrate)
+        if (!MigrationPointer || !MigrationPointer->pMigrate)
         {
             return false;
         }
-        char* pInput = cJSON_PrintUnformatted(pProperties);
-        if (!pInput)
+        char* Input = cJSON_PrintUnformatted(Properties);
+        if (!Input)
         {
             return false;
         }
-        Array<char> output;
-        const bool  success = pMigration->pMigrate({ pInput, (uint32_t)strlen(pInput) }, output);
-        cJSON_free(pInput);
-        if (!success || !validWorldJsonStrings({ output.GetData(), output.Size() }))
+        Array<char> Output;
+        const bool  Success = MigrationPointer->pMigrate({ Input, (uint32_t)strlen(Input) }, Output);
+        cJSON_free(Input);
+        if (!Success || !ValidWorldJsonStrings({ Output.GetData(), Output.Size() }))
         {
             return false;
         }
-        cJSON* pNext = parseWorldJson({ output.GetData(), output.Size() });
-        if (!pNext)
+        cJSON* Next = ParseWorldJson({ Output.GetData(), Output.Size() });
+        if (!Next)
         {
             return false;
         }
-        cJSON_Delete(migrated.pValue);
-        migrated.pValue = pNext;
-        pProperties = pNext;
-        if (!uniqueWorldFields(pProperties))
+        cJSON_Delete(Migrated.pValue);
+        Migrated.pValue = Next;
+        Properties = Next;
+        if (!UniqueWorldFields(Properties))
         {
             return false;
         }
-        ++version;
+        ++Version;
     }
-    ComponentValue value(Type);
-    return readWorldProperties(Type, pProperties, value.pValue) && normalizeWorldComponent(Type.id, value.pValue, true) &&
-           validateWorldReferences(Type, value.pValue, world) && world.SetComponent(entity, Type.id, value.pValue);
+    ComponentValue ValueValue(Type);
+    return ReadWorldProperties(Type, Properties, ValueValue.pValue) && NormalizeWorldComponent(Type.id, ValueValue.pValue, true) &&
+           ValidateWorldReferences(Type, ValueValue.pValue, WorldData) && WorldData.SetComponent(EntityHandle, Type.id, ValueValue.pValue);
 }
-bool WorldArchive::Instantiate(const TypeRegistry& types, UniquePtr<World>& target, Span<ComponentMigration> migrations,
-                               const IDGenerator& entityGuids) const
+bool WorldArchive::Instantiate(const TypeRegistry& Types, UniquePtr<World>& Target, Span<ComponentMigration> Migrations,
+                               const IDGenerator& EntityGuids) const
 {
-    if (!Data || (target && target->IsDeferred()))
+    if (!Data || (Target && Target->IsDeferred()))
     {
         return false;
     }
     // Queries, and the render scene and asset bindings that hold them, would outlive the replaced World.
-    if (target && target->pImpl->queryCount != 0)
+    if (Target && Target->pImpl->queryCount != 0)
     {
-        LOGF(Error, "Cannot replace a World that still has %u live queries", target->pImpl->queryCount);
+        LOGF(Error, "Cannot replace a World that still has %u live queries", Target->pImpl->queryCount);
         return false;
     }
-    if (!validWorldJsonStrings({ Data->text.GetData(), Data->text.Size() }))
+    if (!ValidWorldJsonStrings({ Data->text.GetData(), Data->text.Size() }))
     {
         return false;
     }
-    for (uint32_t i = 0; i < migrations.Count; ++i)
+    for (uint32_t I = 0; I < Migrations.Count; ++I)
     {
-        const ComponentMigration& entry = migrations.Data[i];
-        if (!entry.Type || !entry.fromVersion || !entry.pMigrate)
+        const ComponentMigration& Entry = Migrations.Data[I];
+        if (!Entry.Type || !Entry.fromVersion || !Entry.pMigrate)
         {
             return false;
         }
-        for (uint32_t j = 0; j < i; ++j)
+        for (uint32_t J = 0; J < I; ++J)
         {
-            if (entry.Type == migrations.Data[j].Type && entry.fromVersion == migrations.Data[j].fromVersion)
+            if (Entry.Type == Migrations.Data[J].Type && Entry.fromVersion == Migrations.Data[J].fromVersion)
             {
                 return false;
             }
         }
     }
-    UniquePtr<World>  staging = MakeUnique<World>(types, entityGuids);
-    WorldLoadPlan     plan;
-    if (!plan.prepare(field(Data->pRoot, "entities"), *staging))
+    UniquePtr<World>  Staging = MakeUnique<World>(Types, EntityGuids);
+    WorldLoadPlan     Plan;
+    if (!Plan.prepare(FindArchiveField(Data->pRoot, "entities"), *Staging))
     {
         LOGF(Error, "Invalid World entities, parent references or hierarchy cycle");
         return false;
     }
-    Array<TypeID> present;
-    for (const WorldLoadNode& node : plan.nodes)
+    Array<TypeID> Present;
+    for (const WorldLoadNode& NodeValue : Plan.nodes)
     {
-        present.Clear();
-        for (const cJSON* pComponent = field(node.pEntityJson, "components")->child; pComponent; pComponent = pComponent->next)
+        Present.Clear();
+        for (const cJSON* Component = FindArchiveField(NodeValue.pEntityJson, "components")->child; Component; Component = Component->next)
         {
-            TypeID   id = 0;
-            uint32_t version = 0;
-            if (!uniqueWorldFields(pComponent) || !typeID(pComponent, id) || !stringField(pComponent, "name") ||
-                !worldVersion(field(pComponent, "version"), version) || !uniqueWorldFields(field(pComponent, "properties")))
+            TypeID   Id = 0;
+            uint32_t Version = 0;
+            if (!UniqueWorldFields(Component) || !ReadTypeId(Component, Id) || !StringField(Component, "name") ||
+                !WorldVersion(FindArchiveField(Component, "version"), Version) || !UniqueWorldFields(FindArchiveField(Component, "properties")))
             {
                 return false;
             }
-            for (TypeID previous : present)
+            for (TypeID Previous : Present)
             {
-                if (previous == id)
+                if (Previous == Id)
                 {
                     return false;
                 }
             }
-            present.PushBack(id);
-            const TypeDesc* pType = types.GetType(id);
-            if (!pType || id == SceneTypes::entityIdentity || id == SceneTypes::name ||
-                !loadComponent(pComponent, *pType, version, migrations, *staging, node.entity))
+            Present.PushBack(Id);
+            const TypeDesc* TypeInfo = Types.GetType(Id);
+            if (!TypeInfo || Id == SceneTypes::entityIdentity || Id == SceneTypes::name ||
+                !LoadComponent(Component, *TypeInfo, Version, Migrations, *Staging, NodeValue.entity))
             {
-                LOGF(Error, "Cannot instantiate World component '%s' version %u", stringField(pComponent, "name"), version);
+                LOGF(Error, "Cannot instantiate World component '%s' version %u", StringField(Component, "name"), Version);
                 return false;
             }
         }
     }
     // The graph is validated; restore parents first without repeated ancestor scans.
-    for (uint32_t index : plan.order)
+    for (uint32_t IndexValue : Plan.order)
     {
-        const WorldLoadNode& node = plan.nodes[index];
-        if (node.parentIndex != UINT32_MAX)
+        const WorldLoadNode& NodeValue = Plan.nodes[IndexValue];
+        if (NodeValue.parentIndex != UINT32_MAX)
         {
-            staging->AttachParent(node.entity, plan.nodes[node.parentIndex].entity);
+            Staging->AttachParent(NodeValue.entity, Plan.nodes[NodeValue.parentIndex].entity);
         }
     }
-    staging->UpdateTransforms();
-    target.Swap(staging);
+    Staging->UpdateTransforms();
+    Target.Swap(Staging);
     return true;
 }
-bool WorldArchive::Load(ResourceDirectory directory, const char* pFileName)
+bool WorldArchive::Load(ResourceDirectory Directory, const char* FileName)
 {
-    FileStream stream = {};
-    if (!OpenStreamFromPath(directory, pFileName, FileModeRead, &stream))
+    FileStream Stream = {};
+    if (!OpenStreamFromPath(Directory, FileName, FileModeRead, &Stream))
     {
-        LOGF(Error, "Cannot open World archive '%s'", pFileName);
+        LOGF(Error, "Cannot open World archive '%s'", FileName);
         return false;
     }
-    const ssize_t Size = GetStreamFileSize(&stream);
+    const ssize_t Size = GetStreamFileSize(&Stream);
     if (Size <= 0 || Size > 64 * 1024 * 1024)
     {
-        CloseStream(&stream);
-        LOGF(Error, "Invalid World archive size: '%s'", pFileName);
+        CloseStream(&Stream);
+        LOGF(Error, "Invalid World archive size: '%s'", FileName);
         return false;
     }
-    Array<char>  bytes((uint32_t)Size);
-    const size_t read = ReadFromStream(&stream, bytes.GetData(), (size_t)Size);
-    CloseStream(&stream);
-    if (read != (size_t)Size)
+    Array<char>  Bytes((uint32_t)Size);
+    const size_t Read = ReadFromStream(&Stream, Bytes.GetData(), (size_t)Size);
+    CloseStream(&Stream);
+    if (Read != (size_t)Size)
     {
-        LOGF(Error, "Cannot read World archive '%s'", pFileName);
+        LOGF(Error, "Cannot read World archive '%s'", FileName);
         return false;
     }
-    return Parse({ bytes.GetData(), bytes.Size() });
+    return Parse({ Bytes.GetData(), Bytes.Size() });
 }
-static bool writeWorldFile(ResourceDirectory directory, const char* pFileName, Span<char> text)
+static bool WriteWorldFile(ResourceDirectory Directory, const char* FileName, Span<char> TextValue)
 {
-    char temporary[FS_MAX_PATH], backup[FS_MAX_PATH];
-    if (snprintf(temporary, sizeof(temporary), "%s.tmp", pFileName) >= (int)sizeof(temporary) ||
-        snprintf(backup, sizeof(backup), "%s.bak", pFileName) >= (int)sizeof(backup))
+    char Temporary[FS_MAX_PATH], Backup[FS_MAX_PATH];
+    if (snprintf(Temporary, sizeof(Temporary), "%s.tmp", FileName) >= (int)sizeof(Temporary) ||
+        snprintf(Backup, sizeof(Backup), "%s.bak", FileName) >= (int)sizeof(Backup))
     {
         return false;
     }
     // Recover an interrupted replacement before starting another write.
-    if (!FileExists(directory, pFileName) && FileExists(directory, backup) && !RenameFile(directory, backup, pFileName))
+    if (!FileExists(Directory, FileName) && FileExists(Directory, Backup) && !RenameFile(Directory, Backup, FileName))
     {
         return false;
     }
-    FileStream stream = {};
-    if (!OpenStreamFromPath(directory, temporary, FileModeWrite, &stream))
+    FileStream Stream = {};
+    if (!OpenStreamFromPath(Directory, Temporary, FileModeWrite, &Stream))
     {
         return false;
     }
-    const bool written = WriteToStream(&stream, text.Data, text.Count) == text.Count;
-    const bool closed = CloseStream(&stream);
-    if (!written || !closed)
+    const bool Written = WriteToStream(&Stream, TextValue.Data, TextValue.Count) == TextValue.Count;
+    const bool Closed = CloseStream(&Stream);
+    if (!Written || !Closed)
     {
         return false;
     }
-    const bool exists = FileExists(directory, pFileName);
-    if ((FileExists(directory, backup) && !RemoveFile(directory, backup)) || (exists && !RenameFile(directory, pFileName, backup)))
+    const bool Exists = FileExists(Directory, FileName);
+    if ((FileExists(Directory, Backup) && !RemoveFile(Directory, Backup)) || (Exists && !RenameFile(Directory, FileName, Backup)))
     {
         return false;
     }
-    if (!RenameFile(directory, temporary, pFileName))
+    if (!RenameFile(Directory, Temporary, FileName))
     {
-        if (exists && !RenameFile(directory, backup, pFileName))
+        if (Exists && !RenameFile(Directory, Backup, FileName))
         {
-            LOGF(Error, "Restore World '%s' from '%s'", pFileName, backup);
+            LOGF(Error, "Restore World '%s' from '%s'", FileName, Backup);
         }
         return false;
     }
-    if (exists && !RemoveFile(directory, backup))
+    if (Exists && !RemoveFile(Directory, Backup))
     {
-        LOGF(Warning, "Cannot Remove World backup '%s'", backup);
+        LOGF(Warning, "Cannot Remove World backup '%s'", Backup);
     }
     return true;
 }
-bool WorldArchive::Save(ResourceDirectory directory, const char* pFileName) const
+bool WorldArchive::Save(ResourceDirectory Directory, const char* FileName) const
 {
-    if (Data && writeWorldFile(directory, pFileName, { Data->text.GetData(), Data->text.Size() - 1 }))
+    if (Data && WriteWorldFile(Directory, FileName, { Data->text.GetData(), Data->text.Size() - 1 }))
     {
         return true;
     }
-    LOGF(Error, "Cannot Save World archive '%s'", pFileName);
+    LOGF(Error, "Cannot Save World archive '%s'", FileName);
     return false;
 }
 } // namespace hz

@@ -56,19 +56,19 @@ struct GpuSubmeshData
 };
 struct GpuMaterialData
 {
-    GpuMaterialID id;
-    uint32_t      baseColorTexture = UINT32_MAX;
-    uint32_t      normalTexture = UINT32_MAX;
-    uint32_t      metallicRoughnessTexture = UINT32_MAX;
-    uint32_t      emissiveTexture = UINT32_MAX;
-    float         baseColorFactor[4] = { 1, 1, 1, 1 };
-    float         emissiveFactor[3] = {};
-    float         metallicFactor = 1;
-    float         roughnessFactor = 1;
-    float         alphaCutoff = 0.5f;
-    uint32_t      alphaMode = 0;
-    uint32_t      doubleSided = 0;
-    uint32_t      tags = 0;
+    GpuMaterialID Id;
+    uint32_t      BaseColorTexture = UINT32_MAX;
+    uint32_t      NormalTexture = UINT32_MAX;
+    uint32_t      MetallicRoughnessTexture = UINT32_MAX;
+    uint32_t      EmissiveTexture = UINT32_MAX;
+    float         BaseColorFactor[4] = { 1, 1, 1, 1 };
+    float         EmissiveFactor[3] = {};
+    float         MetallicFactor = 1;
+    float         RoughnessFactor = 1;
+    float         AlphaCutoff = 0.5f;
+    uint32_t      AlphaMode = 0;
+    uint32_t      DoubleSided = 0;
+    uint32_t      Tags = 0;
 };
 // Shaders index this table by sizeof(GpuMaterialData); keep it in step with their GpuMaterialData struct.
 static_assert(sizeof(GpuMaterialData) == 76);
@@ -96,7 +96,7 @@ struct GpuAssetTables
     }
     const GpuMaterialData* GetMaterial(GpuMaterialID id) const
     {
-        return id.IsValid() && id.index < materials.Count && materials.Data[id.index].id == id ? materials.Data + id.index : nullptr;
+        return id.IsValid() && id.index < materials.Count && materials.Data[id.index].Id == id ? materials.Data + id.index : nullptr;
     }
     const GpuTextureData* GetTexture(GpuTextureID id) const
     {

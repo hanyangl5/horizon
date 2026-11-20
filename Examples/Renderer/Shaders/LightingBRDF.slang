@@ -3,65 +3,65 @@
 
 struct LightingFrameData
 {
-    float4x4 shadowViewProjection;
-    float4   lightDirection;
-    float4   lightColor;
-    float    environmentIntensity;
-    float    shadowBias;
-    uint     shadowEnabled;
-    uint     rtShadowEnabled;
-    uint     rtAOEnabled;
-    uint     environmentMipCount;
-    uint     frameIndex;
-    uint     shadowFilterRadius;
+    float4x4 ShadowViewProjection;
+    float4   LightDirection;
+    float4   LightColor;
+    float    EnvironmentIntensity;
+    float    ShadowBias;
+    uint     ShadowEnabled;
+    uint     RTShadowEnabled;
+    uint     RTAOEnabled;
+    uint     EnvironmentMipCount;
+    uint     FrameIndex;
+    uint     ShadowFilterRadius;
     // Applied after denoising so the filters average linear occlusion.
-    float    rtAOPower;
-    uint     padding0;
-    uint     padding1;
-    uint     padding2;
+    float    RTAOPower;
+    uint     Padding0;
+    uint     Padding1;
+    uint     Padding2;
 };
 
 struct LightingBindings
 {
-    uint shadowMap;
-    uint shadowSampler;
-    uint environment;
-    uint irradiance;
-    uint brdfLut;
-    uint environmentSampler;
-    uint rtShadowAO;
-    uint rtReflection;
+    uint ShadowMap;
+    uint ShadowSampler;
+    uint Environment;
+    uint Irradiance;
+    uint BrdfLut;
+    uint EnvironmentSampler;
+    uint RtShadowAO;
+    uint RtReflection;
 };
 
 struct PBRLighting
 {
-    float3 direct;
-    float3 indirectDiffuse;
-    float3 indirectSpecular;
-    float3 fresnel;
+    float3 Direct;
+    float3 IndirectDiffuse;
+    float3 IndirectSpecular;
+    float3 Fresnel;
     // Split-sum weight f0 * A + B applied to incident specular radiance.
-    float3 specularWeight;
+    float3 SpecularWeight;
 };
 
-static const float kPbrPi = 3.141592653589793;
+static const float PBRPi = 3.141592653589793;
 // Ray traced reflections stop at the maximum roughness and fade to the prefiltered environment from the start value.
-static const float kRTReflectionFadeStart = 0.3;
-static const float kRTReflectionMaxRoughness = 0.4;
+static const float RTReflectionFadeStart = 0.3;
+static const float RTReflectionMaxRoughness = 0.4;
 
 // glTF metallic-roughness: Lambert diffuse + GGX, correlated Smith visibility, Schlick Fresnel.
-float3 pbrFresnel(float3 f0, float cosTheta)
+float3 PBRFresnel(float3 F0, float CosTheta)
 {
-    float w = pow(1.0 - saturate(cosTheta), 5.0);
-    return f0 + (float3(1.0) - f0) * w;
+    float W = pow(1.0 - saturate(CosTheta), 5.0);
+    return F0 + (float3(1.0) - F0) * W;
 }
 
-float3 pbrF0(float3 baseColor, float metallic, float specular = 0.5)
+float3 PBRF0(float3 BaseColor, float Metallic, float Specular = 0.5)
 {
-    return lerp(float3(0.08 * saturate(specular)), baseColor, saturate(metallic));
+    return lerp(float3(0.08 * saturate(Specular)), BaseColor, saturate(Metallic));
 }
 
 // Returns BRDF * NdotL. Multiply by incident light radiance and visibility only once.
-float3 pbrMetallicRoughness(float3 baseColor, float metallic, float roughness, float3 N, float3 V, float3 L, float3 f0)
+float3 PBRMetallicRoughness(float3 BaseColor, float Metallic, float Roughness, float3 N, float3 V, float3 L, float3 F0)
 {
     float NdotV = saturate(dot(N, V));
     float NdotL = saturate(dot(N, L));
@@ -73,99 +73,99 @@ float3 pbrMetallicRoughness(float3 baseColor, float metallic, float roughness, f
     float3 H = normalize(V + L);
     float  NdotH = saturate(dot(N, H));
     float  VdotH = saturate(dot(V, H));
-    float  alpha = max(saturate(roughness) * saturate(roughness), 0.0014142);
-    float  a2 = alpha * alpha;
+    float  Alpha = max(saturate(Roughness) * saturate(Roughness), 0.0014142);
+    float  A2 = Alpha * Alpha;
     // This form avoids cancellation for very smooth surfaces when NdotH approaches 1.
-    float  d = (1.0 - NdotH * NdotH) + NdotH * NdotH * a2;
-    float  D = a2 / (kPbrPi * d * d);
-    float  gv = NdotL * sqrt(NdotV * NdotV * (1.0 - a2) + a2);
-    float  gl = NdotV * sqrt(NdotL * NdotL * (1.0 - a2) + a2);
-    float  visibility = 0.5 / (gv + gl);
-    float3 F = pbrFresnel(f0, VdotH);
-    float3 diffuse = (float3(1.0) - F) * (1.0 - saturate(metallic)) * baseColor / kPbrPi;
-    return (diffuse + F * D * visibility) * NdotL;
+    float  DValue = (1.0 - NdotH * NdotH) + NdotH * NdotH * A2;
+    float  D = A2 / (PBRPi * DValue * DValue);
+    float  Gv = NdotL * sqrt(NdotV * NdotV * (1.0 - A2) + A2);
+    float  Gl = NdotV * sqrt(NdotL * NdotL * (1.0 - A2) + A2);
+    float  Visibility = 0.5 / (Gv + Gl);
+    float3 F = PBRFresnel(F0, VdotH);
+    float3 Diffuse = (float3(1.0) - F) * (1.0 - saturate(Metallic)) * BaseColor / PBRPi;
+    return (Diffuse + F * D * Visibility) * NdotL;
 }
 
 // Irradiance maps in this renderer store the diffuse convolution (E / pi).
-float3 pbrIndirectDiffuse(float3 baseColor, float metallic, float3 F, float3 diffuseEnvironment, float ao)
+float3 PBRIndirectDiffuse(float3 BaseColor, float Metallic, float3 F, float3 DiffuseEnvironment, float AO)
 {
-    return (float3(1.0) - F) * (1.0 - saturate(metallic)) * baseColor * diffuseEnvironment * saturate(ao);
+    return (float3(1.0) - F) * (1.0 - saturate(Metallic)) * BaseColor * DiffuseEnvironment * saturate(AO);
 }
 
-float shadowVisibility(float3 worldPosition, LightingFrameData light, LightingBindings bindings)
+float ShadowVisibility(float3 WorldPosition, LightingFrameData Light, LightingBindings Bindings)
 {
-    if (light.shadowEnabled == 0 || bindings.shadowMap == 0xffffffffu || bindings.shadowSampler == 0xffffffffu)
+    if (Light.ShadowEnabled == 0 || Bindings.ShadowMap == 0xffffffffu || Bindings.ShadowSampler == 0xffffffffu)
     {
         return 1.0;
     }
-    const float4 clip = mul(light.shadowViewProjection, float4(worldPosition, 1));
-    if (clip.w <= 0.0)
+    const float4 Clip = mul(Light.ShadowViewProjection, float4(WorldPosition, 1));
+    if (Clip.w <= 0.0)
     {
         return 1.0;
     }
-    const float3 projected = clip.xyz / clip.w;
-    const float2 uv = projected.xy * float2(0.5, -0.5) + 0.5;
-    if (any(uv < 0.0) || any(uv > 1.0) || projected.z < 0.0 || projected.z > 1.0)
+    const float3 Projected = Clip.xyz / Clip.w;
+    const float2 UV = Projected.xy * float2(0.5, -0.5) + 0.5;
+    if (any(UV < 0.0) || any(UV > 1.0) || Projected.z < 0.0 || Projected.z > 1.0)
     {
         return 1.0;
     }
-    Texture2D<float>       map = ResourceDescriptorHeap[bindings.shadowMap];
-    SamplerComparisonState comparison = SamplerDescriptorHeap[bindings.shadowSampler];
-    uint                   width;
-    uint                   height;
-    map.GetDimensions(width, height);
-    const int radius = int(min(light.shadowFilterRadius, 1u));
-    float     visibility = 0;
-    for (int y = -radius; y <= radius; ++y)
+    Texture2D<float>       Map = ResourceDescriptorHeap[Bindings.ShadowMap];
+    SamplerComparisonState Comparison = SamplerDescriptorHeap[Bindings.ShadowSampler];
+    uint                   Width;
+    uint                   Height;
+    Map.GetDimensions(Width, Height);
+    const int Radius = int(min(Light.ShadowFilterRadius, 1u));
+    float     Visibility = 0;
+    for (int Y = -Radius; Y <= Radius; ++Y)
     {
-        for (int x = -radius; x <= radius; ++x)
+        for (int X = -Radius; X <= Radius; ++X)
         {
-            visibility += map.SampleCmpLevelZero(comparison, uv + float2(x, y) / float2(width, height), projected.z - light.shadowBias);
+            Visibility += Map.SampleCmpLevelZero(Comparison, UV + float2(X, Y) / float2(Width, Height), Projected.z - Light.ShadowBias);
         }
     }
-    return visibility / float((2 * radius + 1) * (2 * radius + 1));
+    return Visibility / float((2 * Radius + 1) * (2 * Radius + 1));
 }
 
 // N,V,L are normalized world directions; L points toward the directional source.
 // The renderer converts World irradiance to perpendicular illuminance (lux); HDR assets use an explicit cd/m^2 calibration.
-PBRLighting evaluatePBRLighting(float3 baseColor, float metallic, float roughness, float3 N, float3 V, float3 L, float visibility, float ao,
-                                LightingFrameData light, LightingBindings bindings, bool computeSpecularIBL = true, float specular = 0.5)
+PBRLighting EvaluatePBRLighting(float3 BaseColor, float Metallic, float Roughness, float3 N, float3 V, float3 L, float Visibility, float AO,
+                                LightingFrameData Light, LightingBindings Bindings, bool ComputeSpecularIBL = true, float Specular = 0.5)
 {
-    metallic = saturate(metallic);
-    roughness = saturate(roughness);
+    Metallic = saturate(Metallic);
+    Roughness = saturate(Roughness);
     float       NdotV = saturate(dot(N, V));
-    float3      f0 = pbrF0(baseColor, metallic, specular);
-    PBRLighting result;
-    result.fresnel = pbrFresnel(f0, NdotV);
-    result.specularWeight = result.fresnel;
-    result.direct = pbrMetallicRoughness(baseColor, metallic, roughness, N, V, L, f0) * saturate(visibility) *
-                    max(light.lightDirection.w, 0.0) * max(light.lightColor.rgb, 0.0);
-    result.indirectDiffuse = 0;
-    result.indirectSpecular = 0;
-    if (bindings.environmentSampler == 0xffffffffu)
+    float3      F0 = PBRF0(BaseColor, Metallic, Specular);
+    PBRLighting Result;
+    Result.Fresnel = PBRFresnel(F0, NdotV);
+    Result.SpecularWeight = Result.Fresnel;
+    Result.Direct = PBRMetallicRoughness(BaseColor, Metallic, Roughness, N, V, L, F0) * saturate(Visibility) *
+                    max(Light.LightDirection.w, 0.0) * max(Light.LightColor.rgb, 0.0);
+    Result.IndirectDiffuse = 0;
+    Result.IndirectSpecular = 0;
+    if (Bindings.EnvironmentSampler == 0xffffffffu)
     {
-        return result;
+        return Result;
     }
-    SamplerState sampler = SamplerDescriptorHeap[bindings.environmentSampler];
-    if (bindings.irradiance != 0xffffffffu)
+    SamplerState Sampler = SamplerDescriptorHeap[Bindings.EnvironmentSampler];
+    if (Bindings.Irradiance != 0xffffffffu)
     {
-        TextureCube<float4> diffuseEnvironment = ResourceDescriptorHeap[bindings.irradiance];
-        float3              sky = float3(-N.x, N.y, -N.z);
-        float3              irradiance = diffuseEnvironment.SampleLevel(sampler, sky, 0).rgb;
-        result.indirectDiffuse =
-            pbrIndirectDiffuse(baseColor, metallic, result.fresnel, irradiance, ao) * max(light.environmentIntensity, 0.0);
+        TextureCube<float4> DiffuseEnvironment = ResourceDescriptorHeap[Bindings.Irradiance];
+        float3              Sky = float3(-N.x, N.y, -N.z);
+        float3              Irradiance = DiffuseEnvironment.SampleLevel(Sampler, Sky, 0).rgb;
+        Result.IndirectDiffuse =
+            PBRIndirectDiffuse(BaseColor, Metallic, Result.Fresnel, Irradiance, AO) * max(Light.EnvironmentIntensity, 0.0);
     }
-    if (computeSpecularIBL && bindings.environment != 0xffffffffu && bindings.brdfLut != 0xffffffffu)
+    if (ComputeSpecularIBL && Bindings.Environment != 0xffffffffu && Bindings.BrdfLut != 0xffffffffu)
     {
-        float3              r = reflect(-V, N);
-        TextureCube<float4> environment = ResourceDescriptorHeap[bindings.environment];
-        Texture2D<float4>   brdfLut = ResourceDescriptorHeap[bindings.brdfLut];
-        const float         lod = roughness * float(max(light.environmentMipCount, 1u) - 1u);
-        const float3        radiance = environment.SampleLevel(sampler, float3(-r.x, r.y, -r.z), lod).rgb;
+        float3              R = reflect(-V, N);
+        TextureCube<float4> Environment = ResourceDescriptorHeap[Bindings.Environment];
+        Texture2D<float4>   BrdfLut = ResourceDescriptorHeap[Bindings.BrdfLut];
+        const float         Lod = Roughness * float(max(Light.EnvironmentMipCount, 1u) - 1u);
+        const float3        Radiance = Environment.SampleLevel(Sampler, float3(-R.x, R.y, -R.z), Lod).rgb;
         // The LUT integrates the BRDF over (NdotV, perceptual roughness), so Fresnel and NdotL are not applied again.
-        const float2        brdf = brdfLut.SampleLevel(sampler, float2(NdotV, roughness), 0).rg;
-        result.specularWeight = f0 * brdf.x + float3(brdf.y);
-        result.indirectSpecular = result.specularWeight * radiance * max(light.environmentIntensity, 0.0);
+        const float2        Brdf = BrdfLut.SampleLevel(Sampler, float2(NdotV, Roughness), 0).rg;
+        Result.SpecularWeight = F0 * Brdf.x + float3(Brdf.y);
+        Result.IndirectSpecular = Result.SpecularWeight * Radiance * max(Light.EnvironmentIntensity, 0.0);
     }
-    return result;
+    return Result;
 }

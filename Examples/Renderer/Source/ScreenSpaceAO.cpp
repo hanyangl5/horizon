@@ -6,18 +6,18 @@
 // Mirrors the RootConstant0 block of ScreenSpaceAO.slang field for field.
 struct ScreenSpaceAOConstants
 {
-    uint32_t frameIndex = UINT32_MAX;
-    uint32_t depthIndex = UINT32_MAX;
-    uint32_t rotationsIndex = UINT32_MAX;
-    uint32_t sourceIndex = UINT32_MAX;
-    uint32_t outputIndex = UINT32_MAX;
-    uint32_t samplerIndex = UINT32_MAX;
-    uint32_t rotationSamplerIndex = UINT32_MAX;
-    uint32_t horizontal = 0;
-    float    radius = 0;
-    float    attenuationScale = 1;
-    float    distanceScale = 1;
-    float    depthThreshold = 0;
+    uint32_t FrameIndex = UINT32_MAX;
+    uint32_t DepthIndex = UINT32_MAX;
+    uint32_t RotationsIndex = UINT32_MAX;
+    uint32_t SourceIndex = UINT32_MAX;
+    uint32_t OutputIndex = UINT32_MAX;
+    uint32_t SamplerIndex = UINT32_MAX;
+    uint32_t RotationSamplerIndex = UINT32_MAX;
+    uint32_t Horizontal = 0;
+    float    Radius = 0;
+    float    AttenuationScale = 1;
+    float    DistanceScale = 1;
+    float    DepthThreshold = 0;
 };
 static_assert(sizeof(ScreenSpaceAOConstants) == 12 * sizeof(uint32_t));
 
@@ -57,15 +57,15 @@ void ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fram
     const uint32_t               Height = Occlusion.GetHeight();
     // The Cookbook kernel and bilateral blur use Depth; the deferred pass multiplies the result into indirect light.
     hz::DependencyList           Dependencies;
-    const ScreenSpaceAOConstants Constants = { .frameIndex = Dependencies.read(Frame),
-                                               .depthIndex = Dependencies.sample(&Depth),
-                                               .rotationsIndex = Dependencies.sample(&Rotations),
-                                               .outputIndex = Dependencies.store(&Occlusion),
-                                               .samplerIndex = Sampler.GetIndex(),
-                                               .rotationSamplerIndex = RotationSampler.GetIndex(),
-                                               .radius = Settings.Radius,
-                                               .attenuationScale = Settings.AttenuationScale,
-                                               .distanceScale = Settings.DistanceScale };
+    const ScreenSpaceAOConstants Constants = { .FrameIndex = Dependencies.Read(Frame),
+                                               .DepthIndex = Dependencies.Sample(&Depth),
+                                               .RotationsIndex = Dependencies.Sample(&Rotations),
+                                               .OutputIndex = Dependencies.Store(&Occlusion),
+                                               .SamplerIndex = Sampler.GetIndex(),
+                                               .RotationSamplerIndex = RotationSampler.GetIndex(),
+                                               .Radius = Settings.Radius,
+                                               .AttenuationScale = Settings.AttenuationScale,
+                                               .DistanceScale = Settings.DistanceScale };
     Commands.BeginGpuTimestamp("SSAO");
     Commands.SetPipeline(AOPipeline);
     Commands.SetRootConstants(Constants);
@@ -79,12 +79,12 @@ void ScreenSpaceAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fram
             const hz::GPUTexture&        Source = Axis == 0 ? Occlusion : Scratch;
             const hz::GPUTexture&        Target = Axis == 0 ? Scratch : Occlusion;
             hz::DependencyList           BlurDependencies;
-            const ScreenSpaceAOConstants BlurConstants = { .depthIndex = BlurDependencies.sample(&Depth),
-                                                           .sourceIndex = BlurDependencies.sample(&Source),
-                                                           .outputIndex = BlurDependencies.store(&Target),
-                                                           .samplerIndex = Sampler.GetIndex(),
-                                                           .horizontal = Axis == 0,
-                                                           .depthThreshold = Settings.DepthThreshold };
+            const ScreenSpaceAOConstants BlurConstants = { .DepthIndex = BlurDependencies.Sample(&Depth),
+                                                           .SourceIndex = BlurDependencies.Sample(&Source),
+                                                           .OutputIndex = BlurDependencies.Store(&Target),
+                                                           .SamplerIndex = Sampler.GetIndex(),
+                                                           .Horizontal = Axis == 0,
+                                                           .DepthThreshold = Settings.DepthThreshold };
             Commands.SetRootConstants(BlurConstants);
             Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1, BlurDependencies.Get());
         }

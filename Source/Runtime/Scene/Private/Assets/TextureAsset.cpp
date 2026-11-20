@@ -12,7 +12,7 @@ namespace hz
 class TextureAssetData
 {
 public:
-    explicit TextureAssetData(const AssetCatalogEntry& entry): entry(entry) {}
+    explicit TextureAssetData(const AssetCatalogEntry& Entry): entry(Entry) {}
     ~TextureAssetData()
     {
         if (pUpload)
@@ -36,69 +36,69 @@ public:
 class TextureAssetLoaderData
 {
 public:
-    TextureAssetLoaderData(RenderContext& context, ResourceDirectory cooked, ResourceDirectory source):
-        context(context), cookedDirectory(cooked), sourceDirectory(source)
+    TextureAssetLoaderData(RenderContext& Context, ResourceDirectory CookedValue, ResourceDirectory Source):
+        context(Context), cookedDirectory(CookedValue), sourceDirectory(Source)
     {
     }
 
-    static void* begin(const AssetCatalogEntry& entry, AssetHandle, void*)
+    static void* begin(const AssetCatalogEntry& Entry, AssetHandle, void*)
     {
-        if (entry.Type != AssetType::Texture || entry.location.elementIndex != UINT32_MAX)
+        if (Entry.Type != AssetType::Texture || Entry.location.elementIndex != UINT32_MAX)
         {
-            LOGF(Error, "Invalid TextureAsset location '%s'", entry.location.pPath);
+            LOGF(Error, "Invalid TextureAsset location '%s'", Entry.location.pPath);
             return nullptr;
         }
-        TextureRequest* pRequest = MemNew(TextureRequest);
-        pRequest->pAsset = MemNew(TextureAsset);
-        pRequest->pAsset->Data = MemNew(TextureAssetData, entry);
-        return pRequest;
+        TextureRequest* Request = MemNew(TextureRequest);
+        Request->pAsset = MemNew(TextureAsset);
+        Request->pAsset->Data = MemNew(TextureAssetData, Entry);
+        return Request;
     }
 
-    static AssetLoadResult poll(void* pJob, void*)
+    static AssetLoadResult poll(void* Job, void*)
     {
-        TextureRequest* pRequest = (TextureRequest*)pJob;
-        TextureAsset*   pAsset = pRequest->pAsset;
-        pRequest->pAsset = nullptr;
-        return { .status = AssetLoadStatus::Succeeded, .pPayload = pAsset };
+        TextureRequest* Request = (TextureRequest*)Job;
+        TextureAsset*   Asset = Request->pAsset;
+        Request->pAsset = nullptr;
+        return { .status = AssetLoadStatus::Succeeded, .pPayload = Asset };
     }
-    static void destroyRequest(void* pJob, void*) { MemDelete((TextureRequest*)pJob); }
-    static void destroyPayload(void* pPayload, void*) { MemDelete((TextureAsset*)pPayload); }
+    static void destroyRequest(void* Job, void*) { MemDelete((TextureRequest*)Job); }
+    static void destroyPayload(void* Payload, void*) { MemDelete((TextureAsset*)Payload); }
 
-    static void Upload(void* pPayload, const AssetManager&, Span<AssetHandle>, void* User)
+    static void Upload(void* Payload, const AssetManager&, Span<AssetHandle>, void* User)
     {
-        TextureAssetLoaderData& loader = *(TextureAssetLoaderData*)User;
-        TextureAssetData&       data = *((TextureAsset*)pPayload)->Data;
-        const char*             pExtension = strrchr(data.entry.location.pPath, '.');
-        if (!pExtension || (stricmp(pExtension, ".dds") && stricmp(pExtension, ".ktx")))
+        TextureAssetLoaderData& Loader = *(TextureAssetLoaderData*)User;
+        TextureAssetData&       DataValue = *((TextureAsset*)Payload)->Data;
+        const char*             Extension = strrchr(DataValue.entry.location.pPath, '.');
+        if (!Extension || (stricmp(Extension, ".dds") && stricmp(Extension, ".ktx")))
         {
-            LOGF(Error, "TextureAsset requires DDS or KTX: '%s'", data.entry.location.pPath);
+            LOGF(Error, "TextureAsset requires DDS or KTX: '%s'", DataValue.entry.location.pPath);
             return;
         }
-        TextureLoadDesc desc = {
-            .ppTexture = &data.pUpload,
-            .pFileName = data.entry.location.pPath,
-            .creationFlag = (TextureCreationFlags)(TEXTURE_CREATION_FLAG_FORCE_2D | (data.entry.srgb ? TEXTURE_CREATION_FLAG_SRGB : 0)),
-            .container = stricmp(pExtension, ".ktx") ? TEXTURE_CONTAINER_DDS : TEXTURE_CONTAINER_KTX,
-            .resourceDirectory = data.entry.location.root == AssetPathRoot::Cooked ? loader.cookedDirectory : loader.sourceDirectory,
-            .pSuccess = &data.uploadSucceeded,
+        TextureLoadDesc Desc = {
+            .ppTexture = &DataValue.pUpload,
+            .pFileName = DataValue.entry.location.pPath,
+            .creationFlag = (TextureCreationFlags)(TEXTURE_CREATION_FLAG_FORCE_2D | (DataValue.entry.srgb ? TEXTURE_CREATION_FLAG_SRGB : 0)),
+            .container = stricmp(Extension, ".ktx") ? TEXTURE_CONTAINER_DDS : TEXTURE_CONTAINER_KTX,
+            .resourceDirectory = DataValue.entry.location.root == AssetPathRoot::Cooked ? Loader.cookedDirectory : Loader.sourceDirectory,
+            .pSuccess = &DataValue.uploadSucceeded,
         };
-        addResource(&desc, &data.token);
+        addResource(&Desc, &DataValue.token);
     }
 
-    static AssetLoadStatus pollUpload(void* pPayload, void* User)
+    static AssetLoadStatus pollUpload(void* Payload, void* User)
     {
-        TextureAssetData& data = *((TextureAsset*)pPayload)->Data;
-        if (!isTokenCompleted(&data.token))
+        TextureAssetData& DataValue = *((TextureAsset*)Payload)->Data;
+        if (!isTokenCompleted(&DataValue.token))
             return AssetLoadStatus::Pending;
-        if (!data.uploadSucceeded || !data.pUpload)
+        if (!DataValue.uploadSucceeded || !DataValue.pUpload)
         {
-            LOGF(Error, "TextureAsset Upload failed: '%s'", data.entry.location.pPath);
+            LOGF(Error, "TextureAsset Upload failed: '%s'", DataValue.entry.location.pPath);
             return AssetLoadStatus::Failed;
         }
-        data.texture = SceneResourceAccess::take(&((TextureAssetLoaderData*)User)->context, data.pUpload);
+        DataValue.texture = SceneResourceAccess::take(&((TextureAssetLoaderData*)User)->context, DataValue.pUpload);
         return AssetLoadStatus::Succeeded;
     }
-    static void waitUpload(void* pPayload, void*) { waitForToken(&((TextureAsset*)pPayload)->Data->token); }
+    static void waitUpload(void* Payload, void*) { waitForToken(&((TextureAsset*)Payload)->Data->token); }
 
     RenderContext&    context;
     ResourceDirectory cookedDirectory;
@@ -112,8 +112,8 @@ const GPUTexture& TextureAsset::GetTexture() const
     return Data->texture;
 }
 
-TextureAssetLoader::TextureAssetLoader(RenderContext& context, ResourceDirectory cooked, ResourceDirectory source):
-    Data(MemNew(TextureAssetLoaderData, context, cooked, source))
+TextureAssetLoader::TextureAssetLoader(RenderContext& Context, ResourceDirectory CookedValue, ResourceDirectory Source):
+    Data(MemNew(TextureAssetLoaderData, Context, CookedValue, Source))
 {
 }
 TextureAssetLoader::~TextureAssetLoader() { MemDelete(Data); }

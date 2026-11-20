@@ -19,166 +19,166 @@ namespace hz
 class SkinningCoreData
 {
 public:
-    explicit SkinningCoreData(const SkeletonAsset& asset): asset(asset), skeleton(asset.Data->skeleton)
+    explicit SkinningCoreData(const SkeletonAsset& Asset): Asset(Asset), Skeleton(Asset.Data->skeleton)
     {
-        context.Resize(skeleton.num_joints());
-        locals.Resize((uint32_t)skeleton.num_soa_joints());
-        models.Resize((uint32_t)skeleton.num_joints());
-        modelMatrices.Resize((uint32_t)skeleton.num_joints());
-        restPose();
+        Context.Resize(Skeleton.num_joints());
+        Locals.Resize((uint32_t)Skeleton.num_soa_joints());
+        Models.Resize((uint32_t)Skeleton.num_joints());
+        ModelMatrices.Resize((uint32_t)Skeleton.num_joints());
+        RestPose();
     }
 
-    void restPose()
+    void RestPose()
     {
-        const ozz::span<const ozz::math::SoaTransform> rest = skeleton.joint_rest_poses();
-        for (uint32_t i = 0; i < locals.Size(); ++i)
-            locals[i] = rest[i];
+        const ozz::span<const ozz::math::SoaTransform> Rest = Skeleton.joint_rest_poses();
+        for (uint32_t I = 0; I < Locals.Size(); ++I)
+            Locals[I] = Rest[I];
     }
 
-    bool sample(const AnimationLayer& layer, ozz::span<ozz::math::SoaTransform> output)
+    bool Sample(const AnimationLayer& Layer, ozz::span<ozz::math::SoaTransform> Output)
     {
-        const ozz::animation::Animation& animation = layer.clip->Data->animation;
-        ozz::animation::SamplingJob      job;
-        job.animation = &animation;
-        job.context = &context;
-        job.ratio = fminf(fmaxf(layer.time / animation.duration(), 0.0f), 1.0f);
-        job.output = output;
-        return job.Run();
+        const ozz::animation::Animation& Animation = Layer.Clip->Data->animation;
+        ozz::animation::SamplingJob      Job;
+        Job.animation = &Animation;
+        Job.context = &Context;
+        Job.ratio = fminf(fmaxf(Layer.Time / Animation.duration(), 0.0f), 1.0f);
+        Job.output = Output;
+        return Job.Run();
     }
 
-    const SkeletonAsset&                   asset;
-    const ozz::animation::Skeleton&         skeleton;
-    ozz::animation::SamplingJob::Context    context;
-    Array<ozz::math::SoaTransform>          locals;
+    const SkeletonAsset&                   Asset;
+    const ozz::animation::Skeleton&         Skeleton;
+    ozz::animation::SamplingJob::Context    Context;
+    Array<ozz::math::SoaTransform>          Locals;
     // Sampling output of each layer when more than one layer blends.
-    Array<ozz::math::SoaTransform>          sampled;
-    Array<ozz::animation::BlendingJob::Layer> blendLayers;
-    Array<ozz::math::Float4x4>              models;
-    Array<Matrix4>                          modelMatrices;
+    Array<ozz::math::SoaTransform>          Sampled;
+    Array<ozz::animation::BlendingJob::Layer> BlendLayers;
+    Array<ozz::math::Float4x4>              Models;
+    Array<Matrix4>                          ModelMatrices;
 };
 
-SkinningCore::SkinningCore(const SkeletonAsset& skeleton)
+SkinningCore::SkinningCore(const SkeletonAsset& Skeleton)
 {
-    ASSERT(skeleton.IsValid());
-    Data = MemNew(SkinningCoreData, skeleton);
+    ASSERT(Skeleton.IsValid());
+    Data = MemNew(SkinningCoreData, Skeleton);
     Evaluate({});
 }
 
 SkinningCore::~SkinningCore() { MemDelete(Data); }
 
-const SkeletonAsset& SkinningCore::GetSkeleton() const { return Data->asset; }
+const SkeletonAsset& SkinningCore::GetSkeleton() const { return Data->Asset; }
 
-bool SkinningCore::Evaluate(Span<AnimationLayer> layers)
+bool SkinningCore::Evaluate(Span<AnimationLayer> Layers)
 {
-    const int jointCount = Data->skeleton.num_joints();
-    uint32_t  active = 0;
-    for (const AnimationLayer& layer : layers)
+    const int JointCount = Data->Skeleton.num_joints();
+    uint32_t  Active = 0;
+    for (const AnimationLayer& Layer : Layers)
     {
-        if (!layer.clip || layer.weight <= 0.0f)
+        if (!Layer.Clip || Layer.Weight <= 0.0f)
             continue;
-        if (layer.clip->Data->animation.num_tracks() != jointCount)
+        if (Layer.Clip->Data->animation.num_tracks() != JointCount)
         {
-            LOGF(Error, "Animation has %d tracks for a %d-joint skeleton", layer.clip->Data->animation.num_tracks(), jointCount);
+            LOGF(Error, "Animation has %d tracks for a %d-joint skeleton", Layer.Clip->Data->animation.num_tracks(), JointCount);
             return false;
         }
-        ++active;
+        ++Active;
     }
-    const uint32_t                     soaJoints = Data->locals.Size();
-    ozz::span<ozz::math::SoaTransform> locals(Data->locals.GetData(), soaJoints);
-    if (!active)
-        Data->restPose();
-    else if (active == 1)
+    const uint32_t                     SoaJoints = Data->Locals.Size();
+    ozz::span<ozz::math::SoaTransform> Locals(Data->Locals.GetData(), SoaJoints);
+    if (!Active)
+        Data->RestPose();
+    else if (Active == 1)
     {
-        for (const AnimationLayer& layer : layers)
-            if (layer.clip && layer.weight > 0.0f && !Data->sample(layer, locals))
+        for (const AnimationLayer& Layer : Layers)
+            if (Layer.Clip && Layer.Weight > 0.0f && !Data->Sample(Layer, Locals))
                 return false;
     }
     else
     {
         // Grows only when more layers blend than before.
-        if (Data->sampled.Size() < active * soaJoints)
-            Data->sampled.Resize(active * soaJoints);
-        Data->blendLayers.Resize(active);
-        uint32_t index = 0;
-        for (const AnimationLayer& layer : layers)
+        if (Data->Sampled.Size() < Active * SoaJoints)
+            Data->Sampled.Resize(Active * SoaJoints);
+        Data->BlendLayers.Resize(Active);
+        uint32_t Index = 0;
+        for (const AnimationLayer& Layer : Layers)
         {
-            if (!layer.clip || layer.weight <= 0.0f)
+            if (!Layer.Clip || Layer.Weight <= 0.0f)
                 continue;
-            ozz::span<ozz::math::SoaTransform> output(Data->sampled.GetData() + index * soaJoints, soaJoints);
-            if (!Data->sample(layer, output))
+            ozz::span<ozz::math::SoaTransform> Output(Data->Sampled.GetData() + Index * SoaJoints, SoaJoints);
+            if (!Data->Sample(Layer, Output))
                 return false;
-            Data->blendLayers[index].weight = layer.weight;
-            Data->blendLayers[index].transform = output;
-            ++index;
+            Data->BlendLayers[Index].weight = Layer.Weight;
+            Data->BlendLayers[Index].transform = Output;
+            ++Index;
         }
-        ozz::animation::BlendingJob job;
-        job.layers = { Data->blendLayers.GetData(), Data->blendLayers.Size() };
-        job.rest_pose = Data->skeleton.joint_rest_poses();
-        job.output = locals;
-        if (!job.Run())
+        ozz::animation::BlendingJob Job;
+        Job.layers = { Data->BlendLayers.GetData(), Data->BlendLayers.Size() };
+        Job.rest_pose = Data->Skeleton.joint_rest_poses();
+        Job.output = Locals;
+        if (!Job.Run())
             return false;
     }
-    ozz::animation::LocalToModelJob job;
-    job.skeleton = &Data->skeleton;
-    job.input = { Data->locals.GetData(), soaJoints };
-    job.output = { Data->models.GetData(), Data->models.Size() };
-    if (!job.Run())
+    ozz::animation::LocalToModelJob Job;
+    Job.skeleton = &Data->Skeleton;
+    Job.input = { Data->Locals.GetData(), SoaJoints };
+    Job.output = { Data->Models.GetData(), Data->Models.Size() };
+    if (!Job.Run())
         return false;
-    for (uint32_t joint = 0; joint < Data->models.Size(); ++joint)
+    for (uint32_t Joint = 0; Joint < Data->Models.Size(); ++Joint)
     {
-        float columns[4][4];
-        for (uint32_t column = 0; column < 4; ++column)
-            ozz::math::StorePtrU(Data->models[joint].cols[column], columns[column]);
-        Data->modelMatrices[joint] =
-            Matrix4(Vector4(columns[0][0], columns[0][1], columns[0][2], columns[0][3]),
-                    Vector4(columns[1][0], columns[1][1], columns[1][2], columns[1][3]),
-                    Vector4(columns[2][0], columns[2][1], columns[2][2], columns[2][3]),
-                    Vector4(columns[3][0], columns[3][1], columns[3][2], columns[3][3]));
+        float Columns[4][4];
+        for (uint32_t Column = 0; Column < 4; ++Column)
+            ozz::math::StorePtrU(Data->Models[Joint].cols[Column], Columns[Column]);
+        Data->ModelMatrices[Joint] =
+            Matrix4(Vector4(Columns[0][0], Columns[0][1], Columns[0][2], Columns[0][3]),
+                    Vector4(Columns[1][0], Columns[1][1], Columns[1][2], Columns[1][3]),
+                    Vector4(Columns[2][0], Columns[2][1], Columns[2][2], Columns[2][3]),
+                    Vector4(Columns[3][0], Columns[3][1], Columns[3][2], Columns[3][3]));
     }
     return true;
 }
 
-Span<Matrix4> SkinningCore::GetModelMatrices() const { return { Data->modelMatrices.GetData(), Data->modelMatrices.Size() }; }
+Span<Matrix4> SkinningCore::GetModelMatrices() const { return { Data->ModelMatrices.GetData(), Data->ModelMatrices.Size() }; }
 
-void SkinningCore::WriteSkinMatrices(uint32_t skin, Matrix4* output) const
+void SkinningCore::WriteSkinMatrices(uint32_t Skin, Matrix4* Output) const
 {
-    const SkinData& data = Data->asset.Data->skins[skin];
-    for (uint32_t i = 0; i < data.joints.Size(); ++i)
-        output[i] = Data->modelMatrices[data.joints[i]] * data.inverseBind[i];
+    const SkinData& Skinning = Data->Asset.Data->skins[Skin];
+    for (uint32_t I = 0; I < Skinning.joints.Size(); ++I)
+        Output[I] = Data->ModelMatrices[Skinning.joints[I]] * Skinning.inverseBind[I];
 }
 
-bool SkinningCore::GetSkinBounds(uint32_t skin, SkinBounds& bounds) const
+bool SkinningCore::GetSkinBounds(uint32_t Skin, SkinBounds& Bounds) const
 {
-    const SkinData& data = Data->asset.Data->skins[skin];
-    bool            found = false;
-    for (uint32_t axis = 0; axis < 3; ++axis)
+    const SkinData& Skinning = Data->Asset.Data->skins[Skin];
+    bool            Found = false;
+    for (uint32_t Axis = 0; Axis < 3; ++Axis)
     {
-        bounds.minimum[axis] = FLT_MAX;
-        bounds.maximum[axis] = -FLT_MAX;
+        Bounds.Minimum[Axis] = FLT_MAX;
+        Bounds.Maximum[Axis] = -FLT_MAX;
     }
     // Each box holds the influenced vertices in the joint's space; a blended vertex lies within the union of its joints'
     // boxes, so the union of the transformed boxes bounds the skinned mesh.
-    for (uint32_t i = 0; i < data.joints.Size(); ++i)
+    for (uint32_t I = 0; I < Skinning.joints.Size(); ++I)
     {
-        const float* box = data.bounds.GetData() + i * 6;
-        if (box[0] > box[3])
+        const float* Box = Skinning.bounds.GetData() + I * 6;
+        if (Box[0] > Box[3])
             continue;
-        found = true;
-        const Matrix4& matrix = Data->modelMatrices[data.joints[i]];
-        for (uint32_t row = 0; row < 3; ++row)
+        Found = true;
+        const Matrix4& Matrix = Data->ModelMatrices[Skinning.joints[I]];
+        for (uint32_t Row = 0; Row < 3; ++Row)
         {
-            float minimum = matrix.getElem(3, (int)row), maximum = minimum;
-            for (uint32_t column = 0; column < 3; ++column)
+            float Minimum = Matrix.getElem(3, (int)Row), Maximum = Minimum;
+            for (uint32_t Column = 0; Column < 3; ++Column)
             {
-                const float a = matrix.getElem((int)column, (int)row) * box[column];
-                const float b = matrix.getElem((int)column, (int)row) * box[3 + column];
-                minimum += fminf(a, b);
-                maximum += fmaxf(a, b);
+                const float A = Matrix.getElem((int)Column, (int)Row) * Box[Column];
+                const float B = Matrix.getElem((int)Column, (int)Row) * Box[3 + Column];
+                Minimum += fminf(A, B);
+                Maximum += fmaxf(A, B);
             }
-            bounds.minimum[row] = fminf(bounds.minimum[row], minimum);
-            bounds.maximum[row] = fmaxf(bounds.maximum[row], maximum);
+            Bounds.Minimum[Row] = fminf(Bounds.Minimum[Row], Minimum);
+            Bounds.Maximum[Row] = fmaxf(Bounds.Maximum[Row], Maximum);
         }
     }
-    return found;
+    return Found;
 }
 } // namespace hz

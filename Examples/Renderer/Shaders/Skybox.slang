@@ -3,15 +3,15 @@
 
 cbuffer RootConstant0
 {
-    uint  frameIndex;
-    uint  environmentIndex;
-    uint  samplerIndex;
-    float intensity;
+    uint  FrameIndex;
+    uint  EnvironmentIndex;
+    uint  SamplerIndex;
+    float Intensity;
 };
 
-static const float3 pos[8] = { float3(-1, -1, 1),  float3(1, -1, 1),  float3(1, 1, 1),  float3(-1, 1, 1),
+static const float3 Positions[8] = { float3(-1, -1, 1),  float3(1, -1, 1),  float3(1, 1, 1),  float3(-1, 1, 1),
                                float3(-1, -1, -1), float3(1, -1, -1), float3(1, 1, -1), float3(-1, 1, -1) };
-static const uint   indices[36] = {
+static const uint   Indices[36] = {
     0, 1, 2, 2, 3, 0, 1, 5, 6, 6, 2, 1, 7, 6, 5, 5, 4, 7, 4, 0, 3, 3, 7, 4, 4, 5, 1, 1, 0, 4, 3, 2, 6, 6, 7, 3
 };
 
@@ -21,22 +21,22 @@ struct PSInput
     float3 Dir: TEXCOORD0;
 };
 
-PSInput VSMain(uint vertexId : SV_VertexID)
+PSInput VSMain(uint VertexId : SV_VertexID)
 {
-    StructuredBuffer<FrameData> frame = ResourceDescriptorHeap[frameIndex];
-    int                         idx = indices[vertexId];
-    PSInput                     output;
+    StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[FrameIndex];
+    int                         Idx = Indices[VertexId];
+    PSInput                     Output;
     // Center the cube on the eye to discard view translation while preserving camera rotation.
-    output.Position = mul(frame[0].viewProjection, float4(pos[idx] + frame[0].eye.xyz, 1.0));
-    output.Position.z = output.Position.w;
-    output.Dir = pos[idx].xyz;
-    return output;
+    Output.Position = mul(Frame[0].ViewProjection, float4(Positions[Idx] + Frame[0].Eye.xyz, 1.0));
+    Output.Position.z = Output.Position.w;
+    Output.Dir = Positions[Idx].xyz;
+    return Output;
 }
 
-float4 PSMain(PSInput input): SV_Target0
+float4 PSMain(PSInput Input): SV_Target0
 {
-    TextureCube<float4> environment = ResourceDescriptorHeap[environmentIndex];
-    SamplerState        surfaceSampler = SamplerDescriptorHeap[samplerIndex];
-    float3              sky = float3(-input.Dir.x, input.Dir.y, -input.Dir.z);
-    return float4(environment.Sample(surfaceSampler, sky).rgb * max(intensity, 0.0), 1);
+    TextureCube<float4> Environment = ResourceDescriptorHeap[EnvironmentIndex];
+    SamplerState        SurfaceSampler = SamplerDescriptorHeap[SamplerIndex];
+    float3              Sky = float3(-Input.Dir.x, Input.Dir.y, -Input.Dir.z);
+    return float4(Environment.Sample(SurfaceSampler, Sky).rgb * max(Intensity, 0.0), 1);
 }

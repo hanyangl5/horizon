@@ -1,53 +1,53 @@
 cbuffer RootConstant0
 {
-    uint  inputIndex;
-    uint  outputIndex;
-    uint  previousIndex;
-    float adaptationTime;
+    uint  InputIndex;
+    uint  OutputIndex;
+    uint  PreviousIndex;
+    float AdaptationTime;
 };
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
-void CSReduce(uint3 id : SV_DispatchThreadID)
+void CSReduce(uint3 ID : SV_DispatchThreadID)
 {
-    Texture2D<float>   input = ResourceDescriptorHeap[inputIndex];
-    RWTexture2D<float> output = ResourceDescriptorHeap[outputIndex];
-    uint               width;
-    uint               height;
-    output.GetDimensions(width, height);
-    if (any(id.xy >= uint2(width, height)))
+    Texture2D<float>   Input = ResourceDescriptorHeap[InputIndex];
+    RWTexture2D<float> Output = ResourceDescriptorHeap[OutputIndex];
+    uint               Width;
+    uint               Height;
+    Output.GetDimensions(Width, Height);
+    if (any(ID.xy >= uint2(Width, Height)))
     {
         return;
     }
-    int2 pixel = int2(id.xy) * 2;
-    output[id.xy] = 0.25 * (input.Load(int3(pixel, 0)) + input.Load(int3(pixel + int2(1, 0), 0)) + input.Load(int3(pixel + int2(0, 1), 0)) +
-                            input.Load(int3(pixel + int2(1, 1), 0)));
+    int2 Pixel = int2(ID.xy) * 2;
+    Output[ID.xy] = 0.25 * (Input.Load(int3(Pixel, 0)) + Input.Load(int3(Pixel + int2(1, 0), 0)) + Input.Load(int3(Pixel + int2(0, 1), 0)) +
+                            Input.Load(int3(Pixel + int2(1, 1), 0)));
 }
 
 [shader("compute")]
 [numthreads(1, 1, 1)]
-void CSInitialize(uint3 id : SV_DispatchThreadID)
+void CSInitialize(uint3 ID : SV_DispatchThreadID)
 {
-    RWTexture2D<float> previous = ResourceDescriptorHeap[inputIndex];
-    RWTexture2D<float> output = ResourceDescriptorHeap[outputIndex];
-    previous[uint2(0)] = 50.0;
-    output[uint2(0)] = 50.0;
+    RWTexture2D<float> Previous = ResourceDescriptorHeap[InputIndex];
+    RWTexture2D<float> Output = ResourceDescriptorHeap[OutputIndex];
+    Previous[uint2(0)] = 50.0;
+    Output[uint2(0)] = 50.0;
 }
 
 [shader("compute")]
 [numthreads(1, 1, 1)]
-void CSAdapt(uint3 dispatchId : SV_DispatchThreadID)
+void CSAdapt(uint3 DispatchId : SV_DispatchThreadID)
 {
-    Texture2D<float>   input = ResourceDescriptorHeap[inputIndex];
-    Texture2D<float>   previous = ResourceDescriptorHeap[previousIndex];
-    RWTexture2D<float> output = ResourceDescriptorHeap[outputIndex];
+    Texture2D<float>   Input = ResourceDescriptorHeap[InputIndex];
+    Texture2D<float>   Previous = ResourceDescriptorHeap[PreviousIndex];
+    RWTexture2D<float> Output = ResourceDescriptorHeap[OutputIndex];
 
-    float lumCurr = input.Load(int3(0, 0, 0));
-    float lumPrev = previous.Load(int3(0, 0, 0));
+    float LumCurr = Input.Load(int3(0, 0, 0));
+    float LumPrev = Previous.Load(int3(0, 0, 0));
 
-    lumCurr = exp2(lumCurr);
-    float factor = 1.0 - exp(-adaptationTime);
-    float newAdaptation = lumPrev + (lumCurr - lumPrev) * factor;
+    LumCurr = exp2(LumCurr);
+    float Factor = 1.0 - exp(-AdaptationTime);
+    float NewAdaptation = LumPrev + (LumCurr - LumPrev) * Factor;
 
-    output[int2(0, 0)] = (float4(newAdaptation)).x;
+    Output[int2(0, 0)] = (float4(NewAdaptation)).x;
 }

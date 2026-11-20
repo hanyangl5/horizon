@@ -2,45 +2,45 @@
 
 cbuffer RootConstant0
 {
-    uint  inputIndex;
-    uint  outputIndex;
-    uint  samplerIndex;
-    uint  adaptedLuminanceIndex;
-    uint  threshold;
-    uint  autoExposure;
-    float exposure;
+    uint  InputIndex;
+    uint  OutputIndex;
+    uint  SamplerIndex;
+    uint  AdaptedLuminanceIndex;
+    uint  Threshold;
+    uint  AutoExposure;
+    float Exposure;
 };
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
-void CSMain(uint3 dispatchId : SV_DispatchThreadID)
+void CSMain(uint3 DispatchId : SV_DispatchThreadID)
 {
-    Texture2D<float4>   input = ResourceDescriptorHeap[inputIndex];
-    RWTexture2D<float4> output = ResourceDescriptorHeap[outputIndex];
-    Texture2D<float>    adapted = ResourceDescriptorHeap[adaptedLuminanceIndex];
-    SamplerState        clampSampler = SamplerDescriptorHeap[samplerIndex];
-    uint                width;
-    uint                height;
-    output.GetDimensions(width, height);
+    Texture2D<float4>   Input = ResourceDescriptorHeap[InputIndex];
+    RWTexture2D<float4> Output = ResourceDescriptorHeap[OutputIndex];
+    Texture2D<float>    Adapted = ResourceDescriptorHeap[AdaptedLuminanceIndex];
+    SamplerState        ClampSampler = SamplerDescriptorHeap[SamplerIndex];
+    uint                Width;
+    uint                Height;
+    Output.GetDimensions(Width, Height);
 
-    if (dispatchId.x >= width || dispatchId.y >= height)
+    if (DispatchId.x >= Width || DispatchId.y >= Height)
     {
         return;
     }
     // Every level is half the previous one, so one bilinear tap at the texel centre is an exact 2x2 box average.
-    float2 uv = (dispatchId.xy + float2(0.5)) / float2(width, height);
-    float3 color = input.SampleLevel(clampSampler, uv, 0).rgb;
+    float2 UV = (DispatchId.xy + float2(0.5)) / float2(Width, Height);
+    float3 Color = Input.SampleLevel(ClampSampler, UV, 0).rgb;
     // A single non-finite texel must not turn the whole glow into NaN.
-    color = all(isfinite(color)) ? color : float3(0.0);
-    if (threshold != 0)
+    Color = all(isfinite(Color)) ? Color : float3(0.0);
+    if (Threshold != 0)
     {
-        float averageLuminance = adapted.Load(int3(0, 0, 0));
-        float scale = autoExposure != 0 ? ExposureScale(averageLuminance, exposure) : exposure;
-        color *= scale;
+        float AverageLuminance = Adapted.Load(int3(0, 0, 0));
+        float Scale = AutoExposure != 0 ? ExposureScale(AverageLuminance, Exposure) : Exposure;
+        Color *= Scale;
         // Soft knee around an exposure-relative threshold of 1; a 2x2 average still keeps subpixel highlights.
-        float exposedLuminance = max(Luminance(color), 0.0001);
-        float knee = clamp(exposedLuminance - 0.5, 0.0, 1.0);
-        color *= max(exposedLuminance - 1.0, knee * knee * 0.5) / exposedLuminance;
+        float ExposedLuminance = max(Luminance(Color), 0.0001);
+        float Knee = clamp(ExposedLuminance - 0.5, 0.0, 1.0);
+        Color *= max(ExposedLuminance - 1.0, Knee * Knee * 0.5) / ExposedLuminance;
     }
-    output[dispatchId.xy] = float4(color, 1.0);
+    Output[DispatchId.xy] = float4(Color, 1.0);
 }

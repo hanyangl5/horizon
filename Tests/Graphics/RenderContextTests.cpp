@@ -461,13 +461,13 @@ TEST(DependencyListTest, SkipsOptionalResourcesAndReportsIndices)
     hz::GPUBuffer      buffer;
     hz::DependencyList dependencies;
     // Null and uninitialized handles are optional: they report the invalid index and Add no Barrier.
-    EXPECT_EQ(dependencies.sample(nullptr), UINT32_MAX);
-    EXPECT_EQ(dependencies.sample(&texture), UINT32_MAX);
-    EXPECT_EQ(dependencies.store(nullptr), UINT32_MAX);
-    EXPECT_EQ(dependencies.store(&texture), UINT32_MAX);
-    EXPECT_EQ(dependencies.read(buffer), UINT32_MAX);
-    EXPECT_EQ(dependencies.write(buffer), UINT32_MAX);
-    dependencies.indirect(buffer);
+    EXPECT_EQ(dependencies.Sample(nullptr), UINT32_MAX);
+    EXPECT_EQ(dependencies.Sample(&texture), UINT32_MAX);
+    EXPECT_EQ(dependencies.Store(nullptr), UINT32_MAX);
+    EXPECT_EQ(dependencies.Store(&texture), UINT32_MAX);
+    EXPECT_EQ(dependencies.Read(buffer), UINT32_MAX);
+    EXPECT_EQ(dependencies.Write(buffer), UINT32_MAX);
+    dependencies.Indirect(buffer);
     const hz::Dependencies recorded = dependencies.Get();
     EXPECT_EQ(recorded.sampledTextures.Count, 0u);
     EXPECT_EQ(recorded.storageTextures.Count, 0u);

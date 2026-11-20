@@ -56,14 +56,14 @@ ShadowMap::ShadowMap(hz::RenderContext& Context): Context(Context)
 // Slots 0..7 of the RootConstant0 block shared with Geometry.slang.
 struct ShadowBindingConstants
 {
-    uint32_t instanceIndex = 0;
-    uint32_t materialIndex = 0;
-    uint32_t materialId = 0;
-    uint32_t frameIndex;
-    uint32_t instancesIndex;
-    uint32_t materialsIndex;
-    uint32_t texturesIndex;
-    uint32_t samplerIndex;
+    uint32_t InstanceIndex = 0;
+    uint32_t MaterialIndex = 0;
+    uint32_t MaterialId = 0;
+    uint32_t FrameIndex;
+    uint32_t InstancesIndex;
+    uint32_t MaterialsIndex;
+    uint32_t TexturesIndex;
+    uint32_t SamplerIndex;
 };
 static_assert(sizeof(ShadowBindingConstants) == 8 * sizeof(uint32_t));
 
@@ -71,8 +71,8 @@ void ShadowMap::Prepare(const hz::SceneView& View)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ShadowMap::Prepare");
     Vector3 Z(0, 1, 0);
-    Data.lightDirection = Vector4(0, -1, 0, 0);
-    Data.shadowEnabled = 0;
+    Data.LightDirection = Vector4(0, -1, 0, 0);
+    Data.ShadowEnabled = 0;
     for (uint32_t MeshBatchIndex : View.Scene.GetActiveLights())
     {
         const hz::RenderLight& Light = View.Scene.GetLights().Data[MeshBatchIndex];
@@ -81,9 +81,9 @@ void ShadowMap::Prepare(const hz::SceneView& View)
             continue;
         }
         Z = normalize(Light.transform.getCol2().getXYZ());
-        Data.lightDirection = Vector4(-Z, Light.intensity * exp2f(Light.exposure) * LuminousEfficacy);
-        Data.lightColor = Vector4(Light.color[0], Light.color[1], Light.color[2], 1);
-        Data.shadowEnabled = 1;
+        Data.LightDirection = Vector4(-Z, Light.intensity * exp2f(Light.exposure) * LuminousEfficacy);
+        Data.LightColor = Vector4(Light.color[0], Light.color[1], Light.color[2], 1);
+        Data.ShadowEnabled = 1;
         break;
     }
     const Vector3 Up = fabsf((float)Z[2]) < 0.99f ? Vector3(0, 0, 1) : Vector3(0, 1, 0);
@@ -131,22 +131,22 @@ void ShadowMap::Prepare(const hz::SceneView& View)
         Projection = Matrix4(Vector4(2 / ExtentX, 0, 0, 0), Vector4(0, 2 / ExtentY, 0, 0), Vector4(0, 0, -1 / DepthRange, 0),
                              Vector4(-2 * CenterX / ExtentX, -2 * CenterY / ExtentY, Maximum[2] / DepthRange, 1));
     }
-    Data.shadowViewProjection = Projection * LightView;
+    Data.ShadowViewProjection = Projection * LightView;
     struct ShadowFrame
     {
-        Matrix4 current;
-        Matrix4 previous;
-        Matrix4 inverse;
-        Vector4 eye;
+        Matrix4 ViewProjection;
+        Matrix4 PreviousViewProjection;
+        Matrix4 InverseViewProjection;
+        Vector4 Eye;
     };
-    const ShadowFrame Camera = { Data.shadowViewProjection, Data.shadowViewProjection, inverse(Data.shadowViewProjection),
+    const ShadowFrame Camera = { Data.ShadowViewProjection, Data.ShadowViewProjection, inverse(Data.ShadowViewProjection),
                                  Vector4(0, 0, 0, 1) };
 
     const uint32_t Backing = View.FrameIndex;
     const bool     CameraUpdated = Context.UpdateBuffer(ShadowFrames[Backing], 0, &Camera, sizeof(Camera));
     const bool     LightUpdated = Context.UpdateBuffer(LightingFrames[Backing], 0, &Data, sizeof(Data));
     ASSERT(CameraUpdated && LightUpdated);
-    ++Data.frameIndex;
+    ++Data.FrameIndex;
 }
 
 void ShadowMap::Execute(hz::CommandList& Commands, const hz::SceneView& View, const hz::GpuDrawList& Draws, const hz::GPUTexture& Depth)
@@ -164,11 +164,11 @@ void ShadowMap::Execute(hz::CommandList& Commands, const hz::SceneView& View, co
     Commands.SetScissor(0, 0, Resolution, Resolution);
     const hz::GpuSceneBuffers&   Gpu = View.GpuScene.GetBuffers();
     const ShadowBindingConstants Binding = {
-        .frameIndex = ShadowFrames[Backing].GetSrvIndex(),
-        .instancesIndex = Gpu.instances.IsValid() ? Gpu.instances.GetSrvIndex() : UINT32_MAX,
-        .materialsIndex = Gpu.materials.IsValid() ? Gpu.materials.GetSrvIndex() : UINT32_MAX,
-        .texturesIndex = Gpu.textures.IsValid() ? Gpu.textures.GetSrvIndex() : UINT32_MAX,
-        .samplerIndex = SurfaceSampler.GetIndex(),
+        .FrameIndex = ShadowFrames[Backing].GetSrvIndex(),
+        .InstancesIndex = Gpu.instances.IsValid() ? Gpu.instances.GetSrvIndex() : UINT32_MAX,
+        .MaterialsIndex = Gpu.materials.IsValid() ? Gpu.materials.GetSrvIndex() : UINT32_MAX,
+        .TexturesIndex = Gpu.textures.IsValid() ? Gpu.textures.GetSrvIndex() : UINT32_MAX,
+        .SamplerIndex = SurfaceSampler.GetIndex(),
     };
     Commands.SetRootConstants(Binding);
     Commands.SetRootConstant({ Draws.GetDrawData(Backing).GetSrvIndex() }, GeometryDrawSlot);

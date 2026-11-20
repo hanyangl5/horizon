@@ -14,7 +14,7 @@ namespace hz
 class WorldQueryImpl
 {
 public:
-    WorldQueryImpl(World& world, Span<TypeID> types);
+    WorldQueryImpl(World& WorldData, Span<TypeID> Types);
     ~WorldQueryImpl();
     WorldQueryImpl(const WorldQueryImpl&) = delete;
     WorldQueryImpl& operator=(const WorldQueryImpl&) = delete;
@@ -33,93 +33,93 @@ private:
 
 namespace hz
 {
-static void* worldMalloc(ecs_size_t Size) { return MemAllocate(Size); }
-static void* worldCalloc(ecs_size_t Size) { return MemCallocate(1, Size); }
-static void* worldRealloc(void* Data, ecs_size_t Size) { return MemReallocate(Data, Size); }
-static void  worldFree(void* Data) { MemDeallocate(Data); }
-static char* worldStrdup(const char* pText)
+static void* WorldMalloc(ecs_size_t Size) { return MemAllocate(Size); }
+static void* WorldCalloc(ecs_size_t Size) { return MemCallocate(1, Size); }
+static void* WorldRealloc(void* Data, ecs_size_t Size) { return MemReallocate(Data, Size); }
+static void  WorldFree(void* Data) { MemDeallocate(Data); }
+static char* WorldStrdup(const char* Text)
 {
-    if (!pText)
+    if (!Text)
         return nullptr;
-    const size_t Size = strlen(pText) + 1;
-    char*        pCopy = (char*)MemAllocate(Size);
-    memcpy(pCopy, pText, Size);
-    return pCopy;
+    const size_t Size = strlen(Text) + 1;
+    char*        Copy = (char*)MemAllocate(Size);
+    memcpy(Copy, Text, Size);
+    return Copy;
 }
 
-static void initWorldOS()
+static void InitWorldOS()
 {
-    static bool initialized = false;
-    if (initialized)
+    static bool Initialized = false;
+    if (Initialized)
         return;
     ecs_os_set_api_defaults();
-    ecs_os_api_t api = ecs_os_get_api();
-    api.malloc_ = worldMalloc;
-    api.calloc_ = worldCalloc;
-    api.realloc_ = worldRealloc;
-    api.free_ = worldFree;
-    api.strdup_ = worldStrdup;
-    ecs_os_set_api(&api);
-    initialized = true;
+    ecs_os_api_t Api = ecs_os_get_api();
+    Api.malloc_ = WorldMalloc;
+    Api.calloc_ = WorldCalloc;
+    Api.realloc_ = WorldRealloc;
+    Api.free_ = WorldFree;
+    Api.strdup_ = WorldStrdup;
+    ecs_os_set_api(&Api);
+    Initialized = true;
 }
 
-void WorldImpl::constructComponents(void* pDestination, int32_t Count, const ecs_type_info_t* pInfo)
+void WorldImpl::ConstructComponents(void* Destination, int32_t Count, const ecs_type_info_t* Info)
 {
-    const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
-    for (int32_t i = 0; i < Count; ++i)
+    const TypeDesc& Type = *(const TypeDesc*)Info->hooks.ctx;
+    for (int32_t I = 0; I < Count; ++I)
     {
-        Type.Construct((uint8_t*)pDestination + (size_t)i * Type.Size);
+        Type.Construct((uint8_t*)Destination + (size_t)I * Type.Size);
     }
 }
 
-void WorldImpl::destroyComponents(void* pValue, int32_t Count, const ecs_type_info_t* pInfo)
+void WorldImpl::DestroyComponents(void* ValueData, int32_t Count, const ecs_type_info_t* Info)
 {
-    const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
-    for (int32_t i = 0; i < Count; ++i)
+    const TypeDesc& Type = *(const TypeDesc*)Info->hooks.ctx;
+    for (int32_t I = 0; I < Count; ++I)
     {
-        Type.Destroy((uint8_t*)pValue + (size_t)i * Type.Size);
+        Type.Destroy((uint8_t*)ValueData + (size_t)I * Type.Size);
     }
 }
 
-void WorldImpl::copyConstructComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
+void WorldImpl::CopyConstructComponents(void* Destination, const void* Source, int32_t Count, const ecs_type_info_t* Info)
 {
-    const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
-    for (int32_t i = 0; i < Count; ++i)
+    const TypeDesc& Type = *(const TypeDesc*)Info->hooks.ctx;
+    for (int32_t I = 0; I < Count; ++I)
     {
-        Type.CopyConstruct((uint8_t*)pDestination + (size_t)i * Type.Size, (const uint8_t*)pSource + (size_t)i * Type.Size);
+        Type.CopyConstruct((uint8_t*)Destination + (size_t)I * Type.Size, (const uint8_t*)Source + (size_t)I * Type.Size);
     }
 }
 
-void WorldImpl::moveConstructComponents(void* pDestination, void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
+void WorldImpl::MoveConstructComponents(void* Destination, void* Source, int32_t Count, const ecs_type_info_t* Info)
 {
-    const TypeDesc& Type = *(const TypeDesc*)pInfo->hooks.ctx;
-    for (int32_t i = 0; i < Count; ++i)
+    const TypeDesc& Type = *(const TypeDesc*)Info->hooks.ctx;
+    for (int32_t I = 0; I < Count; ++I)
     {
-        Type.MoveConstruct((uint8_t*)pDestination + (size_t)i * Type.Size, (uint8_t*)pSource + (size_t)i * Type.Size);
+        Type.MoveConstruct((uint8_t*)Destination + (size_t)I * Type.Size, (uint8_t*)Source + (size_t)I * Type.Size);
     }
 }
 
-void WorldImpl::copyComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
+void WorldImpl::CopyComponents(void* Destination, const void* Source, int32_t Count, const ecs_type_info_t* Info)
 {
-    if (pDestination == pSource)
+    if (Destination == Source)
         return;
-    destroyComponents(pDestination, Count, pInfo);
-    copyConstructComponents(pDestination, pSource, Count, pInfo);
+    DestroyComponents(Destination, Count, Info);
+    CopyConstructComponents(Destination, Source, Count, Info);
 }
 
-void WorldImpl::moveComponents(void* pDestination, void* pSource, int32_t Count, const ecs_type_info_t* pInfo)
+void WorldImpl::MoveComponents(void* Destination, void* Source, int32_t Count, const ecs_type_info_t* Info)
 {
-    if (pDestination == pSource)
+    if (Destination == Source)
         return;
-    destroyComponents(pDestination, Count, pInfo);
-    moveConstructComponents(pDestination, pSource, Count, pInfo);
+    DestroyComponents(Destination, Count, Info);
+    MoveConstructComponents(Destination, Source, Count, Info);
 }
 
-WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& entityGuids): entityGuids(entityGuids)
+WorldImpl::WorldImpl(const TypeRegistry& Registry, const IDGenerator& EntityGuids): entityGuids(EntityGuids)
 {
-    static tfrg_atomic32_t nextWorldId = 0;
-    id = tfrg_atomic32_add_relaxed(&nextWorldId, 1) + 1;
-    initWorldOS();
+    static tfrg_atomic32_t NextWorldId = 0;
+    id = tfrg_atomic32_add_relaxed(&NextWorldId, 1) + 1;
+    InitWorldOS();
     pWorld = ecs_mini();
     ASSERT(pWorld);
     entityTag = ecs_new_id(pWorld);
@@ -127,36 +127,36 @@ WorldImpl::WorldImpl(const TypeRegistry& registry, const IDGenerator& entityGuid
     parentRelation = ecs_new_w_id(pWorld, EcsExclusive);
     ecs_add_id(pWorld, parentRelation, EcsTag);
     ecs_add_pair(pWorld, parentRelation, EcsOnDeleteTarget, EcsDelete);
-    for (uint32_t i = 0; i < registry.Size(); ++i)
+    for (uint32_t I = 0; I < Registry.Size(); ++I)
     {
-        const TypeDesc*         pType = registry.GetTypeAt(i);
-        const ecs_entity_desc_t entityDesc = { .name = pType->Name, .sep = "", .use_low_id = true };
-        const ecs_component_desc_t desc = {
-            .entity = ecs_entity_init(pWorld, &entityDesc),
+        const TypeDesc*         TypeInfo = Registry.GetTypeAt(I);
+        const ecs_entity_desc_t EntityDesc = { .name = TypeInfo->Name, .sep = "", .use_low_id = true };
+        const ecs_component_desc_t Desc = {
+            .entity = ecs_entity_init(pWorld, &EntityDesc),
             .type = {
-                .size = (ecs_size_t)pType->Size,
-                .alignment = (ecs_size_t)pType->alignment,
+                .size = (ecs_size_t)TypeInfo->Size,
+                .alignment = (ecs_size_t)TypeInfo->alignment,
                 .hooks = {
-                    .ctor = constructComponents,
-                    .dtor = destroyComponents,
-                    .copy = copyComponents,
-                    .move = moveComponents,
-                    .copy_ctor = copyConstructComponents,
-                    .move_ctor = moveConstructComponents,
-                    .on_remove = pType->id == SceneTypes::entityIdentity ? removeEntityGuids : nullptr,
-                    .ctx = (void*)pType,
+                    .ctor = ConstructComponents,
+                    .dtor = DestroyComponents,
+                    .copy = CopyComponents,
+                    .move = MoveComponents,
+                    .copy_ctor = CopyConstructComponents,
+                    .move_ctor = MoveConstructComponents,
+                    .on_remove = TypeInfo->id == SceneTypes::entityIdentity ? removeEntityGuids : nullptr,
+                    .ctx = (void*)TypeInfo,
                     .binding_ctx = this,
                 },
             },
         };
-        const ecs_entity_t component = ecs_component_init(pWorld, &desc);
-        ASSERT(component);
-        if (pType->id == SceneTypes::entityIdentity)
+        const ecs_entity_t Component = ecs_component_init(pWorld, &Desc);
+        ASSERT(Component);
+        if (TypeInfo->id == SceneTypes::entityIdentity)
         {
-            entityIdentityType = component;
+            entityIdentityType = Component;
         }
-        const WorldType mapping = { .key = pType->id, .component = component, .pType = pType };
-        hmputs(pTypes, mapping);
+        const WorldType Mapping = { .key = TypeInfo->id, .component = Component, .pType = TypeInfo };
+        hmputs(pTypes, Mapping);
     }
     pHierarchy = MemNew(WorldHierarchy, *this);
 }
@@ -172,112 +172,112 @@ WorldImpl::~WorldImpl()
     hmfree(pTypes);
 }
 
-World::World(const TypeRegistry& registry, const IDGenerator& entityGuids): pImpl(MemNew(WorldImpl, registry, entityGuids)) {}
+World::World(const TypeRegistry& Registry, const IDGenerator& EntityGuids): pImpl(MemNew(WorldImpl, Registry, EntityGuids)) {}
 World::~World() { MemDelete(pImpl); }
 
 Entity World::CreateEntity()
 {
     pImpl->checkThread();
-    const ecs_entity_t entity = ecs_new_w_id(pImpl->pWorld, pImpl->entityTag);
-    pImpl->pHierarchy->addRoot(entity);
-    return Entity(entity, pImpl->id);
+    const ecs_entity_t EntityHandle = ecs_new_w_id(pImpl->pWorld, pImpl->entityTag);
+    pImpl->pHierarchy->addRoot(EntityHandle);
+    return Entity(EntityHandle, pImpl->id);
 }
 
-bool World::Owns(Entity entity) const
+bool World::Owns(Entity EntityHandle) const
 {
     // Invalid entities keep their "none" meaning; a Handle from another World is simply not part of this one.
-    return !entity.IsValid() || entity.world == pImpl->id;
+    return !EntityHandle.IsValid() || EntityHandle.world == pImpl->id;
 }
 
-bool World::IsAlive(Entity entity) const
+bool World::IsAlive(Entity EntityHandle) const
 {
     pImpl->checkThread();
-    return Owns(entity) && entity.IsValid() && ecs_is_alive(pImpl->pWorld, entity.value);
+    return Owns(EntityHandle) && EntityHandle.IsValid() && ecs_is_alive(pImpl->pWorld, EntityHandle.value);
 }
 
-bool World::AddComponent(Entity entity, TypeID Type)
+bool World::AddComponent(Entity EntityHandle, TypeID Type)
 {
     if (Type == SceneTypes::entityIdentity)
     {
         LOGF(Error, "EntityIdentity is managed by World::CreatePersistentEntity");
         return false;
     }
-    if (!IsAlive(entity))
+    if (!IsAlive(EntityHandle))
     {
         return false;
     }
-    const WorldType* pType = pImpl->findType(Type);
-    if (!pType)
+    const WorldType* TypeInfo = pImpl->findType(Type);
+    if (!TypeInfo)
         return false;
-    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    if (!pImpl->pHierarchy->prepareLocalChange(EntityHandle.value, Type, true))
     {
         return false;
     }
-    ecs_add_id(pImpl->pWorld, entity.value, pType->component);
+    ecs_add_id(pImpl->pWorld, EntityHandle.value, TypeInfo->component);
     return true;
 }
 
-bool World::RemoveComponent(Entity entity, TypeID Type)
+bool World::RemoveComponent(Entity EntityHandle, TypeID Type)
 {
     if (Type == SceneTypes::entityIdentity)
     {
         LOGF(Error, "EntityIdentity cannot be removed from a live entity");
         return false;
     }
-    if (!IsAlive(entity))
+    if (!IsAlive(EntityHandle))
     {
         return false;
     }
-    const WorldType* pType = pImpl->findType(Type);
-    if (!pType)
+    const WorldType* TypeInfo = pImpl->findType(Type);
+    if (!TypeInfo)
         return false;
-    pImpl->pHierarchy->prepareLocalChange(entity.value, Type, false);
-    ecs_remove_id(pImpl->pWorld, entity.value, pType->component);
+    pImpl->pHierarchy->prepareLocalChange(EntityHandle.value, Type, false);
+    ecs_remove_id(pImpl->pWorld, EntityHandle.value, TypeInfo->component);
     return true;
 }
 
-bool World::SetComponent(Entity entity, TypeID Type, const void* pValue)
+bool World::SetComponent(Entity EntityHandle, TypeID Type, const void* ValueData)
 {
-    ASSERT(pValue);
+    ASSERT(ValueData);
     if (Type == SceneTypes::entityIdentity)
     {
         LOGF(Error, "EntityIdentity cannot be changed after entity creation");
         return false;
     }
-    if (!IsAlive(entity))
+    if (!IsAlive(EntityHandle))
     {
         return false;
     }
-    const WorldType* pType = pImpl->findType(Type);
-    if (!pType)
+    const WorldType* TypeInfo = pImpl->findType(Type);
+    if (!TypeInfo)
         return false;
-    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    if (!pImpl->pHierarchy->prepareLocalChange(EntityHandle.value, Type, true))
     {
         return false;
     }
-    if (!ecs_has_id(pImpl->pWorld, entity.value, pType->component) && !ecs_is_deferred(pImpl->pWorld))
+    if (!ecs_has_id(pImpl->pWorld, EntityHandle.value, TypeInfo->component) && !ecs_is_deferred(pImpl->pWorld))
     {
         // Adding a component can move the table containing pValue before Flecs copies it.
-        const TypeDesc& description = *pType->pType;
-        void*           pCopy = MemAllocateAligned(description.alignment, description.Size);
-        description.CopyConstruct(pCopy, pValue);
-        ecs_set_id(pImpl->pWorld, entity.value, pType->component, description.Size, pCopy);
-        description.Destroy(pCopy);
-        MemDeallocate(pCopy);
+        const TypeDesc& Description = *TypeInfo->pType;
+        void*           Copy = MemAllocateAligned(Description.alignment, Description.Size);
+        Description.CopyConstruct(Copy, ValueData);
+        ecs_set_id(pImpl->pWorld, EntityHandle.value, TypeInfo->component, Description.Size, Copy);
+        Description.Destroy(Copy);
+        MemDeallocate(Copy);
         return true;
     }
-    ecs_set_id(pImpl->pWorld, entity.value, pType->component, pType->pType->Size, pValue);
+    ecs_set_id(pImpl->pWorld, EntityHandle.value, TypeInfo->component, TypeInfo->pType->Size, ValueData);
     return true;
 }
 
-const void* World::GetComponent(Entity entity, TypeID Type) const
+const void* World::GetComponent(Entity EntityHandle, TypeID Type) const
 {
-    if (!IsAlive(entity))
+    if (!IsAlive(EntityHandle))
     {
         return nullptr;
     }
-    const WorldType* pType = pImpl->findType(Type);
-    return pType ? ecs_get_id(pImpl->pWorld, entity.value, pType->component) : nullptr;
+    const WorldType* TypeInfo = pImpl->findType(Type);
+    return TypeInfo ? ecs_get_id(pImpl->pWorld, EntityHandle.value, TypeInfo->component) : nullptr;
 }
 
 DeferredChanges World::Defer() { return DeferredChanges(*this); }
@@ -287,10 +287,10 @@ bool            World::IsDeferred() const
     return ecs_is_deferred(pImpl->pWorld);
 }
 
-DeferredChanges::DeferredChanges(World& world): world(world)
+DeferredChanges::DeferredChanges(World& WorldData): world(WorldData)
 {
-    world.pImpl->checkThread();
-    ecs_defer_begin(world.pImpl->pWorld);
+    WorldData.pImpl->checkThread();
+    ecs_defer_begin(WorldData.pImpl->pWorld);
 }
 
 DeferredChanges::~DeferredChanges()
@@ -303,29 +303,29 @@ DeferredChanges::~DeferredChanges()
     }
 }
 
-WorldQueryImpl::WorldQueryImpl(World& world, Span<TypeID> types): pOwner(&world)
+WorldQueryImpl::WorldQueryImpl(World& WorldData, Span<TypeID> Types): pOwner(&WorldData)
 {
-    world.pImpl->checkThread();
-    ASSERT(!world.IsDeferred());
-    ++world.pImpl->queryCount;
-    fields.Resize(types.Count);
-    Array<ecs_term_t> terms(types.Count + 1);
-    terms[0].id = world.pImpl->entityTag;
-    terms[0].src.flags = EcsSelf;
-    for (uint32_t i = 0; i < types.Count; ++i)
+    WorldData.pImpl->checkThread();
+    ASSERT(!WorldData.IsDeferred());
+    ++WorldData.pImpl->queryCount;
+    fields.Resize(Types.Count);
+    Array<ecs_term_t> Terms(Types.Count + 1);
+    Terms[0].id = WorldData.pImpl->entityTag;
+    Terms[0].src.flags = EcsSelf;
+    for (uint32_t I = 0; I < Types.Count; ++I)
     {
-        const WorldType* pType = world.pImpl->findType(types.Data[i]);
-        if (!pType)
+        const WorldType* TypeInfo = WorldData.pImpl->findType(Types.Data[I]);
+        if (!TypeInfo)
         {
             LOGF(Error, "World query references an unregistered component type");
             return;
         }
-        terms[i + 1].id = pType->component;
-        terms[i + 1].src.flags = EcsSelf;
-        terms[i + 1].inout = EcsIn;
+        Terms[I + 1].id = TypeInfo->component;
+        Terms[I + 1].src.flags = EcsSelf;
+        Terms[I + 1].inout = EcsIn;
     }
-    const ecs_query_desc_t desc = { .filter = { .terms_buffer = terms.GetData(), .terms_buffer_count = (int32_t)terms.Size() } };
-    pQuery = ecs_query_init(world.pImpl->pWorld, &desc);
+    const ecs_query_desc_t Desc = { .filter = { .terms_buffer = Terms.GetData(), .terms_buffer_count = (int32_t)Terms.Size() } };
+    pQuery = ecs_query_init(WorldData.pImpl->pWorld, &Desc);
     ASSERT(pQuery);
 }
 
@@ -338,67 +338,67 @@ WorldQueryImpl::~WorldQueryImpl()
     --pOwner->pImpl->queryCount;
 }
 
-WorldChangeLog::WorldChangeLog(World& world): pImpl(MemNew(WorldChangeLogImpl, world))
+WorldChangeLog::WorldChangeLog(World& WorldData): pImpl(MemNew(WorldChangeLogImpl, WorldData))
 {
-    world.pImpl->checkThread();
+    WorldData.pImpl->checkThread();
     // Counted with the queries: a log names entities of this World, so it must not outlive a replacement.
-    ++world.pImpl->queryCount;
-    world.pImpl->changeLogs.PushBack(pImpl);
+    ++WorldData.pImpl->queryCount;
+    WorldData.pImpl->changeLogs.PushBack(pImpl);
 }
 
 WorldChangeLog::~WorldChangeLog()
 {
-    WorldImpl&                  world = *pImpl->world.pImpl;
-    Array<WorldChangeLogImpl*>& logs = world.changeLogs;
-    world.checkThread();
-    for (uint32_t i = 0; i < logs.Size(); ++i)
+    WorldImpl&                  WorldData = *pImpl->world.pImpl;
+    Array<WorldChangeLogImpl*>& Logs = WorldData.changeLogs;
+    WorldData.checkThread();
+    for (uint32_t I = 0; I < Logs.Size(); ++I)
     {
-        if (logs[i] == pImpl)
+        if (Logs[I] == pImpl)
         {
-            logs[i] = logs[logs.Size() - 1];
-            logs.PopBack();
+            Logs[I] = Logs[Logs.Size() - 1];
+            Logs.PopBack();
             break;
         }
     }
-    --world.queryCount;
+    --WorldData.queryCount;
     MemDelete(pImpl);
 }
 
-Span<Entity> WorldChangeLog::Drain(bool& overflowed)
+Span<Entity> WorldChangeLog::Drain(bool& Overflowed)
 {
     pImpl->world.pImpl->checkThread();
-    overflowed = pImpl->overflowed;
+    Overflowed = pImpl->overflowed;
     pImpl->overflowed = false;
     // Swap so the returned entries stay valid while new changes are recorded.
-    Array<Entity> previous = std::move(pImpl->drained);
+    Array<Entity> Previous = std::move(pImpl->drained);
     pImpl->drained = std::move(pImpl->entries);
-    pImpl->entries = std::move(previous);
+    pImpl->entries = std::move(Previous);
     pImpl->entries.Clear();
     return { pImpl->drained.GetData(), pImpl->drained.Size() };
 }
 
-WorldQuery::WorldQuery(World& world, Span<TypeID> types): pImpl(MemNew(WorldQueryImpl, world, types)) {}
+WorldQuery::WorldQuery(World& WorldData, Span<TypeID> Types): pImpl(MemNew(WorldQueryImpl, WorldData, Types)) {}
 WorldQuery::~WorldQuery() { MemDelete(pImpl); }
 
 bool WorldQuery::IsValid() const { return pImpl->pQuery != nullptr; }
 
-void WorldQuery::Each(bool (*pCallback)(Entity, Span<const void*>, void*), void* UserData)
+void WorldQuery::Each(bool (*Callback)(Entity, Span<const void*>, void*), void* UserData)
 {
-    ASSERT(IsValid() && pCallback && !pImpl->iterating);
-    DeferredChanges changes = pImpl->pOwner->Defer();
+    ASSERT(IsValid() && Callback && !pImpl->iterating);
+    DeferredChanges Changes = pImpl->pOwner->Defer();
     pImpl->iterating = true;
-    ecs_iter_t it = ecs_query_iter(pImpl->pOwner->pImpl->pWorld, pImpl->pQuery);
-    while (ecs_query_next(&it))
+    ecs_iter_t It = ecs_query_iter(pImpl->pOwner->pImpl->pWorld, pImpl->pQuery);
+    while (ecs_query_next(&It))
     {
-        for (int32_t row = 0; row < it.count; ++row)
+        for (int32_t Row = 0; Row < It.count; ++Row)
         {
-            for (uint32_t field = 0; field < pImpl->fields.Size(); ++field)
+            for (uint32_t Field = 0; Field < pImpl->fields.Size(); ++Field)
             {
-                pImpl->fields[field] = (const uint8_t*)it.ptrs[field + 1] + (size_t)row * it.sizes[field + 1];
+                pImpl->fields[Field] = (const uint8_t*)It.ptrs[Field + 1] + (size_t)Row * It.sizes[Field + 1];
             }
-            if (!pCallback(Entity(it.entities[row], pImpl->pOwner->pImpl->id), { pImpl->fields.GetData(), pImpl->fields.Size() }, UserData))
+            if (!Callback(Entity(It.entities[Row], pImpl->pOwner->pImpl->id), { pImpl->fields.GetData(), pImpl->fields.Size() }, UserData))
             {
-                ecs_iter_fini(&it);
+                ecs_iter_fini(&It);
                 pImpl->iterating = false;
                 return;
             }

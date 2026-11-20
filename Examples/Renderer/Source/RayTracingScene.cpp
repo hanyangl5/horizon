@@ -34,7 +34,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const hz::SceneView& Vie
             const hz::GpuSkinnedVertices* Skinned =
                 Source.SkinnedInstance.IsValid() && View.Skinning ? View.Skinning->Find(Source.SkinnedInstance) : nullptr;
             ASSERT(Skinned || !Source.SkinnedInstance.IsValid());
-            const hz::GPUBuffer& Vertices = Skinned ? Skinned->positions : Mesh->GetVertexBuffer(0);
+            const hz::GPUBuffer& Vertices = Skinned ? Skinned->Positions : Mesh->GetVertexBuffer(0);
             const uint32_t       Stride = Mesh->GetVertexStride(0);
             const int32_t        BaseVertex = int32_t(Submesh.vertexOffset);
             ASSERT(BaseVertex >= 0 && Stride == 12 && Submesh.indexCount % 3 == 0);
@@ -73,7 +73,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const hz::SceneView& Vie
     uint32_t                    InstanceCount = 0;
     for (const hz::GpuDrawData& Draw : Prepared)
     {
-        InstanceCount += Draw.alphaMode != uint32_t(hz::MaterialAlphaMode::Blend);
+        InstanceCount += Draw.AlphaMode != uint32_t(hz::MaterialAlphaMode::Blend);
     }
     if (!InstanceCount)
     {
@@ -94,11 +94,11 @@ void RayTracingScene::Update(hz::CommandList& Commands, const hz::SceneView& Vie
     for (uint32_t DrawIndex = 0; DrawIndex < Prepared.Count; ++DrawIndex)
     {
         const hz::GpuDrawData& Draw = Prepared.Data[DrawIndex];
-        if (Draw.alphaMode == uint32_t(hz::MaterialAlphaMode::Blend))
+        if (Draw.AlphaMode == uint32_t(hz::MaterialAlphaMode::Blend))
         {
             continue;
         }
-        const Matrix4&                    Transform = View.Scene.GetInstances().Data[Draw.instance].current;
+        const Matrix4&                    Transform = View.Scene.GetInstances().Data[Draw.Instance].current;
         hz::AccelerationStructureInstance Instance = {
             .pBottom = &BottomLevelAS[Draws.GetGeometryIndex(DrawIndex)],
             .instanceId = DrawIndex,

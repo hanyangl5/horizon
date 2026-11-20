@@ -22,44 +22,44 @@ public:
     Array<RaytracingInstanceData>        instances;
     Array<AccelerationStructureData*>    bottoms;
     uint32_t                             references = 1;
-    void                                 SetInstance(uint32_t index, const AccelerationStructureInstance& instance)
+    void                                 SetInstance(uint32_t IndexValue, const AccelerationStructureInstance& Instance)
     {
-        ASSERT(index < instances.Size() && instance.pBottom && instance.pBottom->IsValid());
-        ASSERT(instance.instanceId < (1u << 24) && instance.mask < (1u << 8) && instance.hitGroupOffset < (1u << 24));
-        AccelerationStructureData* bottom = instance.pBottom->Data;
-        ASSERT(bottom->pContext == pContext && bottom->Type == ACCELERATION_STRUCTURE_TYPE_BOTTOM);
-        RaytracingInstanceData next = { .instanceIdAndMask = instance.instanceId | (instance.mask << 24),
-                                        .hitGroupAndFlags = instance.hitGroupOffset | ((uint32_t)instance.Flags << 24),
-                                        .address = getAccelerationStructureGpuAddress(bottom->pStructure) };
-        memcpy(next.transform, instance.transform, sizeof(next.transform));
-        dirty |= memcmp(&instances[index], &next, sizeof(next)) != 0;
-        instances[index] = next;
-        if (bottoms[index] != bottom)
+        ASSERT(IndexValue < instances.Size() && Instance.pBottom && Instance.pBottom->IsValid());
+        ASSERT(Instance.instanceId < (1u << 24) && Instance.mask < (1u << 8) && Instance.hitGroupOffset < (1u << 24));
+        AccelerationStructureData* Bottom = Instance.pBottom->Data;
+        ASSERT(Bottom->pContext == pContext && Bottom->Type == ACCELERATION_STRUCTURE_TYPE_BOTTOM);
+        RaytracingInstanceData Next = { .instanceIdAndMask = Instance.instanceId | (Instance.mask << 24),
+                                        .hitGroupAndFlags = Instance.hitGroupOffset | ((uint32_t)Instance.Flags << 24),
+                                        .address = getAccelerationStructureGpuAddress(Bottom->pStructure) };
+        memcpy(Next.transform, Instance.transform, sizeof(Next.transform));
+        dirty |= memcmp(&instances[IndexValue], &Next, sizeof(Next)) != 0;
+        instances[IndexValue] = Next;
+        if (bottoms[IndexValue] != Bottom)
         {
-            ++bottom->references;
-            if (bottoms[index])
+            ++Bottom->references;
+            if (bottoms[IndexValue])
             {
-                pContext->ReleaseAccelerationStructure(bottoms[index]);
+                pContext->ReleaseAccelerationStructure(bottoms[IndexValue]);
             }
-            bottoms[index] = bottom;
+            bottoms[IndexValue] = Bottom;
             dirty = true;
         }
     }
-    void setInstances(Span<AccelerationStructureInstance> source)
+    void SetInstances(Span<AccelerationStructureInstance> Source)
     {
-        dirty |= instances.Size() != source.Count;
-        for (uint32_t i = source.Count; i < bottoms.Size(); ++i)
+        dirty |= instances.Size() != Source.Count;
+        for (uint32_t I = Source.Count; I < bottoms.Size(); ++I)
         {
-            if (bottoms[i])
+            if (bottoms[I])
             {
-                pContext->ReleaseAccelerationStructure(bottoms[i]);
+                pContext->ReleaseAccelerationStructure(bottoms[I]);
             }
         }
-        instances.Resize(source.Count);
-        bottoms.Resize(source.Count);
-        for (uint32_t i = 0; i < source.Count; ++i)
+        instances.Resize(Source.Count);
+        bottoms.Resize(Source.Count);
+        for (uint32_t I = 0; I < Source.Count; ++I)
         {
-            SetInstance(i, source.Data[i]);
+            SetInstance(I, Source.Data[I]);
         }
     }
     uint32_t                             Capacity = 0;
@@ -69,14 +69,14 @@ public:
 };
 
 GPUAccelerationStructure::~GPUAccelerationStructure() { Destroy(); }
-GPUAccelerationStructure::GPUAccelerationStructure(GPUAccelerationStructure&& other) noexcept: Data(other.Data) { other.Data = nullptr; }
-GPUAccelerationStructure& GPUAccelerationStructure::operator=(GPUAccelerationStructure&& other) noexcept
+GPUAccelerationStructure::GPUAccelerationStructure(GPUAccelerationStructure&& Other) noexcept: Data(Other.Data) { Other.Data = nullptr; }
+GPUAccelerationStructure& GPUAccelerationStructure::operator=(GPUAccelerationStructure&& Other) noexcept
 {
-    if (this != &other)
+    if (this != &Other)
     {
         Destroy();
-        Data = other.Data;
-        other.Data = nullptr;
+        Data = Other.Data;
+        Other.Data = nullptr;
     }
     return *this;
 }
@@ -93,32 +93,32 @@ uint32_t GPUAccelerationStructure::GetSrvIndex() const { return Data ? getAccele
 
 uint32_t GPUAccelerationStructure::GetInstanceCount() const { return Data ? Data->instances.Size() : 0; }
 
-void GPUAccelerationStructure::SetInstance(uint32_t index, const AccelerationStructureInstance& instance)
+void GPUAccelerationStructure::SetInstance(uint32_t IndexValue, const AccelerationStructureInstance& Instance)
 {
     ASSERT(Data && Data->Type == ACCELERATION_STRUCTURE_TYPE_TOP);
-    Data->SetInstance(index, instance);
+    Data->SetInstance(IndexValue, Instance);
 }
 
-void RenderContext::ReleaseAccelerationStructure(AccelerationStructureData* data)
+void RenderContext::ReleaseAccelerationStructure(AccelerationStructureData* DataValue)
 {
-    ASSERT(data->references);
-    if (--data->references == 0)
+    ASSERT(DataValue->references);
+    if (--DataValue->references == 0)
     {
-        DeferResource(ResourceType::AccelerationStructure, data);
+        DeferResource(ResourceType::AccelerationStructure, DataValue);
     }
 }
 
-void RenderContext::DestroyAccelerationStructure(AccelerationStructureData* data)
+void RenderContext::DestroyAccelerationStructure(AccelerationStructureData* DataValue)
 {
-    removeAccelerationStructure(pRaytracing, data->pStructure);
-    for (AccelerationStructureData* bottom : data->bottoms)
+    removeAccelerationStructure(pRaytracing, DataValue->pStructure);
+    for (AccelerationStructureData* Bottom : DataValue->bottoms)
     {
-        if (bottom)
+        if (Bottom)
         {
-            ReleaseAccelerationStructure(bottom);
+            ReleaseAccelerationStructure(Bottom);
         }
     }
-    MemDelete(data);
+    MemDelete(DataValue);
 }
 
 bool RenderContext::SupportsRayTracing() const
@@ -126,151 +126,151 @@ bool RenderContext::SupportsRayTracing() const
     return pRenderer && pRenderer->pGpu->settings.rayPipelineSupported && pRenderer->pGpu->settings.rayQuerySupported;
 }
 
-GPUAccelerationStructure RenderContext::CreateAccelerationStructure(const AccelerationStructureDesc& input)
+GPUAccelerationStructure RenderContext::CreateAccelerationStructure(const AccelerationStructureDesc& Input)
 {
     if (!pRaytracing && !initRaytracing(pRenderer, &pRaytracing))
     {
         LOGF(Error, "Ray tracing is not supported by the selected device");
         return {};
     }
-    ASSERT(!(input.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE));
-    AccelerationStructureData* data = MemNew(AccelerationStructureData);
-    data->pContext = this;
-    data->Type = input.Type;
-    data->Flags = input.Flags;
-    ::AccelerationStructureDesc                desc = { .Type = input.Type, .Flags = input.Flags };
-    Array<::AccelerationStructureGeometryDesc> geometries;
-    Array<::AccelerationStructureInstanceDesc> instances;
-    if (input.Type == ACCELERATION_STRUCTURE_TYPE_BOTTOM)
+    ASSERT(!(Input.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE));
+    AccelerationStructureData* DataValue = MemNew(AccelerationStructureData);
+    DataValue->pContext = this;
+    DataValue->Type = Input.Type;
+    DataValue->Flags = Input.Flags;
+    ::AccelerationStructureDesc                Desc = { .Type = Input.Type, .Flags = Input.Flags };
+    Array<::AccelerationStructureGeometryDesc> Geometries;
+    Array<::AccelerationStructureInstanceDesc> Instances;
+    if (Input.Type == ACCELERATION_STRUCTURE_TYPE_BOTTOM)
     {
-        ASSERT(input.geometries.Count);
-        for (const AccelerationStructureGeometry& geometry : input.geometries)
+        ASSERT(Input.geometries.Count);
+        for (const AccelerationStructureGeometry& GeometryValue : Input.geometries)
         {
-            ASSERT(geometry.pVertexBuffer && geometry.pVertexBuffer->IsValid() && geometry.vertexCount);
-            geometries.PushBack({ .pVertexBuffer = geometry.pVertexBuffer->pBuffer,
-                                  .pIndexBuffer = geometry.pIndexBuffer ? geometry.pIndexBuffer->pBuffer : nullptr,
-                                  .vertexOffset = geometry.vertexOffset,
-                                  .vertexCount = geometry.vertexCount,
-                                  .vertexStride = geometry.vertexStride,
-                                  .vertexFormat = geometry.vertexFormat,
-                                  .indexOffset = geometry.indexOffset,
-                                  .indexCount = geometry.indexCount,
-                                  .indexType = geometry.indexType,
-                                  .Flags = geometry.opaque ? ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE
+            ASSERT(GeometryValue.pVertexBuffer && GeometryValue.pVertexBuffer->IsValid() && GeometryValue.vertexCount);
+            Geometries.PushBack({ .pVertexBuffer = GeometryValue.pVertexBuffer->pBuffer,
+                                  .pIndexBuffer = GeometryValue.pIndexBuffer ? GeometryValue.pIndexBuffer->pBuffer : nullptr,
+                                  .vertexOffset = GeometryValue.vertexOffset,
+                                  .vertexCount = GeometryValue.vertexCount,
+                                  .vertexStride = GeometryValue.vertexStride,
+                                  .vertexFormat = GeometryValue.vertexFormat,
+                                  .indexOffset = GeometryValue.indexOffset,
+                                  .indexCount = GeometryValue.indexCount,
+                                  .indexType = GeometryValue.indexType,
+                                  .Flags = GeometryValue.opaque ? ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE
                                                            : ACCELERATION_STRUCTURE_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION });
-            data->inputs.PushBack(geometry.pVertexBuffer);
-            if (geometry.pIndexBuffer)
+            DataValue->inputs.PushBack(GeometryValue.pVertexBuffer);
+            if (GeometryValue.pIndexBuffer)
             {
-                data->inputs.PushBack(geometry.pIndexBuffer);
+                DataValue->inputs.PushBack(GeometryValue.pIndexBuffer);
             }
         }
-        desc.bottom = { .descCount = geometries.Size(), .pGeometryDescs = geometries.GetData() };
+        Desc.bottom = { .descCount = Geometries.Size(), .pGeometryDescs = Geometries.GetData() };
     }
     else
     {
-        data->Capacity = TF_MAX(input.instances.Count, input.instanceCount);
-        ASSERT(data->Capacity);
-        data->setInstances(input.instances);
-        if (!input.instances.Count)
+        DataValue->Capacity = TF_MAX(Input.instances.Count, Input.instanceCount);
+        ASSERT(DataValue->Capacity);
+        DataValue->SetInstances(Input.instances);
+        if (!Input.instances.Count)
         {
-            data->instances.Resize(data->Capacity);
-            data->bottoms.Resize(data->Capacity);
+            DataValue->instances.Resize(DataValue->Capacity);
+            DataValue->bottoms.Resize(DataValue->Capacity);
         }
-        for (const AccelerationStructureInstance& instance : input.instances)
+        for (const AccelerationStructureInstance& Instance : Input.instances)
         {
-            ASSERT(instance.pBottom && instance.pBottom->IsValid());
-            ::AccelerationStructureInstanceDesc native = { .pBottomAS = instance.pBottom->Data->pStructure,
-                                                           .instanceID = instance.instanceId,
-                                                           .instanceMask = instance.mask,
-                                                           .instanceContributionToHitGroupIndex = instance.hitGroupOffset,
-                                                           .Flags = instance.Flags };
-            memcpy(native.transform, instance.transform, sizeof(native.transform));
-            instances.PushBack(native);
+            ASSERT(Instance.pBottom && Instance.pBottom->IsValid());
+            ::AccelerationStructureInstanceDesc Native = { .pBottomAS = Instance.pBottom->Data->pStructure,
+                                                           .instanceID = Instance.instanceId,
+                                                           .instanceMask = Instance.mask,
+                                                           .instanceContributionToHitGroupIndex = Instance.hitGroupOffset,
+                                                           .Flags = Instance.Flags };
+            memcpy(Native.transform, Instance.transform, sizeof(Native.transform));
+            Instances.PushBack(Native);
         }
-        ASSERT(!input.instances.Count || input.instanceCount <= input.instances.Count);
-        desc.top = { .descCount = data->Capacity, .pInstanceDescs = instances.GetData() };
+        ASSERT(!Input.instances.Count || Input.instanceCount <= Input.instances.Count);
+        Desc.top = { .descCount = DataValue->Capacity, .pInstanceDescs = Instances.GetData() };
     }
-    addAccelerationStructure(pRaytracing, &desc, &data->pStructure);
-    if (!data->pStructure)
+    addAccelerationStructure(pRaytracing, &Desc, &DataValue->pStructure);
+    if (!DataValue->pStructure)
     {
-        for (AccelerationStructureData* bottom : data->bottoms)
+        for (AccelerationStructureData* Bottom : DataValue->bottoms)
         {
-            if (bottom)
+            if (Bottom)
             {
-                ReleaseAccelerationStructure(bottom);
+                ReleaseAccelerationStructure(Bottom);
             }
         }
-        MemDelete(data);
+        MemDelete(DataValue);
         return {};
     }
     ++resourceCount;
-    return GPUAccelerationStructure(data);
+    return GPUAccelerationStructure(DataValue);
 }
 
-void CommandList::BuildAccelerationStructure(GPUAccelerationStructure& structure, Span<AccelerationStructureInstance> instances,
+void CommandList::BuildAccelerationStructure(GPUAccelerationStructure& Structure, Span<AccelerationStructureInstance> Instances,
                                              bool Update)
 {
-    ASSERT(structure.IsValid());
-    AccelerationStructureData& data = *structure.Data;
-    ASSERT(data.pContext == pContext);
-    ASSERT(!Update || (data.built && (data.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE)));
-    RaytracingBuildASDesc desc = { .pAccelerationStructure = data.pStructure, .issueRWBarrier = true, .Update = Update };
-    if (data.Type == ACCELERATION_STRUCTURE_TYPE_BOTTOM)
+    ASSERT(Structure.IsValid());
+    AccelerationStructureData& DataValue = *Structure.Data;
+    ASSERT(DataValue.pContext == pContext);
+    ASSERT(!Update || (DataValue.built && (DataValue.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE)));
+    RaytracingBuildASDesc Desc = { .pAccelerationStructure = DataValue.pStructure, .issueRWBarrier = true, .Update = Update };
+    if (DataValue.Type == ACCELERATION_STRUCTURE_TYPE_BOTTOM)
     {
         arrsetlen(bufferBarriers, 0);
-        AddBufferBarriers({ data.inputs.GetData(), data.inputs.Size() }, false);
+        AddBufferBarriers({ DataValue.inputs.GetData(), DataValue.inputs.Size() }, false);
         Barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, 0, nullptr, 0, nullptr);
     }
     else
     {
-        if (instances.Count)
+        if (Instances.Count)
         {
-            data.setInstances(instances);
+            DataValue.SetInstances(Instances);
         }
-        ASSERT(data.instances.Size() <= data.Capacity && (!Update || data.instances.Size() == data.builtCount));
-        for (AccelerationStructureData* bottom : data.bottoms)
+        ASSERT(DataValue.instances.Size() <= DataValue.Capacity && (!Update || DataValue.instances.Size() == DataValue.builtCount));
+        for (AccelerationStructureData* Bottom : DataValue.bottoms)
         {
-            ASSERT(bottom && bottom->built);
+            ASSERT(Bottom && Bottom->built);
         }
-        Buffer* Upload = CreateUploadBuffer((uint64_t)data.instances.Size() * sizeof(RaytracingInstanceData));
-        memcpy(Upload->pCpuMappedAddress, data.instances.GetData(), data.instances.Size() * sizeof(RaytracingInstanceData));
-        desc.pInstanceBuffer = Upload;
-        desc.instanceCount = data.instances.Size();
-        data.builtCount = data.instances.Size();
+        Buffer* Upload = CreateUploadBuffer((uint64_t)DataValue.instances.Size() * sizeof(RaytracingInstanceData));
+        memcpy(Upload->pCpuMappedAddress, DataValue.instances.GetData(), DataValue.instances.Size() * sizeof(RaytracingInstanceData));
+        Desc.pInstanceBuffer = Upload;
+        Desc.instanceCount = DataValue.instances.Size();
+        DataValue.builtCount = DataValue.instances.Size();
     }
-    cmdBuildAccelerationStructure(pCmd, pContext->pRaytracing, &desc);
-    data.built = true;
-    data.dirty = false;
+    cmdBuildAccelerationStructure(pCmd, pContext->pRaytracing, &Desc);
+    DataValue.built = true;
+    DataValue.dirty = false;
 }
 
-void CommandList::UpdateAccelerationStructure(GPUAccelerationStructure& structure)
+void CommandList::UpdateAccelerationStructure(GPUAccelerationStructure& Structure)
 {
-    ASSERT(structure.IsValid() && structure.Data->pContext == pContext);
-    AccelerationStructureData& data = *structure.Data;
-    ASSERT(data.Type == ACCELERATION_STRUCTURE_TYPE_TOP);
-    if (data.dirty)
+    ASSERT(Structure.IsValid() && Structure.Data->pContext == pContext);
+    AccelerationStructureData& DataValue = *Structure.Data;
+    ASSERT(DataValue.Type == ACCELERATION_STRUCTURE_TYPE_TOP);
+    if (DataValue.dirty)
     {
         const bool Update =
-            data.built && (data.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE) && data.instances.Size() == data.builtCount;
-        BuildAccelerationStructure(structure, {}, Update);
+            DataValue.built && (DataValue.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE) && DataValue.instances.Size() == DataValue.builtCount;
+        BuildAccelerationStructure(Structure, {}, Update);
     }
 }
 
 GPURayTracingPipeline::~GPURayTracingPipeline() { Destroy(); }
-GPURayTracingPipeline::GPURayTracingPipeline(GPURayTracingPipeline&& other) noexcept: pContext(other.pContext), pPipeline(other.pPipeline)
+GPURayTracingPipeline::GPURayTracingPipeline(GPURayTracingPipeline&& Other) noexcept: pContext(Other.pContext), pPipeline(Other.pPipeline)
 {
-    other.pContext = nullptr;
-    other.pPipeline = nullptr;
+    Other.pContext = nullptr;
+    Other.pPipeline = nullptr;
 }
-GPURayTracingPipeline& GPURayTracingPipeline::operator=(GPURayTracingPipeline&& other) noexcept
+GPURayTracingPipeline& GPURayTracingPipeline::operator=(GPURayTracingPipeline&& Other) noexcept
 {
-    if (this != &other)
+    if (this != &Other)
     {
         Destroy();
-        pContext = other.pContext;
-        pPipeline = other.pPipeline;
-        other.pContext = nullptr;
-        other.pPipeline = nullptr;
+        pContext = Other.pContext;
+        pPipeline = Other.pPipeline;
+        Other.pContext = nullptr;
+        Other.pPipeline = nullptr;
     }
     return *this;
 }
@@ -289,160 +289,160 @@ struct RayEntry
     const char* name;
     SlangStage  stage;
 };
-static void addRayEntry(Array<RayEntry>& entries, const char* name, SlangStage stage)
+static void AddRayEntry(Array<RayEntry>& Entries, const char* NameValue, SlangStage Stage)
 {
-    if (!name)
+    if (!NameValue)
     {
         return;
     }
-    for (const RayEntry& entry : entries)
+    for (const RayEntry& Entry : Entries)
     {
-        if (!strcmp(entry.name, name))
+        if (!strcmp(Entry.name, NameValue))
         {
-            ASSERT(entry.stage == stage);
+            ASSERT(Entry.stage == Stage);
             return;
         }
     }
-    entries.PushBack({ .name = name, .stage = stage });
+    Entries.PushBack({ .name = NameValue, .stage = Stage });
 }
-static bool raySlangResult(SlangResult result, const Slang::ComPtr<ISlangBlob>& diagnostics)
+static bool RaySlangResult(SlangResult Result, const Slang::ComPtr<ISlangBlob>& Diagnostics)
 {
-    if (diagnostics && diagnostics->getBufferSize())
+    if (Diagnostics && Diagnostics->getBufferSize())
     {
-        LOGF(SLANG_FAILED(result) ? Error : Warning, "Slang ray tracing: %s", (const char*)diagnostics->getBufferPointer());
+        LOGF(SLANG_FAILED(Result) ? Error : Warning, "Slang ray tracing: %s", (const char*)Diagnostics->getBufferPointer());
     }
-    return SLANG_SUCCEEDED(result);
+    return SLANG_SUCCEEDED(Result);
 }
 
-GPURayTracingPipeline RenderContext::CreateRayTracingPipeline(const RayTracingPipelineDesc& input)
+GPURayTracingPipeline RenderContext::CreateRayTracingPipeline(const RayTracingPipelineDesc& Input)
 {
-    ASSERT(input.pFileName && input.pRayGeneration && input.rootConstantSize && input.rootConstantSize <= 256 &&
-           !(input.rootConstantSize % 4));
+    ASSERT(Input.pFileName && Input.pRayGeneration && Input.rootConstantSize && Input.rootConstantSize <= 256 &&
+           !(Input.rootConstantSize % 4));
     if (!pRaytracing && !initRaytracing(pRenderer, &pRaytracing))
     {
         return {};
     }
-    slang::IGlobalSession* pSlangSession = getSlangGlobalSession();
-    if (!pSlangSession)
+    slang::IGlobalSession* SlangSession = GetSlangGlobalSession();
+    if (!SlangSession)
     {
         return {};
     }
-    FileStream stream = {};
-    if (!OpenStreamFromPath(input.sourceDirectory, input.pFileName, FileModeRead, &stream))
+    FileStream Stream = {};
+    if (!OpenStreamFromPath(Input.sourceDirectory, Input.pFileName, FileModeRead, &Stream))
     {
-        LOGF(Error, "Cannot open ray tracing shader '%s'", input.pFileName);
+        LOGF(Error, "Cannot open ray tracing shader '%s'", Input.pFileName);
         return {};
     }
-    const ssize_t Size = GetStreamFileSize(&stream);
-    Array<char>   source(Size > 0 && Size < UINT32_MAX ? (uint32_t)Size + 1 : 0);
-    const bool    read = Size > 0 && Size < UINT32_MAX && ReadFromStream(&stream, source.GetData(), (size_t)Size) == (size_t)Size;
-    CloseStream(&stream);
-    if (!read)
-    {
-        return {};
-    }
-    source[(uint32_t)Size] = 0;
-    char        path[FS_MAX_PATH];
-    const char* searchPath = GetResourceDirectory(input.sourceDirectory);
-    if (!AppendPathComponent(searchPath, input.pFileName, path))
+    const ssize_t Size = GetStreamFileSize(&Stream);
+    Array<char>   Source(Size > 0 && Size < UINT32_MAX ? (uint32_t)Size + 1 : 0);
+    const bool    Read = Size > 0 && Size < UINT32_MAX && ReadFromStream(&Stream, Source.GetData(), (size_t)Size) == (size_t)Size;
+    CloseStream(&Stream);
+    if (!Read)
     {
         return {};
     }
-    const slang::CompilerOptionEntry options[] = {
+    Source[(uint32_t)Size] = 0;
+    char        Path[FS_MAX_PATH];
+    const char* searchPath = GetResourceDirectory(Input.sourceDirectory);
+    if (!AppendPathComponent(searchPath, Input.pFileName, Path))
+    {
+        return {};
+    }
+    const slang::CompilerOptionEntry Options[] = {
         { .name = slang::CompilerOptionName::NoMangle, .value = { .intValue0 = 1 } },
     };
-    const slang::TargetDesc        target = { .format = SLANG_DXIL,
-                                              .profile = pSlangSession->findProfile("sm_6_6"),
+    const slang::TargetDesc        Target = { .format = SLANG_DXIL,
+                                              .profile = SlangSession->findProfile("sm_6_6"),
                                               .flags = SLANG_TARGET_FLAG_GENERATE_WHOLE_PROGRAM };
-    const slang::SessionDesc       sessionDesc = { .targets = &target,
+    const slang::SessionDesc       SessionDescValue = { .targets = &Target,
                                                    .targetCount = 1,
                                                    .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
                                                    .searchPaths = &searchPath,
                                                    .searchPathCount = 1,
-                                                   .compilerOptionEntries = options,
+                                                   .compilerOptionEntries = Options,
                                                    .compilerOptionEntryCount = 1 };
-    Slang::ComPtr<slang::ISession> session;
-    Slang::ComPtr<ISlangBlob>      diagnostics;
-    if (SLANG_FAILED(pSlangSession->createSession(sessionDesc, session.writeRef())))
+    Slang::ComPtr<slang::ISession> Session;
+    Slang::ComPtr<ISlangBlob>      Diagnostics;
+    if (SLANG_FAILED(SlangSession->createSession(SessionDescValue, Session.writeRef())))
     {
         return {};
     }
-    slang::IModule* module = session->loadModuleFromSourceString("HorizonRayTracing", path, source.GetData(), diagnostics.writeRef());
-    if (!raySlangResult(module ? SLANG_OK : SLANG_FAIL, diagnostics))
+    slang::IModule* Module = Session->loadModuleFromSourceString("HorizonRayTracing", Path, Source.GetData(), Diagnostics.writeRef());
+    if (!RaySlangResult(Module ? SLANG_OK : SLANG_FAIL, Diagnostics))
     {
         return {};
     }
-    Array<RayEntry> entries;
-    addRayEntry(entries, input.pRayGeneration, SLANG_STAGE_RAY_GENERATION);
-    for (const char* name : input.missShaders)
+    Array<RayEntry> Entries;
+    AddRayEntry(Entries, Input.pRayGeneration, SLANG_STAGE_RAY_GENERATION);
+    for (const char* NameValue : Input.missShaders)
     {
-        addRayEntry(entries, name, SLANG_STAGE_MISS);
+        AddRayEntry(Entries, NameValue, SLANG_STAGE_MISS);
     }
-    Array<RaytracingHitGroupDesc> groups;
-    for (const RayTracingHitGroup& group : input.hitGroups)
+    Array<RaytracingHitGroupDesc> Groups;
+    for (const RayTracingHitGroup& Group : Input.hitGroups)
     {
-        addRayEntry(entries, group.pClosestHit, SLANG_STAGE_CLOSEST_HIT);
-        addRayEntry(entries, group.pAnyHit, SLANG_STAGE_ANY_HIT);
-        addRayEntry(entries, group.pIntersection, SLANG_STAGE_INTERSECTION);
-        groups.PushBack(
-            { .Name = group.Name, .pClosestHit = group.pClosestHit, .pAnyHit = group.pAnyHit, .pIntersection = group.pIntersection });
+        AddRayEntry(Entries, Group.pClosestHit, SLANG_STAGE_CLOSEST_HIT);
+        AddRayEntry(Entries, Group.pAnyHit, SLANG_STAGE_ANY_HIT);
+        AddRayEntry(Entries, Group.pIntersection, SLANG_STAGE_INTERSECTION);
+        Groups.PushBack(
+            { .Name = Group.Name, .pClosestHit = Group.pClosestHit, .pAnyHit = Group.pAnyHit, .pIntersection = Group.pIntersection });
     }
-    Array<Slang::ComPtr<slang::IEntryPoint>> entryPoints(entries.Size());
-    Array<slang::IComponentType*>            components;
-    components.PushBack(module);
-    for (uint32_t i = 0; i < entries.Size(); ++i)
+    Array<Slang::ComPtr<slang::IEntryPoint>> EntryPoints(Entries.Size());
+    Array<slang::IComponentType*>            Components;
+    Components.PushBack(Module);
+    for (uint32_t I = 0; I < Entries.Size(); ++I)
     {
-        if (!raySlangResult(
-                module->findAndCheckEntryPoint(entries[i].name, entries[i].stage, entryPoints[i].writeRef(), diagnostics.writeRef()),
-                diagnostics))
+        if (!RaySlangResult(
+                Module->findAndCheckEntryPoint(Entries[I].name, Entries[I].stage, EntryPoints[I].writeRef(), Diagnostics.writeRef()),
+                Diagnostics))
         {
             return {};
         }
-        components.PushBack(entryPoints[i].get());
+        Components.PushBack(EntryPoints[I].get());
     }
-    Slang::ComPtr<slang::IComponentType> program, linked;
-    Slang::ComPtr<ISlangBlob>            library;
-    if (!raySlangResult(
-            session->createCompositeComponentType(components.GetData(), components.Size(), program.writeRef(), diagnostics.writeRef()),
-            diagnostics) ||
-        !raySlangResult(program->link(linked.writeRef(), diagnostics.writeRef()), diagnostics) ||
-        !raySlangResult(linked->getTargetCode(0, library.writeRef(), diagnostics.writeRef()), diagnostics))
+    Slang::ComPtr<slang::IComponentType> Program, Linked;
+    Slang::ComPtr<ISlangBlob>            Library;
+    if (!RaySlangResult(
+            Session->createCompositeComponentType(Components.GetData(), Components.Size(), Program.writeRef(), Diagnostics.writeRef()),
+            Diagnostics) ||
+        !RaySlangResult(Program->link(Linked.writeRef(), Diagnostics.writeRef()), Diagnostics) ||
+        !RaySlangResult(Linked->getTargetCode(0, Library.writeRef(), Diagnostics.writeRef()), Diagnostics))
     {
         return {};
     }
-    const RaytracingPipelineDesc desc = { .pLibrary = library->getBufferPointer(),
-                                          .librarySize = library->getBufferSize(),
-                                          .pRayGeneration = input.pRayGeneration,
-                                          .ppMissShaders = input.missShaders.Data,
-                                          .missShaderCount = input.missShaders.Count,
-                                          .pHitGroups = groups.GetData(),
-                                          .hitGroupCount = groups.Size(),
-                                          .payloadSize = input.payloadSize,
-                                          .attributeSize = input.attributeSize,
-                                          .maxRecursionDepth = input.maxRecursionDepth,
-                                          .rootConstantSize = input.rootConstantSize };
-    RaytracingPipeline*          pipeline = nullptr;
-    addRaytracingPipeline(pRaytracing, &desc, &pipeline);
-    if (!pipeline)
+    const RaytracingPipelineDesc Desc = { .pLibrary = Library->getBufferPointer(),
+                                          .librarySize = Library->getBufferSize(),
+                                          .pRayGeneration = Input.pRayGeneration,
+                                          .ppMissShaders = Input.missShaders.Data,
+                                          .missShaderCount = Input.missShaders.Count,
+                                          .pHitGroups = Groups.GetData(),
+                                          .hitGroupCount = Groups.Size(),
+                                          .payloadSize = Input.payloadSize,
+                                          .attributeSize = Input.attributeSize,
+                                          .maxRecursionDepth = Input.maxRecursionDepth,
+                                          .rootConstantSize = Input.rootConstantSize };
+    RaytracingPipeline*          PipelineObject = nullptr;
+    addRaytracingPipeline(pRaytracing, &Desc, &PipelineObject);
+    if (!PipelineObject)
     {
         return {};
     }
     ++resourceCount;
-    return GPURayTracingPipeline(this, pipeline);
+    return GPURayTracingPipeline(this, PipelineObject);
 }
 
-void CommandList::SetPipeline(const GPURayTracingPipeline& pipeline)
+void CommandList::SetPipeline(const GPURayTracingPipeline& PipelineObject)
 {
-    ASSERT(pipeline.IsValid() && pipeline.pContext == pContext);
-    pCurrentRootSignature = getRaytracingPipelineRootSignature(pipeline.pPipeline);
+    ASSERT(PipelineObject.IsValid() && PipelineObject.pContext == pContext);
+    pCurrentRootSignature = getRaytracingPipelineRootSignature(PipelineObject.pPipeline);
     pCurrentDrawIndirectSignature = nullptr;
-    cmdBindRaytracingPipeline(pCmd, pipeline.pPipeline);
+    cmdBindRaytracingPipeline(pCmd, PipelineObject.pPipeline);
 }
-void CommandList::TraceRays(const GPURayTracingPipeline& pipeline, uint32_t Width, uint32_t Height, uint32_t Depth,
-                            const Dependencies& dependencies)
+void CommandList::TraceRays(const GPURayTracingPipeline& PipelineObject, uint32_t Width, uint32_t Height, uint32_t Depth,
+                            const Dependencies& DependenciesValue)
 {
-    ASSERT(pipeline.IsValid() && Width && Height && Depth);
-    Barrier(dependencies, nullptr);
-    cmdTraceRays(pCmd, pipeline.pPipeline, Width, Height, Depth);
+    ASSERT(PipelineObject.IsValid() && Width && Height && Depth);
+    Barrier(DependenciesValue, nullptr);
+    cmdTraceRays(pCmd, PipelineObject.pPipeline, Width, Height, Depth);
 }
 } // namespace hz

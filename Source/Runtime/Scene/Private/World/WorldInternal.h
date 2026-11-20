@@ -83,12 +83,12 @@ private:
     }
     static void      removeEntityGuids(ecs_iter_t* pIterator);
 
-    static void constructComponents(void* pDestination, int32_t Count, const ecs_type_info_t* pInfo);
-    static void destroyComponents(void* pValue, int32_t Count, const ecs_type_info_t* pInfo);
-    static void copyConstructComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo);
-    static void moveConstructComponents(void* pDestination, void* pSource, int32_t Count, const ecs_type_info_t* pInfo);
-    static void copyComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo);
-    static void moveComponents(void* pDestination, void* pSource, int32_t Count, const ecs_type_info_t* pInfo);
+    static void ConstructComponents(void* pDestination, int32_t Count, const ecs_type_info_t* pInfo);
+    static void DestroyComponents(void* pValue, int32_t Count, const ecs_type_info_t* pInfo);
+    static void CopyConstructComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo);
+    static void MoveConstructComponents(void* pDestination, void* pSource, int32_t Count, const ecs_type_info_t* pInfo);
+    static void CopyComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo);
+    static void MoveComponents(void* pDestination, void* pSource, int32_t Count, const ecs_type_info_t* pInfo);
 
     ecs_world_t*     pWorld = nullptr;
     WorldType*       pTypes = nullptr;

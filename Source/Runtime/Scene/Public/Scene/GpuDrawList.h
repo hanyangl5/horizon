@@ -9,30 +9,30 @@ namespace hz
 // Uploaded to shaders as-is, so the fields keep the shader's names.
 struct GpuDrawData
 {
-    uint32_t instance;
-    uint32_t material;
-    uint32_t materialId;
-    uint32_t alphaMode;
-    uint32_t positions;
-    uint32_t normals;
-    uint32_t texcoords;
-    uint32_t indices;
-    uint32_t indexStride;
-    uint32_t firstIndex;
-    int32_t  vertexOffset;
-    uint32_t indexCount;
+    uint32_t Instance;
+    uint32_t Material;
+    uint32_t MaterialId;
+    uint32_t AlphaMode;
+    uint32_t Positions;
+    uint32_t Normals;
+    uint32_t Texcoords;
+    uint32_t Indices;
+    uint32_t IndexStride;
+    uint32_t FirstIndex;
+    int32_t  VertexOffset;
+    uint32_t IndexCount;
 };
 
 // Selects the draws of one indirect list, like an SRP renderer list. Uploaded as-is for the renderer's culling shader.
 struct DrawListFilter
 {
     // Bit (1 << MaterialAlphaMode) for every alpha mode the list accepts.
-    uint32_t alphaModes = 0;
+    uint32_t AlphaModes = 0;
     // The material must carry every one of these tag bits.
-    uint32_t requiredTags = 0;
+    uint32_t RequiredTags = 0;
     // Shadow casters outside the camera frustum still cast, so their list keeps uncullable draws.
-    uint32_t frustumCull = 1;
-    uint32_t commandsIndex = UINT32_MAX;
+    uint32_t FrustumCull = 1;
+    uint32_t CommandsIndex = UINT32_MAX;
 };
 
 struct DrawListID

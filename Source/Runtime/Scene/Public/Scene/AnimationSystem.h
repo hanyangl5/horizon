@@ -14,16 +14,16 @@ class AnimationSystemData;
 class AnimationSystem
 {
 public:
-    AnimationSystem(World& world, AssetManager& assetManager);
+    AnimationSystem(World& World, AssetManager& AssetManager);
     ~AnimationSystem();
     AnimationSystem(const AnimationSystem&) = delete;
     AnimationSystem& operator=(const AnimationSystem&) = delete;
 
     // Advances playback, writing the time back to each AnimationPlayer, and evaluates the poses. Run it after the asset
     // manager update and before the render scene extracts the frame.
-    void                Update(float deltaSeconds);
+    void                Update(float DeltaSeconds);
     // The pose of a Skeleton entity, valid until the next Update; null until its skeleton is loaded.
-    const SkinningCore* GetPose(Entity entity) const;
+    const SkinningCore* GetPose(Entity Entity) const;
 
 private:
     AnimationSystemData* Data = nullptr;

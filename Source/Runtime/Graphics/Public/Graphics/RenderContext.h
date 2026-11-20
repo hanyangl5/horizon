@@ -325,79 +325,79 @@ class DependencyList
 {
 public:
     // Optional inputs return UINT32_MAX and are not recorded, so call sites need no branch.
-    uint32_t sample(const GPUTexture* pTexture)
+    uint32_t Sample(const GPUTexture* Texture)
     {
-        if (!pTexture || !pTexture->IsValid())
+        if (!Texture || !Texture->IsValid())
         {
             return UINT32_MAX;
         }
-        if (sampledCount < textureCapacity)
+        if (SampledCount < TextureCapacity)
         {
-            sampledTextures[sampledCount++] = pTexture;
+            SampledTextures[SampledCount++] = Texture;
         }
         else
         {
             ASSERT(false);
         }
-        return pTexture->GetSrvIndex();
+        return Texture->GetSrvIndex();
     }
-    uint32_t store(const GPUTexture* pTexture)
+    uint32_t Store(const GPUTexture* Texture)
     {
-        if (!pTexture || !pTexture->IsValid())
+        if (!Texture || !Texture->IsValid())
         {
             return UINT32_MAX;
         }
-        if (storageCount < textureCapacity)
+        if (StorageCount < TextureCapacity)
         {
-            storageTextures[storageCount++] = pTexture;
+            StorageTextures[StorageCount++] = Texture;
         }
         else
         {
             ASSERT(false);
         }
-        return pTexture->GetUavIndex();
+        return Texture->GetUavIndex();
     }
-    uint32_t read(const GPUBuffer& buffer)
+    uint32_t Read(const GPUBuffer& Buffer)
     {
-        if (!buffer.IsValid())
+        if (!Buffer.IsValid())
         {
             return UINT32_MAX;
         }
-        if (bufferCount < bufferCapacity)
+        if (BufferCount < BufferCapacity)
         {
-            buffers[bufferCount++] = &buffer;
+            Buffers[BufferCount++] = &Buffer;
         }
         else
         {
             ASSERT(false);
         }
-        return buffer.GetSrvIndex();
+        return Buffer.GetSrvIndex();
     }
-    uint32_t write(const GPUBuffer& buffer)
+    uint32_t Write(const GPUBuffer& Buffer)
     {
-        if (!buffer.IsValid())
+        if (!Buffer.IsValid())
         {
             return UINT32_MAX;
         }
-        if (storageBufferCount < bufferCapacity)
+        if (StorageBufferCount < BufferCapacity)
         {
-            storageBuffers[storageBufferCount++] = &buffer;
+            StorageBuffers[StorageBufferCount++] = &Buffer;
         }
         else
         {
             ASSERT(false);
         }
-        return buffer.GetUavIndex();
+        return Buffer.GetUavIndex();
     }
-    void indirect(const GPUBuffer& buffer)
+    void Indirect(const GPUBuffer& Buffer)
     {
-        if (!buffer.IsValid())
+        if (!Buffer.IsValid())
         {
             return;
         }
-        if (indirectCount < bufferCapacity)
+        if (IndirectCount < BufferCapacity)
         {
-            indirectBuffers[indirectCount++] = &buffer;
+            IndirectBuffers[IndirectCount++] = &Buffer;
         }
         else
         {
@@ -406,26 +406,26 @@ public:
     }
     Dependencies Get() const
     {
-        return { .sampledTextures = { sampledTextures, sampledCount },
-                 .storageTextures = { storageTextures, storageCount },
-                 .buffers = { buffers, bufferCount },
-                 .storageBuffers = { storageBuffers, storageBufferCount },
-                 .indirectBuffers = { indirectBuffers, indirectCount } };
+        return { .sampledTextures = { SampledTextures, SampledCount },
+                 .storageTextures = { StorageTextures, StorageCount },
+                 .buffers = { Buffers, BufferCount },
+                 .storageBuffers = { StorageBuffers, StorageBufferCount },
+                 .indirectBuffers = { IndirectBuffers, IndirectCount } };
     }
 
 private:
-    static constexpr uint32_t textureCapacity = 16;
-    static constexpr uint32_t bufferCapacity = 8;
-    const GPUTexture*         sampledTextures[textureCapacity] = {};
-    const GPUTexture*         storageTextures[textureCapacity] = {};
-    const GPUBuffer*          buffers[bufferCapacity] = {};
-    const GPUBuffer*          storageBuffers[bufferCapacity] = {};
-    const GPUBuffer*          indirectBuffers[bufferCapacity] = {};
-    uint32_t                  sampledCount = 0;
-    uint32_t                  storageCount = 0;
-    uint32_t                  bufferCount = 0;
-    uint32_t                  storageBufferCount = 0;
-    uint32_t                  indirectCount = 0;
+    static constexpr uint32_t TextureCapacity = 16;
+    static constexpr uint32_t BufferCapacity = 8;
+    const GPUTexture*         SampledTextures[TextureCapacity] = {};
+    const GPUTexture*         StorageTextures[TextureCapacity] = {};
+    const GPUBuffer*          Buffers[BufferCapacity] = {};
+    const GPUBuffer*          StorageBuffers[BufferCapacity] = {};
+    const GPUBuffer*          IndirectBuffers[BufferCapacity] = {};
+    uint32_t                  SampledCount = 0;
+    uint32_t                  StorageCount = 0;
+    uint32_t                  BufferCount = 0;
+    uint32_t                  StorageBufferCount = 0;
+    uint32_t                  IndirectCount = 0;
 };
 
 struct BufferCopyRegion

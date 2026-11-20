@@ -24,11 +24,11 @@ class AssetLoadersData;
 class AssetSource
 {
 public:
-    AssetSource(AssetLoadersData& owner, const char* pFile);
+    AssetSource(AssetLoadersData& Owner, const char* File);
     ~AssetSource() { MemDeallocate(pPath); }
     void        Release();
     static void decode(void* User, uint64_t);
-    bool        read(ResourceDirectory directory);
+    bool        read(ResourceDirectory Directory);
 
     AssetLoadersData& owner;
     char*             pPath;
@@ -47,7 +47,7 @@ struct MeshDraw
 class AssetGeometry
 {
 public:
-    AssetGeometry(AssetLoadersData& owner, const char* pFile);
+    AssetGeometry(AssetLoadersData& Owner, const char* File);
     ~AssetGeometry()
     {
         removeResource(pUpload);
@@ -60,11 +60,11 @@ public:
     bool            buildBounds();
     static void     decodeBounds(void* User, uint64_t)
     {
-        AssetGeometry& geometry = *(AssetGeometry*)User;
-        const bool     success = geometry.buildBounds();
-        if (!success)
-            LOGF(Error, "Invalid Mesh positions or Draw ranges in '%s'", geometry.pPath);
-        tfrg_atomic32_store_release(&geometry.status, (uint32_t)(success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
+        AssetGeometry& GeometryValue = *(AssetGeometry*)User;
+        const bool     Success = GeometryValue.buildBounds();
+        if (!Success)
+            LOGF(Error, "Invalid Mesh positions or Draw ranges in '%s'", GeometryValue.pPath);
+        tfrg_atomic32_store_release(&GeometryValue.status, (uint32_t)(Success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
     }
 
     AssetLoadersData& owner;
@@ -90,7 +90,7 @@ public:
 class AnimationFileRequest
 {
 public:
-    AnimationFileRequest(AssetLoadersData& owner, const AssetCatalogEntry& entry): owner(owner), entry(entry) {}
+    AnimationFileRequest(AssetLoadersData& Owner, const AssetCatalogEntry& Entry): owner(Owner), entry(Entry) {}
     ~AnimationFileRequest();
     static void decode(void* User, uint64_t);
 
@@ -104,7 +104,7 @@ public:
 class SubassetRequest
 {
 public:
-    SubassetRequest(const AssetCatalogEntry& entry, AssetSource* pSource): entry(entry), pSource(pSource) {}
+    SubassetRequest(const AssetCatalogEntry& Entry, AssetSource* SourcePointer): entry(Entry), pSource(SourcePointer) {}
     ~SubassetRequest()
     {
         if (pSource)
@@ -128,17 +128,17 @@ struct AssetGeometryIndex
 class AssetLoadersData
 {
 public:
-    AssetLoadersData(RenderContext& context, const AssetLoadersDesc& desc):
-        context(context), desc(desc), sceneLoader(desc.cookedDirectory), textureLoader(context, desc.cookedDirectory, desc.sourceDirectory)
+    AssetLoadersData(RenderContext& Context, const AssetLoadersDesc& Desc):
+        context(Context), desc(Desc), sceneLoader(Desc.cookedDirectory), textureLoader(Context, Desc.cookedDirectory, Desc.sourceDirectory)
     {
-        ASSERT(desc.vertexLayout.attribCount && desc.vertexLayout.attribCount <= MAX_VERTEX_ATTRIBS);
-        for (uint32_t i = 0; i < desc.vertexLayout.attribCount; ++i)
+        ASSERT(Desc.vertexLayout.attribCount && Desc.vertexLayout.attribCount <= MAX_VERTEX_ATTRIBS);
+        for (uint32_t I = 0; I < Desc.vertexLayout.attribCount; ++I)
         {
-            ASSERT(desc.vertexLayout.attribs[i].binding < MAX_VERTEX_BINDINGS);
-            vertexBindingCount = TF_MAX(vertexBindingCount, desc.vertexLayout.attribs[i].binding + 1);
+            ASSERT(Desc.vertexLayout.attribs[I].binding < MAX_VERTEX_BINDINGS);
+            vertexBindingCount = TF_MAX(vertexBindingCount, Desc.vertexLayout.attribs[I].binding + 1);
         }
-        const ThreadSystemInitDesc threadDesc = { .threadCount = 1, .threadName = "AssetSource" };
-        if (!threadSystemInit(&threads, &threadDesc))
+        const ThreadSystemInitDesc ThreadDescValue = { .threadCount = 1, .threadName = "AssetSource" };
+        if (!threadSystemInit(&threads, &ThreadDescValue))
             LOGF(Error, "Cannot start Mesh/Material loader worker");
     }
     ~AssetLoadersData()
@@ -150,157 +150,157 @@ public:
         shfree(pGeometries);
     }
 
-    AssetSource* acquireSource(const char* pPath)
+    AssetSource* acquireSource(const char* Path)
     {
-        const ptrdiff_t found = shgeti(pSources, pPath);
-        if (found >= 0)
+        const ptrdiff_t Found = shgeti(pSources, Path);
+        if (Found >= 0)
         {
-            ++pSources[found].value->references;
-            return pSources[found].value;
+            ++pSources[Found].value->references;
+            return pSources[Found].value;
         }
-        AssetSource* pSource = MemNew(AssetSource, *this, pPath);
-        shput(pSources, pSource->pPath, pSource);
-        threadSystemAddTask(threads, AssetSource::decode, pSource);
-        return pSource;
+        AssetSource* SourcePointer = MemNew(AssetSource, *this, Path);
+        shput(pSources, SourcePointer->pPath, SourcePointer);
+        threadSystemAddTask(threads, AssetSource::decode, SourcePointer);
+        return SourcePointer;
     }
 
-    AssetGeometry* acquireGeometry(const char* pPath)
+    AssetGeometry* acquireGeometry(const char* Path)
     {
-        const ptrdiff_t found = shgeti(pGeometries, pPath);
-        if (found >= 0)
+        const ptrdiff_t Found = shgeti(pGeometries, Path);
+        if (Found >= 0)
         {
-            ++pGeometries[found].value->references;
-            return pGeometries[found].value;
+            ++pGeometries[Found].value->references;
+            return pGeometries[Found].value;
         }
-        AssetGeometry* pGeometry = MemNew(AssetGeometry, *this, pPath);
-        shput(pGeometries, pGeometry->pPath, pGeometry);
-        return pGeometry;
+        AssetGeometry* GeometryPointer = MemNew(AssetGeometry, *this, Path);
+        shput(pGeometries, GeometryPointer->pPath, GeometryPointer);
+        return GeometryPointer;
     }
 
-    static void* begin(const AssetCatalogEntry& entry, AssetHandle, void* User)
+    static void* begin(const AssetCatalogEntry& Entry, AssetHandle, void* User)
     {
-        AssetLoadersData& loader = *(AssetLoadersData*)User;
-        if (!loader.threads || (entry.Type != AssetType::Mesh && entry.Type != AssetType::Material) ||
-            entry.location.root != AssetPathRoot::Cooked || entry.location.elementIndex == UINT32_MAX)
+        AssetLoadersData& Loader = *(AssetLoadersData*)User;
+        if (!Loader.threads || (Entry.Type != AssetType::Mesh && Entry.Type != AssetType::Material) ||
+            Entry.location.root != AssetPathRoot::Cooked || Entry.location.elementIndex == UINT32_MAX)
         {
-            LOGF(Error, "Invalid Mesh/Material location '%s'", entry.location.pPath);
+            LOGF(Error, "Invalid Mesh/Material location '%s'", Entry.location.pPath);
             return nullptr;
         }
-        return MemNew(SubassetRequest, entry, loader.acquireSource(entry.location.pPath));
+        return MemNew(SubassetRequest, Entry, Loader.acquireSource(Entry.location.pPath));
     }
 
-    static AssetLoadResult poll(void* pJob, void*)
+    static AssetLoadResult poll(void* Job, void*)
     {
-        SubassetRequest&      Request = *(SubassetRequest*)pJob;
-        const AssetLoadStatus status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&Request.pSource->status);
-        if (status != AssetLoadStatus::Succeeded)
-            return { .status = status };
-        const SceneAsset& scene = Request.pSource->scene;
-        const uint32_t    index = Request.entry.location.elementIndex;
-        Array<AssetID>    dependencies;
+        SubassetRequest&      Request = *(SubassetRequest*)Job;
+        const AssetLoadStatus Status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&Request.pSource->status);
+        if (Status != AssetLoadStatus::Succeeded)
+            return { .status = Status };
+        const SceneAsset& SceneValue = Request.pSource->scene;
+        const uint32_t    IndexValue = Request.entry.location.elementIndex;
+        Array<AssetID>    DependenciesValue;
         if (Request.entry.Type == AssetType::Material)
         {
-            if (index >= scene.GetMaterials().Count || scene.GetMaterials().Data[index].id != Request.entry.id)
+            if (IndexValue >= SceneValue.GetMaterials().Count || SceneValue.GetMaterials().Data[IndexValue].id != Request.entry.id)
             {
                 return invalid(Request);
             }
-            const SceneAssetMaterial& material = scene.GetMaterials().Data[index];
-            dependencies.PushBack(material.baseColorTexture);
-            dependencies.PushBack(material.normalTexture);
-            dependencies.PushBack(material.metallicRoughnessTexture);
-            dependencies.PushBack(material.emissiveTexture);
-            if (!matchesAssetDependencies(Request.entry, dependencies))
+            const SceneAssetMaterial& MaterialValue = SceneValue.GetMaterials().Data[IndexValue];
+            DependenciesValue.PushBack(MaterialValue.baseColorTexture);
+            DependenciesValue.PushBack(MaterialValue.normalTexture);
+            DependenciesValue.PushBack(MaterialValue.metallicRoughnessTexture);
+            DependenciesValue.PushBack(MaterialValue.emissiveTexture);
+            if (!MatchesAssetDependencies(Request.entry, DependenciesValue))
             {
                 return invalid(Request);
             }
-            MaterialAsset* pAsset = MemNew(MaterialAsset);
-            pAsset->pSource = Request.pSource;
-            pAsset->index = index;
+            MaterialAsset* Asset = MemNew(MaterialAsset);
+            Asset->pSource = Request.pSource;
+            Asset->index = IndexValue;
             Request.pSource = nullptr;
-            return { .status = AssetLoadStatus::Succeeded, .pPayload = pAsset };
+            return { .status = AssetLoadStatus::Succeeded, .pPayload = Asset };
         }
-        if (index >= scene.GetMeshes().Count || scene.GetMeshes().Data[index].id != Request.entry.id)
+        if (IndexValue >= SceneValue.GetMeshes().Count || SceneValue.GetMeshes().Data[IndexValue].id != Request.entry.id)
         {
             return invalid(Request);
         }
-        for (const SceneAssetSubmesh& submesh : scene.GetMeshes().Data[index].submeshes)
+        for (const SceneAssetSubmesh& Submesh : SceneValue.GetMeshes().Data[IndexValue].submeshes)
         {
-            dependencies.PushBack(submesh.material);
+            DependenciesValue.PushBack(Submesh.material);
         }
-        if (!matchesAssetDependencies(Request.entry, dependencies))
+        if (!MatchesAssetDependencies(Request.entry, DependenciesValue))
         {
             return invalid(Request);
         }
-        MeshAsset* pAsset = MemNew(MeshAsset);
-        pAsset->pSource = Request.pSource;
-        pAsset->index = index;
+        MeshAsset* Asset = MemNew(MeshAsset);
+        Asset->pSource = Request.pSource;
+        Asset->index = IndexValue;
         Request.pSource = nullptr;
-        return { .status = AssetLoadStatus::Succeeded, .pPayload = pAsset };
+        return { .status = AssetLoadStatus::Succeeded, .pPayload = Asset };
     }
     static AssetLoadResult invalid(const SubassetRequest& Request)
     {
         LOGF(Error, "Mesh/Material identity, index or dependencies differ from Catalog: '%s'", Request.entry.location.pPath);
         return { .status = AssetLoadStatus::Failed, .pError = "Mesh/Material identity differs from the catalog" };
     }
-    static void destroyRequest(void* pJob, void*) { MemDelete((SubassetRequest*)pJob); }
-    static void destroyMesh(void* pPayload, void*) { MemDelete((MeshAsset*)pPayload); }
-    static void destroyMaterial(void* pPayload, void*) { MemDelete((MaterialAsset*)pPayload); }
+    static void destroyRequest(void* Job, void*) { MemDelete((SubassetRequest*)Job); }
+    static void destroyMesh(void* Payload, void*) { MemDelete((MeshAsset*)Payload); }
+    static void destroyMaterial(void* Payload, void*) { MemDelete((MaterialAsset*)Payload); }
 
-    static void uploadMesh(void* pPayload, const AssetManager&, Span<AssetHandle>, void* User)
+    static void uploadMesh(void* Payload, const AssetManager&, Span<AssetHandle>, void* User)
     {
-        MeshAsset& mesh = *(MeshAsset*)pPayload;
-        mesh.pGeometry = ((AssetLoadersData*)User)->acquireGeometry(mesh.GetDescription().pGeometry);
+        MeshAsset& MeshValue = *(MeshAsset*)Payload;
+        MeshValue.pGeometry = ((AssetLoadersData*)User)->acquireGeometry(MeshValue.GetDescription().pGeometry);
     }
-    static AssetLoadStatus pollMesh(void* pPayload, void*)
+    static AssetLoadStatus pollMesh(void* Payload, void*)
     {
-        MeshAsset&            mesh = *(MeshAsset*)pPayload;
-        const AssetLoadStatus status = mesh.pGeometry->poll();
-        if (status != AssetLoadStatus::Succeeded)
-            return status;
-        for (const SceneAssetSubmesh& submesh : mesh.GetDescription().submeshes)
+        MeshAsset&            MeshValue = *(MeshAsset*)Payload;
+        const AssetLoadStatus Status = MeshValue.pGeometry->poll();
+        if (Status != AssetLoadStatus::Succeeded)
+            return Status;
+        for (const SceneAssetSubmesh& Submesh : MeshValue.GetDescription().submeshes)
         {
-            if (submesh.Draw >= mesh.pGeometry->draws.Size())
+            if (Submesh.Draw >= MeshValue.pGeometry->draws.Size())
             {
-                LOGF(Error, "Mesh submesh Draw is outside Geometry '%s'", mesh.pGeometry->pPath);
+                LOGF(Error, "Mesh submesh Draw is outside Geometry '%s'", MeshValue.pGeometry->pPath);
                 return AssetLoadStatus::Failed;
             }
         }
         return AssetLoadStatus::Succeeded;
     }
-    static void* beginAnimation(const AssetCatalogEntry& entry, AssetHandle, void* User)
+    static void* beginAnimation(const AssetCatalogEntry& Entry, AssetHandle, void* User)
     {
-        AssetLoadersData& loader = *(AssetLoadersData*)User;
-        if (!loader.threads || (entry.Type != AssetType::Skeleton && entry.Type != AssetType::AnimationClip) ||
-            entry.location.root != AssetPathRoot::Cooked || entry.location.elementIndex != UINT32_MAX)
+        AssetLoadersData& Loader = *(AssetLoadersData*)User;
+        if (!Loader.threads || (Entry.Type != AssetType::Skeleton && Entry.Type != AssetType::AnimationClip) ||
+            Entry.location.root != AssetPathRoot::Cooked || Entry.location.elementIndex != UINT32_MAX)
         {
-            LOGF(Error, "Invalid skeleton/animation location '%s'", entry.location.pPath);
+            LOGF(Error, "Invalid skeleton/animation location '%s'", Entry.location.pPath);
             return nullptr;
         }
-        AnimationFileRequest* pRequest = MemNew(AnimationFileRequest, loader, entry);
-        threadSystemAddTask(loader.threads, AnimationFileRequest::decode, pRequest);
-        return pRequest;
+        AnimationFileRequest* RequestPointer = MemNew(AnimationFileRequest, Loader, Entry);
+        threadSystemAddTask(Loader.threads, AnimationFileRequest::decode, RequestPointer);
+        return RequestPointer;
     }
-    static AssetLoadResult pollAnimation(void* pJob, void*)
+    static AssetLoadResult pollAnimation(void* Job, void*)
     {
-        AnimationFileRequest& Request = *(AnimationFileRequest*)pJob;
-        const AssetLoadStatus status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&Request.status);
-        if (status != AssetLoadStatus::Succeeded)
-            return { .status = status };
-        void* pPayload = Request.entry.Type == AssetType::Skeleton ? (void*)Request.skeleton : (void*)Request.clip;
+        AnimationFileRequest& Request = *(AnimationFileRequest*)Job;
+        const AssetLoadStatus Status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&Request.status);
+        if (Status != AssetLoadStatus::Succeeded)
+            return { .status = Status };
+        void* Payload = Request.entry.Type == AssetType::Skeleton ? (void*)Request.skeleton : (void*)Request.clip;
         Request.skeleton = nullptr;
         Request.clip = nullptr;
-        return { .status = AssetLoadStatus::Succeeded, .pPayload = pPayload };
+        return { .status = AssetLoadStatus::Succeeded, .pPayload = Payload };
     }
-    static void destroyAnimationRequest(void* pJob, void*) { MemDelete((AnimationFileRequest*)pJob); }
-    static void destroySkeleton(void* pPayload, void*) { MemDelete((SkeletonAsset*)pPayload); }
-    static void destroyAnimationClip(void* pPayload, void*) { MemDelete((AnimationClipAsset*)pPayload); }
+    static void destroyAnimationRequest(void* Job, void*) { MemDelete((AnimationFileRequest*)Job); }
+    static void destroySkeleton(void* Payload, void*) { MemDelete((SkeletonAsset*)Payload); }
+    static void destroyAnimationClip(void* Payload, void*) { MemDelete((AnimationClipAsset*)Payload); }
 
-    static void waitMesh(void* pPayload, void*)
+    static void waitMesh(void* Payload, void*)
     {
-        AssetGeometry& geometry = *((MeshAsset*)pPayload)->pGeometry;
-        waitForToken(&geometry.token);
-        if (geometry.boundsQueued && (AssetLoadStatus)tfrg_atomic32_load_acquire(&geometry.status) == AssetLoadStatus::Pending)
-            threadSystemWaitIdle(geometry.owner.threads);
+        AssetGeometry& GeometryValue = *((MeshAsset*)Payload)->pGeometry;
+        waitForToken(&GeometryValue.token);
+        if (GeometryValue.boundsQueued && (AssetLoadStatus)tfrg_atomic32_load_acquire(&GeometryValue.status) == AssetLoadStatus::Pending)
+            threadSystemWaitIdle(GeometryValue.owner.threads);
     }
 
     RenderContext&     context;
@@ -323,34 +323,34 @@ AnimationFileRequest::~AnimationFileRequest()
 void AnimationFileRequest::decode(void* User, uint64_t)
 {
     AnimationFileRequest& Request = *(AnimationFileRequest*)User;
-    FileStream            stream = {};
-    bool                  success = false;
-    if (OpenStreamFromPath(Request.owner.desc.cookedDirectory, Request.entry.location.pPath, FileModeRead, &stream))
+    FileStream            Stream = {};
+    bool                  Success = false;
+    if (OpenStreamFromPath(Request.owner.desc.cookedDirectory, Request.entry.location.pPath, FileModeRead, &Stream))
     {
-        const ssize_t Size = GetStreamFileSize(&stream);
-        Array<char>   bytes(Size > 0 && Size <= 256 * 1024 * 1024 ? (uint32_t)Size : 0u);
-        success = !bytes.Empty() && ReadFromStream(&stream, bytes.GetData(), bytes.Size()) == bytes.Size();
-        CloseStream(&stream);
-        if (success && Request.entry.Type == AssetType::Skeleton)
+        const ssize_t Size = GetStreamFileSize(&Stream);
+        Array<char>   Bytes(Size > 0 && Size <= 256 * 1024 * 1024 ? (uint32_t)Size : 0u);
+        Success = !Bytes.Empty() && ReadFromStream(&Stream, Bytes.GetData(), Bytes.Size()) == Bytes.Size();
+        CloseStream(&Stream);
+        if (Success && Request.entry.Type == AssetType::Skeleton)
         {
             Request.skeleton = MemNew(SkeletonAsset);
-            success = Request.skeleton->Parse({ bytes.GetData(), bytes.Size() });
+            Success = Request.skeleton->Parse({ Bytes.GetData(), Bytes.Size() });
         }
-        else if (success)
+        else if (Success)
         {
             Request.clip = MemNew(AnimationClipAsset);
-            success = Request.clip->Parse({ bytes.GetData(), bytes.Size() });
+            Success = Request.clip->Parse({ Bytes.GetData(), Bytes.Size() });
         }
     }
-    if (!success)
+    if (!Success)
         LOGF(Error, "Cannot decode skeleton/animation '%s'", Request.entry.location.pPath);
-    tfrg_atomic32_store_release(&Request.status, (uint32_t)(success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
+    tfrg_atomic32_store_release(&Request.status, (uint32_t)(Success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
 }
 
-AssetSource::AssetSource(AssetLoadersData& owner, const char* pFile): owner(owner)
+AssetSource::AssetSource(AssetLoadersData& Owner, const char* File): owner(Owner)
 {
-    pPath = (char*)MemAllocate(strlen(pFile) + 1);
-    strcpy(pPath, pFile);
+    pPath = (char*)MemAllocate(strlen(File) + 1);
+    strcpy(pPath, File);
 }
 void AssetSource::Release()
 {
@@ -362,43 +362,43 @@ void AssetSource::Release()
     shdel(owner.pSources, pPath);
     MemDelete(this);
 }
-bool AssetSource::read(ResourceDirectory directory)
+bool AssetSource::read(ResourceDirectory Directory)
 {
-    FileStream stream = {};
-    if (!OpenStreamFromPath(directory, pPath, FileModeRead, &stream))
+    FileStream Stream = {};
+    if (!OpenStreamFromPath(Directory, pPath, FileModeRead, &Stream))
     {
         return false;
     }
-    const ssize_t Size = GetStreamFileSize(&stream);
+    const ssize_t Size = GetStreamFileSize(&Stream);
     if (Size <= 0 || Size > 64 * 1024 * 1024)
     {
-        CloseStream(&stream);
+        CloseStream(&Stream);
         return false;
     }
-    Array<char>  json((uint32_t)Size);
-    const size_t read = ReadFromStream(&stream, json.GetData(), (size_t)Size);
-    CloseStream(&stream);
-    return read == (size_t)Size && scene.Parse({ json.GetData(), json.Size() });
+    Array<char>  Json((uint32_t)Size);
+    const size_t Read = ReadFromStream(&Stream, Json.GetData(), (size_t)Size);
+    CloseStream(&Stream);
+    return Read == (size_t)Size && scene.Parse({ Json.GetData(), Json.Size() });
 }
 void AssetSource::decode(void* User, uint64_t)
 {
-    AssetSource& source = *(AssetSource*)User;
-    const bool   success = source.read(source.owner.desc.cookedDirectory);
-    if (!success)
-        LOGF(Error, "Cannot decode Mesh/Material source '%s'", source.pPath);
-    tfrg_atomic32_store_release(&source.status, (uint32_t)(success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
+    AssetSource& SourceValue = *(AssetSource*)User;
+    const bool   Success = SourceValue.read(SourceValue.owner.desc.cookedDirectory);
+    if (!Success)
+        LOGF(Error, "Cannot decode Mesh/Material source '%s'", SourceValue.pPath);
+    tfrg_atomic32_store_release(&SourceValue.status, (uint32_t)(Success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
 }
 
-AssetGeometry::AssetGeometry(AssetLoadersData& owner, const char* pFile): owner(owner)
+AssetGeometry::AssetGeometry(AssetLoadersData& Owner, const char* File): owner(Owner)
 {
-    pPath = (char*)MemAllocate(strlen(pFile) + 1);
-    strcpy(pPath, pFile);
+    pPath = (char*)MemAllocate(strlen(File) + 1);
+    strcpy(pPath, File);
     GeometryLoadDesc Load = { .ppGeometry = &pUpload,
                               .ppGeometryData = &pShadow,
                               .pFileName = pPath,
                               .Flags = GEOMETRY_LOAD_FLAG_SHADOWED,
-                              .pVertexLayout = &owner.desc.vertexLayout,
-                              .resourceDirectory = owner.desc.cookedDirectory,
+                              .pVertexLayout = &Owner.desc.vertexLayout,
+                              .resourceDirectory = Owner.desc.cookedDirectory,
                               .pSuccess = &uploadSucceeded };
     addResource(&Load, &token);
 }
@@ -417,53 +417,53 @@ bool AssetGeometry::buildBounds()
     if (!pShadow || !pShadow->pShadow || pShadow->pShadow->vertexStrides[SEMANTIC_POSITION] != sizeof(float) * 3 ||
         pShadow->pShadow->attributeCount[SEMANTIC_POSITION] != pUpload->vertexCount)
         return false;
-    const GeometryData::ShadowData& shadow = *pShadow->pShadow;
-    const uint8_t*                  pPositions = (const uint8_t*)shadow.pAttributes[SEMANTIC_POSITION];
-    const bool                      index32 = pUpload->indexType == INDEX_TYPE_UINT32;
+    const GeometryData::ShadowData& Shadow = *pShadow->pShadow;
+    const uint8_t*                  Positions = (const uint8_t*)Shadow.pAttributes[SEMANTIC_POSITION];
+    const bool                      Index32 = pUpload->indexType == INDEX_TYPE_UINT32;
     draws.Resize(pUpload->drawArgCount);
-    for (uint32_t i = 0; i < draws.Size(); ++i)
+    for (uint32_t I = 0; I < draws.Size(); ++I)
     {
-        MeshDraw& Draw = draws[i];
-        Draw.arguments = pUpload->pDrawArgs[i];
+        MeshDraw& Draw = draws[I];
+        Draw.arguments = pUpload->pDrawArgs[I];
         if (!Draw.arguments.indexCount || Draw.arguments.startIndex > pUpload->indexCount ||
             Draw.arguments.indexCount > pUpload->indexCount - Draw.arguments.startIndex)
         {
             return false;
         }
-        for (uint32_t axis = 0; axis < 3; ++axis)
+        for (uint32_t Axis = 0; Axis < 3; ++Axis)
         {
-            Draw.bounds.minimum[axis] = FLT_MAX;
-            Draw.bounds.maximum[axis] = -FLT_MAX;
+            Draw.bounds.minimum[Axis] = FLT_MAX;
+            Draw.bounds.maximum[Axis] = -FLT_MAX;
         }
-        uint32_t lastVertex = 0;
+        uint32_t LastVertex = 0;
         Draw.vertices.first = UINT32_MAX;
-        for (uint32_t j = 0; j < Draw.arguments.indexCount; ++j)
+        for (uint32_t J = 0; J < Draw.arguments.indexCount; ++J)
         {
-            const uint32_t index = Draw.arguments.startIndex + j;
-            const int64_t  vertex =
-                (int64_t)(index32 ? ((const uint32_t*)shadow.pIndices)[index] : ((const uint16_t*)shadow.pIndices)[index]) +
+            const uint32_t IndexValue = Draw.arguments.startIndex + J;
+            const int64_t  Vertex =
+                (int64_t)(Index32 ? ((const uint32_t*)Shadow.pIndices)[IndexValue] : ((const uint16_t*)Shadow.pIndices)[IndexValue]) +
                 (int32_t)Draw.arguments.vertexOffset;
-            if (vertex < 0 || (uint64_t)vertex >= pUpload->vertexCount)
+            if (Vertex < 0 || (uint64_t)Vertex >= pUpload->vertexCount)
                 return false;
-            Draw.vertices.first = TF_MIN(Draw.vertices.first, (uint32_t)vertex);
-            lastVertex = TF_MAX(lastVertex, (uint32_t)vertex);
-            for (uint32_t axis = 0; axis < 3; ++axis)
+            Draw.vertices.first = TF_MIN(Draw.vertices.first, (uint32_t)Vertex);
+            LastVertex = TF_MAX(LastVertex, (uint32_t)Vertex);
+            for (uint32_t Axis = 0; Axis < 3; ++Axis)
             {
-                float value;
-                memcpy(&value, pPositions + (vertex * 3 + axis) * sizeof(float), sizeof(value));
-                if (!isfinite(value))
+                float Value;
+                memcpy(&Value, Positions + (Vertex * 3 + Axis) * sizeof(float), sizeof(Value));
+                if (!isfinite(Value))
                     return false;
-                if (value < Draw.bounds.minimum[axis])
+                if (Value < Draw.bounds.minimum[Axis])
                 {
-                    Draw.bounds.minimum[axis] = value;
+                    Draw.bounds.minimum[Axis] = Value;
                 }
-                if (value > Draw.bounds.maximum[axis])
+                if (Value > Draw.bounds.maximum[Axis])
                 {
-                    Draw.bounds.maximum[axis] = value;
+                    Draw.bounds.maximum[Axis] = Value;
                 }
             }
         }
-        Draw.vertices.Count = lastVertex - Draw.vertices.first + 1;
+        Draw.vertices.Count = LastVertex - Draw.vertices.first + 1;
     }
     return true;
 }
@@ -483,21 +483,21 @@ AssetLoadStatus AssetGeometry::poll()
         boundsQueued = true;
         threadSystemAddTask(owner.threads, decodeBounds, this);
     }
-    const AssetLoadStatus result = (AssetLoadStatus)tfrg_atomic32_load_acquire(&status);
-    if (result != AssetLoadStatus::Succeeded)
-        return result;
+    const AssetLoadStatus Result = (AssetLoadStatus)tfrg_atomic32_load_acquire(&status);
+    if (Result != AssetLoadStatus::Succeeded)
+        return Result;
     indexType = (IndexType)pUpload->indexType;
     vertexBufferCount = owner.vertexBindingCount;
     indexBuffer = SceneResourceAccess::take(&owner.context, pUpload->pIndexBuffer, gIndexBufferState);
     // The loader creates buffers only for bindings with data, in binding order.
-    uint32_t buffer = 0;
-    for (uint32_t binding = 0; binding < vertexBufferCount; ++binding)
+    uint32_t BufferValue = 0;
+    for (uint32_t Binding = 0; Binding < vertexBufferCount; ++Binding)
     {
-        if (!pUpload->vertexStrides[binding])
+        if (!pUpload->vertexStrides[Binding])
             continue;
-        vertexStrides[binding] = pUpload->vertexStrides[binding];
-        vertexBuffers[binding] = SceneResourceAccess::take(&owner.context, pUpload->pVertexBuffers[buffer], gVertexBufferState);
-        ++buffer;
+        vertexStrides[Binding] = pUpload->vertexStrides[Binding];
+        vertexBuffers[Binding] = SceneResourceAccess::take(&owner.context, pUpload->pVertexBuffers[BufferValue], gVertexBufferState);
+        ++BufferValue;
     }
     removeResource(pShadow);
     pShadow = nullptr;
@@ -531,56 +531,56 @@ const SceneAssetMesh& MeshAsset::GetDescription() const
     return pSource->scene.GetMeshes().Data[index];
 }
 const GPUBuffer& MeshAsset::GetIndexBuffer() const { return pGeometry->indexBuffer; }
-const GPUBuffer& MeshAsset::GetVertexBuffer(uint32_t binding) const
+const GPUBuffer& MeshAsset::GetVertexBuffer(uint32_t Binding) const
 {
-    ASSERT(binding < pGeometry->vertexBufferCount);
-    return pGeometry->vertexBuffers[binding];
+    ASSERT(Binding < pGeometry->vertexBufferCount);
+    return pGeometry->vertexBuffers[Binding];
 }
 uint32_t MeshAsset::GetVertexBufferCount() const { return pGeometry->vertexBufferCount; }
-uint32_t MeshAsset::GetVertexStride(uint32_t binding) const
+uint32_t MeshAsset::GetVertexStride(uint32_t Binding) const
 {
-    ASSERT(binding < pGeometry->vertexBufferCount);
-    return pGeometry->vertexStrides[binding];
+    ASSERT(Binding < pGeometry->vertexBufferCount);
+    return pGeometry->vertexStrides[Binding];
 }
 IndexType                         MeshAsset::GetIndexType() const { return pGeometry->indexType; }
-const IndirectDrawIndexArguments& MeshAsset::GetDraw(uint32_t submesh) const
+const IndirectDrawIndexArguments& MeshAsset::GetDraw(uint32_t Submesh) const
 {
-    ASSERT(submesh < GetDescription().submeshes.Count);
-    return pGeometry->draws[GetDescription().submeshes.Data[submesh].Draw].arguments;
+    ASSERT(Submesh < GetDescription().submeshes.Count);
+    return pGeometry->draws[GetDescription().submeshes.Data[Submesh].Draw].arguments;
 }
-const MeshBounds& MeshAsset::GetBounds(uint32_t submesh) const
+const MeshBounds& MeshAsset::GetBounds(uint32_t Submesh) const
 {
-    ASSERT(submesh < GetDescription().submeshes.Count);
-    return pGeometry->draws[GetDescription().submeshes.Data[submesh].Draw].bounds;
+    ASSERT(Submesh < GetDescription().submeshes.Count);
+    return pGeometry->draws[GetDescription().submeshes.Data[Submesh].Draw].bounds;
 }
-const MeshVertexRange& MeshAsset::GetVertexRange(uint32_t submesh) const
+const MeshVertexRange& MeshAsset::GetVertexRange(uint32_t Submesh) const
 {
-    ASSERT(submesh < GetDescription().submeshes.Count);
-    return pGeometry->draws[GetDescription().submeshes.Data[submesh].Draw].vertices;
+    ASSERT(Submesh < GetDescription().submeshes.Count);
+    return pGeometry->draws[GetDescription().submeshes.Data[Submesh].Draw].vertices;
 }
 
-AssetLoaders::AssetLoaders(RenderContext& context, const AssetLoadersDesc& desc): Data(MemNew(AssetLoadersData, context, desc)) {}
+AssetLoaders::AssetLoaders(RenderContext& Context, const AssetLoadersDesc& Desc): Data(MemNew(AssetLoadersData, Context, Desc)) {}
 AssetLoaders::~AssetLoaders() { MemDelete(Data); }
-void AssetLoaders::RegisterLoaders(AssetManager& assetManager)
+void AssetLoaders::RegisterLoaders(AssetManager& AssetManagerValue)
 {
-    assetManager.SetLoader(AssetType::Scene, Data->sceneLoader.GetLoader());
-    assetManager.SetLoader(AssetType::Texture, Data->textureLoader.GetLoader());
-    assetManager.SetLoader(AssetType::Material, { .UserData = Data,
+    AssetManagerValue.SetLoader(AssetType::Scene, Data->sceneLoader.GetLoader());
+    AssetManagerValue.SetLoader(AssetType::Texture, Data->textureLoader.GetLoader());
+    AssetManagerValue.SetLoader(AssetType::Material, { .UserData = Data,
                                                   .pBegin = AssetLoadersData::begin,
                                                   .pPoll = AssetLoadersData::poll,
                                                   .pDestroyRequest = AssetLoadersData::destroyRequest,
                                                   .pDestroyPayload = AssetLoadersData::destroyMaterial });
-    assetManager.SetLoader(AssetType::Skeleton, { .UserData = Data,
+    AssetManagerValue.SetLoader(AssetType::Skeleton, { .UserData = Data,
                                                   .pBegin = AssetLoadersData::beginAnimation,
                                                   .pPoll = AssetLoadersData::pollAnimation,
                                                   .pDestroyRequest = AssetLoadersData::destroyAnimationRequest,
                                                   .pDestroyPayload = AssetLoadersData::destroySkeleton });
-    assetManager.SetLoader(AssetType::AnimationClip, { .UserData = Data,
+    AssetManagerValue.SetLoader(AssetType::AnimationClip, { .UserData = Data,
                                                        .pBegin = AssetLoadersData::beginAnimation,
                                                        .pPoll = AssetLoadersData::pollAnimation,
                                                        .pDestroyRequest = AssetLoadersData::destroyAnimationRequest,
                                                        .pDestroyPayload = AssetLoadersData::destroyAnimationClip });
-    assetManager.SetLoader(AssetType::Mesh, { .UserData = Data,
+    AssetManagerValue.SetLoader(AssetType::Mesh, { .UserData = Data,
                                               .pBegin = AssetLoadersData::begin,
                                               .pPoll = AssetLoadersData::poll,
                                               .pDestroyRequest = AssetLoadersData::destroyRequest,

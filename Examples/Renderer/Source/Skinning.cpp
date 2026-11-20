@@ -5,8 +5,8 @@
 // Mirrors the RootConstant0 block of Skinning.slang field for field.
 struct SkinningConstants
 {
-    uint32_t jobsIndex;
-    uint32_t paletteIndex;
+    uint32_t JobsIndex;
+    uint32_t PaletteIndex;
 };
 
 SkinningPass::SkinningPass(hz::RenderContext& Context)
@@ -25,8 +25,8 @@ void SkinningPass::Execute(hz::CommandList& Commands, const hz::GpuSkinning& Ski
     {
         return;
     }
-    const SkinningConstants Constants = { .jobsIndex = Skinning.GetJobs(FrameIndex).GetSrvIndex(),
-                                          .paletteIndex = Skinning.GetPalette(FrameIndex).GetSrvIndex() };
+    const SkinningConstants Constants = { .JobsIndex = Skinning.GetJobs(FrameIndex).GetSrvIndex(),
+                                          .PaletteIndex = Skinning.GetPalette(FrameIndex).GetSrvIndex() };
     Commands.BeginGpuTimestamp("Skinning");
     Commands.SetPipeline(Pipeline);
     Commands.SetRootConstants(Constants);

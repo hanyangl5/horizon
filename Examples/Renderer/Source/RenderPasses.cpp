@@ -28,11 +28,11 @@ static_assert(offsetof(hz::RenderInstance, current) == 32 && offsetof(hz::Render
 
 struct GeometryBindingConstants
 {
-    uint32_t frameIndex;
-    uint32_t instancesIndex;
-    uint32_t materialsIndex;
-    uint32_t texturesIndex;
-    uint32_t samplerIndex;
+    uint32_t FrameIndex;
+    uint32_t InstancesIndex;
+    uint32_t MaterialsIndex;
+    uint32_t TexturesIndex;
+    uint32_t SamplerIndex;
 };
 static_assert(sizeof(GeometryBindingConstants) == 5 * sizeof(uint32_t));
 
@@ -87,11 +87,11 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const hz
     Cmd.SetScissor(0, 0, Width, Height);
     Cmd.SetPipeline(Pipeline);
     const GeometryBindingConstants Binding = {
-        .frameIndex = Frame.GetSrvIndex(),
-        .instancesIndex = Gpu.instances.IsValid() ? Gpu.instances.GetSrvIndex() : UINT32_MAX,
-        .materialsIndex = Gpu.materials.IsValid() ? Gpu.materials.GetSrvIndex() : UINT32_MAX,
-        .texturesIndex = Gpu.textures.IsValid() ? Gpu.textures.GetSrvIndex() : UINT32_MAX,
-        .samplerIndex = Sampler.GetIndex(),
+        .FrameIndex = Frame.GetSrvIndex(),
+        .InstancesIndex = Gpu.instances.IsValid() ? Gpu.instances.GetSrvIndex() : UINT32_MAX,
+        .MaterialsIndex = Gpu.materials.IsValid() ? Gpu.materials.GetSrvIndex() : UINT32_MAX,
+        .TexturesIndex = Gpu.textures.IsValid() ? Gpu.textures.GetSrvIndex() : UINT32_MAX,
+        .SamplerIndex = Sampler.GetIndex(),
     };
     Cmd.SetRootConstants(Binding, GeometryBindingSlot);
 
@@ -123,7 +123,7 @@ template<typename T>
 struct PassData
 {
     T*           Module;
-    FrameInputs* pFrame = nullptr;
+    FrameInputs* PendingFrame = nullptr;
 };
 
 static const FrameInputs& Inputs(const hz::FrameGraphContext& Context) { return *(const FrameInputs*)Context.FrameData; }
@@ -457,7 +457,7 @@ void RenderPasses::BuildGraph()
 RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     Context(*Desc.Context), Scene(*Desc.Scene), Assets(*Desc.AssetManager), CameraId(Desc.Camera), Draws(Context),
     GpuSceneData(Scene, Assets, Context, { .frameCount = FrameConstants.Size() }),
-    Skinning(Scene, Assets, Context, { .frameCount = FrameConstants.Size() })
+    Skinning(Scene, Assets, Context, { .FrameCount = FrameConstants.Size() })
 {
     ASSERT(Context.IsValid() && CameraId.IsValid());
     Culling = hz::MakeUnique<FrustumCulling>(Context);
@@ -556,11 +556,11 @@ void RenderPasses::Execute()
     const hz::RenderCamera& CameraState = *Camera;
     const float             AspectInverse = (float)Context.GetHeight() / (float)Context.GetWidth();
     const Matrix4           Current = CameraViewProjection(CameraState.current, CameraState.lens, AspectInverse);
-    const FrameData         FrameValues = { .viewProjection = Current,
-                                            .previousViewProjection =
+    const FrameData         FrameValues = { .ViewProjection = Current,
+                                            .PreviousViewProjection =
                                                 CameraViewProjection(CameraState.previous, CameraState.previousLens, AspectInverse),
-                                            .inverseViewProjection = inverse(Current),
-                                            .eye = CameraState.current.getCol3() };
+                                            .InverseViewProjection = inverse(Current),
+                                            .Eye = CameraState.current.getCol3() };
     const hz::GPUBuffer&    Frame = ConstantBuffer.Buffer;
     const bool              Updated = Context.UpdateBuffer(Frame, 0, &FrameValues, sizeof(FrameValues));
     ASSERT(Updated);
@@ -570,13 +570,13 @@ void RenderPasses::Execute()
     Draws.Prepare(View);
     // Frame shape the passes depend on.
     const bool RayTracingReady = RayTracing->IsSupported();
-    Shadows->Data.environmentMipCount = Environment->GetPrefilteredMipCount();
-    Shadows->Data.rtShadowEnabled = RayTracingReady && RayTracing->Settings.Shadows ? 1u : 0u;
-    Shadows->Data.rtAOEnabled = RayTracingReady && RayTracing->Settings.AO ? 1u : 0u;
-    Shadows->Data.rtAOPower = RayTracing->Settings.AOPower;
+    Shadows->Data.EnvironmentMipCount = Environment->GetPrefilteredMipCount();
+    Shadows->Data.RTShadowEnabled = RayTracingReady && RayTracing->Settings.Shadows ? 1u : 0u;
+    Shadows->Data.RTAOEnabled = RayTracingReady && RayTracing->Settings.AO ? 1u : 0u;
+    Shadows->Data.RTAOPower = RayTracing->Settings.AOPower;
     Shadows->Prepare(View);
     // Ray traced AO replaces the screen space term.
-    hz::SetFrameGraphPassEnabled(Graph, SSAOPass, EnableScreenSpaceAO && !Shadows->Data.rtAOEnabled);
+    hz::SetFrameGraphPassEnabled(Graph, SSAOPass, EnableScreenSpaceAO && !Shadows->Data.RTAOEnabled);
     hz::SetFrameGraphPassEnabled(Graph, RayTracingPass,
                                  RayTracingReady &&
                                      (RayTracing->Settings.Shadows || RayTracing->Settings.AO || RayTracing->Settings.Reflection));
@@ -600,7 +600,7 @@ void RenderPasses::Execute()
                                          .BRDFLut = &Environment->GetBrdfLut(),
                                          .EnvironmentSampler = &Environment->GetSampler() },
                            .DeltaSeconds = DeltaSeconds,
-                           .EnvironmentIntensity = Shadows->Data.environmentIntensity,
+                           .EnvironmentIntensity = Shadows->Data.EnvironmentIntensity,
                            .RayTracedShadows = RayTracingReady && (RayTracing->Settings.Shadows || RayTracing->Settings.AO),
                            .RayTracedReflection = RayTracingReady && RayTracing->Settings.Reflection };
     hz::ExecuteFrameGraph(Graph, Commands, &Inputs);

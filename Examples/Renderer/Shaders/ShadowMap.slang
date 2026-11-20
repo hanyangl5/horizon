@@ -1,18 +1,18 @@
 // Adapted from Cookbook shadow.frag.slang; see ../Cookbook-LICENSE.txt.
 #include "Geometry.slang"
-void PSShadow(PSInput input)
+void PSShadow(PSInput Input)
 {
-    ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
-    GpuMaterialData   material = materials.Load<GpuMaterialData>(input.MaterialData.x * sizeof(GpuMaterialData));
-    if (material.alphaMode == 1)
+    ByteAddressBuffer Materials = ResourceDescriptorHeap[MaterialsIndex];
+    GpuMaterialData   Material = Materials.Load<GpuMaterialData>(Input.MaterialData.x * sizeof(GpuMaterialData));
+    if (Material.AlphaMode == 1)
     {
-        float alpha = material.baseColorFactor.a;
-        if (material.baseColorTexture != INVALID_TEXTURE)
+        float Alpha = Material.BaseColorFactor.a;
+        if (Material.BaseColorTexture != INVALID_TEXTURE)
         {
-            Texture2D<float4> base = ResourceDescriptorHeap[NonUniformResourceIndex(material.baseColorTexture)];
-            SamplerState      sampler = SamplerDescriptorHeap[samplerIndex];
-            alpha *= base.Sample(sampler, input.Uv).a;
+            Texture2D<float4> Base = ResourceDescriptorHeap[NonUniformResourceIndex(Material.BaseColorTexture)];
+            SamplerState      Sampler = SamplerDescriptorHeap[SamplerIndex];
+            Alpha *= Base.Sample(Sampler, Input.Uv).a;
         }
-        clip(alpha - material.alphaCutoff);
+        clip(Alpha - Material.AlphaCutoff);
     }
 }

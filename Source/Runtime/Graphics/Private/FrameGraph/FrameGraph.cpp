@@ -87,16 +87,16 @@ FrameGraphPass AddFrameGraphPass(FrameGraph* Graph, const FrameGraphPassDesc& De
     return { (uint16_t)(Graph->Passes.Size() - 1) };
 }
 
-void SetFrameGraphTextureImport(FrameGraph* Graph, FrameGraphTexture Texture, const GPUTexture* pTexture)
+void SetFrameGraphTextureImport(FrameGraph* Graph, FrameGraphTexture Texture, const GPUTexture* TexturePointer)
 {
     ASSERT(Graph->Textures[Texture.Index].Kind == FrameGraphResourceKind::Imported);
-    Graph->Textures[Texture.Index].pImported = pTexture;
+    Graph->Textures[Texture.Index].pImported = TexturePointer;
 }
 
-void SetFrameGraphBufferImport(FrameGraph* Graph, FrameGraphBuffer Buffer, const GPUBuffer* pBuffer)
+void SetFrameGraphBufferImport(FrameGraph* Graph, FrameGraphBuffer Buffer, const GPUBuffer* BufferPointer)
 {
     ASSERT(Graph->Buffers[Buffer.Index].Kind == FrameGraphResourceKind::Imported);
-    Graph->Buffers[Buffer.Index].pImported = pBuffer;
+    Graph->Buffers[Buffer.Index].pImported = BufferPointer;
 }
 
 void SetFrameGraphPassEnabled(FrameGraph* Graph, FrameGraphPass Pass, bool Enabled)
@@ -180,7 +180,7 @@ void FinishFrameGraphFrame(FrameGraph* Graph)
 }
 
 #if defined(FORGE_DEBUG)
-static bool passDeclares(const FrameGraph& Graph, FrameGraphPass Pass, FrameGraphTexture Texture, bool History)
+static bool PassDeclares(const FrameGraph& Graph, FrameGraphPass Pass, FrameGraphTexture Texture, bool History)
 {
     const FrameGraphPassEntry& Entry = Graph.Passes[Pass.Index];
     for (uint32_t i = 0; i < Entry.TextureUseCount; ++i)
@@ -200,7 +200,7 @@ const GPUTexture* GetFrameGraphTexture(const FrameGraphContext& Context, FrameGr
     const FrameGraph&             Graph = Context.Graph;
     const FrameGraphTextureEntry& Entry = Graph.Textures[Texture.Index];
 #if defined(FORGE_DEBUG)
-    ASSERTMSG(passDeclares(Graph, Context.Pass, Texture, false), "Pass '%s' reads texture '%s' it did not declare",
+    ASSERTMSG(PassDeclares(Graph, Context.Pass, Texture, false), "Pass '%s' reads texture '%s' it did not declare",
               Graph.Passes[Context.Pass.Index].Desc.Name, Entry.Name ? Entry.Name : "");
 #endif
     switch (Entry.Kind)
@@ -218,7 +218,7 @@ const GPUTexture* GetFrameGraphHistory(const FrameGraphContext& Context, FrameGr
 {
     const FrameGraphTextureEntry& Entry = Context.Graph.Textures[Texture.Index];
 #if defined(FORGE_DEBUG)
-    ASSERT(passDeclares(Context.Graph, Context.Pass, Texture, true));
+    ASSERT(PassDeclares(Context.Graph, Context.Pass, Texture, true));
 #endif
     ASSERT(Entry.Kind == FrameGraphResourceKind::History);
     return &Entry.HistoryTextures[Entry.HistoryCurrent ^ 1u];

@@ -7,30 +7,30 @@
 
 namespace hz
 {
-static bool validatePropertyValue(const PropertyDesc& property, const PropertyValue& value)
+static bool ValidatePropertyValue(const PropertyDesc& property, const PropertyValue& ValueValue)
 {
-    if (!value.Data || value.kind != property.kind || value.kind == PropertyKind::Array ||
-        (value.kind == PropertyKind::String ? !value.Size || value.Size > property.Size : value.Size != property.Size))
+    if (!ValueValue.Data || ValueValue.kind != property.kind || ValueValue.kind == PropertyKind::Array ||
+        (ValueValue.kind == PropertyKind::String ? !ValueValue.Size || ValueValue.Size > property.Size : ValueValue.Size != property.Size))
     {
         LOGF(Error, "Property '%s': value kind or size does not match", property.Name);
         return false;
     }
-    if (value.kind == PropertyKind::String && !memchr(value.Data, 0, value.Size))
+    if (ValueValue.kind == PropertyKind::String && !memchr(ValueValue.Data, 0, ValueValue.Size))
     {
         LOGF(Error, "Property '%s': string is not null terminated", property.Name);
         return false;
     }
-    if (value.kind == PropertyKind::Boolean && *(const uint8_t*)value.Data > 1)
+    if (ValueValue.kind == PropertyKind::Boolean && *(const uint8_t*)ValueValue.Data > 1)
     {
         LOGF(Error, "Property '%s': invalid boolean", property.Name);
         return false;
     }
-    if (value.kind == PropertyKind::Enum)
+    if (ValueValue.kind == PropertyKind::Enum)
     {
-        int32_t enumValue;
-        memcpy(&enumValue, value.Data, sizeof(enumValue));
-        for (const EnumValue& entry : property.enumValues)
-            if (entry.value == enumValue)
+        int32_t EnumValueValue;
+        memcpy(&EnumValueValue, ValueValue.Data, sizeof(EnumValueValue));
+        for (const EnumValue& Entry : property.enumValues)
+            if (Entry.value == EnumValueValue)
                 return true;
         LOGF(Error, "Property '%s': unknown enum value", property.Name);
         return false;
@@ -38,62 +38,62 @@ static bool validatePropertyValue(const PropertyDesc& property, const PropertyVa
     return true;
 }
 
-static void writeProperty(void* pDestination, const PropertyDesc& property, const PropertyValue& value)
+static void WriteProperty(void* Destination, const PropertyDesc& property, const PropertyValue& ValueValue)
 {
-    const size_t Size = value.kind == PropertyKind::String ? strlen((const char*)value.Data) + 1 : value.Size;
-    memmove(pDestination, value.Data, Size);
+    const size_t Size = ValueValue.kind == PropertyKind::String ? strlen((const char*)ValueValue.Data) + 1 : ValueValue.Size;
+    memmove(Destination, ValueValue.Data, Size);
     if (Size < property.Size)
     {
-        memset((uint8_t*)pDestination + Size, 0, property.Size - Size);
+        memset((uint8_t*)Destination + Size, 0, property.Size - Size);
     }
 }
 
-void* WorldImpl::findEditableProperty(ecs_entity_t entity, TypeID Type, PropertyID property, const PropertyDesc*& pProperty)
+void* WorldImpl::findEditableProperty(ecs_entity_t EntityHandle, TypeID Type, PropertyID property, const PropertyDesc*& PropertyPointer)
 {
     checkThread();
-    const WorldType* pType = findType(Type);
-    if (!entity || !ecs_is_alive(pWorld, entity) || !pType)
+    const WorldType* TypeInfo = findType(Type);
+    if (!EntityHandle || !ecs_is_alive(pWorld, EntityHandle) || !TypeInfo)
     {
         LOGF(Error, "Property edit requires a live entity and registered component type");
         return nullptr;
     }
-    pProperty = pType->pType->GetProperty(property);
-    if (!pProperty || (pProperty->Flags & PROPERTY_READ_ONLY) || Type == SceneTypes::entityIdentity)
+    PropertyPointer = TypeInfo->pType->GetProperty(property);
+    if (!PropertyPointer || (PropertyPointer->Flags & PROPERTY_READ_ONLY) || Type == SceneTypes::entityIdentity)
     {
         LOGF(Error, "Property edit references an unknown or read-only property");
         return nullptr;
     }
-    void* pComponent = const_cast<void*>(ecs_get_id(pWorld, entity, pType->component));
-    if (!pComponent)
+    void* Component = const_cast<void*>(ecs_get_id(pWorld, EntityHandle, TypeInfo->component));
+    if (!Component)
     {
-        LOGF(Error, "Property edit requires an existing '%s' component", pType->pType->Name);
+        LOGF(Error, "Property edit requires an existing '%s' component", TypeInfo->pType->Name);
         return nullptr;
     }
-    return (uint8_t*)pComponent + pProperty->offset;
+    return (uint8_t*)Component + PropertyPointer->offset;
 }
 
-void WorldImpl::notifyPropertyChange(ecs_entity_t entity, TypeID Type) { ecs_modified_id(pWorld, entity, findType(Type)->component); }
+void WorldImpl::notifyPropertyChange(ecs_entity_t EntityHandle, TypeID Type) { ecs_modified_id(pWorld, EntityHandle, findType(Type)->component); }
 
-bool World::SetProperty(Entity entity, TypeID Type, PropertyID property, const PropertyValue& value)
+bool World::SetProperty(Entity EntityHandle, TypeID Type, PropertyID property, const PropertyValue& ValueValue)
 {
-    if (!IsAlive(entity))
+    if (!IsAlive(EntityHandle))
     {
         return false;
     }
-    const PropertyDesc* pProperty = nullptr;
-    void*               pDestination = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
-    if (!pDestination || !validatePropertyValue(*pProperty, value))
+    const PropertyDesc* PropertyPointer = nullptr;
+    void*               Destination = pImpl->findEditableProperty(EntityHandle.value, Type, property, PropertyPointer);
+    if (!Destination || !ValidatePropertyValue(*PropertyPointer, ValueValue))
         return false;
-    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    if (!pImpl->pHierarchy->prepareLocalChange(EntityHandle.value, Type, true))
     {
         return false;
     }
-    writeProperty(pDestination, *pProperty, value);
-    pImpl->notifyPropertyChange(entity.value, Type);
+    WriteProperty(Destination, *PropertyPointer, ValueValue);
+    pImpl->notifyPropertyChange(EntityHandle.value, Type);
     return true;
 }
 
-static bool validateArray(const PropertyDesc& property)
+static bool ValidateArray(const PropertyDesc& property)
 {
     if (property.kind == PropertyKind::Array)
         return true;
@@ -101,116 +101,116 @@ static bool validateArray(const PropertyDesc& property)
     return false;
 }
 
-bool World::ResizeArray(Entity entity, TypeID Type, PropertyID property, uint32_t Count)
+bool World::ResizeArray(Entity EntityHandle, TypeID Type, PropertyID property, uint32_t Count)
 {
-    if (!IsAlive(entity))
+    if (!IsAlive(EntityHandle))
     {
         return false;
     }
-    const PropertyDesc* pProperty = nullptr;
-    void*               pArray = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
-    if (!pArray || !validateArray(*pProperty))
+    const PropertyDesc* PropertyPointer = nullptr;
+    void*               ArrayPointer = pImpl->findEditableProperty(EntityHandle.value, Type, property, PropertyPointer);
+    if (!ArrayPointer || !ValidateArray(*PropertyPointer))
         return false;
-    if (Count == pProperty->pArrayOperations->pCount(pArray))
+    if (Count == PropertyPointer->pArrayOperations->pCount(ArrayPointer))
     {
         return true;
     }
-    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    if (!pImpl->pHierarchy->prepareLocalChange(EntityHandle.value, Type, true))
     {
         return false;
     }
-    pProperty->pArrayOperations->pResize(pArray, Count);
-    pImpl->notifyPropertyChange(entity.value, Type);
+    PropertyPointer->pArrayOperations->pResize(ArrayPointer, Count);
+    pImpl->notifyPropertyChange(EntityHandle.value, Type);
     return true;
 }
 
-bool World::InsertArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index, const void* pValue)
+bool World::InsertArrayElement(Entity EntityHandle, TypeID Type, PropertyID property, uint32_t IndexValue, const void* ValueData)
 {
-    if (!IsAlive(entity))
+    if (!IsAlive(EntityHandle))
     {
         return false;
     }
-    ASSERT(pValue);
-    const PropertyDesc* pProperty = nullptr;
-    void*               pArray = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
-    if (!pArray || !validateArray(*pProperty))
+    ASSERT(ValueData);
+    const PropertyDesc* PropertyPointer = nullptr;
+    void*               ArrayPointer = pImpl->findEditableProperty(EntityHandle.value, Type, property, PropertyPointer);
+    if (!ArrayPointer || !ValidateArray(*PropertyPointer))
         return false;
-    if (index > pProperty->pArrayOperations->pCount(pArray))
+    if (IndexValue > PropertyPointer->pArrayOperations->pCount(ArrayPointer))
     {
-        LOGF(Error, "Property '%s': insertion index is out of range", pProperty->Name);
+        LOGF(Error, "Property '%s': insertion index is out of range", PropertyPointer->Name);
         return false;
     }
-    for (const PropertyDesc& field : pProperty->pElementType->properties)
-        if (!validatePropertyValue(field, { .kind = field.kind, .Data = (const uint8_t*)pValue + field.offset, .Size = field.Size }))
+    for (const PropertyDesc& FieldValue : PropertyPointer->pElementType->properties)
+        if (!ValidatePropertyValue(FieldValue, { .kind = FieldValue.kind, .Data = (const uint8_t*)ValueData + FieldValue.offset, .Size = FieldValue.Size }))
         {
             return false;
         }
-    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    if (!pImpl->pHierarchy->prepareLocalChange(EntityHandle.value, Type, true))
     {
         return false;
     }
-    if (!pProperty->pArrayOperations->pInsert(pArray, index, pValue))
+    if (!PropertyPointer->pArrayOperations->pInsert(ArrayPointer, IndexValue, ValueData))
         return false;
-    pImpl->notifyPropertyChange(entity.value, Type);
+    pImpl->notifyPropertyChange(EntityHandle.value, Type);
     return true;
 }
 
-bool World::RemoveArrayElement(Entity entity, TypeID Type, PropertyID property, uint32_t index)
+bool World::RemoveArrayElement(Entity EntityHandle, TypeID Type, PropertyID property, uint32_t IndexValue)
 {
-    if (!IsAlive(entity))
+    if (!IsAlive(EntityHandle))
     {
         return false;
     }
-    const PropertyDesc* pProperty = nullptr;
-    void*               pArray = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
-    if (!pArray || !validateArray(*pProperty))
+    const PropertyDesc* PropertyPointer = nullptr;
+    void*               ArrayPointer = pImpl->findEditableProperty(EntityHandle.value, Type, property, PropertyPointer);
+    if (!ArrayPointer || !ValidateArray(*PropertyPointer))
         return false;
-    if (index >= pProperty->pArrayOperations->pCount(pArray))
+    if (IndexValue >= PropertyPointer->pArrayOperations->pCount(ArrayPointer))
     {
-        LOGF(Error, "Property '%s': removal index is out of range", pProperty->Name);
+        LOGF(Error, "Property '%s': removal index is out of range", PropertyPointer->Name);
         return false;
     }
-    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    if (!pImpl->pHierarchy->prepareLocalChange(EntityHandle.value, Type, true))
     {
         return false;
     }
-    if (!pProperty->pArrayOperations->pRemove(pArray, index))
+    if (!PropertyPointer->pArrayOperations->pRemove(ArrayPointer, IndexValue))
         return false;
-    pImpl->notifyPropertyChange(entity.value, Type);
+    pImpl->notifyPropertyChange(EntityHandle.value, Type);
     return true;
 }
 
-bool World::SetArrayElementProperty(Entity entity, TypeID Type, PropertyID property, uint32_t index, PropertyID elementProperty,
-                                    const PropertyValue& value)
+bool World::SetArrayElementProperty(Entity EntityHandle, TypeID Type, PropertyID property, uint32_t IndexValue, PropertyID ElementProperty,
+                                    const PropertyValue& ValueValue)
 {
-    if (!IsAlive(entity))
+    if (!IsAlive(EntityHandle))
     {
         return false;
     }
-    const PropertyDesc* pProperty = nullptr;
-    void*               pArray = pImpl->findEditableProperty(entity.value, Type, property, pProperty);
-    if (!pArray || !validateArray(*pProperty))
+    const PropertyDesc* PropertyPointer = nullptr;
+    void*               ArrayPointer = pImpl->findEditableProperty(EntityHandle.value, Type, property, PropertyPointer);
+    if (!ArrayPointer || !ValidateArray(*PropertyPointer))
         return false;
-    if (index >= pProperty->pArrayOperations->pCount(pArray))
+    if (IndexValue >= PropertyPointer->pArrayOperations->pCount(ArrayPointer))
     {
-        LOGF(Error, "Property '%s': element index is out of range", pProperty->Name);
+        LOGF(Error, "Property '%s': element index is out of range", PropertyPointer->Name);
         return false;
     }
-    const PropertyDesc* pField = pProperty->pElementType->GetProperty(elementProperty);
-    if (!pField || (pField->Flags & PROPERTY_READ_ONLY))
+    const PropertyDesc* FieldPointer = PropertyPointer->pElementType->GetProperty(ElementProperty);
+    if (!FieldPointer || (FieldPointer->Flags & PROPERTY_READ_ONLY))
     {
         LOGF(Error, "Array edit references an unknown or read-only element property");
         return false;
     }
-    if (!validatePropertyValue(*pField, value))
+    if (!ValidatePropertyValue(*FieldPointer, ValueValue))
         return false;
-    if (!pImpl->pHierarchy->prepareLocalChange(entity.value, Type, true))
+    if (!pImpl->pHierarchy->prepareLocalChange(EntityHandle.value, Type, true))
     {
         return false;
     }
-    void* Data = const_cast<void*>(pProperty->pArrayOperations->Data(pArray));
-    writeProperty((uint8_t*)Data + (size_t)index * pProperty->pElementType->Size + pField->offset, *pField, value);
-    pImpl->notifyPropertyChange(entity.value, Type);
+    void* Data = const_cast<void*>(PropertyPointer->pArrayOperations->Data(ArrayPointer));
+    WriteProperty((uint8_t*)Data + (size_t)IndexValue * PropertyPointer->pElementType->Size + FieldPointer->offset, *FieldPointer, ValueValue);
+    pImpl->notifyPropertyChange(EntityHandle.value, Type);
     return true;
 }
 } // namespace hz

@@ -11,16 +11,16 @@ namespace hz
 GpuDrawList::GpuDrawList(RenderContext& Context): Context(Context)
 {
     const uint32_t Opaque = DrawListAlphaMode(MaterialAlphaMode::Opaque) | DrawListAlphaMode(MaterialAlphaMode::Mask);
-    OpaqueList = AddList({ .alphaModes = Opaque });
-    TransparentList = AddList({ .alphaModes = DrawListAlphaMode(MaterialAlphaMode::Blend) });
-    ShadowCasterList = AddList({ .alphaModes = Opaque, .frustumCull = 0 });
+    OpaqueList = AddList({ .AlphaModes = Opaque });
+    TransparentList = AddList({ .AlphaModes = DrawListAlphaMode(MaterialAlphaMode::Blend) });
+    ShadowCasterList = AddList({ .AlphaModes = Opaque, .FrustumCull = 0 });
 }
 
 static_assert(sizeof(DrawListFilter) == 4 * sizeof(uint32_t));
 
 DrawListID GpuDrawList::AddList(const DrawListFilter& Filter)
 {
-    ASSERT(ListCount < MaxLists && Filter.alphaModes);
+    ASSERT(ListCount < MaxLists && Filter.AlphaModes);
     Filters[ListCount] = Filter;
     // Frames were sized for the previous lists; the next Prepare recreates them.
     for (Frame& Backing : Frames)
@@ -40,7 +40,7 @@ void GpuDrawList::Prepare(const SceneView& View)
         uint32_t Id = 0;
         for (uint32_t Index = 0; Index < Tables.materials.Count; ++Index)
         {
-            MaterialIds[Index] = Tables.materials.Data[Index].id.IsValid() ? Id++ : UINT32_MAX;
+            MaterialIds[Index] = Tables.materials.Data[Index].Id.IsValid() ? Id++ : UINT32_MAX;
         }
         MaterialRevision = Tables.revision;
     }
@@ -78,11 +78,11 @@ void GpuDrawList::Prepare(const SceneView& View)
             View.Skinning && Primitive.instanceCount == 1
                 ? View.Skinning->Find(View.Scene.GetInstances().Data[View.Scene.GetInstanceIndices().Data[Primitive.instanceOffset]].id)
                 : nullptr;
-        const RenderInstanceID SkinnedInstance = Skinned ? Skinned->instance : RenderInstanceID{};
+        const RenderInstanceID SkinnedInstance = Skinned ? Skinned->Instance : RenderInstanceID{};
         uint32_t               GeometryIndex = UINT32_MAX;
-        if (Material->alphaMode != uint32_t(MaterialAlphaMode::Blend))
+        if (Material->AlphaMode != uint32_t(MaterialAlphaMode::Blend))
         {
-            const bool Opaque = Material->alphaMode == uint32_t(MaterialAlphaMode::Opaque);
+            const bool Opaque = Material->AlphaMode == uint32_t(MaterialAlphaMode::Opaque);
             GeometryIndex = 0;
             while (GeometryIndex < Geometries.Size() &&
                    (Geometries[GeometryIndex].Mesh != Draw.mesh || Geometries[GeometryIndex].Opaque != Opaque ||
@@ -108,23 +108,23 @@ void GpuDrawList::Prepare(const SceneView& View)
         {
             GeometryIndices.PushBack(GeometryIndex);
             GpuDrawData& Output = DrawData.EmplaceBack();
-            Output = { .instance = View.Scene.GetInstanceIndices().Data[Primitive.instanceOffset + Index],
-                       .material = Draw.material.index,
-                       .materialId = MaterialIds[Draw.material.index],
-                       .alphaMode = Material->alphaMode,
-                       .positions = Tables.vertexStreams.Data[Mesh->vertexStreamOffset].srv,
-                       .normals = Tables.vertexStreams.Data[Mesh->vertexStreamOffset + 1].srv,
-                       .texcoords = Tables.vertexStreams.Data[Mesh->vertexStreamOffset + 2].srv,
-                       .indices = Mesh->indexSrv,
-                       .indexStride = Mesh->indexStride,
-                       .firstIndex = Submesh.firstIndex,
-                       .vertexOffset = Submesh.vertexOffset,
-                       .indexCount = Submesh.indexCount };
+            Output = { .Instance = View.Scene.GetInstanceIndices().Data[Primitive.instanceOffset + Index],
+                       .Material = Draw.material.index,
+                       .MaterialId = MaterialIds[Draw.material.index],
+                       .AlphaMode = Material->AlphaMode,
+                       .Positions = Tables.vertexStreams.Data[Mesh->vertexStreamOffset].srv,
+                       .Normals = Tables.vertexStreams.Data[Mesh->vertexStreamOffset + 1].srv,
+                       .Texcoords = Tables.vertexStreams.Data[Mesh->vertexStreamOffset + 2].srv,
+                       .Indices = Mesh->indexSrv,
+                       .IndexStride = Mesh->indexStride,
+                       .FirstIndex = Submesh.firstIndex,
+                       .VertexOffset = Submesh.vertexOffset,
+                       .IndexCount = Submesh.indexCount };
             if (Skinned)
             {
-                Output.positions = Skinned->positions.GetSrvIndex();
-                Output.normals = Skinned->normals.GetSrvIndex();
-                Output.texcoords = Skinned->texcoords.IsValid() ? Skinned->texcoords.GetSrvIndex() : UINT32_MAX;
+                Output.Positions = Skinned->Positions.GetSrvIndex();
+                Output.Normals = Skinned->Normals.GetSrvIndex();
+                Output.Texcoords = Skinned->Texcoords.IsValid() ? Skinned->Texcoords.GetSrvIndex() : UINT32_MAX;
             }
         }
     }
@@ -172,7 +172,7 @@ void GpuDrawList::Prepare(const SceneView& View)
         for (uint32_t List = 0; List < ListCount; ++List)
         {
             Uploaded[List] = Filters[List];
-            Uploaded[List].commandsIndex = CurrentFrame.Lists[List].GetUavIndex();
+            Uploaded[List].CommandsIndex = CurrentFrame.Lists[List].GetUavIndex();
         }
         const bool Written = Context.UpdateBuffer(CurrentFrame.Filters, 0, Uploaded, sizeof(Uploaded));
         ASSERT(Written);
@@ -233,11 +233,11 @@ Dependencies GpuDrawList::GetDependencies(const GPUBuffer& Frame, const SceneVie
     {
         for (const GpuSkinnedVertices& Vertices : View.Skinning->GetSkinnedVertices())
         {
-            Buffers.PushBack(&Vertices.positions);
-            Buffers.PushBack(&Vertices.normals);
-            if (Vertices.texcoords.IsValid())
+            Buffers.PushBack(&Vertices.Positions);
+            Buffers.PushBack(&Vertices.Normals);
+            if (Vertices.Texcoords.IsValid())
             {
-                Buffers.PushBack(&Vertices.texcoords);
+                Buffers.PushBack(&Vertices.Texcoords);
             }
         }
     }

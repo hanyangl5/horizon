@@ -10,21 +10,21 @@ static uint32_t LightingSamplerIndex(const hz::GPUSampler* Sampler)
 // Mirrors the RootConstant0 block of DeferredLighting.slang field for field.
 struct DeferredLightingConstants
 {
-    uint32_t frameIndex;
-    uint32_t lightingFrameIndex;
-    uint32_t emissiveIndex;
-    uint32_t normalMaterialIndex;
-    uint32_t baseColorMetallicIndex;
-    uint32_t depthIndex;
-    uint32_t shadowMapIndex;
-    uint32_t shadowSamplerIndex;
-    uint32_t environmentIndex;
-    uint32_t irradianceIndex;
-    uint32_t brdfLutIndex;
-    uint32_t environmentSamplerIndex;
-    uint32_t rtShadowAOIndex;
-    uint32_t rtReflectionIndex;
-    uint32_t ssaoIndex;
+    uint32_t FrameIndex;
+    uint32_t LightingFrameIndex;
+    uint32_t EmissiveIndex;
+    uint32_t NormalMaterialIndex;
+    uint32_t BaseColorMetallicIndex;
+    uint32_t DepthIndex;
+    uint32_t ShadowMapIndex;
+    uint32_t ShadowSamplerIndex;
+    uint32_t EnvironmentIndex;
+    uint32_t IrradianceIndex;
+    uint32_t BrdfLutIndex;
+    uint32_t EnvironmentSamplerIndex;
+    uint32_t RtShadowAOIndex;
+    uint32_t RtReflectionIndex;
+    uint32_t SsaoIndex;
 };
 static_assert(sizeof(DeferredLightingConstants) == 15 * sizeof(uint32_t));
 
@@ -46,21 +46,21 @@ void DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     ASSERT(Resources.Environment && Resources.Irradiance && Resources.BRDFLut && Resources.EnvironmentSampler);
     hz::DependencyList              Dependencies;
     const DeferredLightingConstants Constants = {
-        .frameIndex = Dependencies.read(Frame),
-        .lightingFrameIndex = Dependencies.read(*Resources.LightingFrame),
-        .emissiveIndex = Dependencies.sample(GBuffer.Emissive),
-        .normalMaterialIndex = Dependencies.sample(GBuffer.NormalMaterial),
-        .baseColorMetallicIndex = Dependencies.sample(GBuffer.BaseColorMetallic),
-        .depthIndex = Dependencies.sample(GBuffer.Depth),
-        .shadowMapIndex = Dependencies.sample(Resources.ShadowMap),
-        .shadowSamplerIndex = LightingSamplerIndex(Resources.ShadowSampler),
-        .environmentIndex = Dependencies.sample(Resources.Environment),
-        .irradianceIndex = Dependencies.sample(Resources.Irradiance),
-        .brdfLutIndex = Dependencies.sample(Resources.BRDFLut),
-        .environmentSamplerIndex = LightingSamplerIndex(Resources.EnvironmentSampler),
-        .rtShadowAOIndex = Dependencies.sample(Resources.RTShadowAO),
-        .rtReflectionIndex = Dependencies.sample(Resources.RTReflection),
-        .ssaoIndex = Dependencies.sample(Resources.SSAO),
+        .FrameIndex = Dependencies.Read(Frame),
+        .LightingFrameIndex = Dependencies.Read(*Resources.LightingFrame),
+        .EmissiveIndex = Dependencies.Sample(GBuffer.Emissive),
+        .NormalMaterialIndex = Dependencies.Sample(GBuffer.NormalMaterial),
+        .BaseColorMetallicIndex = Dependencies.Sample(GBuffer.BaseColorMetallic),
+        .DepthIndex = Dependencies.Sample(GBuffer.Depth),
+        .ShadowMapIndex = Dependencies.Sample(Resources.ShadowMap),
+        .ShadowSamplerIndex = LightingSamplerIndex(Resources.ShadowSampler),
+        .EnvironmentIndex = Dependencies.Sample(Resources.Environment),
+        .IrradianceIndex = Dependencies.Sample(Resources.Irradiance),
+        .BrdfLutIndex = Dependencies.Sample(Resources.BRDFLut),
+        .EnvironmentSamplerIndex = LightingSamplerIndex(Resources.EnvironmentSampler),
+        .RtShadowAOIndex = Dependencies.Sample(Resources.RTShadowAO),
+        .RtReflectionIndex = Dependencies.Sample(Resources.RTReflection),
+        .SsaoIndex = Dependencies.Sample(Resources.SSAO),
     };
     Commands.BeginGpuTimestamp("DeferredLighting");
     // Keep graphics state active during GBV attachment-transition checks after DXR.

@@ -3,76 +3,76 @@
 
 static const float M_PI = 3.141592653589793;
 
-float3 reconstructWorldPosition(float2 uv, float depth, float4x4 invViewProj)
+float3 ReconstructWorldPosition(float2 UV, float Depth, float4x4 InvViewProj)
 {
-    float2 ndc = uv * float2(2.0, -2.0) + float2(-1.0, 1.0);
-    float4 world = mul(invViewProj, float4(ndc, depth, 1.0));
-    return world.xyz / world.w;
+    float2 Ndc = UV * float2(2.0, -2.0) + float2(-1.0, 1.0);
+    float4 World = mul(InvViewProj, float4(Ndc, Depth, 1.0));
+    return World.xyz / World.w;
 }
 
-float pow2(float x) { return x * x; }
+float Pow2(float X) { return X * X; }
 
-float3x3 getTangentBasis(float3 tangentZ)
+float3x3 GetTangentBasis(float3 TangentZ)
 {
-    const float sign_ = tangentZ.z >= 0 ? 1 : -1;
-    const float a = -1.0 / (sign_ + tangentZ.z);
-    const float b = tangentZ.x * tangentZ.y * a;
+    const float Sign_ = TangentZ.z >= 0 ? 1 : -1;
+    const float A = -1.0 / (Sign_ + TangentZ.z);
+    const float B = TangentZ.x * TangentZ.y * A;
 
-    float3 tangentX = float3(1 + sign_ * a * pow2(tangentZ.x), sign_ * b, -sign_ * tangentZ.x);
-    float3 tangentY = float3(b, sign_ + a * pow2(tangentZ.y), -tangentZ.y);
+    float3 TangentX = float3(1 + Sign_ * A * Pow2(TangentZ.x), Sign_ * B, -Sign_ * TangentZ.x);
+    float3 TangentY = float3(B, Sign_ + A * Pow2(TangentZ.y), -TangentZ.y);
 
-    return transpose(float3x3(tangentX, tangentY, tangentZ));
+    return transpose(float3x3(TangentX, TangentY, TangentZ));
 }
 
-float4 cosineSampleHemisphere(float2 e)
+float4 CosineSampleHemisphere(float2 E)
 {
-    float phi = 2.0 * M_PI * e.x;
-    float cosTheta = sqrt(e.y);
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+    float Phi = 2.0 * M_PI * E.x;
+    float CosTheta = sqrt(E.y);
+    float SinTheta = sqrt(1.0 - CosTheta * CosTheta);
 
-    float3 h;
-    h.x = sinTheta * cos(phi);
-    h.y = sinTheta * sin(phi);
-    h.z = cosTheta;
+    float3 H;
+    H.x = SinTheta * cos(Phi);
+    H.y = SinTheta * sin(Phi);
+    H.z = CosTheta;
 
-    float pdf = cosTheta * (1.0 / M_PI);
+    float Pdf = CosTheta * (1.0 / M_PI);
 
-    return float4(h, pdf);
+    return float4(H, Pdf);
 }
 
-float4 uniformSampleConeRobust(float2 e, float sinThetaMax2)
+float4 UniformSampleConeRobust(float2 E, float SinThetaMax2)
 {
-    float phi = 2.0 * M_PI * e.x;
-    float oneMinusCosThetaMax = sinThetaMax2 < 0.01 ? sinThetaMax2 * (0.5 + 0.125 * sinThetaMax2) : 1.0 - sqrt(1.0 - sinThetaMax2);
+    float Phi = 2.0 * M_PI * E.x;
+    float OneMinusCosThetaMax = SinThetaMax2 < 0.01 ? SinThetaMax2 * (0.5 + 0.125 * SinThetaMax2) : 1.0 - sqrt(1.0 - SinThetaMax2);
 
-    float cosTheta = 1.0 - oneMinusCosThetaMax * e.y;
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+    float CosTheta = 1.0 - OneMinusCosThetaMax * E.y;
+    float SinTheta = sqrt(1.0 - CosTheta * CosTheta);
 
-    float3 l;
-    l.x = sinTheta * cos(phi);
-    l.y = sinTheta * sin(phi);
-    l.z = cosTheta;
-    float pdf = 1.0 / (2.0 * M_PI * oneMinusCosThetaMax);
+    float3 L;
+    L.x = SinTheta * cos(Phi);
+    L.y = SinTheta * sin(Phi);
+    L.z = CosTheta;
+    float Pdf = 1.0 / (2.0 * M_PI * OneMinusCosThetaMax);
 
-    return float4(l, pdf);
+    return float4(L, Pdf);
 }
 
-float3 generateSoftShadowRayDir(float3 lightDir, float lightRadius, float2 randSample)
+float3 GenerateSoftShadowRayDir(float3 LightDir, float LightRadius, float2 RandSample)
 {
-    float    sinThetaMax2 = lightRadius * lightRadius;
-    float4   coneSample = uniformSampleConeRobust(randSample, sinThetaMax2);
-    float3x3 basis = getTangentBasis(lightDir);
-    return normalize(mul(basis, coneSample.xyz));
+    float    SinThetaMax2 = LightRadius * LightRadius;
+    float4   ConeSample = UniformSampleConeRobust(RandSample, SinThetaMax2);
+    float3x3 Basis = GetTangentBasis(LightDir);
+    return normalize(mul(Basis, ConeSample.xyz));
 }
 
-float2 reprojectToPrevUV(float3 worldPos, float4x4 prevViewProj)
+float2 ReprojectToPrevUV(float3 WorldPos, float4x4 PrevViewProj)
 {
-    float4 prevClip = mul(prevViewProj, float4(worldPos, 1.0));
-    float2 prevNDC = prevClip.xy / prevClip.w;
-    return prevNDC * float2(0.5, -0.5) + float2(0.5, 0.5);
+    float4 PrevClip = mul(PrevViewProj, float4(WorldPos, 1.0));
+    float2 PrevNDC = PrevClip.xy / PrevClip.w;
+    return PrevNDC * float2(0.5, -0.5) + float2(0.5, 0.5);
 }
 
-float3 fresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
+float3 FresnelSchlickRoughness(float CosTheta, float3 F0, float Roughness)
 {
-    return F0 + (max(float3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+    return F0 + (max(float3(1.0 - Roughness), F0) - F0) * pow(clamp(1.0 - CosTheta, 0.0, 1.0), 5.0);
 }

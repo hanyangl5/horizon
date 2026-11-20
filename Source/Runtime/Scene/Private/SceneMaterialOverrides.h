@@ -6,10 +6,10 @@
 namespace hz
 {
 // Sort key for MaterialOverride arrays; shared so serialization and binding reject the same order.
-inline int compareMaterialOverrides(const void* pA, const void* pB)
+inline int CompareMaterialOverrides(const void* Left, const void* Right)
 {
-    const SubmeshID a = ((const MaterialOverride*)pA)->submesh;
-    const SubmeshID b = ((const MaterialOverride*)pB)->submesh;
-    return (a > b) - (a < b);
+    const SubmeshID LeftId = ((const MaterialOverride*)Left)->submesh;
+    const SubmeshID RightId = ((const MaterialOverride*)Right)->submesh;
+    return (LeftId > RightId) - (LeftId < RightId);
 }
 } // namespace hz

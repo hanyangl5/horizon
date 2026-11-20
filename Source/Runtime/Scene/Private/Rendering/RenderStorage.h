@@ -7,29 +7,29 @@
 
 namespace hz
 {
-inline int compareRenderIndices(const void* pA, const void* pB)
+inline int CompareRenderIndices(const void* Left, const void* Right)
 {
-    const uint32_t a = *(const uint32_t*)pA, b = *(const uint32_t*)pB;
-    return (a > b) - (a < b);
+    const uint32_t LeftIndex = *(const uint32_t*)Left, RightIndex = *(const uint32_t*)Right;
+    return (LeftIndex > RightIndex) - (LeftIndex < RightIndex);
 }
-inline void mergeRenderRanges(Array<uint32_t>& indices, Array<RenderRange>& ranges)
+inline void MergeRenderRanges(Array<uint32_t>& Indices, Array<RenderRange>& Ranges)
 {
-    ranges.Clear();
-    if (indices.Empty())
+    Ranges.Clear();
+    if (Indices.Empty())
     {
         return;
     }
-    qsort(indices.GetData(), indices.Size(), sizeof(uint32_t), compareRenderIndices);
-    for (uint32_t index : indices)
+    qsort(Indices.GetData(), Indices.Size(), sizeof(uint32_t), CompareRenderIndices);
+    for (uint32_t Index : Indices)
     {
-        if (!ranges.Empty() && index <= ranges[ranges.Size() - 1].first + ranges[ranges.Size() - 1].Count)
+        if (!Ranges.Empty() && Index <= Ranges[Ranges.Size() - 1].first + Ranges[Ranges.Size() - 1].Count)
         {
-            RenderRange& range = ranges[ranges.Size() - 1];
-            range.Count = index - range.first + 1;
+            RenderRange& Range = Ranges[Ranges.Size() - 1];
+            Range.Count = Index - Range.first + 1;
         }
         else
         {
-            ranges.PushBack({ .first = index, .Count = 1 });
+            Ranges.PushBack({ .first = Index, .Count = 1 });
         }
     }
 }
@@ -40,121 +40,121 @@ class RenderStorage
 public:
     void Reserve(uint32_t Count)
     {
-        values.Reserve(Count);
-        active.Reserve(Count);
-        positions.Reserve(Count);
-        free.Reserve(Count);
-        dirty.Reserve(Count);
-        dirtyFlags.Reserve(Count);
-        pending.Reserve(Count);
-        pendingFlags.Reserve(Count);
-        created.Reserve(Count);
-        removed.Reserve(Count);
-        ranges.Reserve(Count);
+        Values.Reserve(Count);
+        Active.Reserve(Count);
+        Positions.Reserve(Count);
+        Free.Reserve(Count);
+        Dirty.Reserve(Count);
+        DirtyFlags.Reserve(Count);
+        Pending.Reserve(Count);
+        PendingFlags.Reserve(Count);
+        Created.Reserve(Count);
+        Removed.Reserve(Count);
+        Ranges.Reserve(Count);
     }
-    void beginUpdate()
+    void BeginUpdate()
     {
-        for (uint32_t index : dirty)
+        for (uint32_t Index : Dirty)
         {
-            dirtyFlags[index] = false;
+            DirtyFlags[Index] = false;
         }
-        dirty.Clear();
-        created.Clear();
-        removed.Clear();
-        ranges.Clear();
+        Dirty.Clear();
+        Created.Clear();
+        Removed.Clear();
+        Ranges.Clear();
     }
     ID Add()
     {
-        uint32_t index = values.Size();
-        if (!free.Empty())
+        uint32_t Index = Values.Size();
+        if (!Free.Empty())
         {
-            index = free[free.Size() - 1];
-            free.PopBack();
+            Index = Free[Free.Size() - 1];
+            Free.PopBack();
         }
         else
         {
-            Reserve(index + 1);
-            values.PushBack({});
-            positions.PushBack(0);
-            dirtyFlags.PushBack(false);
-            pendingFlags.PushBack(false);
+            Reserve(Index + 1);
+            Values.PushBack({});
+            Positions.PushBack(0);
+            DirtyFlags.PushBack(false);
+            PendingFlags.PushBack(false);
         }
-        T& value = values[index];
-        value.id = { .index = index, .generation = value.id.generation ? value.id.generation : 1 };
-        positions[index] = active.Size();
-        active.PushBack(index);
-        created.PushBack(index);
-        pendingActive = true;
-        MarkDirty(index);
-        return value.id;
+        T& Value = Values[Index];
+        Value.id = { .index = Index, .generation = Value.id.generation ? Value.id.generation : 1 };
+        Positions[Index] = Active.Size();
+        Active.PushBack(Index);
+        Created.PushBack(Index);
+        PendingActive = true;
+        MarkDirty(Index);
+        return Value.id;
     }
-    void Remove(ID id)
+    void Remove(ID Id)
     {
-        ASSERT(Get(id));
-        const uint32_t position = positions[id.index];
-        const uint32_t last = active[active.Size() - 1];
-        active[position] = last;
-        positions[last] = position;
-        active.PopBack();
-        const uint32_t generation = id.generation + 1;
-        values[id.index] = {};
-        values[id.index].id.generation = generation ? generation : 1;
-        free.PushBack(id.index);
-        removed.PushBack(id.index);
-        pendingActive = true;
-        MarkDirty(id.index);
+        ASSERT(Get(Id));
+        const uint32_t Position = Positions[Id.index];
+        const uint32_t Last = Active[Active.Size() - 1];
+        Active[Position] = Last;
+        Positions[Last] = Position;
+        Active.PopBack();
+        const uint32_t Generation = Id.generation + 1;
+        Values[Id.index] = {};
+        Values[Id.index].id.generation = Generation ? Generation : 1;
+        Free.PushBack(Id.index);
+        Removed.PushBack(Id.index);
+        PendingActive = true;
+        MarkDirty(Id.index);
     }
-    const T* Get(ID id) const
+    const T* Get(ID Id) const
     {
-        return id.IsValid() && id.index < values.Size() && values[id.index].id == id ? &values[id.index] : nullptr;
+        return Id.IsValid() && Id.index < Values.Size() && Values[Id.index].id == Id ? &Values[Id.index] : nullptr;
     }
-    void MarkDirty(uint32_t index)
+    void MarkDirty(uint32_t Index)
     {
-        if (!dirtyFlags[index])
+        if (!DirtyFlags[Index])
         {
-            dirtyFlags[index] = true;
-            dirty.PushBack(index);
+            DirtyFlags[Index] = true;
+            Dirty.PushBack(Index);
         }
-        if (!pendingFlags[index])
+        if (!PendingFlags[Index])
         {
-            pendingFlags[index] = true;
-            pending.PushBack(index);
+            PendingFlags[Index] = true;
+            Pending.PushBack(Index);
         }
     }
     // Entries changed since the last clearPending(), accumulated across updates for GPU Upload.
-    void getPending(Array<RenderRange>& output) { mergeRenderRanges(pending, output); }
-    bool isActivePending() const { return pendingActive; }
-    void clearPending()
+    void GetPending(Array<RenderRange>& Output) { MergeRenderRanges(Pending, Output); }
+    bool IsActivePending() const { return PendingActive; }
+    void ClearPending()
     {
-        for (uint32_t index : pending)
+        for (uint32_t Index : Pending)
         {
-            pendingFlags[index] = false;
+            PendingFlags[Index] = false;
         }
-        pending.Clear();
-        pendingActive = false;
+        Pending.Clear();
+        PendingActive = false;
     }
-    void          finishUpdate() { mergeRenderRanges(dirty, ranges); }
+    void          FinishUpdate() { MergeRenderRanges(Dirty, Ranges); }
     RenderChanges GetChanges() const
     {
-        return { .created = { created.GetData(), created.Size() },
-                 .removed = { removed.GetData(), removed.Size() },
-                 .ranges = { ranges.GetData(), ranges.Size() },
-                 .activeList = !created.Empty() || !removed.Empty() };
+        return { .created = { Created.GetData(), Created.Size() },
+                 .removed = { Removed.GetData(), Removed.Size() },
+                 .ranges = { Ranges.GetData(), Ranges.Size() },
+                 .activeList = !Created.Empty() || !Removed.Empty() };
     }
 
-    Array<T>        values;
-    Array<uint32_t> active;
+    Array<T>        Values;
+    Array<uint32_t> Active;
 
 private:
-    Array<uint32_t>    positions;
-    Array<uint32_t>    free;
-    Array<uint32_t>    dirty;
-    Array<bool>        dirtyFlags;
-    Array<uint32_t>    pending;
-    Array<bool>        pendingFlags;
-    Array<uint32_t>    created;
-    Array<uint32_t>    removed;
-    Array<RenderRange> ranges;
-    bool               pendingActive = false;
+    Array<uint32_t>    Positions;
+    Array<uint32_t>    Free;
+    Array<uint32_t>    Dirty;
+    Array<bool>        DirtyFlags;
+    Array<uint32_t>    Pending;
+    Array<bool>        PendingFlags;
+    Array<uint32_t>    Created;
+    Array<uint32_t>    Removed;
+    Array<RenderRange> Ranges;
+    bool               PendingActive = false;
 };
 } // namespace hz

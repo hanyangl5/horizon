@@ -9,112 +9,112 @@
 
 namespace hz
 {
-static uint64_t readIDWord(const uint8_t* pBytes)
+static uint64_t ReadIDWord(const uint8_t* BytesPointer)
 {
-    uint64_t word = 0;
-    for (uint32_t i = 0; i < 8; ++i)
-        word = (word << 8) | pBytes[i];
-    return word;
+    uint64_t Word = 0;
+    for (uint32_t I = 0; I < 8; ++I)
+        Word = (Word << 8) | BytesPointer[I];
+    return Word;
 }
 
-static bool generateID(const IDGenerator& generator, uint64_t& high, uint64_t& low)
+static bool GenerateID(const IDGenerator& Generator, uint64_t& High, uint64_t& Low)
 {
-    uint8_t    bytes[16] = {};
-    const bool generated =
-        generator.pGenerate ? generator.pGenerate(generator.UserData, bytes) : GetSystemRandomBytes(bytes, sizeof(bytes));
-    if (!generated)
+    uint8_t    BytesValue[16] = {};
+    const bool Generated =
+        Generator.pGenerate ? Generator.pGenerate(Generator.UserData, BytesValue) : GetSystemRandomBytes(BytesValue, sizeof(BytesValue));
+    if (!Generated)
     {
         LOGF(Error, "Failed to generate a persistent scene ID");
         return false;
     }
 
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    high = readIDWord(bytes);
-    low = readIDWord(bytes + 8);
+    BytesValue[6] = (BytesValue[6] & 0x0f) | 0x40;
+    BytesValue[8] = (BytesValue[8] & 0x3f) | 0x80;
+    High = ReadIDWord(BytesValue);
+    Low = ReadIDWord(BytesValue + 8);
     return true;
 }
 
-static int hexDigit(char value)
+static int HexDigit(char Value)
 {
-    if (value >= '0' && value <= '9')
-        return value - '0';
-    if (value >= 'a' && value <= 'f')
-        return value - 'a' + 10;
-    if (value >= 'A' && value <= 'F')
-        return value - 'A' + 10;
+    if (Value >= '0' && Value <= '9')
+        return Value - '0';
+    if (Value >= 'a' && Value <= 'f')
+        return Value - 'a' + 10;
+    if (Value >= 'A' && Value <= 'F')
+        return Value - 'A' + 10;
     return -1;
 }
 
-static bool parseID(const char* pText, uint64_t& high, uint64_t& low)
+static bool ParseID(const char* TextPointer, uint64_t& High, uint64_t& Low)
 {
-    if (!pText || strlen(pText) != kIDStringCapacity - 1)
+    if (!TextPointer || strlen(TextPointer) != kIDStringCapacity - 1)
         return false;
 
-    uint8_t  bytes[16] = {};
-    uint32_t offset = 0;
-    for (uint32_t i = 0; i < 16; ++i)
+    uint8_t  BytesValue[16] = {};
+    uint32_t Offset = 0;
+    for (uint32_t I = 0; I < 16; ++I)
     {
-        if (i == 4 || i == 6 || i == 8 || i == 10)
+        if (I == 4 || I == 6 || I == 8 || I == 10)
         {
-            if (pText[offset++] != '-')
+            if (TextPointer[Offset++] != '-')
                 return false;
         }
-        const int upper = hexDigit(pText[offset++]);
-        const int lower = hexDigit(pText[offset++]);
-        if (upper < 0 || lower < 0)
+        const int Upper = HexDigit(TextPointer[Offset++]);
+        const int Lower = HexDigit(TextPointer[Offset++]);
+        if (Upper < 0 || Lower < 0)
             return false;
-        bytes[i] = (uint8_t)((upper << 4) | lower);
+        BytesValue[I] = (uint8_t)((Upper << 4) | Lower);
     }
-    high = readIDWord(bytes);
-    low = readIDWord(bytes + 8);
+    High = ReadIDWord(BytesValue);
+    Low = ReadIDWord(BytesValue + 8);
     return true;
 }
 
-static void formatIDWords(uint64_t high, uint64_t low, char (&text)[kIDStringCapacity])
+static void FormatIDWords(uint64_t High, uint64_t Low, char (&TextValue)[kIDStringCapacity])
 {
-    const char digits[] = "0123456789abcdef";
-    uint32_t   offset = 0;
-    for (uint32_t i = 0; i < 16; ++i)
+    const char Digits[] = "0123456789abcdef";
+    uint32_t   Offset = 0;
+    for (uint32_t I = 0; I < 16; ++I)
     {
-        if (i == 4 || i == 6 || i == 8 || i == 10)
-            text[offset++] = '-';
-        const uint8_t byte = (uint8_t)((i < 8 ? high : low) >> ((7 - i % 8) * 8));
-        text[offset++] = digits[byte >> 4];
-        text[offset++] = digits[byte & 0x0f];
+        if (I == 4 || I == 6 || I == 8 || I == 10)
+            TextValue[Offset++] = '-';
+        const uint8_t Byte = (uint8_t)((I < 8 ? High : Low) >> ((7 - I % 8) * 8));
+        TextValue[Offset++] = Digits[Byte >> 4];
+        TextValue[Offset++] = Digits[Byte & 0x0f];
     }
-    text[offset] = '\0';
+    TextValue[Offset] = '\0';
 }
 
-static uint64_t hashIDWords(uint64_t high, uint64_t low)
+static uint64_t HashIDWords(uint64_t High, uint64_t Low)
 {
     uint64_t Hash = UINT64_C(14695981039346656037);
-    for (uint32_t i = 0; i < 16; ++i)
+    for (uint32_t I = 0; I < 16; ++I)
     {
-        Hash ^= (uint8_t)((i < 8 ? high : low) >> ((7 - i % 8) * 8));
+        Hash ^= (uint8_t)((I < 8 ? High : Low) >> ((7 - I % 8) * 8));
         Hash *= UINT64_C(1099511628211);
     }
     return Hash;
 }
 
-AssetID AssetID::Create(const IDGenerator& generator)
+AssetID AssetID::Create(const IDGenerator& Generator)
 {
-    AssetID id;
-    generateID(generator, id.high, id.low);
-    return id;
+    AssetID Id;
+    GenerateID(Generator, Id.high, Id.low);
+    return Id;
 }
 
-Guid Guid::Create(const IDGenerator& generator)
+Guid Guid::Create(const IDGenerator& Generator)
 {
-    Guid id;
-    generateID(generator, id.high, id.low);
-    return id;
+    Guid Id;
+    GenerateID(Generator, Id.high, Id.low);
+    return Id;
 }
 
-bool     AssetID::Parse(const char* pText) { return parseID(pText, high, low); }
-bool     Guid::Parse(const char* pText) { return parseID(pText, high, low); }
-void     AssetID::ToString(char (&text)[kIDStringCapacity]) const { formatIDWords(high, low, text); }
-void     Guid::ToString(char (&text)[kIDStringCapacity]) const { formatIDWords(high, low, text); }
-uint64_t AssetID::Hash() const { return hashIDWords(high, low); }
-uint64_t Guid::Hash() const { return hashIDWords(high, low); }
+bool     AssetID::Parse(const char* TextPointer) { return ParseID(TextPointer, high, low); }
+bool     Guid::Parse(const char* TextPointer) { return ParseID(TextPointer, high, low); }
+void     AssetID::ToString(char (&TextValue)[kIDStringCapacity]) const { FormatIDWords(high, low, TextValue); }
+void     Guid::ToString(char (&TextValue)[kIDStringCapacity]) const { FormatIDWords(high, low, TextValue); }
+uint64_t AssetID::Hash() const { return HashIDWords(high, low); }
+uint64_t Guid::Hash() const { return HashIDWords(high, low); }
 } // namespace hz

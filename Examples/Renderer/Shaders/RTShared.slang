@@ -7,170 +7,170 @@
 
 cbuffer RootConstant0
 {
-    uint  frameIndexBuffer;
-    uint  lightingIndex;
-    uint  drawsIndex;
-    uint  materialsIndex;
-    uint  texturesIndex;
-    uint  samplerIndex;
-    uint  tlasIndex;
-    uint  normalIndex;
-    uint  depthIndex;
-    uint  outputIndex;
-    uint  blueNoiseIndex;
-    uint  environmentIndex;
-    uint  irradianceIndex;
-    uint  brdfIndex;
-    uint  environmentSamplerIndex;
-    uint  shadowsEnabled;
-    uint  aoEnabled;
-    uint  aoSamples;
-    uint  frameNumber;
-    uint  alphaTestMethod;
-    uint  retraceMaxDepth;
-    float aoRadius;
-    float shadowRadius;
+    uint  FrameIndexBuffer;
+    uint  LightingIndex;
+    uint  DrawsIndex;
+    uint  MaterialsIndex;
+    uint  TexturesIndex;
+    uint  SamplerIndex;
+    uint  TlasIndex;
+    uint  NormalIndex;
+    uint  DepthIndex;
+    uint  OutputIndex;
+    uint  BlueNoiseIndex;
+    uint  EnvironmentIndex;
+    uint  IrradianceIndex;
+    uint  BrdfIndex;
+    uint  EnvironmentSamplerIndex;
+    uint  ShadowsEnabled;
+    uint  AoEnabled;
+    uint  AoSamples;
+    uint  FrameNumber;
+    uint  AlphaTestMethod;
+    uint  RetraceMaxDepth;
+    float AoRadius;
+    float ShadowRadius;
 };
 
 #include "Material.slang"
 
-GpuDrawData loadRTDraw(uint index)
+GpuDrawData LoadRTDraw(uint Index)
 {
-    ByteAddressBuffer draws = ResourceDescriptorHeap[drawsIndex];
-    uint offset = index * sizeof(GpuDrawData);
-    uint4 object = draws.Load4(offset);
-    uint4 buffers = draws.Load4(offset + sizeof(uint4));
-    uint4 geometry = draws.Load4(offset + 2 * sizeof(uint4));
-    GpuDrawData draw;
-    draw.instance = object.x;
-    draw.material = object.y;
-    draw.materialId = object.z;
-    draw.alphaMode = object.w;
-    draw.positions = buffers.x;
-    draw.normals = buffers.y;
-    draw.texcoords = buffers.z;
-    draw.indices = buffers.w;
-    draw.indexStride = geometry.x;
-    draw.firstIndex = geometry.y;
-    draw.vertexOffset = asint(geometry.z);
-    draw.indexCount = geometry.w;
-    return draw;
+    ByteAddressBuffer Draws = ResourceDescriptorHeap[DrawsIndex];
+    uint Offset = Index * sizeof(GpuDrawData);
+    uint4 Object = Draws.Load4(Offset);
+    uint4 Buffers = Draws.Load4(Offset + sizeof(uint4));
+    uint4 Geometry = Draws.Load4(Offset + 2 * sizeof(uint4));
+    GpuDrawData Draw;
+    Draw.Instance = Object.x;
+    Draw.Material = Object.y;
+    Draw.MaterialId = Object.z;
+    Draw.AlphaMode = Object.w;
+    Draw.Positions = Buffers.x;
+    Draw.Normals = Buffers.y;
+    Draw.Texcoords = Buffers.z;
+    Draw.Indices = Buffers.w;
+    Draw.IndexStride = Geometry.x;
+    Draw.FirstIndex = Geometry.y;
+    Draw.VertexOffset = asint(Geometry.z);
+    Draw.IndexCount = Geometry.w;
+    return Draw;
 }
 
-uint3 loadRTTriangle(GpuDrawData draw, uint primitive)
+uint3 LoadRTTriangle(GpuDrawData Draw, uint Primitive)
 {
-    ByteAddressBuffer indices = ResourceDescriptorHeap[NonUniformResourceIndex(draw.indices)];
-    uint offset = (draw.firstIndex + primitive * 3) * draw.indexStride;
-    uint3 triangle;
-    if (draw.indexStride == 2)
+    ByteAddressBuffer Indices = ResourceDescriptorHeap[NonUniformResourceIndex(Draw.Indices)];
+    uint Offset = (Draw.FirstIndex + Primitive * 3) * Draw.IndexStride;
+    uint3 Triangle;
+    if (Draw.IndexStride == 2)
     {
-        uint2 packed = indices.Load2(offset & ~3u);
-        triangle = (offset & 2u) == 0
-            ? uint3(packed.x & 0xffffu, packed.x >> 16, packed.y & 0xffffu)
-            : uint3(packed.x >> 16, packed.y & 0xffffu, packed.y >> 16);
+        uint2 Packed = Indices.Load2(Offset & ~3u);
+        Triangle = (Offset & 2u) == 0
+            ? uint3(Packed.x & 0xffffu, Packed.x >> 16, Packed.y & 0xffffu)
+            : uint3(Packed.x >> 16, Packed.y & 0xffffu, Packed.y >> 16);
     }
     else
     {
-        triangle = indices.Load3(offset);
+        Triangle = Indices.Load3(Offset);
     }
-    return uint3(int3(triangle) + draw.vertexOffset);
+    return uint3(int3(Triangle) + Draw.VertexOffset);
 }
 
-float2 loadRTUV(GpuDrawData draw, uint vertex)
+float2 LoadRTUV(GpuDrawData Draw, uint Vertex)
 {
-    if (draw.texcoords == INVALID_TEXTURE)
+    if (Draw.Texcoords == INVALID_TEXTURE)
     {
         return 0.0;
     }
-    ByteAddressBuffer texcoords = ResourceDescriptorHeap[NonUniformResourceIndex(draw.texcoords)];
-    uint              packed = texcoords.Load(vertex * 4);
-    return float2(f16tof32(packed & 0xffffu), f16tof32(packed >> 16));
+    ByteAddressBuffer Texcoords = ResourceDescriptorHeap[NonUniformResourceIndex(Draw.Texcoords)];
+    uint              Packed = Texcoords.Load(Vertex * 4);
+    return float2(f16tof32(Packed & 0xffffu), f16tof32(Packed >> 16));
 }
 
-float2 interpolateRTUV(GpuDrawData draw, uint3 indices, float2 attributes)
+float2 InterpolateRTUV(GpuDrawData Draw, uint3 Indices, float2 Attributes)
 {
-    float3 bary = float3(1.0 - attributes.x - attributes.y, attributes);
-    return loadRTUV(draw, indices.x) * bary.x + loadRTUV(draw, indices.y) * bary.y + loadRTUV(draw, indices.z) * bary.z;
+    float3 Bary = float3(1.0 - Attributes.x - Attributes.y, Attributes);
+    return LoadRTUV(Draw, Indices.x) * Bary.x + LoadRTUV(Draw, Indices.y) * Bary.y + LoadRTUV(Draw, Indices.z) * Bary.z;
 }
 
-float sampleRayTracingAlpha(GpuDrawData mesh, GpuMaterialData mat, uint primitiveIndex, float2 barycentrics)
+float SampleRayTracingAlpha(GpuDrawData Mesh, GpuMaterialData Mat, uint PrimitiveIndex, float2 Barycentrics)
 {
-    float alpha = mat.baseColorFactor.a;
-    if (mat.baseColorTexture != INVALID_TEXTURE)
+    float Alpha = Mat.BaseColorFactor.a;
+    if (Mat.BaseColorTexture != INVALID_TEXTURE)
     {
-        Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(mat.baseColorTexture)];
-        SamplerState      sampler = SamplerDescriptorHeap[samplerIndex];
-        float2            uv = interpolateRTUV(mesh, loadRTTriangle(mesh, primitiveIndex), barycentrics);
-        alpha *= texture.SampleLevel(sampler, uv, 0).a;
+        Texture2D<float4> Texture = ResourceDescriptorHeap[NonUniformResourceIndex(Mat.BaseColorTexture)];
+        SamplerState      Sampler = SamplerDescriptorHeap[SamplerIndex];
+        float2            UV = InterpolateRTUV(Mesh, LoadRTTriangle(Mesh, PrimitiveIndex), Barycentrics);
+        Alpha *= Texture.SampleLevel(Sampler, UV, 0).a;
     }
-    return alpha;
+    return Alpha;
 }
 
-float2 blueNoiseVec2(uint texBlueNoise, uint smpl, float2 screenCoord, uint frameIndex)
+float2 BlueNoiseVec2(uint TexBlueNoise, uint Smpl, float2 ScreenCoord, uint FrameIndex)
 {
-    uint2             wrappedXY = uint2(screenCoord) & uint2(127);
-    uint              wrappedZ = frameIndex & 63u;
-    float2            uv = (float2(float(wrappedXY.x), float(wrappedZ * 128u + wrappedXY.y)) + float2(0.5)) / float2(128.0, 8192.0);
-    Texture2D<float4> texture = ResourceDescriptorHeap[texBlueNoise];
-    SamplerState      sampler = SamplerDescriptorHeap[smpl];
-    return texture.SampleLevel(sampler, uv, 0).rg;
+    uint2             WrappedXY = uint2(ScreenCoord) & uint2(127);
+    uint              WrappedZ = FrameIndex & 63u;
+    float2            UV = (float2(float(WrappedXY.x), float(WrappedZ * 128u + WrappedXY.y)) + float2(0.5)) / float2(128.0, 8192.0);
+    Texture2D<float4> Texture = ResourceDescriptorHeap[TexBlueNoise];
+    SamplerState      Sampler = SamplerDescriptorHeap[Smpl];
+    return Texture.SampleLevel(Sampler, UV, 0).rg;
 }
 
 // A GBuffer position is off by the depth quantization error along the view ray, which grows with distance. Pulling the
 // origin toward the eye by a few depth steps keeps it on the visible side of the surface without a fixed world-space gap;
 // the floor covers float precision of large world coordinates near the camera.
-float3 rtGBufferRayOrigin(float2 uv, float depth, float3 position, float3 normal, float3 eye, float4x4 inverseViewProjection)
+float3 RTGBufferRayOrigin(float2 UV, float Depth, float3 Position, float3 Normal, float3 Eye, float4x4 InverseViewProjection)
 {
-    const float3 toEye = eye - position;
-    const float3 magnitude = abs(position);
-    const float  offset = max(length(reconstructWorldPosition(uv, max(depth - 8.0 / 16777215.0, 0.0), inverseViewProjection) - position),
-                              max(max(magnitude.x, magnitude.y), max(magnitude.z, 1.0)) / 65536.0);
-    normal = dot(normal, toEye) < 0.0 ? -normal : normal;
-    return position + (normalize(toEye) + normal) * offset;
+    const float3 ToEye = Eye - Position;
+    const float3 Magnitude = abs(Position);
+    const float  Offset = max(length(ReconstructWorldPosition(UV, max(Depth - 8.0 / 16777215.0, 0.0), InverseViewProjection) - Position),
+                              max(max(Magnitude.x, Magnitude.y), max(Magnitude.z, 1.0)) / 65536.0);
+    Normal = dot(Normal, ToEye) < 0.0 ? -Normal : Normal;
+    return Position + (normalize(ToEye) + Normal) * Offset;
 }
 
 // Wächter and Binder, "A Fast and Robust Method for Avoiding Self-Intersection", Ray Tracing Gems chapter 6.
 // For positions interpolated from triangle vertices; the normal is the geometric normal on the ray's side.
-float3 rtOffsetHitPosition(float3 position, float3 normal)
+float3 RTOffsetHitPosition(float3 Position, float3 Normal)
 {
-    const float  origin = 1.0 / 32.0;
-    const float  floatScale = 1.0 / 65536.0;
-    const float  intScale = 256.0;
-    const int3   offset = int3(intScale * normal);
-    const float3 shifted = asfloat(asint(position) + select(position < 0.0, -offset, offset));
-    return select(abs(position) < origin, position + floatScale * normal, shifted);
+    const float  Origin = 1.0 / 32.0;
+    const float  FloatScale = 1.0 / 65536.0;
+    const float  IntScale = 256.0;
+    const int3   Offset = int3(IntScale * Normal);
+    const float3 Shifted = asfloat(asint(Position) + select(Position < 0.0, -Offset, Offset));
+    return select(abs(Position) < Origin, Position + FloatScale * Normal, Shifted);
 }
 
 // Returns 1 when the ray reaches TMax. Masked geometry is alpha tested when alphaTest is set.
-float traceRTShadow(RaytracingAccelerationStructure scene, RayDesc ray, bool alphaTest)
+float TraceRTShadow(RaytracingAccelerationStructure Scene, RayDesc Ray, bool AlphaTest)
 {
-    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> rq;
-    rq.TraceRayInline(scene, RAY_FLAG_NONE, 0xff, ray);
-    while (rq.Proceed())
+    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES> Rq;
+    Rq.TraceRayInline(Scene, RAY_FLAG_NONE, 0xff, Ray);
+    while (Rq.Proceed())
     {
-        GpuDrawData mesh = loadRTDraw(uint(rq.CandidateInstanceID()));
-        if (!alphaTest || mesh.alphaMode != 1)
+        GpuDrawData Mesh = LoadRTDraw(uint(Rq.CandidateInstanceID()));
+        if (!AlphaTest || Mesh.AlphaMode != 1)
         {
-            rq.CommitNonOpaqueTriangleHit();
+            Rq.CommitNonOpaqueTriangleHit();
             continue;
         }
-        ByteAddressBuffer materials = ResourceDescriptorHeap[materialsIndex];
-        GpuMaterialData   material = materials.Load<GpuMaterialData>(mesh.material * sizeof(GpuMaterialData));
-        if (sampleRayTracingAlpha(mesh, material, rq.CandidatePrimitiveIndex(), rq.CandidateTriangleBarycentrics()) >= material.alphaCutoff)
+        ByteAddressBuffer Materials = ResourceDescriptorHeap[MaterialsIndex];
+        GpuMaterialData   Material = Materials.Load<GpuMaterialData>(Mesh.Material * sizeof(GpuMaterialData));
+        if (SampleRayTracingAlpha(Mesh, Material, Rq.CandidatePrimitiveIndex(), Rq.CandidateTriangleBarycentrics()) >= Material.AlphaCutoff)
         {
-            rq.CommitNonOpaqueTriangleHit();
+            Rq.CommitNonOpaqueTriangleHit();
         }
     }
-    return rq.CommittedStatus() == COMMITTED_TRIANGLE_HIT ? 0.0 : 1.0;
+    return Rq.CommittedStatus() == COMMITTED_TRIANGLE_HIT ? 0.0 : 1.0;
 }
 
-LightingBindings rtLightingBindings()
+LightingBindings RTLightingBindings()
 {
-    LightingBindings b;
-    b.shadowMap = b.shadowSampler = b.rtShadowAO = b.rtReflection = INVALID_TEXTURE;
-    b.environment = environmentIndex;
-    b.irradiance = irradianceIndex;
-    b.brdfLut = brdfIndex;
-    b.environmentSampler = environmentSamplerIndex;
-    return b;
+    LightingBindings B;
+    B.ShadowMap = B.ShadowSampler = B.RtShadowAO = B.RtReflection = INVALID_TEXTURE;
+    B.Environment = EnvironmentIndex;
+    B.Irradiance = IrradianceIndex;
+    B.BrdfLut = BrdfIndex;
+    B.EnvironmentSampler = EnvironmentSamplerIndex;
+    return B;
 }

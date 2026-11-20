@@ -4,19 +4,19 @@
 // Mirrors the RootConstant0 block of FrustumCulling.slang field for field.
 struct CullingConstants
 {
-    uint32_t frameIndex;
-    uint32_t drawsIndex;
-    uint32_t instancesIndex;
-    uint32_t materialsIndex;
-    uint32_t filtersIndex;
-    uint32_t filterCount;
-    uint32_t statisticsIndex;
-    uint32_t drawCount;
-    uint32_t cullingEnabled;
+    uint32_t FrameIndex;
+    uint32_t DrawsIndex;
+    uint32_t InstancesIndex;
+    uint32_t MaterialsIndex;
+    uint32_t FiltersIndex;
+    uint32_t FilterCount;
+    uint32_t StatisticsIndex;
+    uint32_t DrawCount;
+    uint32_t CullingEnabled;
 };
 static_assert(sizeof(CullingConstants) == 9 * sizeof(uint32_t));
 // Offset of statisticsIndex, which ClearStatistics reads on its own.
-constexpr uint32_t CullingStatisticsSlot = offsetof(CullingConstants, statisticsIndex) / sizeof(uint32_t);
+constexpr uint32_t CullingStatisticsSlot = offsetof(CullingConstants, StatisticsIndex) / sizeof(uint32_t);
 
 FrustumCulling::FrustumCulling(hz::RenderContext& Context)
 {
@@ -61,15 +61,15 @@ void FrustumCulling::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fra
     const uint32_t             ListCount = Draws.GetListCount();
     Commands.BeginGpuTimestamp("GPU Frustum Culling");
     Commands.SetPipeline(Pipeline);
-    const CullingConstants Binding = { .frameIndex = Frame.GetSrvIndex(),
-                                       .drawsIndex = DrawData.GetSrvIndex(),
-                                       .instancesIndex = Gpu.instances.GetSrvIndex(),
-                                       .materialsIndex = Gpu.materials.GetSrvIndex(),
-                                       .filtersIndex = Filters.GetSrvIndex(),
-                                       .filterCount = ListCount,
-                                       .statisticsIndex = Stats.GetUavIndex(),
-                                       .drawCount = Count,
-                                       .cullingEnabled = Culling ? 1u : 0u };
+    const CullingConstants Binding = { .FrameIndex = Frame.GetSrvIndex(),
+                                       .DrawsIndex = DrawData.GetSrvIndex(),
+                                       .InstancesIndex = Gpu.instances.GetSrvIndex(),
+                                       .MaterialsIndex = Gpu.materials.GetSrvIndex(),
+                                       .FiltersIndex = Filters.GetSrvIndex(),
+                                       .FilterCount = ListCount,
+                                       .StatisticsIndex = Stats.GetUavIndex(),
+                                       .DrawCount = Count,
+                                       .CullingEnabled = Culling ? 1u : 0u };
     Commands.SetRootConstants(Binding);
     const hz::GPUBuffer* Outputs[hz::GpuDrawList::MaxLists + 1] = { &Stats };
     for (uint32_t List = 0; List < ListCount; ++List)

@@ -4,103 +4,103 @@
 // need a spatial filter; what flickers is undersampled detail at half resolution, which history averages out. History
 // follows the surface motion and is clipped to the current neighbourhood in YCoCg, so parallax in the reflection
 // becomes a short lag instead of a ghost. Writes (radiance, history length); texels without a reflection write zero.
-static const float kMaxHistoryLength = 32.0;
-static const float kClipGamma = 1.25;
+static const float MaxHistoryLength = 32.0;
+static const float ClipGamma = 1.25;
 
-float3 toYCoCg(float3 rgb)
+float3 ToYCoCg(float3 Rgb)
 {
-    return float3(dot(rgb, float3(0.25, 0.5, 0.25)), dot(rgb, float3(0.5, 0.0, -0.5)), dot(rgb, float3(-0.25, 0.5, -0.25)));
+    return float3(dot(Rgb, float3(0.25, 0.5, 0.25)), dot(Rgb, float3(0.5, 0.0, -0.5)), dot(Rgb, float3(-0.25, 0.5, -0.25)));
 }
 
-float3 fromYCoCg(float3 c) { return float3(c.x + c.y - c.z, c.x + c.z, c.x - c.y - c.z); }
+float3 FromYCoCg(float3 C) { return float3(C.x + C.y - C.z, C.x + C.z, C.x - C.y - C.z); }
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
-void main(uint3 thread : SV_DispatchThreadID)
+void main(uint3 Thread : SV_DispatchThreadID)
 {
-    RWTexture2D<float4> output = ResourceDescriptorHeap[outputIndex];
-    uint                width;
-    uint                height;
-    output.GetDimensions(width, height);
-    if (thread.x >= width || thread.y >= height)
+    RWTexture2D<float4> Output = ResourceDescriptorHeap[OutputIndex];
+    uint                Width;
+    uint                Height;
+    Output.GetDimensions(Width, Height);
+    if (Thread.x >= Width || Thread.y >= Height)
     {
         return;
     }
 
-    Texture2D<float4> input = ResourceDescriptorHeap[inputIndex];
-    Texture2D<float>  depthTexture = ResourceDescriptorHeap[depthIndex];
-    const int2        size = int2(width, height);
-    const int2        pixel = int2(thread.xy);
-    uint2             sourceSize;
-    depthTexture.GetDimensions(sourceSize.x, sourceSize.y);
-    const int2   source = rtSourcePixel(pixel, size, int2(sourceSize));
-    const float4 current = input.Load(int3(pixel, 0));
-    const float  depth = depthTexture.Load(int3(source, 0));
+    Texture2D<float4> Input = ResourceDescriptorHeap[InputIndex];
+    Texture2D<float>  DepthTexture = ResourceDescriptorHeap[DepthIndex];
+    const int2        Size = int2(Width, Height);
+    const int2        Pixel = int2(Thread.xy);
+    uint2             SourceSize;
+    DepthTexture.GetDimensions(SourceSize.x, SourceSize.y);
+    const int2   Source = RTSourcePixel(Pixel, Size, int2(SourceSize));
+    const float4 Current = Input.Load(int3(Pixel, 0));
+    const float  Depth = DepthTexture.Load(int3(Source, 0));
     // Alpha marks a traced reflection; sky and surfaces too rough for ray traced reflections have none.
-    if (depth >= 1.0 || current.a <= 0.0)
+    if (Depth >= 1.0 || Current.a <= 0.0)
     {
-        output[pixel] = 0.0;
+        Output[Pixel] = 0.0;
         return;
     }
 
     // Statistics over the traced neighbours only, so the roughness cutoff does not pull history toward black.
-    float3 mean = 0.0;
-    float3 meanSquare = 0.0;
-    float  count = 0.0;
-    for (int y = -1; y <= 1; ++y)
+    float3 Mean = 0.0;
+    float3 MeanSquare = 0.0;
+    float  Count = 0.0;
+    for (int Y = -1; Y <= 1; ++Y)
     {
-        for (int x = -1; x <= 1; ++x)
+        for (int X = -1; X <= 1; ++X)
         {
-            const float4 value = input.Load(int3(clamp(pixel + int2(x, y), int2(0), size - 1), 0));
-            if (value.a > 0.0)
+            const float4 Value = Input.Load(int3(clamp(Pixel + int2(X, Y), int2(0), Size - 1), 0));
+            if (Value.a > 0.0)
             {
-                const float3 c = toYCoCg(value.rgb);
-                mean += c;
-                meanSquare += c * c;
-                count += 1.0;
+                const float3 C = ToYCoCg(Value.rgb);
+                Mean += C;
+                MeanSquare += C * C;
+                Count += 1.0;
             }
         }
     }
-    mean /= count;
-    const float3 extent = kClipGamma * sqrt(max(meanSquare / count - mean * mean, 0.0));
+    Mean /= Count;
+    const float3 Extent = ClipGamma * sqrt(max(MeanSquare / Count - Mean * Mean, 0.0));
 
-    float3 history = current.rgb;
-    float  historyLength = 0.0;
-    if (historyValid != 0)
+    float3 History = Current.rgb;
+    float  HistoryLength = 0.0;
+    if (HistoryValid != 0)
     {
-        StructuredBuffer<FrameData> frames = ResourceDescriptorHeap[frameIndex];
-        Texture2D<float4>           historyTexture = ResourceDescriptorHeap[historyIndex];
-        Texture2D<float>            previousDepth = ResourceDescriptorHeap[previousDepthIndex];
-        const float3                worldPosition =
-            reconstructWorldPosition((float2(source) + 0.5) / float2(sourceSize), depth, frames[0].inverseViewProjection);
-        const float4 previousClip = mul(frames[0].previousViewProjection, float4(worldPosition, 1.0));
-        const float2 previousSource = (previousClip.xy / previousClip.w * float2(0.5, -0.5) + 0.5) * float2(sourceSize) - 0.5;
-        const float2 previousPixel = previousSource * float2(size) / float2(sourceSize);
-        const int2   base = int2(floor(previousPixel));
-        const float2 fraction = previousPixel - float2(base);
-        float4       sum = 0.0;
-        float        weightSum = 0.0;
-        for (int i = 0; i < 4; ++i)
+        StructuredBuffer<FrameData> Frames = ResourceDescriptorHeap[FrameIndex];
+        Texture2D<float4>           HistoryTexture = ResourceDescriptorHeap[HistoryIndex];
+        Texture2D<float>            PreviousDepth = ResourceDescriptorHeap[PreviousDepthIndex];
+        const float3                WorldPosition =
+            ReconstructWorldPosition((float2(Source) + 0.5) / float2(SourceSize), Depth, Frames[0].InverseViewProjection);
+        const float4 PreviousClip = mul(Frames[0].PreviousViewProjection, float4(WorldPosition, 1.0));
+        const float2 PreviousSource = (PreviousClip.xy / PreviousClip.w * float2(0.5, -0.5) + 0.5) * float2(SourceSize) - 0.5;
+        const float2 PreviousPixel = PreviousSource * float2(Size) / float2(SourceSize);
+        const int2   Base = int2(floor(PreviousPixel));
+        const float2 Fraction = PreviousPixel - float2(Base);
+        float4       Sum = 0.0;
+        float        WeightSum = 0.0;
+        for (int I = 0; I < 4; ++I)
         {
-            const int2   offset = int2(i & 1, i >> 1);
-            const int2   tap = base + offset;
-            const float4 value = previousClip.w > 0.0 && all(tap >= 0) && all(tap < size) ? historyTexture.Load(int3(tap, 0)) : 0.0;
+            const int2   Offset = int2(I & 1, I >> 1);
+            const int2   Tap = Base + Offset;
+            const float4 Value = PreviousClip.w > 0.0 && all(Tap >= 0) && all(Tap < Size) ? HistoryTexture.Load(int3(Tap, 0)) : 0.0;
             // Taps of another surface or without accumulated reflection are skipped.
-            if (value.a <= 0.0 || abs(previousDepth.Load(int3(tap, 0)) - previousClip.w) > depthThreshold * previousClip.w)
+            if (Value.a <= 0.0 || abs(PreviousDepth.Load(int3(Tap, 0)) - PreviousClip.w) > DepthThreshold * PreviousClip.w)
             {
                 continue;
             }
-            const float2 bilinear = lerp(1.0 - fraction, fraction, float2(offset));
-            sum += value * (bilinear.x * bilinear.y);
-            weightSum += bilinear.x * bilinear.y;
+            const float2 Bilinear = lerp(1.0 - Fraction, Fraction, float2(Offset));
+            Sum += Value * (Bilinear.x * Bilinear.y);
+            WeightSum += Bilinear.x * Bilinear.y;
         }
-        if (weightSum > 1e-3)
+        if (WeightSum > 1e-3)
         {
-            sum /= weightSum;
-            history = fromYCoCg(clamp(toYCoCg(sum.rgb), mean - extent, mean + extent));
-            historyLength = sum.a;
+            Sum /= WeightSum;
+            History = FromYCoCg(clamp(ToYCoCg(Sum.rgb), Mean - Extent, Mean + Extent));
+            HistoryLength = Sum.a;
         }
     }
-    historyLength = min(historyLength + 1.0, kMaxHistoryLength);
-    output[pixel] = float4(max(lerp(history, current.rgb, max(1.0 / historyLength, temporalAlpha)), 0.0), historyLength);
+    HistoryLength = min(HistoryLength + 1.0, MaxHistoryLength);
+    Output[Pixel] = float4(max(lerp(History, Current.rgb, max(1.0 / HistoryLength, TemporalAlpha)), 0.0), HistoryLength);
 }

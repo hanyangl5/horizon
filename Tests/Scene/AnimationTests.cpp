@@ -188,27 +188,27 @@ TEST_F(AnimationTest, SkinningCoreSamplesBlendsAndBoundsThePose)
     expectNear(skin(core, 1, Vector3(1, 2, 0)), 1, 2, 0);
     EXPECT_EQ(core.GetModelMatrices().Count, 2u);
 
-    const hz::AnimationLayer end = { .clip = &clip, .time = 1.0f };
+    const hz::AnimationLayer end = { .Clip = &clip, .Time = 1.0f };
     ASSERT_TRUE(core.Evaluate({ &end, 1 }));
     expectNear(skin(core, 1, Vector3(1, 2, 0)), -1, 2, 0);
     expectNear(skin(core, 0, Vector3(1, 0, 0)), 1, 0, 0);
     hz::SkinBounds bounds;
     ASSERT_TRUE(core.GetSkinBounds(0, bounds));
-    EXPECT_NEAR(bounds.minimum[0], -1, kPoseTolerance);
-    EXPECT_NEAR(bounds.maximum[0], 1, kPoseTolerance);
-    EXPECT_NEAR(bounds.minimum[1], 0, kPoseTolerance);
-    EXPECT_NEAR(bounds.maximum[1], 2, kPoseTolerance);
+    EXPECT_NEAR(bounds.Minimum[0], -1, kPoseTolerance);
+    EXPECT_NEAR(bounds.Maximum[0], 1, kPoseTolerance);
+    EXPECT_NEAR(bounds.Minimum[1], 0, kPoseTolerance);
+    EXPECT_NEAR(bounds.Maximum[1], 2, kPoseTolerance);
 
-    const hz::AnimationLayer half = { .clip = &clip, .time = 0.5f };
+    const hz::AnimationLayer half = { .Clip = &clip, .Time = 0.5f };
     ASSERT_TRUE(core.Evaluate({ &half, 1 }));
     expectNear(skin(core, 1, Vector3(1, 2, 0)), 0, 1 + sqrtf(2.0f), 0);
     // Equal weights at the start and end of the clip blend to the same halfway pose.
-    const hz::AnimationLayer layers[] = { { .clip = &clip, .time = 0.0f }, { .clip = &clip, .time = 1.0f } };
+    const hz::AnimationLayer layers[] = { { .Clip = &clip, .Time = 0.0f }, { .Clip = &clip, .Time = 1.0f } };
     ASSERT_TRUE(core.Evaluate(layers));
     expectNear(skin(core, 1, Vector3(1, 2, 0)), 0, 1 + sqrtf(2.0f), 0);
 
     // A clip for another skeleton fails and keeps the pose; no layers return to the rest pose.
-    const hz::AnimationLayer foreign = { .clip = &mismatched, .time = 1.0f };
+    const hz::AnimationLayer foreign = { .Clip = &mismatched, .Time = 1.0f };
     EXPECT_FALSE(core.Evaluate({ &foreign, 1 }));
     expectNear(skin(core, 1, Vector3(1, 2, 0)), 0, 1 + sqrtf(2.0f), 0);
     ASSERT_TRUE(core.Evaluate({}));

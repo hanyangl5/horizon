@@ -30,17 +30,17 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     ASSERT_TRUE(pipeline.IsValid());
     struct FrameData
     {
-        Matrix4 viewProjection;
-        Matrix4 previousViewProjection;
-        Matrix4 inverseViewProjection;
-        Vector4 eye;
+        Matrix4 ViewProjection;
+        Matrix4 PreviousViewProjection;
+        Matrix4 InverseViewProjection;
+        Vector4 Eye;
     };
     // Project x/z, y/z at constant Depth, with vertex w = 1, 1, 2.
     const Matrix4      projection(Vector4(1, 0, 0, 0), Vector4(0, 1, 0, 0), Vector4(0, 0, 0.5f, 1), Vector4(0));
-    const FrameData    frameData = { .viewProjection = projection,
-                                     .previousViewProjection = projection,
-                                     .inverseViewProjection = Matrix4::identity(),
-                                     .eye = Vector4(0, 0, 0, 1) };
+    const FrameData    frameData = { .ViewProjection = projection,
+                                     .PreviousViewProjection = projection,
+                                     .InverseViewProjection = Matrix4::identity(),
+                                     .Eye = Vector4(0, 0, 0, 1) };
     const float        positions[] = { -0.8f, -0.8f, 1, 0.6f, -0.8f, 1, -0.2f, 1, 2 };
     const uint32_t     normals[] = { 0x80008000, 0x80008000, 0x80008000 }, texcoords[] = { 0, 0, 0 };
     hz::RenderInstance instance;
@@ -143,7 +143,7 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingFillsFilteredDrawLists)
         Matrix4 current;
         Matrix4 previous;
         Matrix4 inverse;
-        Vector4 eye;
+        Vector4 Eye;
     };
     FrameData          camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 0, 1) };
     hz::RenderInstance instances[5];
@@ -163,7 +163,7 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingFillsFilteredDrawLists)
         drawData[i][1] = i;
         drawData[i][3] = i == 3 ? 2u : 0u;
         drawData[i][11] = 3 * (i + 1);
-        materials[i].tags = i == 1 || i == 4 ? 4u : 0u;
+        materials[i].Tags = i == 1 || i == 4 ? 4u : 0u;
     }
     const auto input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
     {
@@ -198,12 +198,12 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingFillsFilteredDrawLists)
                                                            .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER_RAW });
     // Opaque and masked, blended, uncullable casters, and opaque draws whose material has tag bit 2.
     const uint32_t opaqueModes = hz::DrawListAlphaMode(hz::MaterialAlphaMode::Opaque) | hz::DrawListAlphaMode(hz::MaterialAlphaMode::Mask);
-    hz::DrawListFilter filters[ListCount] = { { .alphaModes = opaqueModes },
-                                          { .alphaModes = hz::DrawListAlphaMode(hz::MaterialAlphaMode::Blend) },
-                                          { .alphaModes = opaqueModes, .frustumCull = 0 },
-                                          { .alphaModes = opaqueModes, .requiredTags = 4 } };
+    hz::DrawListFilter filters[ListCount] = { { .AlphaModes = opaqueModes },
+                                          { .AlphaModes = hz::DrawListAlphaMode(hz::MaterialAlphaMode::Blend) },
+                                          { .AlphaModes = opaqueModes, .FrustumCull = 0 },
+                                          { .AlphaModes = opaqueModes, .RequiredTags = 4 } };
     for (uint32_t i = 0; i < ListCount; ++i)
-        filters[i].commandsIndex = outputs[i].GetUavIndex();
+        filters[i].CommandsIndex = outputs[i].GetUavIndex();
     hz::GPUBuffer  filterBuffer = input(filters, sizeof(filters), sizeof(hz::DrawListFilter));
     hz::GPUBuffer  readback = context.CreateBuffer({ .Size = ListCount * 100 + 16,
                                                      .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
@@ -232,7 +232,7 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingFillsFilteredDrawLists)
             camera.current = Matrix4::perspectiveRH(PI / 2.0f, 1.0f, 0.1f, 10.0f) * inverse(pose);
             camera.previous = camera.current;
             camera.inverse = inverse(camera.current);
-            camera.eye = pose.getCol3();
+            camera.Eye = pose.getCol3();
             ASSERT_TRUE(context.UpdateBuffer(frame, 0, &camera, sizeof(camera)));
             ASSERT_TRUE(context.UpdateBuffer(instanceBuffer, 0, instances, sizeof(instances)));
         }
@@ -375,7 +375,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
     struct FrameData
     {
         Matrix4 current = Matrix4::identity(), previous = Matrix4::identity(), inverse = Matrix4::identity();
-        Vector4 eye = Vector4(0, 0, -10, 1);
+        Vector4 Eye = Vector4(0, 0, -10, 1);
     } camera;
     hz::GPUBuffer frame = context.CreateBuffer({ .Size = sizeof(camera),
                                                  .ElementCount = sizeof(camera) / 4,
@@ -429,10 +429,10 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
             for (uint32_t i = 0; i < prepared.Count; ++i)
             {
                 const hz::GpuDrawData& Draw = prepared.Data[i];
-                const float        x = (float)scene.GetInstances().Data[Draw.instance].current.getTranslation().getX();
+                const float        x = (float)scene.GetInstances().Data[Draw.Instance].current.getTranslation().getX();
                 for (uint32_t j = 0; j < 4; ++j)
                 {
-                    if (x == offsets[j] && Draw.alphaMode != uint32_t(hz::MaterialAlphaMode::Blend))
+                    if (x == offsets[j] && Draw.AlphaMode != uint32_t(hz::MaterialAlphaMode::Blend))
                     {
                         expected[j] = i;
                     }
@@ -505,18 +505,18 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     ASSERT_TRUE(pipeline.IsValid());
     struct FrameData
     {
-        Matrix4 viewProjection = Matrix4::identity();
-        Matrix4 previousViewProjection = Matrix4::identity();
-        Matrix4 inverseViewProjection = Matrix4::identity();
-        Vector4 eye = Vector4(0, 0, -2, 1);
+        Matrix4 ViewProjection = Matrix4::identity();
+        Matrix4 PreviousViewProjection = Matrix4::identity();
+        Matrix4 InverseViewProjection = Matrix4::identity();
+        Vector4 Eye = Vector4(0, 0, -2, 1);
     } frameData;
     hz::RenderInstance instances[2];
     instances[0].current = instances[0].previous = Matrix4::translation(Vector3(-0.5f, 0, 0));
     instances[1].current = instances[1].previous = Matrix4::translation(Vector3(0.5f, 0, 0));
     hz::GpuMaterialData materials[2];
-    materials[0].baseColorFactor[1] = materials[0].baseColorFactor[2] = 0;
-    materials[1].baseColorFactor[0] = materials[1].baseColorFactor[2] = 0;
-    materials[0].metallicFactor = materials[1].metallicFactor = 0;
+    materials[0].BaseColorFactor[1] = materials[0].BaseColorFactor[2] = 0;
+    materials[1].BaseColorFactor[0] = materials[1].BaseColorFactor[2] = 0;
+    materials[0].MetallicFactor = materials[1].MetallicFactor = 0;
     const float    positions[] = { -0.3f, -0.5f, 0.5f, 0.3f, -0.5f, 0.5f, 0, 0.5f, 0.5f };
     const uint32_t normals[] = { 0x80008000, 0x80008000, 0x80008000 }, uvs[] = { 0, 0, 0 };
     const auto     input = [&](const void* data, uint32_t Size, uint32_t stride = 0)
@@ -535,26 +535,26 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     hz::GPUBuffer vertices = input(positions, sizeof(positions)), normal = input(normals, sizeof(normals)), uv = input(uvs, sizeof(uvs));
     struct DrawData
     {
-        uint32_t instance, material, materialId, alphaMode, positions, normals, texcoords, indices;
-        uint32_t indexStride, firstIndex;
-        int32_t  vertexOffset;
-        uint32_t indexCount;
+        uint32_t Instance, Material, MaterialId, AlphaMode, Positions, Normals, Texcoords, Indices;
+        uint32_t IndexStride, FirstIndex;
+        int32_t  VertexOffset;
+        uint32_t IndexCount;
     };
-    DrawData drawData[2] = { { .instance = 0,
-                               .material = 0,
-                               .materialId = 17,
-                               .alphaMode = 0,
-                               .positions = vertices.GetSrvIndex(),
-                               .normals = normal.GetSrvIndex(),
-                               .texcoords = uv.GetSrvIndex(),
-                               .indices = mesh->GetIndexBuffer().GetSrvIndex(),
-                               .indexStride = 2,
-                               .firstIndex = 0,
-                               .vertexOffset = 0,
-                               .indexCount = 3 } };
+    DrawData drawData[2] = { { .Instance = 0,
+                               .Material = 0,
+                               .MaterialId = 17,
+                               .AlphaMode = 0,
+                               .Positions = vertices.GetSrvIndex(),
+                               .Normals = normal.GetSrvIndex(),
+                               .Texcoords = uv.GetSrvIndex(),
+                               .Indices = mesh->GetIndexBuffer().GetSrvIndex(),
+                               .IndexStride = 2,
+                               .FirstIndex = 0,
+                               .VertexOffset = 0,
+                               .IndexCount = 3 } };
     drawData[1] = drawData[0];
-    drawData[1].instance = drawData[1].material = 1;
-    drawData[1].materialId = 39;
+    drawData[1].Instance = drawData[1].Material = 1;
+    drawData[1].MaterialId = 39;
     hz::GPUBuffer draws = input(drawData, sizeof(drawData));
     struct DrawCommand
     {
@@ -912,10 +912,10 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     struct FrameData
     {
         Matrix4 current, previous, inverse;
-        Vector4 eye;
+        Vector4 Eye;
     };
     const FrameData         camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 1, 1) };
-    const LightingFrameData lighting = { .lightDirection = Vector4(0, 0, -1, 0) };
+    const LightingFrameData lighting = { .LightDirection = Vector4(0, 0, -1, 0) };
     hz::GPUBuffer  frame = input(&camera, sizeof(camera), sizeof(camera)), light = input(&lighting, sizeof(lighting), sizeof(lighting));
     const float    positions[] = { -1, -1, 0.5f, 3, -1, 0.5f, -1, 3, 0.5f };
     // A leading index exercises a uint16 triangle spanning two aligned words.
@@ -928,28 +928,28 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     hz::GpuMaterialData materials[3];
     for (uint32_t i = 0; i < 3; ++i)
     {
-        materials[i].id = { i, 1 };
-        materials[i].baseColorTexture = i < 2 ? alpha.GetSrvIndex() : UINT32_MAX;
-        materials[i].alphaMode = i == 1 ? 1u : 0u;
-        materials[i].emissiveFactor[i == 2 ? 1 : 0] = 1;
-        materials[i].alphaCutoff = 0.5f;
+        materials[i].Id = { i, 1 };
+        materials[i].BaseColorTexture = i < 2 ? alpha.GetSrvIndex() : UINT32_MAX;
+        materials[i].AlphaMode = i == 1 ? 1u : 0u;
+        materials[i].EmissiveFactor[i == 2 ? 1 : 0] = 1;
+        materials[i].AlphaCutoff = 0.5f;
     }
     hz::GpuTextureData textures[4];
     textures[3] = { .id = { 3, 9 }, .srv = alpha.GetSrvIndex() };
     hz::GpuDrawData drawData[8] = {};
-    drawData[5] = { .material = 0,
-                    .alphaMode = 0,
-                    .positions = vertices.GetSrvIndex(),
-                    .normals = uv.GetSrvIndex(),
-                    .texcoords = uv.GetSrvIndex(),
-                    .indices = indexBuffer.GetSrvIndex(),
-                    .indexStride = 2,
-                    .firstIndex = 1,
-                    .indexCount = 3 };
+    drawData[5] = { .Material = 0,
+                    .AlphaMode = 0,
+                    .Positions = vertices.GetSrvIndex(),
+                    .Normals = uv.GetSrvIndex(),
+                    .Texcoords = uv.GetSrvIndex(),
+                    .Indices = indexBuffer.GetSrvIndex(),
+                    .IndexStride = 2,
+                    .FirstIndex = 1,
+                    .IndexCount = 3 };
     drawData[6] = drawData[5];
-    drawData[6].material = drawData[6].alphaMode = 1;
+    drawData[6].Material = drawData[6].AlphaMode = 1;
     drawData[7] = drawData[5];
-    drawData[7].material = 2;
+    drawData[7].Material = 2;
     hz::GPUBuffer materialBuffer = input(materials, sizeof(materials)), textureBuffer = input(textures, sizeof(textures));
     hz::GPUBuffer drawBuffer = input(drawData, sizeof(drawData));
     hz::AccelerationStructureGeometry geometry = { .pVertexBuffer = &vertices,
@@ -1036,12 +1036,12 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
         const AlphaCase& test = cases[caseIndex % caseCount];
         for (hz::GpuDrawData& Draw : drawData)
         {
-            Draw.indices = caseIndex < caseCount ? indexBuffer.GetSrvIndex() : indexBuffer32.GetSrvIndex();
-            Draw.indexStride = caseIndex < caseCount ? 2 : 4;
+            Draw.Indices = caseIndex < caseCount ? indexBuffer.GetSrvIndex() : indexBuffer32.GetSrvIndex();
+            Draw.IndexStride = caseIndex < caseCount ? 2 : 4;
         }
         ASSERT_TRUE(context.UpdateBuffer(drawBuffer, 0, drawData, sizeof(drawData)));
-        materials[1].baseColorFactor[3] = test.factor;
-        materials[1].baseColorTexture = test.hasTexture ? alpha.GetSrvIndex() : UINT32_MAX;
+        materials[1].BaseColorFactor[3] = test.factor;
+        materials[1].BaseColorTexture = test.hasTexture ? alpha.GetSrvIndex() : UINT32_MAX;
         ASSERT_TRUE(context.UpdateBuffer(materialBuffer, 0, materials, sizeof(materials)));
         hz::CommandList& commands = context.AcquireCommandList();
         if (!caseIndex)
@@ -1083,13 +1083,13 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
         EXPECT_FLOAT_EQ(values[3], 1);
     }
     // Verify reflected lighting color as well as emissive hit IDs: a white surface and white light stay neutral.
-    LightingFrameData whiteLight = { .lightDirection = Vector4(0, 0, 1, 1), .lightColor = Vector4(1, 1, 1, 1) };
+    LightingFrameData whiteLight = { .LightDirection = Vector4(0, 0, 1, 1), .LightColor = Vector4(1, 1, 1, 1) };
     ASSERT_TRUE(context.UpdateBuffer(light, 0, &whiteLight, sizeof(whiteLight)));
-    materials[0].baseColorTexture = UINT32_MAX;
-    materials[0].baseColorFactor[0] = materials[0].baseColorFactor[1] = materials[0].baseColorFactor[2] = 1;
-    materials[0].emissiveFactor[0] = materials[0].emissiveFactor[1] = materials[0].emissiveFactor[2] = 0;
-    materials[0].metallicFactor = 0;
-    materials[0].roughnessFactor = 1;
+    materials[0].BaseColorTexture = UINT32_MAX;
+    materials[0].BaseColorFactor[0] = materials[0].BaseColorFactor[1] = materials[0].BaseColorFactor[2] = 1;
+    materials[0].EmissiveFactor[0] = materials[0].EmissiveFactor[1] = materials[0].EmissiveFactor[2] = 0;
+    materials[0].MetallicFactor = 0;
+    materials[0].RoughnessFactor = 1;
     ASSERT_TRUE(context.UpdateBuffer(materialBuffer, 0, materials, sizeof(materials)));
     constants.tlas = opaqueTop.GetSrvIndex();
     hz::CommandList& lit = context.AcquireCommandList();
@@ -1178,10 +1178,10 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     struct FrameData
     {
         Matrix4 current, previous, inverse;
-        Vector4 eye;
+        Vector4 Eye;
     };
     const FrameData         camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, -1, 1) };
-    const LightingFrameData lighting = { .lightDirection = Vector4(0, 0, -1, 1) };
+    const LightingFrameData lighting = { .LightDirection = Vector4(0, 0, -1, 1) };
     hz::GPUBuffer  frame = input(&camera, sizeof(camera), sizeof(camera)), light = input(&lighting, sizeof(lighting), sizeof(lighting));
     const float    positions[] = { -1, -1, 0.5f, 3, -1, 0.5f, -1, 3, 0.5f };
     // One uint16 triangle, padded so the production RAW decoder can read its final word.
@@ -1192,24 +1192,24 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     hz::GpuMaterialData     materials[2];
     for (uint32_t i = 0; i < 2; ++i)
     {
-        materials[i].id = { i, 1 };
-        materials[i].baseColorTexture = alpha.GetSrvIndex();
-        materials[i].alphaMode = i;
-        materials[i].alphaCutoff = 0.5f;
+        materials[i].Id = { i, 1 };
+        materials[i].BaseColorTexture = alpha.GetSrvIndex();
+        materials[i].AlphaMode = i;
+        materials[i].AlphaCutoff = 0.5f;
     }
     hz::GpuTextureData textures[4];
     textures[3] = { .id = { 3, 9 }, .srv = alpha.GetSrvIndex() };
     hz::GpuDrawData drawData[7] = {};
-    drawData[5] = { .material = 0,
-                    .alphaMode = 0,
-                    .positions = vertices.GetSrvIndex(),
-                    .normals = uv.GetSrvIndex(),
-                    .texcoords = uv.GetSrvIndex(),
-                    .indices = indexBuffer.GetSrvIndex(),
-                    .indexStride = 2,
-                    .indexCount = 3 };
+    drawData[5] = { .Material = 0,
+                    .AlphaMode = 0,
+                    .Positions = vertices.GetSrvIndex(),
+                    .Normals = uv.GetSrvIndex(),
+                    .Texcoords = uv.GetSrvIndex(),
+                    .Indices = indexBuffer.GetSrvIndex(),
+                    .IndexStride = 2,
+                    .IndexCount = 3 };
     drawData[6] = drawData[5];
-    drawData[6].material = drawData[6].alphaMode = 1;
+    drawData[6].Material = drawData[6].AlphaMode = 1;
     hz::GPUBuffer materialBuffer = input(materials, sizeof(materials)), textureBuffer = input(textures, sizeof(textures));
     hz::GPUBuffer                     drawBuffer = input(drawData, sizeof(drawData));
     hz::AccelerationStructureGeometry geometry = { .pVertexBuffer = &vertices,
@@ -1241,10 +1241,11 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
                                                     .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     struct ShadowConstants
     {
-        uint32_t frame, lighting, draws, materials, textures, sampler, top, normal, Depth, output, noise;
-        uint32_t environment = UINT32_MAX, irradiance = UINT32_MAX, brdf = UINT32_MAX, environmentSampler = UINT32_MAX;
-        uint32_t shadows = 1, ao = 0, samples = 1, phase = 0, alphaMethod = 1, retraceDepth = 3;
-        float    aoRadius = 2, aoPower = 1, shadowRadius = 0;
+        uint32_t FrameIndexBuffer, LightingIndex, DrawsIndex, MaterialsIndex, TexturesIndex, SamplerIndex;
+        uint32_t TlasIndex, NormalIndex, DepthIndex, OutputIndex, BlueNoiseIndex;
+        uint32_t EnvironmentIndex = UINT32_MAX, IrradianceIndex = UINT32_MAX, BrdfIndex = UINT32_MAX, EnvironmentSamplerIndex = UINT32_MAX;
+        uint32_t ShadowsEnabled = 1, AoEnabled = 0, AoSamples = 1, FrameNumber = 0, AlphaTestMethod = 1, RetraceMaxDepth = 3;
+        float    AoRadius = 2, ShadowRadius = 0;
     } constants = { frame.GetSrvIndex(),
                     light.GetSrvIndex(),
                     drawBuffer.GetSrvIndex(),
@@ -1261,9 +1262,9 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     {
         SCOPED_TRACE(caseIndex);
         const uint32_t scenario = caseIndex % 3;
-        constants.alphaMethod = (caseIndex / 3) % 3;
-        constants.shadows = caseIndex < 9;
-        constants.ao = caseIndex >= 9;
+        constants.AlphaTestMethod = (caseIndex / 3) % 3;
+        constants.ShadowsEnabled = caseIndex < 9;
+        constants.AoEnabled = caseIndex >= 9;
         hz::CommandList& commands = context.AcquireCommandList();
         if (!caseIndex)
         {
@@ -1284,7 +1285,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         Clear(Depth, { .r = 0.2f });
         Clear(noise, { .r = 0.5f, .g = 0.5f });
         Clear(alpha, { .a = scenario == 2 ? 0.75f : 0.25f });
-        constants.top = scenario ? maskedTop.GetSrvIndex() : opaqueTop.GetSrvIndex();
+        constants.TlasIndex = scenario ? maskedTop.GetSrvIndex() : opaqueTop.GetSrvIndex();
         commands.SetPipeline(shadow);
         commands.SetRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
         commands.Dispatch(1, 1, 1,
@@ -1298,8 +1299,8 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         context.Wait(context.Submit(commands));
         const float* values = (const float*)readback.Get()->pCpuMappedAddress;
         ASSERT_NE(values, nullptr);
-        EXPECT_FLOAT_EQ(values[0], constants.ao || (constants.alphaMethod != 0 && scenario == 1) ? 1.0f : 0.0f);
-        EXPECT_FLOAT_EQ(values[1], constants.ao ? 0.0f : 1.0f);
+        EXPECT_FLOAT_EQ(values[0], constants.AoEnabled || (constants.AlphaTestMethod != 0 && scenario == 1) ? 1.0f : 0.0f);
+        EXPECT_FLOAT_EQ(values[1], constants.AoEnabled ? 0.0f : 1.0f);
     }
 
     // Reuse the same scene to exercise the production raster shadow alpha test as well.
@@ -1408,7 +1409,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
     struct FrameData
     {
         Matrix4 vp, previousVP, inverseVP;
-        Vector4 eye;
+        Vector4 Eye;
     };
     const FrameData         camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, -1, 1) };
     const LightingFrameData lighting;
@@ -1418,10 +1419,10 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
     hz::GpuMaterialData materials[2];
     for (hz::GpuMaterialData& material : materials)
     {
-        material.alphaMode = 2;
-        material.baseColorFactor[3] = 0.5f;
+        material.AlphaMode = 2;
+        material.BaseColorFactor[3] = 0.5f;
     }
-    materials[0].emissiveFactor[0] = materials[1].emissiveFactor[1] = 1;
+    materials[0].EmissiveFactor[0] = materials[1].EmissiveFactor[1] = 1;
     const float    positions[] = { -1, -1, 0, 3, -1, 0, -1, 3, 0 };
     const uint32_t normals[] = { 0x80008000, 0x80008000, 0x80008000 }, texcoords[] = { 0, 0, 0 };
     hz::GPUBuffer  frame = input(&camera, sizeof(camera), sizeof(camera)), light = input(&lighting, sizeof(lighting), sizeof(lighting));
@@ -1652,7 +1653,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     };
     const PeakFrame   peakCamera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 2, 1) };
     LightingFrameData peakLight;
-    peakLight.lightDirection = Vector4(0, 0, -1, 100000);
+    peakLight.LightDirection = Vector4(0, 0, -1, 100000);
     const auto Upload = [&](const void* data, uint32_t Size)
     {
         return context.CreateBuffer({ .Size = Size,
@@ -1956,14 +1957,14 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     struct FrameData
     {
         Matrix4 vp, previous, inverse;
-        Vector4 eye;
+        Vector4 Eye;
     };
     const FrameData          camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 2, 1) };
     const hz::RenderInstance instance;
     hz::GpuMaterialData      material;
-    material.baseColorTexture = alpha.GetSrvIndex();
-    material.normalTexture = normalMap.GetSrvIndex();
-    material.alphaCutoff = .5f;
+    material.BaseColorTexture = alpha.GetSrvIndex();
+    material.NormalTexture = normalMap.GetSrvIndex();
+    material.AlphaCutoff = .5f;
     const hz::GpuTextureData   texture[] = { { .id = { 0, 9 }, .srv = alpha.GetSrvIndex() },
                                              { .id = { 1, 9 }, .srv = normalMap.GetSrvIndex() } };
     // Production vertex storage: float3 positions, oct-normal uint, and packed half2 UV.
@@ -1997,7 +1998,7 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     for (const Case& scenario : cases)
     {
         SCOPED_TRACE(::testing::Message() << scenario.mode << ":" << scenario.alpha << ":" << scenario.distant);
-        material.alphaMode = scenario.mode;
+        material.AlphaMode = scenario.mode;
         ASSERT_TRUE(context.UpdateBuffer(materials, 0, &material, sizeof(material)));
         ASSERT_TRUE(context.UpdateBuffer(uv, 0, scenario.distant ? farUV : nearUV, sizeof(nearUV)));
         hz::CommandList& commands = context.AcquireCommandList();
