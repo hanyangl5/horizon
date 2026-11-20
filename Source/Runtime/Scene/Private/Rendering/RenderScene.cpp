@@ -108,8 +108,8 @@ struct RenderCameraEntity
 class RenderSceneData
 {
 public:
-    RenderSceneData(World& world, AssetManager& assetManager, const AnimationSystem* pAnimation):
-        world(world), assetManager(assetManager), pAnimation(pAnimation), bindings(world, assetManager), changes(world), query(world, { SceneTypes::meshRenderer }),
+    RenderSceneData(World& world, AssetManager& assetManager, const AnimationSystem* animation):
+        world(world), assetManager(assetManager), animation(animation), bindings(world, assetManager), changes(world), query(world, { SceneTypes::meshRenderer }),
         lightQuery(world, { SceneTypes::light }), cameraQuery(world, { SceneTypes::camera })
     {
         ASSERT(query.IsValid() && lightQuery.IsValid() && cameraQuery.IsValid());
@@ -584,17 +584,17 @@ public:
             {
                 continue;
             }
-            const SkinningCore* pPose = pAnimation ? pAnimation->GetPose(world.GetParent(entity.entity)) : nullptr;
+            const SkinningCore* pose = animation ? animation->GetPose(world.GetParent(entity.entity)) : nullptr;
             MeshBounds          local = entity.localBounds;
-            if (pPose && entity.skin < pPose->GetSkeleton().GetSkinCount())
+            if (pose && entity.skin < pose->GetSkeleton().GetSkinCount())
             {
-                const uint32_t jointCount = pPose->GetSkeleton().GetSkinJointCount(entity.skin);
+                const uint32_t jointCount = pose->GetSkeleton().GetSkinJointCount(entity.skin);
                 const uint32_t jointOffset = skinMatrices.Size();
                 skinMatrices.Resize(jointOffset + jointCount);
-                pPose->WriteSkinMatrices(entity.skin, skinMatrices.GetData() + jointOffset);
+                pose->WriteSkinMatrices(entity.skin, skinMatrices.GetData() + jointOffset);
                 skins.PushBack({ .instance = entity.instance, .jointOffset = jointOffset, .jointCount = jointCount });
                 SkinBounds skinBounds;
-                if (pPose->GetSkinBounds(entity.skin, skinBounds))
+                if (pose->GetSkinBounds(entity.skin, skinBounds))
                 {
                     memcpy(local.minimum, skinBounds.minimum, sizeof(local.minimum));
                     memcpy(local.maximum, skinBounds.maximum, sizeof(local.maximum));
@@ -739,7 +739,7 @@ public:
 
     World&                                          world;
     AssetManager&                                   assetManager;
-    const AnimationSystem*                          pAnimation = nullptr;
+    const AnimationSystem*                          animation = nullptr;
     WorldAssetBindings                              bindings;
     WorldChangeLog                                    changes;
     WorldQuery                                      query;
@@ -778,8 +778,8 @@ public:
     bool                                            frameLocked = false;
 };
 
-RenderScene::RenderScene(World& world, AssetManager& assetManager, const AnimationSystem* pAnimation):
-    Data(MemNew(RenderSceneData, world, assetManager, pAnimation))
+RenderScene::RenderScene(World& world, AssetManager& assetManager, const AnimationSystem* animation):
+    Data(MemNew(RenderSceneData, world, assetManager, animation))
 {
 }
 RenderScene::~RenderScene() { MemDelete(Data); }

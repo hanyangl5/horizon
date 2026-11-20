@@ -140,11 +140,11 @@ bool SkinningCore::Evaluate(Span<AnimationLayer> layers)
 
 Span<Matrix4> SkinningCore::GetModelMatrices() const { return { Data->modelMatrices.GetData(), Data->modelMatrices.Size() }; }
 
-void SkinningCore::WriteSkinMatrices(uint32_t skin, Matrix4* pOutput) const
+void SkinningCore::WriteSkinMatrices(uint32_t skin, Matrix4* output) const
 {
     const SkinData& data = Data->asset.Data->skins[skin];
     for (uint32_t i = 0; i < data.joints.Size(); ++i)
-        pOutput[i] = Data->modelMatrices[data.joints[i]] * data.inverseBind[i];
+        output[i] = Data->modelMatrices[data.joints[i]] * data.inverseBind[i];
 }
 
 bool SkinningCore::GetSkinBounds(uint32_t skin, SkinBounds& bounds) const
@@ -160,8 +160,8 @@ bool SkinningCore::GetSkinBounds(uint32_t skin, SkinBounds& bounds) const
     // boxes, so the union of the transformed boxes bounds the skinned mesh.
     for (uint32_t i = 0; i < data.joints.Size(); ++i)
     {
-        const float* pBox = data.bounds.GetData() + i * 6;
-        if (pBox[0] > pBox[3])
+        const float* box = data.bounds.GetData() + i * 6;
+        if (box[0] > box[3])
             continue;
         found = true;
         const Matrix4& matrix = Data->modelMatrices[data.joints[i]];
@@ -170,8 +170,8 @@ bool SkinningCore::GetSkinBounds(uint32_t skin, SkinBounds& bounds) const
             float minimum = matrix.getElem(3, (int)row), maximum = minimum;
             for (uint32_t column = 0; column < 3; ++column)
             {
-                const float a = matrix.getElem((int)column, (int)row) * pBox[column];
-                const float b = matrix.getElem((int)column, (int)row) * pBox[3 + column];
+                const float a = matrix.getElem((int)column, (int)row) * box[column];
+                const float b = matrix.getElem((int)column, (int)row) * box[3 + column];
                 minimum += fminf(a, b);
                 maximum += fmaxf(a, b);
             }

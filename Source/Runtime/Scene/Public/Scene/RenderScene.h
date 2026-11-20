@@ -168,7 +168,7 @@ class RenderScene
 public:
     // Owns World asset bindings. World, asset manager and the optional animation system must outlive this scene. Without an
     // animation system, skinned meshes render their bind pose.
-    RenderScene(World& world, AssetManager& assetManager, const AnimationSystem* pAnimation = nullptr);
+    RenderScene(World& world, AssetManager& assetManager, const AnimationSystem* animation = nullptr);
     ~RenderScene();
     RenderScene(const RenderScene&) = delete;
     RenderScene& operator=(const RenderScene&) = delete;

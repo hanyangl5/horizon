@@ -74,11 +74,11 @@ void GpuDrawList::Prepare(const SceneView& View)
                Primitive.id == Draw.primitive);
         const GpuSubmeshData& Submesh = Tables.submeshes.Data[Mesh->submeshOffset + Draw.mesh.submeshIndex];
         // Skinned primitives have one instance, which draws its own skinned streams.
-        const GpuSkinnedVertices* pSkinned =
+        const GpuSkinnedVertices* Skinned =
             View.Skinning && Primitive.instanceCount == 1
                 ? View.Skinning->Find(View.Scene.GetInstances().Data[View.Scene.GetInstanceIndices().Data[Primitive.instanceOffset]].id)
                 : nullptr;
-        const RenderInstanceID SkinnedInstance = pSkinned ? pSkinned->instance : RenderInstanceID{};
+        const RenderInstanceID SkinnedInstance = Skinned ? Skinned->instance : RenderInstanceID{};
         uint32_t               GeometryIndex = UINT32_MAX;
         if (Material->alphaMode != uint32_t(MaterialAlphaMode::Blend))
         {
@@ -120,11 +120,11 @@ void GpuDrawList::Prepare(const SceneView& View)
                        .firstIndex = Submesh.firstIndex,
                        .vertexOffset = Submesh.vertexOffset,
                        .indexCount = Submesh.indexCount };
-            if (pSkinned)
+            if (Skinned)
             {
-                Output.positions = pSkinned->positions.GetSrvIndex();
-                Output.normals = pSkinned->normals.GetSrvIndex();
-                Output.texcoords = pSkinned->texcoords.IsValid() ? pSkinned->texcoords.GetSrvIndex() : UINT32_MAX;
+                Output.positions = Skinned->positions.GetSrvIndex();
+                Output.normals = Skinned->normals.GetSrvIndex();
+                Output.texcoords = Skinned->texcoords.IsValid() ? Skinned->texcoords.GetSrvIndex() : UINT32_MAX;
             }
         }
     }

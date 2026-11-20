@@ -96,8 +96,8 @@ public:
 
     AssetLoadersData&        owner;
     const AssetCatalogEntry& entry;
-    SkeletonAsset*           pSkeleton = nullptr;
-    AnimationClipAsset*      pClip = nullptr;
+    SkeletonAsset*           skeleton = nullptr;
+    AnimationClipAsset*      clip = nullptr;
     tfrg_atomic32_t          status = (uint32_t)AssetLoadStatus::Pending;
 };
 
@@ -286,9 +286,9 @@ public:
         const AssetLoadStatus status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&Request.status);
         if (status != AssetLoadStatus::Succeeded)
             return { .status = status };
-        void* pPayload = Request.entry.Type == AssetType::Skeleton ? (void*)Request.pSkeleton : (void*)Request.pClip;
-        Request.pSkeleton = nullptr;
-        Request.pClip = nullptr;
+        void* pPayload = Request.entry.Type == AssetType::Skeleton ? (void*)Request.skeleton : (void*)Request.clip;
+        Request.skeleton = nullptr;
+        Request.clip = nullptr;
         return { .status = AssetLoadStatus::Succeeded, .pPayload = pPayload };
     }
     static void destroyAnimationRequest(void* pJob, void*) { MemDelete((AnimationFileRequest*)pJob); }
@@ -317,8 +317,8 @@ AnimationFileRequest::~AnimationFileRequest()
 {
     if ((AssetLoadStatus)tfrg_atomic32_load_acquire(&status) == AssetLoadStatus::Pending)
         threadSystemWaitIdle(owner.threads);
-    MemDelete(pSkeleton);
-    MemDelete(pClip);
+    MemDelete(skeleton);
+    MemDelete(clip);
 }
 void AnimationFileRequest::decode(void* User, uint64_t)
 {
@@ -333,13 +333,13 @@ void AnimationFileRequest::decode(void* User, uint64_t)
         CloseStream(&stream);
         if (success && Request.entry.Type == AssetType::Skeleton)
         {
-            Request.pSkeleton = MemNew(SkeletonAsset);
-            success = Request.pSkeleton->Parse({ bytes.GetData(), bytes.Size() });
+            Request.skeleton = MemNew(SkeletonAsset);
+            success = Request.skeleton->Parse({ bytes.GetData(), bytes.Size() });
         }
         else if (success)
         {
-            Request.pClip = MemNew(AnimationClipAsset);
-            success = Request.pClip->Parse({ bytes.GetData(), bytes.Size() });
+            Request.clip = MemNew(AnimationClipAsset);
+            success = Request.clip->Parse({ bytes.GetData(), bytes.Size() });
         }
     }
     if (!success)

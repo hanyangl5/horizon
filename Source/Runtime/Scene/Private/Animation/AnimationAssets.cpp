@@ -18,10 +18,10 @@ class SpanStream final: public ozz::io::Stream
 public:
     explicit SpanStream(Span<char> bytes): Bytes(bytes) {}
     bool   opened() const override { return true; }
-    size_t Read(void* pBuffer, size_t size) override
+    size_t Read(void* buffer, size_t size) override
     {
         const size_t count = size < Bytes.Count - Position ? size : Bytes.Count - Position;
-        memcpy(pBuffer, Bytes.Data + Position, count);
+        memcpy(buffer, Bytes.Data + Position, count);
         Position += (uint32_t)count;
         return count;
     }
@@ -46,11 +46,11 @@ class SpanReader
 {
 public:
     explicit SpanReader(Span<char> bytes): Bytes(bytes) {}
-    bool Read(void* pOutput, uint32_t size)
+    bool Read(void* output, uint32_t size)
     {
         if (size > Bytes.Count - Position)
             return false;
-        memcpy(pOutput, Bytes.Data + Position, size);
+        memcpy(output, Bytes.Data + Position, size);
         Position += size;
         return true;
     }
@@ -75,10 +75,10 @@ bool SkeletonAsset::Parse(Span<char> bytes)
         LOGF(Error, "Invalid skeleton file header");
         return false;
     }
-    SkeletonAssetData* pCandidate = MemNew(SkeletonAssetData);
-    pCandidate->skins.Resize(header.skinCount);
+    SkeletonAssetData* candidate = MemNew(SkeletonAssetData);
+    candidate->skins.Resize(header.skinCount);
     bool valid = true;
-    for (SkinData& skin : pCandidate->skins)
+    for (SkinData& skin : candidate->skins)
     {
         uint32_t jointCount = 0;
         // Per joint: index, inverse bind matrix and bounds.
@@ -109,22 +109,22 @@ bool SkeletonAsset::Parse(Span<char> bytes)
         ozz::io::IArchive archive(&stream);
         valid = archive.TestTag<ozz::animation::Skeleton>();
         if (valid)
-            archive >> pCandidate->skeleton;
-        valid = valid && pCandidate->skeleton.num_joints() > 0;
+            archive >> candidate->skeleton;
+        valid = valid && candidate->skeleton.num_joints() > 0;
     }
     else
         valid = false;
-    for (uint32_t s = 0; valid && s < pCandidate->skins.Size(); ++s)
-        for (uint32_t joint : pCandidate->skins[s].joints)
-            valid &= joint < (uint32_t)pCandidate->skeleton.num_joints();
+    for (uint32_t s = 0; valid && s < candidate->skins.Size(); ++s)
+        for (uint32_t joint : candidate->skins[s].joints)
+            valid &= joint < (uint32_t)candidate->skeleton.num_joints();
     if (!valid)
     {
         LOGF(Error, "Invalid skeleton file contents");
-        MemDelete(pCandidate);
+        MemDelete(candidate);
         return false;
     }
     MemDelete(Data);
-    Data = pCandidate;
+    Data = candidate;
     return true;
 }
 
@@ -149,20 +149,20 @@ bool AnimationClipAsset::Parse(Span<char> bytes)
         LOGF(Error, "Invalid animation file header");
         return false;
     }
-    AnimationClipAssetData* pCandidate = MemNew(AnimationClipAssetData);
+    AnimationClipAssetData* candidate = MemNew(AnimationClipAssetData);
     SpanStream              stream(reader.GetRemaining());
     ozz::io::IArchive       archive(&stream);
     bool                    valid = archive.TestTag<ozz::animation::Animation>();
     if (valid)
-        archive >> pCandidate->animation;
-    if (!valid || pCandidate->animation.num_tracks() <= 0 || !(pCandidate->animation.duration() > 0.0f))
+        archive >> candidate->animation;
+    if (!valid || candidate->animation.num_tracks() <= 0 || !(candidate->animation.duration() > 0.0f))
     {
         LOGF(Error, "Invalid animation file contents");
-        MemDelete(pCandidate);
+        MemDelete(candidate);
         return false;
     }
     MemDelete(Data);
-    Data = pCandidate;
+    Data = candidate;
     return true;
 }
 

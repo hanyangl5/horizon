@@ -20,7 +20,7 @@ struct AnimatedEntity
     AssetHandle   skeleton;
     AssetID       clipID;
     AssetHandle   clip;
-    SkinningCore* pPose = nullptr;
+    SkinningCore* pose = nullptr;
     bool          reportedMismatch = false;
     bool          seen = false;
 };
@@ -43,13 +43,13 @@ public:
     {
         for (AnimatedEntity& entity : entities)
             release(entity);
-        hmfree(pIndices);
+        hmfree(indices);
     }
 
     void release(AnimatedEntity& entity)
     {
-        MemDelete(entity.pPose);
-        entity.pPose = nullptr;
+        MemDelete(entity.pose);
+        entity.pose = nullptr;
         if (entity.skeleton.IsValid())
             assetManager.Release(entity.skeleton);
         if (entity.clip.IsValid())
@@ -69,65 +69,65 @@ public:
         handle = id.IsValid() ? assetManager.Request(id) : AssetHandle{};
     }
 
-    static bool sync(Entity entity, Span<const void*> fields, void* pUser)
+    static bool sync(Entity entity, Span<const void*> fields, void* userData)
     {
-        AnimationSystemData&       data = *(AnimationSystemData*)pUser;
-        const AnimatedEntityIndex* pIndex = hmgetp_null(data.pIndices, entity);
-        if (!pIndex)
+        AnimationSystemData&       data = *(AnimationSystemData*)userData;
+        const AnimatedEntityIndex* entry = hmgetp_null(data.indices, entity);
+        if (!entry)
         {
             AnimatedEntity& added = data.entities.EmplaceBack();
             added.entity = entity;
             const AnimatedEntityIndex index = { .key = entity, .value = data.entities.Size() - 1 };
-            hmputs(data.pIndices, index);
-            pIndex = hmgetp_null(data.pIndices, entity);
+            hmputs(data.indices, index);
+            entry = hmgetp_null(data.indices, entity);
         }
-        AnimatedEntity& animated = data.entities[pIndex->value];
+        AnimatedEntity& animated = data.entities[entry->value];
         animated.seen = true;
         const Skeleton&        skeleton = *(const Skeleton*)fields.Data[0];
-        const AnimationPlayer* pPlayer = (const AnimationPlayer*)data.world.GetComponent(entity, SceneTypes::animationPlayer);
+        const AnimationPlayer* player = (const AnimationPlayer*)data.world.GetComponent(entity, SceneTypes::animationPlayer);
         if (animated.skeletonID != skeleton.asset)
         {
-            MemDelete(animated.pPose);
-            animated.pPose = nullptr;
+            MemDelete(animated.pose);
+            animated.pose = nullptr;
             animated.reportedMismatch = false;
         }
         data.retain(skeleton.asset, animated.skeletonID, animated.skeleton);
-        if (pPlayer && animated.clipID != pPlayer->clip)
+        if (player && animated.clipID != player->clip)
             animated.reportedMismatch = false;
-        data.retain(pPlayer ? pPlayer->clip : AssetID{}, animated.clipID, animated.clip);
-        data.animate(animated, pPlayer);
+        data.retain(player ? player->clip : AssetID{}, animated.clipID, animated.clip);
+        data.animate(animated, player);
         return true;
     }
 
-    void animate(AnimatedEntity& animated, const AnimationPlayer* pPlayer)
+    void animate(AnimatedEntity& animated, const AnimationPlayer* player)
     {
-        const SkeletonAsset* pSkeleton = assetManager.GetSkeleton(animated.skeleton);
-        if (!pSkeleton)
+        const SkeletonAsset* skeleton = assetManager.GetSkeleton(animated.skeleton);
+        if (!skeleton)
             return;
-        if (!animated.pPose)
-            animated.pPose = MemNew(SkinningCore, *pSkeleton);
-        const AnimationClipAsset* pClip = assetManager.GetAnimationClip(animated.clip);
+        if (!animated.pose)
+            animated.pose = MemNew(SkinningCore, *skeleton);
+        const AnimationClipAsset* clip = assetManager.GetAnimationClip(animated.clip);
         AnimationLayer            layer;
-        if (pPlayer && pClip)
+        if (player && clip)
         {
-            AnimationPlayer player = *pPlayer;
-            const float     duration = pClip->GetDuration();
-            if (player.playing && player.speed != 0.0f)
+            AnimationPlayer advanced = *player;
+            const float     duration = clip->GetDuration();
+            if (advanced.playing && advanced.speed != 0.0f)
             {
-                player.time += deltaSeconds * player.speed;
-                if (player.loop)
-                    player.time -= floorf(player.time / duration) * duration;
-                else if (player.time <= 0.0f || player.time >= duration)
+                advanced.time += deltaSeconds * advanced.speed;
+                if (advanced.loop)
+                    advanced.time -= floorf(advanced.time / duration) * duration;
+                else if (advanced.time <= 0.0f || advanced.time >= duration)
                 {
-                    player.time = fminf(fmaxf(player.time, 0.0f), duration);
-                    player.playing = false;
+                    advanced.time = fminf(fmaxf(advanced.time, 0.0f), duration);
+                    advanced.playing = false;
                 }
-                const bool updated = world.SetComponent(animated.entity, SceneTypes::animationPlayer, &player);
+                const bool updated = world.SetComponent(animated.entity, SceneTypes::animationPlayer, &advanced);
                 ASSERT(updated);
             }
-            layer = { .clip = pClip, .time = player.time };
+            layer = { .clip = clip, .time = advanced.time };
         }
-        if (!animated.pPose->Evaluate({ &layer, layer.clip ? 1u : 0u }) && !animated.reportedMismatch)
+        if (!animated.pose->Evaluate({ &layer, layer.clip ? 1u : 0u }) && !animated.reportedMismatch)
         {
             animated.reportedMismatch = true;
             LOGF(Error, "Animation clip does not match the skeleton of its entity; the skeleton keeps its last pose");
@@ -150,11 +150,11 @@ public:
                 continue;
             }
             release(entities[i]);
-            hmdel(pIndices, entities[i].entity);
+            hmdel(indices, entities[i].entity);
             if (i + 1 < entities.Size())
             {
                 entities[i] = entities[entities.Size() - 1];
-                hmgetp_null(pIndices, entities[i].entity)->value = i;
+                hmgetp_null(indices, entities[i].entity)->value = i;
             }
             entities.PopBack();
         }
@@ -164,7 +164,7 @@ public:
     AssetManager&         assetManager;
     WorldQuery            query;
     Array<AnimatedEntity> entities;
-    AnimatedEntityIndex*  pIndices = nullptr;
+    AnimatedEntityIndex*  indices = nullptr;
     float                 deltaSeconds = 0.0f;
 };
 
@@ -173,7 +173,7 @@ AnimationSystem::~AnimationSystem() { MemDelete(Data); }
 void                AnimationSystem::Update(float deltaSeconds) { Data->Update(deltaSeconds); }
 const SkinningCore* AnimationSystem::GetPose(Entity entity) const
 {
-    const AnimatedEntityIndex* pIndex = hmgetp_null(Data->pIndices, entity);
-    return pIndex ? Data->entities[pIndex->value].pPose : nullptr;
+    const AnimatedEntityIndex* entry = hmgetp_null(Data->indices, entity);
+    return entry ? Data->entities[entry->value].pose : nullptr;
 }
 } // namespace hz

@@ -41,9 +41,9 @@ public:
     bool                 Evaluate(Span<AnimationLayer> layers);
     // Joint transforms in the skeleton's model space, in skeleton joint order.
     Span<Matrix4>        GetModelMatrices() const;
-    // Writes one matrix per skin joint, mapping bind-space vertex positions to the skeleton's model space. pOutput holds
+    // Writes one matrix per skin joint, mapping bind-space vertex positions to the skeleton's model space. output holds
     // SkeletonAsset::GetSkinJointCount(skin) matrices.
-    void                 WriteSkinMatrices(uint32_t skin, Matrix4* pOutput) const;
+    void                 WriteSkinMatrices(uint32_t skin, Matrix4* output) const;
     // Model-space bounds of the vertices the skin deforms; false when its joints influence no vertex.
     bool                 GetSkinBounds(uint32_t skin, SkinBounds& bounds) const;
 
