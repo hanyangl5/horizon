@@ -1,6 +1,7 @@
 /* Copyright (c) 2026 Horizon */
 
 #include "Scene/AssetLoaders.h"
+#include "Scene/AnimationAssets.h"
 #include "Scene/MaterialAsset.h"
 #include "Scene/MeshAsset.h"
 #include "Scene/SceneAssetLoader.h"
@@ -82,6 +83,21 @@ public:
     uint32_t          vertexBufferCount = 0;
     IndexType         indexType = INDEX_TYPE_UINT16;
     Array<MeshDraw>   draws;
+};
+
+// Reads a standalone skeleton or animation file and decodes it on the worker thread.
+class AnimationFileRequest
+{
+public:
+    AnimationFileRequest(AssetLoadersData& owner, const AssetCatalogEntry& entry): owner(owner), entry(entry) {}
+    ~AnimationFileRequest();
+    static void decode(void* User, uint64_t);
+
+    AssetLoadersData&        owner;
+    const AssetCatalogEntry& entry;
+    SkeletonAsset*           pSkeleton = nullptr;
+    AnimationClipAsset*      pClip = nullptr;
+    tfrg_atomic32_t          status = (uint32_t)AssetLoadStatus::Pending;
 };
 
 class SubassetRequest
@@ -250,6 +266,34 @@ public:
         }
         return AssetLoadStatus::Succeeded;
     }
+    static void* beginAnimation(const AssetCatalogEntry& entry, AssetHandle, void* User)
+    {
+        AssetLoadersData& loader = *(AssetLoadersData*)User;
+        if (!loader.threads || (entry.Type != AssetType::Skeleton && entry.Type != AssetType::AnimationClip) ||
+            entry.location.root != AssetPathRoot::Cooked || entry.location.elementIndex != UINT32_MAX)
+        {
+            LOGF(Error, "Invalid skeleton/animation location '%s'", entry.location.pPath);
+            return nullptr;
+        }
+        AnimationFileRequest* pRequest = MemNew(AnimationFileRequest, loader, entry);
+        threadSystemAddTask(loader.threads, AnimationFileRequest::decode, pRequest);
+        return pRequest;
+    }
+    static AssetLoadResult pollAnimation(void* pJob, void*)
+    {
+        AnimationFileRequest& Request = *(AnimationFileRequest*)pJob;
+        const AssetLoadStatus status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&Request.status);
+        if (status != AssetLoadStatus::Succeeded)
+            return { .status = status };
+        void* pPayload = Request.entry.Type == AssetType::Skeleton ? (void*)Request.pSkeleton : (void*)Request.pClip;
+        Request.pSkeleton = nullptr;
+        Request.pClip = nullptr;
+        return { .status = AssetLoadStatus::Succeeded, .pPayload = pPayload };
+    }
+    static void destroyAnimationRequest(void* pJob, void*) { MemDelete((AnimationFileRequest*)pJob); }
+    static void destroySkeleton(void* pPayload, void*) { MemDelete((SkeletonAsset*)pPayload); }
+    static void destroyAnimationClip(void* pPayload, void*) { MemDelete((AnimationClipAsset*)pPayload); }
+
     static void waitMesh(void* pPayload, void*)
     {
         AssetGeometry& geometry = *((MeshAsset*)pPayload)->pGeometry;
@@ -267,6 +311,40 @@ public:
     AssetSourceIndex*   pSources = nullptr;
     AssetGeometryIndex* pGeometries = nullptr;
 };
+
+AnimationFileRequest::~AnimationFileRequest()
+{
+    if ((AssetLoadStatus)tfrg_atomic32_load_acquire(&status) == AssetLoadStatus::Pending)
+        threadSystemWaitIdle(owner.threads);
+    MemDelete(pSkeleton);
+    MemDelete(pClip);
+}
+void AnimationFileRequest::decode(void* User, uint64_t)
+{
+    AnimationFileRequest& Request = *(AnimationFileRequest*)User;
+    FileStream            stream = {};
+    bool                  success = false;
+    if (OpenStreamFromPath(Request.owner.desc.cookedDirectory, Request.entry.location.pPath, FileModeRead, &stream))
+    {
+        const ssize_t Size = GetStreamFileSize(&stream);
+        Array<char>   bytes(Size > 0 && Size <= 256 * 1024 * 1024 ? (uint32_t)Size : 0u);
+        success = !bytes.Empty() && ReadFromStream(&stream, bytes.GetData(), bytes.Size()) == bytes.Size();
+        CloseStream(&stream);
+        if (success && Request.entry.Type == AssetType::Skeleton)
+        {
+            Request.pSkeleton = MemNew(SkeletonAsset);
+            success = Request.pSkeleton->Parse({ bytes.GetData(), bytes.Size() });
+        }
+        else if (success)
+        {
+            Request.pClip = MemNew(AnimationClipAsset);
+            success = Request.pClip->Parse({ bytes.GetData(), bytes.Size() });
+        }
+    }
+    if (!success)
+        LOGF(Error, "Cannot decode skeleton/animation '%s'", Request.entry.location.pPath);
+    tfrg_atomic32_store_release(&Request.status, (uint32_t)(success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
+}
 
 AssetSource::AssetSource(AssetLoadersData& owner, const char* pFile): owner(owner)
 {
@@ -481,6 +559,16 @@ void AssetLoaders::RegisterLoaders(AssetManager& assetManager)
                                                   .pPoll = AssetLoadersData::poll,
                                                   .pDestroyRequest = AssetLoadersData::destroyRequest,
                                                   .pDestroyPayload = AssetLoadersData::destroyMaterial });
+    assetManager.SetLoader(AssetType::Skeleton, { .UserData = Data,
+                                                  .pBegin = AssetLoadersData::beginAnimation,
+                                                  .pPoll = AssetLoadersData::pollAnimation,
+                                                  .pDestroyRequest = AssetLoadersData::destroyAnimationRequest,
+                                                  .pDestroyPayload = AssetLoadersData::destroySkeleton });
+    assetManager.SetLoader(AssetType::AnimationClip, { .UserData = Data,
+                                                       .pBegin = AssetLoadersData::beginAnimation,
+                                                       .pPoll = AssetLoadersData::pollAnimation,
+                                                       .pDestroyRequest = AssetLoadersData::destroyAnimationRequest,
+                                                       .pDestroyPayload = AssetLoadersData::destroyAnimationClip });
     assetManager.SetLoader(AssetType::Mesh, { .UserData = Data,
                                               .pBegin = AssetLoadersData::begin,
                                               .pPoll = AssetLoadersData::poll,

@@ -31,7 +31,12 @@ TEST_F(SceneReflectionTest, BuiltinsExposeStableTypedProperties)
 {
     hz::TypeRegistry registry;
     ASSERT_TRUE(registry.RegisterBuiltins());
-    ASSERT_EQ(registry.Size(), 7u);
+    ASSERT_EQ(registry.Size(), 10u);
+    EXPECT_EQ(registry.GetType(hz::SceneTypes::skeleton), registry.GetType("Skeleton"));
+    EXPECT_EQ(registry.GetType(hz::SceneTypes::animationPlayer), registry.GetType("AnimationPlayer"));
+    EXPECT_EQ(registry.GetType(hz::SceneTypes::skinnedMesh), registry.GetType("SkinnedMesh"));
+    ASSERT_NE(registry.GetType(hz::SceneTypes::animationPlayer), nullptr);
+    EXPECT_EQ(registry.GetType(hz::SceneTypes::animationPlayer)->GetProperty("clip")->kind, hz::PropertyKind::AssetReference);
     const hz::TypeDesc* mesh = registry.GetType(hz::SceneTypes::meshRenderer);
     ASSERT_NE(mesh, nullptr);
     EXPECT_EQ(mesh, registry.GetType("MeshRenderer"));
@@ -72,19 +77,19 @@ TEST_F(SceneReflectionTest, RegistrationRejectsDuplicatesWithoutPublishingPartia
         { .id = hz::SceneTypes::camera, .Name = "DuplicateID", .Size = 4, .alignment = 4 },
     };
     EXPECT_FALSE(registry.RegisterTypes(types));
-    EXPECT_EQ(registry.Size(), 7u);
+    EXPECT_EQ(registry.Size(), 10u);
     EXPECT_EQ(registry.GetType(UINT64_C(100)), nullptr);
     const hz::TypeDesc duplicateName = { .id = 101, .Name = "Camera", .Size = 4 };
     EXPECT_FALSE(registry.RegisterTypes({ &duplicateName, 1 }));
     EXPECT_FALSE(registry.RegisterBuiltins());
-    EXPECT_EQ(registry.Size(), 7u);
+    EXPECT_EQ(registry.Size(), 10u);
 
     const hz::TypeDesc repeated[] = {
         { .id = 100, .Name = "Same", .Size = 4 },
         { .id = 101, .Name = "Same", .Size = 4 },
     };
     EXPECT_FALSE(registry.RegisterTypes(repeated));
-    EXPECT_EQ(registry.Size(), 7u);
+    EXPECT_EQ(registry.Size(), 10u);
     EXPECT_TRUE(registry.RegisterTypes({}));
 }
 
@@ -158,7 +163,7 @@ TEST_F(SceneReflectionTest, RejectsDuplicatePropertiesAndIncompleteEnumOrArrayMe
     element.triviallyCopyable = true;
     element.properties = {};
     EXPECT_FALSE(registry.RegisterTypes({ &incomplete, 1 }));
-    EXPECT_EQ(registry.Size(), 7u);
+    EXPECT_EQ(registry.Size(), 10u);
 }
 
 TEST_F(SceneReflectionTest, ConstructionPreservesComponentDefaults)

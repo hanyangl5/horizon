@@ -211,6 +211,26 @@ static const PropertyDesc cameraProperties[] = {
     { .id = 3, .Name = "farPlane", .kind = PropertyKind::Float, .offset = offsetof(Camera, farPlane), .Size = sizeof(float), .step = 1.0 },
 };
 
+static const PropertyDesc skeletonProperties[] = {
+    { .id = 1, .Name = "asset", .kind = PropertyKind::AssetReference, .offset = offsetof(Skeleton, asset), .Size = sizeof(AssetID) },
+};
+static const PropertyDesc animationPlayerProperties[] = {
+    { .id = 1, .Name = "clip", .kind = PropertyKind::AssetReference, .offset = offsetof(AnimationPlayer, clip), .Size = sizeof(AssetID) },
+    { .id = 2,
+      .Name = "time",
+      .kind = PropertyKind::Float,
+      .offset = offsetof(AnimationPlayer, time),
+      .Size = sizeof(float),
+      .minimum = 0,
+      .step = 0.01 },
+    { .id = 3, .Name = "speed", .kind = PropertyKind::Float, .offset = offsetof(AnimationPlayer, speed), .Size = sizeof(float), .step = 0.1 },
+    { .id = 4, .Name = "loop", .kind = PropertyKind::Boolean, .offset = offsetof(AnimationPlayer, loop), .Size = sizeof(bool) },
+    { .id = 5, .Name = "playing", .kind = PropertyKind::Boolean, .offset = offsetof(AnimationPlayer, playing), .Size = sizeof(bool) },
+};
+static const PropertyDesc skinnedMeshProperties[] = {
+    { .id = 1, .Name = "skin", .kind = PropertyKind::UnsignedInteger, .offset = offsetof(SkinnedMesh, skin), .Size = sizeof(uint32_t) },
+};
+
 bool TypeRegistry::RegisterBuiltins()
 {
     static const TypeDesc types[] = {
@@ -263,6 +283,27 @@ bool TypeRegistry::RegisterBuiltins()
           .properties = cameraProperties,
           .triviallyCopyable = __is_trivially_copyable(Camera),
           .lifecycle = ComponentLifecycle<Camera>::Get() },
+        { .id = SceneTypes::skeleton,
+          .Name = "Skeleton",
+          .Size = sizeof(Skeleton),
+          .alignment = alignof(Skeleton),
+          .properties = skeletonProperties,
+          .triviallyCopyable = __is_trivially_copyable(Skeleton),
+          .lifecycle = ComponentLifecycle<Skeleton>::Get() },
+        { .id = SceneTypes::animationPlayer,
+          .Name = "AnimationPlayer",
+          .Size = sizeof(AnimationPlayer),
+          .alignment = alignof(AnimationPlayer),
+          .properties = animationPlayerProperties,
+          .triviallyCopyable = __is_trivially_copyable(AnimationPlayer),
+          .lifecycle = ComponentLifecycle<AnimationPlayer>::Get() },
+        { .id = SceneTypes::skinnedMesh,
+          .Name = "SkinnedMesh",
+          .Size = sizeof(SkinnedMesh),
+          .alignment = alignof(SkinnedMesh),
+          .properties = skinnedMeshProperties,
+          .triviallyCopyable = __is_trivially_copyable(SkinnedMesh),
+          .lifecycle = ComponentLifecycle<SkinnedMesh>::Get() },
     };
     return RegisterTypes(types);
 }

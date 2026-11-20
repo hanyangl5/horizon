@@ -171,6 +171,92 @@ TEST_F(SceneAssetReadTest, InstantiatesIndependentWorldEntitiesAndCopiesPayloadD
     EXPECT_TRUE(world.IsAlive(parent));
 }
 
+static bool storeEntity(hz::Entity entity, hz::Span<const void*>, void* pUserData)
+{
+    *(hz::Entity*)pUserData = entity;
+    return false;
+}
+
+static hz::Entity findEntity(hz::World& world, hz::TypeID type)
+{
+    hz::Entity      result;
+    hz::TypeID      types[] = { type };
+    hz::WorldQuery query(world, types);
+    query.Each(storeEntity, &result);
+    return result;
+}
+
+TEST_F(SceneAssetReadTest, InstantiatesSkeletonsAnimationPlayersAndSkinnedMeshes)
+{
+    // Skeleton and animation tables, a skeleton entity with its clip and a skinned mesh below it.
+    const char* pTables = R"json("skeletons": [{"id": "00000000-0000-4000-8000-000000000005", "name": "Rig", "path": "scene.skeleton0.ozz"}],
+  "animations": [{"id": "00000000-0000-4000-8000-000000000006", "name": "Walk", "path": "scene.animation0.ozz",
+                  "skeleton": "00000000-0000-4000-8000-000000000005"}],
+  "nodes": [)json";
+    const char* pNodes =
+        R"json({"name": "Second", "parent": 0, "skeleton": "00000000-0000-4000-8000-000000000005", "animation": "00000000-0000-4000-8000-000000000006",
+     "translation": [0, 0, 3], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]},
+    {"name": "Body", "parent": 2, "mesh": "00000000-0000-4000-8000-000000000004", "skin": 0,
+     "translation": [0, 0, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]}
+  ]
+})json";
+    std::string json(kScene);
+    json.replace(json.find("\"nodes\": ["), strlen("\"nodes\": ["), pTables);
+    const size_t second = json.find("{\"name\": \"Second\"");
+    json.replace(second, json.size() - second, pNodes);
+    hz::SceneAsset asset;
+    ASSERT_TRUE(Parse(asset, json));
+    ASSERT_EQ(asset.GetSkeletons().Count, 1u);
+    ASSERT_EQ(asset.GetAnimations().Count, 1u);
+    EXPECT_STREQ(asset.GetAnimations().Data[0].pPath, "scene.animation0.ozz");
+    EXPECT_EQ(asset.GetAnimations().Data[0].skeleton, asset.GetSkeletons().Data[0].id);
+    EXPECT_EQ(asset.GetNodes().Data[3].skin, 0u);
+    EXPECT_EQ(asset.GetNodes().Data[1].skin, UINT32_MAX);
+
+    hz::AssetCatalog catalog;
+    ASSERT_TRUE(catalog.AddScene(asset, "scene.sceneasset.json"));
+    const hz::AssetCatalogEntry* pSkeleton = catalog.Find(asset.GetSkeletons().Data[0].id);
+    const hz::AssetCatalogEntry* pClip = catalog.Find(asset.GetAnimations().Data[0].id);
+    ASSERT_NE(pSkeleton, nullptr);
+    ASSERT_NE(pClip, nullptr);
+    EXPECT_EQ(pSkeleton->Type, hz::AssetType::Skeleton);
+    EXPECT_EQ(pSkeleton->location.elementIndex, UINT32_MAX);
+    EXPECT_EQ(pClip->Type, hz::AssetType::AnimationClip);
+    ASSERT_EQ(pClip->dependencies.Count, 1u);
+    EXPECT_EQ(pClip->dependencies.Data[0], pSkeleton->id);
+    EXPECT_EQ(catalog.FindScene("scene.sceneasset.json")->dependencies.Count, 3u);
+
+    {
+        hz::TypeRegistry types;
+        ASSERT_TRUE(types.RegisterBuiltins());
+        hz::World world(types);
+        ASSERT_TRUE(asset.Instantiate(world).IsValid());
+        const hz::Entity skeletonEntity = findEntity(world, hz::SceneTypes::skeleton);
+        const hz::Entity bodyEntity = findEntity(world, hz::SceneTypes::skinnedMesh);
+        ASSERT_TRUE(skeletonEntity.IsValid() && bodyEntity.IsValid());
+        EXPECT_EQ(world.GetParent(bodyEntity), skeletonEntity);
+        const hz::Skeleton*        pRig = (const hz::Skeleton*)world.GetComponent(skeletonEntity, hz::SceneTypes::skeleton);
+        const hz::AnimationPlayer* pPlayer = (const hz::AnimationPlayer*)world.GetComponent(skeletonEntity, hz::SceneTypes::animationPlayer);
+        const hz::SkinnedMesh*     pSkinned = (const hz::SkinnedMesh*)world.GetComponent(bodyEntity, hz::SceneTypes::skinnedMesh);
+        ASSERT_NE(pPlayer, nullptr);
+        EXPECT_EQ(pRig->asset, asset.GetSkeletons().Data[0].id);
+        EXPECT_EQ(pPlayer->clip, asset.GetAnimations().Data[0].id);
+        EXPECT_TRUE(pPlayer->playing && pPlayer->loop && pPlayer->time == 0.0f && pPlayer->speed == 1.0f);
+        EXPECT_EQ(pSkinned->skin, 0u);
+        EXPECT_NE(world.GetComponent(bodyEntity, hz::SceneTypes::meshRenderer), nullptr);
+    }
+
+    // A skin needs a skeleton on the parent node, and a clip must belong to the skeleton of its node.
+    std::string orphan = json;
+    orphan.replace(orphan.find("\"parent\": 2"), strlen("\"parent\": 2"), "\"parent\": 0");
+    EXPECT_FALSE(Parse(asset, orphan));
+    const char* pSkeletonField = "\"skeleton\": \"00000000-0000-4000-8000-000000000005\", \"animation\"";
+    std::string foreign = json;
+    foreign.replace(foreign.find(pSkeletonField), strlen(pSkeletonField), "\"animation\"");
+    EXPECT_FALSE(Parse(asset, foreign));
+    EXPECT_EQ(asset.GetSkeletons().Count, 1u);
+}
+
 TEST_F(SceneAssetReadTest, TruncatesInstanceNamesAtUtf8CodepointBoundaries)
 {
     hz::TypeRegistry types;

@@ -638,6 +638,14 @@ const MaterialAsset* AssetManager::GetMaterial(AssetHandle Handle) const
 {
     return (const MaterialAsset*)Data->getPayload(Handle, AssetType::Material);
 }
+const SkeletonAsset* AssetManager::GetSkeleton(AssetHandle Handle) const
+{
+    return (const SkeletonAsset*)Data->getPayload(Handle, AssetType::Skeleton);
+}
+const AnimationClipAsset* AssetManager::GetAnimationClip(AssetHandle Handle) const
+{
+    return (const AnimationClipAsset*)Data->getPayload(Handle, AssetType::AnimationClip);
+}
 
 AssetHandle AssetManager::Find(AssetID id) const
 {

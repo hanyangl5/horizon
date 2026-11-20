@@ -17,6 +17,10 @@ constexpr uint64_t localMatrix = 4;
 constexpr uint64_t meshRenderer = 5;
 constexpr uint64_t light = 6;
 constexpr uint64_t camera = 7;
+// 8 is the MaterialOverride element type.
+constexpr uint64_t skeleton = 9;
+constexpr uint64_t animationPlayer = 10;
+constexpr uint64_t skinnedMesh = 11;
 } // namespace SceneTypes
 
 using SubmeshID = uint64_t;
@@ -93,6 +97,30 @@ struct Light
     bool      normalize = false; // Area lights: preserve untextured power as emitting area changes.
     bool      twoSided = false;  // Area lights: emit on both sides, sharing power when normalized.
     // Mesh uses the MeshRenderer on the same entity as its emitting surface.
+};
+
+// The entity is the root of a skeleton: its world transform places the skeleton's model space, and skinned meshes
+// attach as its direct children.
+struct Skeleton
+{
+    AssetID asset;
+};
+
+// Plays a clip of the Skeleton on the same entity.
+struct AnimationPlayer
+{
+    AssetID clip;
+    float   time = 0.0f; // Seconds into the clip.
+    float   speed = 1.0f;
+    bool    loop = true;
+    bool    playing = true;
+};
+
+// Deforms the MeshRenderer on the same entity with a skin of the Skeleton on the parent entity. The mesh must carry
+// joint and weight streams.
+struct SkinnedMesh
+{
+    uint32_t skin = 0;
 };
 
 struct Camera

@@ -78,6 +78,8 @@ class SceneAsset;
 class TextureAsset;
 class MeshAsset;
 class MaterialAsset;
+class SkeletonAsset;
+class AnimationClipAsset;
 class AssetManagerData;
 class RenderContext;
 
@@ -103,6 +105,8 @@ public:
     const TextureAsset*  GetTexture(AssetHandle Handle) const;
     const MeshAsset*     GetMesh(AssetHandle Handle) const;
     const MaterialAsset* GetMaterial(AssetHandle Handle) const;
+    const SkeletonAsset*      GetSkeleton(AssetHandle Handle) const;
+    const AnimationClipAsset* GetAnimationClip(AssetHandle Handle) const;
     // Lookup does not acquire a reference; use Request() to retain the asset.
     AssetHandle          Find(AssetID id) const;
     // Encodes the ready payload Set once per revision. Views expire when the ready Set changes.

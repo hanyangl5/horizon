@@ -576,6 +576,21 @@ Entity SceneAsset::Instantiate(World& world, Entity parent) const
                 const MeshRenderer renderer = { .mesh = node.mesh };
                 copied &= world.SetComponent(entity, SceneTypes::meshRenderer, &renderer);
             }
+            if (node.skin != UINT32_MAX)
+            {
+                const SkinnedMesh skinned = { .skin = node.skin };
+                copied &= world.SetComponent(entity, SceneTypes::skinnedMesh, &skinned);
+            }
+            if (node.skeleton.IsValid())
+            {
+                const Skeleton skeleton = { .asset = node.skeleton };
+                copied &= world.SetComponent(entity, SceneTypes::skeleton, &skeleton);
+            }
+            if (node.animation.IsValid())
+            {
+                const AnimationPlayer player = { .clip = node.animation };
+                copied &= world.SetComponent(entity, SceneTypes::animationPlayer, &player);
+            }
         }
         ASSERT(copied);
     }
