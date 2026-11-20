@@ -28,6 +28,7 @@ public:
 private:
     SkeletonAssetData* Data = nullptr;
     friend class SkinningCore;
+    friend class SkinningCoreData;
 };
 
 // A cooked animation with one track per joint of its skeleton.
@@ -48,5 +49,6 @@ public:
 private:
     AnimationClipAssetData* Data = nullptr;
     friend class SkinningCore;
+    friend class SkinningCoreData;
 };
 } // namespace hz
