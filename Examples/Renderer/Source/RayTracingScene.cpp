@@ -6,17 +6,21 @@
 void RayTracingScene::Update(hz::CommandList& Commands, const hz::SceneView& View, const hz::GpuDrawList& Draws)
 {
     const hz::Span<hz::DrawGeometry> Geometries = Draws.GetGeometries();
-    if (GeometryRevision != Draws.GetGeometryRevision())
+    // Bottom levels built this frame already hold this frame's skinned positions.
+    const bool                       Rebuilt = GeometryRevision != Draws.GetGeometryRevision();
+    if (Rebuilt)
     {
         hz::Array<hz::GPUAccelerationStructure> Previous = std::move(BottomLevelAS);
         BottomLevelAS.Resize(Geometries.Count);
         SkinnedBottomLevels.Clear();
+        Reused.Clear();
         for (uint32_t Index = 0; Index < Geometries.Count; ++Index)
         {
             const hz::DrawGeometry& Source = Geometries.Data[Index];
             if (Source.SkinnedInstance.IsValid())
             {
                 SkinnedBottomLevels.PushBack(Index);
+                Reused.PushBack(GeometryRevision + 1 == Draws.GetGeometryRevision() && Source.PreviousIndex < Previous.Size());
             }
             if (GeometryRevision + 1 == Draws.GetGeometryRevision() && Source.PreviousIndex < Previous.Size())
             {
@@ -57,9 +61,12 @@ void RayTracingScene::Update(hz::CommandList& Commands, const hz::SceneView& Vie
         }
         GeometryRevision = Draws.GetGeometryRevision();
     }
-    for (uint32_t Index : SkinnedBottomLevels)
+    for (uint32_t Skinned = 0; Skinned < SkinnedBottomLevels.Size(); ++Skinned)
     {
-        Commands.BuildAccelerationStructure(BottomLevelAS[Index], {}, true);
+        if (!Rebuilt || Reused[Skinned])
+        {
+            Commands.BuildAccelerationStructure(BottomLevelAS[SkinnedBottomLevels[Skinned]], {}, true);
+        }
     }
 
     const hz::Span<hz::GpuDrawData> Prepared = Draws.GetDraws();

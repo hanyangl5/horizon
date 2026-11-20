@@ -390,8 +390,16 @@ public:
     void extract(RenderEntity& entity)
     {
         entity.seen = true;
-        const SkinnedMesh* pSkinned = (const SkinnedMesh*)world.GetComponent(entity.entity, SceneTypes::skinnedMesh);
-        entity.skin = pSkinned ? pSkinned->skin : UINT32_MAX;
+        const SkinnedMesh* skinned = (const SkinnedMesh*)world.GetComponent(entity.entity, SceneTypes::skinnedMesh);
+        const uint32_t     skin = skinned ? skinned->skin : UINT32_MAX;
+        if ((skin == UINT32_MAX) != (entity.skin == UINT32_MAX))
+        {
+            if (skin == UINT32_MAX)
+                removeSkinnedEntity(entity.entity);
+            else
+                skinnedEntities.PushBack(entity.entity);
+        }
+        entity.skin = skin;
         RenderPrimitive&        primitive = primitives.values[entity.primitive.index];
         const MeshAssetBinding* pBinding = bindings.Get(entity.entity);
         ASSERT(pBinding);
@@ -470,6 +478,16 @@ public:
             markHistory(entity.instance.index);
         }
     }
+    void removeSkinnedEntity(Entity entity)
+    {
+        for (uint32_t i = 0; i < skinnedEntities.Size(); ++i)
+            if (skinnedEntities[i] == entity)
+            {
+                skinnedEntities[i] = skinnedEntities[skinnedEntities.Size() - 1];
+                skinnedEntities.PopBack();
+                return;
+            }
+    }
     static bool extractEntity(Entity entity, Span<const void*>, void* User)
     {
         RenderSceneData&         data = *(RenderSceneData*)User;
@@ -481,6 +499,8 @@ public:
     void removeEntity(uint32_t i)
     {
         RenderEntity& entity = entities[i];
+        if (entity.skin != UINT32_MAX)
+            removeSkinnedEntity(entity.entity);
         removeMeshBatches(entity);
         setInstanceIndex(entity.primitive.index, UINT32_MAX);
         instanceEntities[entity.instance.index] = {};
@@ -557,8 +577,9 @@ public:
     {
         skins.Clear();
         skinMatrices.Clear();
-        for (const RenderEntity& entity : entities)
+        for (Entity skinnedEntity : skinnedEntities)
         {
+            const RenderEntity& entity = entities[hmgetp_null(pIndices, skinnedEntity)->value];
             if (entity.skin == UINT32_MAX || !primitives.values[entity.primitive.index].instanceCount)
             {
                 continue;
@@ -749,6 +770,8 @@ public:
     Array<Entity>                                     historyFollowUp;
     Array<Entity>                                     instanceEntities;
     Array<RenderRange>                              uploadRanges[6];
+    // Mesh entities with a SkinnedMesh, visited by every Update.
+    Array<Entity>                                   skinnedEntities;
     Array<RenderSkin>                               skins;
     Array<Matrix4>                                  skinMatrices;
     uint64_t                                        revision = 0;

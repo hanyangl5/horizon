@@ -20,6 +20,8 @@ private:
     hz::Array<hz::GPUAccelerationStructure> BottomLevelAS;
     // Bottom levels built from skinned streams, refit every frame after the skinning pass.
     hz::Array<uint32_t>                     SkinnedBottomLevels;
+    // Per skinned bottom level, whether the last rebuild kept it from the previous revision instead of building it.
+    hz::Array<bool>                         Reused;
     hz::GPUAccelerationStructure            TopLevelAS;
     uint64_t                                GeometryRevision = 0;
 };

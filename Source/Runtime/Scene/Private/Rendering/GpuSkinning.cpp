@@ -11,6 +11,13 @@ namespace hz
 {
 static_assert(sizeof(GpuSkinningJob) == 12 * sizeof(uint32_t));
 
+// Skinned slot of a render instance index.
+struct SkinnedSlot
+{
+    uint32_t key;
+    uint32_t value;
+};
+
 class GpuSkinningData
 {
 public:
@@ -29,6 +36,13 @@ public:
             context.DeferRelease(std::move(buffer));
         for (GPUBuffer& buffer : jobBuffers)
             context.DeferRelease(std::move(buffer));
+        hmfree(slots);
+    }
+
+    GpuSkinnedVertices* find(RenderInstanceID instance)
+    {
+        const SkinnedSlot* slot = hmgetp_null(slots, instance.index);
+        return slot && skinned[slot->value].instance == instance ? &skinned[slot->value] : nullptr;
     }
 
     // Buffers may still be read by submitted frames.
@@ -106,19 +120,21 @@ public:
                 last = TF_MAX(last, range.first + range.Count);
             }
             const bool texcoords = hasStream(*pMesh, desc.texcoordBinding);
-            uint32_t   index = 0;
-            while (index < skinned.Size() && skinned[index].instance != skin.instance)
-                ++index;
-            if (index < skinned.Size() && (skinned[index].mesh != pPrimitive->mesh || skinned[index].vertexCount != last))
+            // A slot reused by another instance generation, or a changed mesh, gets new streams.
+            const SkinnedSlot* slot = hmgetp_null(slots, skin.instance.index);
+            uint32_t           index = slot ? slot->value : skinned.Size();
+            if (slot && (skinned[index].instance != skin.instance || skinned[index].mesh != pPrimitive->mesh ||
+                         skinned[index].vertexCount != last))
             {
                 retire(skinned[index]);
                 skinned[index] = {};
                 skinned[index].instance = skin.instance;
             }
-            if (index == skinned.Size())
+            if (!slot)
             {
                 skinned.EmplaceBack().instance = skin.instance;
                 seen.PushBack(false);
+                hmput(slots, skin.instance.index, index);
             }
             GpuSkinnedVertices& vertices = skinned[index];
             seen[index] = true;
@@ -154,10 +170,12 @@ public:
                 continue;
             }
             retire(skinned[i]);
+            hmdel(slots, skinned[i].instance.index);
             if (i + 1 < skinned.Size())
             {
                 skinned[i] = std::move(skinned[skinned.Size() - 1]);
                 seen[i] = seen[seen.Size() - 1];
+                hmput(slots, skinned[i].instance.index, i);
             }
             skinned.PopBack();
             seen.PopBack();
@@ -208,6 +226,7 @@ public:
     Array<GPUBuffer>                palettes;
     Array<GPUBuffer>                jobBuffers;
     Array<GpuSkinnedVertices>       skinned;
+    SkinnedSlot*                    slots = nullptr;
     Array<bool>                     seen;
     Array<GpuSkinningJob>           jobs;
     Array<const MeshAsset*>         jobMeshes;
@@ -229,10 +248,8 @@ uint32_t         GpuSkinning::GetJobCount() const { return Data->jobs.Size(); }
 uint32_t         GpuSkinning::GetMaxVertexCount() const { return Data->maxVertexCount; }
 const GpuSkinnedVertices* GpuSkinning::Find(RenderInstanceID instance) const
 {
-    for (const GpuSkinnedVertices& vertices : Data->skinned)
-        if (vertices.instance == instance && vertices.positions.IsValid())
-            return &vertices;
-    return nullptr;
+    const GpuSkinnedVertices* vertices = Data->find(instance);
+    return vertices && vertices->positions.IsValid() ? vertices : nullptr;
 }
 Span<GpuSkinnedVertices> GpuSkinning::GetSkinnedVertices() const { return { Data->skinned.GetData(), Data->skinned.Size() }; }
 Dependencies             GpuSkinning::GetDependencies(uint32_t frame) const { return Data->GetDependencies(frame); }
