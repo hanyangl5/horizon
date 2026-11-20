@@ -76,6 +76,7 @@ public:
     bool              adopted = false;
     tfrg_atomic32_t   status = (uint32_t)AssetLoadStatus::Pending;
     GPUBuffer         indexBuffer;
+    // Indexed by layout binding; a binding the file lacks keeps an invalid buffer and a zero stride.
     GPUBuffer         vertexBuffers[MAX_VERTEX_BINDINGS];
     uint32_t          vertexStrides[MAX_VERTEX_BINDINGS] = {};
     uint32_t          vertexBufferCount = 0;
@@ -114,6 +115,11 @@ public:
         context(context), desc(desc), sceneLoader(desc.cookedDirectory), textureLoader(context, desc.cookedDirectory, desc.sourceDirectory)
     {
         ASSERT(desc.vertexLayout.attribCount && desc.vertexLayout.attribCount <= MAX_VERTEX_ATTRIBS);
+        for (uint32_t i = 0; i < desc.vertexLayout.attribCount; ++i)
+        {
+            ASSERT(desc.vertexLayout.attribs[i].binding < MAX_VERTEX_BINDINGS);
+            vertexBindingCount = TF_MAX(vertexBindingCount, desc.vertexLayout.attribs[i].binding + 1);
+        }
         const ThreadSystemInitDesc threadDesc = { .threadCount = 1, .threadName = "AssetSource" };
         if (!threadSystemInit(&threads, &threadDesc))
             LOGF(Error, "Cannot start Mesh/Material loader worker");
@@ -254,6 +260,7 @@ public:
 
     RenderContext&     context;
     AssetLoadersDesc   desc;
+    uint32_t           vertexBindingCount = 0;
     SceneAssetLoader   sceneLoader;
     TextureAssetLoader textureLoader;
     ThreadSystem       threads = nullptr;
@@ -396,15 +403,16 @@ AssetLoadStatus AssetGeometry::poll()
     if (result != AssetLoadStatus::Succeeded)
         return result;
     indexType = (IndexType)pUpload->indexType;
-    vertexBufferCount = pUpload->vertexBufferCount;
+    vertexBufferCount = owner.vertexBindingCount;
     indexBuffer = SceneResourceAccess::take(&owner.context, pUpload->pIndexBuffer, gIndexBufferState);
+    // The loader creates buffers only for bindings with data, in binding order.
     uint32_t buffer = 0;
-    for (uint32_t binding = 0; binding < MAX_VERTEX_BINDINGS; ++binding)
+    for (uint32_t binding = 0; binding < vertexBufferCount; ++binding)
     {
         if (!pUpload->vertexStrides[binding])
             continue;
-        vertexStrides[buffer] = pUpload->vertexStrides[binding];
-        vertexBuffers[buffer] = SceneResourceAccess::take(&owner.context, pUpload->pVertexBuffers[buffer], gVertexBufferState);
+        vertexStrides[binding] = pUpload->vertexStrides[binding];
+        vertexBuffers[binding] = SceneResourceAccess::take(&owner.context, pUpload->pVertexBuffers[buffer], gVertexBufferState);
         ++buffer;
     }
     removeResource(pShadow);

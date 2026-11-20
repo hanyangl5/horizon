@@ -5130,6 +5130,9 @@ static UploadFunctionResult loadGeometryCustomMeshFormat(Renderer* pRenderer, Co
         }
 
         const uint32_t srcFormatSize = (uint32_t)geomData->pShadow->vertexStrides[attr->semantic]; //-V522
+        // An attribute the file does not contain leaves its binding without a buffer instead of a zero-filled one.
+        if (!srcFormatSize)
+            continue;
 
         uint32_t binding =
             pDesc->pGeometryBufferLayoutDesc ? pDesc->pGeometryBufferLayoutDesc->semanticBindings[attr->semantic] : attr->binding;

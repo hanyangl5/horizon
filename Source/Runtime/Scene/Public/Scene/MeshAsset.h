@@ -27,7 +27,8 @@ public:
 
     const SceneAssetMesh&             GetDescription() const;
     const GPUBuffer&                  GetIndexBuffer() const;
-    // Vertex streams are dense, in ascending source-layout binding order.
+    // One stream per source-layout binding. A stream the geometry lacks, such as texture coordinates or skin weights, is an
+    // invalid buffer with a zero stride.
     const GPUBuffer&                  GetVertexBuffer(uint32_t binding) const;
     uint32_t                          GetVertexBufferCount() const;
     uint32_t                          GetVertexStride(uint32_t binding) const;

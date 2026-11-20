@@ -68,7 +68,9 @@ void GpuDrawList::Prepare(const SceneView& View)
         {
             continue;
         }
-        ASSERT(Mesh->vertexStreamCount == 3 && Primitive.id == Draw.primitive);
+        // The first three bindings are position, normal and texture coordinates; only positions are required.
+        ASSERT(Mesh->vertexStreamCount >= 3 && Tables.vertexStreams.Data[Mesh->vertexStreamOffset].srv != UINT32_MAX &&
+               Primitive.id == Draw.primitive);
         const GpuSubmeshData& Submesh = Tables.submeshes.Data[Mesh->submeshOffset + Draw.mesh.submeshIndex];
         uint32_t              GeometryIndex = UINT32_MAX;
         if (Material->alphaMode != uint32_t(MaterialAlphaMode::Blend))
@@ -206,7 +208,10 @@ Dependencies GpuDrawList::GetDependencies(const GPUBuffer& Frame, const SceneVie
         Buffers.PushBack(Previous);
         for (uint32_t Index = 0; Index < Mesh->GetVertexBufferCount(); ++Index)
         {
-            Buffers.PushBack(&Mesh->GetVertexBuffer(Index));
+            if (Mesh->GetVertexBuffer(Index).IsValid())
+            {
+                Buffers.PushBack(&Mesh->GetVertexBuffer(Index));
+            }
         }
     }
     for (const GpuTextureData& TextureData : Tables.textures)

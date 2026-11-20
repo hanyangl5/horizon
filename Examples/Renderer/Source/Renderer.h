@@ -27,14 +27,17 @@ constexpr bool EnableGpuValidation = true;
 constexpr bool EnableGpuValidation = false;
 #endif
 
+// Texture coordinates, joints and weights are optional: a mesh without them has no stream at that binding.
 const VertexLayout SceneVertexLayout = {
-    .bindings = { { .stride = 12 }, { .stride = 4 }, { .stride = 4 } },
+    .bindings = { { .stride = 12 }, { .stride = 4 }, { .stride = 4 }, { .stride = 8 }, { .stride = 16 } },
     .attribs = {
         { .semantic = SEMANTIC_POSITION, .Format = hz::Format::R32G32B32_SFLOAT, .binding = 0, .location = 0 },
         { .semantic = SEMANTIC_NORMAL, .Format = hz::Format::R32_UINT, .binding = 1, .location = 1 },
         { .semantic = SEMANTIC_TEXCOORD0, .Format = hz::Format::R32_UINT, .binding = 2, .location = 2 },
+        { .semantic = SEMANTIC_JOINTS, .Format = hz::Format::R16G16B16A16_UINT, .binding = 3, .location = 3 },
+        { .semantic = SEMANTIC_WEIGHTS, .Format = hz::Format::R32G32B32A32_SFLOAT, .binding = 4, .location = 4 },
     },
-    .bindingCount = 3, .attribCount = 3,
+    .bindingCount = 5, .attribCount = 5,
 };
 
 class RendererApp final: public IApp

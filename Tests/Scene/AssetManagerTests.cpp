@@ -498,9 +498,12 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
     ASSERT_NE(pFirst, nullptr);
     ASSERT_NE(pSecond, nullptr);
     EXPECT_EQ(&pFirst->GetIndexBuffer(), &pSecond->GetIndexBuffer());
-    EXPECT_EQ(&pFirst->GetVertexBuffer(0), &pSecond->GetVertexBuffer(0));
-    EXPECT_EQ(pFirst->GetVertexBufferCount(), 1u);
-    EXPECT_EQ(pFirst->GetVertexStride(0), 12u);
+    // The test layout binds positions to binding 2, so bindings 0 and 1 have no stream.
+    EXPECT_EQ(&pFirst->GetVertexBuffer(2), &pSecond->GetVertexBuffer(2));
+    EXPECT_EQ(pFirst->GetVertexBufferCount(), 3u);
+    EXPECT_FALSE(pFirst->GetVertexBuffer(0).IsValid());
+    EXPECT_EQ(pFirst->GetVertexStride(0), 0u);
+    EXPECT_EQ(pFirst->GetVertexStride(2), 12u);
     EXPECT_EQ(pFirst->GetIndexType(), INDEX_TYPE_UINT16);
     EXPECT_EQ(pFirst->GetDraw(0).indexCount, 3u);
     const hz::MeshBounds& bounds = pFirst->GetBounds(0);
@@ -519,7 +522,7 @@ TEST_F(TypedAssetLiveTest, LoadsSharedDependencyGraphAndRetiresGeometryAfterGpuU
                                                        .StartState = RESOURCE_STATE_COPY_DEST,
                                                        .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     hz::CommandList& commands = context.AcquireCommandList();
-    commands.CopyBuffer(readback, 0, pFirst->GetVertexBuffer(0), 0, 36);
+    commands.CopyBuffer(readback, 0, pFirst->GetVertexBuffer(2), 0, 36);
     assetManager.Release(root);
     assetManager.Release(second);
     assetManager.Update();
@@ -599,7 +602,7 @@ TEST_F(TypedAssetLiveTest, Loads32BitIndicesWithSmallVertexCounts)
                                                        .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     hz::CommandList& commands = context.AcquireCommandList();
     commands.CopyBuffer(readback, 0, mesh->GetIndexBuffer(), 0, 12);
-    commands.CopyBuffer(readback, 12, mesh->GetVertexBuffer(0), 0, 36);
+    commands.CopyBuffer(readback, 12, mesh->GetVertexBuffer(2), 0, 36);
     assetManager.Release(Handle);
     const hz::SubmitHandle submission = context.Submit(commands);
     assetManager.Shutdown();
@@ -1964,7 +1967,7 @@ TEST_F(TypedAssetLiveTest, InstantiatesEditsSavesAndReloadsWorldWithGpuAssetRebi
         commands.CopyBuffer(readback, 0, gpu->GetBuffers().instances, instance * sizeof(hz::RenderInstance), sizeof(hz::RenderInstance));
         commands.CopyBuffer(readback, sizeof(hz::RenderInstance), gpu->GetBuffers().materials,
                             meshBatch->material.index * sizeof(hz::GpuMaterialData), sizeof(hz::GpuMaterialData));
-        commands.CopyBuffer(readback, sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData), mesh->GetVertexBuffer(0), 0, 36);
+        commands.CopyBuffer(readback, sizeof(hz::RenderInstance) + sizeof(hz::GpuMaterialData), mesh->GetVertexBuffer(2), 0, 36);
         const hz::SubmitHandle submission = context.Submit(commands);
         gpu->EndFrame(submission);
         // Destroying the GPU scene, bindings and World does not Wait; buffers and payloads retire after the frame.

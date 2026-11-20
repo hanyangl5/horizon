@@ -78,6 +78,10 @@ uint3 loadRTTriangle(GpuDrawData draw, uint primitive)
 
 float2 loadRTUV(GpuDrawData draw, uint vertex)
 {
+    if (draw.texcoords == INVALID_TEXTURE)
+    {
+        return 0.0;
+    }
     ByteAddressBuffer texcoords = ResourceDescriptorHeap[NonUniformResourceIndex(draw.texcoords)];
     uint              packed = texcoords.Load(vertex * 4);
     return float2(f16tof32(packed & 0xffffu), f16tof32(packed >> 16));

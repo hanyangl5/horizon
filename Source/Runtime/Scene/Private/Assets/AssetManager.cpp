@@ -442,7 +442,9 @@ public:
                               .submeshCount = mesh.GetDescription().submeshes.Count };
             for (uint32_t stream = 0; stream < mesh.GetVertexBufferCount(); ++stream)
             {
-                vertexStreams.PushBack({ .srv = mesh.GetVertexBuffer(stream).GetSrvIndex(), .stride = mesh.GetVertexStride(stream) });
+                const GPUBuffer& buffer = mesh.GetVertexBuffer(stream);
+                vertexStreams.PushBack(
+                    { .srv = buffer.IsValid() ? buffer.GetSrvIndex() : UINT32_MAX, .stride = mesh.GetVertexStride(stream) });
             }
             for (uint32_t Draw = 0; Draw < mesh.GetDescription().submeshes.Count; ++Draw)
             {

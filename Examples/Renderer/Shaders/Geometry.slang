@@ -76,10 +76,15 @@ PSInput BuildVertex(uint vertexId, uint instance, uint material, uint id, uint p
     ByteAddressBuffer           Instances = ResourceDescriptorHeap[instancesIndex];
     ByteAddressBuffer           Positions = ResourceDescriptorHeap[NonUniformResourceIndex(positionBuffer)];
     ByteAddressBuffer           Normals = ResourceDescriptorHeap[NonUniformResourceIndex(normalBuffer)];
-    ByteAddressBuffer           Texcoords = ResourceDescriptorHeap[NonUniformResourceIndex(uvBuffer)];
     float3                      Position = asfloat(Positions.Load3(vertexId * sizeof(float3)));
     uint                        Normal = Normals.Load(vertexId * 4);
-    uint                        Uv = Texcoords.Load(vertexId * 4);
+    // Meshes without texture coordinates have no stream; they sample texel (0, 0).
+    uint                        Uv = 0;
+    if (uvBuffer != INVALID_TEXTURE)
+    {
+        ByteAddressBuffer Texcoords = ResourceDescriptorHeap[NonUniformResourceIndex(uvBuffer)];
+        Uv = Texcoords.Load(vertexId * 4);
+    }
     const float4x4              world = LoadMatrix(Instances, instance * 192 + 32);
     const float4x4              previousWorld = LoadMatrix(Instances, instance * 192 + 96);
     float4                      WorldPosition = mul(world, float4(Position, 1.0));
