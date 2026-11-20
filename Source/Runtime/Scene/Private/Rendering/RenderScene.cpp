@@ -3,6 +3,9 @@
 #include "RenderStorage.h"
 #include "Scene/WorldAssetBindings.h"
 #include "Scene/MeshAsset.h"
+#include "Scene/AnimationAssets.h"
+#include "Scene/AnimationSystem.h"
+#include "Scene/SkinningCore.h"
 #include <math.h>
 
 #include "Core/IMemory.h"
@@ -65,6 +68,8 @@ struct RenderEntity
     RenderInstanceID         instance;
     Array<RenderMeshBatchID> meshBatches;
     MeshBounds               localBounds;
+    // SkinnedMesh skin index, or UINT32_MAX for a rigid mesh.
+    uint32_t                 skin = UINT32_MAX;
     bool                     seen = false;
 };
 // Indexed by instance index. Pending marks entries whose submitted transform may need recording.
@@ -103,8 +108,8 @@ struct RenderCameraEntity
 class RenderSceneData
 {
 public:
-    RenderSceneData(World& world, AssetManager& assetManager):
-        world(world), assetManager(assetManager), bindings(world, assetManager), changes(world), query(world, { SceneTypes::meshRenderer }),
+    RenderSceneData(World& world, AssetManager& assetManager, const AnimationSystem* pAnimation):
+        world(world), assetManager(assetManager), pAnimation(pAnimation), bindings(world, assetManager), changes(world), query(world, { SceneTypes::meshRenderer }),
         lightQuery(world, { SceneTypes::light }), cameraQuery(world, { SceneTypes::camera })
     {
         ASSERT(query.IsValid() && lightQuery.IsValid() && cameraQuery.IsValid());
@@ -385,6 +390,8 @@ public:
     void extract(RenderEntity& entity)
     {
         entity.seen = true;
+        const SkinnedMesh* pSkinned = (const SkinnedMesh*)world.GetComponent(entity.entity, SceneTypes::skinnedMesh);
+        entity.skin = pSkinned ? pSkinned->skin : UINT32_MAX;
         RenderPrimitive&        primitive = primitives.values[entity.primitive.index];
         const MeshAssetBinding* pBinding = bindings.Get(entity.entity);
         ASSERT(pBinding);
@@ -541,6 +548,49 @@ public:
         }
         historyFollowUp.Clear();
     }
+    // Skinned instances change every frame with their pose, so they are visited each Update instead of through the World
+    // change log. A skin without a pose keeps the instance on its bind-pose bounds and leaves it out of the skin list.
+    void updateSkins()
+    {
+        skins.Clear();
+        skinMatrices.Clear();
+        if (!pAnimation)
+        {
+            return;
+        }
+        for (const RenderEntity& entity : entities)
+        {
+            if (entity.skin == UINT32_MAX || !primitives.values[entity.primitive.index].instanceCount)
+            {
+                continue;
+            }
+            const SkinningCore* pPose = pAnimation->GetPose(world.GetParent(entity.entity));
+            if (!pPose || entity.skin >= pPose->GetSkeleton().GetSkinCount())
+            {
+                continue;
+            }
+            const uint32_t jointCount = pPose->GetSkeleton().GetSkinJointCount(entity.skin);
+            const uint32_t jointOffset = skinMatrices.Size();
+            skinMatrices.Resize(jointOffset + jointCount);
+            pPose->WriteSkinMatrices(entity.skin, skinMatrices.GetData() + jointOffset);
+            skins.PushBack({ .instance = entity.instance, .jointOffset = jointOffset, .jointCount = jointCount });
+            SkinBounds skinBounds;
+            if (!pPose->GetSkinBounds(entity.skin, skinBounds))
+            {
+                continue;
+            }
+            MeshBounds local;
+            memcpy(local.minimum, skinBounds.minimum, sizeof(local.minimum));
+            memcpy(local.maximum, skinBounds.maximum, sizeof(local.maximum));
+            RenderInstance&    instance = instances.values[entity.instance.index];
+            const RenderBounds bounds = transformBounds(local, instance.current);
+            if (!equalBounds(instance.bounds, bounds))
+            {
+                instance.bounds = bounds;
+                instances.MarkDirty(instance.id.index);
+            }
+        }
+    }
     void Update()
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::Update");
@@ -568,6 +618,7 @@ public:
         {
             PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::extract");
             extractMeshEntities();
+            updateSkins();
         }
         extractLights();
         cameraQuery.Each(extractCamera, this);
@@ -670,6 +721,7 @@ public:
 
     World&                                          world;
     AssetManager&                                   assetManager;
+    const AnimationSystem*                          pAnimation = nullptr;
     WorldAssetBindings                              bindings;
     WorldChangeLog                                    changes;
     WorldQuery                                      query;
@@ -700,11 +752,16 @@ public:
     Array<Entity>                                     historyFollowUp;
     Array<Entity>                                     instanceEntities;
     Array<RenderRange>                              uploadRanges[6];
+    Array<RenderSkin>                               skins;
+    Array<Matrix4>                                  skinMatrices;
     uint64_t                                        revision = 0;
     bool                                            frameLocked = false;
 };
 
-RenderScene::RenderScene(World& world, AssetManager& assetManager): Data(MemNew(RenderSceneData, world, assetManager)) {}
+RenderScene::RenderScene(World& world, AssetManager& assetManager, const AnimationSystem* pAnimation):
+    Data(MemNew(RenderSceneData, world, assetManager, pAnimation))
+{
+}
 RenderScene::~RenderScene() { MemDelete(Data); }
 void RenderScene::Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount, uint32_t cameraCount)
 {
@@ -779,4 +836,6 @@ Span<uint32_t> RenderScene::GetActiveMeshBatches() const { return { Data->meshBa
 Span<uint32_t> RenderScene::GetActiveLights() const { return { Data->lights.active.GetData(), Data->lights.active.Size() }; }
 Span<uint32_t> RenderScene::GetActiveCameras() const { return { Data->cameras.active.GetData(), Data->cameras.active.Size() }; }
 Span<uint32_t> RenderScene::GetInstanceIndices() const { return { Data->instanceIndices.GetData(), Data->instanceIndices.Size() }; }
+Span<RenderSkin> RenderScene::GetSkins() const { return { Data->skins.GetData(), Data->skins.Size() }; }
+Span<Matrix4>    RenderScene::GetSkinMatrices() const { return { Data->skinMatrices.GetData(), Data->skinMatrices.Size() }; }
 } // namespace hz

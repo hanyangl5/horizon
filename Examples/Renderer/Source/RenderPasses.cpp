@@ -137,6 +137,12 @@ static DeferredGBuffer GetGBuffer(const hz::FrameGraphContext& Context)
              .Depth = hz::GetFrameGraphTexture(Context, Targets.Depth) };
 }
 
+static void ExecuteSkinning(const hz::FrameGraphContext& Context, void* UserData)
+{
+    const FrameInputs& Frame = Inputs(Context);
+    ((SkinningPass*)UserData)->Execute(Context.Commands, *Frame.View.Skinning, Frame.View.FrameIndex);
+}
+
 static void ExecuteCulling(const hz::FrameGraphContext& Context, void* UserData)
 {
     const FrameInputs& Frame = Inputs(Context);
@@ -367,7 +373,13 @@ void RenderPasses::BuildGraph()
     T.DrawLists = hz::ImportFrameGraphBuffer(G, { .Name = "DrawLists" });
 
     const hz::FrameGraphBufferUse WriteLists[] = { { T.DrawLists, hz::FrameGraphAccessWrite } };
-    const hz::FrameGraphBufferUse ReadLists[] = { { T.DrawLists, hz::FrameGraphAccessRead } };
+    T.SkinnedVertices = hz::ImportFrameGraphBuffer(G, { .Name = "SkinnedVertices" });
+    const hz::FrameGraphBufferUse WriteSkinned[] = { { T.SkinnedVertices, hz::FrameGraphAccessWrite } };
+    const hz::FrameGraphBufferUse ReadSkinned[] = { { T.SkinnedVertices, hz::FrameGraphAccessRead } };
+    const hz::FrameGraphBufferUse ReadLists[] = { { T.DrawLists, hz::FrameGraphAccessRead },
+                                                  { T.SkinnedVertices, hz::FrameGraphAccessRead } };
+    SkinningGraphPass =
+        hz::AddFrameGraphPass(G, { .Name = "Skinning", .Execute = ExecuteSkinning, .UserData = SkinningCompute.Get(), .Buffers = WriteSkinned });
     hz::AddFrameGraphPass(G, { .Name = "Culling", .Execute = ExecuteCulling, .UserData = Culling.Get(), .Buffers = WriteLists });
     const Use ShadowUses[] = { { T.ShadowMap, Write } };
     hz::AddFrameGraphPass(
@@ -393,7 +405,11 @@ void RenderPasses::BuildGraph()
                            { T.RTReflectionHistory, Write },
                            { T.RTPreviousDepth, Write } };
     RayTracingPass =
-        hz::AddFrameGraphPass(G, { .Name = "Ray Tracing", .Execute = ExecuteRayTracing, .UserData = RayTracing.Get(), .Textures = RTUses });
+        hz::AddFrameGraphPass(G, { .Name = "Ray Tracing",
+                                   .Execute = ExecuteRayTracing,
+                                   .UserData = RayTracing.Get(),
+                                   .Textures = RTUses,
+                                   .Buffers = ReadSkinned });
     const Use LightingUses[] = { { T.GBuffer[0], Read },   { T.GBuffer[1], Read },
                                  { T.GBuffer[2], Read },   { T.Depth, Read },
                                  { T.ShadowMap, Read },    { T.Occlusion, Optional },
@@ -409,7 +425,7 @@ void RenderPasses::BuildGraph()
                                                          { T.OITHeads, Write },
                                                          { T.TransparentColor, Write } };
     const hz::FrameGraphBufferUse TransparencyBuffers[] = { { T.OITNodes, Write }, { T.OITCounters, Write } };
-    const hz::FrameGraphBufferUse TransparencyAllBuffers[] = { TransparencyBuffers[0], TransparencyBuffers[1], ReadLists[0] };
+    const hz::FrameGraphBufferUse TransparencyAllBuffers[] = { TransparencyBuffers[0], TransparencyBuffers[1], ReadLists[0], ReadLists[1] };
     TransparencyPass = hz::AddFrameGraphPass(G, { .Name = "Transparency",
                                                   .Execute = ExecuteTransparency,
                                                   .UserData = Transparency.Get(),
@@ -440,10 +456,12 @@ void RenderPasses::BuildGraph()
 
 RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     Context(*Desc.Context), Scene(*Desc.Scene), Assets(*Desc.AssetManager), CameraId(Desc.Camera), Draws(Context),
-    GpuSceneData(Scene, Assets, Context, { .frameCount = FrameConstants.Size() })
+    GpuSceneData(Scene, Assets, Context, { .frameCount = FrameConstants.Size() }),
+    Skinning(Scene, Assets, Context, { .frameCount = FrameConstants.Size() })
 {
     ASSERT(Context.IsValid() && CameraId.IsValid());
     Culling = hz::MakeUnique<FrustumCulling>(Context);
+    SkinningCompute = hz::MakeUnique<SkinningPass>(Context);
     GBufferPass = hz::MakeUnique<GBuffer>(Context);
     Lighting = hz::MakeUnique<DeferredLighting>(Context);
     SSAO = hz::MakeUnique<ScreenSpaceAO>(Context);
@@ -532,7 +550,7 @@ void RenderPasses::Execute()
         return;
     }
     NextFrame = (NextFrame + 1) % FrameConstants.Size();
-    const hz::SceneView     View = { .Scene = Scene, .GpuScene = GpuSceneData, .Assets = Assets, .FrameIndex = FrameIndex };
+    const hz::SceneView     View = { .Scene = Scene, .GpuScene = GpuSceneData, .Assets = Assets, .FrameIndex = FrameIndex, .Skinning = &Skinning };
     const hz::RenderCamera* Camera = Scene.GetCamera(CameraId);
     ASSERT(Camera);
     const hz::RenderCamera& CameraState = *Camera;
@@ -548,6 +566,7 @@ void RenderPasses::Execute()
     ASSERT(Updated);
     hz::CommandList& Commands = Context.AcquireCommandList();
     GpuSceneData.Upload(Commands);
+    Skinning.Prepare(FrameIndex);
     Draws.Prepare(View);
     // Frame shape the passes depend on.
     const bool RayTracingReady = RayTracing->IsSupported();
@@ -566,6 +585,9 @@ void RenderPasses::Execute()
     hz::SetFrameGraphTextureImport(Graph, Targets.Backbuffer, &Backbuffer);
     // Stands for all of this frame's lists; passes fetch the individual lists from the draw list itself.
     hz::SetFrameGraphBufferImport(Graph, Targets.DrawLists, &Draws.GetCommands(FrameIndex, Draws.GetOpaqueList()));
+    // Stands for every skinned stream; the passes fetch the streams through the draw list.
+    hz::SetFrameGraphBufferImport(Graph, Targets.SkinnedVertices, &Frame);
+    hz::SetFrameGraphPassEnabled(Graph, SkinningGraphPass, Skinning.GetJobCount() > 0);
     FrameInputs Inputs = { .Draws = Draws,
                            .Frame = Frame,
                            .View = View,

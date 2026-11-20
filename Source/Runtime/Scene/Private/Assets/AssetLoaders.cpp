@@ -41,6 +41,7 @@ struct MeshDraw
 {
     IndirectDrawIndexArguments arguments;
     MeshBounds                 bounds;
+    MeshVertexRange            vertices;
 };
 
 class AssetGeometry
@@ -434,6 +435,8 @@ bool AssetGeometry::buildBounds()
             Draw.bounds.minimum[axis] = FLT_MAX;
             Draw.bounds.maximum[axis] = -FLT_MAX;
         }
+        uint32_t lastVertex = 0;
+        Draw.vertices.first = UINT32_MAX;
         for (uint32_t j = 0; j < Draw.arguments.indexCount; ++j)
         {
             const uint32_t index = Draw.arguments.startIndex + j;
@@ -442,6 +445,8 @@ bool AssetGeometry::buildBounds()
                 (int32_t)Draw.arguments.vertexOffset;
             if (vertex < 0 || (uint64_t)vertex >= pUpload->vertexCount)
                 return false;
+            Draw.vertices.first = TF_MIN(Draw.vertices.first, (uint32_t)vertex);
+            lastVertex = TF_MAX(lastVertex, (uint32_t)vertex);
             for (uint32_t axis = 0; axis < 3; ++axis)
             {
                 float value;
@@ -458,6 +463,7 @@ bool AssetGeometry::buildBounds()
                 }
             }
         }
+        Draw.vertices.Count = lastVertex - Draw.vertices.first + 1;
     }
     return true;
 }
@@ -546,6 +552,11 @@ const MeshBounds& MeshAsset::GetBounds(uint32_t submesh) const
 {
     ASSERT(submesh < GetDescription().submeshes.Count);
     return pGeometry->draws[GetDescription().submeshes.Data[submesh].Draw].bounds;
+}
+const MeshVertexRange& MeshAsset::GetVertexRange(uint32_t submesh) const
+{
+    ASSERT(submesh < GetDescription().submeshes.Count);
+    return pGeometry->draws[GetDescription().submeshes.Data[submesh].Draw].vertices;
 }
 
 AssetLoaders::AssetLoaders(RenderContext& context, const AssetLoadersDesc& desc): Data(MemNew(AssetLoadersData, context, desc)) {}

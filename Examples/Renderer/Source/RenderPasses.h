@@ -6,6 +6,7 @@
 #include "Graphics/FrameGraph.h"
 #include "Graphics/RenderContext.h"
 #include "Scene/GpuDrawList.h"
+#include "Scene/GpuSkinning.h"
 #include "FrustumCulling.h"
 #include "PostEffects.h"
 #include "ScreenSpaceAO.h"
@@ -14,6 +15,7 @@
 #include "DeferredLighting.h"
 #include "Transparency.h"
 #include "RayTracedEffects.h"
+#include "Skinning.h"
 
 struct RenderPassesDesc
 {
@@ -41,6 +43,8 @@ struct RenderTargets
 {
     // The draw lists GpuDrawList owns; culling writes them and the drawing passes read them.
     hz::FrameGraphBuffer  DrawLists;
+    // The streams the skinning pass writes; the passes that draw or trace geometry read them.
+    hz::FrameGraphBuffer  SkinnedVertices;
     hz::FrameGraphTexture GBuffer[GBuffer::TextureCount];
     hz::FrameGraphTexture Depth;
     hz::FrameGraphTexture ShadowMap;
@@ -101,6 +105,7 @@ private:
     hz::RenderCameraID CameraId;
 
     hz::UniquePtr<FrustumCulling>          Culling;
+    hz::UniquePtr<SkinningPass>            SkinningCompute;
     hz::UniquePtr<GBuffer>                 GBufferPass;
     hz::UniquePtr<DeferredLighting>        Lighting;
     hz::UniquePtr<PostEffects>             PostProcessing;
@@ -115,8 +120,10 @@ private:
     hz::FixedArray<FrameConstantBuffer, 3> FrameConstants;
     uint32_t                               NextFrame = 0;
     hz::GpuScene                           GpuSceneData;
+    hz::GpuSkinning                        Skinning;
     hz::FrameGraph*                        Graph = nullptr;
     RenderTargets                          Targets;
+    hz::FrameGraphPass                     SkinningGraphPass;
     hz::FrameGraphPass                     SSAOPass;
     hz::FrameGraphPass                     RayTracingPass;
     hz::FrameGraphPass                     TransparencyPass;

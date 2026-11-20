@@ -3,6 +3,7 @@
 #include "Core/ILog.h"
 #include "Scene/MeshAsset.h"
 #include "Scene/TextureAsset.h"
+#include "Scene/GpuSkinning.h"
 
 namespace hz
 {
@@ -72,13 +73,20 @@ void GpuDrawList::Prepare(const SceneView& View)
         ASSERT(Mesh->vertexStreamCount >= 3 && Tables.vertexStreams.Data[Mesh->vertexStreamOffset].srv != UINT32_MAX &&
                Primitive.id == Draw.primitive);
         const GpuSubmeshData& Submesh = Tables.submeshes.Data[Mesh->submeshOffset + Draw.mesh.submeshIndex];
-        uint32_t              GeometryIndex = UINT32_MAX;
+        // Skinned primitives have one instance, which draws its own skinned streams.
+        const GpuSkinnedVertices* pSkinned =
+            View.Skinning && Primitive.instanceCount == 1
+                ? View.Skinning->Find(View.Scene.GetInstances().Data[View.Scene.GetInstanceIndices().Data[Primitive.instanceOffset]].id)
+                : nullptr;
+        const RenderInstanceID SkinnedInstance = pSkinned ? pSkinned->instance : RenderInstanceID{};
+        uint32_t               GeometryIndex = UINT32_MAX;
         if (Material->alphaMode != uint32_t(MaterialAlphaMode::Blend))
         {
             const bool Opaque = Material->alphaMode == uint32_t(MaterialAlphaMode::Opaque);
             GeometryIndex = 0;
             while (GeometryIndex < Geometries.Size() &&
-                   (Geometries[GeometryIndex].Mesh != Draw.mesh || Geometries[GeometryIndex].Opaque != Opaque))
+                   (Geometries[GeometryIndex].Mesh != Draw.mesh || Geometries[GeometryIndex].Opaque != Opaque ||
+                    Geometries[GeometryIndex].SkinnedInstance != SkinnedInstance))
             {
                 ++GeometryIndex;
             }
@@ -90,7 +98,7 @@ void GpuDrawList::Prepare(const SceneView& View)
                 }
                 if (GeometryIndex == Geometries.Size())
                 {
-                    Geometries.PushBack({ .Mesh = Draw.mesh, .Opaque = Opaque });
+                    Geometries.PushBack({ .Mesh = Draw.mesh, .Opaque = Opaque, .SkinnedInstance = SkinnedInstance });
                 }
                 std::swap(Geometries[GeometryIndex], Geometries[GeometryCount]);
                 GeometryIndex = GeometryCount++;
@@ -99,18 +107,26 @@ void GpuDrawList::Prepare(const SceneView& View)
         for (uint32_t Index = 0; Index < Primitive.instanceCount; ++Index)
         {
             GeometryIndices.PushBack(GeometryIndex);
-            DrawData.PushBack({ .instance = View.Scene.GetInstanceIndices().Data[Primitive.instanceOffset + Index],
-                                .material = Draw.material.index,
-                                .materialId = MaterialIds[Draw.material.index],
-                                .alphaMode = Material->alphaMode,
-                                .positions = Tables.vertexStreams.Data[Mesh->vertexStreamOffset].srv,
-                                .normals = Tables.vertexStreams.Data[Mesh->vertexStreamOffset + 1].srv,
-                                .texcoords = Tables.vertexStreams.Data[Mesh->vertexStreamOffset + 2].srv,
-                                .indices = Mesh->indexSrv,
-                                .indexStride = Mesh->indexStride,
-                                .firstIndex = Submesh.firstIndex,
-                                .vertexOffset = Submesh.vertexOffset,
-                                .indexCount = Submesh.indexCount });
+            GpuDrawData& Output = DrawData.EmplaceBack();
+            Output = { .instance = View.Scene.GetInstanceIndices().Data[Primitive.instanceOffset + Index],
+                       .material = Draw.material.index,
+                       .materialId = MaterialIds[Draw.material.index],
+                       .alphaMode = Material->alphaMode,
+                       .positions = Tables.vertexStreams.Data[Mesh->vertexStreamOffset].srv,
+                       .normals = Tables.vertexStreams.Data[Mesh->vertexStreamOffset + 1].srv,
+                       .texcoords = Tables.vertexStreams.Data[Mesh->vertexStreamOffset + 2].srv,
+                       .indices = Mesh->indexSrv,
+                       .indexStride = Mesh->indexStride,
+                       .firstIndex = Submesh.firstIndex,
+                       .vertexOffset = Submesh.vertexOffset,
+                       .indexCount = Submesh.indexCount };
+            if (pSkinned)
+            {
+                Output.positions = pSkinned->positions.GetSrvIndex();
+                Output.normals = pSkinned->normals.GetSrvIndex();
+                Output.texcoords = pSkinned->texcoords.IsValid() ? pSkinned->texcoords.GetSrvIndex() : UINT32_MAX;
+                Output.vertexOffset = Submesh.vertexOffset - (int32_t)pSkinned->firstVertex;
+            }
         }
     }
     if (GeometryCount != Geometries.Size())
@@ -211,6 +227,18 @@ Dependencies GpuDrawList::GetDependencies(const GPUBuffer& Frame, const SceneVie
             if (Mesh->GetVertexBuffer(Index).IsValid())
             {
                 Buffers.PushBack(&Mesh->GetVertexBuffer(Index));
+            }
+        }
+    }
+    if (View.Skinning)
+    {
+        for (const GpuSkinnedVertices& Vertices : View.Skinning->GetSkinnedVertices())
+        {
+            Buffers.PushBack(&Vertices.positions);
+            Buffers.PushBack(&Vertices.normals);
+            if (Vertices.texcoords.IsValid())
+            {
+                Buffers.PushBack(&Vertices.texcoords);
             }
         }
     }

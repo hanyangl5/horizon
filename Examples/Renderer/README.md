@@ -51,6 +51,10 @@ the reference shader's alpha dither and derivative-adjusted cutoff; BLEND uses
 PPLL transparency. Directional shadows, ray-traced shadow/AO/reflection, IBL and
 HDR postprocessing are described in [CookbookRenderer](../../Docs/CookbookRenderer.md).
 
+The sample also instantiates the BrainStem glTF character (`Assets/BrainStem/glTF`, set by `CharacterDirectory` and
+`CharacterSource` in `Source/Renderer.h`) on the street at `CharacterPosition` and plays its animation; the camera
+starts framing it. See [Skeletal Animation](../../Docs/Animation.md).
+
 - WASD: move; Q/E: descend/ascend.
 - Hold the right mouse button: look around.
 - Hold left Shift: move four times faster.

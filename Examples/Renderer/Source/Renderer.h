@@ -10,6 +10,7 @@
 #include "Core/IThread.h"
 #include "Core/ITime.h"
 #include "Scene/AssetLoaders.h"
+#include "Scene/AnimationSystem.h"
 #include "Scene/SceneAsset.h"
 #if defined(HORIZON_RENDERER_ASSET_COOKING)
 #include "AssetPipeline/IAssetPipeline.h"
@@ -19,6 +20,11 @@
 
 constexpr const char* SceneDirectory = "Assets/Bistro";
 constexpr const char* SceneSource = "BistroExterior.gltf";
+// A skinned character instantiated into the scene at a street-level spot; its first animation plays from startup.
+constexpr const char* CharacterDirectory = "Assets/BrainStem/glTF";
+constexpr const char* CharacterSource = "BrainStem.gltf";
+constexpr float       CharacterPosition[3] = { -15.0f, 0.4f, -4.6f };
+constexpr float       CharacterYaw = 0.0f;
 constexpr bool        EnableHDR = true;
 // GPU-based validation slows GPU work several times over, so only Debug builds enable it by default.
 #if defined(_DEBUG)
@@ -88,6 +94,8 @@ private:
         SetResourceDirectoryPath(SystemFileIO, MountSave0, DirectoryMeshes, "RendererAssets");
         SetResourceDirectoryPath(SystemFileIO, MountSave0, DirectoryOtherFiles, "RendererAssets");
         SetResourceDirectoryPath(SystemFileIO, MountProject, DirectoryTextures, SceneDirectory);
+        // The character's source directory, read only while cooking.
+        SetResourceDirectoryPath(SystemFileIO, MountProject, DirectoryAnimations, CharacterDirectory);
         SetResourceDirectoryPath(SystemFileIO, MountProject, DirectoryShaderSources, "Examples/Renderer/Shaders");
         // Compiled DXIL survives restarts here so a warm start skips the Slang front end.
         SetResourceDirectoryPath(SystemFileIO, MountSave0, DirectoryShaderBinaries, "ShaderCache");
@@ -109,30 +117,27 @@ private:
         Context = hz::MakeUnique<hz::RenderContext>(Desc);
     }
 
-    bool InitSceneAsset()
+    // Merges a cooked scene's catalog into Catalog and returns the scene's entry.
+    const hz::AssetCatalogEntry* LoadSceneCatalog(const char* Source)
     {
         char CatalogFile[FS_MAX_PATH], SceneFile[FS_MAX_PATH];
-        ReplacePathExtension(SceneSource, "assetcatalog.json", CatalogFile);
-        ReplacePathExtension(SceneSource, "sceneasset.json", SceneFile);
-        if (!Catalog.Load(DirectoryOtherFiles, CatalogFile))
+        ReplacePathExtension(Source, "assetcatalog.json", CatalogFile);
+        ReplacePathExtension(Source, "sceneasset.json", SceneFile);
+        hz::AssetCatalog Loaded;
+        if (!Loaded.Load(DirectoryOtherFiles, CatalogFile) || !Catalog.Merge(Loaded))
         {
-            return false;
+            return nullptr;
         }
         const hz::AssetCatalogEntry* Entry = Catalog.FindScene(SceneFile);
         if (!Entry)
         {
             LOGF(Error, "Catalog contains no SceneAsset '%s'", SceneFile);
-            return false;
         }
-        Loaders = hz::MakeUnique<hz::AssetLoaders>(
-            *Context, hz::AssetLoadersDesc{ .vertexLayout = SceneVertexLayout, .cookedDirectory = DirectoryOtherFiles });
-        AssetManager = hz::MakeUnique<hz::AssetManager>(Catalog, Context.Get());
-        Loaders->RegisterLoaders(*AssetManager);
-        const hz::AssetHandle Handle = AssetManager->Request(Entry->id);
-        if (!Handle.IsValid())
-        {
-            return false;
-        }
+        return Entry;
+    }
+
+    const hz::SceneAsset* WaitForScene(hz::AssetHandle Handle, const char* Source)
+    {
         while (AssetManager->GetState(Handle) != hz::AssetState::Ready && AssetManager->GetState(Handle) != hz::AssetState::Failed)
         {
             AssetManager->Update();
@@ -141,25 +146,58 @@ private:
         const hz::SceneAsset* Asset = AssetManager->GetScene(Handle);
         if (!Asset)
         {
-            LOGF(Error, "SceneAsset '%s' failed to Load (error %u)", SceneFile, (uint32_t)AssetManager->GetError(Handle));
+            LOGF(Error, "SceneAsset '%s' failed to Load (error %u)", Source, (uint32_t)AssetManager->GetError(Handle));
+        }
+        return Asset;
+    }
+
+    bool InitSceneAsset()
+    {
+        const hz::AssetCatalogEntry* SceneEntry = LoadSceneCatalog(SceneSource);
+        const hz::AssetCatalogEntry* CharacterEntry = LoadSceneCatalog(CharacterSource);
+        if (!SceneEntry || !CharacterEntry)
+        {
+            return false;
+        }
+        Loaders = hz::MakeUnique<hz::AssetLoaders>(
+            *Context, hz::AssetLoadersDesc{ .vertexLayout = SceneVertexLayout, .cookedDirectory = DirectoryOtherFiles });
+        AssetManager = hz::MakeUnique<hz::AssetManager>(Catalog, Context.Get());
+        Loaders->RegisterLoaders(*AssetManager);
+        const hz::AssetHandle SceneHandle = AssetManager->Request(SceneEntry->id);
+        const hz::AssetHandle CharacterHandle = AssetManager->Request(CharacterEntry->id);
+        const hz::SceneAsset* Asset = SceneHandle.IsValid() ? WaitForScene(SceneHandle, SceneSource) : nullptr;
+        const hz::SceneAsset* CharacterAsset = CharacterHandle.IsValid() ? WaitForScene(CharacterHandle, CharacterSource) : nullptr;
+        if (!Asset || !CharacterAsset)
+        {
             return false;
         }
         Types = hz::MakeUnique<hz::TypeRegistry>();
         const bool Registered = Types->RegisterBuiltins();
         ASSERT(Registered);
         World = hz::MakeUnique<hz::World>(*Types);
-        if (!Asset->Instantiate(*World).IsValid())
+        const hz::Entity Character = CharacterAsset->Instantiate(*World);
+        if (!Asset->Instantiate(*World).IsValid() || !Character.IsValid())
         {
-            LOGF(Error, "Cannot instantiate SceneAsset '%s'", SceneFile);
+            LOGF(Error, "Cannot instantiate SceneAsset '%s' or '%s'", SceneSource, CharacterSource);
             return false;
         }
-        Scene = hz::MakeUnique<hz::RenderScene>(*World, *AssetManager);
-        Scene->Reserve(Asset->GetNodes().Count, Asset->GetNodes().Count, 1, 1);
+        const hz::LocalTransform Placement = {
+            .translation = Vector3(CharacterPosition[0], CharacterPosition[1], CharacterPosition[2]),
+            .rotation = Quat::rotationY(CharacterYaw),
+        };
+        const bool Placed = World->SetComponent(Character, hz::SceneTypes::localTransform, &Placement);
+        ASSERT(Placed);
+        Animation = hz::MakeUnique<hz::AnimationSystem>(*World, *AssetManager);
+        Scene = hz::MakeUnique<hz::RenderScene>(*World, *AssetManager, Animation.Get());
+        const uint32_t NodeCount = Asset->GetNodes().Count + CharacterAsset->GetNodes().Count;
+        Scene->Reserve(NodeCount, NodeCount, 1, 1);
+        Animation->Update(0.0f);
         Scene->Update();
-        LOGF(Info, "World ready: %u render primitives, %u instances, %u mesh batches, %u materials, %u textures",
+        LOGF(Info, "World ready: %u render primitives, %u instances, %u mesh batches, %u skinned, %u materials, %u textures",
              Scene->GetActivePrimitives().Count, Scene->GetActiveInstances().Count, Scene->GetActiveMeshBatches().Count,
-             Asset->GetMaterials().Count, Asset->GetTextures().Count);
-        AssetManager->Release(Handle);
+             Scene->GetSkins().Count, Asset->GetMaterials().Count + CharacterAsset->GetMaterials().Count, Asset->GetTextures().Count);
+        AssetManager->Release(SceneHandle);
+        AssetManager->Release(CharacterHandle);
         return true;
     }
 
@@ -186,6 +224,7 @@ public:
         }
         Passes = nullptr;
         Scene = nullptr;
+        Animation = nullptr;
         World = nullptr;
         Types = nullptr;
         if (AssetManager)
@@ -225,6 +264,7 @@ public:
         const bool    Updated = World->SetComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose);
         ASSERT(Updated);
         AssetManager->Update();
+        Animation->Update(DeltaTime);
         Passes->Update(DeltaTime);
     }
     const char* GetName() override { return "Renderer"; }
@@ -237,9 +277,10 @@ private:
     static bool CookScene()
     {
 #if defined(HORIZON_RENDERER_ASSET_COOKING)
-        if (!ensureSceneGltfCooked(DirectoryTextures, SceneSource, DirectoryOtherFiles))
+        if (!ensureSceneGltfCooked(DirectoryTextures, SceneSource, DirectoryOtherFiles) ||
+            !ensureSceneGltfCooked(DirectoryAnimations, CharacterSource, DirectoryOtherFiles))
         {
-            LOGF(Error, "Failed to cook scene '%s'", SceneSource);
+            LOGF(Error, "Failed to cook scene '%s' or '%s'", SceneSource, CharacterSource);
             return false;
         }
 #endif
@@ -248,35 +289,12 @@ private:
 
     void InitCamera()
     {
-        hz::RenderBounds Bounds;
-        bool             HasBounds = false;
-        for (uint32_t Index : Scene->GetActiveInstances())
-        {
-            const hz::RenderInstance& Instance = Scene->GetInstances().Data[Index];
-            if (!Scene->GetPrimitive(Instance.primitive)->instanceCount)
-            {
-                continue;
-            }
-            if (!HasBounds)
-            {
-                Bounds = Instance.bounds;
-            }
-            else
-            {
-                for (uint32_t Axis = 0; Axis < 3; ++Axis)
-                {
-                    Bounds.minimum[Axis] = fminf(Bounds.minimum[Axis], Instance.bounds.minimum[Axis]);
-                    Bounds.maximum[Axis] = fmaxf(Bounds.maximum[Axis], Instance.bounds.maximum[Axis]);
-                }
-            }
-            HasBounds = true;
-        }
-        const float                    CenterX = (Bounds.minimum[0] + Bounds.maximum[0]) * 0.5f;
-        const float                    CenterZ = (Bounds.minimum[2] + Bounds.maximum[2]) * 0.5f;
+        // Frames the character from eye height, a few meters away.
+        const Vector3                  Character(CharacterPosition[0], CharacterPosition[1], CharacterPosition[2]);
         const FreeCameraControllerDesc Desc = {
             .pWindow = pWindow,
-            .position = Vector3(-25, 8, -9),
-            .LookAt = Vector3(CenterX, Bounds.minimum[1] + 4.0f, CenterZ),
+            .position = Character + Vector3(-3.5f, 1.7f, 2.5f),
+            .LookAt = Character + Vector3(0.0f, 0.9f, 0.0f),
             .motion = { .maxSpeed = 8.0f, .acceleration = 40.0f, .braking = 60.0f },
             .boostMultiplier = 4.0f,
         };
@@ -307,6 +325,7 @@ private:
     hz::UniquePtr<hz::AssetManager>     AssetManager;
     hz::UniquePtr<hz::TypeRegistry>     Types;
     hz::UniquePtr<hz::World>            World;
+    hz::UniquePtr<hz::AnimationSystem>  Animation;
     hz::UniquePtr<hz::RenderScene>      Scene;
     hz::UniquePtr<RenderPasses>         Passes;
     hz::Entity                          CameraEntity;

@@ -17,6 +17,13 @@ struct MeshBounds
     float maximum[3] = {};
 };
 
+// The vertices a submesh's indices reference, in the shared vertex streams.
+struct MeshVertexRange
+{
+    uint32_t first = 0;
+    uint32_t Count = 0;
+};
+
 class MeshAsset
 {
 public:
@@ -35,6 +42,7 @@ public:
     IndexType                         GetIndexType() const;
     const IndirectDrawIndexArguments& GetDraw(uint32_t submesh) const;
     const MeshBounds&                 GetBounds(uint32_t submesh) const;
+    const MeshVertexRange&            GetVertexRange(uint32_t submesh) const;
 
 private:
     AssetSource*   pSource = nullptr;

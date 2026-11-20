@@ -134,8 +134,18 @@ struct RenderSceneChanges
     Span<RenderRange> instanceIndices;
 };
 
+// A skinned instance whose skeleton has a pose this frame. Its matrices map bind-space vertices to the skeleton's
+// model space, in which the instance transform places the mesh.
+struct RenderSkin
+{
+    RenderInstanceID instance;
+    uint32_t         jointOffset = 0;
+    uint32_t         jointCount = 0;
+};
+
 class RenderSceneData;
 class GpuScene;
+class AnimationSystem;
 
 // Changes accumulated across updates since the GPU scene last acknowledged an Upload.
 struct RenderSceneUploads
@@ -156,8 +166,9 @@ struct RenderSceneUploads
 class RenderScene
 {
 public:
-    // Owns World asset bindings. World and asset manager must outlive this scene.
-    RenderScene(World& world, AssetManager& assetManager);
+    // Owns World asset bindings. World, asset manager and the optional animation system must outlive this scene. Without an
+    // animation system, skinned meshes render their bind pose.
+    RenderScene(World& world, AssetManager& assetManager, const AnimationSystem* pAnimation = nullptr);
     ~RenderScene();
     RenderScene(const RenderScene&) = delete;
     RenderScene& operator=(const RenderScene&) = delete;
@@ -197,6 +208,9 @@ public:
     Span<uint32_t>        GetActiveLights() const;
     Span<uint32_t>        GetActiveCameras() const;
     Span<uint32_t>        GetInstanceIndices() const;
+    // Rebuilt by every Update: one entry per posed skinned instance, and their skinning matrices back to back.
+    Span<RenderSkin>      GetSkins() const;
+    Span<Matrix4>         GetSkinMatrices() const;
 
 private:
     friend class GpuScene;

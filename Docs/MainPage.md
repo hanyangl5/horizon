@@ -42,6 +42,7 @@ The runtime is split into these public modules:
 
 - [World Foundation](WorldFoundation.md)
 - [GPUScene](GPUScene.md)
+- [Skeletal Animation](Animation.md)
   Asset identity, ECS World, transform hierarchy, serialization, reflection,
   and RenderScene extraction roadmap within the Scene runtime module.
 

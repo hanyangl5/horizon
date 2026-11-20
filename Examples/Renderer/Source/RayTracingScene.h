@@ -18,6 +18,8 @@ public:
 private:
     hz::RenderContext&                      Context;
     hz::Array<hz::GPUAccelerationStructure> BottomLevelAS;
+    // Bottom levels built from skinned streams, refit every frame after the skinning pass.
+    hz::Array<uint32_t>                     SkinnedBottomLevels;
     hz::GPUAccelerationStructure            TopLevelAS;
     uint64_t                                GeometryRevision = 0;
 };

@@ -45,9 +45,11 @@ constexpr uint32_t DrawListAlphaMode(MaterialAlphaMode Mode) { return 1u << (uin
 
 struct DrawGeometry
 {
-    GpuSubmeshRef Mesh;
-    bool          Opaque = true;
-    uint32_t      PreviousIndex = UINT32_MAX; // Geometry index in the preceding revision.
+    GpuSubmeshRef    Mesh;
+    bool             Opaque = true;
+    // Valid for a skinned instance, whose geometry is its own skinned streams instead of the shared mesh streams.
+    RenderInstanceID SkinnedInstance;
+    uint32_t         PreviousIndex = UINT32_MAX; // Geometry index in the preceding revision.
 };
 
 // Flattens the render scene into per-draw data and owns the indirect lists that the renderer's culling fills. Every list
