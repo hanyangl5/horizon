@@ -190,7 +190,7 @@ static bool buildSceneAssetCookFingerprint(ResourceDirectory resourceDirectory, 
                                            size_t sourceSize, const cgltf_data* Data, const ProcessGLTFParams* pParams,
                                            time_t additionalModifiedTime, SceneAssetCookFingerprint* pFingerprint)
 {
-    static const uint32_t kCookerRevision = 12;
+    static const uint32_t kCookerRevision = 13;
     pFingerprint->mHash = kCookHashSeed;
     pFingerprint->mHash = cookHash(&kCookerRevision, sizeof(kCookerRevision), pFingerprint->mHash);
     // Output written for another geometry format or struct layout must be recooked, not just rejected at load.

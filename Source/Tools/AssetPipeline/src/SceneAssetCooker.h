@@ -4,6 +4,7 @@
 #include "Core/IFileSystem.h"
 #include "Core/IContainer.h"
 #include "SceneTextureCooker.h"
+#include "SceneSkeletonCooker.h"
 
 struct cgltf_data;
 struct cgltf_material;
@@ -28,6 +29,7 @@ private:
     bool   validate() const;
     bool   prepareTextures(const cgltf_data& data);
     bool   registerTexture(CookedSceneTexture& texture);
+    bool   buildNodes(const cgltf_data& data, hz::Span<cJSON*> meshes, hz::Span<cJSON*> skeletons, hz::Span<cJSON*> animations);
     ResourceDirectory             sourceDirectory;
     ResourceDirectory             outputDirectory;
     char                          metadataFile[FS_MAX_PATH] = {};
@@ -40,4 +42,5 @@ private:
     cJSON*                        pAsset = nullptr;
     cJSON*                        pTextureMetadata = nullptr;
     hz::Array<CookedSceneTexture> textures;
+    SceneSkeletonCooker           skeletonCooker;
 };

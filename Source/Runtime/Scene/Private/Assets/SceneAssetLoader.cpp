@@ -19,10 +19,12 @@ public:
     bool matchesDependencies() const
     {
         Array<AssetID> dependencies;
-        dependencies.Reserve(pScene->GetNodes().Count);
+        dependencies.Reserve(pScene->GetNodes().Count * 3);
         for (const SceneAssetNode& node : pScene->GetNodes())
         {
             dependencies.PushBack(node.mesh);
+            dependencies.PushBack(node.skeleton);
+            dependencies.PushBack(node.animation);
         }
         return matchesAssetDependencies(entry, dependencies);
     }

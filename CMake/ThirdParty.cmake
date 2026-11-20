@@ -226,6 +226,10 @@ add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/gainput)
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/include/ozz/base/platform.h
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/containers/string_archive.cc
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/io/archive.cc
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/io/stream.cc
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/log.cc
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/maths/box.cc
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/maths/simd_math.cc
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/maths/math_archive.cc
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/maths/simd_math_archive.cc
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/maths/soa_math_archive.cc

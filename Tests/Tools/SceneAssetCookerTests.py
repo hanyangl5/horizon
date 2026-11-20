@@ -218,6 +218,7 @@ def run(executable):
     default_material_regression(executable, work / 'default-material')
     nonindexed_geometry_regression(executable, work / 'nonindexed', work / 'albedo.dds')
     geometry_publish_regression(executable, work / 'geometry-publish', work / 'albedo.dds')
+    skin_regression(executable, work / 'skin')
     # Failures keep the work directory for inspection.
     shutil.rmtree(work)
 
@@ -478,6 +479,87 @@ def malformed_input_regression(executable, work, albedo):
         result = cook(document)
         assert result.returncode == 1, f'{mutate.__name__}: exit={result.returncode:#x}\n{result.stdout}{result.stderr}'
     print('Malformed input regression passed:', work)
+
+
+def skin_regression(executable, work):
+    work.mkdir()
+    output = work / 'cooked'
+    output.mkdir()
+    source = work / 'skinned.gltf'
+    data = bytearray()
+    views, accessors = [], []
+
+    def accessor(values, fmt, kind, count, component, **extra):
+        while len(data) % 4:
+            data.append(0)
+        blob = struct.pack('<' + fmt * len(values), *values)
+        views.append(dict(buffer=0, byteOffset=len(data), byteLength=len(blob)))
+        data.extend(blob)
+        accessors.append(dict(bufferView=len(views) - 1, componentType=component, count=count, type=kind, **extra))
+        return len(accessors) - 1
+
+    # A two-joint arm along +Y: the lower vertices follow joint 0, the upper ones joint 1.
+    position = accessor([0, 0, 0, 1, 0, 0, 0, 2, 0, 1, 2, 0], 'f', 'VEC3', 4, 5126, min=[0, 0, 0], max=[1, 2, 0])
+    normal = accessor([0, 0, 1] * 4, 'f', 'VEC3', 4, 5126)
+    joints = accessor([0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], 'H', 'VEC4', 4, 5123)
+    weights = accessor([1, 0, 0, 0] * 4, 'f', 'VEC4', 4, 5126)
+    indices = accessor([0, 1, 2, 2, 1, 3], 'H', 'SCALAR', 6, 5123)
+    inverse_bind = accessor([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
+                             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1, 0, 1], 'f', 'MAT4', 2, 5126)
+    times = accessor([0, 1], 'f', 'SCALAR', 2, 5126, min=[0], max=[1])
+    rotations = accessor([0, 0, 0, 1, 0, 0, 0.7071068, 0.7071068], 'f', 'VEC4', 2, 5126)
+    document = dict(
+        asset={'version': '2.0'}, scene=0, scenes=[{'nodes': [0]}],
+        nodes=[dict(name='Character', children=[1, 3], translation=[5, 0, 0]),
+               dict(name='Hips', children=[2]),
+               dict(name='Elbow', translation=[0, 1, 0]),
+               dict(name='Body', mesh=0, skin=0, translation=[100, 0, 0])],
+        meshes=[dict(name='Arm', primitives=[dict(attributes=dict(POSITION=position, NORMAL=normal, JOINTS_0=joints,
+                                                                     WEIGHTS_0=weights), indices=indices)])],
+        skins=[dict(joints=[1, 2], inverseBindMatrices=inverse_bind)],
+        animations=[dict(name='Bend', samplers=[dict(input=times, output=rotations)],
+                         channels=[dict(sampler=0, target=dict(node=2, path='rotation'))])],
+        buffers=[dict(byteLength=len(data), uri='data:application/octet-stream;base64,' + base64.b64encode(data).decode())],
+        bufferViews=views, accessors=accessors)
+
+    def cook(force=False):
+        source.write_text(json.dumps(document), encoding='utf-8')
+        command = [str(executable), '-pgltf', '--input-file', source.as_posix(), '--output', output.as_posix()]
+        if force:
+            command.append('--force')
+        result = subprocess.run(command, cwd=work, capture_output=True, text=True, errors='replace', timeout=30)
+        assert result.returncode == 0, result.stdout + result.stderr
+        return json.loads((output / 'skinned.sceneasset.json').read_text())
+
+    cooked = cook()
+    skeleton, = cooked['skeletons']
+    animation, = cooked['animations']
+    assert animation['skeleton'] == skeleton['id'] and animation['name'] == 'Bend'
+    # Joint nodes leave the hierarchy; the skinned mesh attaches with an identity transform below the skeleton entity.
+    names = [node['name'] for node in cooked['nodes']]
+    assert names == ['Character', 'Hips', 'Body'], names
+    character, entity, body = cooked['nodes']
+    assert entity['parent'] == 0 and entity['skeleton'] == skeleton['id'] and entity['animation'] == animation['id']
+    assert entity['translation'] == [0, 0, 0] and 'mesh' not in entity
+    assert body['parent'] == 1 and body['skin'] == 0 and body['mesh'] == cooked['meshes'][0]['id']
+    assert body['translation'] == [0, 0, 0]
+    header = (output / skeleton['path']).read_bytes()
+    assert header[:4] == b'HZSK' and struct.unpack_from('<III', header, 4)[:2] == (1, 1)
+    # Joint 1 bounds the upper vertices in its own space: x in [0, 1], y in [1, 1].
+    joint_count, = struct.unpack_from('<I', header, 16)
+    remap = struct.unpack_from('<2I', header, 20)
+    assert joint_count == 2 and remap == (0, 1)
+    bounds = struct.unpack_from('<12f', header, 28 + 2 * 64)
+    assert bounds[6:12] == (0, 1, 0, 1, 1, 0), bounds
+    assert (output / animation['path']).read_bytes()[:4] == b'HZAN'
+    entries = {entry['id']: entry for entry in json.loads((output / 'skinned.assetcatalog.json').read_text())['entries']}
+    assert entries[skeleton['id']]['type'] == 4 and entries[skeleton['id']]['dependencies'] == []
+    assert entries[animation['id']]['type'] == 5 and entries[animation['id']]['dependencies'] == [skeleton['id']]
+    scene = entries[cooked['id']]['dependencies']
+    assert skeleton['id'] in scene and animation['id'] in scene
+    # Identities survive a recook.
+    assert cook(force=True) == cooked
+    print('Skin and animation regression passed:', work)
 
 
 def png(red=255):

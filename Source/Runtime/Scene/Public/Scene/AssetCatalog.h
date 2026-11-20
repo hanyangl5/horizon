@@ -13,6 +13,8 @@ enum class AssetType : uint32_t
     Mesh,
     Material,
     Texture,
+    Skeleton,
+    AnimationClip,
 };
 
 enum class AssetPathRoot : uint32_t

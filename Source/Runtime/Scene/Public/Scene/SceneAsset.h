@@ -57,11 +57,33 @@ struct SceneAssetMesh
     Span<SceneAssetSubmesh> submeshes;
 };
 
+// A standalone cooked file holding one ozz skeleton and the skins bound to it.
+struct SceneAssetSkeleton
+{
+    AssetID     id;
+    const char* Name = "";
+    const char* pPath = "";
+};
+
+// A standalone cooked file holding one ozz animation, with one track per joint of its skeleton.
+struct SceneAssetAnimation
+{
+    AssetID     id;
+    const char* Name = "";
+    const char* pPath = "";
+    AssetID     skeleton;
+};
+
 struct SceneAssetNode
 {
     const char*    Name = "";
     uint32_t       parent = UINT32_MAX;
     AssetID        mesh;
+    // The entity that owns a skeleton plays its animation; skinned meshes are its direct children.
+    AssetID        skeleton;
+    AssetID        animation;
+    // Skin of the parent node's skeleton that deforms the mesh, or UINT32_MAX for a rigid mesh.
+    uint32_t       skin = UINT32_MAX;
     LocalTransform transform;
     Matrix4        matrix = Matrix4::identity();
     // Only the selected representation is used; matrices are never decomposed.
@@ -93,6 +115,8 @@ public:
     Span<SceneAssetMesh>     GetMeshes() const;
     Span<SceneAssetMaterial> GetMaterials() const;
     Span<SceneAssetTexture>  GetTextures() const;
+    Span<SceneAssetSkeleton>  GetSkeletons() const;
+    Span<SceneAssetAnimation> GetAnimations() const;
     // Creates independent persistent entities beneath a new root, owned by World.
     // Requires builtin types and a committed World; the payload can be released afterwards.
     // Guid generation failure returns an invalid Entity and rolls back the new entities.

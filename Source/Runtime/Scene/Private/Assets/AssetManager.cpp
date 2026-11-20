@@ -527,7 +527,7 @@ public:
 
     const AssetCatalog&      catalog;
     const AssetManager&      assetManager;
-    AssetLoader              loaders[4] = {};
+    AssetLoader              loaders[(uint32_t)AssetType::AnimationClip + 1] = {};
     Array<ManagedAsset>      assets;
     Array<uint32_t>          pending;
     Array<uint32_t>          tableDirty;
@@ -557,7 +557,7 @@ AssetManager::~AssetManager()
 
 void AssetManager::SetLoader(AssetType Type, const AssetLoader& loader)
 {
-    ASSERT(Type <= AssetType::Texture && !GetCount() && !Data->shuttingDown);
+    ASSERT(Type <= AssetType::AnimationClip && !GetCount() && !Data->shuttingDown);
     ASSERT(loader.pBegin && loader.pPoll && loader.pDestroyRequest && loader.pDestroyPayload);
     ASSERT((loader.pUpload && loader.pPollUpload && loader.pWaitUpload) || (!loader.pUpload && !loader.pPollUpload && !loader.pWaitUpload));
     Data->loaders[(uint32_t)Type] = loader;

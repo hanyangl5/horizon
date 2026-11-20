@@ -23,6 +23,8 @@ set (ASSET_PIPELINE_FILES
     ${ASSET_PIPELINE_SOURCE_DIR}/CookUtilities.h
     ${ASSET_PIPELINE_SOURCE_DIR}/SceneAssetCooker.cpp
     ${ASSET_PIPELINE_SOURCE_DIR}/SceneAssetCooker.h
+    ${ASSET_PIPELINE_SOURCE_DIR}/SceneSkeletonCooker.cpp
+    ${ASSET_PIPELINE_SOURCE_DIR}/SceneSkeletonCooker.h
     ${ASSET_PIPELINE_SOURCE_DIR}/SceneTextureCooker.cpp
     ${ASSET_PIPELINE_SOURCE_DIR}/SceneTextureCooker.h
 )

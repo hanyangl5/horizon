@@ -25,6 +25,8 @@ public:
     Array<SceneAssetSubmesh>  submeshes;
     Array<SceneAssetMaterial> materials;
     Array<SceneAssetTexture>  textures;
+    Array<SceneAssetSkeleton>  skeletons;
+    Array<SceneAssetAnimation> animations;
 };
 
 enum class AssetKind
@@ -33,6 +35,8 @@ enum class AssetKind
     Texture,
     Material,
     Mesh,
+    Skeleton,
+    Animation,
 };
 
 struct AssetEntry
@@ -60,6 +64,8 @@ private:
     bool readMaterials(const cJSON* pArray);
     bool readMeshes(const cJSON* pArray);
     bool readNodes(const cJSON* pArray);
+    bool readSkeletons(const cJSON* pArray);
+    bool readAnimations(const cJSON* pArray);
     bool readID(const cJSON* pObject, AssetID& id, AssetKind kind);
     bool readReference(const cJSON* pObject, const char* pField, AssetID& id, AssetKind kind, bool optional = false);
     bool readString(const cJSON* pObject, const char* pField, const char*& pOutput, bool path = false);
@@ -290,6 +296,45 @@ bool SceneAssetReader::readMeshes(const cJSON* pArray)
     return true;
 }
 
+bool SceneAssetReader::readSkeletons(const cJSON* pArray)
+{
+    // Optional: scenes without skins have no table.
+    if (!pArray)
+        return true;
+    if (!cJSON_IsArray(pArray))
+        return invalidField("skeletons");
+    data.skeletons.Reserve((uint32_t)cJSON_GetArraySize(pArray));
+    for (const cJSON* pItem = pArray->child; pItem; pItem = pItem->next)
+    {
+        SceneAssetSkeleton skeleton;
+        if (!readID(pItem, skeleton.id, AssetKind::Skeleton) || !readString(pItem, "name", skeleton.Name) ||
+            !readString(pItem, "path", skeleton.pPath, true))
+            return false;
+        data.skeletons.PushBack(skeleton);
+    }
+    return true;
+}
+
+bool SceneAssetReader::readAnimations(const cJSON* pArray)
+{
+    if (!pArray)
+        return true;
+    if (!cJSON_IsArray(pArray))
+        return invalidField("animations");
+    data.animations.Reserve((uint32_t)cJSON_GetArraySize(pArray));
+    for (const cJSON* pItem = pArray->child; pItem; pItem = pItem->next)
+    {
+        SceneAssetAnimation animation;
+        if (!readID(pItem, animation.id, AssetKind::Animation) || !readString(pItem, "name", animation.Name) ||
+            !readString(pItem, "path", animation.pPath, true) || !readReference(pItem, "skeleton", animation.skeleton, AssetKind::Skeleton))
+            return false;
+        if (!animation.skeleton.IsValid())
+            return invalidField("animations.skeleton");
+        data.animations.PushBack(animation);
+    }
+    return true;
+}
+
 static bool validateHierarchy(Span<SceneAssetNode> nodes)
 {
     Array<uint8_t> visited(nodes.Count);
@@ -322,9 +367,27 @@ bool SceneAssetReader::readNodes(const cJSON* pArray)
     for (const cJSON* pItem = pArray->child; pItem; pItem = pItem->next)
     {
         SceneAssetNode node;
-        if (!readString(pItem, "name", node.Name) || !readReference(pItem, "mesh", node.mesh, AssetKind::Mesh, true))
+        if (!readString(pItem, "name", node.Name) || !readReference(pItem, "mesh", node.mesh, AssetKind::Mesh, true) ||
+            !readReference(pItem, "skeleton", node.skeleton, AssetKind::Skeleton, true) ||
+            !readReference(pItem, "animation", node.animation, AssetKind::Animation, true))
         {
             return false;
+        }
+        const cJSON* pSkin = field(pItem, "skin");
+        if (pSkin)
+        {
+            if (!readInteger(pSkin, 0, UINT16_MAX) || !node.mesh.IsValid())
+                return invalidField("nodes.skin (expected a skin index on a mesh node)");
+            node.skin = (uint32_t)pSkin->valuedouble;
+        }
+        if (node.animation.IsValid())
+        {
+            const SceneAssetAnimation* pAnimation = nullptr;
+            for (const SceneAssetAnimation& animation : data.animations)
+                if (animation.id == node.animation)
+                    pAnimation = &animation;
+            if (!node.skeleton.IsValid() || !pAnimation || pAnimation->skeleton != node.skeleton)
+                return invalidField("nodes.animation (expected a clip of the node's skeleton)");
         }
         if (!readInteger(field(pItem, "parent"), -1, (double)Count - 1))
         {
@@ -362,6 +425,9 @@ bool SceneAssetReader::readNodes(const cJSON* pArray)
         }
         data.nodes.PushBack(node);
     }
+    for (const SceneAssetNode& node : data.nodes)
+        if (node.skin != UINT32_MAX && (node.parent == UINT32_MAX || !data.nodes[node.parent].skeleton.IsValid()))
+            return invalidField("nodes.skin (the parent node must own a skeleton)");
     return validateHierarchy({ data.nodes.GetData(), data.nodes.Size() });
 }
 
@@ -393,7 +459,7 @@ bool SceneAssetReader::read(Span<char> json)
     if (!cJSON_IsString(pFormat) || strcmp(pFormat->valuestring, "Horizon.SceneAsset") != 0 || !readInteger(pVersion, 1, 1))
         return invalidField("format/version");
     uint32_t    stringBytes = stringSize(pRoot, "source") + stringSize(pRoot, "contentHash");
-    const char* tables[] = { "textures", "materials", "meshes", "nodes" };
+    const char* tables[] = { "textures", "materials", "meshes", "nodes", "skeletons", "animations" };
     for (const char* pTable : tables)
         for (const cJSON* pItem = field(pRoot, pTable) ? field(pRoot, pTable)->child : nullptr; pItem; pItem = pItem->next)
             stringBytes +=
@@ -408,7 +474,7 @@ bool SceneAssetReader::read(Span<char> json)
         strlen(pIdentityHash->valuestring) != 16 || strspn(pIdentityHash->valuestring, "0123456789abcdefABCDEF") != 16)
         return invalidField("contentHash/identityHash");
     return readTextures(field(pRoot, "textures")) && readMaterials(field(pRoot, "materials")) && readMeshes(field(pRoot, "meshes")) &&
-           readNodes(field(pRoot, "nodes"));
+           readSkeletons(field(pRoot, "skeletons")) && readAnimations(field(pRoot, "animations")) && readNodes(field(pRoot, "nodes"));
 }
 
 SceneAsset::~SceneAsset() { MemDelete(Data); }
@@ -458,6 +524,14 @@ Span<SceneAssetMaterial> SceneAsset::GetMaterials() const
 Span<SceneAssetTexture> SceneAsset::GetTextures() const
 {
     return Data ? Span<SceneAssetTexture>(Data->textures.GetData(), Data->textures.Size()) : Span<SceneAssetTexture>{};
+}
+Span<SceneAssetSkeleton> SceneAsset::GetSkeletons() const
+{
+    return Data ? Span<SceneAssetSkeleton>(Data->skeletons.GetData(), Data->skeletons.Size()) : Span<SceneAssetSkeleton>{};
+}
+Span<SceneAssetAnimation> SceneAsset::GetAnimations() const
+{
+    return Data ? Span<SceneAssetAnimation>(Data->animations.GetData(), Data->animations.Size()) : Span<SceneAssetAnimation>{};
 }
 static void copyName(Name& name, const char* pText)
 {

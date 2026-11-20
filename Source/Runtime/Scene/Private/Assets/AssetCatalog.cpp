@@ -71,13 +71,14 @@ public:
 
     explicit CatalogBatch(const SceneAsset& scene, const char* pPath)
     {
-        uint32_t dependencyCount = scene.GetNodes().Count + scene.GetMaterials().Count * 4;
+        uint32_t dependencyCount = scene.GetNodes().Count * 3 + scene.GetMaterials().Count * 4 + scene.GetAnimations().Count;
         for (const SceneAssetMesh& mesh : scene.GetMeshes())
         {
             dependencyCount += mesh.submeshes.Count;
         }
         dependencies.Reserve(dependencyCount);
-        entries.Reserve(1 + scene.GetTextures().Count + scene.GetMaterials().Count + scene.GetMeshes().Count);
+        entries.Reserve(1 + scene.GetTextures().Count + scene.GetMaterials().Count + scene.GetMeshes().Count + scene.GetSkeletons().Count +
+                        scene.GetAnimations().Count);
         for (const SceneAssetTexture& texture : scene.GetTextures())
         {
             entries.PushBack(
@@ -101,6 +102,24 @@ public:
                                .location = { .pPath = pPath, .elementIndex = index++ },
                                .dependencies = finishDependencies(start) });
         }
+        for (const SceneAssetSkeleton& skeleton : scene.GetSkeletons())
+        {
+            entries.PushBack({ .id = skeleton.id,
+                               .Type = AssetType::Skeleton,
+                               .pSourcePath = scene.GetSource(),
+                               .location = { .pPath = skeleton.pPath } });
+        }
+        for (const SceneAssetAnimation& animation : scene.GetAnimations())
+        {
+            // The clip's tracks follow the joints of its skeleton, so loading it also loads the skeleton.
+            const uint32_t start = dependencies.Size();
+            addDependency(animation.skeleton);
+            entries.PushBack({ .id = animation.id,
+                               .Type = AssetType::AnimationClip,
+                               .pSourcePath = scene.GetSource(),
+                               .location = { .pPath = animation.pPath },
+                               .dependencies = finishDependencies(start) });
+        }
         index = 0;
         for (const SceneAssetMesh& mesh : scene.GetMeshes())
         {
@@ -117,6 +136,8 @@ public:
         for (const SceneAssetNode& node : scene.GetNodes())
         {
             addDependency(node.mesh);
+            addDependency(node.skeleton);
+            addDependency(node.animation);
         }
         entries.PushBack({ .id = scene.GetID(),
                            .Type = AssetType::Scene,
@@ -199,7 +220,7 @@ bool AssetCatalog::Replace(const AssetCatalogEntry& entry) { return Set(entry, t
 
 bool AssetCatalog::Set(const AssetCatalogEntry& entry, bool replaceExisting)
 {
-    if (!entry.id.IsValid() || entry.Type > AssetType::Texture || entry.location.root > AssetPathRoot::Cooked ||
+    if (!entry.id.IsValid() || entry.Type > AssetType::AnimationClip || entry.location.root > AssetPathRoot::Cooked ||
         !validPath(entry.pSourcePath) || !validPath(entry.location.pPath) || (entry.dependencies.Count && !entry.dependencies.Data))
     {
         LOGF(Error, "Invalid AssetCatalog entry");
@@ -415,7 +436,7 @@ static bool readCatalog(Span<char> json, AssetCatalog& catalog)
         entry.pSourcePath = catalogString(pEntry, "source");
         entry.location.pPath = catalogString(pEntry, "path");
         if (!uniqueFields(pEntry) || !pID || !entry.id.Parse(pID) || catalog.Find(entry.id) ||
-            !catalogNumber(cJSON_GetObjectItemCaseSensitive(pEntry, "type"), Type) || Type > (uint32_t)AssetType::Texture ||
+            !catalogNumber(cJSON_GetObjectItemCaseSensitive(pEntry, "type"), Type) || Type > (uint32_t)AssetType::AnimationClip ||
             !catalogNumber(cJSON_GetObjectItemCaseSensitive(pEntry, "root"), root) || root > (uint32_t)AssetPathRoot::Cooked ||
             (!cJSON_IsNull(pIndex) && !catalogNumber(pIndex, entry.location.elementIndex)) || !cJSON_IsBool(pSrgb) ||
             !cJSON_IsArray(pDependencies))
