@@ -163,6 +163,15 @@ TEST_F(AnimationTest, ParsesCookedFilesAndRejectsCorruptOnes)
     const uint32_t    badJoint = 7;
     memcpy(outOfRange.data() + sizeof(hz::SkeletonFileHeader) + 2 * sizeof(uint32_t), &badJoint, sizeof(badJoint));
     EXPECT_FALSE(skeleton.Parse({ outOfRange.data(), (uint32_t)outOfRange.size() }));
+    // Counts larger than the file fail before sizing any allocation.
+    std::vector<char> oversized = files.skeleton;
+    const uint32_t    hugeCount = UINT32_MAX;
+    memcpy(oversized.data() + offsetof(hz::SkeletonFileHeader, skinCount), &hugeCount, sizeof(hugeCount));
+    EXPECT_FALSE(skeleton.Parse({ oversized.data(), (uint32_t)oversized.size() }));
+    oversized = files.skeleton;
+    const uint32_t manyJoints = hz::kMaxSkinJoints;
+    memcpy(oversized.data() + sizeof(hz::SkeletonFileHeader), &manyJoints, sizeof(manyJoints));
+    EXPECT_FALSE(skeleton.Parse({ oversized.data(), (uint32_t)oversized.size() }));
     EXPECT_EQ(skeleton.GetJointCount(), 2u);
     EXPECT_EQ(clip.GetTrackCount(), 2u);
 }

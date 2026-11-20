@@ -62,7 +62,7 @@ float4 UnpackFragment(uint2 packed)
         baseColor *= texture.Sample(sampler, input.Uv);
     }
 
-    float3 n = normalize(input.Normal);
+    float3 n = SurfaceNormal(input.Normal, input.WorldPosition);
     if (mat.normalTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> texture = ResourceDescriptorHeap[NonUniformResourceIndex(mat.normalTexture)];

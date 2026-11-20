@@ -76,12 +76,12 @@ void main(uint3 group : SV_GroupID, uint3 thread : SV_GroupThreadID)
     RWByteAddressBuffer outputPositions = ResourceDescriptorHeap[NonUniformResourceIndex(job.outputPositions)];
     RWByteAddressBuffer outputNormals = ResourceDescriptorHeap[NonUniformResourceIndex(job.outputNormals)];
     const float3        position = mul(skin, float4(asfloat(positions.Load3(source * 12)), 1.0)).xyz;
-    outputPositions.Store3(vertex * 12, asuint(position));
-    outputNormals.Store(vertex * 4, encodeVertexNormal(transformNormal(skin, decodeVertexNormal(normals.Load(source * 4)))));
+    outputPositions.Store3(source * 12, asuint(position));
+    outputNormals.Store(source * 4, encodeVertexNormal(transformNormal(skin, decodeVertexNormal(normals.Load(source * 4)))));
     if (job.texcoords != INVALID_TEXTURE)
     {
         ByteAddressBuffer   texcoords = ResourceDescriptorHeap[NonUniformResourceIndex(job.texcoords)];
         RWByteAddressBuffer outputTexcoords = ResourceDescriptorHeap[NonUniformResourceIndex(job.outputTexcoords)];
-        outputTexcoords.Store(vertex * 4, texcoords.Load(source * 4));
+        outputTexcoords.Store(source * 4, texcoords.Load(source * 4));
     }
 }

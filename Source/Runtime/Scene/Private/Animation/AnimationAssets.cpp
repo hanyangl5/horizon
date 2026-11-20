@@ -55,6 +55,7 @@ public:
         return true;
     }
     Span<char> GetRemaining() const { return { Bytes.Data + Position, Bytes.Count - Position }; }
+    bool       Holds(uint64_t size) const { return size <= Bytes.Count - Position; }
 
 private:
     Span<char> Bytes;
@@ -68,7 +69,8 @@ bool SkeletonAsset::Parse(Span<char> bytes)
     SpanReader         reader(bytes);
     SkeletonFileHeader header;
     const uint32_t     magic = header.magic, version = header.version;
-    if (!reader.Read(&header, sizeof(header)) || header.magic != magic || header.version != version || !header.skinCount)
+    if (!reader.Read(&header, sizeof(header)) || header.magic != magic || header.version != version || !header.skinCount ||
+        !reader.Holds((uint64_t)header.skinCount * sizeof(uint32_t)))
     {
         LOGF(Error, "Invalid skeleton file header");
         return false;
@@ -79,7 +81,9 @@ bool SkeletonAsset::Parse(Span<char> bytes)
     for (SkinData& skin : pCandidate->skins)
     {
         uint32_t jointCount = 0;
-        valid = reader.Read(&jointCount, sizeof(jointCount)) && jointCount && jointCount <= kMaxSkinJoints;
+        // Per joint: index, inverse bind matrix and bounds.
+        valid = reader.Read(&jointCount, sizeof(jointCount)) && jointCount && jointCount <= kMaxSkinJoints &&
+                reader.Holds((uint64_t)jointCount * (sizeof(uint32_t) + 22 * sizeof(float)));
         if (!valid)
             break;
         skin.joints.Resize(jointCount);

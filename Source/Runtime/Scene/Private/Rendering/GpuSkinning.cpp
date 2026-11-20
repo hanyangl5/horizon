@@ -109,8 +109,7 @@ public:
             uint32_t   index = 0;
             while (index < skinned.Size() && skinned[index].instance != skin.instance)
                 ++index;
-            if (index < skinned.Size() &&
-                (skinned[index].mesh != pPrimitive->mesh || skinned[index].firstVertex != first || skinned[index].vertexCount != last - first))
+            if (index < skinned.Size() && (skinned[index].mesh != pPrimitive->mesh || skinned[index].vertexCount != last))
             {
                 retire(skinned[index]);
                 skinned[index] = {};
@@ -126,8 +125,7 @@ public:
             if (!vertices.positions.IsValid())
             {
                 vertices.mesh = pPrimitive->mesh;
-                vertices.firstVertex = first;
-                vertices.vertexCount = last - first;
+                vertices.vertexCount = last;
                 vertices.positions = createStream(pMesh->GetVertexStride(desc.positionBinding), vertices.vertexCount, "GpuSkinning.Positions");
                 vertices.normals = createStream(pMesh->GetVertexStride(desc.normalBinding), vertices.vertexCount, "GpuSkinning.Normals");
                 if (texcoords)
@@ -143,10 +141,10 @@ public:
                             .outputNormals = vertices.normals.GetUavIndex(),
                             .outputTexcoords = texcoords ? vertices.texcoords.GetUavIndex() : UINT32_MAX,
                             .firstVertex = first,
-                            .vertexCount = vertices.vertexCount,
+                            .vertexCount = last - first,
                             .jointOffset = skin.jointOffset });
             jobMeshes.PushBack(pMesh);
-            maxVertexCount = TF_MAX(maxVertexCount, vertices.vertexCount);
+            maxVertexCount = TF_MAX(maxVertexCount, last - first);
         }
         for (uint32_t i = 0; i < skinned.Size();)
         {

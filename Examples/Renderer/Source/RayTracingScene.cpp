@@ -26,13 +26,13 @@ void RayTracingScene::Update(hz::CommandList& Commands, const hz::SceneView& Vie
             const hz::MeshAsset* Mesh = View.Assets.GetMesh({ Source.Mesh.mesh.index, Source.Mesh.mesh.generation });
             ASSERT(Mesh);
             const IndirectDrawIndexArguments& Submesh = Mesh->GetDraw(Source.Mesh.submeshIndex);
-            // A skinned instance traces its own skinned positions, which start at the mesh's first referenced vertex.
+            // A skinned instance traces its own skinned positions, indexed like the mesh streams.
             const hz::GpuSkinnedVertices* Skinned =
                 Source.SkinnedInstance.IsValid() && View.Skinning ? View.Skinning->Find(Source.SkinnedInstance) : nullptr;
             ASSERT(Skinned || !Source.SkinnedInstance.IsValid());
             const hz::GPUBuffer& Vertices = Skinned ? Skinned->positions : Mesh->GetVertexBuffer(0);
             const uint32_t       Stride = Mesh->GetVertexStride(0);
-            const int32_t        BaseVertex = int32_t(Submesh.vertexOffset) - (Skinned ? int32_t(Skinned->firstVertex) : 0);
+            const int32_t        BaseVertex = int32_t(Submesh.vertexOffset);
             ASSERT(BaseVertex >= 0 && Stride == 12 && Submesh.indexCount % 3 == 0);
             const uint64_t VertexOffset = uint64_t(BaseVertex) * Stride;
             ASSERT(Vertices.GetSize() >= VertexOffset);

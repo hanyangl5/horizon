@@ -18,8 +18,9 @@ struct GpuSkinningDesc
     uint32_t frameCount = 3;
 };
 
-// One skinned instance for the skinning shader, uploaded as-is, so the fields keep the shader's names. Source streams are
-// read at firstVertex + v and the skinned streams written at v.
+// One skinned instance for the skinning shader, uploaded as-is, so the fields keep the shader's names. Vertices
+// firstVertex + v, for v below vertexCount, are read from the source streams and written to the same index of the
+// skinned streams.
 struct GpuSkinningJob
 {
     uint32_t positions;
@@ -36,13 +37,12 @@ struct GpuSkinningJob
     uint32_t padding;
 };
 
-// The streams a skinned instance renders and traces from. They cover the vertices its mesh references, so draws use
-// the mesh's vertex offsets minus firstVertex.
+// The streams a skinned instance renders and traces from. They span the shared mesh streams up to the last vertex the
+// mesh references, because cooked indices are absolute; only the referenced range is written.
 struct GpuSkinnedVertices
 {
     RenderInstanceID instance;
     GpuMeshID        mesh;
-    uint32_t         firstVertex = 0;
     uint32_t         vertexCount = 0;
     GPUBuffer        positions;
     GPUBuffer        normals;

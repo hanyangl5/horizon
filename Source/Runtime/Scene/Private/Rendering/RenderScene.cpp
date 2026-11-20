@@ -448,7 +448,10 @@ public:
         const WorldTransform& transform = *world.GetWorldTransform(entity.entity);
         RenderInstance&       instance = instances.values[entity.instance.index];
         const Guid            entityGuid = world.GetEntityGuid(entity.entity);
-        const RenderBounds    bounds = ready ? transformBounds(entity.localBounds, transform.current) : RenderBounds{};
+        // updateSkins bounds skinned instances by their pose.
+        const RenderBounds    bounds = !ready ? RenderBounds{}
+                                       : entity.skin != UINT32_MAX ? instance.bounds
+                                                                   : transformBounds(entity.localBounds, transform.current);
         RenderHistory&        history = instanceHistory[entity.instance.index];
         const Matrix4&        previous = history.valid ? history.submitted : transform.current;
         if (instance.entityGuid != entityGuid || !equalMatrix(instance.current, transform.current) ||
@@ -549,39 +552,33 @@ public:
         historyFollowUp.Clear();
     }
     // Skinned instances change every frame with their pose, so they are visited each Update instead of through the World
-    // change log. A skin without a pose keeps the instance on its bind-pose bounds and leaves it out of the skin list.
+    // change log. A skin without a pose renders its bind pose and stays out of the skin list.
     void updateSkins()
     {
         skins.Clear();
         skinMatrices.Clear();
-        if (!pAnimation)
-        {
-            return;
-        }
         for (const RenderEntity& entity : entities)
         {
             if (entity.skin == UINT32_MAX || !primitives.values[entity.primitive.index].instanceCount)
             {
                 continue;
             }
-            const SkinningCore* pPose = pAnimation->GetPose(world.GetParent(entity.entity));
-            if (!pPose || entity.skin >= pPose->GetSkeleton().GetSkinCount())
+            const SkinningCore* pPose = pAnimation ? pAnimation->GetPose(world.GetParent(entity.entity)) : nullptr;
+            MeshBounds          local = entity.localBounds;
+            if (pPose && entity.skin < pPose->GetSkeleton().GetSkinCount())
             {
-                continue;
+                const uint32_t jointCount = pPose->GetSkeleton().GetSkinJointCount(entity.skin);
+                const uint32_t jointOffset = skinMatrices.Size();
+                skinMatrices.Resize(jointOffset + jointCount);
+                pPose->WriteSkinMatrices(entity.skin, skinMatrices.GetData() + jointOffset);
+                skins.PushBack({ .instance = entity.instance, .jointOffset = jointOffset, .jointCount = jointCount });
+                SkinBounds skinBounds;
+                if (pPose->GetSkinBounds(entity.skin, skinBounds))
+                {
+                    memcpy(local.minimum, skinBounds.minimum, sizeof(local.minimum));
+                    memcpy(local.maximum, skinBounds.maximum, sizeof(local.maximum));
+                }
             }
-            const uint32_t jointCount = pPose->GetSkeleton().GetSkinJointCount(entity.skin);
-            const uint32_t jointOffset = skinMatrices.Size();
-            skinMatrices.Resize(jointOffset + jointCount);
-            pPose->WriteSkinMatrices(entity.skin, skinMatrices.GetData() + jointOffset);
-            skins.PushBack({ .instance = entity.instance, .jointOffset = jointOffset, .jointCount = jointCount });
-            SkinBounds skinBounds;
-            if (!pPose->GetSkinBounds(entity.skin, skinBounds))
-            {
-                continue;
-            }
-            MeshBounds local;
-            memcpy(local.minimum, skinBounds.minimum, sizeof(local.minimum));
-            memcpy(local.maximum, skinBounds.maximum, sizeof(local.maximum));
             RenderInstance&    instance = instances.values[entity.instance.index];
             const RenderBounds bounds = transformBounds(local, instance.current);
             if (!equalBounds(instance.bounds, bounds))

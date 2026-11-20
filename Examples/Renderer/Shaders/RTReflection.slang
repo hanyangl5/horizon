@@ -79,21 +79,23 @@ void closestHitMain(inout RayPayload payload, BuiltInTriangleIntersectionAttribu
     GpuDrawData draw = loadRTDraw(InstanceID());
     uint3             indices = loadRTTriangle(draw, PrimitiveIndex());
     float3            bary = float3(1.0 - attributes.barycentrics.x - attributes.barycentrics.y, attributes.barycentrics);
-    ByteAddressBuffer normals = ResourceDescriptorHeap[NonUniformResourceIndex(draw.normals)];
-    float3 normal = decodeVertexNormal(normals.Load(indices.x * 4)) * bary.x + decodeVertexNormal(normals.Load(indices.y * 4)) * bary.y +
-                    decodeVertexNormal(normals.Load(indices.z * 4)) * bary.z;
-    float3 N = normalize(mul(normal, (float3x3)WorldToObject3x4()));
-    float3 V = -normalize(WorldRayDirection());
-    if (dot(N, V) < 0.0)
-    {
-        N = -N;
-    }
+    float3            V = -normalize(WorldRayDirection());
     ByteAddressBuffer positions = ResourceDescriptorHeap[NonUniformResourceIndex(draw.positions)];
     const float3      p0 = asfloat(positions.Load3(indices.x * sizeof(float3)));
     const float3      p1 = asfloat(positions.Load3(indices.y * sizeof(float3)));
     const float3      p2 = asfloat(positions.Load3(indices.z * sizeof(float3)));
     float3            geometricNormal = normalize(mul(cross(p1 - p0, p2 - p0), (float3x3)WorldToObject3x4()));
     geometricNormal = dot(geometricNormal, V) < 0.0 ? -geometricNormal : geometricNormal;
+    // Meshes without a normal stream shade with the geometric normal.
+    float3 N = geometricNormal;
+    if (draw.normals != INVALID_TEXTURE)
+    {
+        ByteAddressBuffer normals = ResourceDescriptorHeap[NonUniformResourceIndex(draw.normals)];
+        const float3      normal = decodeVertexNormal(normals.Load(indices.x * 4)) * bary.x +
+                              decodeVertexNormal(normals.Load(indices.y * 4)) * bary.y + decodeVertexNormal(normals.Load(indices.z * 4)) * bary.z;
+        N = normalize(mul(normal, (float3x3)WorldToObject3x4()));
+        N = dot(N, V) < 0.0 ? -N : N;
+    }
     const float3 hitPosition =
         rtOffsetHitPosition(mul(ObjectToWorld3x4(), float4(p0 * bary.x + p1 * bary.y + p2 * bary.z, 1.0)), geometricNormal);
     float2            uv = interpolateRTUV(draw, indices, attributes.barycentrics);

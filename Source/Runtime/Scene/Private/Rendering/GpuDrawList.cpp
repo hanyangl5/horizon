@@ -125,7 +125,6 @@ void GpuDrawList::Prepare(const SceneView& View)
                 Output.positions = pSkinned->positions.GetSrvIndex();
                 Output.normals = pSkinned->normals.GetSrvIndex();
                 Output.texcoords = pSkinned->texcoords.IsValid() ? pSkinned->texcoords.GetSrvIndex() : UINT32_MAX;
-                Output.vertexOffset = Submesh.vertexOffset - (int32_t)pSkinned->firstVertex;
             }
         }
     }

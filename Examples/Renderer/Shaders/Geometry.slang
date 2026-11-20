@@ -75,9 +75,7 @@ PSInput BuildVertex(uint vertexId, uint instance, uint material, uint id, uint p
     StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[frameIndex];
     ByteAddressBuffer           Instances = ResourceDescriptorHeap[instancesIndex];
     ByteAddressBuffer           Positions = ResourceDescriptorHeap[NonUniformResourceIndex(positionBuffer)];
-    ByteAddressBuffer           Normals = ResourceDescriptorHeap[NonUniformResourceIndex(normalBuffer)];
     float3                      Position = asfloat(Positions.Load3(vertexId * sizeof(float3)));
-    uint                        Normal = Normals.Load(vertexId * 4);
     // Meshes without texture coordinates have no stream; they sample texel (0, 0).
     uint                        Uv = 0;
     if (uvBuffer != INVALID_TEXTURE)
@@ -93,10 +91,27 @@ PSInput BuildVertex(uint vertexId, uint instance, uint material, uint id, uint p
     output.PreviousClip = mul(Frame[0].previousViewProjection, mul(previousWorld, float4(Position, 1.0)));
     output.Position = output.CurrentClip;
     output.WorldPosition = WorldPosition.xyz;
-    output.Normal = TransformNormal(world, decodeVertexNormal(Normal));
+    // Meshes without a normal stream pass a zero normal; SurfaceNormal shades them with the face normal.
+    output.Normal = 0.0;
+    if (normalBuffer != INVALID_TEXTURE)
+    {
+        ByteAddressBuffer Normals = ResourceDescriptorHeap[NonUniformResourceIndex(normalBuffer)];
+        output.Normal = TransformNormal(world, decodeVertexNormal(Normals.Load(vertexId * 4)));
+    }
     output.Uv = float2(f16tof32(Uv & 0xffffu), f16tof32(Uv >> 16));
     output.MaterialData = uint2(material, id);
     return output;
+}
+
+float3 SurfaceNormal(float3 normal, float3 worldPosition)
+{
+    if (dot(normal, normal) > 0.0)
+    {
+        return normalize(normal);
+    }
+    StructuredBuffer<FrameData> Frame = ResourceDescriptorHeap[frameIndex];
+    const float3                face = normalize(cross(ddx(worldPosition), ddy(worldPosition)));
+    return dot(face, Frame[0].eye.xyz - worldPosition) < 0.0 ? -face : face;
 }
 
 PSInput VSMain(uint vertexId : SV_VertexID)
@@ -183,7 +198,7 @@ PSOutput PSMain(PSInput input, bool frontFace : SV_IsFrontFace)
         RunAlphaTest(baseColor.a, material.alphaCutoff / max(32.0 * fwidth(float(input.Uv.x)), 1.0), input.Position.xy);
     }
 
-    float3 n = normalize(input.Normal);
+    float3 n = SurfaceNormal(input.Normal, input.WorldPosition);
     if (material.normalTexture != INVALID_TEXTURE)
     {
         Texture2D<float4> NormalMap = ResourceDescriptorHeap[NonUniformResourceIndex(material.normalTexture)];
