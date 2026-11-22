@@ -54,9 +54,13 @@ void InitSlangGlobalSession()
 static bool CheckSlangResult(SlangResult ResultValue, const char* Operation, const Slang::ComPtr<ISlangBlob>& Diagnostics = {})
 {
     if (Diagnostics && Diagnostics->getBufferSize())
+    {
         LOGF(SLANG_FAILED(ResultValue) ? Error : Warning, "Slang %s: %s", Operation, (const char*)Diagnostics->getBufferPointer());
+    }
     else if (SLANG_FAILED(ResultValue))
+    {
         LOGF(Error, "Slang %s failed (0x%08x)", Operation, (uint32_t)ResultValue);
+    }
     return SLANG_SUCCEEDED(ResultValue);
 }
 
@@ -140,8 +144,8 @@ bool LoadShaderCache(uint64_t Key, const ShaderSrcDesc& Source, BinaryShaderDesc
     }
 
     const ShaderCacheHeader* HeaderPointer = (const ShaderCacheHeader*)File.pBytes;
-    if (HeaderPointer->magic != kShaderCacheMagic || HeaderPointer->version != kShaderCacheVersion || HeaderPointer->stages != (uint32_t)Source.stages ||
-        HeaderPointer->stageCount > kCachedStageCount)
+    if (HeaderPointer->magic != kShaderCacheMagic || HeaderPointer->version != kShaderCacheVersion ||
+        HeaderPointer->stages != (uint32_t)Source.stages || HeaderPointer->stageCount > kCachedStageCount)
     {
         return false;
     }
@@ -158,7 +162,8 @@ bool LoadShaderCache(uint64_t Key, const ShaderSrcDesc& Source, BinaryShaderDesc
         }
         const ShaderCacheStageHeader* StagePointer = (const ShaderCacheStageHeader*)(File.pBytes + Offset);
         Offset += sizeof(ShaderCacheStageHeader);
-        if (!StagePointer->entryPointSize || !StagePointer->byteCodeSize || Offset + StagePointer->entryPointSize + StagePointer->byteCodeSize > File.Size)
+        if (!StagePointer->entryPointSize || !StagePointer->byteCodeSize ||
+            Offset + StagePointer->entryPointSize + StagePointer->byteCodeSize > File.Size)
         {
             return false;
         }
@@ -212,9 +217,9 @@ void StoreShaderCache(uint64_t Key, const BinaryShaderDesc& Binary)
         return;
     }
     const ShaderCacheHeader HeaderValue = { .magic = kShaderCacheMagic,
-                                       .version = kShaderCacheVersion,
-                                       .stages = (uint32_t)Binary.stages,
-                                       .stageCount = StageCount };
+                                            .version = kShaderCacheVersion,
+                                            .stages = (uint32_t)Binary.stages,
+                                            .stageCount = StageCount };
     WriteToStream(&Stream, &HeaderValue, sizeof(HeaderValue));
     for (uint32_t I = 0; I < kCachedStageCount; ++I)
     {
@@ -224,8 +229,8 @@ void StoreShaderCache(uint64_t Key, const BinaryShaderDesc& Binary)
         }
         const size_t                 EntryPointSize = strlen(StageDescs[I]->pEntryPoint) + 1;
         const ShaderCacheStageHeader StageValue = { .stage = (uint32_t)kCachedStages[I],
-                                               .entryPointSize = (uint32_t)EntryPointSize,
-                                               .byteCodeSize = StageDescs[I]->byteCodeSize };
+                                                    .entryPointSize = (uint32_t)EntryPointSize,
+                                                    .byteCodeSize = StageDescs[I]->byteCodeSize };
         WriteToStream(&Stream, &StageValue, sizeof(StageValue));
         WriteToStream(&Stream, StageDescs[I]->pEntryPoint, EntryPointSize);
         WriteToStream(&Stream, StageDescs[I]->pByteCode, StageDescs[I]->byteCodeSize);
@@ -301,7 +306,9 @@ Shader* RenderContext::CreateSlangShader(const ShaderSrcDesc& Input)
         uint32_t ModuleIndex = 0;
         while (ModuleIndex < ModuleCount && (ModuleSources[ModuleIndex]->pByteCode != Sources[I]->pByteCode ||
                                              ModuleSources[ModuleIndex]->byteCodeSize != Sources[I]->byteCodeSize))
+        {
             ++ModuleIndex;
+        }
         if (ModuleIndex == ModuleCount)
         {
             char ModuleName[32] = {};
@@ -310,7 +317,9 @@ Shader* RenderContext::CreateSlangShader(const ShaderSrcDesc& Input)
             Source.attach(slang_createBlob(Sources[I]->pByteCode, Sources[I]->byteCodeSize));
             Modules[ModuleIndex] = Session->loadModuleFromSource(ModuleName, Sources[I]->Name, Source, Diagnostics.writeRef());
             if (!CheckSlangResult(Modules[ModuleIndex] ? SLANG_OK : SLANG_FAIL, "module loading", Diagnostics))
+            {
                 return nullptr;
+            }
             ModuleSources[ModuleCount++] = Sources[I];
         }
         if (!CheckSlangResult(Modules[ModuleIndex]->findAndCheckEntryPoint(Sources[I]->pEntryPoint, kSlangStages[I],
@@ -324,16 +333,22 @@ Shader* RenderContext::CreateSlangShader(const ShaderSrcDesc& Input)
 
     slang::IComponentType* Components[6] = {};
     for (uint32_t I = 0; I < ModuleCount; ++I)
+    {
         Components[I] = Modules[I];
+    }
     for (uint32_t I = 0; I < EntryPointCount; ++I)
+    {
         Components[ModuleCount + I] = EntryPoints[I];
+    }
     Slang::ComPtr<slang::IComponentType> Program;
     Slang::ComPtr<slang::IComponentType> LinkedProgram;
     if (!CheckSlangResult(
             Session->createCompositeComponentType(Components, ModuleCount + EntryPointCount, Program.writeRef(), Diagnostics.writeRef()),
             "program composition", Diagnostics) ||
         !CheckSlangResult(Program->link(LinkedProgram.writeRef(), Diagnostics.writeRef()), "linking", Diagnostics))
+    {
         return nullptr;
+    }
 
     BinaryShaderDesc          Binary = { .stages = Input.stages };
     BinaryShaderStageDesc*    Outputs[] = { &Binary.vert, &Binary.frag, &Binary.comp };
@@ -347,7 +362,9 @@ Shader* RenderContext::CreateSlangShader(const ShaderSrcDesc& Input)
         }
         if (!CheckSlangResult(LinkedProgram->getEntryPointCode(EntryPointIndex++, 0, Bytecode[I].writeRef(), Diagnostics.writeRef()),
                               "DXIL generation", Diagnostics))
+        {
             return nullptr;
+        }
         Outputs[I]->Name = Sources[I]->Name;
         Outputs[I]->pByteCode = (void*)Bytecode[I]->getBufferPointer();
         Outputs[I]->byteCodeSize = (uint32_t)Bytecode[I]->getBufferSize();

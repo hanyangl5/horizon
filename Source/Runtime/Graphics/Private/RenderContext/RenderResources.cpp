@@ -197,7 +197,8 @@ void GPUShader::Destroy()
 
 GPUPipeline::GPUPipeline(RenderContext* Context, Pipeline* PipelineObject, RootSignature* RootSignatureValue, GPUShader&& ShaderObject,
                          CommandSignature* DrawSignature):
-    pContext(Context), pPipeline(PipelineObject), pRootSignature(RootSignatureValue), pDrawIndirectSignature(DrawSignature), shader(std::move(ShaderObject))
+    pContext(Context), pPipeline(PipelineObject), pRootSignature(RootSignatureValue), pDrawIndirectSignature(DrawSignature),
+    shader(std::move(ShaderObject))
 {
     ASSERT(pContext && pPipeline && pRootSignature);
     ++pContext->resourceCount;
@@ -481,7 +482,9 @@ Shader* RenderContext::CreateShader(const ShaderDesc& Input)
         return {};
     }
     if (FileSource)
+    {
         snprintf(SourcePath, sizeof(SourcePath), "%s/%s", GetResourceDirectory(Input.sourceDirectory), Input.pFileName);
+    }
     uint32_t StageCount = Input.stages.Count;
     for (uint32_t I = 0; I < StageCount; ++I)
     {
@@ -514,7 +517,9 @@ Shader* RenderContext::CreateShader(const ShaderDesc& Input)
     const char* Extension = Input.pFileName ? strrchr(Input.pFileName, '.') : nullptr;
     if (Input.language == ShaderLanguage::Slang ||
         (Input.language == ShaderLanguage::Auto && Extension && strcmp(Extension, ".slang") == 0))
+    {
         ShaderObject = CreateSlangShader(Source);
+    }
     else
         addShaderSource(pRenderer, &Source, &ShaderObject);
     if (SourceFile.FileSystem)

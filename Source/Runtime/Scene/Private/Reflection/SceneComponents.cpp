@@ -223,7 +223,12 @@ static const PropertyDesc animationPlayerProperties[] = {
       .Size = sizeof(float),
       .minimum = 0,
       .step = 0.01 },
-    { .id = 3, .Name = "speed", .kind = PropertyKind::Float, .offset = offsetof(AnimationPlayer, speed), .Size = sizeof(float), .step = 0.1 },
+    { .id = 3,
+      .Name = "speed",
+      .kind = PropertyKind::Float,
+      .offset = offsetof(AnimationPlayer, speed),
+      .Size = sizeof(float),
+      .step = 0.1 },
     { .id = 4, .Name = "loop", .kind = PropertyKind::Boolean, .offset = offsetof(AnimationPlayer, loop), .Size = sizeof(bool) },
     { .id = 5, .Name = "playing", .kind = PropertyKind::Boolean, .offset = offsetof(AnimationPlayer, playing), .Size = sizeof(bool) },
 };

@@ -25,7 +25,9 @@ static bool ValidProperties(const TypeDesc& Type, bool ArrayElement)
         return false;
     }
     if (Ops.pDestroy && (!Ops.pConstruct || !Ops.pCopyConstruct || !Ops.pMoveConstruct))
+    {
         return false;
+    }
     if (ArrayElement && (!Type.triviallyCopyable || Ops.pDestroy || !Type.properties.Count))
     {
         return false;
@@ -49,7 +51,9 @@ static bool ValidProperties(const TypeDesc& Type, bool ArrayElement)
             }
         }
         if (Property.kind != PropertyKind::Array && (Property.pElementType || Property.pArrayOperations))
+        {
             return false;
+        }
         if (Property.kind != PropertyKind::Enum && Property.enumValues.Count)
         {
             return false;
@@ -132,8 +136,9 @@ static bool ValidProperties(const TypeDesc& Type, bool ArrayElement)
             const ArrayOperations* ArrayPointer = Property.pArrayOperations;
             if (ArrayElement || Type.triviallyCopyable || !Property.pElementType || !ArrayPointer ||
                 !ValidProperties(*Property.pElementType, true) || !ValidAlignment(ArrayPointer->alignment) ||
-                Type.alignment < ArrayPointer->alignment || Property.offset % ArrayPointer->alignment || Property.Size != ArrayPointer->Size ||
-                !ArrayPointer->pCount || !ArrayPointer->Data || !ArrayPointer->pResize || !ArrayPointer->pInsert || !ArrayPointer->pRemove)
+                Type.alignment < ArrayPointer->alignment || Property.offset % ArrayPointer->alignment ||
+                Property.Size != ArrayPointer->Size || !ArrayPointer->pCount || !ArrayPointer->Data || !ArrayPointer->pResize ||
+                !ArrayPointer->pInsert || !ArrayPointer->pRemove)
             {
                 return false;
             }
@@ -149,8 +154,12 @@ static bool ValidProperties(const TypeDesc& Type, bool ArrayElement)
 const PropertyDesc* TypeDesc::GetProperty(PropertyID Property) const
 {
     for (const PropertyDesc& Desc : properties)
+    {
         if (Desc.id == Property)
+        {
             return &Desc;
+        }
+    }
     return nullptr;
 }
 
@@ -158,10 +167,12 @@ const PropertyDesc* TypeDesc::GetProperty(const char* PropertyName) const
 {
     ASSERT(PropertyName);
     for (const PropertyDesc& Desc : properties)
+    {
         if (!strcmp(Desc.Name, PropertyName))
         {
             return &Desc;
         }
+    }
     return nullptr;
 }
 
@@ -207,7 +218,9 @@ const TypeDesc* TypeRegistry::GetType(TypeID Id) const
     for (uint32_t I = 0; I < Size(); ++I)
     {
         if (ppTypes[I]->id == Id)
+        {
             return ppTypes[I];
+        }
     }
     return nullptr;
 }
@@ -244,7 +257,9 @@ bool TypeRegistry::RegisterTypes(Span<TypeDesc> Types)
         }
         bool Duplicate = GetType(Type.id) || GetType(Type.Name);
         for (uint32_t J = 0; J < I; ++J)
+        {
             Duplicate |= Type.id == Types.Data[J].id || !strcmp(Type.Name, Types.Data[J].Name);
+        }
         if (Duplicate)
         {
             LOGF(Error, "Duplicate reflection type '%s'", Type.Name);

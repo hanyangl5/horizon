@@ -392,8 +392,12 @@ bool SceneAssetCooker::isCurrent(const char* pContentHash) const
     {
         const cJSON* pFiles = cJSON_GetObjectItemCaseSensitive(asset.Get(), pTable);
         for (const cJSON* pFile = pFiles ? pFiles->child : nullptr; pFile; pFile = pFile->next)
+        {
             if (!FileExists(outputDirectory, text(pFile, "path")))
+            {
                 return false;
+            }
+        }
     }
     const cJSON* pRecords = cJSON_GetObjectItemCaseSensitive(metadata.Get(), "assets");
     for (const cJSON* pRecord = pRecords ? pRecords->child : nullptr; pRecord; pRecord = pRecord->next)
@@ -672,7 +676,9 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     snprintf(baseName, sizeof(baseName), "%s", pGeometryFile);
     char* pExtension = strrchr(baseName, '.');
     if (pExtension && !strchr(pExtension, '/'))
+    {
         *pExtension = 0;
+    }
     if (!skeletonCooker.cook(data, baseName))
     {
         LOGF(Error, "Cannot cook skins and animations of '%s'", pSourceFile);
@@ -778,14 +784,18 @@ bool SceneAssetCooker::build(const cgltf_data& data, const char* pContentHash)
     }
     if (!buildNodes(data, { meshes.GetData(), meshes.Size() }, { skeletons.GetData(), skeletons.Size() },
                     { animations.GetData(), animations.Size() }))
+    {
         return false;
+    }
     return validate();
 }
 
 static Matrix4 nodeWorldMatrix(const cgltf_node* pNode)
 {
     if (!pNode)
+    {
         return Matrix4::identity();
+    }
     float m[16];
     cgltf_node_transform_world(pNode, m);
     return Matrix4(Vector4(m[0], m[1], m[2], m[3]), Vector4(m[4], m[5], m[6], m[7]), Vector4(m[8], m[9], m[10], m[11]),
@@ -798,8 +808,12 @@ static void addRelativeMatrix(cJSON* pNode, const cgltf_node* pSource, const cgl
     const Matrix4 relative = inverse(nodeWorldMatrix(pAncestor)) * nodeWorldMatrix(pSource);
     float         values[16];
     for (uint32_t column = 0; column < 4; ++column)
+    {
         for (uint32_t row = 0; row < 4; ++row)
+        {
             values[column * 4 + row] = row == 3 ? (column == 3 ? 1.0f : 0.0f) : relative.getElem((int)column, (int)row);
+        }
+    }
     addFloats(pNode, "matrix", values, 16);
 }
 
@@ -848,13 +862,19 @@ bool SceneAssetCooker::buildNodes(const cgltf_data& data, hz::Span<cJSON*> meshe
         visited[index] = 1;
         const cgltf_node& node = data.nodes[index];
         for (cgltf_size i = node.children_count; i > 0; --i)
+        {
             stack.PushBack((uint32_t)(node.children[i - 1] - data.nodes));
+        }
         // A skinned mesh without children moves below its skeleton entity; one with children keeps its place for them.
         if (skeletonCooker.isSkeletonNode(index) || (node.skin && node.mesh && !node.children_count))
+        {
             continue;
+        }
         const cgltf_node* pAncestor = node.parent;
         while (pAncestor && selected[(uint32_t)(pAncestor - data.nodes)] == UINT32_MAX)
+        {
             pAncestor = pAncestor->parent;
+        }
         selected[index] = nodeCount++;
         cJSON* pNode = cJSON_CreateObject();
         cJSON_AddStringToObject(pNode, "name", node.name ? node.name : "");
@@ -865,7 +885,9 @@ bool SceneAssetCooker::buildNodes(const cgltf_data& data, hz::Span<cJSON*> meshe
             addRelativeMatrix(pNode, &node, pAncestor);
         }
         else if (node.has_matrix)
+        {
             addFloats(pNode, "matrix", node.matrix, 16);
+        }
         else
         {
             addFloats(pNode, "translation", node.translation, 3);
@@ -873,11 +895,15 @@ bool SceneAssetCooker::buildNodes(const cgltf_data& data, hz::Span<cJSON*> meshe
             addFloats(pNode, "scale", node.scale, 3);
         }
         if (node.mesh && !node.skin)
+        {
             cJSON_AddStringToObject(pNode, "mesh", text(meshes.Data[(uint32_t)(node.mesh - data.meshes)], "id"));
+        }
         cJSON_AddItemToArray(pNodes, pNode);
     }
     if (attachments)
+    {
         LOGF(Warning, "%u nodes below skeleton joints keep their bind pose; they do not follow the animation", attachments);
+    }
 
     hz::Array<uint32_t> skeletonEntities(skeletons.Count);
     for (uint32_t k = 0; k < skeletons.Count; ++k)
@@ -886,29 +912,39 @@ bool SceneAssetCooker::buildNodes(const cgltf_data& data, hz::Span<cJSON*> meshe
         const cgltf_node*     pParent = skeleton.parent == UINT32_MAX ? nullptr : &data.nodes[skeleton.parent];
         const cgltf_node*     pAncestor = pParent;
         while (pAncestor && selected[(uint32_t)(pAncestor - data.nodes)] == UINT32_MAX)
+        {
             pAncestor = pAncestor->parent;
+        }
         skeletonEntities[k] = nodeCount++;
         cJSON* pNode = cJSON_CreateObject();
         cJSON_AddStringToObject(pNode, "name", skeleton.name);
         cJSON_AddNumberToObject(pNode, "parent", pAncestor ? (double)selected[(uint32_t)(pAncestor - data.nodes)] : -1.0);
         if (pAncestor != pParent)
+        {
             addRelativeMatrix(pNode, pParent, pAncestor);
+        }
         else
+        {
             addIdentityTransform(pNode);
+        }
         cJSON_AddStringToObject(pNode, "skeleton", text(skeletons.Data[k], "id"));
         for (uint32_t i = 0; i < animations.Count; ++i)
+        {
             if (skeletonCooker.animations[i].skeleton == k)
             {
                 cJSON_AddStringToObject(pNode, "animation", text(animations.Data[i], "id"));
                 break;
             }
+        }
         cJSON_AddItemToArray(pNodes, pNode);
     }
     for (uint32_t index = 0; index < (uint32_t)data.nodes_count; ++index)
     {
         const cgltf_node& node = data.nodes[index];
         if (!visited[index] || !node.skin || !node.mesh)
+        {
             continue;
+        }
         uint32_t       skin = 0;
         const uint32_t skeleton = skeletonCooker.findSkeleton((uint32_t)(node.skin - data.skins), skin);
         ASSERT(skeleton != UINT32_MAX);
@@ -953,11 +989,18 @@ bool SceneAssetCooker::write() const
         return false;
     // Animation files go out before the scene and catalog that reference them.
     for (const CookedSkeleton& skeleton : skeletonCooker.skeletons)
+    {
         if (!writeBytes(outputDirectory, skeleton.path, skeleton.file.GetData(), skeleton.file.Size()))
+        {
             return false;
+        }
+    }
     for (const CookedAnimation& animation : skeletonCooker.animations)
+    {
         if (!writeBytes(outputDirectory, animation.path, animation.file.GetData(), animation.file.Size()))
+        {
             return false;
-    return writeJson(outputDirectory, assetFile, pAsset) &&
-           writeBytes(outputDirectory, catalogFile, catalog.GetData(), catalog.Size() - 1);
+        }
+    }
+    return writeJson(outputDirectory, assetFile, pAsset) && writeBytes(outputDirectory, catalogFile, catalog.GetData(), catalog.Size() - 1);
 }

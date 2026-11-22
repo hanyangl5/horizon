@@ -85,8 +85,11 @@ static const cJSON* FindSceneField(const cJSON* Object, const char* Name) { retu
 
 static bool ReadFloat(const cJSON* ValueData, float& OutputValue, float Minimum = -FLT_MAX, float Maximum = FLT_MAX)
 {
-    if (!cJSON_IsNumber(ValueData) || !isfinite(ValueData->valuedouble) || ValueData->valuedouble < Minimum || ValueData->valuedouble > Maximum)
+    if (!cJSON_IsNumber(ValueData) || !isfinite(ValueData->valuedouble) || ValueData->valuedouble < Minimum ||
+        ValueData->valuedouble > Maximum)
+    {
         return false;
+    }
     OutputValue = (float)ValueData->valuedouble;
     return true;
 }
@@ -101,15 +104,19 @@ static bool ReadFloats(const cJSON* Object, const char* Name, float* OutputPoint
     }
     uint32_t IndexValue = 0;
     for (const cJSON* ValueData = ArrayPointer->child; ValueData; ValueData = ValueData->next)
+    {
         if (!ReadFloat(ValueData, OutputPointer[IndexValue++], Minimum, Maximum))
+        {
             return InvalidField(Name);
+        }
+    }
     return true;
 }
 
 static bool ReadInteger(const cJSON* ValueData, double Minimum, double Maximum)
 {
-    return cJSON_IsNumber(ValueData) && isfinite(ValueData->valuedouble) && ValueData->valuedouble >= Minimum && ValueData->valuedouble <= Maximum &&
-           floor(ValueData->valuedouble) == ValueData->valuedouble;
+    return cJSON_IsNumber(ValueData) && isfinite(ValueData->valuedouble) && ValueData->valuedouble >= Minimum &&
+           ValueData->valuedouble <= Maximum && floor(ValueData->valuedouble) == ValueData->valuedouble;
 }
 
 static uint32_t StringSize(const cJSON* Object, const char* Field)
@@ -128,25 +135,35 @@ static int CompareSubmeshIDs(const void* LeftValue, const void* RightValue)
 static bool IsRelativePath(const char* PathPointer)
 {
     if (!*PathPointer || *PathPointer == '/' || strchr(PathPointer, '\\') || strchr(PathPointer, ':'))
+    {
         return false;
+    }
     const char* Segment = PathPointer;
     for (const char* CursorPointer = PathPointer;; ++CursorPointer)
+    {
         if (*CursorPointer == '/' || !*CursorPointer)
         {
             if (CursorPointer == Segment || (CursorPointer - Segment == 1 && *Segment == '.') ||
                 (CursorPointer - Segment == 2 && Segment[0] == '.' && Segment[1] == '.'))
+            {
                 return false;
+            }
             if (!*CursorPointer)
+            {
                 return true;
+            }
             Segment = CursorPointer + 1;
         }
+    }
 }
 
 bool SceneAssetReader::readString(const cJSON* Object, const char* Field, const char*& OutputPointer, bool PathValue)
 {
     const cJSON* ValueData = FindSceneField(Object, Field);
     if (!cJSON_IsString(ValueData) || (PathValue && !IsRelativePath(ValueData->valuestring)))
+    {
         return InvalidField(Field);
+    }
     const uint32_t Offset = data.strings.Size();
     const uint32_t Size = (uint32_t)strlen(ValueData->valuestring) + 1;
     data.strings.Resize(Offset + Size);
@@ -171,7 +188,9 @@ bool SceneAssetReader::readReference(const cJSON* Object, const char* Field, Ass
 {
     const cJSON* ValueData = FindSceneField(Object, Field);
     if (cJSON_IsNull(ValueData) || (!ValueData && Optional))
+    {
         return true;
+    }
     if (!cJSON_IsString(ValueData) || !Id.Parse(ValueData->valuestring) || !Id.IsValid())
     {
         return InvalidField(Field);
@@ -183,21 +202,29 @@ bool SceneAssetReader::readReference(const cJSON* Object, const char* Field, Ass
 bool SceneAssetReader::readTextures(const cJSON* ArrayPointer)
 {
     if (!cJSON_IsArray(ArrayPointer))
+    {
         return InvalidField("textures");
+    }
     data.textures.Reserve((uint32_t)cJSON_GetArraySize(ArrayPointer));
     for (const cJSON* Item = ArrayPointer->child; Item; Item = Item->next)
     {
         SceneAssetTexture TextureValue;
         if (!readID(Item, TextureValue.id, AssetKind::Texture) || !readString(Item, "path", TextureValue.pPath, true) ||
             !readString(Item, "source", TextureValue.pSource, true))
+        {
             return false;
+        }
         const cJSON* Srgb = FindSceneField(Item, "srgb");
         if (!cJSON_IsBool(Srgb))
+        {
             return InvalidField("srgb");
+        }
         TextureValue.srgb = cJSON_IsTrue(Srgb);
         const cJSON* Cooked = FindSceneField(Item, "cooked");
         if (!cJSON_IsBool(Cooked))
+        {
             return InvalidField("cooked");
+        }
         TextureValue.cooked = cJSON_IsTrue(Cooked);
         data.textures.PushBack(TextureValue);
     }
@@ -207,7 +234,9 @@ bool SceneAssetReader::readTextures(const cJSON* ArrayPointer)
 bool SceneAssetReader::readMaterials(const cJSON* ArrayPointer)
 {
     if (!cJSON_IsArray(ArrayPointer))
+    {
         return InvalidField("materials");
+    }
     data.materials.Reserve((uint32_t)cJSON_GetArraySize(ArrayPointer));
     for (const cJSON* Item = ArrayPointer->child; Item; Item = Item->next)
     {
@@ -224,9 +253,11 @@ bool SceneAssetReader::readMaterials(const cJSON* ArrayPointer)
         }
         if (!ReadFloat(FindSceneField(Item, "metallicFactor"), MaterialValue.metallicFactor, 0.0f, 1.0f) ||
             !ReadFloat(FindSceneField(Item, "roughnessFactor"), MaterialValue.roughnessFactor, 0.0f, 1.0f) ||
-            !ReadFloat(FindSceneField(Item, "alphaCutoff"), MaterialValue.alphaCutoff, 0.0f) || !ReadInteger(FindSceneField(Item, "alphaMode"), 0, 2) ||
-            !cJSON_IsBool(FindSceneField(Item, "doubleSided")))
+            !ReadFloat(FindSceneField(Item, "alphaCutoff"), MaterialValue.alphaCutoff, 0.0f) ||
+            !ReadInteger(FindSceneField(Item, "alphaMode"), 0, 2) || !cJSON_IsBool(FindSceneField(Item, "doubleSided")))
+        {
             return InvalidField("material factors/alpha mode");
+        }
         MaterialValue.alphaMode = (MaterialAlphaMode)FindSceneField(Item, "alphaMode")->valueint;
         MaterialValue.doubleSided = cJSON_IsTrue(FindSceneField(Item, "doubleSided"));
         // Optional, so assets cooked before tags existed stay valid.
@@ -244,12 +275,16 @@ bool SceneAssetReader::readMaterials(const cJSON* ArrayPointer)
 bool SceneAssetReader::readMeshes(const cJSON* ArrayPointer)
 {
     if (!cJSON_IsArray(ArrayPointer))
+    {
         return InvalidField("meshes");
+    }
     uint32_t SubmeshCount = 0;
     for (const cJSON* Item = ArrayPointer->child; Item; Item = Item->next)
     {
         if (!cJSON_IsArray(FindSceneField(Item, "submeshes")) || !FindSceneField(Item, "submeshes")->child)
+        {
             return InvalidField("submeshes");
+        }
         SubmeshCount += (uint32_t)cJSON_GetArraySize(FindSceneField(Item, "submeshes"));
     }
     data.submeshes.Reserve(SubmeshCount);
@@ -270,13 +305,19 @@ bool SceneAssetReader::readMeshes(const cJSON* ArrayPointer)
             const cJSON* ID = FindSceneField(SubmeshPointer, "id");
             if (!cJSON_IsString(ID) || strlen(ID->valuestring) != 16 || strspn(ID->valuestring, "0123456789abcdefABCDEF") != 16 ||
                 !ReadInteger(FindSceneField(SubmeshPointer, "draw"), 0, UINT32_MAX))
+            {
                 return InvalidField("submesh id/Draw");
+            }
             SceneAssetSubmesh SubmeshValue = { .id = strtoull(ID->valuestring, nullptr, 16),
-                                          .Draw = (uint32_t)FindSceneField(SubmeshPointer, "draw")->valuedouble };
+                                               .Draw = (uint32_t)FindSceneField(SubmeshPointer, "draw")->valuedouble };
             if (!SubmeshValue.id)
+            {
                 return InvalidField("submesh id");
+            }
             if (!readReference(SubmeshPointer, "material", SubmeshValue.material, AssetKind::Material))
+            {
                 return false;
+            }
             if (!SubmeshValue.material.IsValid())
             {
                 return InvalidField("submesh material");
@@ -288,7 +329,9 @@ bool SceneAssetReader::readMeshes(const cJSON* ArrayPointer)
         for (uint32_t I = 1; I < Ids.Size(); ++I)
         {
             if (Ids[I - 1] == Ids[I])
+            {
                 return InvalidField("submeshes (duplicate SubmeshID within mesh)");
+            }
         }
         MeshValue.submeshes = { data.submeshes.GetData() + First, data.submeshes.Size() - First };
         data.meshes.PushBack(MeshValue);
@@ -300,16 +343,22 @@ bool SceneAssetReader::readSkeletons(const cJSON* ArrayPointer)
 {
     // Optional: scenes without skins have no table.
     if (!ArrayPointer)
+    {
         return true;
+    }
     if (!cJSON_IsArray(ArrayPointer))
+    {
         return InvalidField("skeletons");
+    }
     data.skeletons.Reserve((uint32_t)cJSON_GetArraySize(ArrayPointer));
     for (const cJSON* Item = ArrayPointer->child; Item; Item = Item->next)
     {
         SceneAssetSkeleton SkeletonValue;
         if (!readID(Item, SkeletonValue.id, AssetKind::Skeleton) || !readString(Item, "name", SkeletonValue.Name) ||
             !readString(Item, "path", SkeletonValue.pPath, true))
+        {
             return false;
+        }
         data.skeletons.PushBack(SkeletonValue);
     }
     return true;
@@ -318,18 +367,27 @@ bool SceneAssetReader::readSkeletons(const cJSON* ArrayPointer)
 bool SceneAssetReader::readAnimations(const cJSON* ArrayPointer)
 {
     if (!ArrayPointer)
+    {
         return true;
+    }
     if (!cJSON_IsArray(ArrayPointer))
+    {
         return InvalidField("animations");
+    }
     data.animations.Reserve((uint32_t)cJSON_GetArraySize(ArrayPointer));
     for (const cJSON* Item = ArrayPointer->child; Item; Item = Item->next)
     {
         SceneAssetAnimation AnimationValue;
         if (!readID(Item, AnimationValue.id, AssetKind::Animation) || !readString(Item, "name", AnimationValue.Name) ||
-            !readString(Item, "path", AnimationValue.pPath, true) || !readReference(Item, "skeleton", AnimationValue.skeleton, AssetKind::Skeleton))
+            !readString(Item, "path", AnimationValue.pPath, true) ||
+            !readReference(Item, "skeleton", AnimationValue.skeleton, AssetKind::Skeleton))
+        {
             return false;
+        }
         if (!AnimationValue.skeleton.IsValid())
+        {
             return InvalidField("animations.skeleton");
+        }
         data.animations.PushBack(AnimationValue);
     }
     return true;
@@ -347,7 +405,9 @@ static bool ValidateHierarchy(Span<SceneAssetNode> Nodes)
             CursorValue = Nodes.Data[CursorValue].parent;
         }
         if (CursorValue != UINT32_MAX && Visited[CursorValue] == 1)
+        {
             return InvalidField("nodes.parent (hierarchy cycle)");
+        }
         CursorValue = I;
         while (CursorValue != UINT32_MAX && Visited[CursorValue] == 1)
         {
@@ -361,7 +421,9 @@ static bool ValidateHierarchy(Span<SceneAssetNode> Nodes)
 bool SceneAssetReader::readNodes(const cJSON* ArrayPointer)
 {
     if (!cJSON_IsArray(ArrayPointer))
+    {
         return InvalidField("nodes");
+    }
     const uint32_t Count = (uint32_t)cJSON_GetArraySize(ArrayPointer);
     data.nodes.Reserve(Count);
     for (const cJSON* Item = ArrayPointer->child; Item; Item = Item->next)
@@ -377,17 +439,25 @@ bool SceneAssetReader::readNodes(const cJSON* ArrayPointer)
         if (Skin)
         {
             if (!ReadInteger(Skin, 0, UINT16_MAX) || !NodeValue.mesh.IsValid())
+            {
                 return InvalidField("nodes.skin (expected a skin index on a mesh node)");
+            }
             NodeValue.skin = (uint32_t)Skin->valuedouble;
         }
         if (NodeValue.animation.IsValid())
         {
             const SceneAssetAnimation* AnimationPointer = nullptr;
             for (const SceneAssetAnimation& AnimationValue : data.animations)
+            {
                 if (AnimationValue.id == NodeValue.animation)
+                {
                     AnimationPointer = &AnimationValue;
+                }
+            }
             if (!NodeValue.skeleton.IsValid() || !AnimationPointer || AnimationPointer->skeleton != NodeValue.skeleton)
+            {
                 return InvalidField("nodes.animation (expected a clip of the node's skeleton)");
+            }
         }
         if (!ReadInteger(FindSceneField(Item, "parent"), -1, (double)Count - 1))
         {
@@ -400,25 +470,39 @@ bool SceneAssetReader::readNodes(const cJSON* ArrayPointer)
         {
             float Matrix[16];
             if (FindSceneField(Item, "translation") || FindSceneField(Item, "rotation") || FindSceneField(Item, "scale"))
+            {
                 return InvalidField("nodes (matrix and TRS are mutually exclusive)");
+            }
             if (!ReadFloats(Item, "matrix", Matrix, 16))
+            {
                 return false;
+            }
             if (Matrix[3] != 0.0f || Matrix[7] != 0.0f || Matrix[11] != 0.0f || Matrix[15] != 1.0f)
+            {
                 return InvalidField("nodes.matrix (expected affine matrix)");
+            }
             for (uint32_t Column = 0; Column < 4; ++Column)
+            {
                 for (uint32_t Row = 0; Row < 4; ++Row)
+                {
                     NodeValue.matrix.setElem((int)Column, (int)Row, Matrix[Column * 4 + Row]);
+                }
+            }
         }
         else
         {
             float Translation[3], Rotation[4], Scale[3];
             if (!ReadFloats(Item, "translation", Translation, 3) || !ReadFloats(Item, "rotation", Rotation, 4) ||
                 !ReadFloats(Item, "scale", Scale, 3))
+            {
                 return false;
+            }
             const double Length = (double)Rotation[0] * Rotation[0] + (double)Rotation[1] * Rotation[1] +
                                   (double)Rotation[2] * Rotation[2] + (double)Rotation[3] * Rotation[3];
             if (fabs(Length - 1.0) > 0.001)
+            {
                 return InvalidField("nodes.rotation (expected unit quaternion)");
+            }
             NodeValue.transform.translation = Vector3(Translation[0], Translation[1], Translation[2]);
             NodeValue.transform.rotation = Quat(Rotation[0], Rotation[1], Rotation[2], Rotation[3]);
             NodeValue.transform.scale = Vector3(Scale[0], Scale[1], Scale[2]);
@@ -426,8 +510,12 @@ bool SceneAssetReader::readNodes(const cJSON* ArrayPointer)
         data.nodes.PushBack(NodeValue);
     }
     for (const SceneAssetNode& NodeValue : data.nodes)
+    {
         if (NodeValue.skin != UINT32_MAX && (NodeValue.parent == UINT32_MAX || !data.nodes[NodeValue.parent].skeleton.IsValid()))
+        {
             return InvalidField("nodes.skin (the parent node must own a skeleton)");
+        }
+    }
     return ValidateHierarchy({ data.nodes.GetData(), data.nodes.Size() });
 }
 
@@ -457,13 +545,18 @@ bool SceneAssetReader::read(Span<char> Json)
     const cJSON* FormatPointer = FindSceneField(pRoot, "format");
     const cJSON* Version = FindSceneField(pRoot, "version");
     if (!cJSON_IsString(FormatPointer) || strcmp(FormatPointer->valuestring, "Horizon.SceneAsset") != 0 || !ReadInteger(Version, 1, 1))
+    {
         return InvalidField("format/version");
+    }
     uint32_t    StringBytes = StringSize(pRoot, "source") + StringSize(pRoot, "contentHash");
     const char* Tables[] = { "textures", "materials", "meshes", "nodes", "skeletons", "animations" };
     for (const char* Table : Tables)
+    {
         for (const cJSON* Item = FindSceneField(pRoot, Table) ? FindSceneField(pRoot, Table)->child : nullptr; Item; Item = Item->next)
-            StringBytes +=
-                StringSize(Item, "name") + StringSize(Item, "path") + StringSize(Item, "geometry") + StringSize(Item, "source");
+        {
+            StringBytes += StringSize(Item, "name") + StringSize(Item, "path") + StringSize(Item, "geometry") + StringSize(Item, "source");
+        }
+    }
     data.strings.Reserve(StringBytes);
     if (!readID(pRoot, data.id, AssetKind::Scene) || !readString(pRoot, "source", data.pSource, true) ||
         !readString(pRoot, "contentHash", data.pContentHash))
@@ -472,9 +565,12 @@ bool SceneAssetReader::read(Span<char> Json)
     if (strncmp(data.pContentHash, "fnv1a64:", 8) != 0 || strlen(data.pContentHash) != 24 ||
         strspn(data.pContentHash + 8, "0123456789abcdefABCDEF") != 16 || !cJSON_IsString(IdentityHash) ||
         strlen(IdentityHash->valuestring) != 16 || strspn(IdentityHash->valuestring, "0123456789abcdefABCDEF") != 16)
+    {
         return InvalidField("contentHash/identityHash");
-    return readTextures(FindSceneField(pRoot, "textures")) && readMaterials(FindSceneField(pRoot, "materials")) && readMeshes(FindSceneField(pRoot, "meshes")) &&
-           readSkeletons(FindSceneField(pRoot, "skeletons")) && readAnimations(FindSceneField(pRoot, "animations")) && readNodes(FindSceneField(pRoot, "nodes"));
+    }
+    return readTextures(FindSceneField(pRoot, "textures")) && readMaterials(FindSceneField(pRoot, "materials")) &&
+           readMeshes(FindSceneField(pRoot, "meshes")) && readSkeletons(FindSceneField(pRoot, "skeletons")) &&
+           readAnimations(FindSceneField(pRoot, "animations")) && readNodes(FindSceneField(pRoot, "nodes"));
 }
 
 SceneAsset::~SceneAsset() { MemDelete(Data); }
@@ -537,9 +633,13 @@ static void CopyName(Name& NameValue, const char* Text)
 {
     size_t Length = 0;
     while (Length < sizeof(NameValue.value) - 1 && Text[Length])
+    {
         ++Length;
+    }
     while (Length && ((uint8_t)Text[Length] & 0xc0) == 0x80)
+    {
         --Length;
+    }
     memcpy(NameValue.value, Text, Length);
     NameValue.value[Length] = 0;
 }
@@ -570,7 +670,7 @@ Entity SceneAsset::Instantiate(World& WorldData, Entity Parent) const
             CopyName(NameValue, NodeValue.Name);
             Copied &= WorldData.SetComponent(EntityHandle, SceneTypes::name, &NameValue);
             Copied &= NodeValue.hasMatrix ? WorldData.SetComponent(EntityHandle, SceneTypes::localMatrix, &NodeValue.matrix)
-                                     : WorldData.SetComponent(EntityHandle, SceneTypes::localTransform, &NodeValue.transform);
+                                          : WorldData.SetComponent(EntityHandle, SceneTypes::localTransform, &NodeValue.transform);
             if (NodeValue.mesh.IsValid())
             {
                 const MeshRenderer RendererValue = { .mesh = NodeValue.mesh };
@@ -597,7 +697,9 @@ Entity SceneAsset::Instantiate(World& WorldData, Entity Parent) const
     if (Entities.Size() != Data->nodes.Size())
     {
         for (Entity EntityHandle : Entities)
+        {
             WorldData.DestroyEntity(EntityHandle);
+        }
         WorldData.DestroyEntity(Root);
         return {};
     }

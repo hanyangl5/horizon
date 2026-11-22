@@ -81,7 +81,8 @@ public:
     const void* getPayload(AssetHandle Handle, AssetType Type)
     {
         const ManagedAsset* AssetPointer = Find(Handle);
-        return AssetPointer && AssetPointer->state == AssetState::Ready && AssetPointer->pEntry->Type == Type ? AssetPointer->pPayload : nullptr;
+        return AssetPointer && AssetPointer->state == AssetState::Ready && AssetPointer->pEntry->Type == Type ? AssetPointer->pPayload
+                                                                                                              : nullptr;
     }
 
     void queueRetirement(uint32_t IndexValue)
@@ -193,7 +194,8 @@ public:
     {
         if (AssetValue.pPayload)
         {
-            loaders[(uint32_t)AssetValue.pEntry->Type].pDestroyPayload(AssetValue.pPayload, loaders[(uint32_t)AssetValue.pEntry->Type].UserData);
+            loaders[(uint32_t)AssetValue.pEntry->Type].pDestroyPayload(AssetValue.pPayload,
+                                                                       loaders[(uint32_t)AssetValue.pEntry->Type].UserData);
             AssetValue.pPayload = nullptr;
         }
     }
@@ -270,7 +272,7 @@ public:
             {
                 const ManagedAsset& Dependency = assets[AssetValue.pDependencies[I].index];
                 // A material keeps its factors when a texture fails: the GPU table leaves that slot unbound.
-                const bool          Optional = AssetValue.pEntry->Type == AssetType::Material && Dependency.pEntry->Type == AssetType::Texture;
+                const bool Optional = AssetValue.pEntry->Type == AssetType::Material && Dependency.pEntry->Type == AssetType::Texture;
                 if (Dependency.state == AssetState::Failed && Optional)
                 {
                     continue;
@@ -285,9 +287,12 @@ public:
         const AssetLoader& Loader = loaders[(uint32_t)AssetValue.pEntry->Type];
         if (AssetValue.state == AssetState::Queued)
         {
-            AssetValue.pRequest = Loader.pBegin(*AssetValue.pEntry, { .index = IndexValue, .generation = AssetValue.generation }, Loader.UserData);
+            AssetValue.pRequest =
+                Loader.pBegin(*AssetValue.pEntry, { .index = IndexValue, .generation = AssetValue.generation }, Loader.UserData);
             if (!AssetValue.pRequest)
+            {
                 fail(AssetValue, AssetError::LoadFailed, "The loader rejected the asset");
+            }
             else
             {
                 AssetValue.state = AssetState::LoadingCPU;
@@ -326,7 +331,8 @@ public:
             {
                 AssetValue.uploading = true;
                 AssetValue.state = AssetState::UploadingGPU;
-                Loader.pUpload(AssetValue.pPayload, assetManager, { AssetValue.pDependencies, AssetValue.pEntry->dependencies.Count }, Loader.UserData);
+                Loader.pUpload(AssetValue.pPayload, assetManager, { AssetValue.pDependencies, AssetValue.pEntry->dependencies.Count },
+                               Loader.UserData);
             }
             else
             {
@@ -427,19 +433,19 @@ public:
         if (AssetValue.pEntry->Type == AssetType::Texture)
         {
             textures[IndexValue] = { .id = { .index = IndexValue, .generation = AssetValue.generation },
-                                .srv = ((const TextureAsset*)AssetValue.pPayload)->GetTexture().GetSrvIndex() };
+                                     .srv = ((const TextureAsset*)AssetValue.pPayload)->GetTexture().GetSrvIndex() };
         }
         else if (AssetValue.pEntry->Type == AssetType::Mesh)
         {
             const MeshAsset& MeshValue = *(const MeshAsset*)AssetValue.pPayload;
             tableGarbage += meshes[IndexValue].submeshCount + meshes[IndexValue].vertexStreamCount;
             meshes[IndexValue] = { .id = { .index = IndexValue, .generation = AssetValue.generation },
-                              .indexSrv = MeshValue.GetIndexBuffer().GetSrvIndex(),
-                              .indexStride = MeshValue.GetIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u,
-                              .vertexStreamOffset = vertexStreams.Size(),
-                              .vertexStreamCount = MeshValue.GetVertexBufferCount(),
-                              .submeshOffset = submeshes.Size(),
-                              .submeshCount = MeshValue.GetDescription().submeshes.Count };
+                                   .indexSrv = MeshValue.GetIndexBuffer().GetSrvIndex(),
+                                   .indexStride = MeshValue.GetIndexType() == INDEX_TYPE_UINT16 ? 2u : 4u,
+                                   .vertexStreamOffset = vertexStreams.Size(),
+                                   .vertexStreamCount = MeshValue.GetVertexBufferCount(),
+                                   .submeshOffset = submeshes.Size(),
+                                   .submeshCount = MeshValue.GetDescription().submeshes.Count };
             for (uint32_t Stream = 0; Stream < MeshValue.GetVertexBufferCount(); ++Stream)
             {
                 const GPUBuffer& BufferValue = MeshValue.GetVertexBuffer(Stream);
@@ -458,10 +464,10 @@ public:
             const SceneAssetMaterial& MaterialValue = ((const MaterialAsset*)AssetValue.pPayload)->GetDescription();
             GpuMaterialData&          Mapping = materials[IndexValue];
             Mapping.Id = { .index = IndexValue, .generation = AssetValue.generation };
-            const AssetID TextureIDs[] = { MaterialValue.baseColorTexture, MaterialValue.normalTexture, MaterialValue.metallicRoughnessTexture,
-                                           MaterialValue.emissiveTexture };
+            const AssetID TextureIDs[] = { MaterialValue.baseColorTexture, MaterialValue.normalTexture,
+                                           MaterialValue.metallicRoughnessTexture, MaterialValue.emissiveTexture };
             uint32_t*     Textures[] = { &Mapping.BaseColorTexture, &Mapping.NormalTexture, &Mapping.MetallicRoughnessTexture,
-                                           &Mapping.EmissiveTexture };
+                                         &Mapping.EmissiveTexture };
             for (uint32_t TextureValue = 0; TextureValue < 4; ++TextureValue)
             {
                 if (!TextureIDs[TextureValue].IsValid())
@@ -546,9 +552,7 @@ public:
     Array<GpuTextureData>    textures;
 };
 
-AssetManager::AssetManager(const AssetCatalog& Catalog, RenderContext* Context): Data(MemNew(AssetManagerData, Catalog, *this, Context))
-{
-}
+AssetManager::AssetManager(const AssetCatalog& Catalog, RenderContext* Context): Data(MemNew(AssetManagerData, Catalog, *this, Context)) {}
 AssetManager::~AssetManager()
 {
     Shutdown();

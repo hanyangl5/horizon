@@ -53,7 +53,8 @@ Entity World::GetEntity(const Guid& Id) const
         return {};
     }
     const EntityGuidEntry* EntryPointer = hmgetp_null(pImpl->pEntityGuids, Id);
-    if (!EntryPointer || !ecs_is_alive(pImpl->pWorld, EntryPointer->value) || !ecs_has_id(pImpl->pWorld, EntryPointer->value, pImpl->entityIdentityType))
+    if (!EntryPointer || !ecs_is_alive(pImpl->pWorld, EntryPointer->value) ||
+        !ecs_has_id(pImpl->pWorld, EntryPointer->value, pImpl->entityIdentityType))
     {
         return {};
     }

@@ -21,7 +21,9 @@ RenderContext::RenderContext(const ContextDesc& Input)
                        (!Input.imageCount || Input.imageCount <= MAX_SWAPCHAIN_IMAGES);
     ASSERT(Valid);
     if (!Valid)
+    {
         return;
+    }
 
     desc = Input;
     desc.imageCount = Input.imageCount ? Input.imageCount : 3;
@@ -43,7 +45,9 @@ RenderContext::RenderContext(const ContextDesc& Input)
     const bool Initialized = suspended || CreateSwapChain();
     ASSERT(Initialized);
     if (!Initialized)
+    {
         Cleanup();
+    }
 }
 
 RenderContext::~RenderContext() { Cleanup(); }
@@ -195,25 +199,25 @@ bool RenderContext::InitDevice()
 
     IndirectArgumentDescriptor DrawArgument = { .Type = INDIRECT_DRAW };
     CommandSignatureDesc       DrawSignatureDesc = {
-        .pArgDescs = &DrawArgument,
-        .indirectArgCount = 1,
-        .packed = true,
+              .pArgDescs = &DrawArgument,
+              .indirectArgCount = 1,
+              .packed = true,
     };
     addIndirectCommandSignature(pRenderer, &DrawSignatureDesc, &pDrawIndirectSignature);
 
     IndirectArgumentDescriptor DrawIndexedArgument = { .Type = INDIRECT_DRAW_INDEX };
     CommandSignatureDesc       DrawIndexedSignatureDesc = {
-        .pArgDescs = &DrawIndexedArgument,
-        .indirectArgCount = 1,
-        .packed = true,
+              .pArgDescs = &DrawIndexedArgument,
+              .indirectArgCount = 1,
+              .packed = true,
     };
     addIndirectCommandSignature(pRenderer, &DrawIndexedSignatureDesc, &pDrawIndexedIndirectSignature);
 
     IndirectArgumentDescriptor DispatchArgument = { .Type = INDIRECT_DISPATCH };
     CommandSignatureDesc       DispatchSignatureDesc = {
-        .pArgDescs = &DispatchArgument,
-        .indirectArgCount = 1,
-        .packed = true,
+              .pArgDescs = &DispatchArgument,
+              .indirectArgCount = 1,
+              .packed = true,
     };
     addIndirectCommandSignature(pRenderer, &DispatchSignatureDesc, &pDispatchIndirectSignature);
     ASSERT(pDrawIndirectSignature && pDrawIndexedIndirectSignature && pDispatchIndirectSignature);
@@ -249,9 +253,9 @@ bool RenderContext::InitDevice()
     for (uint32_t I = 0; I < maxCommandLists; ++I)
     {
         CommandResources& Resources = commandResources[I];
-        CmdPoolDesc  PoolDesc = {
-            .pQueue = pGraphicsQueue,
-            .transient = false,
+        CmdPoolDesc       PoolDesc = {
+                  .pQueue = pGraphicsQueue,
+                  .transient = false,
         };
         addCmdPool(pRenderer, &PoolDesc, &Resources.pCmdPool);
         ASSERT(Resources.pCmdPool);
@@ -291,13 +295,21 @@ bool RenderContext::CreateSwapChain()
         // TODO: Prefer scRGB for windowed presentation and HDR10 for fullscreen presentation.
         SwapDesc.colorSpace = COLOR_SPACE_P2020;
         if (SwapDesc.hdrMetadata.maxMasteringLuminance <= 0.0f)
+        {
             SwapDesc.hdrMetadata.maxMasteringLuminance = 1000.0f;
+        }
         if (SwapDesc.hdrMetadata.minMasteringLuminance <= 0.0f)
+        {
             SwapDesc.hdrMetadata.minMasteringLuminance = 0.001f;
+        }
         if (SwapDesc.hdrMetadata.maxContentLightLevel <= 0.0f)
+        {
             SwapDesc.hdrMetadata.maxContentLightLevel = 1000.0f;
+        }
         if (SwapDesc.hdrMetadata.maxFrameAverageLightLevel <= 0.0f)
+        {
             SwapDesc.hdrMetadata.maxFrameAverageLightLevel = 400.0f;
+        }
         SwapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &SwapDesc, SwapDesc.colorSpace);
         if (SwapDesc.colorFormat == hz::Format::UNDEFINED)
         {
@@ -317,7 +329,9 @@ bool RenderContext::CreateSwapChain()
     }
 
     if (SwapDesc.colorFormat == hz::Format::UNDEFINED)
+    {
         SwapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &SwapDesc, SwapDesc.colorSpace);
+    }
     if (SwapDesc.colorFormat == hz::Format::UNDEFINED)
     {
         LOGF(LogLevel::Error, "No supported swapchain format is available");
@@ -361,7 +375,9 @@ void RenderContext::DestroySwapChain()
     {
         waitQueueIdle(pGraphicsQueue);
         for (GPUTexture& Backbuffer : backbuffers)
+        {
             Backbuffer = GPUTexture{};
+        }
         removeSwapChain(pRenderer, pSwapChain);
         pSwapChain = nullptr;
     }
@@ -385,7 +401,9 @@ void RenderContext::DestroyDevice(bool WaitForGpu)
 {
     ready = false;
     if (WaitForGpu && pGraphicsQueue)
+    {
         waitQueueIdle(pGraphicsQueue);
+    }
     CollectDeferredResources();
     arrfree(deferredResources);
     if (profilerInitialized)
@@ -515,7 +533,9 @@ bool RenderContext::SetVSync(bool Enabled)
         ASSERT(!Resources.commands.pCmd);
     }
     if (desc.enableVSync == Enabled)
+    {
         return true;
+    }
     desc.enableVSync = Enabled;
     if (suspended)
         return true;
@@ -569,7 +589,9 @@ CommandList& RenderContext::AcquireCommandList()
     }
 
     for (uint32_t I = 0; I < (uint32_t)arrlen(Available->transientBuffers); ++I)
+    {
         removeBuffer(pRenderer, Available->transientBuffers[I]);
+    }
     arrsetlen(Available->transientBuffers, 0);
     CollectDeferredResources();
     resetCmdPool(pRenderer, Available->pCmdPool);

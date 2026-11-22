@@ -63,7 +63,9 @@ public:
         AssetGeometry& GeometryValue = *(AssetGeometry*)User;
         const bool     Success = GeometryValue.buildBounds();
         if (!Success)
+        {
             LOGF(Error, "Invalid Mesh positions or Draw ranges in '%s'", GeometryValue.pPath);
+        }
         tfrg_atomic32_store_release(&GeometryValue.status, (uint32_t)(Success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
     }
 
@@ -139,7 +141,9 @@ public:
         }
         const ThreadSystemInitDesc ThreadDescValue = { .threadCount = 1, .threadName = "AssetSource" };
         if (!threadSystemInit(&threads, &ThreadDescValue))
+        {
             LOGF(Error, "Cannot start Mesh/Material loader worker");
+        }
     }
     ~AssetLoadersData()
     {
@@ -194,7 +198,9 @@ public:
         SubassetRequest&      Request = *(SubassetRequest*)Job;
         const AssetLoadStatus Status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&Request.pSource->status);
         if (Status != AssetLoadStatus::Succeeded)
+        {
             return { .status = Status };
+        }
         const SceneAsset& SceneValue = Request.pSource->scene;
         const uint32_t    IndexValue = Request.entry.location.elementIndex;
         Array<AssetID>    DependenciesValue;
@@ -256,7 +262,9 @@ public:
         MeshAsset&            MeshValue = *(MeshAsset*)Payload;
         const AssetLoadStatus Status = MeshValue.pGeometry->poll();
         if (Status != AssetLoadStatus::Succeeded)
+        {
             return Status;
+        }
         for (const SceneAssetSubmesh& Submesh : MeshValue.GetDescription().submeshes)
         {
             if (Submesh.Draw >= MeshValue.pGeometry->draws.Size())
@@ -285,7 +293,9 @@ public:
         AnimationFileRequest& Request = *(AnimationFileRequest*)Job;
         const AssetLoadStatus Status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&Request.status);
         if (Status != AssetLoadStatus::Succeeded)
+        {
             return { .status = Status };
+        }
         void* Payload = Request.entry.Type == AssetType::Skeleton ? (void*)Request.skeleton : (void*)Request.clip;
         Request.skeleton = nullptr;
         Request.clip = nullptr;
@@ -300,12 +310,14 @@ public:
         AssetGeometry& GeometryValue = *((MeshAsset*)Payload)->pGeometry;
         waitForToken(&GeometryValue.token);
         if (GeometryValue.boundsQueued && (AssetLoadStatus)tfrg_atomic32_load_acquire(&GeometryValue.status) == AssetLoadStatus::Pending)
+        {
             threadSystemWaitIdle(GeometryValue.owner.threads);
+        }
     }
 
     RenderContext&     context;
     AssetLoadersDesc   desc;
-    uint32_t           vertexBindingCount = 0;
+    uint32_t            vertexBindingCount = 0;
     SceneAssetLoader   sceneLoader;
     TextureAssetLoader textureLoader;
     ThreadSystem       threads = nullptr;
@@ -316,7 +328,9 @@ public:
 AnimationFileRequest::~AnimationFileRequest()
 {
     if ((AssetLoadStatus)tfrg_atomic32_load_acquire(&status) == AssetLoadStatus::Pending)
+    {
         threadSystemWaitIdle(owner.threads);
+    }
     MemDelete(skeleton);
     MemDelete(clip);
 }
@@ -343,7 +357,9 @@ void AnimationFileRequest::decode(void* User, uint64_t)
         }
     }
     if (!Success)
+    {
         LOGF(Error, "Cannot decode skeleton/animation '%s'", Request.entry.location.pPath);
+    }
     tfrg_atomic32_store_release(&Request.status, (uint32_t)(Success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
 }
 
@@ -385,7 +401,9 @@ void AssetSource::decode(void* User, uint64_t)
     AssetSource& SourceValue = *(AssetSource*)User;
     const bool   Success = SourceValue.read(SourceValue.owner.desc.cookedDirectory);
     if (!Success)
+    {
         LOGF(Error, "Cannot decode Mesh/Material source '%s'", SourceValue.pPath);
+    }
     tfrg_atomic32_store_release(&SourceValue.status, (uint32_t)(Success ? AssetLoadStatus::Succeeded : AssetLoadStatus::Failed));
 }
 
@@ -444,7 +462,9 @@ bool AssetGeometry::buildBounds()
                 (int64_t)(Index32 ? ((const uint32_t*)Shadow.pIndices)[IndexValue] : ((const uint16_t*)Shadow.pIndices)[IndexValue]) +
                 (int32_t)Draw.arguments.vertexOffset;
             if (Vertex < 0 || (uint64_t)Vertex >= pUpload->vertexCount)
+            {
                 return false;
+            }
             Draw.vertices.first = TF_MIN(Draw.vertices.first, (uint32_t)Vertex);
             LastVertex = TF_MAX(LastVertex, (uint32_t)Vertex);
             for (uint32_t Axis = 0; Axis < 3; ++Axis)
@@ -452,7 +472,9 @@ bool AssetGeometry::buildBounds()
                 float Value;
                 memcpy(&Value, Positions + (Vertex * 3 + Axis) * sizeof(float), sizeof(Value));
                 if (!isfinite(Value))
+                {
                     return false;
+                }
                 if (Value < Draw.bounds.minimum[Axis])
                 {
                     Draw.bounds.minimum[Axis] = Value;
@@ -485,7 +507,9 @@ AssetLoadStatus AssetGeometry::poll()
     }
     const AssetLoadStatus Result = (AssetLoadStatus)tfrg_atomic32_load_acquire(&status);
     if (Result != AssetLoadStatus::Succeeded)
+    {
         return Result;
+    }
     indexType = (IndexType)pUpload->indexType;
     vertexBufferCount = owner.vertexBindingCount;
     indexBuffer = SceneResourceAccess::take(&owner.context, pUpload->pIndexBuffer, gIndexBufferState);
@@ -494,7 +518,9 @@ AssetLoadStatus AssetGeometry::poll()
     for (uint32_t Binding = 0; Binding < vertexBufferCount; ++Binding)
     {
         if (!pUpload->vertexStrides[Binding])
+        {
             continue;
+        }
         vertexStrides[Binding] = pUpload->vertexStrides[Binding];
         vertexBuffers[Binding] = SceneResourceAccess::take(&owner.context, pUpload->pVertexBuffers[BufferValue], gVertexBufferState);
         ++BufferValue;
@@ -566,27 +592,27 @@ void AssetLoaders::RegisterLoaders(AssetManager& AssetManagerValue)
     AssetManagerValue.SetLoader(AssetType::Scene, Data->sceneLoader.GetLoader());
     AssetManagerValue.SetLoader(AssetType::Texture, Data->textureLoader.GetLoader());
     AssetManagerValue.SetLoader(AssetType::Material, { .UserData = Data,
-                                                  .pBegin = AssetLoadersData::begin,
-                                                  .pPoll = AssetLoadersData::poll,
-                                                  .pDestroyRequest = AssetLoadersData::destroyRequest,
-                                                  .pDestroyPayload = AssetLoadersData::destroyMaterial });
+                                                       .pBegin = AssetLoadersData::begin,
+                                                       .pPoll = AssetLoadersData::poll,
+                                                       .pDestroyRequest = AssetLoadersData::destroyRequest,
+                                                       .pDestroyPayload = AssetLoadersData::destroyMaterial });
     AssetManagerValue.SetLoader(AssetType::Skeleton, { .UserData = Data,
-                                                  .pBegin = AssetLoadersData::beginAnimation,
-                                                  .pPoll = AssetLoadersData::pollAnimation,
-                                                  .pDestroyRequest = AssetLoadersData::destroyAnimationRequest,
-                                                  .pDestroyPayload = AssetLoadersData::destroySkeleton });
-    AssetManagerValue.SetLoader(AssetType::AnimationClip, { .UserData = Data,
                                                        .pBegin = AssetLoadersData::beginAnimation,
                                                        .pPoll = AssetLoadersData::pollAnimation,
                                                        .pDestroyRequest = AssetLoadersData::destroyAnimationRequest,
-                                                       .pDestroyPayload = AssetLoadersData::destroyAnimationClip });
+                                                       .pDestroyPayload = AssetLoadersData::destroySkeleton });
+    AssetManagerValue.SetLoader(AssetType::AnimationClip, { .UserData = Data,
+                                                            .pBegin = AssetLoadersData::beginAnimation,
+                                                            .pPoll = AssetLoadersData::pollAnimation,
+                                                            .pDestroyRequest = AssetLoadersData::destroyAnimationRequest,
+                                                            .pDestroyPayload = AssetLoadersData::destroyAnimationClip });
     AssetManagerValue.SetLoader(AssetType::Mesh, { .UserData = Data,
-                                              .pBegin = AssetLoadersData::begin,
-                                              .pPoll = AssetLoadersData::poll,
-                                              .pDestroyRequest = AssetLoadersData::destroyRequest,
-                                              .pDestroyPayload = AssetLoadersData::destroyMesh,
-                                              .pUpload = AssetLoadersData::uploadMesh,
-                                              .pPollUpload = AssetLoadersData::pollMesh,
-                                              .pWaitUpload = AssetLoadersData::waitMesh });
+                                                   .pBegin = AssetLoadersData::begin,
+                                                   .pPoll = AssetLoadersData::poll,
+                                                   .pDestroyRequest = AssetLoadersData::destroyRequest,
+                                                   .pDestroyPayload = AssetLoadersData::destroyMesh,
+                                                   .pUpload = AssetLoadersData::uploadMesh,
+                                                   .pPollUpload = AssetLoadersData::pollMesh,
+                                                   .pWaitUpload = AssetLoadersData::waitMesh });
 }
 } // namespace hz

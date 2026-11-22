@@ -22,7 +22,9 @@ public:
     ~WorldMeshBinding()
     {
         for (const MaterialAssetBinding& MaterialValue : materials)
+        {
             assetManager.Release(MaterialValue.Handle);
+        }
         assetManager.Release(view.mesh);
     }
 
@@ -32,10 +34,13 @@ public:
         bool Changed = !initialized || meshID != RendererValue.mesh || overrides.Size() != RendererValue.overrides.Size();
         for (uint32_t I = 0; !Changed && I < overrides.Size(); ++I)
         {
-            Changed = overrides[I].submesh != RendererValue.overrides[I].submesh || overrides[I].material != RendererValue.overrides[I].material;
+            Changed =
+                overrides[I].submesh != RendererValue.overrides[I].submesh || overrides[I].material != RendererValue.overrides[I].material;
         }
         if (!Changed)
+        {
             return;
+        }
 
         view.state = AssetBindingState::Pending;
         view.materials = {};
@@ -104,7 +109,9 @@ public:
                 return;
             }
             if (MaterialState == AssetBindingState::Pending)
+            {
                 view.state = AssetBindingState::Pending;
+            }
         }
     }
 
@@ -149,10 +156,12 @@ private:
     void releaseMaterials()
     {
         for (const MaterialAssetBinding& MaterialValue : materials)
+        {
             if (MaterialValue.Handle.IsValid())
             {
                 releases.PushBack(MaterialValue.Handle);
             }
+        }
         materials.Clear();
         view.materials = {};
     }
@@ -192,7 +201,9 @@ private:
             {
                 const uint32_t Middle = First + (End - First) / 2;
                 if (Sorted[Middle].submesh < Submesh.id)
+                {
                     First = Middle + 1;
+                }
                 else
                     End = Middle;
             }
@@ -207,7 +218,9 @@ private:
         // Acquire replacements before releasing old leases, including handoffs between entities in this Update.
         bool Acquired = true;
         for (MaterialAssetBinding& MaterialValue : Next)
+        {
             Acquired &= acquire(MaterialValue.asset, MaterialValue.Handle);
+        }
         releaseMaterials();
         materials = std::move(Next);
         view.materials = { materials.GetData(), materials.Size() };
@@ -363,7 +376,8 @@ public:
     bool                     rescanPending = false;
 };
 
-WorldAssetBindings::WorldAssetBindings(World& WorldData, AssetManager& AssetManagerValue): Data(MemNew(WorldAssetBindingsData, WorldData, AssetManagerValue))
+WorldAssetBindings::WorldAssetBindings(World& WorldData, AssetManager& AssetManagerValue):
+    Data(MemNew(WorldAssetBindingsData, WorldData, AssetManagerValue))
 {
 }
 WorldAssetBindings::~WorldAssetBindings() { MemDelete(Data); }

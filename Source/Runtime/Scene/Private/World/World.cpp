@@ -40,7 +40,9 @@ static void  WorldFree(void* Data) { MemDeallocate(Data); }
 static char* WorldStrdup(const char* Text)
 {
     if (!Text)
+    {
         return nullptr;
+    }
     const size_t Size = strlen(Text) + 1;
     char*        Copy = (char*)MemAllocate(Size);
     memcpy(Copy, Text, Size);
@@ -51,7 +53,9 @@ static void InitWorldOS()
 {
     static bool Initialized = false;
     if (Initialized)
+    {
         return;
+    }
     ecs_os_set_api_defaults();
     ecs_os_api_t Api = ecs_os_get_api();
     Api.malloc_ = WorldMalloc;
@@ -102,7 +106,9 @@ void WorldImpl::MoveConstructComponents(void* Destination, void* Source, int32_t
 void WorldImpl::CopyComponents(void* Destination, const void* Source, int32_t Count, const ecs_type_info_t* Info)
 {
     if (Destination == Source)
+    {
         return;
+    }
     DestroyComponents(Destination, Count, Info);
     CopyConstructComponents(Destination, Source, Count, Info);
 }
@@ -110,7 +116,9 @@ void WorldImpl::CopyComponents(void* Destination, const void* Source, int32_t Co
 void WorldImpl::MoveComponents(void* Destination, void* Source, int32_t Count, const ecs_type_info_t* Info)
 {
     if (Destination == Source)
+    {
         return;
+    }
     DestroyComponents(Destination, Count, Info);
     MoveConstructComponents(Destination, Source, Count, Info);
 }
@@ -208,7 +216,9 @@ bool World::AddComponent(Entity EntityHandle, TypeID Type)
     }
     const WorldType* TypeInfo = pImpl->findType(Type);
     if (!TypeInfo)
+    {
         return false;
+    }
     if (!pImpl->pHierarchy->prepareLocalChange(EntityHandle.value, Type, true))
     {
         return false;
@@ -230,7 +240,9 @@ bool World::RemoveComponent(Entity EntityHandle, TypeID Type)
     }
     const WorldType* TypeInfo = pImpl->findType(Type);
     if (!TypeInfo)
+    {
         return false;
+    }
     pImpl->pHierarchy->prepareLocalChange(EntityHandle.value, Type, false);
     ecs_remove_id(pImpl->pWorld, EntityHandle.value, TypeInfo->component);
     return true;
@@ -250,7 +262,9 @@ bool World::SetComponent(Entity EntityHandle, TypeID Type, const void* ValueData
     }
     const WorldType* TypeInfo = pImpl->findType(Type);
     if (!TypeInfo)
+    {
         return false;
+    }
     if (!pImpl->pHierarchy->prepareLocalChange(EntityHandle.value, Type, true))
     {
         return false;

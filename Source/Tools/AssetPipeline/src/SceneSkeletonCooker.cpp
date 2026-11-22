@@ -71,7 +71,9 @@ static ozz::math::Transform restTransform(const cgltf_node& node)
     float         scaleX = length(x);
     const float   scaleY = length(y), scaleZ = length(z);
     if (dot(cross(x, y), z) < 0.0f)
+    {
         scaleX = -scaleX;
+    }
     const Quat rotation = normalize(Quat(Matrix3(x / scaleX, y / scaleY, z / scaleZ)));
     transform.translation = ozz::math::Float3(m[12], m[13], m[14]);
     transform.rotation = ozz::math::Quaternion(rotation.getX(), rotation.getY(), rotation.getZ(), rotation.getW());
@@ -100,8 +102,12 @@ static void addJoint(const cgltf_data& data, uint32_t node, const hz::Array<uint
 static const cgltf_accessor* findAttribute(const cgltf_primitive& primitive, cgltf_attribute_type type)
 {
     for (cgltf_size i = 0; i < primitive.attributes_count; ++i)
+    {
         if (primitive.attributes[i].type == type && primitive.attributes[i].index == 0)
+        {
             return primitive.attributes[i].data;
+        }
+    }
     return nullptr;
 }
 
@@ -112,15 +118,19 @@ static bool buildJointBounds(const cgltf_data& data, const cgltf_skin& skin, hz:
     const uint32_t jointCount = (uint32_t)skin.joints_count;
     bounds.Resize(jointCount * 6);
     for (uint32_t joint = 0; joint < jointCount; ++joint)
+    {
         for (uint32_t axis = 0; axis < 3; ++axis)
         {
             bounds[joint * 6 + axis] = FLT_MAX;
             bounds[joint * 6 + 3 + axis] = -FLT_MAX;
         }
+    }
     for (cgltf_size n = 0; n < data.nodes_count; ++n)
     {
         if (data.nodes[n].skin != &skin || !data.nodes[n].mesh)
+        {
             continue;
+        }
         const cgltf_mesh& mesh = *data.nodes[n].mesh;
         for (cgltf_size p = 0; p < mesh.primitives_count; ++p)
         {
@@ -138,15 +148,20 @@ static bool buildJointBounds(const cgltf_data& data, const cgltf_skin& skin, hz:
                 float position[3], joints[4], weights[4];
                 if (!cgltf_accessor_read_float(pPositions, v, position, 3) || !cgltf_accessor_read_float(pJoints, v, joints, 4) ||
                     !cgltf_accessor_read_float(pWeights, v, weights, 4))
+                {
                     return false;
+                }
                 for (uint32_t k = 0; k < 4; ++k)
                 {
                     if (weights[k] <= 0.0f)
+                    {
                         continue;
+                    }
                     const uint32_t joint = (uint32_t)joints[k];
                     if (joint >= jointCount)
                     {
-                        LOGF(Error, "Skinned mesh '%s' references joint %u of a %u-joint skin", mesh.name ? mesh.name : "", joint, jointCount);
+                        LOGF(Error, "Skinned mesh '%s' references joint %u of a %u-joint skin", mesh.name ? mesh.name : "", joint,
+                             jointCount);
                         return false;
                     }
                     const Vector4 local = inverseBind.Data[joint] * Point3(position[0], position[1], position[2]);
@@ -171,7 +186,9 @@ static bool readSampler(const cgltf_animation_sampler& sampler, uint32_t compone
     const bool     step = sampler.interpolation == cgltf_interpolation_type_step;
     const uint32_t count = (uint32_t)sampler.input->count;
     if (!count || sampler.output->count != count * (cubic ? 3u : 1u))
+    {
         return false;
+    }
     times.Clear();
     values.Clear();
     for (uint32_t i = 0; i < count; ++i)
@@ -181,7 +198,9 @@ static bool readSampler(const cgltf_animation_sampler& sampler, uint32_t compone
         if (!cgltf_accessor_read_float(sampler.input, i, &time, 1) ||
             !cgltf_accessor_read_float(sampler.output, cubic ? i * 3 + 1 : i, value, components) || time < 0.0f ||
             (!times.Empty() && time <= times[times.Size() - 1]))
+        {
             return false;
+        }
         if (step && i)
         {
             const float previous = times[times.Size() - 1];
@@ -190,12 +209,16 @@ static bool readSampler(const cgltf_animation_sampler& sampler, uint32_t compone
             {
                 times.PushBack(hold);
                 for (uint32_t c = 0; c < components; ++c)
+                {
                     values.PushBack(values[values.Size() - components]);
+                }
             }
         }
         times.PushBack(time);
         for (uint32_t c = 0; c < components; ++c)
+        {
             values.PushBack(value[c]);
+        }
     }
     return true;
 }
@@ -203,12 +226,16 @@ static bool readSampler(const cgltf_animation_sampler& sampler, uint32_t compone
 uint32_t SceneSkeletonCooker::findSkeleton(uint32_t skin, uint32_t& skinIndex) const
 {
     for (uint32_t i = 0; i < skeletons.Size(); ++i)
+    {
         for (uint32_t j = 0; j < skeletons[i].skins.Size(); ++j)
+        {
             if (skeletons[i].skins[j] == skin)
             {
                 skinIndex = j;
                 return i;
             }
+        }
+    }
     return UINT32_MAX;
 }
 
@@ -231,30 +258,42 @@ bool SceneSkeletonCooker::cook(const cgltf_data& data, const char* pBaseName)
         }
         memset(joints.GetData(), 0, joints.Size());
         for (cgltf_size j = 0; j < skin.joints_count; ++j)
+        {
             joints[nodeIndex(data, skin.joints[j])] = 1;
+        }
         roots.Clear();
         if (skin.skeleton)
+        {
             roots.PushBack(nodeIndex(data, skin.skeleton));
+        }
         else
+        {
             for (cgltf_size j = 0; j < skin.joints_count; ++j)
             {
                 const cgltf_node* pParent = skin.joints[j]->parent;
                 if (!pParent || !joints[nodeIndex(data, pParent)])
+                {
                     roots.PushBack(nodeIndex(data, skin.joints[j]));
+                }
             }
+        }
         qsort(roots.GetData(), roots.Size(), sizeof(uint32_t), compareIndices);
         const cgltf_node* pParent = data.nodes[roots[0]].parent;
         for (uint32_t root : roots)
+        {
             if (data.nodes[root].parent != pParent)
             {
                 LOGF(Error, "Skin %u has root joints below different parents", s);
                 return false;
             }
+        }
         uint32_t skeleton = 0;
         while (skeleton < skeletons.Size() &&
                (skeletons[skeleton].roots.Size() != roots.Size() ||
                 memcmp(skeletons[skeleton].roots.GetData(), roots.GetData(), roots.Size() * sizeof(uint32_t))))
+        {
             ++skeleton;
+        }
         if (skeleton == skeletons.Size())
         {
             CookedSkeleton& cooked = skeletons.EmplaceBack();
@@ -263,7 +302,9 @@ bool SceneSkeletonCooker::cook(const cgltf_data& data, const char* pBaseName)
             members.EmplaceBack(nodeCount);
             memset(members[skeleton].GetData(), 0, nodeCount);
             for (uint32_t root : roots)
+            {
                 members[skeleton][root] = 1;
+            }
         }
         skeletons[skeleton].skins.PushBack(s);
         // Joints and the nodes between them and the roots form the skeleton.
@@ -292,7 +333,9 @@ bool SceneSkeletonCooker::cook(const cgltf_data& data, const char* pBaseName)
         for (uint32_t n = 0; n < nodeCount; ++n)
         {
             if (!members[k][n])
+            {
                 continue;
+            }
             if (skeletonNodes[n])
             {
                 LOGF(Error, "Skins with overlapping skeleton hierarchies are not supported (node %u)", n);
@@ -316,7 +359,9 @@ bool SceneSkeletonCooker::cook(const cgltf_data& data, const char* pBaseName)
         const ozz::animation::Skeleton& skeleton = *built[k];
         hz::Array<uint32_t>&            nodes = jointNodes.EmplaceBack((uint32_t)skeleton.num_joints());
         for (int j = 0; j < skeleton.num_joints(); ++j)
+        {
             nodes[(uint32_t)j] = (uint32_t)atoi(skeleton.joint_names()[j] + 4);
+        }
         cooked.signature = cookHash(cooked.roots.GetData(), cooked.roots.Size() * sizeof(uint32_t));
         cooked.signature = cookHash(nodes.GetData(), nodes.Size() * sizeof(uint32_t), cooked.signature);
         const char* pName = data.nodes[cooked.roots[0]].name;
@@ -325,13 +370,15 @@ bool SceneSkeletonCooker::cook(const cgltf_data& data, const char* pBaseName)
 
         hz::Array<char> ozzBytes;
         if (!archive(skeleton, ozzBytes))
+        {
             return false;
+        }
         const hz::SkeletonFileHeader header = { .skinCount = cooked.skins.Size(), .archiveSize = ozzBytes.Size() };
         append(cooked.file, &header, sizeof(header));
         for (uint32_t skinIndex : cooked.skins)
         {
-            const cgltf_skin& skin = data.skins[skinIndex];
-            const uint32_t    jointCount = (uint32_t)skin.joints_count;
+            const cgltf_skin&   skin = data.skins[skinIndex];
+            const uint32_t      jointCount = (uint32_t)skin.joints_count;
             hz::Array<uint32_t> remap(jointCount);
             hz::Array<Matrix4>  inverseBind(jointCount);
             for (uint32_t j = 0; j < jointCount; ++j)
@@ -339,27 +386,39 @@ bool SceneSkeletonCooker::cook(const cgltf_data& data, const char* pBaseName)
                 const uint32_t node = nodeIndex(data, skin.joints[j]);
                 remap[j] = UINT32_MAX;
                 for (uint32_t i = 0; i < nodes.Size(); ++i)
+                {
                     if (nodes[i] == node)
+                    {
                         remap[j] = i;
+                    }
+                }
                 float values[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
                 if (skin.inverse_bind_matrices && !cgltf_accessor_read_float(skin.inverse_bind_matrices, j, values, 16))
+                {
                     return false;
-                inverseBind[j] = Matrix4(Vector4(values[0], values[1], values[2], values[3]), Vector4(values[4], values[5], values[6], values[7]),
-                                         Vector4(values[8], values[9], values[10], values[11]),
-                                         Vector4(values[12], values[13], values[14], values[15]));
+                }
+                inverseBind[j] =
+                    Matrix4(Vector4(values[0], values[1], values[2], values[3]), Vector4(values[4], values[5], values[6], values[7]),
+                            Vector4(values[8], values[9], values[10], values[11]), Vector4(values[12], values[13], values[14], values[15]));
             }
             hz::Array<float> bounds;
             if (!buildJointBounds(data, skin, { inverseBind.GetData(), inverseBind.Size() }, bounds))
+            {
                 return false;
+            }
             append(cooked.file, &jointCount, sizeof(jointCount));
             append(cooked.file, remap.GetData(), remap.Size() * sizeof(uint32_t));
             for (const Matrix4& matrix : inverseBind)
+            {
                 for (uint32_t column = 0; column < 4; ++column)
+                {
                     for (uint32_t row = 0; row < 4; ++row)
                     {
                         const float value = matrix.getElem((int)column, (int)row);
                         append(cooked.file, &value, sizeof(value));
                     }
+                }
+            }
             append(cooked.file, bounds.GetData(), bounds.Size() * sizeof(float));
         }
         append(cooked.file, ozzBytes.GetData(), ozzBytes.Size());
@@ -377,13 +436,19 @@ bool SceneSkeletonCooker::cook(const cgltf_data& data, const char* pBaseName)
             const cgltf_accessor&          input = *channel.sampler->input;
             float                          last = 0.0f;
             if (input.count && cgltf_accessor_read_float(&input, input.count - 1, &last, 1))
+            {
                 duration = fmaxf(duration, last);
+            }
             if (channel.target_path == cgltf_animation_path_type_weights || !channel.target_node ||
                 !skeletonNodes[nodeIndex(data, channel.target_node)])
+            {
                 ++ignored;
+            }
         }
         if (ignored)
+        {
             LOGF(Warning, "Animation %u ignores %u channels: only skeleton joint transforms are animated", a, ignored);
+        }
         for (uint32_t k = 0; k < skeletons.Size(); ++k)
         {
             const hz::Array<uint32_t>& nodes = jointNodes[k];
@@ -400,7 +465,9 @@ bool SceneSkeletonCooker::cook(const cgltf_data& data, const char* pBaseName)
                     const cgltf_animation_channel& channel = animation.channels[c];
                     if (!channel.target_node || nodeIndex(data, channel.target_node) != nodes[j] ||
                         channel.target_path == cgltf_animation_path_type_weights)
+                    {
                         continue;
+                    }
                     const uint32_t components = channel.target_path == cgltf_animation_path_type_rotation ? 4 : 3;
                     if (!readSampler(*channel.sampler, components, times, values))
                     {
@@ -416,26 +483,40 @@ bool SceneSkeletonCooker::cook(const cgltf_data& data, const char* pBaseName)
                     {
                         const float* pValue = values.GetData() + i * components;
                         if (channel.target_path == cgltf_animation_path_type_translation)
+                        {
                             track.translations.push_back({ times[i], ozz::math::Float3(pValue[0], pValue[1], pValue[2]) });
+                        }
                         else if (channel.target_path == cgltf_animation_path_type_scale)
+                        {
                             track.scales.push_back({ times[i], ozz::math::Float3(pValue[0], pValue[1], pValue[2]) });
+                        }
                         else
+                        {
                             track.rotations.push_back(
                                 { times[i], ozz::math::Normalize(ozz::math::Quaternion(pValue[0], pValue[1], pValue[2], pValue[3])) });
+                        }
                     }
                 }
                 // Paths without a channel hold the rest pose.
                 const ozz::math::Transform rest = restTransform(data.nodes[nodes[j]]);
                 if (track.translations.empty())
+                {
                     track.translations.push_back({ 0.0f, rest.translation });
+                }
                 if (track.rotations.empty())
+                {
                     track.rotations.push_back({ 0.0f, rest.rotation });
+                }
                 if (track.scales.empty())
+                {
                     track.scales.push_back({ 0.0f, rest.scale });
+                }
             }
             if (!channels)
+            {
                 continue;
-            RawAnimation                              optimized;
+            }
+            RawAnimation                                optimized;
             ozz::animation::offline::AnimationOptimizer optimizer;
             ozz::animation::offline::AnimationBuilder   builder;
             if (!raw.Validate() || !optimizer(raw, *built[k], &optimized))
@@ -446,15 +527,21 @@ bool SceneSkeletonCooker::cook(const cgltf_data& data, const char* pBaseName)
             const ozz::unique_ptr<ozz::animation::Animation> clip = builder(optimized);
             hz::Array<char>                                  ozzBytes;
             if (!clip || !archive(*clip, ozzBytes))
+            {
                 return false;
+            }
             CookedAnimation& cooked = animations.EmplaceBack();
             cooked.animation = a;
             cooked.skeleton = k;
             cooked.signature = signature;
             if (animation.name && *animation.name)
+            {
                 snprintf(cooked.name, sizeof(cooked.name), "%s", animation.name);
+            }
             else
+            {
                 snprintf(cooked.name, sizeof(cooked.name), "Animation %u", a);
+            }
             snprintf(cooked.path, sizeof(cooked.path), "%s.animation%u.ozz", pBaseName, animations.Size() - 1);
             const hz::AnimationFileHeader header = { .archiveSize = ozzBytes.Size() };
             append(cooked.file, &header, sizeof(header));
