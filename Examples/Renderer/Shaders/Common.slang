@@ -1,7 +1,8 @@
 #pragma once
 
+#include "Math.slang"
+
 static const uint  INVALID_TEXTURE = 0xffffffffu;
-static const float PI = 3.14159265359;
 
 struct FrameData
 {
