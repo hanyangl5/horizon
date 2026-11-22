@@ -1,3 +1,4 @@
+#include "DeferredLightCommon.slang"
 // Cookbook per-pixel linked lists / sorted transparency; see ../Cookbook-LICENSE.txt.
 #include "Geometry.slang"
 #include "LightingBRDF.slang"
@@ -104,16 +105,18 @@ float4 UnpackFragment(uint2 Packed)
             float3              V = normalize(Frame[0].Eye.xyz - Input.WorldPosition);
             float3              Reflection = reflect(V, N);
             Reflection = float3(Reflection.x, -Reflection.y, Reflection.z);
-            ColorRefl = Texture.SampleLevel(EnvironmentSampler, Reflection, 0).rgb * max(Light.EnvironmentIntensity, 0.0);
+            ColorRefl = Texture.SampleLevel(EnvironmentSampler, Reflection, 0).rgb * max(Light.EnvironmentIntensity, 0.0) * Light.EnvironmentTint.rgb;
         }
     }
-    float4 Diffuse = (Irradiance * max(Light.EnvironmentIntensity, 0.0) +
-                      float4(NdotL * Visibility * max(Light.LightDirection.w, 0.0) * max(Light.LightColor.rgb, 0.0) / M_PI, 0.0)) *
+    float4 Diffuse = (Irradiance * max(Light.EnvironmentIntensity, 0.0) * float4(Light.EnvironmentTint.rgb, 1.0) +
+                      float4(NdotL * Visibility * max(Light.LightDirection.w, 0.0) * max(Light.LightColor.rgb, 0.0) / PI, 0.0)) *
                      BaseColor * (float4(1.0) - F0);
 
     float3 V = normalize(Frame[0].Eye.xyz - Input.WorldPosition);
     float3 KS = FresnelSchlickRoughness(clamp(dot(N, V), 0.0, 1.0), F0.rgb, 0.1);
-    float3 Color = EmissiveColor.rgb + Diffuse.rgb + ColorRefl * KS;
+    const FGBufferData Surface = MakeDefaultLitMaterial(N, BaseColor.rgb, Mat.MetallicFactor, Mat.RoughnessFactor, 0.5);
+    const float3 LocalLighting = AccumulateAdditionalLights(Light, Surface, Input.WorldPosition, V);
+    float3 Color = EmissiveColor.rgb + Diffuse.rgb + ColorRefl * KS + LocalLighting;
 
     // Horizon's glTF material stores the final blend alpha in baseColor.
     float Alpha = clamp(BaseColor.a, 0.0, 1.0);

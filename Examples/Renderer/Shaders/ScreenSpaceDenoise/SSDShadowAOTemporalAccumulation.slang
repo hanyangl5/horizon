@@ -1,4 +1,4 @@
-#include "RTDenoiseBindings.slang"
+#include "SSDTemporalReprojection.slang"
 
 // Writes (shadow, AO, history length). The blend weight follows the per-pixel sample count down to temporalAlpha, so
 // disoccluded pixels converge quickly and settled pixels average many frames.
@@ -55,37 +55,12 @@ void main(uint3 Thread : SV_DispatchThreadID)
     if (HistoryValid != 0)
     {
         StructuredBuffer<FrameData> Frames = ResourceDescriptorHeap[FrameIndex];
-        Texture2D<float4>           HistoryTexture = ResourceDescriptorHeap[HistoryIndex];
-        Texture2D<float>            PreviousDepth = ResourceDescriptorHeap[PreviousDepthIndex];
-        const float3 WorldPosition =
-            ReconstructWorldPosition((float2(Source) + 0.5) / float2(SourceSize), Depth, Frames[0].InverseViewProjection);
-        const float4 PreviousClip = mul(Frames[0].PreviousViewProjection, float4(WorldPosition, 1.0));
-        // Texels sit at their source pixels, so a static view maps each texel back onto itself.
-        const float2 PreviousSource = (PreviousClip.xy / PreviousClip.w * float2(0.5, -0.5) + 0.5) * float2(SourceSize) - 0.5;
-        const float2 PreviousPixel = PreviousSource * float2(Size) / float2(SourceSize);
-        const int2   Base = int2(floor(PreviousPixel));
-        const float2 Fraction = PreviousPixel - float2(Base);
-        float4       Sum = 0.0;
-        float        WeightSum = 0.0;
-        // Bilinear history with each tap validated separately, so a silhouette never blends foreground into background.
-        for (int I = 0; I < 4; ++I)
+        float4 Sum;
+        if (SampleReprojectedHistory(Frames[0], Source, Size, SourceSize, Depth, false, Sum))
         {
-            const int2 Offset = int2(I & 1, I >> 1);
-            const int2 Tap = Base + Offset;
-            if (PreviousClip.w <= 0.0 || any(Tap < 0) || any(Tap >= Size) ||
-                abs(PreviousDepth.Load(int3(Tap, 0)) - PreviousClip.w) > DepthThreshold * PreviousClip.w)
-            {
-                continue;
-            }
-            const float2 Bilinear = lerp(1.0 - Fraction, Fraction, float2(Offset));
-            Sum += HistoryTexture.Load(int3(Tap, 0)) * (Bilinear.x * Bilinear.y);
-            WeightSum += Bilinear.x * Bilinear.y;
-        }
-        if (WeightSum > 1e-3)
-        {
-            Sum /= WeightSum;
             History = clamp(Sum.xy, Mean - Extent, Mean + Extent);
-            HistoryLength = Sum.z;
+            const float2 Difference = abs(History - Sum.xy);
+            HistoryLength = ReweightHistory(Sum.z, max(Difference.x, Difference.y));
         }
     }
     HistoryLength = min(HistoryLength + 1.0, MaxHistoryLength);

@@ -1,4 +1,7 @@
-#include "RTDenoiseBindings.slang"
+#include "SSDCommon.slang"
+
+// Clip-space w is the view depth for the renderer's perspective projections.
+float ViewDepth(float4x4 ViewProjection, float3 WorldPosition) { return mul(ViewProjection, float4(WorldPosition, 1.0)).w; }
 
 // Stores view depth so the next frame can reject disoccluded history with a relative test; 0 marks the sky.
 [shader("compute")]

@@ -1,9 +1,7 @@
-#include "RTDenoiseBindings.slang"
+#include "SSDTemporalReprojection.slang"
 
-// Temporal accumulation of the mirror reflections. The input traces one deterministic ray per texel, so it does not
-// need a spatial filter; what flickers is undersampled detail at half resolution, which history averages out. History
-// follows the surface motion and is clipped to the current neighbourhood in YCoCg, so parallax in the reflection
-// becomes a short lag instead of a ghost. Writes (radiance, history length); texels without a reflection write zero.
+// Accumulate half-resolution GGX reflection samples. Clip reprojected history against the local
+// radiance distribution in YCoCg. Alpha stores sample count; untraced texels keep it at zero.
 static const float MaxHistoryLength = 32.0;
 static const float ClipGamma = 1.25;
 
@@ -69,36 +67,15 @@ void main(uint3 Thread : SV_DispatchThreadID)
     if (HistoryValid != 0)
     {
         StructuredBuffer<FrameData> Frames = ResourceDescriptorHeap[FrameIndex];
-        Texture2D<float4>           HistoryTexture = ResourceDescriptorHeap[HistoryIndex];
-        Texture2D<float>            PreviousDepth = ResourceDescriptorHeap[PreviousDepthIndex];
-        const float3                WorldPosition =
-            ReconstructWorldPosition((float2(Source) + 0.5) / float2(SourceSize), Depth, Frames[0].InverseViewProjection);
-        const float4 PreviousClip = mul(Frames[0].PreviousViewProjection, float4(WorldPosition, 1.0));
-        const float2 PreviousSource = (PreviousClip.xy / PreviousClip.w * float2(0.5, -0.5) + 0.5) * float2(SourceSize) - 0.5;
-        const float2 PreviousPixel = PreviousSource * float2(Size) / float2(SourceSize);
-        const int2   Base = int2(floor(PreviousPixel));
-        const float2 Fraction = PreviousPixel - float2(Base);
-        float4       Sum = 0.0;
-        float        WeightSum = 0.0;
-        for (int I = 0; I < 4; ++I)
+        float4 Sum;
+        if (SampleReprojectedHistory(Frames[0], Source, Size, SourceSize, Depth, true, Sum))
         {
-            const int2   Offset = int2(I & 1, I >> 1);
-            const int2   Tap = Base + Offset;
-            const float4 Value = PreviousClip.w > 0.0 && all(Tap >= 0) && all(Tap < Size) ? HistoryTexture.Load(int3(Tap, 0)) : 0.0;
-            // Taps of another surface or without accumulated reflection are skipped.
-            if (Value.a <= 0.0 || abs(PreviousDepth.Load(int3(Tap, 0)) - PreviousClip.w) > DepthThreshold * PreviousClip.w)
-            {
-                continue;
-            }
-            const float2 Bilinear = lerp(1.0 - Fraction, Fraction, float2(Offset));
-            Sum += Value * (Bilinear.x * Bilinear.y);
-            WeightSum += Bilinear.x * Bilinear.y;
-        }
-        if (WeightSum > 1e-3)
-        {
-            Sum /= WeightSum;
-            History = FromYCoCg(clamp(ToYCoCg(Sum.rgb), Mean - Extent, Mean + Extent));
-            HistoryLength = Sum.a;
+            const float3 Previous = ToYCoCg(Sum.rgb);
+            const float3 Clipped = clamp(Previous, Mean - Extent, Mean + Extent);
+            const float3 Difference = abs(Clipped - Previous);
+            const float LumaRejection = abs(log2(1.0 + max(Clipped.x, 0.0)) - log2(1.0 + max(Previous.x, 0.0)));
+            History = FromYCoCg(Clipped);
+            HistoryLength = ReweightHistory(Sum.a, max(LumaRejection, max(Difference.y, Difference.z)));
         }
     }
     HistoryLength = min(HistoryLength + 1.0, MaxHistoryLength);

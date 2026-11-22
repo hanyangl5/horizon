@@ -73,17 +73,19 @@ void ShadowMap::Prepare(const hz::SceneView& View)
     Vector3 Z(0, 1, 0);
     Data.LightDirection = Vector4(0, -1, 0, 0);
     Data.ShadowEnabled = 0;
-    for (uint32_t MeshBatchIndex : View.Scene.GetActiveLights())
+    Data.MainDirectionalIndex = UINT32_MAX;
+    for (uint32_t LightIndex : View.Scene.GetActiveLights())
     {
-        const hz::RenderLight& Light = View.Scene.GetLights().Data[MeshBatchIndex];
+        const hz::RenderLight& Light = View.Scene.GetLights().Data[LightIndex];
         if (!Light.ready || Light.Type != hz::LightType::Directional)
         {
             continue;
         }
         Z = normalize(Light.transform.getCol2().getXYZ());
         Data.LightDirection = Vector4(-Z, Light.intensity * exp2f(Light.exposure) * LuminousEfficacy);
-        Data.LightColor = Vector4(Light.color[0], Light.color[1], Light.color[2], 1);
+        Data.LightColor = Vector4(hz::ResolveLightColor(Light), 1.0f);
         Data.ShadowEnabled = 1;
+        Data.MainDirectionalIndex = LightIndex;
         break;
     }
     const Vector3 Up = fabsf((float)Z[2]) < 0.99f ? Vector3(0, 0, 1) : Vector3(0, 1, 0);

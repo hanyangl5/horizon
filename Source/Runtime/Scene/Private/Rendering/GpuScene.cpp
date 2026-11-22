@@ -4,9 +4,65 @@
 #include "Core/IContainer.h"
 #include "Core/IMemory.h"
 #include "Profiler/IProfiler.h"
+#include <math.h>
 
 namespace hz
 {
+Vector3 ResolveLightColor(const RenderLight& Light)
+{
+    const Vector3 Color(Light.color[0], Light.color[1], Light.color[2]);
+    if (!Light.enableColorTemperature)
+    {
+        return Color;
+    }
+
+    // Epic's Planckian locus approximation in CIE 1960 UCS, converted to linear Rec.709.
+    const float T = fminf(fmaxf(Light.colorTemperature, 1000.0f), 15000.0f);
+    const float T2 = T * T;
+    const float U = (0.860117757f + 1.54118254e-4f * T + 1.28641212e-7f * T2) / (1.0f + 8.42420235e-4f * T + 7.08145163e-7f * T2);
+    const float V = (0.317398726f + 4.22806245e-5f * T + 4.20481691e-8f * T2) / (1.0f - 2.89741816e-5f * T + 1.61456053e-7f * T2);
+    const float X = 1.5f * U / V;
+    const float Z = (2.0f * U - 8.0f * V + 4.0f - 3.0f * U - 2.0f * V) / (2.0f * V);
+    return mulPerElem(Color, Vector3(fmaxf(0.0f, 3.2404542f * X - 1.5371385f - 0.4985314f * Z),
+                                     fmaxf(0.0f, -0.9692660f * X + 1.8760108f + 0.0415560f * Z),
+                                     fmaxf(0.0f, 0.0556434f * X - 0.2040259f + 1.0572252f * Z)));
+}
+
+static GpuLightData PackLight(const RenderLight& Light)
+{
+    const Vector3 AxisX = Light.transform.getCol0().getXYZ();
+    const Vector3 AxisY = Light.transform.getCol1().getXYZ();
+    const Vector3 AxisZ = Light.transform.getCol2().getXYZ();
+    const Vector3 Direction = -AxisZ / fmaxf(length(AxisZ), 1e-6f);
+    const bool    Rect = Light.Type == LightType::Rect;
+    const bool    Cylinder = Light.Type == LightType::Cylinder;
+    const Vector3 HalfX = AxisX * (Rect ? Light.Width * 0.5f : Light.radius);
+    const Vector3 HalfY = AxisY * (Rect ? Light.Height * 0.5f : Cylinder ? Light.length * 0.5f : Light.radius);
+    const float   Radius = Light.radius * fmaxf(length(AxisX), length(AxisZ));
+    const float   Area = Rect                              ? 4.0f * length(cross(HalfX, HalfY))
+                         : Light.Type == LightType::Disk   ? 3.14159265f * length(cross(HalfX, HalfY))
+                         : Cylinder                        ? 12.5663706f * Radius * length(HalfY)
+                         : Light.Type == LightType::Sphere ? 12.5663706f * Radius * Radius
+                                                           : 0.0f;
+    float         Intensity = Light.intensity * exp2f(Light.exposure);
+    if (Light.normalize && Area > 0.0f)
+    {
+        const bool TwoFaces = Light.twoSided && (Rect || Light.Type == LightType::Disk || Cylinder);
+        Intensity /= 3.14159265f * Area * (TwoFaces ? 2.0f : 1.0f);
+    }
+    const float Outer = cosf(Light.outerConeAngle);
+    return { .PositionAndInvRadius = Vector4(Light.transform.getCol3().getXYZ(), Light.range > 0 ? 1.0f / Light.range : 0.0f),
+             .DirectionAndType = Vector4(Direction, (float)Light.Type),
+             .Color = Vector4(ResolveLightColor(Light) * Intensity, Area),
+             .HalfAxisX = Vector4(HalfX, Light.twoSided ? 1.0f : 0.0f),
+             .HalfAxisY = Vector4(HalfY, Radius),
+             .Shape = Vector4(Outer, 1.0f / fmaxf(cosf(Light.innerConeAngle) - Outer, 1e-4f), 0, 0),
+             .Id = Light.id,
+             .Texture = Light.texture,
+             .Primitive = Light.primitive,
+             .Ready = Light.ready };
+}
+
 struct GpuTable
 {
     GPUBuffer*              pBuffer = nullptr;
@@ -66,7 +122,7 @@ public:
                                         4,
                                         4,
                                         4,
-                                        sizeof(RenderLight),
+                                        sizeof(GpuLightData),
                                         sizeof(RenderCamera),
                                         4,
                                         4,
@@ -196,8 +252,24 @@ public:
             {
                 for (const BufferCopyRegion& Region : tables[I].regions)
                 {
-                    const bool Written = context.UpdateBuffer(FrameValue.staging, Region.srcOffset,
-                                                              (const uint8_t*)Sources[I].Data + Region.dstOffset, Region.Size);
+                    const void* Source;
+                    if (tables[I].pBuffer == &buffers.lights)
+                    {
+                        const uint32_t     First = (uint32_t)(Region.dstOffset / sizeof(GpuLightData));
+                        const uint32_t     Count = (uint32_t)(Region.Size / sizeof(GpuLightData));
+                        const RenderLight* Lights = (const RenderLight*)Sources[I].Data + First;
+                        PackedLights.Resize(Count);
+                        for (uint32_t Index = 0; Index < Count; ++Index)
+                        {
+                            PackedLights[Index] = PackLight(Lights[Index]);
+                        }
+                        Source = PackedLights.GetData();
+                    }
+                    else
+                    {
+                        Source = (const uint8_t*)Sources[I].Data + Region.dstOffset;
+                    }
+                    const bool Written = context.UpdateBuffer(FrameValue.staging, Region.srcOffset, Source, Region.Size);
                     ASSERT(Written);
                 }
             }
@@ -213,6 +285,7 @@ public:
     GpuSceneBuffers      buffers;
     GpuTable             tables[kGpuTableCount];
     Array<GpuSceneFrame> frames;
+    Array<GpuLightData> PackedLights;
     GpuAssetTables       assets;
     uint64_t             uploadedRevision = 0;
     uint32_t             current = UINT32_MAX;
@@ -231,6 +304,7 @@ void GpuScene::Reserve(uint32_t PrimitiveCount, uint32_t MeshBatchCount, uint32_
 {
     ASSERT(!Data->open);
     Data->scene.Reserve(PrimitiveCount, MeshBatchCount, LightCount, CameraCount);
+    Data->PackedLights.Reserve(LightCount);
     for (GpuTable& Table : Data->tables)
     {
         Table.regions.Reserve(PrimitiveCount > MeshBatchCount ? PrimitiveCount : MeshBatchCount);

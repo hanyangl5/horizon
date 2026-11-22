@@ -1,7 +1,6 @@
-// Horizon resource bindings for the ray traced shadow/AO denoise kernels.
+// Bindless resources and parameters shared by the denoise passes.
 #pragma once
-#include "Common.slang"
-#include "Math.slang"
+#include "../Common.slang"
 
 cbuffer RootConstant0
 {
@@ -17,7 +16,5 @@ cbuffer RootConstant0
     float DepthThreshold;
     float PlaneSigma;
     uint  StepWidth;
+    uint  MotionIndex;
 };
-
-// Clip-space w is the view depth for the renderer's perspective projections.
-float ViewDepth(float4x4 ViewProjection, float3 WorldPosition) { return mul(ViewProjection, float4(WorldPosition, 1.0)).w; }

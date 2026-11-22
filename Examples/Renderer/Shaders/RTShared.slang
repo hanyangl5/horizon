@@ -106,16 +106,6 @@ float SampleRayTracingAlpha(GpuDrawData Mesh, GpuMaterialData Mat, uint Primitiv
     return Alpha;
 }
 
-float2 BlueNoiseVec2(uint TexBlueNoise, uint Smpl, float2 ScreenCoord, uint FrameIndex)
-{
-    uint2             WrappedXY = uint2(ScreenCoord) & uint2(127);
-    uint              WrappedZ = FrameIndex & 63u;
-    float2            UV = (float2(float(WrappedXY.x), float(WrappedZ * 128u + WrappedXY.y)) + float2(0.5)) / float2(128.0, 8192.0);
-    Texture2D<float4> Texture = ResourceDescriptorHeap[TexBlueNoise];
-    SamplerState      Sampler = SamplerDescriptorHeap[Smpl];
-    return Texture.SampleLevel(Sampler, UV, 0).rg;
-}
-
 // A GBuffer position is off by the depth quantization error along the view ray, which grows with distance. Pulling the
 // origin toward the eye by a few depth steps keeps it on the visible side of the surface without a fixed world-space gap;
 // the floor covers float precision of large world coordinates near the camera.

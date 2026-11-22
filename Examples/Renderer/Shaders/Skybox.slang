@@ -7,6 +7,7 @@ cbuffer RootConstant0
     uint  EnvironmentIndex;
     uint  SamplerIndex;
     float Intensity;
+    float4 Tint;
 };
 
 static const float3 Positions[8] = { float3(-1, -1, 1),  float3(1, -1, 1),  float3(1, 1, 1),  float3(-1, 1, 1),
@@ -38,5 +39,5 @@ float4 PSMain(PSInput Input): SV_Target0
     TextureCube<float4> Environment = ResourceDescriptorHeap[EnvironmentIndex];
     SamplerState        SurfaceSampler = SamplerDescriptorHeap[SamplerIndex];
     float3              Sky = float3(-Input.Dir.x, Input.Dir.y, -Input.Dir.z);
-    return float4(Environment.Sample(SurfaceSampler, Sky).rgb * max(Intensity, 0.0), 1);
+    return float4(Environment.Sample(SurfaceSampler, Sky).rgb * max(Intensity, 0.0) * Tint.rgb, 1);
 }

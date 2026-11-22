@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/IMath.h"
 #include "Graphics/RenderContext.h"
 
 struct EnvironmentFiles
@@ -19,7 +20,7 @@ public:
     bool Load(const EnvironmentFiles& Files = {});
     bool IsValid() const;
     void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Color, const hz::GPUTexture& Depth,
-                 float Intensity = 1.0f) const;
+                 float Intensity, const Vector4& Tint) const;
 
     const hz::GPUTexture& GetPrefiltered() const { return Prefiltered; }
     const hz::GPUTexture& GetIrradiance() const { return Irradiance; }

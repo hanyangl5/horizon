@@ -1,9 +1,8 @@
-#include "RTDenoiseBindings.slang"
+#include "SSDSpatialKernel.slang"
 
 // One 5x5 B3-spline a-trous iteration. Taps stop at depth discontinuities by their distance to the center pixel's
 // tangent plane, relative to view distance, and at creases by the normal difference.
 static const float Kernel[3] = { 3.0 / 8.0, 1.0 / 4.0, 1.0 / 16.0 };
-static const float NormalPower = 8.0;
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
@@ -39,7 +38,7 @@ void main(uint3 Thread : SV_DispatchThreadID)
     const float3 Position =
         ReconstructWorldPosition((float2(Source) + 0.5) / float2(SourceSize), Depth, InverseViewProjection);
     const float3 Normal = DecodeOctNormal(Normals.Load(int3(Source, 0)).xy);
-    const float  PlaneScale = 1.0 / (PlaneSigma * length(Frames[0].Eye.xyz - Position));
+    const float  MaxWorldBlur = PlaneSigma * length(Frames[0].Eye.xyz - Position);
     float2       Sum = Center * (Kernel[0] * Kernel[0]);
     float        WeightSum = Kernel[0] * Kernel[0];
     for (int Y = -2; Y <= 2; ++Y)
@@ -60,8 +59,7 @@ void main(uint3 Thread : SV_DispatchThreadID)
             const float3 TapPosition =
                 ReconstructWorldPosition((float2(TapSource) + 0.5) / float2(SourceSize), TapDepth, InverseViewProjection);
             const float3 TapNormal = DecodeOctNormal(Normals.Load(int3(TapSource, 0)).xy);
-            const float  Weight = Kernel[abs(X)] * Kernel[abs(Y)] * pow(saturate(dot(Normal, TapNormal)), NormalPower) *
-                                 exp(-abs(dot(Normal, TapPosition - Position)) * PlaneScale);
+            const float  Weight = Kernel[abs(X)] * Kernel[abs(Y)] * ComputeBilateralWeight(Normal, TapNormal, TapPosition - Position, MaxWorldBlur);
             Sum += Input.Load(int3(Tap, 0)) * Weight;
             WeightSum += Weight;
         }

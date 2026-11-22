@@ -9,7 +9,8 @@
 #include "Scene/GpuSkinning.h"
 #include "FrustumCulling.h"
 #include "PostEffects.h"
-#include "ScreenSpaceAO.h"
+#include "GTAO.h"
+#include "TemporalAA.h"
 #include "EnvironmentPass.h"
 #include "ShadowMap.h"
 #include "DeferredLighting.h"
@@ -59,6 +60,7 @@ struct RenderTargets
     hz::FrameGraphTexture SceneColor;
     hz::FrameGraphTexture OITHeads;
     hz::FrameGraphTexture TransparentColor;
+    hz::FrameGraphTexture TemporalColor;
     hz::FrameGraphBuffer  OITNodes;
     hz::FrameGraphBuffer  OITCounters;
     hz::FrameGraphTexture Luminance[PostEffectsTargets::LuminanceLevels];
@@ -78,8 +80,9 @@ public:
 
     void Update(float DeltaSeconds);
     void Execute();
-    bool EnableScreenSpaceAO = false;
+    bool EnableGTAO = true;
     bool EnableTransparency = true;
+    bool EnableTemporalAA = true;
 
 private:
     // Uploaded as the frame constant block, so the fields keep the shader's names.
@@ -109,11 +112,12 @@ private:
     hz::UniquePtr<GBuffer>                 GBufferPass;
     hz::UniquePtr<DeferredLighting>        Lighting;
     hz::UniquePtr<PostEffects>             PostProcessing;
-    hz::UniquePtr<ScreenSpaceAO>           SSAO;
+    hz::UniquePtr<GTAO>                        GroundTruthAO;
     hz::UniquePtr<EnvironmentPass>         Environment;
     hz::UniquePtr<ShadowMap>               Shadows;
     hz::UniquePtr<Transparency>            Transparency;
     hz::UniquePtr<RayTracedEffects>        RayTracing;
+    hz::UniquePtr<TemporalAA>              Antialiasing;
     hz::GPUSampler                         LinearSampler;
     hz::GpuDrawList                        Draws;
     float                                  DeltaSeconds = 1.0f / 60.0f;
@@ -124,7 +128,10 @@ private:
     hz::FrameGraph*                        Graph = nullptr;
     RenderTargets                          Targets;
     hz::FrameGraphPass                     SkinningGraphPass;
-    hz::FrameGraphPass                     SSAOPass;
+    hz::FrameGraphPass                     GTAOGraphPass;
     hz::FrameGraphPass                     RayTracingPass;
     hz::FrameGraphPass                     TransparencyPass;
+    hz::FrameGraphPass                     TemporalAAPass;
+    TemporalJitter                                PreviousJitter = TemporalJitter{};
+    bool                                   TemporalAAWasEnabled = false;
 };

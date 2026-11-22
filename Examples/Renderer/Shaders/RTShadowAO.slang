@@ -1,6 +1,8 @@
 #include "RTShared.slang"
+#include "BlueNoise.slang"
+#include "MonteCarlo.slang"
 
-half TraceRTAO(float3 Origin, float3 N, float2 Pixel, RaytracingAccelerationStructure Scene)
+half TraceRTAO(float3 Origin, float3 N, uint2 Pixel, Texture2D<float2> BlueNoise, RaytracingAccelerationStructure Scene)
 {
     float3x3 Basis = GetTangentBasis(N);
 
@@ -8,8 +10,8 @@ half TraceRTAO(float3 Origin, float3 N, float2 Pixel, RaytracingAccelerationStru
     for (uint I = 0; I != AoSamples; ++I)
     {
         // Each frame takes its own run of blue-noise slices so the temporal filter receives fresh samples.
-        float2  Rnd = BlueNoiseVec2(BlueNoiseIndex, SamplerIndex, Pixel, FrameNumber * AoSamples + I);
-        RayDesc Ray = { Origin, 0.0, normalize(mul(Basis, CosineSampleHemisphere(Rnd).xyz)), AoRadius };
+        float2  Rnd = GetBlueNoiseVec2(BlueNoise, Pixel, FrameNumber * AoSamples + I);
+        RayDesc Ray = { Origin, 0.0, normalize(mul(CosineSampleHemisphere(Rnd).xyz, Basis)), AoRadius };
         Occluded += half(1.0 - TraceRTShadow(Scene, Ray, AlphaTestMethod != 0));
     }
 
@@ -44,7 +46,8 @@ void main(uint3 Thread : SV_DispatchThreadID)
     StructuredBuffer<FrameData>         Frames = ResourceDescriptorHeap[FrameIndexBuffer];
     StructuredBuffer<LightingFrameData> Lights = ResourceDescriptorHeap[LightingIndex];
     RaytracingAccelerationStructure     Scene = ResourceDescriptorHeap[TlasIndex];
-    float2 Pixel = float2(Thread.xy) + 0.5;
+    Texture2D<float2> BlueNoise = ResourceDescriptorHeap[BlueNoiseIndex];
+    uint2 Pixel = Thread.xy;
     float2 UV = (float2(Source) + 0.5) / float2(SourceSize);
     // Decode in float, like the deferred pass, so the shadow ray leaves along the shaded normal.
     float3 N = DecodeOctNormal(Normals.Load(int3(Source, 0)).xy);
@@ -57,8 +60,9 @@ void main(uint3 Thread : SV_DispatchThreadID)
     if (ShadowsEnabled != 0)
     {
         float3  L = -normalize(Lights[0].LightDirection.xyz);
-        float2  Rnd = BlueNoiseVec2(BlueNoiseIndex, SamplerIndex, Pixel, FrameNumber);
-        float3  RayDir = GenerateSoftShadowRayDir(L, ShadowRadius, Rnd);
+        float2  Rnd = GetBlueNoiseVec2(BlueNoise, Pixel, FrameNumber);
+        float3  LocalDirection = UniformSampleConeRobust(Rnd, Pow2(ShadowRadius)).xyz;
+        float3  RayDir = normalize(mul(LocalDirection, GetTangentBasis(L)));
         RayDesc Ray = { Origin, 0.0, RayDir, 1e4 };
         if (dot(N, RayDir) <= 0.0)
         {
@@ -110,7 +114,7 @@ void main(uint3 Thread : SV_DispatchThreadID)
 
     if (AoEnabled != 0)
     {
-        AO = TraceRTAO(Origin, N, Pixel, Scene);
+        AO = TraceRTAO(Origin, N, Pixel, BlueNoise, Scene);
     }
 
     Output[Thread.xy] = float2(Shadow, AO);

@@ -1,17 +1,19 @@
 #pragma once
 
+#include "Core/IContainer.h"
 #include "Core/IMath.h"
 #include "Graphics/RenderContext.h"
 #include "Scene/SceneView.h"
 
-// Shared CPU/Slang layout, 144 bytes. Direction follows emitted rays; w is perpendicular illuminance in lux.
+// Shared CPU/Slang layout, 176 bytes. Direction follows emitted rays; w is perpendicular illuminance in lux.
 // Fields mirror the shader block, so they keep the shader's names.
 struct alignas(16) LightingFrameData
 {
     Matrix4  ShadowViewProjection = Matrix4::identity();
     Vector4  LightDirection = Vector4(0, -1, 0, 0);
     Vector4  LightColor = Vector4(1, 1, 1, 1);
-    float    EnvironmentIntensity = 1000; // cd/m^2 per unit HDR environment radiance.
+    static constexpr float DefaultEnvironmentIntensity = 1000.0f;
+    float    EnvironmentIntensity = DefaultEnvironmentIntensity; // cd/m^2 per unit HDR environment radiance.
     float    ShadowBias = 0;
     uint32_t ShadowEnabled = 0;
     uint32_t RTShadowEnabled = 0;
@@ -20,11 +22,16 @@ struct alignas(16) LightingFrameData
     uint32_t FrameIndex = 0;
     uint32_t ShadowFilterRadius = 0;
     float    RTAOPower = 1;
+    uint32_t LightsIndex = UINT32_MAX;
+    uint32_t LightCount = 0;
+    uint32_t ActiveLightsIndex = UINT32_MAX;
+    Vector4  EnvironmentTint = Vector4(1.0f);
+    uint32_t MainDirectionalIndex = UINT32_MAX;
+    float    LuminousEfficacy = 1.0f;
     uint32_t Padding0 = 0;
     uint32_t Padding1 = 0;
-    uint32_t Padding2 = 0;
 };
-static_assert(sizeof(LightingFrameData) == 144);
+static_assert(sizeof(LightingFrameData) == 176);
 
 struct LightingResources
 {
@@ -34,11 +41,13 @@ struct LightingResources
     const hz::GPUTexture* RTShadowAO = nullptr;
     const hz::GPUTexture* RTReflection = nullptr;
     // Ambient occlusion for indirect light only; the pass never darkens direct light or the sky.
-    const hz::GPUTexture* SSAO = nullptr;
+    const hz::GPUTexture* GTAO = nullptr;
     const hz::GPUTexture* Environment = nullptr;
     const hz::GPUTexture* Irradiance = nullptr;
     const hz::GPUTexture* BRDFLut = nullptr;
     const hz::GPUSampler* EnvironmentSampler = nullptr;
+    const hz::GPUBuffer*  Lights = nullptr;
+    const hz::GPUBuffer*  ActiveLights = nullptr;
 };
 
 struct DeferredGBuffer
@@ -47,6 +56,7 @@ struct DeferredGBuffer
     const hz::GPUTexture* NormalMaterial = nullptr;
     const hz::GPUTexture* BaseColorMetallic = nullptr;
     const hz::GPUTexture* Depth = nullptr;
+    const hz::GPUTexture* Motion = nullptr;
 };
 
 class DeferredLighting

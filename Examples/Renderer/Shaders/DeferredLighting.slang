@@ -1,7 +1,8 @@
-// Cookbook deferred lighting adapted to Horizon's GBuffer; see ../Cookbook-LICENSE.txt.
+// Screen-space lighting and RT upsampling build on the Cookbook; see ../Cookbook-LICENSE.txt.
 #include "Common.slang"
 #include "LightingBRDF.slang"
 #include "Math.slang"
+#include "DeferredLightCommon.slang"
 
 cbuffer RootConstant0
 {
@@ -19,7 +20,7 @@ cbuffer RootConstant0
     uint EnvironmentSamplerIndex;
     uint RtShadowAOIndex;
     uint RtReflectionIndex;
-    uint SsaoIndex;
+    uint GTAOIndex;
 };
 struct PSInput
 {
@@ -34,6 +35,23 @@ PSInput VSMain(uint VertexId : SV_VertexID)
     Output.Uv = UV;
     return Output;
 }
+
+FGBufferData DecodeGBufferData(float4 NormalMaterial, float4 BaseColorMetallic)
+{
+    const float2 RoughnessSpecular = UnpackMaterialProperties(NormalMaterial.ba);
+
+    return MakeDefaultLitMaterial(DecodeOctNormal(NormalMaterial.rg), BaseColorMetallic.rgb, BaseColorMetallic.a,
+                                  RoughnessSpecular.x, RoughnessSpecular.y);
+}
+
+FGBufferData GetGBufferDataUint(uint2 PixelPos)
+{
+    Texture2D<float4> NormalMaterial = ResourceDescriptorHeap[NormalMaterialIndex];
+    Texture2D<float4> BaseColorMetallic = ResourceDescriptorHeap[BaseColorMetallicIndex];
+    const int3        Texel = int3(PixelPos, 0);
+    return DecodeGBufferData(NormalMaterial.Load(Texel), BaseColorMetallic.Load(Texel));
+}
+
 // Depth-aware upsample of the reduced-resolution ray traced results: bilinear weights over the four nearest texels,
 // each scaled down by its source pixel's relative view distance difference, so the results do not bleed across edges.
 static const float RTUpsampleDepthScale = 50.0;
@@ -97,15 +115,8 @@ float4 PSMain(PSInput Input): SV_Target0
     StructuredBuffer<FrameData>         Frame = ResourceDescriptorHeap[FrameIndex];
     StructuredBuffer<LightingFrameData> LightBuffer = ResourceDescriptorHeap[LightingFrameIndex];
     LightingFrameData                   Light = LightBuffer[0];
-    Texture2D<float4>                   NormalMaterial = ResourceDescriptorHeap[NormalMaterialIndex];
-    Texture2D<float4>                   BaseColorMetallic = ResourceDescriptorHeap[BaseColorMetallicIndex];
-    half4                               G1 = half4(NormalMaterial.Load(Pixel));
-    float4                              Surface = BaseColorMetallic.Load(Pixel);
-    float2                              Properties = UnpackMaterialProperties(float2(G1.ba));
-    float3                              N = DecodeOctNormal(float2(G1.xy));
-    half3                               BaseColor = half3(Surface.rgb);
-
-    float3           WorldPos = ReconstructWorldPosition(Input.Uv, Depth, Frame[0].InverseViewProjection);
+    const FGBufferData                  GBuffer = GetGBufferDataUint(uint2(Pixel.xy));
+    const float3                        WorldPos = ReconstructWorldPosition(Input.Uv, Depth, Frame[0].InverseViewProjection);
     int2             Size;
     DepthTexture.GetDimensions(Size.x, Size.y);
     RTUpsample Upsample;
@@ -145,19 +156,16 @@ float4 PSMain(PSInput Input): SV_Target0
     {
         Visibility = ShadowVisibility(WorldPos, Light, Bindings);
     }
-    if (SsaoIndex != INVALID_TEXTURE)
+    if (GTAOIndex != INVALID_TEXTURE)
     {
-        Texture2D<float4> Occlusion = ResourceDescriptorHeap[SsaoIndex];
+        Texture2D<float4> Occlusion = ResourceDescriptorHeap[GTAOIndex];
         AO *= Occlusion.Load(Pixel).r;
     }
 
-    float3      L = -normalize(Light.LightDirection.xyz);
-    float3      V = normalize(Frame[0].Eye.xyz - WorldPos);
-    float       Metallic = saturate(Surface.a);
-    float       Roughness = saturate(Properties.x);
-    PBRLighting Lighting =
-        EvaluatePBRLighting(float3(BaseColor), Metallic, Roughness, N, V, L, Visibility, AO, Light, Bindings, true, Properties.y);
-    if (RtReflectionIndex != INVALID_TEXTURE && Roughness < RTReflectionMaxRoughness)
+    const float3 V = normalize(Frame[0].Eye.xyz - WorldPos);
+    FIndirectLighting Indirect = EvaluateIndirectLighting(GBuffer.DiffuseColor, GBuffer.SpecularColor, GBuffer.Roughness, GBuffer.WorldNormal, V,
+                                                           AO, Light, Bindings, true);
+    if (RtReflectionIndex != INVALID_TEXTURE && GBuffer.Roughness < RTReflectionMaxRoughness)
     {
         Texture2D<float4> Reflection = ResourceDescriptorHeap[RtReflectionIndex];
         float3            Reflected = 0.0;
@@ -165,8 +173,10 @@ float4 PSMain(PSInput Input): SV_Target0
         {
             Reflected += Reflection.Load(int3(Upsample.Taps[I], 0)).rgb * Upsample.Weights[I];
         }
-        Lighting.IndirectSpecular = lerp(Lighting.SpecularWeight * Reflected, Lighting.IndirectSpecular,
-                                         smoothstep(RTReflectionFadeStart, RTReflectionMaxRoughness, Roughness));
+        Indirect.Specular = lerp(Indirect.SpecularWeight * Reflected, Indirect.Specular,
+                                 smoothstep(RTReflectionFadeStart, RTReflectionMaxRoughness, GBuffer.Roughness));
     }
-    return float4(float3(Scene) + Lighting.Direct + Lighting.IndirectDiffuse + Lighting.IndirectSpecular, 1.0);
+
+    const float3 DirectLighting = AccumulateSceneLights(Light, GBuffer, WorldPos, V, Visibility);
+    return float4(float3(Scene) + DirectLighting + Indirect.Diffuse + Indirect.Specular, 1.0);
 }

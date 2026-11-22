@@ -1,5 +1,8 @@
 #include "RTShared.slang"
-#include "Common.slang"
+#include "BlueNoise.slang"
+#include "MonteCarlo.slang"
+#include "Random.slang"
+#include "DeferredLightCommon.slang"
 
 struct RayPayload
 {
@@ -41,19 +44,53 @@ void rayGenMain()
         Output[Pixel] = float4(0.0);
         return;
     }
-    RayDesc Ray = { RTGBufferRayOrigin(SourceUV, Depth, WorldPos, N, Frame[0].Eye.xyz, Frame[0].InverseViewProjection), 0.0,
-                    reflect(-ViewDir, N), 1e6 };
-    RayPayload Payload;
-    Payload.Color = float3(0.0);
-    Payload.Depth = 0;
-    float3 AccumulatedColor = float3(0.0, 0.0, 0.0);
+    const float Roughness = Properties.x;
+    float3 Direction = reflect(-ViewDir, N);
+    float Weight = 1.0;
+    if (Roughness > 1.0 / 255.0)
     {
-        TraceRay(Scene, RAY_FLAG_NONE, 0xff, 0, 0, 0, Ray, Payload);
-        AccumulatedColor += Payload.Color;
-        Payload.Depth++;
+        const float3x3 Basis = GetTangentBasis(N);
+        const float3 V = mul(Basis, ViewDir);
+        if (V.z <= 0.0)
+        {
+            Output[Pixel] = float4(0.0, 0.0, 0.0, 1.0);
+            return;
+        }
+
+        float2 Random;
+        if (BlueNoiseIndex != INVALID_TEXTURE)
+        {
+            Texture2D<float2> BlueNoise = ResourceDescriptorHeap[BlueNoiseIndex];
+            Random = clamp(GetBlueNoiseVec2(BlueNoise, Pixel, FrameNumber), 0.5 / 65536.0, 1.0 - 0.5 / 65536.0);
+        }
+        else
+        {
+            Random = (float2(Rand3DPCG16(int3(Pixel, FrameNumber)).xy) + 0.5) / 65536.0;
+        }
+        const float Alpha = max(Pow2(Roughness), sqrt(2e-6));
+        const float4 Sample = ImportanceSampleVisibleGGX(Random, Alpha, V);
+        const float3 L = reflect(-V, Sample.xyz);
+        if (L.z <= 0.0)
+        {
+            // A below-horizon direction contributes zero, but still counts as a sample.
+            Output[Pixel] = float4(0.0, 0.0, 0.0, 1.0);
+            return;
+        }
+        Direction = normalize(mul(L, Basis));
+
+        // GGX BRDF*cos / VNDF PDF with Fresnel factored out. Normalize by directional albedo so
+        // the existing deferred split-sum weight is applied exactly once to the incoming radiance.
+        const float LenV = length(float3(Alpha * V.xy, V.z));
+        const float LenL = length(float3(Alpha * L.xy, L.z));
+        Weight = L.z * (V.z + LenV) / (L.z * LenV + V.z * LenL);
+        Weight /= GGXEnergyLookup(Roughness, saturate(V.z)).x;
     }
-    // Unweighted incoming radiance. The receiving surface's Fresnel is applied in Lighting.
-    Output[Pixel] = float4(AccumulatedColor, 1.0);
+
+    RayDesc Ray = { RTGBufferRayOrigin(SourceUV, Depth, WorldPos, N, Frame[0].Eye.xyz, Frame[0].InverseViewProjection), 0.0,
+                    Direction, 1e6 };
+    RayPayload Payload = {};
+    TraceRay(Scene, RAY_FLAG_NONE, 0xff, 0, 0, 0, Ray, Payload);
+    Output[Pixel] = float4(Payload.Color * Weight, 1.0);
 }
 
 [shader("miss")]
@@ -70,7 +107,7 @@ void missMain(inout RayPayload Payload)
     SamplerState                        Sampler = SamplerDescriptorHeap[EnvironmentSamplerIndex];
     float3                              Direction = WorldRayDirection();
     Payload.Color =
-        Environment.SampleLevel(Sampler, float3(-Direction.x, Direction.y, -Direction.z), 0).rgb * max(Light[0].EnvironmentIntensity, 0.0);
+        Environment.SampleLevel(Sampler, float3(-Direction.x, Direction.y, -Direction.z), 0).rgb * max(Light[0].EnvironmentIntensity, 0.0) * Light[0].EnvironmentTint.rgb;
 }
 
 [shader("closesthit")]
@@ -132,10 +169,11 @@ void closestHitMain(inout RayPayload Payload, BuiltInTriangleIntersectionAttribu
         RayDesc                         Ray = { HitPosition, 0.0, L, 1e4 };
         Visibility = dot(GeometricNormal, L) > 0.0 ? TraceRTShadow(Scene, Ray, AlphaTestMethod != 0) : 0.0;
     }
-    PBRLighting Lighting =
-        EvaluatePBRLighting(BaseColor, Metallic, Roughness, N, V, L, Visibility, 1.0, Light[0], RTLightingBindings(), false);
-    // One bounce: the hit is shadowed by an inline query, without recursive TraceRay.
-    Payload.Color = Emissive + (Lighting.Direct + Lighting.IndirectDiffuse);
+    const FGBufferData Surface = MakeDefaultLitMaterial(N, BaseColor, Metallic, Roughness, 0.5);
+    const FIndirectLighting Indirect = EvaluateIndirectLighting(Surface.DiffuseColor, Surface.SpecularColor, Surface.Roughness, N, V,
+                                                                 1.0, Light[0], RTLightingBindings(), false);
+    // One bounce: the sun is shadowed by an inline query, without recursive TraceRay.
+    Payload.Color = Emissive + Indirect.Diffuse + AccumulateSceneLights(Light[0], Surface, HitPosition, V, Visibility);
 }
 
 // Only masked geometry invokes Any-Hit; opaque geometry is accepted by traversal.

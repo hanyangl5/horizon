@@ -28,6 +28,7 @@ struct RayTracedEffectsSettings
 };
 
 class RayTracingScene;
+class ScreenSpaceDenoise;
 
 // Viewport-sized resources of the ray traced effects. History and PreviousDepth are written this frame; the Previous*
 // copies hold last frame's, valid only when HistoryValid is set.
@@ -40,7 +41,7 @@ struct RayTracedEffectsTargets
     const hz::GPUTexture* PreviousHistory = nullptr;
     const hz::GPUTexture* PreviousDepth = nullptr;
     const hz::GPUTexture* PreviousFrameDepth = nullptr;
-    // Temporally accumulated reflection, which lighting reads instead of the traced Reflection.
+    // Temporal reflection history; filtered output reuses Reflection once tracing is consumed.
     const hz::GPUTexture* ReflectionHistory = nullptr;
     const hz::GPUTexture* PreviousReflectionHistory = nullptr;
     bool                  HistoryValid = false;
@@ -72,12 +73,9 @@ public:
 private:
     hz::RenderContext&             Context;
     hz::UniquePtr<RayTracingScene> RayScene;
+    hz::UniquePtr<ScreenSpaceDenoise> Denoiser;
     hz::GPUPipeline                ShadowPipeline;
-    hz::GPUPipeline                TemporalPipeline;
-    hz::GPUPipeline                AtrousPipeline;
-    hz::GPUPipeline                DepthCopyPipeline;
     hz::GPURayTracingPipeline      ReflectionPipeline;
-    hz::GPUPipeline                ReflectionTemporalPipeline;
     hz::GPUSampler                 MaterialSampler;
     hz::GPUTexture                 BlueNoise;
     RayTracedEffectsSettings       PreviousSettings;

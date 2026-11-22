@@ -237,7 +237,7 @@ PSOutput PSMain(PSInput Input, bool FrontFace : SV_IsFrontFace)
     float2 PreviousNdc = Input.PreviousClip.xy / Input.PreviousClip.w;
     float2 Motion = (CurrentNdc - PreviousNdc) * float2(0.5, -0.5);
 
-    // Disney/UE default: Specular 0.5 maps to a dielectric F0 of 0.04.
+    // The default Specular value of 0.5 maps to a dielectric F0 of 0.04.
     float2 PackedMaterial = PackMaterialProperties(Roughness, 0.5);
 
     PSOutput Output;

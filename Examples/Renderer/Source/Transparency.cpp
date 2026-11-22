@@ -96,6 +96,11 @@ void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame
             Buffers.PushBack(Buffer);
         }
         Buffers.PushBack(Lighting.LightingFrame);
+        if (Lighting.Lights)
+        {
+            Buffers.PushBack(Lighting.Lights);
+            Buffers.PushBack(Lighting.ActiveLights);
+        }
         const hz::GPUTexture* LightingTextures[] = { Lighting.ShadowMap, Lighting.Environment, Lighting.Irradiance, Lighting.BRDFLut };
         for (const hz::GPUTexture* Texture : LightingTextures)
         {

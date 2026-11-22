@@ -1692,17 +1692,17 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
                                                               .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     const uint8_t*          pBytes = (const uint8_t*)readback.Get()->pCpuMappedAddress;
     const hz::RenderCamera& copiedCamera = *(const hz::RenderCamera*)pBytes;
-    const hz::RenderLight&  copiedLight = *(const hz::RenderLight*)(pBytes + 512);
+    const hz::GpuLightData&  copiedLight = *(const hz::GpuLightData*)(pBytes + 512);
     const uint32_t*         pActive = (const uint32_t*)(pBytes + 1000);
-    static_assert(sizeof(hz::RenderCamera) <= 512 && sizeof(hz::RenderLight) <= 256);
+    static_assert(sizeof(hz::RenderCamera) <= 512 && sizeof(hz::GpuLightData) <= 256);
     const GpuSceneCopy copies[] = {
         { .table = &hz::GpuSceneBuffers::cameras,
           .srcOffset = sizeof(hz::RenderCamera) * cameraID.index,
           .Size = sizeof(hz::RenderCamera) },
         { .table = &hz::GpuSceneBuffers::lights,
-          .srcOffset = sizeof(hz::RenderLight) * lightID.index,
+          .srcOffset = sizeof(hz::GpuLightData) * lightID.index,
           .dstOffset = 512,
-          .Size = sizeof(hz::RenderLight) },
+          .Size = sizeof(hz::GpuLightData) },
         { .table = &hz::GpuSceneBuffers::activeLights, .dstOffset = 1000, .Size = sizeof(uint32_t) },
         { .table = &hz::GpuSceneBuffers::activeCameras, .dstOffset = 1004, .Size = sizeof(uint32_t) },
     };
@@ -1711,10 +1711,11 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     EXPECT_FLOAT_EQ(translationX(copiedCamera.current), 1);
     EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 1);
     EXPECT_FLOAT_EQ(copiedCamera.lens.verticalFov, 0.8f);
-    EXPECT_EQ(copiedLight.id, lightID);
-    EXPECT_FLOAT_EQ(copiedLight.intensity, 4);
-    EXPECT_EQ(copiedLight.ready, 1u);
-    EXPECT_EQ(copiedLight.texture, scene.GetLight(lightID)->texture);
+    EXPECT_EQ(copiedLight.Id, lightID);
+    EXPECT_FLOAT_EQ((float)copiedLight.Color.getX(), 4);
+    EXPECT_EQ(copiedLight.Ready, 1u);
+    EXPECT_EQ(copiedLight.Texture, scene.GetLight(lightID)->texture);
+    EXPECT_EQ(copiedLight.Primitive, scene.FindPrimitive(entity));
     EXPECT_EQ(pActive[0], lightID.index);
     EXPECT_EQ(pActive[1], cameraID.index);
 
@@ -1729,8 +1730,8 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 1);
     EXPECT_FLOAT_EQ(copiedCamera.lens.verticalFov, 0.6f);
     EXPECT_FLOAT_EQ(copiedCamera.previousLens.verticalFov, 0.8f);
-    EXPECT_FLOAT_EQ(copiedLight.intensity, 8);
-    EXPECT_FLOAT_EQ(translationX(copiedLight.transform), 2);
+    EXPECT_FLOAT_EQ((float)copiedLight.Color.getX(), 8);
+    EXPECT_FLOAT_EQ((float)copiedLight.PositionAndInvRadius.getX(), 2);
     renderGpuSceneFrame(context, gpu, readback, copies);
     EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 2);
     EXPECT_FLOAT_EQ(copiedCamera.previousLens.verticalFov, 0.6f);
@@ -1744,7 +1745,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
         ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::camera, &lens));
         renderGpuSceneFrame(context, gpu, readback, copies);
         EXPECT_FLOAT_EQ(translationX(copiedCamera.current), (float)i + 4);
-        EXPECT_FLOAT_EQ(translationX(copiedLight.transform), (float)i + 4);
+        EXPECT_FLOAT_EQ((float)copiedLight.PositionAndInvRadius.getX(), (float)i + 4);
         EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), i ? (float)i + 3 : 2.0f);
     }
     const MemoryTrackingStats after = GetMemoryTrackingStats();
@@ -1769,14 +1770,14 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     renderGpuSceneFrame(context, gpu, readback, copies);
     assetManager.Update();
     EXPECT_EQ(scene.FindLight(entity), lightID);
-    EXPECT_EQ(copiedLight.ready, 0u);
+    EXPECT_EQ(copiedLight.Ready, 0u);
     EXPECT_FALSE(scene.GetLight(lightID)->primitive.IsValid());
     EXPECT_EQ(assetManager.GetState(textureHandle), hz::AssetState::Ready);
 
     light.Type = hz::LightType::Dome;
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::light, &light));
     renderGpuSceneFrame(context, gpu, readback, copies);
-    const hz::GpuTextureID textureID = copiedLight.texture;
+    const hz::GpuTextureID textureID = copiedLight.Texture;
     ASSERT_TRUE(textureID.IsValid());
     ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::light));
     ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::camera));

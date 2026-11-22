@@ -6,6 +6,25 @@
 
 namespace hz
 {
+// GPU light table, indexed by RenderLightID::index. Color RGB stores radiometric intensity after
+// exposure and area normalization; Color.a is emitter area.
+struct GpuLightData
+{
+    Vector4           PositionAndInvRadius = Vector4(0.0f);
+    Vector4           DirectionAndType = Vector4(0.0f);
+    Vector4           Color = Vector4(0.0f);
+    Vector4           HalfAxisX = Vector4(0.0f);
+    Vector4           HalfAxisY = Vector4(0.0f);
+    Vector4           Shape = Vector4(0.0f);
+    RenderLightID     Id;
+    GpuTextureID      Texture;
+    RenderPrimitiveID Primitive;
+    uint32_t          Ready = 0;
+    uint32_t          Padding = 0;
+};
+
+Vector3 ResolveLightColor(const RenderLight& Light);
+
 struct GpuSceneBuffers
 {
     GPUBuffer primitives;

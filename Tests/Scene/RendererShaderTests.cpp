@@ -4,6 +4,7 @@
 #include "Scene/GpuDrawList.h"
 #include "../../Examples/Renderer/Source/FrustumCulling.h"
 #include "../../Examples/Renderer/Source/RayTracingScene.h"
+#include <bit>
 #include <cmath>
 #include <d3d12sdklayers.h>
 
@@ -1092,22 +1093,37 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     materials[0].RoughnessFactor = 1;
     ASSERT_TRUE(context.UpdateBuffer(materialBuffer, 0, materials, sizeof(materials)));
     constants.tlas = opaqueTop.GetSrvIndex();
-    hz::CommandList& lit = context.AcquireCommandList();
-    lit.SetPipeline(reflection);
-    lit.SetRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
-    lit.TraceRays(reflection, 1, 1, 1,
-                  { .sampledTextures = { &normal, &Depth }, .storageTextures = { &result },
-                    .buffers = { &frame, &light, &drawBuffer, &materialBuffer, &vertices, &indexBuffer32, &uv } });
-    lit.SetPipeline(reader);
-    lit.SetRootConstant({ result.GetSrvIndex(), output.GetUavIndex(), 0 });
-    lit.Dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
-    lit.CopyBuffer(readback, 0, output, 0, 16);
-    context.Wait(context.Submit(lit));
-    const float* litColor = (const float*)readback.Get()->pCpuMappedAddress;
-    const float expectedLighting = (0.96f + 0.04f / 4.0f) / 3.14159265359f;
-    for (uint32_t channel = 0; channel < 3; ++channel)
+    constexpr uint32_t roughnessCodes[] = { 0, 98 };
+    // Unit roughness and normal incidence, including Default Lit's directional albedo and multiscattering.
+    const float albedo = 1.0f - 1.0266916f / 1.466495f;
+    const float specularWeight = 1.0f + 0.04f * (1.0f - albedo) / albedo;
+    const float expectedLighting = (1.0f - specularWeight * albedo * 0.04f + specularWeight * 0.04f / 4.0f) / 3.14159265359f;
+    for (uint32_t roughness : roughnessCodes)
     {
-        EXPECT_NEAR(litColor[channel], expectedLighting, 1e-4f);
+        hz::CommandList& lit = context.AcquireCommandList();
+        lit.BeginRendering({ .colorAttachments = { { .pTexture = &normal,
+                                                      .loadAction = LOAD_ACTION_CLEAR,
+                                                      .storeAction = STORE_ACTION_STORE,
+                                                      .ClearValue = { .r = 0.5f, .g = 0.5f, .b = float(roughness) / 1023.0f,
+                                                                      .a = 2.0f / 3.0f } } } });
+        lit.EndRendering();
+        lit.SetPipeline(reflection);
+        lit.SetRootConstant({ reinterpret_cast<const uint32_t*>(&constants), sizeof(constants) / 4 });
+        lit.TraceRays(reflection, 1, 1, 1,
+                      { .sampledTextures = { &normal, &Depth }, .storageTextures = { &result },
+                        .buffers = { &frame, &light, &drawBuffer, &materialBuffer, &vertices, &indexBuffer32, &uv } });
+        lit.SetPipeline(reader);
+        lit.SetRootConstant({ result.GetSrvIndex(), output.GetUavIndex(), 0 });
+        lit.Dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
+        lit.CopyBuffer(readback, 0, output, 0, 16);
+        context.Wait(context.Submit(lit));
+        const float* litColor = (const float*)readback.Get()->pCpuMappedAddress;
+        // At pixel (0, 0), frame 0, GGX sampling at roughness 98/255 gives a normalized weight of about 1.024.
+        const float expected = expectedLighting * (roughness == 0 ? 1.0f : 1.0238f);
+        for (uint32_t channel = 0; channel < 3; ++channel)
+        {
+            EXPECT_NEAR(litColor[channel], expected, 2e-4f) << roughness;
+        }
     }
     ID3D12Device* device = nullptr;
     ASSERT_EQ(output.Get()->dx.pResource->GetDevice(IID_PPV_ARGS(&device)), S_OK);
@@ -1666,6 +1682,42 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                       .Descriptors = DESCRIPTOR_TYPE_BUFFER });
     };
     hz::GPUBuffer    peakFrame = Upload(&peakCamera, sizeof(peakCamera)), peakLighting = Upload(&peakLight, sizeof(peakLight));
+    hz::GpuLightData lights[] = {
+        { .PositionAndInvRadius = Vector4(0.0f), .DirectionAndType = Vector4(0, 0, -1, 0), .Color = Vector4(1, 0, 0, 0) },
+        { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 0), .DirectionAndType = Vector4(0, 0, -1, 1), .Color = Vector4(0, 1, 0, 0) },
+        { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 0), .DirectionAndType = Vector4(0, 0, -1, 2), .Color = Vector4(0, 0, 1, 0),
+          .Shape = Vector4(0.5f, 4, 0, 0) },
+        { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 4), .DirectionAndType = Vector4(0, 0, -1, 1), .Color = Vector4(10, 10, 10, 0) },
+        { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 0), .DirectionAndType = Vector4(1, 0, 0, 2), .Color = Vector4(10, 10, 10, 0),
+          .Shape = Vector4(0.5f, 4, 0, 0) },
+        { .DirectionAndType = Vector4(0, 0, -1, 0), .Color = Vector4(10, 10, 10, 0) },
+        { .DirectionAndType = Vector4(0, 0, -1, 0), .Color = Vector4(10, 10, 10, 0) },
+    };
+    for (hz::GpuLightData& light : lights)
+    {
+        light.Ready = 1;
+    }
+    const hz::GPUBuffer lightList = context.CreateBuffer({ .Size = sizeof(lights),
+                                                           .ElementCount = TF_ARRAY_COUNT(lights) * (sizeof(hz::GpuLightData) / sizeof(uint32_t)),
+                                                           .pInitialData = lights,
+                                                           .initialDataSize = sizeof(lights),
+                                                           .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                           .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                           .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
+    const uint32_t activeLights[] = { 4, 0, 2, 1, 3, 5 };
+    const hz::GPUBuffer activeLightList = context.CreateBuffer({ .Size = sizeof(activeLights),
+                                                                 .ElementCount = TF_ARRAY_COUNT(activeLights),
+                                                                 .pInitialData = activeLights,
+                                                                 .initialDataSize = sizeof(activeLights),
+                                                                 .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                                 .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                                 .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
+    ASSERT_TRUE(lightList.IsValid() && activeLightList.IsValid());
+    const LightingFrameData localFrame = { .LightsIndex = lightList.GetSrvIndex(),
+                                           .LightCount = TF_ARRAY_COUNT(activeLights),
+                                           .ActiveLightsIndex = activeLightList.GetSrvIndex(),
+                                           .MainDirectionalIndex = 5 };
+    const hz::GPUBuffer localLighting = Upload(&localFrame, sizeof(localFrame));
     hz::CommandList& commands = context.AcquireCommandList();
     const auto       Clear = [&](const hz::GPUTexture& texture, float value)
     {
@@ -1716,22 +1768,9 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     commands.SetRootConstant({ (const uint32_t*)&meteringConstants, sizeof(meteringConstants) / 4 });
     commands.Dispatch(1, 1, 1, { .sampledTextures = { &source }, .storageTextures = { &logOutput } });
     read(logOutput, 8);
-    // Real deferred shader: N=V=L, white dielectric, roughness=.2, quantized Specular=8/16. No environment, shadow or AO.
-    commands.BeginRendering({ .colorAttachments = { { .pTexture = &peakNormal,
-                                                      .loadAction = LOAD_ACTION_CLEAR,
-                                                      .storeAction = STORE_ACTION_STORE,
-                                                      .ClearValue = { .r = .5f, .g = .5f, .b = 51.0f / 1023.0f, .a = 2.0f / 3.0f } },
-                                                    { .pTexture = &peakBase,
-                                                      .loadAction = LOAD_ACTION_CLEAR,
-                                                      .storeAction = STORE_ACTION_STORE,
-                                                      .ClearValue = { .r = 1, .g = 1, .b = 1, .a = 0 } } } });
-    commands.EndRendering();
-    commands.SetPipeline(deferred);
-    commands.BeginRendering(
-        { .colorAttachments = { { .pTexture = &mapped, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
-        { .sampledTextures = { &black, &average, &peakNormal, &peakBase }, .buffers = { &peakFrame, &peakLighting } });
-    commands.SetViewport(0, 0, 1, 1);
-    commands.SetScissor(0, 0, 1, 1);
+    // Normal incidence, white dielectric, specular 8/16. Test the smooth limit and a rough lobe as well as the HDR peak.
+    constexpr uint32_t roughnessCodes[] = { 0, 51, 255, 255 };
+    constexpr uint32_t lightingOffsets[] = { 182, 15, 183, 184 };
     uint32_t peakConstants[15];
     for (uint32_t& value : peakConstants)
     {
@@ -1743,10 +1782,34 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     peakConstants[3] = peakNormal.GetSrvIndex();
     peakConstants[4] = peakBase.GetSrvIndex();
     peakConstants[5] = average.GetSrvIndex();
-    commands.SetRootConstant(peakConstants);
-    commands.Draw(3);
-    commands.EndRendering();
-    read(mapped, 15);
+    for (uint32_t probe = 0; probe < TF_ARRAY_COUNT(roughnessCodes); ++probe)
+    {
+        commands.BeginRendering({ .colorAttachments = { { .pTexture = &peakNormal,
+                                                          .loadAction = LOAD_ACTION_CLEAR,
+                                                          .storeAction = STORE_ACTION_STORE,
+                                                          .ClearValue = { .r = .5f,
+                                                                          .g = .5f,
+                                                                          .b = float(roughnessCodes[probe]) / 1023.0f,
+                                                                          .a = 2.0f / 3.0f } },
+                                                        { .pTexture = &peakBase,
+                                                          .loadAction = LOAD_ACTION_CLEAR,
+                                                          .storeAction = STORE_ACTION_STORE,
+                                                          .ClearValue = { .r = 1, .g = 1, .b = 1, .a = 0 } } } });
+        commands.EndRendering();
+        const bool local = probe == 3;
+        const hz::GPUBuffer& lighting = local ? localLighting : peakLighting;
+        peakConstants[1] = lighting.GetSrvIndex();
+        commands.SetPipeline(deferred);
+        commands.BeginRendering(
+            { .colorAttachments = { { .pTexture = &mapped, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
+            { .sampledTextures = { &black, &average, &peakNormal, &peakBase }, .buffers = { &peakFrame, &lighting, &lightList, &activeLightList } });
+        commands.SetViewport(0, 0, 1, 1);
+        commands.SetScissor(0, 0, 1, 1);
+        commands.SetRootConstant(peakConstants);
+        commands.Draw(3);
+        commands.EndRendering();
+        read(mapped, lightingOffsets[probe]);
+    }
     struct LuminanceConstants
     {
         uint32_t input, output, previous;
@@ -1859,15 +1922,27 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
             EXPECT_NEAR(values[(178 + mode) * 4 + channel], hdrGolden[mode], 2e-5) << mode << ":" << channel;
         }
     }
-    // At normal incidence the reference GGX reduces analytically to (1-F0)/pi + F0/(4*pi*roughness^4).
+    // At normal incidence the grazing term is zero. Evaluate the analytic directional albedo in double precision.
     const double f0 = 0.08 * 8.0 / 16.0, pi = 3.141592653589793;
-    const double peakExpected = 100000.0 * ((1.0 - f0) / pi + f0 / (4.0 * pi * std::pow(0.2, 4)));
-    for (uint32_t channel = 0; channel < 3; ++channel)
+    for (uint32_t probe = 0; probe < TF_ARRAY_COUNT(roughnessCodes); ++probe)
     {
-        EXPECT_TRUE(std::isfinite(values[15 * 4 + channel]));
-        EXPECT_GT(values[15 * 4 + channel], 65504.0f);
-        EXPECT_NEAR(values[15 * 4 + channel], peakExpected, peakExpected * 2e-5);
+        const double roughness = roughnessCodes[probe] / 255.0;
+        const double albedo = roughness > 0.0 ? 1.0 - std::pow(roughness, 1.0 / roughness) * ((roughness + 0.0266916) / 1.466495)
+                                             : 1.0;
+        const double specularWeight = 1.0 + f0 * (1.0 - albedo) / albedo;
+        const double diffuseWeight = 1.0 - specularWeight * albedo * f0;
+        const double alphaSquared = std::fmax(std::pow(roughness, 4), 2e-6);
+        // The last probe has 1 lux of each RGB primary from the directional, point and spot lights.
+        const double illuminance = probe == 3 ? 1.0 : 100000.0;
+        const double expected = illuminance * (diffuseWeight / pi + specularWeight * f0 / (4.0 * pi * alphaSquared));
+        for (uint32_t channel = 0; channel < 3; ++channel)
+        {
+            const float value = values[lightingOffsets[probe] * 4 + channel];
+            EXPECT_TRUE(std::isfinite(value));
+            EXPECT_NEAR(value, expected, expected * 2e-5) << roughness;
+        }
     }
+    EXPECT_GT(values[15 * 4], 65504.0f);
     EXPECT_FLOAT_EQ(values[12 * 4], 50.0f);
     EXPECT_FLOAT_EQ(values[13 * 4], 3.0f); // log2(1),log2(4),log2(16),log2(64): geometric mean is 8, not the arithmetic mean.
     EXPECT_NEAR(values[14 * 4], 50.0 + (8.0 - 50.0) * (1.0 - std::exp(-0.3)), 1e-4);
@@ -2055,19 +2130,145 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     }
 }
 
-TEST_F(SceneAssetLoaderTest, RendererScreenSpaceAOShadersCompile)
+TEST_F(SceneAssetLoaderTest, RendererTemporalResolveGTAOAndDenoiseRespectSceneDepth)
 {
     const std::filesystem::path shaders =
         std::filesystem::absolute(std::filesystem::path(__FILE__).parent_path().parent_path().parent_path() / "Examples/Renderer/Shaders");
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
-    hz::RenderContext context({ .pAppName = "RendererShaderCompileTest", .enableGpuValidation = true });
-    // The AO pass produces the indirect-light occlusion the deferred shader consumes, so both entry points must link.
-    for (const char* entry : { "CSMain", "BlurMain" })
+    hz::RenderContext context({ .pAppName = "RendererTemporalAndGTAOTest", .enableGpuValidation = true });
+    const auto pipeline = [&](const char* file, const char* entry)
     {
-        const hz::GPUPipeline pipeline =
-            context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = entry } },
-                                                            .sourceDirectory = DirectoryOtherFiles,
-                                                            .pFileName = "ScreenSpaceAO.slang" } });
-        EXPECT_TRUE(pipeline.IsValid()) << entry;
+        return context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = entry } },
+                                                                .sourceDirectory = DirectoryOtherFiles,
+                                                                .pFileName = file } });
+    };
+    const hz::GPUPipeline temporal = pipeline("TemporalAA.slang", "CSMain");
+    const hz::GPUPipeline horizon = pipeline("GTAO.slang", "CSMain");
+    const hz::GPUPipeline upsample = pipeline("GTAO.slang", "BlurMain");
+    const hz::GPUPipeline denoise = pipeline("ScreenSpaceDenoise/SSDReflectionSpatialAccumulation.slang", "main");
+    ASSERT_TRUE(temporal.IsValid() && horizon.IsValid() && upsample.IsValid() && denoise.IsValid());
+    // Resolve each nested shader through the same runtime source path as Renderer.
+    const char* accumulationShaders[] = {
+        "ScreenSpaceDenoise/SSDShadowAOTemporalAccumulation.slang",
+        "ScreenSpaceDenoise/SSDShadowAOSpatialAccumulation.slang",
+        "ScreenSpaceDenoise/SSDReflectionTemporalAccumulation.slang",
+    };
+    for (const char* file : accumulationShaders)
+    {
+        ASSERT_TRUE(pipeline(file, "main").IsValid()) << file;
     }
+    ASSERT_TRUE(pipeline("ScreenSpaceDenoise/SSDDepthHistory.slang", "CSCopyDepth").IsValid());
+
+    static constexpr char supportSource[] = R"(
+        cbuffer RootConstant0 { uint A; uint B; uint C; uint D; uint E; };
+        [numthreads(8,8,1)] void Seed(uint3 id : SV_DispatchThreadID) {
+            RWTexture2D<float4> color = ResourceDescriptorHeap[A];
+            RWTexture2D<float> depth = ResourceDescriptorHeap[B];
+            RWTexture2D<float4> motion = ResourceDescriptorHeap[C];
+            RWTexture2D<float4> history = ResourceDescriptorHeap[D];
+            RWTexture2D<float4> normals = ResourceDescriptorHeap[E];
+            color[id.xy] = float4((id.x / 8.0).xxx, 1);
+            depth[id.xy] = id.y == 7 ? 1.0 : id.x >= 4 ? 0.35 : 0.65;
+            motion[id.xy] = float4(0, 8.0 / 255.0, 128.0 / 255.0, 0);
+            history[id.xy] = float4(0.5, 0.5, 0.5, id.x == 1 ? 5.0 : 1.0);
+            normals[id.xy] = float4(1, 1, 51.0 / 1023.0, 0);
+        }
+        [numthreads(1,1,1)] void Read() {
+            Texture2D<float4> temporal = ResourceDescriptorHeap[A];
+            Texture2D<float4> ao = ResourceDescriptorHeap[B];
+            RWStructuredBuffer<float4> output = ResourceDescriptorHeap[C];
+            Texture2D<float4> filtered = ResourceDescriptorHeap[D];
+            output[0] = float4(temporal.Load(int3(3, 3, 0)).r, temporal.Load(int3(1, 3, 0)).r,
+                               temporal.Load(int3(3, 7, 0)).a, ao.Load(int3(3, 7, 0)).r);
+            output[1] = float4(ao.Load(int3(3, 3, 0)).r, ao.Load(int3(7, 3, 0)).r,
+                               filtered.Load(int3(3, 3, 0)).r, filtered.Load(int3(3, 7, 0)).a);
+        }
+    )";
+    const auto supportPipeline = [&](const char* entry)
+    {
+        return context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
+                                                                              .pSource = supportSource,
+                                                                              .sourceSize = sizeof(supportSource) - 1,
+                                                                              .pEntryPoint = entry } } } });
+    };
+    const hz::GPUPipeline seed = supportPipeline("Seed");
+    const hz::GPUPipeline read = supportPipeline("Read");
+    ASSERT_TRUE(seed.IsValid() && read.IsValid());
+
+    const auto image = [&](uint32_t size, hz::Format format = hz::Format::R32G32B32A32_SFLOAT)
+    {
+        return context.CreateTexture({ .Width = size,
+                                       .Height = size,
+                                       .Format = format,
+                                       .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                       .Descriptors = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
+                                       .Flags = TEXTURE_CREATION_FLAG_FORCE_2D });
+    };
+    const hz::GPUTexture color = image(8), depth = image(8, hz::Format::R32_SFLOAT), motion = image(8), history = image(8),
+                         normals = image(8), resolved = image(8), halfAO = image(4), ao = image(8);
+    const hz::GPUSampler sampler =
+        context.CreateSampler({ .AddressU = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressV = ADDRESS_MODE_CLAMP_TO_EDGE });
+    struct FrameData
+    {
+        Matrix4 ViewProjection = Matrix4::identity();
+        Matrix4 PreviousViewProjection = Matrix4::identity();
+        Matrix4 InverseViewProjection = Matrix4::identity();
+        Vector4 Eye = Vector4(0, 0, -2, 1);
+    };
+    const FrameData frame;
+    const hz::GPUBuffer frameBuffer = context.CreateBuffer({ .Size = sizeof(frame),
+                                                             .ElementCount = 1,
+                                                             .StructStride = sizeof(frame),
+                                                             .pInitialData = &frame,
+                                                             .initialDataSize = sizeof(frame),
+                                                             .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                             .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                             .Descriptors = DESCRIPTOR_TYPE_BUFFER });
+    const hz::GPUBuffer output = context.CreateBuffer({ .Size = 32,
+                                                         .ElementCount = 2,
+                                                         .StructStride = 16,
+                                                         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                         .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                         .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+    const hz::GPUBuffer readback = context.CreateBuffer({ .Size = 32,
+                                                           .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                           .StartState = RESOURCE_STATE_COPY_DEST,
+                                                           .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.SetPipeline(seed);
+    commands.SetRootConstant({ color.GetUavIndex(), depth.GetUavIndex(), motion.GetUavIndex(), history.GetUavIndex(), normals.GetUavIndex() });
+    commands.Dispatch(1, 1, 1, { .storageTextures = { &color, &depth, &motion, &history, &normals } });
+    commands.SetPipeline(temporal);
+    commands.SetRootConstant({ color.GetSrvIndex(), UINT32_MAX, depth.GetSrvIndex(), motion.GetSrvIndex(), frameBuffer.GetSrvIndex(),
+                               history.GetSrvIndex(), resolved.GetUavIndex(), sampler.GetIndex(), 0, 0, 0, 0 });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &color, &depth, &motion, &history },
+                                 .storageTextures = { &resolved },
+                                 .buffers = { &frameBuffer } });
+    commands.SetPipeline(horizon);
+    commands.SetRootConstant({ frameBuffer.GetSrvIndex(), depth.GetSrvIndex(), normals.GetSrvIndex(), UINT32_MAX, halfAO.GetUavIndex(),
+                               std::bit_cast<uint32_t>(2.0f) });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &depth, &normals }, .storageTextures = { &halfAO }, .buffers = { &frameBuffer } });
+    commands.SetPipeline(upsample);
+    commands.SetRootConstant({ UINT32_MAX, depth.GetSrvIndex(), normals.GetSrvIndex(), halfAO.GetSrvIndex(), ao.GetUavIndex(), 0 });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &depth, &normals, &halfAO }, .storageTextures = { &ao } });
+    commands.SetPipeline(denoise);
+    commands.SetRootConstant({ frameBuffer.GetSrvIndex(), resolved.GetSrvIndex(), UINT32_MAX, depth.GetSrvIndex(), UINT32_MAX,
+                               normals.GetSrvIndex(), history.GetUavIndex(), 0, 0, 0, std::bit_cast<uint32_t>(0.01f), 0, UINT32_MAX });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &resolved, &depth, &normals },
+                                 .storageTextures = { &history },
+                                 .buffers = { &frameBuffer } });
+    commands.SetPipeline(read);
+    commands.SetRootConstant({ resolved.GetSrvIndex(), ao.GetSrvIndex(), output.GetUavIndex(), history.GetSrvIndex() });
+    commands.Dispatch(1, 1, 1, { .sampledTextures = { &resolved, &ao, &history }, .storageBuffers = { &output } });
+    commands.CopyBuffer(readback, 0, output, 0, 32);
+    context.Wait(context.Submit(commands));
+    const float* values = (const float*)readback.Get()->pCpuMappedAddress;
+    EXPECT_NEAR(values[0], 0.4875f, 1e-4f); // Accepted neighboring history.
+    EXPECT_NEAR(values[1], 0.125f, 1e-4f);  // Depth mismatch.
+    EXPECT_FLOAT_EQ(values[2], 0.0f);       // Sky has no history depth.
+    EXPECT_FLOAT_EQ(values[3], 1.0f);       // Sky has no occlusion.
+    EXPECT_GE(values[4], 0.0f);
+    EXPECT_LT(values[4], values[5]);      // The nearer ledge occludes the back plane.
+    EXPECT_NEAR(values[6], 0.445833f, 1e-4f); // Filters the neighbor on the same plane and rejects the brighter ledge.
+    EXPECT_FLOAT_EQ(values[7], 0.0f);
 }

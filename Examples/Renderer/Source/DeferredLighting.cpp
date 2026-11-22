@@ -24,7 +24,7 @@ struct DeferredLightingConstants
     uint32_t EnvironmentSamplerIndex;
     uint32_t RtShadowAOIndex;
     uint32_t RtReflectionIndex;
-    uint32_t SsaoIndex;
+    uint32_t GTAOIndex;
 };
 static_assert(sizeof(DeferredLightingConstants) == 15 * sizeof(uint32_t));
 
@@ -45,6 +45,11 @@ void DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     ASSERT(GBuffer.Emissive && GBuffer.NormalMaterial && GBuffer.BaseColorMetallic && GBuffer.Depth);
     ASSERT(Resources.Environment && Resources.Irradiance && Resources.BRDFLut && Resources.EnvironmentSampler);
     hz::DependencyList              Dependencies;
+    if (Resources.Lights)
+    {
+        Dependencies.Read(*Resources.Lights);
+        Dependencies.Read(*Resources.ActiveLights);
+    }
     const DeferredLightingConstants Constants = {
         .FrameIndex = Dependencies.Read(Frame),
         .LightingFrameIndex = Dependencies.Read(*Resources.LightingFrame),
@@ -60,7 +65,7 @@ void DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         .EnvironmentSamplerIndex = LightingSamplerIndex(Resources.EnvironmentSampler),
         .RtShadowAOIndex = Dependencies.Sample(Resources.RTShadowAO),
         .RtReflectionIndex = Dependencies.Sample(Resources.RTReflection),
-        .SsaoIndex = Dependencies.Sample(Resources.SSAO),
+        .GTAOIndex = Dependencies.Sample(Resources.GTAO),
     };
     Commands.BeginGpuTimestamp("DeferredLighting");
     // Keep graphics state active during GBV attachment-transition checks after DXR.
