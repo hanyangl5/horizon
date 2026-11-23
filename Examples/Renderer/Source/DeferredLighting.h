@@ -13,7 +13,7 @@ struct alignas(16) LightingFrameData
     Vector4  LightDirection = Vector4(0, -1, 0, 0);
     Vector4  LightColor = Vector4(1, 1, 1, 1);
     static constexpr float DefaultEnvironmentIntensity = 1000.0f;
-    float    EnvironmentIntensity = DefaultEnvironmentIntensity; // cd/m^2 per unit HDR environment radiance.
+    float                  EnvironmentIntensity = DefaultEnvironmentIntensity; // cd/m^2 per unit HDR environment radiance.
     float    ShadowBias = 0;
     uint32_t ShadowEnabled = 0;
     uint32_t RTShadowEnabled = 0;
@@ -22,14 +22,14 @@ struct alignas(16) LightingFrameData
     uint32_t FrameIndex = 0;
     uint32_t ShadowFilterRadius = 0;
     float    RTAOPower = 1;
-    uint32_t LightsIndex = UINT32_MAX;
-    uint32_t LightCount = 0;
-    uint32_t ActiveLightsIndex = UINT32_MAX;
-    Vector4  EnvironmentTint = Vector4(1.0f);
-    uint32_t MainDirectionalIndex = UINT32_MAX;
-    float    LuminousEfficacy = 1.0f;
+    uint32_t               LightsIndex = UINT32_MAX;
+    uint32_t               LightCount = 0;
+    uint32_t               ActiveLightsIndex = UINT32_MAX;
+    Vector4                EnvironmentTint = Vector4(1.0f);
+    uint32_t               MainDirectionalIndex = UINT32_MAX;
+    float                  LuminousEfficacy = 1.0f;
     uint32_t Padding0 = 0;
-    uint32_t Padding1 = 0;
+    uint32_t               Padding1 = 0;
 };
 static_assert(sizeof(LightingFrameData) == 176);
 

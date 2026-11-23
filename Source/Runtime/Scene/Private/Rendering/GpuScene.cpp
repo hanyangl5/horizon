@@ -285,7 +285,7 @@ public:
     GpuSceneBuffers      buffers;
     GpuTable             tables[kGpuTableCount];
     Array<GpuSceneFrame> frames;
-    Array<GpuLightData> PackedLights;
+    Array<GpuLightData>  PackedLights;
     GpuAssetTables       assets;
     uint64_t             uploadedRevision = 0;
     uint32_t             current = UINT32_MAX;

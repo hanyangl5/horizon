@@ -177,8 +177,7 @@ static void ExecuteGTAO(const hz::FrameGraphContext& Context, void* UserData)
     const FrameInputs& Frame = Inputs(Context);
     ((GTAO*)UserData)
         ->Execute(Context.Commands, Frame.Frame, *hz::GetFrameGraphTexture(Context, Frame.Targets.Depth),
-                  *hz::GetFrameGraphTexture(Context, Frame.Targets.GBuffer[1]),
-                  *hz::GetFrameGraphTexture(Context, Frame.Targets.Occlusion),
+                  *hz::GetFrameGraphTexture(Context, Frame.Targets.GBuffer[1]), *hz::GetFrameGraphTexture(Context, Frame.Targets.Occlusion),
                   *hz::GetFrameGraphTexture(Context, Frame.Targets.OcclusionScratch));
 }
 
@@ -248,14 +247,13 @@ static void ExecuteTransparency(const hz::FrameGraphContext& Context, void* User
 
 static void ExecuteTemporalAA(const hz::FrameGraphContext& Context, void* UserData)
 {
-    const FrameInputs& Frame = Inputs(Context);
-    const RenderTargets& Targets = Frame.Targets;
+    const FrameInputs&    Frame = Inputs(Context);
+    const RenderTargets&  Targets = Frame.Targets;
     const hz::GPUTexture* Opaque = hz::GetFrameGraphTexture(Context, Targets.SceneColor);
     const hz::GPUTexture* Transparent = hz::GetFrameGraphTexture(Context, Targets.TransparentColor);
-    const hz::GPUTexture* History = hz::IsFrameGraphHistoryValid(Context, Targets.TemporalColor)
-                                        ? hz::GetFrameGraphHistory(Context, Targets.TemporalColor)
-                                        : nullptr;
-    const hz::GPUTexture& Output = *hz::GetFrameGraphTexture(Context, Targets.TemporalColor);
+    const hz::GPUTexture* History =
+        hz::IsFrameGraphHistoryValid(Context, Targets.TemporalColor) ? hz::GetFrameGraphHistory(Context, Targets.TemporalColor) : nullptr;
+    const hz::GPUTexture&  Output = *hz::GetFrameGraphTexture(Context, Targets.TemporalColor);
     const TemporalAAInputs ResolveInputs = {
         .Color = Transparent ? Transparent : Opaque,
         .Opaque = Transparent ? Opaque : nullptr,
@@ -263,8 +261,8 @@ static void ExecuteTemporalAA(const hz::FrameGraphContext& Context, void* UserDa
         .Motion = hz::GetFrameGraphTexture(Context, Targets.GBuffer[3]),
         .History = History,
     };
-    ((TemporalAA*)UserData)->Execute(Context.Commands, Frame.Frame, Frame.LinearSampler, ResolveInputs, Output,
-                                     Frame.Jitter, Frame.PreviousJitter);
+    ((TemporalAA*)UserData)
+        ->Execute(Context.Commands, Frame.Frame, Frame.LinearSampler, ResolveInputs, Output, Frame.Jitter, Frame.PreviousJitter);
 }
 
 static void ExecutePost(const hz::FrameGraphContext& Context, void* UserData)
@@ -288,7 +286,9 @@ static void ExecutePost(const hz::FrameGraphContext& Context, void* UserData)
     }
     const hz::GPUTexture* Temporal = Frame.TemporalAAEnabled ? hz::GetFrameGraphTexture(Context, Targets.TemporalColor) : nullptr;
     const hz::GPUTexture* Transparent = hz::GetFrameGraphTexture(Context, Targets.TransparentColor);
-    const hz::GPUTexture& SceneColor = Temporal ? *Temporal : Transparent ? *Transparent : *hz::GetFrameGraphTexture(Context, Targets.SceneColor);
+    const hz::GPUTexture& SceneColor = Temporal      ? *Temporal
+                                       : Transparent ? *Transparent
+                                                     : *hz::GetFrameGraphTexture(Context, Targets.SceneColor);
     ((PostEffects*)UserData)
         ->Execute(Context.Commands, SceneColor, *hz::GetFrameGraphTexture(Context, Targets.Backbuffer), Frame.DeltaSeconds, PostTargets);
 }
@@ -420,7 +420,8 @@ void RenderPasses::BuildGraph()
     hz::AddFrameGraphPass(
         G, { .Name = "GBuffer", .Execute = ExecuteGBuffer, .UserData = GBufferPass.Get(), .Textures = GBufferUses, .Buffers = ReadLists });
     const Use GTAOUses[] = { { T.Depth, Read }, { T.GBuffer[1], Read }, { T.Occlusion, Write }, { T.OcclusionScratch, Write } };
-    GTAOGraphPass = hz::AddFrameGraphPass(G, { .Name = "GTAO", .Execute = ExecuteGTAO, .UserData = GroundTruthAO.Get(), .Textures = GTAOUses });
+    GTAOGraphPass =
+        hz::AddFrameGraphPass(G, { .Name = "GTAO", .Execute = ExecuteGTAO, .UserData = GroundTruthAO.Get(), .Textures = GTAOUses });
     const Use RTUses[] = { { T.GBuffer[1], Read },
                            { T.GBuffer[3], Read },
                            { T.Depth, Read },
@@ -436,11 +437,9 @@ void RenderPasses::BuildGraph()
     RayTracingPass = hz::AddFrameGraphPass(
         G,
         { .Name = "Ray Tracing", .Execute = ExecuteRayTracing, .UserData = RayTracing.Get(), .Textures = RTUses, .Buffers = ReadSkinned });
-    const Use LightingUses[] = { { T.GBuffer[0], Read },   { T.GBuffer[1], Read },
-                                 { T.GBuffer[2], Read },   { T.Depth, Read },
-                                 { T.ShadowMap, Read },    { T.Occlusion, Optional },
-                                 { T.RTResult, Optional }, { T.RTReflection, Optional },
-                                 { T.SceneColor, Write } };
+    const Use LightingUses[] = { { T.GBuffer[0], Read },   { T.GBuffer[1], Read },       { T.GBuffer[2], Read },
+                                 { T.Depth, Read },        { T.ShadowMap, Read },        { T.Occlusion, Optional },
+                                 { T.RTResult, Optional }, { T.RTReflection, Optional }, { T.SceneColor, Write } };
     hz::AddFrameGraphPass(G, { .Name = "Lighting", .Execute = ExecuteLighting, .UserData = Lighting.Get(), .Textures = LightingUses });
     const Use EnvironmentUses[] = { { T.SceneColor, Modify }, { T.Depth, Read } };
     hz::AddFrameGraphPass(
@@ -458,7 +457,7 @@ void RenderPasses::BuildGraph()
                                                   .Textures = TransparencyUses,
                                                   .Buffers = TransparencyAllBuffers });
     const Use TemporalUses[] = { { T.SceneColor, Read }, { T.TransparentColor, Optional }, { T.Depth, Read },
-                                 { T.GBuffer[3], Read }, { T.TemporalColor, History }, { T.TemporalColor, Write } };
+                                 { T.GBuffer[3], Read }, { T.TemporalColor, History },     { T.TemporalColor, Write } };
     TemporalAAPass = hz::AddFrameGraphPass(
         G, { .Name = "Temporal AA", .Execute = ExecuteTemporalAA, .UserData = Antialiasing.Get(), .Textures = TemporalUses });
     Use      PostUses[4 + PostEffectsTargets::LuminanceLevels + 2 * PostEffectsTargets::BloomLevels - 1 + 2];
@@ -557,7 +556,7 @@ void RenderPasses::Update(float FrameDeltaSeconds) { DeltaSeconds = FrameDeltaSe
 static Matrix4 CameraViewProjection(const Matrix4& Pose, const hz::Camera& Lens, float AspectInverse, TemporalJitter Jitter)
 {
     const float HorizontalFov = 2.0f * atanf(tanf(Lens.verticalFov * 0.5f) / AspectInverse);
-    Matrix4 Projection = Matrix4::perspectiveRH(HorizontalFov, AspectInverse, Lens.nearPlane, Lens.farPlane);
+    Matrix4       Projection = Matrix4::perspectiveRH(HorizontalFov, AspectInverse, Lens.nearPlane, Lens.farPlane);
     const Vector4 ClipW = Projection.getRow(3);
     Projection.setRow(0, Projection.getRow(0) + ClipW * (2.0f * Jitter.X));
     Projection.setRow(1, Projection.getRow(1) - ClipW * (2.0f * Jitter.Y));
@@ -595,19 +594,18 @@ void RenderPasses::Execute()
     ASSERT(Camera);
     const hz::RenderCamera& CameraState = *Camera;
     const float             AspectInverse = (float)Context.GetHeight() / (float)Context.GetWidth();
-    const TemporalJitter Jitter = EnableTemporalAA
-                                         ? TemporalAA::GetJitter(Shadows->Data.FrameIndex, Context.GetWidth(), Context.GetHeight())
-                                         : TemporalJitter{};
+    const TemporalJitter    Jitter =
+        EnableTemporalAA ? TemporalAA::GetJitter(Shadows->Data.FrameIndex, Context.GetWidth(), Context.GetHeight()) : TemporalJitter{};
     if (EnableTemporalAA && !TemporalAAWasEnabled)
     {
         hz::InvalidateFrameGraphHistory(Graph, Targets.TemporalColor);
     }
-    const Matrix4 Current = CameraViewProjection(CameraState.current, CameraState.lens, AspectInverse, Jitter);
-    const FrameData FrameValues = { .ViewProjection = Current,
-                                    .PreviousViewProjection =
-                                        CameraViewProjection(CameraState.previous, CameraState.previousLens, AspectInverse, PreviousJitter),
-                                    .InverseViewProjection = inverse(Current),
-                                    .Eye = CameraState.current.getCol3() };
+    const Matrix4           Current = CameraViewProjection(CameraState.current, CameraState.lens, AspectInverse, Jitter);
+    const FrameData         FrameValues = { .ViewProjection = Current,
+                                            .PreviousViewProjection =
+                                                CameraViewProjection(CameraState.previous, CameraState.previousLens, AspectInverse, PreviousJitter),
+                                            .InverseViewProjection = inverse(Current),
+                                            .Eye = CameraState.current.getCol3() };
     const hz::GPUBuffer&    Frame = ConstantBuffer.Buffer;
     const bool              Updated = Context.UpdateBuffer(Frame, 0, &FrameValues, sizeof(FrameValues));
     ASSERT(Updated);
@@ -622,8 +620,8 @@ void RenderPasses::Execute()
     Shadows->Data.RTAOEnabled = RayTracingReady && RayTracing->Settings.AO ? 1u : 0u;
     Shadows->Data.RTAOPower = RayTracing->Settings.AOPower;
     const hz::GpuSceneBuffers& SceneBuffers = GpuSceneData.GetBuffers();
-    LightingFrameData& LightingData = Shadows->Data;
-    const hz::Span<uint32_t> ActiveLights = Scene.GetActiveLights();
+    LightingFrameData&         LightingData = Shadows->Data;
+    const hz::Span<uint32_t>   ActiveLights = Scene.GetActiveLights();
     LightingData.LightCount = ActiveLights.Count;
     LightingData.LightsIndex = LightingData.LightCount ? SceneBuffers.lights.GetSrvIndex() : UINT32_MAX;
     LightingData.ActiveLightsIndex = LightingData.LightCount ? SceneBuffers.activeLights.GetSrvIndex() : UINT32_MAX;

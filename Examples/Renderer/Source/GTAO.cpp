@@ -21,25 +21,25 @@ GTAO::GTAO(hz::RenderContext& Context)
     ASSERT(HorizonPipeline.IsValid() && UpsamplePipeline.IsValid());
 }
 
-void GTAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
-                            const hz::GPUTexture& Normals, const hz::GPUTexture& Occlusion, const hz::GPUTexture& Scratch)
+void GTAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth, const hz::GPUTexture& Normals,
+                   const hz::GPUTexture& Occlusion, const hz::GPUTexture& Scratch)
 {
-    hz::DependencyList HorizonDependencies;
+    hz::DependencyList  HorizonDependencies;
     const GTAOConstants Horizon = { .FrameIndex = HorizonDependencies.Read(Frame),
-                                             .DepthIndex = HorizonDependencies.Sample(&Depth),
-                                             .NormalIndex = HorizonDependencies.Sample(&Normals),
-                                             .OutputIndex = HorizonDependencies.Store(&Scratch),
-                                             .Radius = Radius > 0.0f ? Radius : 1e-4f };
+                                    .DepthIndex = HorizonDependencies.Sample(&Depth),
+                                    .NormalIndex = HorizonDependencies.Sample(&Normals),
+                                    .OutputIndex = HorizonDependencies.Store(&Scratch),
+                                    .Radius = Radius > 0.0f ? Radius : 1e-4f };
     Commands.BeginGpuTimestamp("GTAO");
     Commands.SetPipeline(HorizonPipeline);
     Commands.SetRootConstants(Horizon);
     Commands.Dispatch((Scratch.GetWidth() + 15) / 16, (Scratch.GetHeight() + 15) / 16, 1, HorizonDependencies.Get());
 
-    hz::DependencyList UpsampleDependencies;
+    hz::DependencyList  UpsampleDependencies;
     const GTAOConstants Upsample = { .DepthIndex = UpsampleDependencies.Sample(&Depth),
-                                              .NormalIndex = UpsampleDependencies.Sample(&Normals),
-                                              .SourceIndex = UpsampleDependencies.Sample(&Scratch),
-                                              .OutputIndex = UpsampleDependencies.Store(&Occlusion) };
+                                     .NormalIndex = UpsampleDependencies.Sample(&Normals),
+                                     .SourceIndex = UpsampleDependencies.Sample(&Scratch),
+                                     .OutputIndex = UpsampleDependencies.Store(&Occlusion) };
     Commands.SetPipeline(UpsamplePipeline);
     Commands.SetRootConstants(Upsample);
     Commands.Dispatch((Occlusion.GetWidth() + 15) / 16, (Occlusion.GetHeight() + 15) / 16, 1, UpsampleDependencies.Get());

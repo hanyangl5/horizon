@@ -112,7 +112,7 @@ private:
     hz::UniquePtr<GBuffer>                 GBufferPass;
     hz::UniquePtr<DeferredLighting>        Lighting;
     hz::UniquePtr<PostEffects>             PostProcessing;
-    hz::UniquePtr<GTAO>                        GroundTruthAO;
+    hz::UniquePtr<GTAO>                    GroundTruthAO;
     hz::UniquePtr<EnvironmentPass>         Environment;
     hz::UniquePtr<ShadowMap>               Shadows;
     hz::UniquePtr<Transparency>            Transparency;
@@ -132,6 +132,6 @@ private:
     hz::FrameGraphPass                     RayTracingPass;
     hz::FrameGraphPass                     TransparencyPass;
     hz::FrameGraphPass                     TemporalAAPass;
-    TemporalJitter                                PreviousJitter = TemporalJitter{};
+    TemporalJitter                         PreviousJitter = TemporalJitter{};
     bool                                   TemporalAAWasEnabled = false;
 };

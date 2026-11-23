@@ -74,8 +74,8 @@ private:
     hz::RenderContext&             Context;
     hz::UniquePtr<RayTracingScene> RayScene;
     hz::UniquePtr<ScreenSpaceDenoise> Denoiser;
-    hz::GPUPipeline                ShadowPipeline;
-    hz::GPURayTracingPipeline      ReflectionPipeline;
+    hz::GPUPipeline                   ShadowPipeline;
+    hz::GPURayTracingPipeline         ReflectionPipeline;
     hz::GPUSampler                 MaterialSampler;
     hz::GPUTexture                 BlueNoise;
     RayTracedEffectsSettings       PreviousSettings;
