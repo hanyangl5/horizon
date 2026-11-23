@@ -39,7 +39,9 @@ void hz::CommandList::Barrier(uint32_t BufferCount, BufferBarrier* BufferBarrier
                               uint32_t RenderTargetCount, RenderTargetBarrier* RenderTargetBarriers)
 {
     if (BufferCount || TextureCount || RenderTargetCount)
+    {
         cmdResourceBarrier(pCmd, BufferCount, BufferBarriers, TextureCount, TextureBarriers, RenderTargetCount, RenderTargetBarriers);
+    }
 }
 
 void hz::CommandList::AddBufferBarriers(hz::Span<const hz::GPUBuffer*> Buffers, bool Storage)
@@ -69,7 +71,9 @@ void hz::CommandList::AddBufferBarriers(hz::Span<const hz::GPUBuffer*> Buffers, 
         }
         if (BufferValue->state != StateValue || Storage)
         {
-            const BufferBarrier BufferBarrierValue = { .pBuffer = BufferValue->pBuffer, .currentState = BufferValue->state, .newState = StateValue };
+            const BufferBarrier BufferBarrierValue = { .pBuffer = BufferValue->pBuffer,
+                                                       .currentState = BufferValue->state,
+                                                       .newState = StateValue };
             arrpush(bufferBarriers, BufferBarrierValue);
             BufferValue->state = StateValue;
         }

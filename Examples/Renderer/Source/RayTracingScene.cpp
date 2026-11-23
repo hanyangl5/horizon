@@ -31,7 +31,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const hz::SceneView& Vie
             ASSERT(Mesh);
             const IndirectDrawIndexArguments& Submesh = Mesh->GetDraw(Source.Mesh.submeshIndex);
             // A skinned instance traces its own skinned positions, indexed like the mesh streams.
-            const hz::GpuSkinnedVertices* Skinned =
+            const hz::GpuSkinnedVertices*     Skinned =
                 Source.SkinnedInstance.IsValid() && View.Skinning ? View.Skinning->Find(Source.SkinnedInstance) : nullptr;
             ASSERT(Skinned || !Source.SkinnedInstance.IsValid());
             const hz::GPUBuffer& Vertices = Skinned ? Skinned->Positions : Mesh->GetVertexBuffer(0);
@@ -53,7 +53,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const hz::SceneView& Vie
             };
             BottomLevelAS[Index] = Context.CreateAccelerationStructure(
                 { .Flags = Skinned ? AccelerationStructureBuildFlags(ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE |
-                                                                          ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD)
+                                                                     ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD)
                                    : ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE,
                   .geometries = { &Geometry, 1 } });
             ASSERT(BottomLevelAS[Index].IsValid());

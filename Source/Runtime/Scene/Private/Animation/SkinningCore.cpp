@@ -32,7 +32,9 @@ public:
     {
         const ozz::span<const ozz::math::SoaTransform> Rest = Skeleton.joint_rest_poses();
         for (uint32_t I = 0; I < Locals.Size(); ++I)
+        {
             Locals[I] = Rest[I];
+        }
     }
 
     bool Sample(const AnimationLayer& Layer, ozz::span<ozz::math::SoaTransform> Output)
@@ -46,15 +48,15 @@ public:
         return Job.Run();
     }
 
-    const SkeletonAsset&                   Asset;
-    const ozz::animation::Skeleton&         Skeleton;
-    ozz::animation::SamplingJob::Context    Context;
-    Array<ozz::math::SoaTransform>          Locals;
+    const SkeletonAsset&                      Asset;
+    const ozz::animation::Skeleton&           Skeleton;
+    ozz::animation::SamplingJob::Context      Context;
+    Array<ozz::math::SoaTransform>            Locals;
     // Sampling output of each layer when more than one layer blends.
-    Array<ozz::math::SoaTransform>          Sampled;
+    Array<ozz::math::SoaTransform>            Sampled;
     Array<ozz::animation::BlendingJob::Layer> BlendLayers;
-    Array<ozz::math::Float4x4>              Models;
-    Array<Matrix4>                          ModelMatrices;
+    Array<ozz::math::Float4x4>                Models;
+    Array<Matrix4>                            ModelMatrices;
 };
 
 SkinningCore::SkinningCore(const SkeletonAsset& Skeleton)
@@ -75,7 +77,9 @@ bool SkinningCore::Evaluate(Span<AnimationLayer> Layers)
     for (const AnimationLayer& Layer : Layers)
     {
         if (!Layer.Clip || Layer.Weight <= 0.0f)
+        {
             continue;
+        }
         if (Layer.Clip->Data->animation.num_tracks() != JointCount)
         {
             LOGF(Error, "Animation has %d tracks for a %d-joint skeleton", Layer.Clip->Data->animation.num_tracks(), JointCount);
@@ -86,27 +90,39 @@ bool SkinningCore::Evaluate(Span<AnimationLayer> Layers)
     const uint32_t                     SoaJoints = Data->Locals.Size();
     ozz::span<ozz::math::SoaTransform> Locals(Data->Locals.GetData(), SoaJoints);
     if (!Active)
+    {
         Data->RestPose();
+    }
     else if (Active == 1)
     {
         for (const AnimationLayer& Layer : Layers)
+        {
             if (Layer.Clip && Layer.Weight > 0.0f && !Data->Sample(Layer, Locals))
+            {
                 return false;
+            }
+        }
     }
     else
     {
         // Grows only when more layers blend than before.
         if (Data->Sampled.Size() < Active * SoaJoints)
+        {
             Data->Sampled.Resize(Active * SoaJoints);
+        }
         Data->BlendLayers.Resize(Active);
         uint32_t Index = 0;
         for (const AnimationLayer& Layer : Layers)
         {
             if (!Layer.Clip || Layer.Weight <= 0.0f)
+            {
                 continue;
+            }
             ozz::span<ozz::math::SoaTransform> Output(Data->Sampled.GetData() + Index * SoaJoints, SoaJoints);
             if (!Data->Sample(Layer, Output))
+            {
                 return false;
+            }
             Data->BlendLayers[Index].weight = Layer.Weight;
             Data->BlendLayers[Index].transform = Output;
             ++Index;
@@ -116,24 +132,29 @@ bool SkinningCore::Evaluate(Span<AnimationLayer> Layers)
         Job.rest_pose = Data->Skeleton.joint_rest_poses();
         Job.output = Locals;
         if (!Job.Run())
+        {
             return false;
+        }
     }
     ozz::animation::LocalToModelJob Job;
     Job.skeleton = &Data->Skeleton;
     Job.input = { Data->Locals.GetData(), SoaJoints };
     Job.output = { Data->Models.GetData(), Data->Models.Size() };
     if (!Job.Run())
+    {
         return false;
+    }
     for (uint32_t Joint = 0; Joint < Data->Models.Size(); ++Joint)
     {
         float Columns[4][4];
         for (uint32_t Column = 0; Column < 4; ++Column)
+        {
             ozz::math::StorePtrU(Data->Models[Joint].cols[Column], Columns[Column]);
-        Data->ModelMatrices[Joint] =
-            Matrix4(Vector4(Columns[0][0], Columns[0][1], Columns[0][2], Columns[0][3]),
-                    Vector4(Columns[1][0], Columns[1][1], Columns[1][2], Columns[1][3]),
-                    Vector4(Columns[2][0], Columns[2][1], Columns[2][2], Columns[2][3]),
-                    Vector4(Columns[3][0], Columns[3][1], Columns[3][2], Columns[3][3]));
+        }
+        Data->ModelMatrices[Joint] = Matrix4(Vector4(Columns[0][0], Columns[0][1], Columns[0][2], Columns[0][3]),
+                                             Vector4(Columns[1][0], Columns[1][1], Columns[1][2], Columns[1][3]),
+                                             Vector4(Columns[2][0], Columns[2][1], Columns[2][2], Columns[2][3]),
+                                             Vector4(Columns[3][0], Columns[3][1], Columns[3][2], Columns[3][3]));
     }
     return true;
 }
@@ -144,7 +165,9 @@ void SkinningCore::WriteSkinMatrices(uint32_t Skin, Matrix4* Output) const
 {
     const SkinData& Skinning = Data->Asset.Data->skins[Skin];
     for (uint32_t I = 0; I < Skinning.joints.Size(); ++I)
+    {
         Output[I] = Data->ModelMatrices[Skinning.joints[I]] * Skinning.inverseBind[I];
+    }
 }
 
 bool SkinningCore::GetSkinBounds(uint32_t Skin, SkinBounds& Bounds) const
@@ -162,7 +185,9 @@ bool SkinningCore::GetSkinBounds(uint32_t Skin, SkinBounds& Bounds) const
     {
         const float* Box = Skinning.bounds.GetData() + I * 6;
         if (Box[0] > Box[3])
+        {
             continue;
+        }
         Found = true;
         const Matrix4& Matrix = Data->ModelMatrices[Skinning.joints[I]];
         for (uint32_t Row = 0; Row < 3; ++Row)

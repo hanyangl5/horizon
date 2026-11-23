@@ -77,7 +77,8 @@ public:
         TextureLoadDesc Desc = {
             .ppTexture = &DataValue.pUpload,
             .pFileName = DataValue.entry.location.pPath,
-            .creationFlag = (TextureCreationFlags)(TEXTURE_CREATION_FLAG_FORCE_2D | (DataValue.entry.srgb ? TEXTURE_CREATION_FLAG_SRGB : 0)),
+            .creationFlag =
+                (TextureCreationFlags)(TEXTURE_CREATION_FLAG_FORCE_2D | (DataValue.entry.srgb ? TEXTURE_CREATION_FLAG_SRGB : 0)),
             .container = stricmp(Extension, ".ktx") ? TEXTURE_CONTAINER_DDS : TEXTURE_CONTAINER_KTX,
             .resourceDirectory = DataValue.entry.location.root == AssetPathRoot::Cooked ? Loader.cookedDirectory : Loader.sourceDirectory,
             .pSuccess = &DataValue.uploadSucceeded,
@@ -89,7 +90,9 @@ public:
     {
         TextureAssetData& DataValue = *((TextureAsset*)Payload)->Data;
         if (!isTokenCompleted(&DataValue.token))
+        {
             return AssetLoadStatus::Pending;
+        }
         if (!DataValue.uploadSucceeded || !DataValue.pUpload)
         {
             LOGF(Error, "TextureAsset Upload failed: '%s'", DataValue.entry.location.pPath);

@@ -42,7 +42,9 @@ public:
     ~AnimationSystemData()
     {
         for (AnimatedEntity& Entity : Entities)
+        {
             Release(Entity);
+        }
         hmfree(Indices);
     }
 
@@ -51,9 +53,13 @@ public:
         MemDelete(Entity.Pose);
         Entity.Pose = nullptr;
         if (Entity.Skeleton.IsValid())
+        {
             Assets.Release(Entity.Skeleton);
+        }
         if (Entity.Clip.IsValid())
+        {
             Assets.Release(Entity.Clip);
+        }
         Entity.Skeleton = {};
         Entity.Clip = {};
     }
@@ -62,9 +68,13 @@ public:
     void Retain(AssetID Id, AssetID& CurrentID, AssetHandle& Handle)
     {
         if (CurrentID == Id)
+        {
             return;
+        }
         if (Handle.IsValid())
+        {
             Assets.Release(Handle);
+        }
         CurrentID = Id;
         Handle = Id.IsValid() ? Assets.Request(Id) : AssetHandle{};
     }
@@ -93,7 +103,9 @@ public:
         }
         Data.Retain(Component.asset, Animated.SkeletonID, Animated.Skeleton);
         if (Player && Animated.ClipID != Player->clip)
+        {
             Animated.ReportedMismatch = false;
+        }
         Data.Retain(Player ? Player->clip : AssetID{}, Animated.ClipID, Animated.Clip);
         Data.Animate(Animated, Player);
         return true;
@@ -103,9 +115,13 @@ public:
     {
         const SkeletonAsset* Skeleton = Assets.GetSkeleton(Animated.Skeleton);
         if (!Skeleton)
+        {
             return;
+        }
         if (!Animated.Pose)
+        {
             Animated.Pose = MemNew(SkinningCore, *Skeleton);
+        }
         const AnimationClipAsset* Clip = Assets.GetAnimationClip(Animated.Clip);
         AnimationLayer            Layer;
         if (Player && Clip)
@@ -116,7 +132,9 @@ public:
             {
                 Advanced.time += DeltaSeconds * Advanced.speed;
                 if (Advanced.loop)
+                {
                     Advanced.time -= floorf(Advanced.time / Duration) * Duration;
+                }
                 else if (Advanced.time <= 0.0f || Advanced.time >= Duration)
                 {
                     Advanced.time = fminf(fmaxf(Advanced.time, 0.0f), Duration);
@@ -140,7 +158,9 @@ public:
         ASSERT(!SceneWorld.IsDeferred());
         DeltaSeconds = Elapsed;
         for (AnimatedEntity& Entity : Entities)
+        {
             Entity.Seen = false;
+        }
         Query.Each(Sync, this);
         for (uint32_t I = 0; I < Entities.Size();)
         {

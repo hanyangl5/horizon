@@ -110,11 +110,11 @@ public:
         ASSERT(Desc.frameCount);
         frames.Resize(Desc.frameCount);
         GPUBuffer* const  Buffers[] = { &buffers.primitives,        &buffers.instances,        &buffers.meshBatches,
-                                         &buffers.instanceIndices,   &buffers.activePrimitives, &buffers.activeInstances,
-                                         &buffers.activeMeshBatches, &buffers.lights,           &buffers.cameras,
-                                         &buffers.activeLights,      &buffers.activeCameras,    &buffers.meshes,
-                                         &buffers.vertexStreams,     &buffers.submeshes,        &buffers.materials,
-                                         &buffers.textures };
+                                        &buffers.instanceIndices,   &buffers.activePrimitives, &buffers.activeInstances,
+                                        &buffers.activeMeshBatches, &buffers.lights,           &buffers.cameras,
+                                        &buffers.activeLights,      &buffers.activeCameras,    &buffers.meshes,
+                                        &buffers.vertexStreams,     &buffers.submeshes,        &buffers.materials,
+                                        &buffers.textures };
         const uint32_t    Strides[] = { sizeof(RenderPrimitive),
                                         sizeof(RenderInstance),
                                         sizeof(RenderMeshBatch),
@@ -242,10 +242,10 @@ public:
                 FrameValue.Capacity = GrowCapacity(FrameValue.Capacity, Staged);
                 context.DeferRelease(std::move(FrameValue.staging));
                 FrameValue.staging = context.CreateBuffer({ .Size = FrameValue.Capacity,
-                                                       .Name = "GpuScene.Staging",
-                                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                                       .StartState = RESOURCE_STATE_GENERIC_READ,
-                                                       .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+                                                            .Name = "GpuScene.Staging",
+                                                            .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                            .StartState = RESOURCE_STATE_GENERIC_READ,
+                                                            .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
                 ASSERT(FrameValue.staging.IsValid());
             }
             for (uint32_t I = 0; I < kGpuTableCount; ++I)

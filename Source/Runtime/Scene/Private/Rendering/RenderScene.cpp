@@ -16,16 +16,26 @@ namespace hz
 static bool EqualMatrix(const Matrix4& A, const Matrix4& B)
 {
     for (uint32_t Column = 0; Column < 4; ++Column)
+    {
         for (uint32_t Row = 0; Row < 4; ++Row)
+        {
             if ((float)A.getElem(Column, Row) != (float)B.getElem(Column, Row))
+            {
                 return false;
+            }
+        }
+    }
     return true;
 }
 static bool EqualBounds(const RenderBounds& A, const RenderBounds& B)
 {
     for (uint32_t I = 0; I < 3; ++I)
+    {
         if (A.minimum[I] != B.minimum[I] || A.maximum[I] != B.maximum[I])
+        {
             return false;
+        }
+    }
     return true;
 }
 static bool EqualLens(const Camera& A, const Camera& B)
@@ -109,18 +119,21 @@ class RenderSceneData
 {
 public:
     RenderSceneData(World& WorldData, AssetManager& AssetManagerValue, const AnimationSystem* Animation):
-        world(WorldData), assetManager(AssetManagerValue), animation(Animation), bindings(WorldData, AssetManagerValue), changes(WorldData), query(WorldData, { SceneTypes::meshRenderer }),
-        lightQuery(WorldData, { SceneTypes::light }), cameraQuery(WorldData, { SceneTypes::camera })
+        world(WorldData), assetManager(AssetManagerValue), animation(Animation), bindings(WorldData, AssetManagerValue), changes(WorldData),
+        query(WorldData, { SceneTypes::meshRenderer }), lightQuery(WorldData, { SceneTypes::light }),
+        cameraQuery(WorldData, { SceneTypes::camera })
     {
         ASSERT(query.IsValid() && lightQuery.IsValid() && cameraQuery.IsValid());
     }
     ~RenderSceneData()
     {
         for (const RenderLightEntity& LightValue : lightEntities)
+        {
             if (LightValue.texture.IsValid())
             {
                 assetManager.Release(LightValue.texture);
             }
+        }
         hmfree(pIndices);
         hmfree(pLightIndices);
         hmfree(pCameraIndices);
@@ -219,7 +232,9 @@ public:
             {
                 const RenderEntityIndex* IndexPointer = hmgetp_null(pIndices, EntityHandle.entity);
                 if (IndexPointer)
+                {
                     Next.primitive = entities[IndexPointer->value].primitive;
+                }
                 const RenderPrimitive* PrimitivePointer = primitives.Get(Next.primitive);
                 Next.ready = Next.ready && PrimitivePointer && PrimitivePointer->instanceCount ? 1u : 0u;
             }
@@ -258,8 +273,9 @@ public:
         const Camera&  PreviousLens = CameraEntity.historyValid ? CameraEntity.submittedLens : Lens;
         const Guid     EntityGuid = DataValue.world.GetEntityGuid(EntityHandle);
         RenderCamera&  CameraData = DataValue.cameras.Values[CameraEntity.id.index];
-        if (CameraData.entityGuid != EntityGuid || !EqualMatrix(CameraData.current, Current) || !EqualMatrix(CameraData.previous, Previous) ||
-            !EqualLens(CameraData.lens, Lens) || !EqualLens(CameraData.previousLens, PreviousLens))
+        if (CameraData.entityGuid != EntityGuid || !EqualMatrix(CameraData.current, Current) ||
+            !EqualMatrix(CameraData.previous, Previous) || !EqualLens(CameraData.lens, Lens) ||
+            !EqualLens(CameraData.previousLens, PreviousLens))
         {
             CameraData.entityGuid = EntityGuid;
             CameraData.current = Current;
@@ -395,9 +411,13 @@ public:
         if ((Skin == UINT32_MAX) != (EntityHandle.skin == UINT32_MAX))
         {
             if (Skin == UINT32_MAX)
+            {
                 removeSkinnedEntity(EntityHandle.entity);
+            }
             else
+            {
                 skinnedEntities.PushBack(EntityHandle.entity);
+            }
         }
         EntityHandle.skin = Skin;
         RenderPrimitive&        PrimitiveValue = primitives.Values[EntityHandle.primitive.index];
@@ -405,8 +425,9 @@ public:
         ASSERT(BindingPointer);
         const bool       ReadyValue = BindingPointer->state == AssetBindingState::Ready;
         const MeshAsset* MeshPointer = assetManager.GetMesh(BindingPointer->mesh);
-        const GpuMeshID  MeshValue = MeshPointer ? GpuMeshID{ .index = BindingPointer->mesh.index, .generation = BindingPointer->mesh.generation } : GpuMeshID{};
-        const uint32_t   Count = ReadyValue ? 1u : 0u;
+        const GpuMeshID  MeshValue =
+            MeshPointer ? GpuMeshID{ .index = BindingPointer->mesh.index, .generation = BindingPointer->mesh.generation } : GpuMeshID{};
+        const uint32_t Count = ReadyValue ? 1u : 0u;
         if (PrimitiveValue.mesh != MeshValue)
         {
             removeMeshBatches(EntityHandle);
@@ -457,9 +478,9 @@ public:
         RenderInstance&       Instance = instances.Values[EntityHandle.instance.index];
         const Guid            EntityGuid = world.GetEntityGuid(EntityHandle.entity);
         // updateSkins bounds skinned instances by their pose.
-        const RenderBounds    Bounds = !ReadyValue ? RenderBounds{}
+        const RenderBounds    Bounds = !ReadyValue                       ? RenderBounds{}
                                        : EntityHandle.skin != UINT32_MAX ? Instance.bounds
-                                                                   : TransformBounds(EntityHandle.localBounds, Transform.current);
+                                                                         : TransformBounds(EntityHandle.localBounds, Transform.current);
         RenderHistory&        History = instanceHistory[EntityHandle.instance.index];
         const Matrix4&        Previous = History.valid ? History.submitted : Transform.current;
         if (Instance.entityGuid != EntityGuid || !EqualMatrix(Instance.current, Transform.current) ||
@@ -481,12 +502,14 @@ public:
     void removeSkinnedEntity(Entity EntityHandle)
     {
         for (uint32_t I = 0; I < skinnedEntities.Size(); ++I)
+        {
             if (skinnedEntities[I] == EntityHandle)
             {
                 skinnedEntities[I] = skinnedEntities[skinnedEntities.Size() - 1];
                 skinnedEntities.PopBack();
                 return;
             }
+        }
     }
     static bool extractEntity(Entity EntityHandle, Span<const void*>, void* User)
     {
@@ -500,7 +523,9 @@ public:
     {
         RenderEntity& EntityHandle = entities[I];
         if (EntityHandle.skin != UINT32_MAX)
+        {
             removeSkinnedEntity(EntityHandle.entity);
+        }
         removeMeshBatches(EntityHandle);
         setInstanceIndex(EntityHandle.primitive.index, UINT32_MAX);
         instanceEntities[EntityHandle.instance.index] = {};
@@ -624,9 +649,13 @@ public:
         cameras.BeginUpdate();
         indicesDirty.Clear();
         for (RenderLightEntity& EntityHandle : lightEntities)
+        {
             EntityHandle.seen = false;
+        }
         for (RenderCameraEntity& EntityHandle : cameraEntities)
+        {
             EntityHandle.seen = false;
+        }
         // Retain new emission maps before mesh/material bindings Release old dependencies.
         lightQuery.Each(syncLight, this);
         {
@@ -723,23 +752,27 @@ public:
     {
         ASSERT(!frameLocked);
         for (RenderEntity& EntityHandle : entities)
+        {
             if (!Target.IsValid() || EntityHandle.entity == Target)
             {
                 instanceHistory[EntityHandle.instance.index].valid = false;
                 instanceHistory[EntityHandle.instance.index].Reset = true;
                 historyFollowUp.PushBack(EntityHandle.entity);
             }
+        }
         for (RenderCameraEntity& EntityHandle : cameraEntities)
+        {
             if (!Target.IsValid() || EntityHandle.entity == Target)
             {
                 EntityHandle.historyValid = false;
                 EntityHandle.historyReset = true;
             }
+        }
     }
 
     World&                                          world;
     AssetManager&                                   assetManager;
-    const AnimationSystem*                          animation = nullptr;
+    const AnimationSystem*                            animation = nullptr;
     WorldAssetBindings                              bindings;
     WorldChangeLog                                    changes;
     WorldQuery                                      query;
@@ -771,9 +804,9 @@ public:
     Array<Entity>                                     instanceEntities;
     Array<RenderRange>                              uploadRanges[6];
     // Mesh entities with a SkinnedMesh, visited by every Update.
-    Array<Entity>                                   skinnedEntities;
-    Array<RenderSkin>                               skins;
-    Array<Matrix4>                                  skinMatrices;
+    Array<Entity>                                     skinnedEntities;
+    Array<RenderSkin>                                 skins;
+    Array<Matrix4>                                    skinMatrices;
     uint64_t                                        revision = 0;
     bool                                            frameLocked = false;
 };

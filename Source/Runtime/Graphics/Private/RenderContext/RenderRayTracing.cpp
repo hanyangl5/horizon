@@ -157,7 +157,7 @@ GPUAccelerationStructure RenderContext::CreateAccelerationStructure(const Accele
                                   .indexCount = GeometryValue.indexCount,
                                   .indexType = GeometryValue.indexType,
                                   .Flags = GeometryValue.opaque ? ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE
-                                                           : ACCELERATION_STRUCTURE_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION });
+                                                                : ACCELERATION_STRUCTURE_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION });
             DataValue->inputs.PushBack(GeometryValue.pVertexBuffer);
             if (GeometryValue.pIndexBuffer)
             {
@@ -250,8 +250,8 @@ void CommandList::UpdateAccelerationStructure(GPUAccelerationStructure& Structur
     ASSERT(DataValue.Type == ACCELERATION_STRUCTURE_TYPE_TOP);
     if (DataValue.dirty)
     {
-        const bool Update =
-            DataValue.built && (DataValue.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE) && DataValue.instances.Size() == DataValue.builtCount;
+        const bool Update = DataValue.built && (DataValue.Flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE) &&
+                            DataValue.instances.Size() == DataValue.builtCount;
         BuildAccelerationStructure(Structure, {}, Update);
     }
 }
@@ -355,12 +355,12 @@ GPURayTracingPipeline RenderContext::CreateRayTracingPipeline(const RayTracingPi
                                               .profile = SlangSession->findProfile("sm_6_6"),
                                               .flags = SLANG_TARGET_FLAG_GENERATE_WHOLE_PROGRAM };
     const slang::SessionDesc       SessionDescValue = { .targets = &Target,
-                                                   .targetCount = 1,
-                                                   .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
-                                                   .searchPaths = &searchPath,
-                                                   .searchPathCount = 1,
-                                                   .compilerOptionEntries = Options,
-                                                   .compilerOptionEntryCount = 1 };
+                                                        .targetCount = 1,
+                                                        .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
+                                                        .searchPaths = &searchPath,
+                                                        .searchPathCount = 1,
+                                                        .compilerOptionEntries = Options,
+                                                        .compilerOptionEntryCount = 1 };
     Slang::ComPtr<slang::ISession> Session;
     Slang::ComPtr<ISlangBlob>      Diagnostics;
     if (SLANG_FAILED(SlangSession->createSession(SessionDescValue, Session.writeRef())))

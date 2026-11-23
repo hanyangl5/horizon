@@ -105,8 +105,8 @@ bool WorldHierarchy::prepareLocalChange(ecs_entity_t EntityHandle, TypeID Type, 
     const uint32_t    Bit = Type == SceneTypes::localTransform ? 1u : 2u;
     const LocalState* Pending = hmgetp_null(pPendingLocals, EntityHandle);
     const uint32_t    Mask = Pending ? Pending->value
-                                      : ((transformType && ecs_has_id(world.pWorld, EntityHandle, transformType) ? 1u : 0u) |
-                                      (matrixType && ecs_has_id(world.pWorld, EntityHandle, matrixType) ? 2u : 0u));
+                                     : ((transformType && ecs_has_id(world.pWorld, EntityHandle, transformType) ? 1u : 0u) |
+                                     (matrixType && ecs_has_id(world.pWorld, EntityHandle, matrixType) ? 2u : 0u));
     if (Adding && (Mask & (Bit ^ 3u)))
     {
         LOGF(Error, "An entity cannot have both LocalTransform and Matrix4");
@@ -116,7 +116,9 @@ bool WorldHierarchy::prepareLocalChange(ecs_entity_t EntityHandle, TypeID Type, 
     if (ecs_is_deferred(world.pWorld) && Next != Mask)
     {
         if (!Pending)
+        {
             pendingLocals.PushBack(EntityHandle);
+        }
         const LocalState StateValue = { .key = EntityHandle, .value = Next };
         hmputs(pPendingLocals, StateValue);
     }
@@ -127,7 +129,9 @@ bool WorldHierarchy::prepareLocalChange(ecs_entity_t EntityHandle, TypeID Type, 
 void WorldHierarchy::finishDeferredChanges()
 {
     for (ecs_entity_t EntityHandle : pendingLocals)
+    {
         hmdel(pPendingLocals, EntityHandle);
+    }
     pendingLocals.Clear();
 }
 
@@ -135,16 +139,22 @@ Matrix4 WorldHierarchy::localMatrix(ecs_entity_t EntityHandle) const
 {
     const Matrix4* MatrixPointer = matrixType ? (const Matrix4*)ecs_get_id(world.pWorld, EntityHandle, matrixType) : nullptr;
     if (MatrixPointer)
+    {
         return *MatrixPointer;
-    const LocalTransform* TransformPointer = transformType ? (const LocalTransform*)ecs_get_id(world.pWorld, EntityHandle, transformType) : nullptr;
-    return TransformPointer ? Matrix4(TransformPointer->rotation, TransformPointer->translation) * Matrix4::scale(TransformPointer->scale) : Matrix4::identity();
+    }
+    const LocalTransform* TransformPointer =
+        transformType ? (const LocalTransform*)ecs_get_id(world.pWorld, EntityHandle, transformType) : nullptr;
+    return TransformPointer ? Matrix4(TransformPointer->rotation, TransformPointer->translation) * Matrix4::scale(TransformPointer->scale)
+                            : Matrix4::identity();
 }
 
 void WorldHierarchy::rebuild()
 {
     buildNodes.Clear();
     for (const Node& NodeValue : nodes)
+    {
         hmdel(pBuildIndices, NodeValue.entity);
+    }
     ecs_iter_t It = ecs_query_iter(world.pWorld, pEntities);
     while (ecs_query_next(&It))
     {
@@ -202,7 +212,9 @@ void WorldHierarchy::rebuild()
     }
     ASSERT(scratch.Size() == buildNodes.Size());
     for (const Node& NodeValue : nodes)
+    {
         hmdel(pIndices, NodeValue.entity);
+    }
     Array<Node> Old = std::move(nodes);
     nodes = std::move(scratch);
     scratch = std::move(Old);
@@ -242,7 +254,9 @@ void WorldHierarchy::Update()
     for (uint32_t Root : dirtyRoots)
     {
         if (Root < ProcessedEnd)
+        {
             continue;
+        }
         ProcessedEnd = nodes[Root].subtreeEnd;
         for (uint32_t I = Root; I < ProcessedEnd; ++I)
         {
@@ -251,8 +265,9 @@ void WorldHierarchy::Update()
             {
                 continue;
             }
-            NodeValue.transform.current =
-                NodeValue.parent == UINT32_MAX ? localMatrix(NodeValue.entity) : nodes[NodeValue.parent].transform.current * localMatrix(NodeValue.entity);
+            NodeValue.transform.current = NodeValue.parent == UINT32_MAX
+                                              ? localMatrix(NodeValue.entity)
+                                              : nodes[NodeValue.parent].transform.current * localMatrix(NodeValue.entity);
             NodeValue.dirty = false;
             world.recordChange(NodeValue.entity);
         }
@@ -271,24 +286,32 @@ const WorldTransform* WorldHierarchy::Get(ecs_entity_t EntityHandle) const
 bool WorldHierarchy::writeLocalMatrix(ecs_entity_t EntityHandle, const Matrix4& MatrixValue)
 {
     for (uint32_t Column = 0; Column < 4; ++Column)
+    {
         for (uint32_t Row = 0; Row < 4; ++Row)
+        {
             if (!isfinite((float)MatrixValue.getElem(Column, Row)))
             {
                 LOGF(Error, "Cannot preserve a non-finite world transform");
                 return false;
             }
+        }
+    }
     LocalTransform TransformValue;
     decompose(MatrixValue, &TransformValue.translation, &TransformValue.rotation, &TransformValue.scale);
     const Matrix4 Reconstructed = Matrix4(TransformValue.rotation, TransformValue.translation) * Matrix4::scale(TransformValue.scale);
     bool          Representable = true;
     for (uint32_t Column = 0; Column < 4; ++Column)
+    {
         for (uint32_t Row = 0; Row < 4; ++Row)
         {
             const float Expected = (float)MatrixValue.getElem(Column, Row);
             const float Actual = (float)Reconstructed.getElem(Column, Row);
             if (!isfinite(Actual) || fabsf(Actual - Expected) > 1e-5f * fmaxf(1.0f, fabsf(Expected)))
+            {
                 Representable = false;
+            }
         }
+    }
     if (Representable && transformType)
     {
         if (matrixType)
@@ -318,11 +341,17 @@ bool WorldHierarchy::SetParent(ecs_entity_t EntityHandle, ecs_entity_t ParentVal
         return false;
     }
     for (ecs_entity_t Ancestor = ParentValue; Ancestor; Ancestor = ecs_get_target(world.pWorld, Ancestor, world.parentRelation, 0))
+    {
         if (Ancestor == EntityHandle)
+        {
             return false;
+        }
+    }
     const ecs_entity_t Previous = ecs_get_target(world.pWorld, EntityHandle, world.parentRelation, 0);
     if (Previous == ParentValue)
+    {
         return true;
+    }
     if (KeepWorld)
     {
         Update();
@@ -341,12 +370,18 @@ bool WorldHierarchy::SetParent(ecs_entity_t EntityHandle, ecs_entity_t ParentVal
             Local.setRow(3, Vector4(0, 0, 0, 1));
         }
         if (!writeLocalMatrix(EntityHandle, Local))
+        {
             return false;
+        }
     }
     if (ParentValue)
+    {
         ecs_add_pair(world.pWorld, EntityHandle, world.parentRelation, ParentValue);
+    }
     else if (Previous)
+    {
         ecs_remove_pair(world.pWorld, EntityHandle, world.parentRelation, Previous);
+    }
     invalidateStructure();
     return true;
 }
@@ -357,7 +392,9 @@ bool WorldHierarchy::Destroy(ecs_entity_t EntityHandle, bool Subtree)
     ecs_iter_t Children = ecs_term_iter(world.pWorld, &Term);
     const bool HasChildren = ecs_term_next(&Children);
     if (HasChildren)
+    {
         ecs_iter_fini(&Children);
+    }
     if (!HasChildren)
     {
         world.recordChange(EntityHandle);
@@ -390,11 +427,13 @@ bool WorldHierarchy::Destroy(ecs_entity_t EntityHandle, bool Subtree)
     if (Subtree)
     {
         for (uint32_t I = End; I > Root; --I)
+        {
             if (nodes[I - 1].entity)
             {
                 world.recordChange(nodes[I - 1].entity);
                 ecs_delete(world.pWorld, nodes[I - 1].entity);
             }
+        }
     }
     else
     {
@@ -406,7 +445,9 @@ bool WorldHierarchy::Destroy(ecs_entity_t EntityHandle, bool Subtree)
                 continue;
             }
             if (!writeLocalMatrix(nodes[I].entity, nodes[I].transform.current))
+            {
                 return false;
+            }
             ecs_remove_pair(world.pWorld, nodes[I].entity, world.parentRelation, EntityHandle);
         }
         ecs_delete(world.pWorld, EntityHandle);
@@ -417,7 +458,8 @@ bool WorldHierarchy::Destroy(ecs_entity_t EntityHandle, bool Subtree)
 
 Entity World::GetParent(Entity EntityHandle) const
 {
-    return IsAlive(EntityHandle) ? Entity(ecs_get_target(pImpl->pWorld, EntityHandle.value, pImpl->parentRelation, 0), pImpl->id) : Entity{};
+    return IsAlive(EntityHandle) ? Entity(ecs_get_target(pImpl->pWorld, EntityHandle.value, pImpl->parentRelation, 0), pImpl->id)
+                                 : Entity{};
 }
 void World::AttachParent(Entity EntityHandle, Entity ParentValue)
 {
@@ -433,8 +475,8 @@ bool World::SetParent(Entity EntityHandle, Entity ParentValue, bool KeepWorld)
     }
     return pImpl->pHierarchy->SetParent(EntityHandle.value, ParentValue.value, KeepWorld);
 }
-bool                  World::DestroyEntity(Entity EntityHandle) { return IsAlive(EntityHandle) && pImpl->pHierarchy->Destroy(EntityHandle.value, false); }
-bool                  World::DestroySubtree(Entity EntityHandle) { return IsAlive(EntityHandle) && pImpl->pHierarchy->Destroy(EntityHandle.value, true); }
+bool World::DestroyEntity(Entity EntityHandle) { return IsAlive(EntityHandle) && pImpl->pHierarchy->Destroy(EntityHandle.value, false); }
+bool World::DestroySubtree(Entity EntityHandle) { return IsAlive(EntityHandle) && pImpl->pHierarchy->Destroy(EntityHandle.value, true); }
 void                  World::UpdateTransforms() { pImpl->pHierarchy->Update(); }
 const WorldTransform* World::GetWorldTransform(Entity EntityHandle) const
 {

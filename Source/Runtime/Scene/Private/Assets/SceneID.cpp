@@ -13,7 +13,9 @@ static uint64_t ReadIDWord(const uint8_t* BytesPointer)
 {
     uint64_t Word = 0;
     for (uint32_t I = 0; I < 8; ++I)
+    {
         Word = (Word << 8) | BytesPointer[I];
+    }
     return Word;
 }
 
@@ -38,18 +40,26 @@ static bool GenerateID(const IDGenerator& Generator, uint64_t& High, uint64_t& L
 static int HexDigit(char Value)
 {
     if (Value >= '0' && Value <= '9')
+    {
         return Value - '0';
+    }
     if (Value >= 'a' && Value <= 'f')
+    {
         return Value - 'a' + 10;
+    }
     if (Value >= 'A' && Value <= 'F')
+    {
         return Value - 'A' + 10;
+    }
     return -1;
 }
 
 static bool ParseID(const char* TextPointer, uint64_t& High, uint64_t& Low)
 {
     if (!TextPointer || strlen(TextPointer) != kIDStringCapacity - 1)
+    {
         return false;
+    }
 
     uint8_t  BytesValue[16] = {};
     uint32_t Offset = 0;
@@ -58,12 +68,16 @@ static bool ParseID(const char* TextPointer, uint64_t& High, uint64_t& Low)
         if (I == 4 || I == 6 || I == 8 || I == 10)
         {
             if (TextPointer[Offset++] != '-')
+            {
                 return false;
+            }
         }
         const int Upper = HexDigit(TextPointer[Offset++]);
         const int Lower = HexDigit(TextPointer[Offset++]);
         if (Upper < 0 || Lower < 0)
+        {
             return false;
+        }
         BytesValue[I] = (uint8_t)((Upper << 4) | Lower);
     }
     High = ReadIDWord(BytesValue);
@@ -78,7 +92,9 @@ static void FormatIDWords(uint64_t High, uint64_t Low, char (&TextValue)[kIDStri
     for (uint32_t I = 0; I < 16; ++I)
     {
         if (I == 4 || I == 6 || I == 8 || I == 10)
+        {
             TextValue[Offset++] = '-';
+        }
         const uint8_t Byte = (uint8_t)((I < 8 ? High : Low) >> ((7 - I % 8) * 8));
         TextValue[Offset++] = Digits[Byte >> 4];
         TextValue[Offset++] = Digits[Byte & 0x0f];

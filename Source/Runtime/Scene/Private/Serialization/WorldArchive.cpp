@@ -74,8 +74,9 @@ bool WorldArchive::Parse(Span<char> Json)
     const cJSON* RootPointer = Candidate->pRoot;
     const char*  FormatPointer = StringField(RootPointer, "format");
     uint32_t     Version = 0;
-    if (!UniqueWorldFields(RootPointer) || !FormatPointer || strcmp(FormatPointer, "Horizon.World") || !WorldVersion(FindArchiveField(RootPointer, "version"), Version) ||
-        Version != 1 || !ReadID(FindArchiveField(RootPointer, "id"), Candidate->id) || !cJSON_IsArray(FindArchiveField(RootPointer, "entities")))
+    if (!UniqueWorldFields(RootPointer) || !FormatPointer || strcmp(FormatPointer, "Horizon.World") ||
+        !WorldVersion(FindArchiveField(RootPointer, "version"), Version) || Version != 1 ||
+        !ReadID(FindArchiveField(RootPointer, "id"), Candidate->id) || !cJSON_IsArray(FindArchiveField(RootPointer, "entities")))
     {
         LOGF(Error, "Invalid World archive schema");
         return false;
@@ -170,7 +171,8 @@ bool WorldArchive::Capture(World& WorldData, Guid Id)
             {
                 continue;
             }
-            if (!NormalizeWorldComponent(TypeInfo->id, (void*)ValueData, false) || !ValidateWorldReferences(*TypeInfo, ValueData, WorldData))
+            if (!NormalizeWorldComponent(TypeInfo->id, (void*)ValueData, false) ||
+                !ValidateWorldReferences(*TypeInfo, ValueData, WorldData))
             {
                 LOGF(Error, "Cannot Save invalid '%s' component", TypeInfo->Name);
                 return false;
@@ -389,8 +391,8 @@ bool WorldArchive::Instantiate(const TypeRegistry& Types, UniquePtr<World>& Targ
             }
         }
     }
-    UniquePtr<World>  Staging = MakeUnique<World>(Types, EntityGuids);
-    WorldLoadPlan     Plan;
+    UniquePtr<World> Staging = MakeUnique<World>(Types, EntityGuids);
+    WorldLoadPlan    Plan;
     if (!Plan.prepare(FindArchiveField(Data->pRoot, "entities"), *Staging))
     {
         LOGF(Error, "Invalid World entities, parent references or hierarchy cycle");
@@ -405,7 +407,8 @@ bool WorldArchive::Instantiate(const TypeRegistry& Types, UniquePtr<World>& Targ
             TypeID   Id = 0;
             uint32_t Version = 0;
             if (!UniqueWorldFields(Component) || !ReadTypeId(Component, Id) || !StringField(Component, "name") ||
-                !WorldVersion(FindArchiveField(Component, "version"), Version) || !UniqueWorldFields(FindArchiveField(Component, "properties")))
+                !WorldVersion(FindArchiveField(Component, "version"), Version) ||
+                !UniqueWorldFields(FindArchiveField(Component, "properties")))
             {
                 return false;
             }

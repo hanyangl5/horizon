@@ -406,8 +406,8 @@ void RenderPasses::BuildGraph()
     const hz::FrameGraphBufferUse ReadSkinned[] = { { T.SkinnedVertices, hz::FrameGraphAccessRead } };
     const hz::FrameGraphBufferUse ReadLists[] = { { T.DrawLists, hz::FrameGraphAccessRead },
                                                   { T.SkinnedVertices, hz::FrameGraphAccessRead } };
-    SkinningGraphPass =
-        hz::AddFrameGraphPass(G, { .Name = "Skinning", .Execute = ExecuteSkinning, .UserData = SkinningCompute.Get(), .Buffers = WriteSkinned });
+    SkinningGraphPass = hz::AddFrameGraphPass(
+        G, { .Name = "Skinning", .Execute = ExecuteSkinning, .UserData = SkinningCompute.Get(), .Buffers = WriteSkinned });
     hz::AddFrameGraphPass(G, { .Name = "Culling", .Execute = ExecuteCulling, .UserData = Culling.Get(), .Buffers = WriteLists });
     const Use ShadowUses[] = { { T.ShadowMap, Write } };
     hz::AddFrameGraphPass(
@@ -433,12 +433,9 @@ void RenderPasses::BuildGraph()
                            { T.RTReflectionHistory, History },
                            { T.RTReflectionHistory, Write },
                            { T.RTPreviousDepth, Write } };
-    RayTracingPass =
-        hz::AddFrameGraphPass(G, { .Name = "Ray Tracing",
-                                   .Execute = ExecuteRayTracing,
-                                   .UserData = RayTracing.Get(),
-                                   .Textures = RTUses,
-                                   .Buffers = ReadSkinned });
+    RayTracingPass = hz::AddFrameGraphPass(
+        G,
+        { .Name = "Ray Tracing", .Execute = ExecuteRayTracing, .UserData = RayTracing.Get(), .Textures = RTUses, .Buffers = ReadSkinned });
     const Use LightingUses[] = { { T.GBuffer[0], Read },   { T.GBuffer[1], Read },
                                  { T.GBuffer[2], Read },   { T.Depth, Read },
                                  { T.ShadowMap, Read },    { T.Occlusion, Optional },
@@ -589,7 +586,11 @@ void RenderPasses::Execute()
         return;
     }
     NextFrame = (NextFrame + 1) % FrameConstants.Size();
-    const hz::SceneView     View = { .Scene = Scene, .GpuScene = GpuSceneData, .Assets = Assets, .FrameIndex = FrameIndex, .Skinning = &Skinning };
+    const hz::SceneView     View = { .Scene = Scene,
+                                     .GpuScene = GpuSceneData,
+                                     .Assets = Assets,
+                                     .FrameIndex = FrameIndex,
+                                     .Skinning = &Skinning };
     const hz::RenderCamera* Camera = Scene.GetCamera(CameraId);
     ASSERT(Camera);
     const hz::RenderCamera& CameraState = *Camera;

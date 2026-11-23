@@ -86,7 +86,9 @@ public:
     {
         const ThreadSystemInitDesc Desc = { .threadCount = 1, .threadName = "SceneAsset" };
         if (!threadSystemInit(&threads, &Desc))
+        {
             LOGF(Error, "Cannot start SceneAsset loader worker");
+        }
     }
     ~SceneAssetLoaderData()
     {
@@ -113,7 +115,9 @@ public:
         SceneLoadRequest*     Request = (SceneLoadRequest*)Job;
         const AssetLoadStatus Status = (AssetLoadStatus)tfrg_atomic32_load_acquire(&Request->status);
         if (Status == AssetLoadStatus::Pending)
+        {
             return {};
+        }
         SceneAsset* ScenePointer = Request->pScene;
         Request->pScene = nullptr;
         return { .status = Status, .pPayload = ScenePointer };
@@ -123,7 +127,9 @@ public:
     {
         SceneLoadRequest* Request = (SceneLoadRequest*)Job;
         if ((AssetLoadStatus)tfrg_atomic32_load_acquire(&Request->status) == AssetLoadStatus::Pending)
+        {
             threadSystemWaitIdle(((SceneAssetLoaderData*)User)->threads);
+        }
         MemDelete(Request);
     }
 

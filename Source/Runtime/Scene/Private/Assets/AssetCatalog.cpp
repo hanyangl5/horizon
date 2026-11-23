@@ -27,11 +27,14 @@ public:
         const size_t       SourceBytes = strlen(EntryValue.pSourcePath) + 1;
         const size_t       PathBytes = strlen(EntryValue.location.pPath) + 1;
         const size_t       DependencyBytes = EntryValue.dependencies.Count * sizeof(AssetID);
-        AssetCatalogEntry* EntryPointer = (AssetCatalogEntry*)MemAllocate(sizeof(AssetCatalogEntry) + DependencyBytes + SourceBytes + PathBytes);
+        AssetCatalogEntry* EntryPointer =
+            (AssetCatalogEntry*)MemAllocate(sizeof(AssetCatalogEntry) + DependencyBytes + SourceBytes + PathBytes);
         *EntryPointer = EntryValue;
         AssetID* DependenciesPointer = (AssetID*)(EntryPointer + 1);
         if (DependencyBytes)
+        {
             memcpy(DependenciesPointer, EntryValue.dependencies.Data, DependencyBytes);
+        }
         char* SourcePointer = (char*)DependenciesPointer + DependencyBytes;
         memcpy(SourcePointer, EntryValue.pSourcePath, SourceBytes);
         memcpy(SourcePointer + SourceBytes, EntryValue.location.pPath, PathBytes);
@@ -50,7 +53,9 @@ public:
         }
         hmfree(pIndices);
         for (AssetCatalogEntry* EntryPointer : retiredEntries)
+        {
             MemDeallocate(EntryPointer);
+        }
     }
 
     CatalogIndex*             pIndices = nullptr;
@@ -64,7 +69,9 @@ public:
     {
         dependencies.Reserve(EntryValue.dependencies.Count);
         for (AssetID Id : EntryValue.dependencies)
+        {
             dependencies.PushBack(Id);
+        }
         entries.PushBack(EntryValue);
         entries[0].dependencies = finishDependencies(0);
     }
@@ -77,8 +84,8 @@ public:
             DependencyCount += MeshValue.submeshes.Count;
         }
         dependencies.Reserve(DependencyCount);
-        entries.Reserve(1 + SceneValue.GetTextures().Count + SceneValue.GetMaterials().Count + SceneValue.GetMeshes().Count + SceneValue.GetSkeletons().Count +
-                        SceneValue.GetAnimations().Count);
+        entries.Reserve(1 + SceneValue.GetTextures().Count + SceneValue.GetMaterials().Count + SceneValue.GetMeshes().Count +
+                        SceneValue.GetSkeletons().Count + SceneValue.GetAnimations().Count);
         for (const SceneAssetTexture& TextureValue : SceneValue.GetTextures())
         {
             entries.PushBack(
@@ -125,7 +132,9 @@ public:
         {
             const uint32_t Start = dependencies.Size();
             for (const SceneAssetSubmesh& Submesh : MeshValue.submeshes)
+            {
                 addDependency(Submesh.material);
+            }
             entries.PushBack({ .id = MeshValue.id,
                                .Type = AssetType::Mesh,
                                .pSourcePath = SceneValue.GetSource(),
@@ -169,8 +178,10 @@ private:
 
 static bool SameEntry(const AssetCatalogEntry& AValue, const AssetCatalogEntry& BValue)
 {
-    if (AValue.Type != BValue.Type || AValue.location.root != BValue.location.root || AValue.location.elementIndex != BValue.location.elementIndex || AValue.srgb != BValue.srgb ||
-        strcmp(AValue.pSourcePath, BValue.pSourcePath) || strcmp(AValue.location.pPath, BValue.location.pPath) || AValue.dependencies.Count != BValue.dependencies.Count)
+    if (AValue.Type != BValue.Type || AValue.location.root != BValue.location.root ||
+        AValue.location.elementIndex != BValue.location.elementIndex || AValue.srgb != BValue.srgb ||
+        strcmp(AValue.pSourcePath, BValue.pSourcePath) || strcmp(AValue.location.pPath, BValue.location.pPath) ||
+        AValue.dependencies.Count != BValue.dependencies.Count)
     {
         return false;
     }
@@ -187,18 +198,26 @@ static bool SameEntry(const AssetCatalogEntry& AValue, const AssetCatalogEntry& 
 static bool ValidPath(const char* Path)
 {
     if (!Path || !*Path || *Path == '/' || strchr(Path, '\\') || strchr(Path, ':'))
+    {
         return false;
+    }
     const char* Segment = Path;
     for (const char* Cursor = Path;; ++Cursor)
+    {
         if (*Cursor == '/' || !*Cursor)
         {
             if (Cursor == Segment || (Cursor - Segment == 1 && *Segment == '.') ||
                 (Cursor - Segment == 2 && Segment[0] == '.' && Segment[1] == '.'))
+            {
                 return false;
+            }
             if (!*Cursor)
+            {
                 return true;
+            }
             Segment = Cursor + 1;
         }
+    }
 }
 
 AssetCatalog::~AssetCatalog() { Clear(); }
@@ -221,24 +240,29 @@ bool AssetCatalog::Replace(const AssetCatalogEntry& EntryValue) { return Set(Ent
 bool AssetCatalog::Set(const AssetCatalogEntry& EntryValue, bool ReplaceExisting)
 {
     if (!EntryValue.id.IsValid() || EntryValue.Type > AssetType::AnimationClip || EntryValue.location.root > AssetPathRoot::Cooked ||
-        !ValidPath(EntryValue.pSourcePath) || !ValidPath(EntryValue.location.pPath) || (EntryValue.dependencies.Count && !EntryValue.dependencies.Data))
+        !ValidPath(EntryValue.pSourcePath) || !ValidPath(EntryValue.location.pPath) ||
+        (EntryValue.dependencies.Count && !EntryValue.dependencies.Data))
     {
         LOGF(Error, "Invalid AssetCatalog entry");
         return false;
     }
     for (AssetID Id : EntryValue.dependencies)
+    {
         if (!Id.IsValid())
         {
             LOGF(Error, "Invalid AssetCatalog dependency");
             return false;
         }
+    }
     const CatalogBatch       Batch(EntryValue);
     const AssetCatalogEntry& Normalized = Batch.getEntries().Data[0];
     const AssetCatalogEntry* Existing = Find(EntryValue.id);
     if (Existing)
     {
         if (SameEntry(*Existing, Normalized))
+        {
             return true;
+        }
         if (!ReplaceExisting || Existing->Type != EntryValue.Type)
         {
             LOGF(Error, "Conflicting AssetCatalog entry from '%s'", EntryValue.pSourcePath);
@@ -381,7 +405,9 @@ static bool CatalogNumber(const cJSON* ValueData, uint32_t& ValueValue)
 {
     if (!cJSON_IsNumber(ValueData) || !(ValueData->valuedouble >= 0 && ValueData->valuedouble <= UINT32_MAX) ||
         ValueData->valuedouble != (uint32_t)ValueData->valuedouble)
+    {
         return false;
+    }
     ValueValue = (uint32_t)ValueData->valuedouble;
     return true;
 }
@@ -389,11 +415,19 @@ static bool CatalogNumber(const cJSON* ValueData, uint32_t& ValueValue)
 static bool UniqueFields(const cJSON* Object)
 {
     if (!cJSON_IsObject(Object))
+    {
         return false;
+    }
     for (const cJSON* LeftValue = Object->child; LeftValue; LeftValue = LeftValue->next)
+    {
         for (const cJSON* RightValue = LeftValue->next; RightValue; RightValue = RightValue->next)
+        {
             if (!strcmp(LeftValue->string, RightValue->string))
+            {
                 return false;
+            }
+        }
+    }
     return true;
 }
 
@@ -406,7 +440,9 @@ static bool ReadCatalog(Span<char> Json, AssetCatalog& Catalog)
         Document.pRoot = cJSON_ParseWithLengthOpts(Json.Data, Json.Count, &End, false);
     }
     if (!Document.pRoot)
+    {
         return false;
+    }
     while (End < Json.Data + Json.Count && isspace((unsigned char)*End))
     {
         ++End;
@@ -437,7 +473,8 @@ static bool ReadCatalog(Span<char> Json, AssetCatalog& Catalog)
         EntryValue.location.pPath = CatalogString(EntryPointer, "path");
         if (!UniqueFields(EntryPointer) || !ID || !EntryValue.id.Parse(ID) || Catalog.Find(EntryValue.id) ||
             !CatalogNumber(cJSON_GetObjectItemCaseSensitive(EntryPointer, "type"), Type) || Type > (uint32_t)AssetType::AnimationClip ||
-            !CatalogNumber(cJSON_GetObjectItemCaseSensitive(EntryPointer, "root"), RootValue) || RootValue > (uint32_t)AssetPathRoot::Cooked ||
+            !CatalogNumber(cJSON_GetObjectItemCaseSensitive(EntryPointer, "root"), RootValue) ||
+            RootValue > (uint32_t)AssetPathRoot::Cooked ||
             (!cJSON_IsNull(IndexPointer) && !CatalogNumber(IndexPointer, EntryValue.location.elementIndex)) || !cJSON_IsBool(Srgb) ||
             !cJSON_IsArray(DependenciesPointer))
         {
@@ -570,7 +607,9 @@ bool AssetCatalog::Serialize(Array<char>& Json) const
         cJSON_AddStringToObject(ValueData, "path", EntryPointer->location.pPath);
         cJSON_AddNumberToObject(ValueData, "root", (uint32_t)EntryPointer->location.root);
         if (EntryPointer->location.elementIndex == UINT32_MAX)
+        {
             cJSON_AddNullToObject(ValueData, "elementIndex");
+        }
         else
             cJSON_AddNumberToObject(ValueData, "elementIndex", EntryPointer->location.elementIndex);
         cJSON_AddBoolToObject(ValueData, "srgb", EntryPointer->srgb);
@@ -583,7 +622,9 @@ bool AssetCatalog::Serialize(Array<char>& Json) const
     }
     char* Text = cJSON_PrintUnformatted(Document.pRoot);
     if (!Text)
+    {
         return false;
+    }
     Json.Resize((uint32_t)strlen(Text) + 1);
     memcpy(Json.GetData(), Text, Json.Size());
     cJSON_free(Text);
