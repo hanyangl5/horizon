@@ -15,6 +15,7 @@ function(add_example_target target_name)
     set(example_source_dir ${HORIZON_EXAMPLES_SOURCE_DIR}/${target_name})
     file(GLOB_RECURSE example_sources CONFIGURE_DEPENDS ${example_source_dir}/*)
     add_executable(${target_name} ${example_sources})
+    horizon_configure_unity(${target_name})
     target_link_libraries(${target_name} PRIVATE ${ENGINE_RUNTIME})
     target_compile_features(${target_name} PRIVATE cxx_std_20)
 

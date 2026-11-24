@@ -30,11 +30,15 @@ set (ASSET_PIPELINE_FILES
 )
 
 add_library(AssetPipeline STATIC ${ASSET_PIPELINE_FILES})
+horizon_configure_unity(AssetPipeline)
+# This source instantiates single-header libraries used by the cookers.
+set_source_files_properties(${ASSET_PIPELINE_SOURCE_DIR}/AssetPipeline.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 target_link_libraries(AssetPipeline PUBLIC Runtime)
 target_include_directories(AssetPipeline PUBLIC ${ENGINE_SOURCE_DIR}/Tools/AssetPipeline/Public)
 target_compile_features(AssetPipeline PRIVATE cxx_std_20)
 
 add_executable(AssetPipelineCmd ${ASSET_PIPELINE_SOURCE_DIR}/AssetPipelineCmd.cpp)
+horizon_configure_unity(AssetPipelineCmd)
 target_link_libraries(AssetPipelineCmd PRIVATE AssetPipeline)
 target_compile_features(AssetPipelineCmd PRIVATE cxx_std_20)
 

@@ -157,12 +157,7 @@ if(HORIZON_ENABLE_TRACY)
     endif()
 endif()
 
-# Unity build: batch translation units so the heavy shared headers are parsed once per batch.
-if(HORIZON_UNITY_BUILD)
-    set_target_properties(${ENGINE_RUNTIME} PROPERTIES UNITY_BUILD ON UNITY_BUILD_BATCH_SIZE ${HORIZON_UNITY_BUILD_BATCH_SIZE})
-    # IMemory.h stops poisoning malloc/new in unity builds, where a macro would leak into the next source.
-    target_compile_definitions(${ENGINE_RUNTIME} PRIVATE HORIZON_UNITY_BUILD=1)
-endif()
+horizon_configure_unity(${ENGINE_RUNTIME})
 
 target_compile_features(${ENGINE_RUNTIME} PRIVATE cxx_std_20)
 

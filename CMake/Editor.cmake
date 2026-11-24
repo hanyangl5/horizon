@@ -21,6 +21,8 @@ set(EDITOR_IMGUI_BACKENDS
 )
 
 add_library(HorizonEditor STATIC EXCLUDE_FROM_ALL ${EDITOR_FILES} ${EDITOR_IMGUI_BACKENDS})
+horizon_configure_unity(HorizonEditor)
+set_source_files_properties(${EDITOR_IMGUI_BACKENDS} PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 target_compile_features(HorizonEditor PUBLIC cxx_std_20)
 target_include_directories(HorizonEditor PUBLIC ${EDITOR_SOURCE_DIR}/Public PRIVATE ${ENGINE_THIRD_PARTY_SOURCE_DIR}/imgui)
 target_link_libraries(HorizonEditor PUBLIC ${ENGINE_RUNTIME} PRIVATE imgui d3d11 d3dcompiler dwmapi comctl32)

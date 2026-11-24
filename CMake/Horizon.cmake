@@ -8,7 +8,7 @@ option(HORIZON_ENABLE_TRACY "Enable Tracy profiler integration" ON)
 option(HORIZON_ENABLE_TRACY_VERBOSE "Enable verbose Tracy profiler scopes" OFF)
 option(HORIZON_ENABLE_TRACY_MEMORY "Enable Tracy memory allocation tracking" OFF)
 set(HORIZON_TRACY_MEMORY_CALLSTACK_DEPTH "16" CACHE STRING "Callstack depth for Tracy memory allocation tracking")
-option(HORIZON_UNITY_BUILD "Compile engine sources as unity batches" ON)
+option(HORIZON_UNITY_BUILD "Compile Horizon targets in unity batches" ON)
 set(HORIZON_UNITY_BUILD_BATCH_SIZE "8" CACHE STRING "Sources per unity build batch")
 
 if(CMAKE_INCLUDE_SHADERS)
