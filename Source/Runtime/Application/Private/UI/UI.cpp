@@ -23,6 +23,7 @@
  */
 #include <ThirdParty/tinyimageformat/tinyimageformat_base.h>
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include <ThirdParty/imgui/imgui_internal.h>
 #include <ThirdParty/imgui/imgui.h>
 #include "Application/IFont.h"
@@ -35,6 +36,53 @@
 #include "Core/IMath.h"
 
 #include "Core/IMemory.h"
+
+ImFileHandle ImFileOpen(const char* Filename, const char* Mode)
+{
+    FileMode Access;
+    switch (Mode[0])
+    {
+    case 'r':
+        Access = FileModeRead;
+        break;
+    case 'w':
+        Access = FileModeWrite;
+        break;
+    case 'a':
+        Access = FileModeWriteAppend;
+        break;
+    default:
+        return nullptr;
+    }
+    if (strchr(Mode, '+'))
+    {
+        Access = FileMode(Access | FileModeReadWrite);
+    }
+    FileStream* File = MemNew(FileStream);
+    if (OpenStreamFromPath(DirectoryLog, Filename, Access, File))
+    {
+        return File;
+    }
+    MemDelete(File);
+    return nullptr;
+}
+
+bool ImFileClose(ImFileHandle File)
+{
+    const bool Closed = CloseStream(File);
+    MemDelete(File);
+    return Closed;
+}
+
+ImU64 ImFileGetSize(ImFileHandle File) { return GetStreamFileSize(File); }
+ImU64 ImFileRead(void* Data, ImU64 Size, ImU64 Count, ImFileHandle File)
+{
+    return Size ? ReadFromStream(File, Data, Size * Count) / Size : 0;
+}
+ImU64 ImFileWrite(const void* Data, ImU64 Size, ImU64 Count, ImFileHandle File)
+{
+    return Size ? WriteToStream(File, Data, Size * Count) / Size : 0;
+}
 
 #if defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64)
 #define TOUCH_INPUT 1
@@ -50,7 +98,6 @@
 #define MAX_LUA_STR_LEN             256
 static const uint32_t MAX_FRAMES = 3;
 
-#define FORGE_UI_USE_32BIT_INDEXES
 #define FORGE_UI_MAX_VERTEXES (64 * 1024)
 #define FORGE_UI_MAX_INDEXES  (128 * 1024)
 
@@ -119,13 +166,8 @@ typedef struct UserInterface
     /// Default states
     Sampler*       pDefaultSampler = NULL;
     VertexLayout   vertexLayoutTextured = {};
-    float          navInputs[ImGuiNavInput_COUNT] = { 0.0f };
-    const float2*  pMovePosition = NULL;
-    uint32_t       lastUpdateCount = 0;
-    float2         lastUpdateMin[64] = {};
-    float2         lastUpdateMax[64] = {};
     bool           active = false;
-    bool           postUpdateKeyDownStates[ImGuiKey::ImGuiKey_COUNT] = { false };
+    bool           ModifierDown[4][2] = {};
 
     // Since gestures events always come first, we want to dismiss any other inputs after that
     bool handledGestures = false;
@@ -383,7 +425,7 @@ void DrawDriverMemoryTrackingUI(void*)
             for (uint32_t Type = 0; Type < GetTrackedObjectTypeCount(); ++Type)
             {
                 float colors[2] = { 0.05f, 0.4f };
-                ImGui::PushStyleColor(ImGuiCol_TableRowBg, ImVec4(colors[Type % 2]));
+                ImGui::PushStyleColor(ImGuiCol_TableRowBg, float4(colors[Type % 2]));
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
                 ImGui::Text("%s", entries[Type].name);
@@ -458,7 +500,7 @@ void DrawDeviceMemoryReportUI(void*)
             for (uint32_t Type = 0; Type < GetTrackedObjectTypeCount(); ++Type)
             {
                 float colors[2] = { 0.05f, 0.4f };
-                ImGui::PushStyleColor(ImGuiCol_TableRowBg, ImVec4(colors[Type % 2]));
+                ImGui::PushStyleColor(ImGuiCol_TableRowBg, float4(colors[Type % 2]));
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
                 ImGui::Text("%s", entries[Type].name);
@@ -490,7 +532,6 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
     int            Width, Height, bytesPerPixel;
     unsigned char* pixels = NULL;
 
-    io.Fonts->ClearInputData();
     if (pFontBuffer == NULL)
     {
         *pFont = (uintptr_t)io.Fonts->AddFontDefault();
@@ -516,9 +557,6 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
     io.Fonts->Build();
     io.Fonts->GetTexDataAsRGBA32(&pixels, &Width, &Height, &bytesPerPixel);
 
-    // At this point you've got the texture data and you need to Upload that your your graphic system:
-    // After we have created the texture, store its pointer/identifier (_in whichever Format your engine uses_) in 'io.Fonts->TexID'.
-    // This will be passed back to your via the renderer. Basically ImTextureID == void*. Read FAQ below for details about ImTextureID.
     Texture*        pTexture = NULL;
     SyncToken       token = {};
     TextureLoadDesc loadDesc = {};
@@ -551,7 +589,7 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
     arrpush(pUserInterface->pCachedFontsArr, newCachedFont);
 
     ptrdiff_t fontTextureIndex = arrlen(pUserInterface->pCachedFontsArr) - 1;
-    io.Fonts->TexID = (void*)fontTextureIndex;
+    io.Fonts->SetTexID((ImTextureID)fontTextureIndex);
 
     return (uint32_t)fontTextureIndex;
 }
@@ -1345,7 +1383,7 @@ static void processDebugTexturesWidget(UIWidget* pWidget)
         ptrdiff_t id = pUserInterface->maxUIFonts + ((ptrdiff_t)pUserInterface->frameIdx * pUserInterface->maxDynamicUIUpdatesPerBatch +
                                                      pUserInterface->dynamicTexturesCount++);
         hmput(pUserInterface->pTextureHashmap, id, texture);
-        ImGui::Image((void*)id, pOriginalWidget->textureDisplaySize);
+        ImGui::Image((ImTextureID)id, pOriginalWidget->textureDisplaySize);
         ImGui::SameLine();
     }
 
@@ -1609,7 +1647,7 @@ static void processColumnWidget(UIWidget* pWidget)
 
     // Test a simple 4 col table.
     ImGui::BeginColumns(pWidget->label, (int)pOriginalWidget->widgetsCount,
-                        ImGuiColumnsFlags_NoResize | ImGuiColumnsFlags_NoForceWithinWindow);
+                        ImGuiOldColumnFlags_NoResize | ImGuiOldColumnFlags_NoForceWithinWindow);
 
     for (uint32_t i = 0; i < pOriginalWidget->widgetsCount; ++i)
     {
@@ -1730,24 +1768,38 @@ void processColor3PickerWidget(UIWidget* pWidget)
     processWidgetCallbacks(pWidget);
 }
 
+static constexpr ImGuiKey KeyboardKeys[] = {
+    ImGuiKey_Tab,        ImGuiKey_LeftArrow, ImGuiKey_RightArrow, ImGuiKey_UpArrow,   ImGuiKey_DownArrow,  ImGuiKey_PageUp,
+    ImGuiKey_PageDown,   ImGuiKey_Home,      ImGuiKey_End,        ImGuiKey_Insert,    ImGuiKey_Delete,     ImGuiKey_Backspace,
+    ImGuiKey_Space,      ImGuiKey_Enter,     ImGuiKey_Escape,     ImGuiKey_LeftCtrl,  ImGuiKey_RightCtrl,  ImGuiKey_LeftShift,
+    ImGuiKey_RightShift, ImGuiKey_LeftAlt,   ImGuiKey_RightAlt,   ImGuiKey_LeftSuper, ImGuiKey_RightSuper, ImGuiKey_A,
+    ImGuiKey_C,          ImGuiKey_V,         ImGuiKey_X,          ImGuiKey_Y,         ImGuiKey_Z,          ImGuiKey_F2,
+};
+static_assert(TF_ARRAY_COUNT(KeyboardKeys) == UISystemInputActions::UI_ACTION_KEY_F2 - UISystemInputActions::UI_ACTION_KEY_TAB + 1);
+
 static int TextboxCallbackFunc(ImGuiInputTextCallbackData* data)
 {
     TextboxWidget* pWidget = (TextboxWidget*)data->UserData;
 
-    if (data->EventFlag & ImGuiInputTextFlags_CallbackAlways)
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
     {
-        if (pWidget->Flags & UI_TEXT_ENABLE_RESIZE)
+        bstring*  Text = pWidget->pText;
+        const int Result = balloc(Text, data->BufSize);
+        ASSERT(Result == BSTR_OK);
+        data->Buf = (char*)Text->data;
+    }
+    else if (data->EventFlag == ImGuiInputTextFlags_CallbackAlways && pWidget->pCallback)
+    {
+        bool KeysDown[ImGuiKey_NamedKey_END] = {};
+        for (int Key = ImGuiKey_NamedKey_BEGIN; Key < ImGuiKey_NamedKey_END; ++Key)
         {
-            bstring* pStr = pWidget->pText;
-            ASSERT(data->Buf == (const char*)pStr->data);
-            int res = balloc(pStr, data->BufTextLen + 1);
-            ASSERT(res == BSTR_OK);
-            data->Buf = (char*)pStr->data;
-            data->BufSize = bmlen(pStr);
+            KeysDown[Key] = ImGui::GetIO().KeysData[Key - ImGuiKey_NamedKey_BEGIN].Down;
         }
-
-        if (pWidget->pCallback)
-            pWidget->pCallback(ImGui::GetIO().KeysDown);
+        for (uint32_t Index = 0; Index < TF_ARRAY_COUNT(KeyboardKeys); ++Index)
+        {
+            KeysDown[UISystemInputActions::UI_ACTION_KEY_TAB + Index] = KeysDown[KeyboardKeys[Index]];
+        }
+        pWidget->pCallback(KeysDown);
     }
 
     return 0;
@@ -1761,7 +1813,7 @@ void processTextboxWidget(UIWidget* pWidget)
 
     ASSERT(biscstr(pText));
     char label[MAX_LABEL_LENGTH];
-    LABELID1((const char*)pText->data, label);
+    LABELID1(pText, label);
 
     uint32_t Flags = 0;
     if (pOriginalWidget->Flags & UI_TEXT_AUTOSELECT_ALL)
@@ -1770,6 +1822,10 @@ void processTextboxWidget(UIWidget* pWidget)
     }
     if (pOriginalWidget->pCallback)
         Flags |= ImGuiInputTextFlags_CallbackAlways;
+    if (pOriginalWidget->Flags & UI_TEXT_ENABLE_RESIZE)
+    {
+        Flags |= ImGuiInputTextFlags_CallbackResize;
+    }
 
     ImGui::Text("%s", pWidget->label);
     ImGui::InputText(label, (char*)pText->data, bmlen(pText), Flags, TextboxCallbackFunc, pOriginalWidget);
@@ -1793,7 +1849,7 @@ void processFilledRectWidget(UIWidget* pWidget)
     FilledRectWidget* pOriginalWidget = (FilledRectWidget*)(pWidget->pWidget);
 
     ImGuiWindow* window = ImGui::GetCurrentWindow();
-    float2       pos = window->Pos - window->Scroll + pOriginalWidget->pos;
+    float2       pos = float2(window->Pos - window->Scroll) + pOriginalWidget->pos;
     float2       pos2 = float2(pos.x + pOriginalWidget->scale.x, pos.y + pOriginalWidget->scale.y);
 
     ImGui::GetWindowDrawList()->AddRectFilled(pos, pos2, ImGui::GetColorU32(pOriginalWidget->color));
@@ -1807,7 +1863,7 @@ void processDrawTextWidget(UIWidget* pWidget)
     DrawTextWidget* pOriginalWidget = (DrawTextWidget*)(pWidget->pWidget);
 
     ImGuiWindow* window = ImGui::GetCurrentWindow();
-    float2       pos = window->Pos - window->Scroll + pOriginalWidget->pos;
+    float2       pos = float2(window->Pos - window->Scroll) + pOriginalWidget->pos;
     const float2 line_size = ImGui::CalcTextSize(pWidget->label);
 
     ImGui::GetWindowDrawList()->AddText(pos, ImGui::GetColorU32(pOriginalWidget->color), pWidget->label);
@@ -1842,8 +1898,8 @@ void processDrawLineWidget(UIWidget* pWidget)
     DrawLineWidget* pOriginalWidget = (DrawLineWidget*)(pWidget->pWidget);
 
     ImGuiWindow* window = ImGui::GetCurrentWindow();
-    float2       pos1 = window->Pos - window->Scroll + pOriginalWidget->pos1;
-    float2       pos2 = window->Pos - window->Scroll + pOriginalWidget->pos2;
+    float2       pos1 = float2(window->Pos - window->Scroll) + pOriginalWidget->pos1;
+    float2       pos2 = float2(window->Pos - window->Scroll) + pOriginalWidget->pos2;
 
     ImGui::GetWindowDrawList()->AddLine(pos1, pos2, ImGui::GetColorU32(pOriginalWidget->color));
 
@@ -1866,8 +1922,8 @@ void processDrawCurveWidget(UIWidget* pWidget)
 
     for (uint32_t i = 0; i < pOriginalWidget->numPoints - 1; i++)
     {
-        float2 pos1 = window->Pos - window->Scroll + pOriginalWidget->pos[i];
-        float2 pos2 = window->Pos - window->Scroll + pOriginalWidget->pos[i + 1];
+        float2 pos1 = float2(window->Pos - window->Scroll) + pOriginalWidget->pos[i];
+        float2 pos2 = float2(window->Pos - window->Scroll) + pOriginalWidget->pos[i + 1];
         ImGui::GetWindowDrawList()->AddLine(pos1, pos2, ImGui::GetColorU32(pOriginalWidget->color), pOriginalWidget->thickness);
     }
 
@@ -2510,8 +2566,8 @@ void uiNewFrame()
             int            Width = 0;
             int            Height = 0;
             ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pPixelData, &Width, &Height);
-            remoteControlSendTexture(hz::Format::R8G8B8A8_SRGB, (uint64_t)ImGui::GetIO().Fonts->TexID, Width, Height, Width * Height * 4,
-                                     pPixelData);
+            remoteControlSendTexture(hz::Format::R8G8B8A8_SRGB, (uint64_t)ImGui::GetIO().Fonts->TexRef.GetTexID(), Width, Height,
+                                     Width * Height * 4, pPixelData);
         }
     }
 #endif
@@ -2534,12 +2590,12 @@ bool platformInitUserInterface()
 
     pAppUI->handledGestures = false;
     pAppUI->active = true;
-    memset(pAppUI->postUpdateKeyDownStates, 0, sizeof(pAppUI->postUpdateKeyDownStates));
 
     const uint32_t monitorIdx = GetActiveMonitorIndex();
     GetMonitorDpiScale(monitorIdx, pAppUI->dpiScale);
 
     //// init UI (input)
+    IMGUI_CHECKVERSION();
     ImGui::SetAllocatorFunctions(alloc_func, dealloc_func);
     pAppUI->context = ImGui::CreateContext();
     ImGui::SetCurrentContext(pAppUI->context);
@@ -2554,28 +2610,6 @@ bool platformInitUserInterface()
 
     // Tell ImGui that we support ImDrawCmd::VtxOffset, otherwise ImGui will always Set it to 0
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
-
-    io.KeyMap[ImGuiKey_Tab] = UISystemInputActions::UI_ACTION_KEY_TAB;
-    io.KeyMap[ImGuiKey_LeftArrow] = UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW;
-    io.KeyMap[ImGuiKey_RightArrow] = UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW;
-    io.KeyMap[ImGuiKey_UpArrow] = UISystemInputActions::UI_ACTION_KEY_UP_ARROW;
-    io.KeyMap[ImGuiKey_DownArrow] = UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW;
-    io.KeyMap[ImGuiKey_PageUp] = UISystemInputActions::UI_ACTION_KEY_PAGE_UP;
-    io.KeyMap[ImGuiKey_PageDown] = UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN;
-    io.KeyMap[ImGuiKey_Home] = UISystemInputActions::UI_ACTION_KEY_HOME;
-    io.KeyMap[ImGuiKey_End] = UISystemInputActions::UI_ACTION_KEY_END;
-    io.KeyMap[ImGuiKey_Insert] = UISystemInputActions::UI_ACTION_KEY_INSERT;
-    io.KeyMap[ImGuiKey_Delete] = UISystemInputActions::UI_ACTION_KEY_DELETE;
-    io.KeyMap[ImGuiKey_Backspace] = UISystemInputActions::UI_ACTION_KEY_BACK_SPACE;
-    io.KeyMap[ImGuiKey_Space] = UISystemInputActions::UI_ACTION_KEY_SPACE;
-    io.KeyMap[ImGuiKey_Enter] = UISystemInputActions::UI_ACTION_KEY_ENTER;
-    io.KeyMap[ImGuiKey_Escape] = UISystemInputActions::UI_ACTION_KEY_ESCAPE;
-    io.KeyMap[ImGuiKey_A] = UISystemInputActions::UI_ACTION_KEY_A;
-    io.KeyMap[ImGuiKey_C] = UISystemInputActions::UI_ACTION_KEY_C;
-    io.KeyMap[ImGuiKey_V] = UISystemInputActions::UI_ACTION_KEY_V;
-    io.KeyMap[ImGuiKey_X] = UISystemInputActions::UI_ACTION_KEY_X;
-    io.KeyMap[ImGuiKey_Y] = UISystemInputActions::UI_ACTION_KEY_Y;
-    io.KeyMap[ImGuiKey_Z] = UISystemInputActions::UI_ACTION_KEY_Z;
 
     pUserInterface = pAppUI;
 #endif
@@ -2596,6 +2630,7 @@ void platformExitUserInterface()
     ImGui::DestroyContext(pUserInterface->context);
 
     MemDelete(pUserInterface);
+    pUserInterface = nullptr;
 #endif
 }
 
@@ -2636,10 +2671,8 @@ void platformUpdateUserInterface(float deltaTime)
     io.DisplaySize.y = pUserInterface->displayHeight;
     io.DisplayFramebufferScale.x = pUserInterface->Width / pUserInterface->displayWidth;
     io.DisplayFramebufferScale.y = pUserInterface->Height / pUserInterface->displayHeight;
-    io.FontGlobalScale = min(io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+    ImGui::GetStyle().FontScaleMain = min(io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
     io.DeltaTime = guiUpdate.deltaTime;
-    if (pUserInterface->pMovePosition)
-        io.MousePos = *pUserInterface->pMovePosition * io.DisplayFramebufferScale;
 
     // Gamepad connected
     {
@@ -2653,7 +2686,6 @@ void platformUpdateUserInterface(float deltaTime)
             io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
     }
 
-    memcpy(io.NavInputs, pUserInterface->navInputs, sizeof(pUserInterface->navInputs));
 
     uiNewFrame();
 
@@ -2661,8 +2693,6 @@ void platformUpdateUserInterface(float deltaTime)
     {
         if (guiUpdate.showDemoWindow)
             ImGui::ShowDemoWindow();
-
-        pUserInterface->lastUpdateCount = guiUpdate.componentCount;
 
         for (uint32_t compIndex = 0; compIndex < guiUpdate.componentCount; ++compIndex)
         {
@@ -2713,8 +2743,6 @@ void platformUpdateUserInterface(float deltaTime)
                 guiWinFlags |= ImGuiWindowFlags_AlwaysVerticalScrollbar;
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_HORIZONTAL_SCROLLBAR)
                 guiWinFlags |= ImGuiWindowFlags_AlwaysHorizontalScrollbar;
-            if (UIComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_USE_WINDOW_PADDING)
-                guiWinFlags |= ImGuiWindowFlags_AlwaysUseWindowPadding;
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_INPUT)
                 guiWinFlags |= ImGuiWindowFlags_NoNavInputs;
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_FOCUS)
@@ -2722,7 +2750,8 @@ void platformUpdateUserInterface(float deltaTime)
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_DOCKING)
                 guiWinFlags |= ImGuiWindowFlags_NoDocking;
 
-            ImGui::PushFont((ImFont*)pComponent->pFont);
+            ImFont* Font = (ImFont*)pComponent->pFont;
+            ImGui::PushFont(Font, Font ? Font->LegacySize : 0.f);
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, pComponent->alpha);
 
             if (pComponent->pPreProcessCallback)
@@ -2775,8 +2804,6 @@ void platformUpdateUserInterface(float deltaTime)
             pCurrentWindowRect->y = pos.y;
             pCurrentWindowRect->z = Size.x;
             pCurrentWindowRect->w = Size.y;
-            pUserInterface->lastUpdateMin[compIndex] = pos;
-            pUserInterface->lastUpdateMax[compIndex] = pos + Size;
 
             // Need to call ImGui::End event if result is false since we called ImGui::Begin
             ImGui::End();
@@ -2812,16 +2839,7 @@ void platformUpdateUserInterface(float deltaTime)
         }
     }
 
-    if (!io.MouseDown[0])
-    {
-        io.MousePos = float2(-FLT_MAX);
-    }
-
     pUserInterface->handledGestures = false;
-
-    // Apply post Update keydown states
-    COMPILE_ASSERT(sizeof(pUserInterface->postUpdateKeyDownStates) == sizeof(io.KeysDown));
-    memcpy(io.KeysDown, pUserInterface->postUpdateKeyDownStates, sizeof(io.KeysDown));
 
     arrfree(activeComponents);
 
@@ -3080,6 +3098,7 @@ void exitUserInterface()
         uiNewFrame();
         uiEndFrame();
     }
+    pUserInterface->pRenderer = nullptr;
 
     /************************************************************************/
     // Remote Control
@@ -3355,7 +3374,7 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
 
                 UserInterfaceDrawCommand drawCommand = {};
                 drawCommand.clipRect = pImDrawCmd->ClipRect;
-                drawCommand.textureId = (uint64_t)pImDrawCmd->TextureId;
+                drawCommand.textureId = (uint64_t)pImDrawCmd->GetTexID();
                 drawCommand.vertexOffset = pImDrawCmd->VtxOffset;
                 drawCommand.indexOffset = pImDrawCmd->IdxOffset;
                 if (c == pCmdList->CmdBuffer.size() - 1)
@@ -3395,11 +3414,15 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
 void uiOnText(const wchar_t* pText)
 {
 #ifdef ENABLE_FORGE_UI
+    if (!pUserInterface || !pUserInterface->pRenderer)
+    {
+        return;
+    }
     ImGui::SetCurrentContext(pUserInterface->context);
     ImGuiIO& io = ImGui::GetIO();
     uint32_t len = (uint32_t)wcslen(pText);
     for (uint32_t i = 0; i < len; ++i)
-        io.AddInputCharacter(pText[i]);
+        io.AddInputCharacterUTF16(pText[i]);
 #endif
 }
 
@@ -3409,7 +3432,20 @@ void uiOnButton(uint32_t actionId, bool press, const float2* pVec)
     ImGui::SetCurrentContext(pUserInterface->context);
     ImGuiIO& io = ImGui::GetIO();
     if (pVec)
-        pUserInterface->pMovePosition = pVec;
+        io.AddMousePosEvent(pVec->x, pVec->y);
+
+    if (actionId >= UISystemInputActions::UI_ACTION_KEY_TAB && actionId <= UISystemInputActions::UI_ACTION_KEY_F2)
+    {
+        if (actionId >= UISystemInputActions::UI_ACTION_KEY_CONTROL_L && actionId <= UISystemInputActions::UI_ACTION_KEY_SUPER_R)
+        {
+            static constexpr ImGuiKey Modifiers[] = { ImGuiMod_Ctrl, ImGuiMod_Shift, ImGuiMod_Alt, ImGuiMod_Super };
+            const uint32_t            Index = actionId - UISystemInputActions::UI_ACTION_KEY_CONTROL_L;
+            pUserInterface->ModifierDown[Index / 2][Index % 2] = press;
+            io.AddKeyEvent(Modifiers[Index / 2], press || pUserInterface->ModifierDown[Index / 2][1 - Index % 2]);
+        }
+        io.AddKeyEvent(KeyboardKeys[actionId - UISystemInputActions::UI_ACTION_KEY_TAB], press);
+        return;
+    }
 
     switch (actionId)
     {
@@ -3426,212 +3462,55 @@ void uiOnButton(uint32_t actionId, bool press, const float2* pVec)
         }
         break;
     case UISystemInputActions::UI_ACTION_NAV_ACTIVATE:
-        pUserInterface->navInputs[ImGuiNavInput_Activate] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadFaceDown, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_CANCEL:
-        pUserInterface->navInputs[ImGuiNavInput_Cancel] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadFaceRight, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_INPUT:
-        pUserInterface->navInputs[ImGuiNavInput_Input] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadFaceUp, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_MENU:
-        pUserInterface->navInputs[ImGuiNavInput_Menu] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadFaceLeft, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_TWEAK_WINDOW_LEFT:
-        pUserInterface->navInputs[ImGuiNavInput_DpadLeft] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadDpadLeft, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_TWEAK_WINDOW_RIGHT:
-        pUserInterface->navInputs[ImGuiNavInput_DpadRight] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadDpadRight, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_TWEAK_WINDOW_UP:
-        pUserInterface->navInputs[ImGuiNavInput_DpadUp] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadDpadUp, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_TWEAK_WINDOW_DOWN:
-        pUserInterface->navInputs[ImGuiNavInput_DpadDown] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadDpadDown, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_FOCUS_PREV:
-        pUserInterface->navInputs[ImGuiNavInput_FocusPrev] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadL1, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_FOCUS_NEXT:
-        pUserInterface->navInputs[ImGuiNavInput_FocusNext] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadR1, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_TWEAK_SLOW:
-        pUserInterface->navInputs[ImGuiNavInput_TweakSlow] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadL1, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_TWEAK_FAST:
-        pUserInterface->navInputs[ImGuiNavInput_TweakFast] = (float)press;
-        break;
-
-    case UISystemInputActions::UI_ACTION_KEY_CONTROL_L:
-    case UISystemInputActions::UI_ACTION_KEY_CONTROL_R:
-        io.KeyCtrl = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_SHIFT_L:
-    case UISystemInputActions::UI_ACTION_KEY_SHIFT_R:
-        io.KeyShift = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_ALT_L:
-    case UISystemInputActions::UI_ACTION_KEY_ALT_R:
-        io.KeyAlt = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_SUPER_L:
-    case UISystemInputActions::UI_ACTION_KEY_SUPER_R:
-        io.KeySuper = press;
+        io.AddKeyEvent(ImGuiKey_GamepadR1, press);
         break;
     case UISystemInputActions::UI_ACTION_MOUSE_LEFT:
+        io.AddMouseButtonEvent(ImGuiMouseButton_Left, press);
+        break;
     case UISystemInputActions::UI_ACTION_MOUSE_RIGHT:
+        io.AddMouseButtonEvent(ImGuiMouseButton_Right, press);
+        break;
     case UISystemInputActions::UI_ACTION_MOUSE_MIDDLE:
+        io.AddMouseButtonEvent(ImGuiMouseButton_Middle, press);
+        break;
     case UISystemInputActions::UI_ACTION_MOUSE_SCROLL_UP:
     case UISystemInputActions::UI_ACTION_MOUSE_SCROLL_DOWN:
-    case UISystemInputActions::UI_ACTION_MOUSE_MOVE:
-    {
-        const float scrollScale =
-            0.25f; // This should maybe be customized by client?  1.f would scroll ~5 lines of txt according to ImGui doc.
-        pUserInterface->navInputs[ImGuiNavInput_Activate] = (float)press;
-        if (pVec)
-        {
-            if (UISystemInputActions::UI_ACTION_MOUSE_LEFT == actionId)
-                io.MouseDown[0] = press;
-            else if (UISystemInputActions::UI_ACTION_MOUSE_RIGHT == actionId)
-                io.MouseDown[1] = press;
-            else if (UISystemInputActions::UI_ACTION_MOUSE_MIDDLE == actionId)
-                io.MouseDown[2] = press;
-            else if (UISystemInputActions::UI_ACTION_MOUSE_SCROLL_UP == actionId)
-                io.MouseWheel = 1.f * scrollScale;
-            else if (UISystemInputActions::UI_ACTION_MOUSE_SCROLL_DOWN == actionId)
-                io.MouseWheel = -1.f * scrollScale;
-        }
-        if (io.MousePos.x != -FLT_MAX && io.MousePos.y != -FLT_MAX)
-        {
-            io.MousePos = *pVec;
-            break;
-        }
-        else if (pVec)
-        {
-            io.MousePos = *pVec;
-            for (uint32_t i = 0; i < pUserInterface->lastUpdateCount; ++i)
-            {
-                if (ImGui::IsMouseHoveringRect(pUserInterface->lastUpdateMin[i], pUserInterface->lastUpdateMax[i], false))
-                {
-                    // TOOD: io.WantCaptureMouse is meant to be for the application to read, ImGui modifies it internally. We should Find
-                    // another way to do this rather than changing it.
-                    io.WantCaptureMouse = true;
-                }
-            }
-            break;
-        }
-        break;
-    }
-
-    // Note that for keyboard keys, we only Set them to true here if they are pressed because we may have a press/Release
-    // happening in one frame and it would never Get registered.  Instead, unpressed are deferred at the end of Update().
-    // This scenario occurs with mobile soft (on-screen) keyboards.
-    case UISystemInputActions::UI_ACTION_KEY_TAB:
         if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_TAB] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_TAB] = press;
+            io.AddMouseWheelEvent(0.0f, actionId == UISystemInputActions::UI_ACTION_MOUSE_SCROLL_UP ? 0.25f : -0.25f);
         break;
-    case UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_UP_ARROW:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_UP_ARROW] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_UP_ARROW] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_PAGE_UP:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_PAGE_UP] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_PAGE_UP] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_HOME:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_HOME] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_HOME] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_END:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_END] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_END] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_INSERT:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_INSERT] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_INSERT] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_DELETE:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_DELETE] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_DELETE] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_BACK_SPACE:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_BACK_SPACE] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_BACK_SPACE] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_SPACE:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_SPACE] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_SPACE] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_ENTER:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_ENTER] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_ENTER] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_ESCAPE:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_ESCAPE] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_ESCAPE] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_A:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_A] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_A] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_C:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_C] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_C] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_V:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_V] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_V] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_X:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_X] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_X] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_Y:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_Y] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_Y] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_Z:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_Z] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_Z] = press;
-        break;
-
     default:
         break;
     }
@@ -3649,26 +3528,11 @@ void uiOnStick(uint32_t actionId, const float2* pStick)
     {
         ASSERT(pStick);
         const float2 vec = *pStick;
-        if (vec.x < 0.f)
-            pUserInterface->navInputs[ImGuiNavInput_LStickLeft] = abs(vec.x);
-        else if (vec.x > 0.f)
-            pUserInterface->navInputs[ImGuiNavInput_LStickRight] = vec.x;
-        else
-        {
-            pUserInterface->navInputs[ImGuiNavInput_LStickLeft] = 0.f;
-            pUserInterface->navInputs[ImGuiNavInput_LStickRight] = 0.f;
-        }
-
-        if (vec.y < 0.f)
-            pUserInterface->navInputs[ImGuiNavInput_LStickDown] = abs(vec.y);
-        else if (vec.y > 0.f)
-            pUserInterface->navInputs[ImGuiNavInput_LStickUp] = vec.y;
-        else
-        {
-            pUserInterface->navInputs[ImGuiNavInput_LStickDown] = 0.f;
-            pUserInterface->navInputs[ImGuiNavInput_LStickUp] = 0.f;
-        }
-
+        ImGuiIO&     io = ImGui::GetIO();
+        io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickLeft, vec.x < 0.f, max(-vec.x, 0.f));
+        io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickRight, vec.x > 0.f, max(vec.x, 0.f));
+        io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickDown, vec.y < 0.f, max(-vec.y, 0.f));
+        io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickUp, vec.y > 0.f, max(vec.y, 0.f));
         break;
     }
     }
@@ -3678,6 +3542,10 @@ void uiOnStick(uint32_t actionId, const float2* pStick)
 void uiOnInput(uint32_t actionId, bool buttonPress, const float2* pMousePos, const float2* pStick)
 {
 #ifdef ENABLE_FORGE_UI
+    if (!pUserInterface || !pUserInterface->pRenderer)
+    {
+        return;
+    }
     if (actionId == UISystemInputActions::UI_ACTION_NAV_SCROLL_MOVE_WINDOW)
         uiOnStick(actionId, pStick);
     else
@@ -3795,7 +3663,7 @@ void uiPopulateDrawData(UserInterfaceDrawData* pUIDrawData)
             if (pUIDrawData->drawCommands)
             {
                 pUIDrawData->drawCommands[drawCommandsOffset].clipRect = pImDrawCmd->ClipRect;
-                pUIDrawData->drawCommands[drawCommandsOffset].textureId = (uint64_t)pImDrawCmd->TextureId;
+                pUIDrawData->drawCommands[drawCommandsOffset].textureId = (uint64_t)pImDrawCmd->GetTexID();
                 pUIDrawData->drawCommands[drawCommandsOffset].vertexOffset = pImDrawCmd->VtxOffset;
                 pUIDrawData->drawCommands[drawCommandsOffset].indexOffset = pImDrawCmd->IdxOffset;
                 if (c == pCmdList->CmdBuffer.size() - 1)

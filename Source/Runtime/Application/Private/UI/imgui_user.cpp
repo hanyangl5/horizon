@@ -22,6 +22,7 @@
  * under the License.
  */
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_user.h"
 
 #include <ThirdParty/imgui/imgui_internal.h>
@@ -45,41 +46,31 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     const ImGuiID id = window->GetID(label);
     float         Size = CalcItemWidth();
 
-    float2 extraPadding = style.ItemSpacing + style.ItemInnerSpacing;
+    ImVec2 extraPadding = style.ItemSpacing + style.ItemInnerSpacing;
     // extraPadding.y = 0.f;
     float  line_height = ImGui::GetTextLineHeight();
     // extraPadding *= 2.f;
-    float2 label_size = CalcTextSize(label, NULL, true);
+    ImVec2 label_size = CalcTextSize(label, NULL, true);
     label_size.y = fmaxf(label_size.y, 0.f) + line_height;
-    ImRect total_bb(window->DC.CursorPos, window->DC.CursorPos + float2(Size, Size + label_size.y / 2.f) + extraPadding);
+    ImRect total_bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(Size, Size + label_size.y / 2.f) + extraPadding);
 
     float knobRadius = Size * 0.5f;
 
-    float2 center = total_bb.GetCenter();
+    ImVec2 center = total_bb.GetCenter();
 
-    const ImRect inner_bb(center - float2(knobRadius, knobRadius), center + float2(knobRadius, knobRadius));
+    const ImRect inner_bb(center - ImVec2(knobRadius, knobRadius), center + ImVec2(knobRadius, knobRadius));
 
-    // bool hovered, held;
-    // Create Invisible button and check if its active/hovered
-    float2 mousePos = ImGui::GetIO().MousePos;
-
-    // Tabbing or CTRL-clicking on Drag turns it into an input box
-    bool       start_text_input = false;
-    bool       hovered = ItemHoverable(inner_bb, id, g.LastItemData.InFlags);
-    const bool tab_focus_requested = FocusableItemRegister(window, id);
-
-    if (doubleTapForText && (tab_focus_requested || (hovered && (g.IO.MouseClicked[0] || g.IO.MouseDoubleClicked[0])) ||
-                             g.NavActivateId == id || (g.NavJustMovedToId == id && g.TempInputId != id)))
+    ItemSize(total_bb);
+    if (!ItemAdd(total_bb, id, &inner_bb, doubleTapForText ? ImGuiItemFlags_Inputable : ImGuiItemFlags_None))
     {
-        SetActiveID(id, window);
-        SetFocusID(id, window);
-        FocusWindow(window);
-        if (tab_focus_requested || g.IO.KeyCtrl || g.IO.MouseDoubleClicked[0] || g.NavJustMovedToId == id)
-        {
-            start_text_input = true;
-            g.TempInputId = 0;
-        }
+        return 0;
     }
+    const ImVec2 mousePos = g.IO.MousePos;
+    bool         hovered = ItemHoverable(inner_bb, id, g.LastItemData.ItemFlags);
+    const bool   start_text_input =
+        doubleTapForText &&
+        ((hovered && IsMouseClicked(ImGuiMouseButton_Left) && (g.IO.KeyCtrl || IsMouseDoubleClicked(ImGuiMouseButton_Left))) ||
+         (g.NavActivateId == id && (g.NavActivateFlags & ImGuiActivateFlags_PreferInput)));
     bool using_text_input = false;
     if (start_text_input || (g.ActiveId == id && g.TempInputId == id))
     {
@@ -91,7 +82,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
             // Bottom Label (X, Y, Z, W) Goes Below Knob
             label_size = CalcTextSize(label, NULL, true);
             uint32_t col32text = ImGui::GetColorU32(ImGuiCol_Text);
-            float2   textpos = center + float2(-label_size.x / 2.f, inner_bb.GetHeight() / 2.f + label_size.y / 2.f);
+            ImVec2   textpos = center + ImVec2(-label_size.x / 2.f, inner_bb.GetHeight() / 2.f + label_size.y / 2.f);
             draw_list->AddText(textpos, col32text, label);
 
             // if max and min are not equal only then we apply the limits
@@ -108,23 +99,22 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
             using_text_input = true;
     }
 
-    // Create Invisible button and check if its active/hovered
-    ImGui::InvisibleButton(label, total_bb.GetSize());
-
-    bool isActive = ImGui::IsItemActive();
+    bool isActive = false;
+    ButtonBehavior(total_bb, id, &hovered, &isActive);
+    RenderNavCursor(inner_bb, id);
     bool updatedKnob = false;
 
     float  currentAngle = 0.f;
     // Mouse delta movement since last frame
-    float2 mouseDelta = ImGui::GetIO().MouseDelta;
+    ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
     // Previous Mouse position
-    float2 mousePrevPos = mousePos - mouseDelta;
+    ImVec2 mousePrevPos = mousePos - mouseDelta;
     // Vector from center of knob to previous mouse position
-    float2 mousePrevToKnob = mousePrevPos - center;
+    ImVec2 mousePrevToKnob = mousePrevPos - center;
     // Get the length
     float  lengthPrev = sqrtf(mousePrevToKnob.x * mousePrevToKnob.x + mousePrevToKnob.y * mousePrevToKnob.y);
     // Get Vector from center of knob to current mouse position
-    float2 mouseToKnob = mousePos - center;
+    ImVec2 mouseToKnob = mousePos - center;
     // Get the length
     float  lengthCurr = sqrtf(mouseToKnob.x * mouseToKnob.x + mouseToKnob.y * mouseToKnob.y);
 
@@ -172,7 +162,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
 
     // Display current value (Final value after knob increments)
     char textval[32];
-    ImFormatString(textval, IM_ARRAYSIZE(textval), Format, value_p[0]);
+    ImFormatString(textval, IM_COUNTOF(textval), Format, value_p[0]);
 
     uint32_t    col32 = ImGui::GetColorU32(isActive ? ImGuiCol_FrameBgActive : hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
     uint32_t    col32line = ImGui::GetColorU32(ImGuiCol_SliderGrabActive);
@@ -195,16 +185,16 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     // Add line from center of knob to edge of circle along mouse direction
     float x2 = -sinf(currentAngle) * knobRadius + center.x;
     float y2 = cosf(currentAngle) * knobRadius + center.y;
-    draw_list->AddLine(center, float2(x2, y2), col32line, 1);
+    draw_list->AddLine(center, ImVec2(x2, y2), col32line, 1);
 
     // Current Value of Widget (Above Knob)
     label_size = CalcTextSize(textval, NULL, true);
-    float2 textpos = center - float2(label_size.x / 2.f, total_bb.GetHeight() / 2.f);
+    ImVec2 textpos = center - ImVec2(label_size.x / 2.f, total_bb.GetHeight() / 2.f);
     RenderText(textpos, textval);
 
     // Bottom Label (X, Y, Z, W) Goes Below Knob
     label_size = CalcTextSize(label, NULL, true);
-    textpos = center + float2(-label_size.x / 2.f, inner_bb.GetHeight() / 2.f);
+    textpos = center + ImVec2(-label_size.x / 2.f, inner_bb.GetHeight() / 2.f);
     RenderText(textpos, label);
 
     if (using_text_input)
