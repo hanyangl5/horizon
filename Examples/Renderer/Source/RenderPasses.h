@@ -8,6 +8,7 @@
 #include "Scene/GpuDrawList.h"
 #include "Scene/GpuSkinning.h"
 #include "FrustumCulling.h"
+#include "ClusteredLighting.h"
 #include "PostEffects.h"
 #include "GTAO.h"
 #include "TemporalAA.h"
@@ -44,6 +45,7 @@ struct RenderTargets
 {
     // The draw lists GpuDrawList owns; culling writes them and the drawing passes read them.
     hz::FrameGraphBuffer  DrawLists;
+    hz::FrameGraphBuffer  LightMasks;
     // The streams the skinning pass writes; the passes that draw or trace geometry read them.
     hz::FrameGraphBuffer  SkinnedVertices;
     hz::FrameGraphTexture GBuffer[GBuffer::TextureCount];
@@ -80,6 +82,7 @@ public:
 
     void Update(float DeltaSeconds);
     void Execute();
+    bool EnableClusteredLighting = true;
     bool EnableGTAO = true;
     bool EnableTransparency = true;
     bool EnableTemporalAA = true;
@@ -111,6 +114,7 @@ private:
     hz::UniquePtr<SkinningPass>            SkinningCompute;
     hz::UniquePtr<GBuffer>                 GBufferPass;
     hz::UniquePtr<DeferredLighting>        Lighting;
+    hz::UniquePtr<ClusteredLighting>       Clusters;
     hz::UniquePtr<PostEffects>             PostProcessing;
     hz::UniquePtr<GTAO>                    GroundTruthAO;
     hz::UniquePtr<EnvironmentPass>         Environment;
@@ -128,6 +132,7 @@ private:
     hz::FrameGraph*                        Graph = nullptr;
     RenderTargets                          Targets;
     hz::FrameGraphPass                     SkinningGraphPass;
+    hz::FrameGraphPass                     LightMaskPass;
     hz::FrameGraphPass                     GTAOGraphPass;
     hz::FrameGraphPass                     RayTracingPass;
     hz::FrameGraphPass                     TransparencyPass;

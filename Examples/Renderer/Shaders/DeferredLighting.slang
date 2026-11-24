@@ -21,6 +21,7 @@ cbuffer RootConstant0
     uint RtShadowAOIndex;
     uint RtReflectionIndex;
     uint GTAOIndex;
+    uint ClusterDataIndex;
 };
 struct PSInput
 {
@@ -177,6 +178,7 @@ float4 PSMain(PSInput Input): SV_Target0
                                  smoothstep(RTReflectionFadeStart, RTReflectionMaxRoughness, GBuffer.Roughness));
     }
 
-    const float3 DirectLighting = AccumulateSceneLights(Light, GBuffer, WorldPos, V, Visibility);
+    const float3 DirectLighting = AccumulateMainLight(Light, GBuffer, WorldPos, V, Visibility) +
+                                  AccumulateScreenLights(ClusterDataIndex, uint2(Pixel.xy), Light, GBuffer, WorldPos, V);
     return float4(float3(Scene) + DirectLighting + Indirect.Diffuse + Indirect.Specular, 1.0);
 }

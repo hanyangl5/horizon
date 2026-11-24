@@ -34,8 +34,9 @@ struct TransparencyConstants
     uint32_t OitShowHeatmap = 0;
     uint32_t OitOutputIndex = UINT32_MAX;
     float    OitTime = 0;
+    uint32_t ClusterDataIndex = UINT32_MAX;
 };
-static_assert(sizeof(TransparencyConstants) == 28 * sizeof(uint32_t));
+static_assert(sizeof(TransparencyConstants) == 29 * sizeof(uint32_t));
 
 Transparency::Transparency(hz::RenderContext& Context, hz::Format DepthFormat)
 {
@@ -96,6 +97,15 @@ void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame
             Buffers.PushBack(Buffer);
         }
         Buffers.PushBack(Lighting.LightingFrame);
+        if (Lighting.ClusterData)
+        {
+            Constants.ClusterDataIndex = Lighting.ClusterData->GetSrvIndex();
+            Buffers.PushBack(Lighting.ClusterData);
+        }
+        if (Lighting.TileMasks)
+        {
+            Buffers.PushBack(Lighting.TileMasks);
+        }
         if (Lighting.Lights)
         {
             Buffers.PushBack(Lighting.Lights);

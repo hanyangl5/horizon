@@ -153,6 +153,15 @@ static void ExecuteCulling(const hz::FrameGraphContext& Context, void* UserData)
     ((FrustumCulling*)UserData)->Execute(Context.Commands, Frame.Frame, Frame.View, Frame.Draws);
 }
 
+static void BuildLightTileMasks(const hz::FrameGraphContext& Context, void* UserData)
+{
+    const FrameInputs& Frame = Inputs(Context);
+    if (Frame.Lighting.TileMasks)
+    {
+        ((ClusteredLighting*)UserData)->BuildMasks(Context.Commands, Frame.View.FrameIndex);
+    }
+}
+
 static void ExecuteShadows(const hz::FrameGraphContext& Context, void* UserData)
 {
     const FrameInputs& Frame = Inputs(Context);
@@ -409,6 +418,11 @@ void RenderPasses::BuildGraph()
     SkinningGraphPass = hz::AddFrameGraphPass(
         G, { .Name = "Skinning", .Execute = ExecuteSkinning, .UserData = SkinningCompute.Get(), .Buffers = WriteSkinned });
     hz::AddFrameGraphPass(G, { .Name = "Culling", .Execute = ExecuteCulling, .UserData = Culling.Get(), .Buffers = WriteLists });
+    T.LightMasks = hz::ImportFrameGraphBuffer(G, { .Name = "LightTileMasks" });
+    const hz::FrameGraphBufferUse WriteMasks[] = { { T.LightMasks, Write } };
+    const hz::FrameGraphBufferUse ReadMasks[] = { { T.LightMasks, Optional } };
+    LightMaskPass = hz::AddFrameGraphPass(
+        G, { .Name = "BuildLightTileMasks", .Execute = BuildLightTileMasks, .UserData = Clusters.Get(), .Buffers = WriteMasks });
     const Use ShadowUses[] = { { T.ShadowMap, Write } };
     hz::AddFrameGraphPass(
         G, { .Name = "Shadows", .Execute = ExecuteShadows, .UserData = Shadows.Get(), .Textures = ShadowUses, .Buffers = ReadLists });
@@ -440,7 +454,8 @@ void RenderPasses::BuildGraph()
     const Use LightingUses[] = { { T.GBuffer[0], Read },   { T.GBuffer[1], Read },       { T.GBuffer[2], Read },
                                  { T.Depth, Read },        { T.ShadowMap, Read },        { T.Occlusion, Optional },
                                  { T.RTResult, Optional }, { T.RTReflection, Optional }, { T.SceneColor, Write } };
-    hz::AddFrameGraphPass(G, { .Name = "Lighting", .Execute = ExecuteLighting, .UserData = Lighting.Get(), .Textures = LightingUses });
+    hz::AddFrameGraphPass(
+        G, { .Name = "Lighting", .Execute = ExecuteLighting, .UserData = Lighting.Get(), .Textures = LightingUses, .Buffers = ReadMasks });
     const Use EnvironmentUses[] = { { T.SceneColor, Modify }, { T.Depth, Read } };
     hz::AddFrameGraphPass(
         G, { .Name = "Environment", .Execute = ExecuteEnvironment, .UserData = Environment.Get(), .Textures = EnvironmentUses });
@@ -450,7 +465,8 @@ void RenderPasses::BuildGraph()
                                                          { T.OITHeads, Write },
                                                          { T.TransparentColor, Write } };
     const hz::FrameGraphBufferUse TransparencyBuffers[] = { { T.OITNodes, Write }, { T.OITCounters, Write } };
-    const hz::FrameGraphBufferUse TransparencyAllBuffers[] = { TransparencyBuffers[0], TransparencyBuffers[1], ReadLists[0], ReadLists[1] };
+    const hz::FrameGraphBufferUse TransparencyAllBuffers[] = { TransparencyBuffers[0], TransparencyBuffers[1], ReadLists[0], ReadLists[1],
+                                                               ReadMasks[0] };
     TransparencyPass = hz::AddFrameGraphPass(G, { .Name = "Transparency",
                                                   .Execute = ExecuteTransparency,
                                                   .UserData = Transparency.Get(),
@@ -494,6 +510,7 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     SkinningCompute = hz::MakeUnique<SkinningPass>(Context);
     GBufferPass = hz::MakeUnique<GBuffer>(Context);
     Lighting = hz::MakeUnique<DeferredLighting>(Context);
+    Clusters = hz::MakeUnique<ClusteredLighting>(Context);
     GroundTruthAO = hz::MakeUnique<GTAO>(Context);
     Environment = hz::MakeUnique<EnvironmentPass>(Context, DeferredLighting::ColorFormat);
     Shadows = hz::MakeUnique<ShadowMap>(Context);
@@ -639,6 +656,13 @@ void RenderPasses::Execute()
         }
     }
     Shadows->Prepare(View);
+    const bool Clustered =
+        EnableClusteredLighting && ActiveLights.Count &&
+        Clusters->Prepare(FrameIndex, Scene.GetLights(), ActiveLights, LightingData.MainDirectionalIndex, Current,
+                          CameraState.lens.nearPlane, CameraState.lens.farPlane, Context.GetWidth(), Context.GetHeight());
+    const hz::GPUBuffer* Masks = Clustered ? Clusters->GetMask(FrameIndex) : nullptr;
+    hz::SetFrameGraphBufferImport(Graph, Targets.LightMasks, Masks);
+    hz::SetFrameGraphPassEnabled(Graph, LightMaskPass, EnableClusteredLighting);
     // Ray traced AO replaces the screen space term.
     hz::SetFrameGraphPassEnabled(Graph, GTAOGraphPass, EnableGTAO && !Shadows->Data.RTAOEnabled);
     hz::SetFrameGraphPassEnabled(Graph, RayTracingPass,
@@ -665,7 +689,9 @@ void RenderPasses::Execute()
                                          .BRDFLut = &Environment->GetBrdfLut(),
                                          .EnvironmentSampler = &Environment->GetSampler(),
                                          .Lights = LightingData.LightCount ? &SceneBuffers.lights : nullptr,
-                                         .ActiveLights = LightingData.LightCount ? &SceneBuffers.activeLights : nullptr },
+                                         .ActiveLights = LightingData.LightCount ? &SceneBuffers.activeLights : nullptr,
+                                         .ClusterData = Clustered ? &Clusters->GetData(FrameIndex) : nullptr,
+                                         .TileMasks = Masks },
                            .DeltaSeconds = DeltaSeconds,
                            .EnvironmentIntensity = Shadows->Data.EnvironmentIntensity,
                            .EnvironmentTint = Shadows->Data.EnvironmentTint,

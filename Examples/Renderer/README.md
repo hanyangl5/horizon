@@ -42,9 +42,17 @@ Omit `--reference` to repair only the eight materials whose DDS already has alph
 The next launch recooks changed assets automatically.
 
 Geometry uses manual vertex pulling and Slang shaders. Materials resolve texture
-IDs through the GPU asset tables. Lighting reads directional lights from
-World; the sample creates a sun and a controllable camera positioned from scene
-bounds. Motion vectors use the previously submitted object and camera transforms.
+IDs through the GPU asset tables. Bistro spawns `BistroPointLightCount` moving point
+lights around the initial camera position. `BistroLightGridWidth` sets the horizontal
+coverage in meters independently of the count. Each light has a random position,
+color and intensity and a 1.2 m range. Every second a randomly chosen light is
+replaced with a newly generated one.
+Deferred and transparent surfaces use the same
+32×32-pixel light masks and depth bins for finite-range lights. Lights with no
+range cutoff are evaluated globally. Ray-traced reflections evaluate lights at
+the hit position. To compare against all active lights, set `EnableClusteredLighting`
+to `false` in `Source/RenderPasses.h` and rebuild the sample.
+Motion vectors use the previously submitted object and camera transforms.
 The preview reconstructs Z from Bistro's BC5 normal maps and supports metallic/roughness
 and emissive maps. MASK follows
 the reference shader's alpha dither and derivative-adjusted cutoff; BLEND uses

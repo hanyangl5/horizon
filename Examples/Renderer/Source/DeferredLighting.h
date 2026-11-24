@@ -12,7 +12,7 @@ struct alignas(16) LightingFrameData
     Matrix4  ShadowViewProjection = Matrix4::identity();
     Vector4  LightDirection = Vector4(0, -1, 0, 0);
     Vector4  LightColor = Vector4(1, 1, 1, 1);
-    static constexpr float DefaultEnvironmentIntensity = 1000.0f;
+    static constexpr float DefaultEnvironmentIntensity = 0.0f;
     float                  EnvironmentIntensity = DefaultEnvironmentIntensity; // cd/m^2 per unit HDR environment radiance.
     float    ShadowBias = 0;
     uint32_t ShadowEnabled = 0;
@@ -48,6 +48,8 @@ struct LightingResources
     const hz::GPUSampler* EnvironmentSampler = nullptr;
     const hz::GPUBuffer*  Lights = nullptr;
     const hz::GPUBuffer*  ActiveLights = nullptr;
+    const hz::GPUBuffer*  ClusterData = nullptr;
+    const hz::GPUBuffer*  TileMasks = nullptr;
 };
 
 struct DeferredGBuffer

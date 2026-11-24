@@ -3,6 +3,7 @@
 
 #include "LightingBRDF.slang"
 #include "ShadingModels.slang"
+#include "ClusterGrid.h"
 
 static const uint LightDirectional = 0;
 static const uint LightPoint = 1;
@@ -191,7 +192,67 @@ float3 AccumulateAdditionalLights(LightingFrameData Frame, FGBufferData GBuffer,
     return Result;
 }
 
-float3 AccumulateSceneLights(LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V, float SurfaceShadow)
+float3 EvaluateIndexedLight(ByteAddressBuffer Lights, uint Index, float Efficacy, FGBufferData GBuffer, float3 Position, float3 V)
+{
+    GpuLightData Light = Lights.Load<GpuLightData>(Index * sizeof(GpuLightData));
+    Light.Color.rgb *= Efficacy;
+    return AccumulateDynamicLighting(Light, GBuffer, Position, V, 1.0);
+}
+
+float3 AccumulateScreenLights(uint DataIndex, uint2 Pixel, LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V)
+{
+    if (DataIndex == INVALID_TEXTURE)
+    {
+        return AccumulateAdditionalLights(Frame, GBuffer, Position, V);
+    }
+    ByteAddressBuffer Data = ResourceDescriptorHeap[DataIndex];
+    const ClusterGrid Grid = Data.Load<ClusterGrid>(0);
+    if (Grid.GlobalCount + Grid.FiniteCount == 0)
+    {
+        return 0.0;
+    }
+    ByteAddressBuffer Lights = ResourceDescriptorHeap[Frame.LightsIndex];
+    float3 Result = 0.0;
+    for (uint I = 0; I < Grid.GlobalCount; ++I)
+    {
+        Result += EvaluateIndexedLight(Lights, Data.Load(Grid.IndexOffset + I * 4), Frame.LuminousEfficacy, GBuffer, Position, V);
+    }
+    if (Grid.Words == 0)
+    {
+        return Result;
+    }
+    const float Depth = dot(Grid.ClipW, float4(Position, 1));
+    const uint Z = uint(clamp((Depth - Grid.Near) * Grid.BinScale, 0.0, float(Grid.BinCount - 1)));
+    const uint2 Range = Data.Load2(sizeof(ClusterGrid) + Z * 8);
+    if (Range.x > Range.y)
+    {
+        return Result;
+    }
+    const uint2 Tile = Pixel / LIGHT_TILE_SIZE;
+    const uint Base = (Tile.y * Grid.TilesX + Tile.x) * Grid.Words;
+    ByteAddressBuffer Masks = ResourceDescriptorHeap[Grid.MaskIndex];
+    for (uint Word = Range.x / 32; Word <= Range.y / 32; ++Word)
+    {
+        uint Bits = Masks.Load((Base + Word) * 4);
+        if (Word == Range.x / 32)
+        {
+            Bits &= 0xffffffffu << (Range.x & 31);
+        }
+        if (Word == Range.y / 32)
+        {
+            Bits &= 0xffffffffu >> (31 - (Range.y & 31));
+        }
+        while (Bits != 0)
+        {
+            const uint I = Grid.GlobalCount + Word * 32 + firstbitlow(Bits);
+            Result += EvaluateIndexedLight(Lights, Data.Load(Grid.IndexOffset + I * 4), Frame.LuminousEfficacy, GBuffer, Position, V);
+            Bits &= Bits - 1;
+        }
+    }
+    return Result;
+}
+
+float3 AccumulateMainLight(LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V, float SurfaceShadow)
 {
     float3 Result = 0.0;
     if (Frame.LightDirection.w > 0.0 && SurfaceShadow > 0.0)
@@ -201,5 +262,10 @@ float3 AccumulateSceneLights(LightingFrameData Frame, FGBufferData GBuffer, floa
         DirectionalLight.Color = float4(Frame.LightDirection.w * max(Frame.LightColor.rgb, 0.0), 0.0);
         Result = AccumulateDynamicLighting(DirectionalLight, GBuffer, Position, V, saturate(SurfaceShadow));
     }
-    return Result + AccumulateAdditionalLights(Frame, GBuffer, Position, V);
+    return Result;
+}
+
+float3 AccumulateSceneLights(LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V, float SurfaceShadow)
+{
+    return AccumulateMainLight(Frame, GBuffer, Position, V, SurfaceShadow) + AccumulateAdditionalLights(Frame, GBuffer, Position, V);
 }

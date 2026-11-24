@@ -25,6 +25,9 @@ constexpr const char* CharacterDirectory = "Assets/BrainStem/glTF";
 constexpr const char* CharacterSource = "BrainStem.gltf";
 constexpr float       CharacterPosition[3] = { -15.0f, 0.4f, -4.6f };
 constexpr float       CharacterYaw = 0.0f;
+constexpr uint32_t    BistroPointLightCount = 2027;
+constexpr float       BistroLightGridWidth = 50.0f; // Horizontal coverage in meters.
+constexpr float       BistroLightHeight = 4.0f;
 constexpr bool        EnableHDR = true;
 // GPU-based validation slows GPU work several times over, so only Debug builds enable it by default.
 #if defined(_DEBUG)
@@ -77,6 +80,10 @@ public:
         }
         LOGF(Info, "Startup: scene Load/instantiate %.1f ms", (GetUSec(true) - Start) / 1000.0);
         InitCamera();
+        AddBistroPointLights(Camera->GetPosition());
+        Scene->Update();
+        LOGF(Info, "Scene lighting: %u active lights, including %u Bistro point lights", Scene->GetActiveLights().Count,
+             BistroPointLightCount);
         Start = GetUSec(true);
         const bool Ready = InitRenderPasses();
         LOGF(Info, "Startup: render pass shaders and pipelines %.1f ms", (GetUSec(true) - Start) / 1000.0);
@@ -190,7 +197,7 @@ private:
         Animation = hz::MakeUnique<hz::AnimationSystem>(*World, *AssetManager);
         Scene = hz::MakeUnique<hz::RenderScene>(*World, *AssetManager, Animation.Get());
         const uint32_t NodeCount = Asset->GetNodes().Count + CharacterAsset->GetNodes().Count;
-        Scene->Reserve(NodeCount, NodeCount, 1, 1);
+        Scene->Reserve(NodeCount, NodeCount, BistroPointLightCount + 1, 1);
         Animation->Update(0.0f);
         Scene->Update();
         LOGF(Info, "World ready: %u render primitives, %u instances, %u mesh batches, %u skinned, %u materials, %u textures",
@@ -223,6 +230,7 @@ public:
             Context->WaitIdle();
         }
         Passes = nullptr;
+        BistroLights.Reset();
         Scene = nullptr;
         Animation = nullptr;
         World = nullptr;
@@ -264,6 +272,7 @@ public:
         const bool    Updated = World->SetComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose);
         ASSERT(Updated);
         AssetManager->Update();
+        UpdateBistroPointLights(DeltaTime);
         Animation->Update(DeltaTime);
         Passes->Update(DeltaTime);
     }
@@ -306,7 +315,7 @@ private:
         const float      SunAngle = 26.0f * PI / 180.0f;
         const Vector3    Z(-sinf(SunAngle), cosf(SunAngle), 0);
         const Vector3    X = normalize(cross(Vector3(0, 1, 0), Z));
-        const hz::Light  Sun = { .Type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 1000 };
+        const hz::Light  Sun = { .Type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 0.0 };
         const Matrix4    SunPose = Matrix4(Vector4(X, 0), Vector4(cross(Z, X), 0), Vector4(Z, 0), Vector4(0, 0, 0, 1));
         const hz::Entity SunEntity = World->CreatePersistentEntity();
         const bool       Created = World->SetComponent(CameraEntity, hz::SceneTypes::camera, &CameraData) &&
@@ -314,9 +323,93 @@ private:
                              World->SetComponent(SunEntity, hz::SceneTypes::light, &Sun) &&
                              World->SetComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
         ASSERT(Created);
-        Scene->Update();
         LOGF(Info, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R Reset, Esc Release mouse");
     }
+
+    struct MovingLight
+    {
+        hz::Entity Entity;
+        Vector3    Anchor;
+        Vector3    Travel;
+        float      Phase;
+        float      Speed;
+    };
+
+    float RandomLightValue()
+    {
+        LightSeed = 1664525u * LightSeed + 1013904223u;
+        return float(LightSeed >> 8) / 16777216.0f;
+    }
+
+    void SpawnBistroLight(MovingLight& Motion)
+    {
+        const Vector3 HalfSize(BistroLightGridWidth * 0.5f, BistroLightHeight * 0.5f, BistroLightGridWidth * 0.5f);
+        const Vector3 Amplitude = minPerElem(HalfSize * 0.1f, Vector3(0.5f));
+        for (uint32_t Axis = 0; Axis < 3; ++Axis)
+        {
+            Motion.Anchor[Axis] = BistroLightCenter[Axis] + (2.0f * RandomLightValue() - 1.0f) * (HalfSize[Axis] - Amplitude[Axis]);
+            Motion.Travel[Axis] = (2.0f * RandomLightValue() - 1.0f) * Amplitude[Axis];
+        }
+        Motion.Phase = RandomLightValue() * (2.0f * PI);
+        Motion.Speed = 0.5f + RandomLightValue();
+        const float     Red = 0.1f + 0.9f * RandomLightValue();
+        const float     Green = 0.1f + 0.9f * RandomLightValue();
+        const float     Blue = 0.1f + 0.9f * RandomLightValue();
+        const hz::Light Light = { .Type = hz::LightType::Point,
+                                  .color = Vector3(Red, Green, Blue),
+                                  .intensity = 0.5f + 1.5f * RandomLightValue(),
+                                  .range = 1.2f };
+        Motion.Entity = World->CreatePersistentEntity();
+        const bool Created = World->SetComponent(Motion.Entity, hz::SceneTypes::light, &Light);
+        ASSERT(Created);
+    }
+
+    void AddBistroPointLights(const Vector3& Center)
+    {
+        BistroLightCenter = Center;
+        LightSeed = uint32_t(GetUSec(true));
+        ReplacementSeconds = 0;
+        BistroLights.Resize(BistroPointLightCount);
+        for (MovingLight& Motion : BistroLights)
+        {
+            SpawnBistroLight(Motion);
+        }
+        UpdateBistroPointLights(0);
+    }
+
+    void UpdateBistroPointLights(float DeltaTime)
+    {
+        if (BistroLights.Empty())
+        {
+            return;
+        }
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Bistro point lights");
+        ReplacementSeconds += DeltaTime;
+        while (ReplacementSeconds >= 1.0)
+        {
+            ReplacementSeconds -= 1.0;
+            MovingLight& Motion = BistroLights[uint32_t(double(RandomLightValue()) * BistroLights.Size())];
+            const bool   Removed = World->DestroyEntity(Motion.Entity);
+            ASSERT(Removed);
+            SpawnBistroLight(Motion);
+        }
+        for (MovingLight& Motion : BistroLights)
+        {
+            Motion.Phase += DeltaTime * Motion.Speed;
+            if (Motion.Phase >= 2.0f * PI)
+            {
+                Motion.Phase = fmodf(Motion.Phase, 2.0f * PI);
+            }
+            const Matrix4 Pose = Matrix4::translation(Motion.Anchor + Motion.Travel * sinf(Motion.Phase));
+            const bool    Updated = World->SetComponent(Motion.Entity, hz::SceneTypes::localMatrix, &Pose);
+            ASSERT(Updated);
+        }
+    }
+
+    hz::Array<MovingLight> BistroLights;
+    Vector3 BistroLightCenter;
+    uint32_t LightSeed = 0;
+    double ReplacementSeconds = 0;
 
     hz::UniquePtr<FreeCameraController> Camera;
     hz::UniquePtr<hz::RenderContext>    Context;

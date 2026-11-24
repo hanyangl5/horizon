@@ -1,6 +1,7 @@
 // GPU tests of the Examples/Renderer shaders and passes, built on the shared asset fixtures.
 #include "AssetTestFixtures.h"
 #include "../../Examples/Renderer/Source/DeferredLighting.h"
+#include "../../Examples/Renderer/Source/ClusteredLighting.h"
 #include "Scene/GpuDrawList.h"
 #include "../../Examples/Renderer/Source/FrustumCulling.h"
 #include "../../Examples/Renderer/Source/RayTracingScene.h"
@@ -1125,6 +1126,40 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
             EXPECT_NEAR(litColor[channel], expected, 2e-4f) << roughness;
         }
     }
+    // Tilt the mirror so the hit is at x=1.25, outside the identity camera's [-1,1] view.
+    const float             slope = std::tan(0.5f * std::atan(1.25f / 0.3f));
+    const hz::GpuLightData  offscreen = { .PositionAndInvRadius = Vector4(1.25f, 0, 0.4f, 5),
+                                          .DirectionAndType = Vector4(0, 0, -1, 1),
+                                          .Color = Vector4(0, 0, 1, 0),
+                                          .Ready = 1 };
+    const uint32_t          id = 0;
+    const hz::GPUBuffer     offscreenBuffer = input(&offscreen, sizeof(offscreen)), active = input(&id, sizeof(id));
+    const LightingFrameData offscreenFrame = { .LightsIndex = offscreenBuffer.GetSrvIndex(),
+                                               .LightCount = 1,
+                                               .ActiveLightsIndex = active.GetSrvIndex() };
+    ASSERT_TRUE(context.UpdateBuffer(light, 0, &offscreenFrame, sizeof(offscreenFrame)));
+    hz::CommandList& bounce = context.AcquireCommandList();
+    bounce.BeginRendering({ .colorAttachments = { { .pTexture = &normal,
+                                                    .loadAction = LOAD_ACTION_CLEAR,
+                                                    .storeAction = STORE_ACTION_STORE,
+                                                    .ClearValue = { .r = 0.5f + 0.5f * slope / (1 + slope), .g = 0.5f } } } });
+    bounce.EndRendering();
+    bounce.SetPipeline(reflection);
+    bounce.SetRootConstants(constants);
+    bounce.TraceRays(
+        reflection, 1, 1, 1,
+        { .sampledTextures = { &normal, &Depth },
+          .storageTextures = { &result },
+          .buffers = { &frame, &light, &drawBuffer, &materialBuffer, &vertices, &indexBuffer32, &uv, &offscreenBuffer, &active } });
+    bounce.SetPipeline(reader);
+    bounce.SetRootConstant({ result.GetSrvIndex(), output.GetUavIndex(), 0 });
+    bounce.Dispatch(1, 1, 1, { .sampledTextures = { &result }, .storageBuffers = { &output } });
+    bounce.CopyBuffer(readback, 0, output, 0, 16);
+    context.Wait(context.Submit(bounce));
+    const float* reflected = (const float*)readback.Get()->pCpuMappedAddress;
+    EXPECT_FLOAT_EQ(reflected[0], 0.0f);
+    EXPECT_GT(reflected[2], 1.0f);
+
     ID3D12Device* device = nullptr;
     ASSERT_EQ(output.Get()->dx.pResource->GetDevice(IID_PPV_ARGS(&device)), S_OK);
     EXPECT_EQ(device->GetDeviceRemovedReason(), S_OK);
@@ -1475,7 +1510,33 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                                     .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
                                                     .StartState = RESOURCE_STATE_COPY_DEST,
                                                     .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-    for (uint32_t scenario = 0; scenario < 4; ++scenario)
+    SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderSources, shaders.string().c_str());
+    ClusteredLighting clusters(context);
+    // Both lights cover the front glass, on opposite sides of it. Neither reaches the back pane.
+    hz::RenderLight   glassLights[2];
+    hz::GpuLightData  gpuLights[2];
+    const uint32_t    ids[] = { 0, 1 };
+    for (uint32_t i = 0; i < 2; ++i)
+    {
+        const Vector3 pos(0.125f, 0.125f, i ? 0.28f : 0.12f);
+        glassLights[i].transform = Matrix4::translation(pos);
+        glassLights[i].ready = 1;
+        glassLights[i].range = 0.20f;
+        gpuLights[i] = { .PositionAndInvRadius = Vector4(pos, 5),
+                         .DirectionAndType = Vector4(0, 0, -1, 1),
+                         .Color = Vector4(1, 1, 1, 0),
+                         .Ready = 1 };
+    }
+    const hz::GPUBuffer     glassBuffer = input(gpuLights, sizeof(gpuLights)), glassIds = input(ids, sizeof(ids));
+    const LightingFrameData glassFrame = { .LightsIndex = glassBuffer.GetSrvIndex(),
+                                           .LightCount = 2,
+                                           .ActiveLightsIndex = glassIds.GetSrvIndex() };
+    const hz::GPUBuffer     glassLighting = input(&glassFrame, sizeof(glassFrame), sizeof(glassFrame));
+    Matrix4                 gridProjection = camera.vp;
+    gridProjection.setRow(3, Vector4(0, 0, 1, 0));
+    ASSERT_TRUE(clusters.Prepare(0, glassLights, ids, UINT32_MAX, gridProjection, 0.01f, 1.0f, 8, 8));
+    float reference[64 * 4] = {};
+    for (uint32_t scenario = 0; scenario < 6; ++scenario)
     {
         SCOPED_TRACE(scenario);
         const uint32_t Capacity = scenario == 3 ? 1 : 128;
@@ -1491,7 +1552,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                                           .storeAction = STORE_ACTION_STORE,
                                                           .ClearValue = { .b = 1, .a = 1 } } } });
         commands.EndRendering();
-        uint32_t constants[28];
+        uint32_t constants[29];
         for (uint32_t& value : constants)
         {
             value = UINT32_MAX;
@@ -1507,7 +1568,12 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         constants[13] = counters.GetUavIndex();
         constants[14] = nodes.GetUavIndex();
         constants[15] = Capacity;
-        constants[16] = light.GetSrvIndex();
+        constants[16] = scenario >= 4 ? glassLighting.GetSrvIndex() : light.GetSrvIndex();
+        if (scenario == 5)
+        {
+            clusters.BuildMasks(commands, 0);
+            constants[28] = clusters.GetData(0).GetSrvIndex();
+        }
         commands.SetPipeline(Clear);
         commands.SetRootConstant(constants);
         commands.Dispatch(1, 1, 1, { .storageTextures = { &heads }, .storageBuffers = { &counters } });
@@ -1516,7 +1582,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                                        .storeAction = STORE_ACTION_STORE,
                                                        .ClearValue = { .Depth = scenario == 2 ? 0.5f : 1.0f } } },
                                 { .storageTextures = { &heads },
-                                  .buffers = { &frame, &light, &instanceBuffer, &materialBuffer, &vertices, &normal, &uv },
+                                  .buffers = { &frame, scenario >= 4 ? &glassLighting : &light, &instanceBuffer, &materialBuffer, &vertices,
+                                               &normal, &uv, &glassBuffer, &glassIds, &clusters.GetData(0), clusters.GetMask(0) },
                                   .storageBuffers = { &counters, &nodes } });
         commands.SetViewport(0, 0, 8, 8);
         commands.SetScissor(0, 0, 8, 8);
@@ -1551,6 +1618,10 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         EXPECT_EQ(stats[0], scenario == 2 ? 64u : 128u);
         EXPECT_EQ(stats[1], scenario == 3 ? 127u : 0u);
         EXPECT_EQ(stats[2], 0u);
+        if (scenario == 4)
+        {
+            memcpy(reference, color, sizeof(reference));
+        }
         double sum[3] = {};
         for (uint32_t pixel = 0; pixel < 64; ++pixel)
         {
@@ -1558,12 +1629,23 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
             {
                 sum[channel] += color[pixel * 4 + channel];
             }
-            if (scenario != 3)
+            if (scenario == 5)
+            {
+                for (uint32_t c = 0; c < 3; ++c)
+                {
+                    EXPECT_NEAR(color[pixel * 4 + c], reference[pixel * 4 + c], 1e-4f);
+                }
+            }
+            if (scenario < 3)
             {
                 EXPECT_NEAR(color[pixel * 4], 0.5, 1e-5);
                 EXPECT_NEAR(color[pixel * 4 + 1], scenario == 2 ? 0.0 : 0.25, 1e-5);
                 EXPECT_NEAR(color[pixel * 4 + 2], scenario == 2 ? 0.5 : 0.25, 1e-5);
             }
+        }
+        if (scenario >= 4)
+        {
+            EXPECT_GT(sum[0], 32.0);
         }
         if (scenario == 3)
         {
@@ -1718,6 +1800,20 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                            .ActiveLightsIndex = activeLightList.GetSrvIndex(),
                                            .MainDirectionalIndex = 5 };
     const hz::GPUBuffer localLighting = Upload(&localFrame, sizeof(localFrame));
+    SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderSources, shaders.string().c_str());
+    ClusteredLighting clusters(context);
+    hz::RenderLight   sourceLights[TF_ARRAY_COUNT(lights)];
+    for (uint32_t i = 0; i < TF_ARRAY_COUNT(lights); ++i)
+    {
+        sourceLights[i].Type = hz::LightType(int(float(lights[i].DirectionAndType.getW())));
+        sourceLights[i].transform = Matrix4::translation(lights[i].PositionAndInvRadius.getXYZ());
+        const float invRadius = lights[i].PositionAndInvRadius.getW();
+        sourceLights[i].range = invRadius > 0 ? 1.0f / invRadius : 0;
+        sourceLights[i].ready = lights[i].Ready;
+    }
+    Matrix4 gridProjection = Matrix4::identity();
+    gridProjection.setRow(3, Vector4(0, 0, 1, 0));
+    ASSERT_TRUE(clusters.Prepare(0, sourceLights, activeLights, 5, gridProjection, 0.01f, 2.0f, 1, 1));
     hz::CommandList& commands = context.AcquireCommandList();
     const auto       Clear = [&](const hz::GPUTexture& texture, float value)
     {
@@ -1769,9 +1865,10 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     commands.Dispatch(1, 1, 1, { .sampledTextures = { &source }, .storageTextures = { &logOutput } });
     read(logOutput, 8);
     // Normal incidence, white dielectric, specular 8/16. Test the smooth limit and a rough lobe as well as the HDR peak.
-    constexpr uint32_t roughnessCodes[] = { 0, 51, 255, 255 };
-    constexpr uint32_t lightingOffsets[] = { 182, 15, 183, 184 };
-    uint32_t peakConstants[15];
+    clusters.BuildMasks(commands, 0);
+    constexpr uint32_t roughnessCodes[] = { 0, 51, 255, 255, 255 };
+    constexpr uint32_t lightingOffsets[] = { 182, 15, 183, 184, 185 };
+    uint32_t           peakConstants[16];
     for (uint32_t& value : peakConstants)
     {
         value = UINT32_MAX;
@@ -1796,13 +1893,15 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                                           .storeAction = STORE_ACTION_STORE,
                                                           .ClearValue = { .r = 1, .g = 1, .b = 1, .a = 0 } } } });
         commands.EndRendering();
-        const bool local = probe == 3;
+        const bool local = probe >= 3;
+        peakConstants[15] = probe == 4 ? clusters.GetData(0).GetSrvIndex() : UINT32_MAX;
         const hz::GPUBuffer& lighting = local ? localLighting : peakLighting;
         peakConstants[1] = lighting.GetSrvIndex();
         commands.SetPipeline(deferred);
         commands.BeginRendering(
             { .colorAttachments = { { .pTexture = &mapped, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
-            { .sampledTextures = { &black, &average, &peakNormal, &peakBase }, .buffers = { &peakFrame, &lighting, &lightList, &activeLightList } });
+            { .sampledTextures = { &black, &average, &peakNormal, &peakBase },
+              .buffers = { &peakFrame, &lighting, &lightList, &activeLightList, &clusters.GetData(0), clusters.GetMask(0) } });
         commands.SetViewport(0, 0, 1, 1);
         commands.SetScissor(0, 0, 1, 1);
         commands.SetRootConstant(peakConstants);
@@ -1933,7 +2032,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         const double diffuseWeight = 1.0 - specularWeight * albedo * f0;
         const double alphaSquared = std::fmax(std::pow(roughness, 4), 2e-6);
         // The last probe has 1 lux of each RGB primary from the directional, point and spot lights.
-        const double illuminance = probe == 3 ? 1.0 : 100000.0;
+        const double illuminance = probe >= 3 ? 1.0 : 100000.0;
         const double expected = illuminance * (diffuseWeight / pi + specularWeight * f0 / (4.0 * pi * alphaSquared));
         for (uint32_t channel = 0; channel < 3; ++channel)
         {
