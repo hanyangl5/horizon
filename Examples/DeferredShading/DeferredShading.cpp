@@ -479,10 +479,10 @@ public:
             .enableGpuValidation = true,
             .enableGpuProfiler = true,
         };
-        context = std::MakeUnique<hz::RenderContext>(contextDesc);
-        geometryBuildPass = std::MakeUnique<GeometryBuildPass>(*context);
-        gBufferPass = std::MakeUnique<GBufferPass>(*context);
-        lightingPass = std::MakeUnique<LightingPass>(*context, hz::Format::R8G8B8A8_SRGB);
+        context = std::make_unique<hz::RenderContext>(contextDesc);
+        geometryBuildPass = std::make_unique<GeometryBuildPass>(*context);
+        gBufferPass = std::make_unique<GBufferPass>(*context);
+        lightingPass = std::make_unique<LightingPass>(*context, hz::Format::R8G8B8A8_SRGB);
 
         createUniformBuffers();
         return true;
@@ -492,12 +492,12 @@ public:
     {
         PROFILER_SET_CPU_SCOPE("DeferredShading", "Exit", kCpuProfileColor);
         context->WaitIdle();
-        lightingPass.Reset();
-        gBufferPass.Reset();
-        geometryBuildPass.Reset();
+        lightingPass.reset();
+        gBufferPass.reset();
+        geometryBuildPass.reset();
         for (hz::GPUBuffer& buffer : sceneUniformBuffers)
             buffer = {};
-        context.Reset();
+        context.reset();
     }
 
     bool Load(ReloadDesc* pReloadDesc) override
@@ -593,11 +593,11 @@ private:
         commands.UpdateBuffer(sceneUniformBuffers[1], 0, &floor, sizeof(floor));
     }
 
-    std::UniquePtr<hz::RenderContext>  context;
+    std::unique_ptr<hz::RenderContext> context;
     hz::GPUBuffer                      sceneUniformBuffers[kSceneObjectCount];
-    std::UniquePtr<GeometryBuildPass>  geometryBuildPass;
-    std::UniquePtr<GBufferPass>        gBufferPass;
-    std::UniquePtr<LightingPass>       lightingPass;
+    std::unique_ptr<GeometryBuildPass> geometryBuildPass;
+    std::unique_ptr<GBufferPass>       gBufferPass;
+    std::unique_ptr<LightingPass>      lightingPass;
     float                              elapsedTime = 0.0f;
 };
 

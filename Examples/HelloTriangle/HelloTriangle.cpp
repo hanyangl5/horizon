@@ -88,7 +88,7 @@ public:
     {
         PROFILER_SET_CPU_SCOPE("HelloTriangle", "Exit", kCpuProfileColor);
         context->WaitIdle();
-        resources.Reset();
+        resources.reset();
         context = nullptr;
     }
 
