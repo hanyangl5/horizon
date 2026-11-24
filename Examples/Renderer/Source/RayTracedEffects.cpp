@@ -31,9 +31,9 @@ struct RTConstants
     float    ShadowRadius;
 };
 static_assert(sizeof(RTConstants) == 23 * sizeof(uint32_t));
-hz::CVar GRTShadows("r.RayTracing.Shadows", true, "Ray-traced shadows.");
-hz::CVar GRTAO("r.RayTracing.AO", true, "Ray-traced AO takes precedence over GTAO.");
-hz::CVar GRTReflections("r.RayTracing.Reflections", true, "Ray-traced reflections.");
+hz::CVar        GRTShadows("r.RayTracing.Shadows", true, "Ray-traced shadows.");
+hz::CVar        GRTAO("r.RayTracing.AO", true, "Ray-traced AO takes precedence over GTAO.");
+hz::CVar        GRTReflections("r.RayTracing.Reflections", true, "Ray-traced reflections.");
 static hz::CVar GRTAORadius("r.RayTracing.AO.Radius", 2.0f, 0.0001f, "Maximum occlusion ray distance in meters.");
 
 RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context), Supported(Context.SupportsRayTracing())
@@ -102,8 +102,11 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     const hz::GPUTexture& Reflection = *Targets.Reflection;
     const uint32_t        Width = Result.GetWidth();
     const uint32_t        Height = Result.GetHeight();
-    const HistorySettings Current = { .Parameters = Settings, .Shadows = GRTShadows.GetBool(), .AO = GRTAO.GetBool(),
-                                      .Reflections = GRTReflections.GetBool(), .AORadius = GRTAORadius.GetFloat() };
+    const HistorySettings Current = { .Parameters = Settings,
+                                      .Shadows = GRTShadows.GetBool(),
+                                      .AO = GRTAO.GetBool(),
+                                      .Reflections = GRTReflections.GetBool(),
+                                      .AORadius = GRTAORadius.GetFloat() };
     if (!(Current == PreviousSettings))
     {
         MarkDirty();

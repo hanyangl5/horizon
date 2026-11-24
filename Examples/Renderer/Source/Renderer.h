@@ -97,13 +97,18 @@ public:
             // Persist the driver PSOs built here so the next start only validates them.
             Context->SavePipelineCache();
             Inspector = hz::MakeUnique<SceneInspector>(pWindow->Handle, *World, *Types, CameraEntity);
-            GVSync.SetApplyBool([](void* User, bool Enabled) {
-                RendererApp& App = *static_cast<RendererApp*>(User);
-                if (!App.Context->SetVSync(Enabled))
-                    return false;
-                App.settings.vSyncEnabled = Enabled;
-                return true;
-            }, this);
+            GVSync.SetApplyBool(
+                [](void* User, bool Enabled)
+                {
+                    RendererApp& App = *static_cast<RendererApp*>(User);
+                    if (!App.Context->SetVSync(Enabled))
+                    {
+                        return false;
+                    }
+                    App.settings.vSyncEnabled = Enabled;
+                    return true;
+                },
+                this);
         }
         return Ready;
     }
@@ -380,7 +385,7 @@ private:
     {
         const Vector3 HalfSize(BistroLightGridWidth * 0.5f, BistroLightHeight * 0.5f, BistroLightGridWidth * 0.5f);
         const Vector3 Amplitude = minPerElem(HalfSize * 0.1f, Vector3(0.5f));
-        Vector3 Anchor;
+        Vector3       Anchor;
         for (uint32_t Axis = 0; Axis < 3; ++Axis)
         {
             Anchor[Axis] = BistroLightCenter[Axis] + (2.0f * RandomLightValue() - 1.0f) * (HalfSize[Axis] - Amplitude[Axis]);
@@ -439,15 +444,15 @@ private:
             }
             Matrix4 Pose = Motion.Anchor;
             Pose.setTranslation(Motion.Anchor.getTranslation() + Motion.Travel * sinf(Motion.Phase));
-            const bool    Updated = World->SetComponent(Motion.Entity, hz::SceneTypes::localMatrix, &Pose);
+            const bool Updated = World->SetComponent(Motion.Entity, hz::SceneTypes::localMatrix, &Pose);
             ASSERT(Updated);
         }
     }
 
     hz::Array<MovingLight> BistroLights;
-    Vector3 BistroLightCenter;
-    uint32_t LightSeed = 0;
-    double ReplacementSeconds = 0;
+    Vector3                BistroLightCenter;
+    uint32_t               LightSeed = 0;
+    double                 ReplacementSeconds = 0;
 
     hz::UniquePtr<FreeCameraController> Camera;
     hz::UniquePtr<hz::RenderContext>    Context;
@@ -459,6 +464,6 @@ private:
     hz::UniquePtr<hz::AnimationSystem>  Animation;
     hz::UniquePtr<hz::RenderScene>      Scene;
     hz::UniquePtr<RenderPasses>         Passes;
-    hz::UniquePtr<SceneInspector>    Inspector;
+    hz::UniquePtr<SceneInspector>       Inspector;
     hz::Entity                          CameraEntity;
 };

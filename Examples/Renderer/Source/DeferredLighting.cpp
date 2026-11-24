@@ -52,7 +52,9 @@ void DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
         Dependencies.Read(*Resources.ActiveLights);
     }
     if (Resources.TileMasks)
+    {
         Dependencies.Read(*Resources.TileMasks);
+    }
     const DeferredLightingConstants Constants = {
         .FrameIndex = Dependencies.Read(Frame),
         .LightingFrameIndex = Dependencies.Read(*Resources.LightingFrame),

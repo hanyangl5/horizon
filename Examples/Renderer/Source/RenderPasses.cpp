@@ -733,8 +733,7 @@ void RenderPasses::Execute()
     // Ray traced AO replaces the screen space term.
     hz::SetFrameGraphPassEnabled(Graph, GTAOGraphPass, GGTAO.GetBool() && !Shadows->Data.RTAOEnabled);
     hz::SetFrameGraphPassEnabled(Graph, RayTracingPass,
-                                 RayTracingReady &&
-                                     (GRTShadows.GetBool() || GRTAO.GetBool() || GRTReflections.GetBool()));
+                                 RayTracingReady && (GRTShadows.GetBool() || GRTAO.GetBool() || GRTReflections.GetBool()));
     hz::SetFrameGraphPassEnabled(Graph, TransparencyPass, GTransparency.GetBool());
     hz::SetFrameGraphPassEnabled(Graph, TemporalAAPass, GTemporalAA.GetBool());
     const hz::GPUTexture& Backbuffer = Context.GetCurrentBackbuffer();

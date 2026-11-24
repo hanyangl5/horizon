@@ -660,7 +660,9 @@ bool handleMessages()
         DispatchMessage(&msg);
 
         if (WM_QUIT == msg.message)
+        {
             quit = true;
+        }
     }
 
     return quit;

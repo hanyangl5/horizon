@@ -2686,7 +2686,6 @@ void platformUpdateUserInterface(float deltaTime)
             io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
     }
 
-
     uiNewFrame();
 
     if (pUserInterface->active)

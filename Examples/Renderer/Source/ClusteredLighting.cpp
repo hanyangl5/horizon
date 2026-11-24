@@ -33,12 +33,12 @@ static bool ReserveBuffer(hz::RenderContext& Context, hz::GPUBuffer& Buffer, uin
     const uint64_t Capacity = max(Bytes, Buffer.GetSize() * 2);
     hz::GPUBuffer  Replacement = Context.CreateBuffer(
         { .Size = Capacity,
-          .ElementCount = uint32_t(Capacity / 4),
-          .Name = Mask ? "Renderer.LightTileMasks" : "Renderer.ClusterLightData",
-          .usage = Mask ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-          .StartState = Mask ? RESOURCE_STATE_UNORDERED_ACCESS : RESOURCE_STATE_SHADER_RESOURCE,
-          .Descriptors = Mask ? DescriptorType(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) : DESCRIPTOR_TYPE_BUFFER_RAW,
-          .Flags = Mask ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+           .ElementCount = uint32_t(Capacity / 4),
+           .Name = Mask ? "Renderer.LightTileMasks" : "Renderer.ClusterLightData",
+           .usage = Mask ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+           .StartState = Mask ? RESOURCE_STATE_UNORDERED_ACCESS : RESOURCE_STATE_SHADER_RESOURCE,
+           .Descriptors = Mask ? DescriptorType(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW) : DESCRIPTOR_TYPE_BUFFER_RAW,
+           .Flags = Mask ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     if (!Replacement.IsValid())
     {
         LOGF(Error, "Cannot allocate %llu bytes for clustered lighting", (unsigned long long)Capacity);

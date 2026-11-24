@@ -82,13 +82,13 @@ private:
     struct HistorySettings
     {
         RayTracedEffectsSettings Parameters;
-        bool Shadows;
-        bool AO;
-        bool Reflections;
-        float AORadius;
-        bool operator==(const HistorySettings&) const = default;
+        bool                     Shadows;
+        bool                     AO;
+        bool                     Reflections;
+        float                    AORadius;
+        bool                     operator==(const HistorySettings&) const = default;
     };
-    HistorySettings PreviousSettings{};
+    HistorySettings                PreviousSettings{};
     uint32_t                       FrameIndex = 0;
     uint64_t                       AssetRevision = 0;
     bool                           MarkedDirty = true;
