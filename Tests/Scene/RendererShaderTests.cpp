@@ -12,6 +12,77 @@
 #define IMEMORY_FROM_HEADER
 #include "Core/IMemory.h"
 
+class SlangCacheTest: public SceneAssetLoaderTest
+{
+protected:
+    void TearDown() override
+    {
+        SetResourceDirectoryPath(SystemFileIO, MountDebug, DirectoryShaderBinaries, "CompiledShaders");
+        SceneAssetLoaderTest::TearDown();
+    }
+};
+
+TEST_F(SlangCacheTest, SlangCacheTracksNestedIncludes)
+{
+    SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderBinaries, directory.string().c_str());
+    const auto writeSource = [](const char* name, const char* source)
+    {
+        FileStream stream = {};
+        ASSERT_TRUE(OpenStreamFromPath(DirectoryOtherFiles, name, FileModeWrite, &stream));
+        EXPECT_EQ(WriteToStream(&stream, source, strlen(source)), strlen(source));
+        CloseStream(&stream);
+    };
+    writeSource("Root.slang", R"(#include "Middle.slang"
+        cbuffer RootConstant0 { uint outputIndex; };
+        [numthreads(1,1,1)] void CSMain() {
+            RWStructuredBuffer<uint> result = ResourceDescriptorHeap[outputIndex];
+            result[0] = VALUE;
+        })");
+    writeSource("Middle.slang", "#include \"Leaf.slang\"\n");
+    writeSource("Leaf.slang", "#define VALUE 17\n");
+    hz::RenderContext context({ .pAppName = "SlangCacheTest", .Width = 0, .Height = 0 });
+    hz::GPUBuffer     output = context.CreateBuffer({ .Size = 4,
+                                                      .ElementCount = 1,
+                                                      .StructStride = 4,
+                                                      .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                      .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                      .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+    hz::GPUBuffer     readback = context.CreateBuffer({ .Size = 4,
+                                                        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                        .StartState = RESOURCE_STATE_COPY_DEST,
+                                                        .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    const auto        checkResult = [&](uint32_t expected)
+    {
+        hz::GPUPipeline pipeline =
+            context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } },
+                                                            .sourceDirectory = DirectoryOtherFiles,
+                                                            .pFileName = "Root.slang" } });
+        ASSERT_TRUE(pipeline.IsValid());
+        hz::CommandList& commands = context.AcquireCommandList();
+        commands.SetPipeline(pipeline);
+        commands.SetRootConstant({ output.GetUavIndex() });
+        commands.Dispatch(1, 1, 1, { .storageBuffers = { &output } });
+        commands.CopyBuffer(readback, 0, output, 0, 4);
+        context.Wait(context.Submit(commands));
+        EXPECT_EQ(*static_cast<const uint32_t*>(readback.Get()->pCpuMappedAddress), expected);
+    };
+    checkResult(17);
+    std::filesystem::path cache;
+    for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(directory))
+    {
+        if (entry.path().extension() == ".shadercache")
+        {
+            cache = entry.path();
+        }
+    }
+    ASSERT_FALSE(cache.empty());
+    const std::filesystem::file_time_type timestamp = std::filesystem::last_write_time(cache);
+    checkResult(17);
+    EXPECT_EQ(std::filesystem::last_write_time(cache), timestamp);
+    writeSource("Leaf.slang", "#define VALUE 42\n");
+    checkResult(42);
+}
+
 TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransforms)
 {
     const std::filesystem::path shaders =

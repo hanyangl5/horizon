@@ -2,6 +2,7 @@
 
 #include "SlangSession.h"
 #include "Core/IFileSystem.h"
+#include "Core/IContainer.h"
 #include "Core/ILog.h"
 #include "Core/IThread.h"
 #include <slang.h>
@@ -15,8 +16,7 @@ namespace hz
 {
 namespace
 {
-// File layout version only; anything that changes emitted DXIL is covered by the cache key.
-constexpr uint32_t kShaderCacheVersion = 1;
+constexpr uint32_t kShaderCacheVersion = 2;
 constexpr uint32_t kShaderCacheMagic = 0x43535A48; // 'HZSC'
 
 // Cacheable stages, in record order.
@@ -73,7 +73,37 @@ void HashShaderBytes(uint64_t& Hash, const void* Data, size_t Size)
     }
 }
 
-// Everything that changes the generated DXIL participates in the key, so a cache hit never hides a shader edit.
+// Slang resolves includes on the host filesystem, relative to the source module.
+bool HashShaderFile(const char* Path, uint64_t& Hash)
+{
+    FILE* File = nullptr;
+#if defined(_WINDOWS)
+    wchar_t WidePath[FS_MAX_PATH];
+    if (!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, Path, -1, WidePath, TF_ARRAY_COUNT(WidePath)) ||
+        _wfopen_s(&File, WidePath, L"rb") != 0)
+    {
+        return false;
+    }
+#else
+    File = fopen(Path, "rb");
+    if (!File)
+    {
+        return false;
+    }
+#endif
+    uint8_t Bytes[8192];
+    size_t  Count;
+    HashShaderBytes(Hash, Path, strlen(Path) + 1);
+    while ((Count = fread(Bytes, 1, sizeof(Bytes), File)) != 0)
+    {
+        HashShaderBytes(Hash, Bytes, Count);
+    }
+    const bool Read = !ferror(File);
+    fclose(File);
+    return Read;
+}
+
+// The key selects the root sources. The cache record also validates files resolved by Slang.
 uint64_t GetShaderCacheKey(const ShaderSrcDesc& Source, ShaderTarget Target)
 {
     uint64_t                  Hash = UINT64_C(14695981039346656037);
@@ -91,6 +121,8 @@ uint64_t GetShaderCacheKey(const ShaderSrcDesc& Source, ShaderTarget Target)
             continue;
         }
         HashShaderBytes(Hash, &kCachedStages[I], sizeof(kCachedStages[I]));
+        const char* Path = Stages[I]->Name ? Stages[I]->Name : "";
+        HashShaderBytes(Hash, Path, strlen(Path) + 1);
         HashShaderBytes(Hash, Stages[I]->pByteCode, Stages[I]->byteCodeSize);
         HashShaderBytes(Hash, Stages[I]->pEntryPoint, strlen(Stages[I]->pEntryPoint) + 1);
     }
@@ -160,31 +192,31 @@ bool LoadShaderCache(uint64_t Key, const ShaderSrcDesc& Source, BinaryShaderDesc
         {
             return false;
         }
-        const ShaderCacheStageHeader* StagePointer = (const ShaderCacheStageHeader*)(File.pBytes + Offset);
+        ShaderCacheStageHeader Stage;
+        memcpy(&Stage, File.pBytes + Offset, sizeof(Stage));
         Offset += sizeof(ShaderCacheStageHeader);
-        if (!StagePointer->entryPointSize || !StagePointer->byteCodeSize ||
-            Offset + StagePointer->entryPointSize + StagePointer->byteCodeSize > File.Size)
+        if (!Stage.entryPointSize || !Stage.byteCodeSize || Offset + Stage.entryPointSize + Stage.byteCodeSize > File.Size)
         {
             return false;
         }
         char* EntryPoint = (char*)(File.pBytes + Offset);
-        if (EntryPoint[StagePointer->entryPointSize - 1] != '\0')
+        if (EntryPoint[Stage.entryPointSize - 1] != '\0')
         {
             return false;
         }
-        Offset += StagePointer->entryPointSize;
+        Offset += Stage.entryPointSize;
         void* ByteCode = File.pBytes + Offset;
-        Offset += StagePointer->byteCodeSize;
+        Offset += Stage.byteCodeSize;
         for (uint32_t StageIndex = 0; StageIndex < kCachedStageCount; ++StageIndex)
         {
-            if (kCachedStages[StageIndex] != (ShaderStage)StagePointer->stage)
+            if (kCachedStages[StageIndex] != (ShaderStage)Stage.stage)
             {
                 continue;
             }
             StageDescs[StageIndex]->Name = SourceStages[StageIndex]->Name;
             StageDescs[StageIndex]->pEntryPoint = EntryPoint;
             StageDescs[StageIndex]->pByteCode = ByteCode;
-            StageDescs[StageIndex]->byteCodeSize = StagePointer->byteCodeSize;
+            StageDescs[StageIndex]->byteCodeSize = Stage.byteCodeSize;
         }
     }
     // A truncated or foreign file must not turn into a null entry point inside addShaderBinary.
@@ -195,18 +227,56 @@ bool LoadShaderCache(uint64_t Key, const ShaderSrcDesc& Source, BinaryShaderDesc
             return false;
         }
     }
+    if (File.Size - Offset < sizeof(uint64_t))
+    {
+        return false;
+    }
+    uint64_t Expected;
+    memcpy(&Expected, File.pBytes + Offset, sizeof(Expected));
+    Offset += sizeof(Expected);
+    uint64_t Hash = UINT64_C(14695981039346656037);
+    while (Offset < File.Size)
+    {
+        const char* Path = (const char*)File.pBytes + Offset;
+        const char* End = (const char*)memchr(Path, 0, File.Size - Offset);
+        if (!End || End == Path || !HashShaderFile(Path, Hash))
+        {
+            return false;
+        }
+        Offset += size_t(End - Path) + 1;
+    }
+    if (Hash != Expected)
+    {
+        return false;
+    }
     Binary = ResultValue;
     Storage = File.Release();
     return true;
 }
 
-void StoreShaderCache(uint64_t Key, const BinaryShaderDesc& Binary)
+void StoreShaderCache(uint64_t Key, const BinaryShaderDesc& Binary, Span<slang::IModule*> Modules)
 {
     const BinaryShaderStageDesc* StageDescs[] = { &Binary.vert, &Binary.frag, &Binary.comp };
     uint32_t                     StageCount = 0;
     for (uint32_t I = 0; I < kCachedStageCount; ++I)
     {
         StageCount += (Binary.stages & kCachedStages[I]) ? 1u : 0u;
+    }
+
+    Array<const char*> Paths;
+    uint64_t           Hash = UINT64_C(14695981039346656037);
+    for (slang::IModule* Module : Modules)
+    {
+        // Dependency zero is the module source, already hashed from the bytes supplied to Slang.
+        for (SlangInt32 I = 1; I < Module->getDependencyFileCount(); ++I)
+        {
+            const char* Path = Module->getDependencyFilePath(I);
+            if (!Path || !HashShaderFile(Path, Hash))
+            {
+                return;
+            }
+            Paths.PushBack(Path);
+        }
     }
 
     char       FileNameValue[64] = {};
@@ -234,6 +304,11 @@ void StoreShaderCache(uint64_t Key, const BinaryShaderDesc& Binary)
         WriteToStream(&Stream, &StageValue, sizeof(StageValue));
         WriteToStream(&Stream, StageDescs[I]->pEntryPoint, EntryPointSize);
         WriteToStream(&Stream, StageDescs[I]->pByteCode, StageDescs[I]->byteCodeSize);
+    }
+    WriteToStream(&Stream, &Hash, sizeof(Hash));
+    for (const char* Path : Paths)
+    {
+        WriteToStream(&Stream, Path, strlen(Path) + 1);
     }
     CloseStream(&Stream);
 }
@@ -371,7 +446,7 @@ Shader* RenderContext::CreateSlangShader(const ShaderSrcDesc& Input)
         Outputs[I]->pEntryPoint = Sources[I]->pEntryPoint;
     }
     // Written before the shader is created so a later start skips the front end entirely.
-    StoreShaderCache(Key, Binary);
+    StoreShaderCache(Key, Binary, { Modules, ModuleCount });
 
     Shader* ShaderObject = nullptr;
     addShaderBinary(pRenderer, &Binary, &ShaderObject);
