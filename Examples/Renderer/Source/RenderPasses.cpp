@@ -141,167 +141,6 @@ static DeferredGBuffer GetGBuffer(const hz::FrameGraphContext& Context)
              .Depth = hz::GetFrameGraphTexture(Context, Targets.Depth) };
 }
 
-static void ExecuteSkinning(const hz::FrameGraphContext& Context, void* UserData)
-{
-    const FrameInputs& Frame = Inputs(Context);
-    ((SkinningPass*)UserData)->Execute(Context.Commands, *Frame.View.Skinning, Frame.View.FrameIndex);
-}
-
-static void ExecuteCulling(const hz::FrameGraphContext& Context, void* UserData)
-{
-    const FrameInputs& Frame = Inputs(Context);
-    ((FrustumCulling*)UserData)->Execute(Context.Commands, Frame.Frame, Frame.View, Frame.Draws);
-}
-
-static void BuildLightTileMasks(const hz::FrameGraphContext& Context, void* UserData)
-{
-    const FrameInputs& Frame = Inputs(Context);
-    if (Frame.Lighting.TileMasks)
-    {
-        ((ClusteredLighting*)UserData)->BuildMasks(Context.Commands, Frame.View.FrameIndex);
-    }
-}
-
-static void ExecuteShadows(const hz::FrameGraphContext& Context, void* UserData)
-{
-    const FrameInputs& Frame = Inputs(Context);
-    ((ShadowMap*)UserData)->Execute(Context.Commands, Frame.View, Frame.Draws, *hz::GetFrameGraphTexture(Context, Frame.Targets.ShadowMap));
-}
-
-static void ExecuteGBuffer(const hz::FrameGraphContext& Context, void* UserData)
-{
-    const FrameInputs&    Frame = Inputs(Context);
-    const hz::GPUTexture* Textures[GBuffer::TextureCount];
-    for (uint32_t Index = 0; Index < GBuffer::TextureCount; ++Index)
-    {
-        Textures[Index] = hz::GetFrameGraphTexture(Context, Frame.Targets.GBuffer[Index]);
-    }
-    ((GBuffer*)UserData)
-        ->Execute(Context.Commands, Frame.Frame, Frame.View, Frame.Draws, Textures,
-                  *hz::GetFrameGraphTexture(Context, Frame.Targets.Depth));
-}
-
-static void ExecuteGTAO(const hz::FrameGraphContext& Context, void* UserData)
-{
-    const FrameInputs& Frame = Inputs(Context);
-    ((GTAO*)UserData)
-        ->Execute(Context.Commands, Frame.Frame, *hz::GetFrameGraphTexture(Context, Frame.Targets.Depth),
-                  *hz::GetFrameGraphTexture(Context, Frame.Targets.GBuffer[1]), *hz::GetFrameGraphTexture(Context, Frame.Targets.Occlusion),
-                  *hz::GetFrameGraphTexture(Context, Frame.Targets.OcclusionScratch));
-}
-
-static void ExecuteRayTracing(const hz::FrameGraphContext& Context, void* UserData)
-{
-    const FrameInputs&            Frame = Inputs(Context);
-    const RenderTargets&          Targets = Frame.Targets;
-    LightingResources             Lighting = Frame.Lighting;
-    const RayTracedEffectsTargets RTTargets = {
-        .Result = hz::GetFrameGraphTexture(Context, Targets.RTResult),
-        .Scratch = hz::GetFrameGraphTexture(Context, Targets.RTScratch),
-        .Reflection = hz::GetFrameGraphTexture(Context, Targets.RTReflection),
-        .History = hz::GetFrameGraphTexture(Context, Targets.RTHistory),
-        .PreviousHistory = hz::GetFrameGraphHistory(Context, Targets.RTHistory),
-        .PreviousDepth = hz::GetFrameGraphTexture(Context, Targets.RTPreviousDepth),
-        .PreviousFrameDepth = hz::GetFrameGraphHistory(Context, Targets.RTPreviousDepth),
-        .ReflectionHistory = hz::GetFrameGraphTexture(Context, Targets.RTReflectionHistory),
-        .PreviousReflectionHistory = hz::GetFrameGraphHistory(Context, Targets.RTReflectionHistory),
-        .HistoryValid =
-            hz::IsFrameGraphHistoryValid(Context, Targets.RTHistory) && hz::IsFrameGraphHistoryValid(Context, Targets.RTPreviousDepth),
-        .ReflectionHistoryValid = hz::IsFrameGraphHistoryValid(Context, Targets.RTReflectionHistory),
-    };
-    ((RayTracedEffects*)UserData)
-        ->Execute(Context.Commands, Frame.Frame,
-                  { .NormalMaterial = hz::GetFrameGraphTexture(Context, Targets.GBuffer[1]),
-                    .Depth = hz::GetFrameGraphTexture(Context, Targets.Depth),
-                    .Motion = hz::GetFrameGraphTexture(Context, Targets.GBuffer[3]) },
-                  Frame.View, Frame.Draws, Lighting, RTTargets);
-}
-
-static void ExecuteLighting(const hz::FrameGraphContext& Context, void* UserData)
-{
-    const FrameInputs&   Frame = Inputs(Context);
-    const RenderTargets& Targets = Frame.Targets;
-    LightingResources    Lighting = Frame.Lighting;
-    Lighting.ShadowMap = hz::GetFrameGraphTexture(Context, Targets.ShadowMap);
-    Lighting.GTAO = hz::GetFrameGraphTexture(Context, Targets.Occlusion);
-    // The pass writes both images whenever it runs; hand over only the effects that are enabled, as the shader expects.
-    Lighting.RTShadowAO = Frame.RayTracedShadows ? hz::GetFrameGraphTexture(Context, Targets.RTResult) : nullptr;
-    Lighting.RTReflection = Frame.RayTracedReflection ? hz::GetFrameGraphTexture(Context, Targets.RTReflection) : nullptr;
-    ((DeferredLighting*)UserData)
-        ->Execute(Context.Commands, Frame.Frame, GetGBuffer(Context), Lighting, *hz::GetFrameGraphTexture(Context, Targets.SceneColor));
-}
-
-static void ExecuteEnvironment(const hz::FrameGraphContext& Context, void* UserData)
-{
-    const FrameInputs& Frame = Inputs(Context);
-    ((EnvironmentPass*)UserData)
-        ->Execute(Context.Commands, Frame.Frame, *hz::GetFrameGraphTexture(Context, Frame.Targets.SceneColor),
-                  *hz::GetFrameGraphTexture(Context, Frame.Targets.Depth), Frame.EnvironmentIntensity, Frame.EnvironmentTint);
-}
-
-static void ExecuteTransparency(const hz::FrameGraphContext& Context, void* UserData)
-{
-    const FrameInputs&   Frame = Inputs(Context);
-    const RenderTargets& Targets = Frame.Targets;
-    LightingResources    Lighting = Frame.Lighting;
-    Lighting.ShadowMap = hz::GetFrameGraphTexture(Context, Targets.ShadowMap);
-    const TransparencyTargets OITTargets = { .Heads = hz::GetFrameGraphTexture(Context, Targets.OITHeads),
-                                             .Color = hz::GetFrameGraphTexture(Context, Targets.TransparentColor),
-                                             .Nodes = hz::GetFrameGraphBuffer(Context, Targets.OITNodes),
-                                             .Counters = hz::GetFrameGraphBuffer(Context, Targets.OITCounters) };
-    ((Transparency*)UserData)
-        ->Execute(Context.Commands, Frame.Frame, *hz::GetFrameGraphTexture(Context, Targets.Depth), Frame.View, Frame.Draws, Lighting,
-                  *hz::GetFrameGraphTexture(Context, Targets.SceneColor), OITTargets);
-}
-
-static void ExecuteTemporalAA(const hz::FrameGraphContext& Context, void* UserData)
-{
-    const FrameInputs&    Frame = Inputs(Context);
-    const RenderTargets&  Targets = Frame.Targets;
-    const hz::GPUTexture* Opaque = hz::GetFrameGraphTexture(Context, Targets.SceneColor);
-    const hz::GPUTexture* Transparent = hz::GetFrameGraphTexture(Context, Targets.TransparentColor);
-    const hz::GPUTexture* History =
-        hz::IsFrameGraphHistoryValid(Context, Targets.TemporalColor) ? hz::GetFrameGraphHistory(Context, Targets.TemporalColor) : nullptr;
-    const hz::GPUTexture&  Output = *hz::GetFrameGraphTexture(Context, Targets.TemporalColor);
-    const TemporalAAInputs ResolveInputs = {
-        .Color = Transparent ? Transparent : Opaque,
-        .Opaque = Transparent ? Opaque : nullptr,
-        .Depth = hz::GetFrameGraphTexture(Context, Targets.Depth),
-        .Motion = hz::GetFrameGraphTexture(Context, Targets.GBuffer[3]),
-        .History = History,
-    };
-    ((TemporalAA*)UserData)
-        ->Execute(Context.Commands, Frame.Frame, Frame.LinearSampler, ResolveInputs, Output, Frame.Jitter, Frame.PreviousJitter);
-}
-
-static void ExecutePost(const hz::FrameGraphContext& Context, void* UserData)
-{
-    const FrameInputs&   Frame = Inputs(Context);
-    const RenderTargets& Targets = Frame.Targets;
-    PostEffectsTargets   PostTargets = { .PreviousAdapted = hz::GetFrameGraphHistory(Context, Targets.AdaptedLuminance),
-                                         .Adapted = hz::GetFrameGraphTexture(Context, Targets.AdaptedLuminance),
-                                         .AdaptedValid = hz::IsFrameGraphHistoryValid(Context, Targets.AdaptedLuminance) };
-    for (uint32_t Level = 0; Level < PostEffectsTargets::LuminanceLevels; ++Level)
-    {
-        PostTargets.Luminance[Level] = hz::GetFrameGraphTexture(Context, Targets.Luminance[Level]);
-    }
-    for (uint32_t Level = 0; Level < PostEffectsTargets::BloomLevels; ++Level)
-    {
-        PostTargets.BloomDown[Level] = hz::GetFrameGraphTexture(Context, Targets.BloomDown[Level]);
-    }
-    for (uint32_t Level = 0; Level + 1 < PostEffectsTargets::BloomLevels; ++Level)
-    {
-        PostTargets.BloomUp[Level] = hz::GetFrameGraphTexture(Context, Targets.BloomUp[Level]);
-    }
-    const hz::GPUTexture* Temporal = Frame.TemporalAAEnabled ? hz::GetFrameGraphTexture(Context, Targets.TemporalColor) : nullptr;
-    const hz::GPUTexture* Transparent = hz::GetFrameGraphTexture(Context, Targets.TransparentColor);
-    const hz::GPUTexture& SceneColor = Temporal      ? *Temporal
-                                       : Transparent ? *Transparent
-                                                     : *hz::GetFrameGraphTexture(Context, Targets.SceneColor);
-    ((PostEffects*)UserData)
-        ->Execute(Context.Commands, SceneColor, *hz::GetFrameGraphTexture(Context, Targets.Backbuffer), Frame.DeltaSeconds, PostTargets);
-}
-
 static hz::FrameGraphTexture ViewportTexture(hz::FrameGraph* Graph, hz::Format Format, const char* Name, bool RenderTarget,
                                              uint32_t SizeShift = 0, bool History = false)
 {
@@ -415,27 +254,106 @@ void RenderPasses::BuildGraph()
     const hz::FrameGraphBufferUse ReadSkinned[] = { { T.SkinnedVertices, hz::FrameGraphAccessRead } };
     const hz::FrameGraphBufferUse ReadLists[] = { { T.DrawLists, hz::FrameGraphAccessRead },
                                                   { T.SkinnedVertices, hz::FrameGraphAccessRead } };
-    SkinningGraphPass = hz::AddFrameGraphPass(
-        G, { .Name = "Skinning", .Execute = ExecuteSkinning, .UserData = SkinningCompute.Get(), .Buffers = WriteSkinned });
-    hz::AddFrameGraphPass(G, { .Name = "Culling", .Execute = ExecuteCulling, .UserData = Culling.Get(), .Buffers = WriteLists });
+    SkinningGraphPass = hz::AddFrameGraphPass(G,
+                                              {
+                                                  .Name = "Skinning",
+                                                  .Execute =
+                                                      [](const hz::FrameGraphContext& Pass, void* UserData)
+                                                  {
+                                                      const FrameInputs& Frame = Inputs(Pass);
+                                                      static_cast<SkinningPass*>(UserData)->Execute(Pass.Commands, *Frame.View.Skinning,
+                                                                                                    Frame.View.FrameIndex);
+                                                  },
+                                                  .UserData = SkinningCompute.Get(),
+                                                  .Buffers = WriteSkinned,
+                                              });
+    hz::AddFrameGraphPass(G,
+                          {
+                              .Name = "Culling",
+                              .Execute =
+                                  [](const hz::FrameGraphContext& Pass, void* UserData)
+                              {
+                                  const FrameInputs& Frame = Inputs(Pass);
+                                  static_cast<FrustumCulling*>(UserData)->Execute(Pass.Commands, Frame.Frame, Frame.View, Frame.Draws);
+                              },
+                              .UserData = Culling.Get(),
+                              .Buffers = WriteLists,
+                          });
     T.LightMasks = hz::ImportFrameGraphBuffer(G, { .Name = "LightTileMasks" });
     const hz::FrameGraphBufferUse WriteMasks[] = { { T.LightMasks, Write } };
     const hz::FrameGraphBufferUse ReadMasks[] = { { T.LightMasks, Optional } };
-    LightMaskPass = hz::AddFrameGraphPass(
-        G, { .Name = "BuildLightTileMasks", .Execute = BuildLightTileMasks, .UserData = Clusters.Get(), .Buffers = WriteMasks });
+    LightMaskPass =
+        hz::AddFrameGraphPass(G,
+                              {
+                                  .Name = "BuildLightTileMasks",
+                                  .Execute =
+                                      [](const hz::FrameGraphContext& Pass, void* UserData)
+                                  {
+                                      const FrameInputs& Frame = Inputs(Pass);
+                                      if (Frame.Lighting.TileMasks)
+                                      {
+                                          static_cast<ClusteredLighting*>(UserData)->BuildMasks(Pass.Commands, Frame.View.FrameIndex);
+                                      }
+                                  },
+                                  .UserData = Clusters.Get(),
+                                  .Buffers = WriteMasks,
+                              });
     const Use ShadowUses[] = { { T.ShadowMap, Write } };
-    hz::AddFrameGraphPass(
-        G, { .Name = "Shadows", .Execute = ExecuteShadows, .UserData = Shadows.Get(), .Textures = ShadowUses, .Buffers = ReadLists });
+    hz::AddFrameGraphPass(G,
+                          {
+                              .Name = "Shadows",
+                              .Execute =
+                                  [](const hz::FrameGraphContext& Pass, void* UserData)
+                              {
+                                  const FrameInputs& Frame = Inputs(Pass);
+                                  static_cast<ShadowMap*>(UserData)->Execute(Pass.Commands, Frame.View, Frame.Draws,
+                                                                             *hz::GetFrameGraphTexture(Pass, Frame.Targets.ShadowMap));
+                              },
+                              .UserData = Shadows.Get(),
+                              .Textures = ShadowUses,
+                              .Buffers = ReadLists,
+                          });
     const Use GBufferUses[] = { { T.GBuffer[0], Write },
                                 { T.GBuffer[1], Write },
                                 { T.GBuffer[2], Write },
                                 { T.GBuffer[3], Write },
                                 { T.Depth, Write } };
-    hz::AddFrameGraphPass(
-        G, { .Name = "GBuffer", .Execute = ExecuteGBuffer, .UserData = GBufferPass.Get(), .Textures = GBufferUses, .Buffers = ReadLists });
+    hz::AddFrameGraphPass(G,
+                          {
+                              .Name = "GBuffer",
+                              .Execute =
+                                  [](const hz::FrameGraphContext& Pass, void* UserData)
+                              {
+                                  const FrameInputs&    Frame = Inputs(Pass);
+                                  const hz::GPUTexture* Textures[GBuffer::TextureCount];
+                                  for (uint32_t Index = 0; Index < GBuffer::TextureCount; ++Index)
+                                  {
+                                      Textures[Index] = hz::GetFrameGraphTexture(Pass, Frame.Targets.GBuffer[Index]);
+                                  }
+                                  static_cast<GBuffer*>(UserData)->Execute(Pass.Commands, Frame.Frame, Frame.View, Frame.Draws, Textures,
+                                                                           *hz::GetFrameGraphTexture(Pass, Frame.Targets.Depth));
+                              },
+                              .UserData = GBufferPass.Get(),
+                              .Textures = GBufferUses,
+                              .Buffers = ReadLists,
+                          });
     const Use GTAOUses[] = { { T.Depth, Read }, { T.GBuffer[1], Read }, { T.Occlusion, Write }, { T.OcclusionScratch, Write } };
-    GTAOGraphPass =
-        hz::AddFrameGraphPass(G, { .Name = "GTAO", .Execute = ExecuteGTAO, .UserData = GroundTruthAO.Get(), .Textures = GTAOUses });
+    GTAOGraphPass = hz::AddFrameGraphPass(G,
+                                          {
+                                              .Name = "GTAO",
+                                              .Execute =
+                                                  [](const hz::FrameGraphContext& Pass, void* UserData)
+                                              {
+                                                  const FrameInputs& Frame = Inputs(Pass);
+                                                  static_cast<GTAO*>(UserData)->Execute(
+                                                      Pass.Commands, Frame.Frame, *hz::GetFrameGraphTexture(Pass, Frame.Targets.Depth),
+                                                      *hz::GetFrameGraphTexture(Pass, Frame.Targets.GBuffer[1]),
+                                                      *hz::GetFrameGraphTexture(Pass, Frame.Targets.Occlusion),
+                                                      *hz::GetFrameGraphTexture(Pass, Frame.Targets.OcclusionScratch));
+                                              },
+                                              .UserData = GroundTruthAO.Get(),
+                                              .Textures = GTAOUses,
+                                          });
     const Use RTUses[] = { { T.GBuffer[1], Read },
                            { T.GBuffer[3], Read },
                            { T.Depth, Read },
@@ -450,15 +368,80 @@ void RenderPasses::BuildGraph()
                            { T.RTPreviousDepth, Write } };
     RayTracingPass = hz::AddFrameGraphPass(
         G,
-        { .Name = "Ray Tracing", .Execute = ExecuteRayTracing, .UserData = RayTracing.Get(), .Textures = RTUses, .Buffers = ReadSkinned });
+        {
+            .Name = "Ray Tracing",
+            .Execute =
+                [](const hz::FrameGraphContext& Pass, void* UserData)
+            {
+                const FrameInputs&            Frame = Inputs(Pass);
+                const RenderTargets&          Targets = Frame.Targets;
+                LightingResources             Lighting = Frame.Lighting;
+                const RayTracedEffectsTargets RTTargets = {
+                    .Result = hz::GetFrameGraphTexture(Pass, Targets.RTResult),
+                    .Scratch = hz::GetFrameGraphTexture(Pass, Targets.RTScratch),
+                    .Reflection = hz::GetFrameGraphTexture(Pass, Targets.RTReflection),
+                    .History = hz::GetFrameGraphTexture(Pass, Targets.RTHistory),
+                    .PreviousHistory = hz::GetFrameGraphHistory(Pass, Targets.RTHistory),
+                    .PreviousDepth = hz::GetFrameGraphTexture(Pass, Targets.RTPreviousDepth),
+                    .PreviousFrameDepth = hz::GetFrameGraphHistory(Pass, Targets.RTPreviousDepth),
+                    .ReflectionHistory = hz::GetFrameGraphTexture(Pass, Targets.RTReflectionHistory),
+                    .PreviousReflectionHistory = hz::GetFrameGraphHistory(Pass, Targets.RTReflectionHistory),
+                    .HistoryValid = hz::IsFrameGraphHistoryValid(Pass, Targets.RTHistory) &&
+                                    hz::IsFrameGraphHistoryValid(Pass, Targets.RTPreviousDepth),
+                    .ReflectionHistoryValid = hz::IsFrameGraphHistoryValid(Pass, Targets.RTReflectionHistory),
+                };
+                static_cast<RayTracedEffects*>(UserData)->Execute(Pass.Commands, Frame.Frame,
+                                                                  { .NormalMaterial = hz::GetFrameGraphTexture(Pass, Targets.GBuffer[1]),
+                                                                    .Depth = hz::GetFrameGraphTexture(Pass, Targets.Depth),
+                                                                    .Motion = hz::GetFrameGraphTexture(Pass, Targets.GBuffer[3]) },
+                                                                  Frame.View, Frame.Draws, Lighting, RTTargets);
+            },
+            .UserData = RayTracing.Get(),
+            .Textures = RTUses,
+            .Buffers = ReadSkinned,
+        });
     const Use LightingUses[] = { { T.GBuffer[0], Read },   { T.GBuffer[1], Read },       { T.GBuffer[2], Read },
                                  { T.Depth, Read },        { T.ShadowMap, Read },        { T.Occlusion, Optional },
                                  { T.RTResult, Optional }, { T.RTReflection, Optional }, { T.SceneColor, Write } };
-    hz::AddFrameGraphPass(
-        G, { .Name = "Lighting", .Execute = ExecuteLighting, .UserData = Lighting.Get(), .Textures = LightingUses, .Buffers = ReadMasks });
+    hz::AddFrameGraphPass(G,
+                          {
+                              .Name = "Lighting",
+                              .Execute =
+                                  [](const hz::FrameGraphContext& Pass, void* UserData)
+                              {
+                                  const FrameInputs&   Frame = Inputs(Pass);
+                                  const RenderTargets& Targets = Frame.Targets;
+                                  LightingResources    Lighting = Frame.Lighting;
+                                  Lighting.ShadowMap = hz::GetFrameGraphTexture(Pass, Targets.ShadowMap);
+                                  Lighting.GTAO = hz::GetFrameGraphTexture(Pass, Targets.Occlusion);
+                                  // The pass writes both images whenever it runs; hand over only the effects that are enabled, as the
+                                  // shader expects.
+                                  Lighting.RTShadowAO = Frame.RayTracedShadows ? hz::GetFrameGraphTexture(Pass, Targets.RTResult) : nullptr;
+                                  Lighting.RTReflection =
+                                      Frame.RayTracedReflection ? hz::GetFrameGraphTexture(Pass, Targets.RTReflection) : nullptr;
+                                  static_cast<DeferredLighting*>(UserData)->Execute(Pass.Commands, Frame.Frame, GetGBuffer(Pass), Lighting,
+                                                                                    *hz::GetFrameGraphTexture(Pass, Targets.SceneColor));
+                              },
+                              .UserData = Lighting.Get(),
+                              .Textures = LightingUses,
+                              .Buffers = ReadMasks,
+                          });
     const Use EnvironmentUses[] = { { T.SceneColor, Modify }, { T.Depth, Read } };
-    hz::AddFrameGraphPass(
-        G, { .Name = "Environment", .Execute = ExecuteEnvironment, .UserData = Environment.Get(), .Textures = EnvironmentUses });
+    hz::AddFrameGraphPass(G,
+                          {
+                              .Name = "Environment",
+                              .Execute =
+                                  [](const hz::FrameGraphContext& Pass, void* UserData)
+                              {
+                                  const FrameInputs& Frame = Inputs(Pass);
+                                  static_cast<EnvironmentPass*>(UserData)->Execute(
+                                      Pass.Commands, Frame.Frame, *hz::GetFrameGraphTexture(Pass, Frame.Targets.SceneColor),
+                                      *hz::GetFrameGraphTexture(Pass, Frame.Targets.Depth), Frame.EnvironmentIntensity,
+                                      Frame.EnvironmentTint);
+                              },
+                              .UserData = Environment.Get(),
+                              .Textures = EnvironmentUses,
+                          });
     const Use                     TransparencyUses[] = { { T.Depth, Read },
                                                          { T.ShadowMap, Read },
                                                          { T.SceneColor, Read },
@@ -467,15 +450,59 @@ void RenderPasses::BuildGraph()
     const hz::FrameGraphBufferUse TransparencyBuffers[] = { { T.OITNodes, Write }, { T.OITCounters, Write } };
     const hz::FrameGraphBufferUse TransparencyAllBuffers[] = { TransparencyBuffers[0], TransparencyBuffers[1], ReadLists[0], ReadLists[1],
                                                                ReadMasks[0] };
-    TransparencyPass = hz::AddFrameGraphPass(G, { .Name = "Transparency",
-                                                  .Execute = ExecuteTransparency,
-                                                  .UserData = Transparency.Get(),
-                                                  .Textures = TransparencyUses,
-                                                  .Buffers = TransparencyAllBuffers });
+    TransparencyPass = hz::AddFrameGraphPass(
+        G,
+        {
+            .Name = "Transparency",
+            .Execute =
+                [](const hz::FrameGraphContext& Pass, void* UserData)
+            {
+                const FrameInputs&   Frame = Inputs(Pass);
+                const RenderTargets& Targets = Frame.Targets;
+                LightingResources    Lighting = Frame.Lighting;
+                Lighting.ShadowMap = hz::GetFrameGraphTexture(Pass, Targets.ShadowMap);
+                const TransparencyTargets OITTargets = { .Heads = hz::GetFrameGraphTexture(Pass, Targets.OITHeads),
+                                                         .Color = hz::GetFrameGraphTexture(Pass, Targets.TransparentColor),
+                                                         .Nodes = hz::GetFrameGraphBuffer(Pass, Targets.OITNodes),
+                                                         .Counters = hz::GetFrameGraphBuffer(Pass, Targets.OITCounters) };
+                static_cast<::Transparency*>(UserData)->Execute(Pass.Commands, Frame.Frame, *hz::GetFrameGraphTexture(Pass, Targets.Depth),
+                                                                Frame.View, Frame.Draws, Lighting,
+                                                                *hz::GetFrameGraphTexture(Pass, Targets.SceneColor), OITTargets);
+            },
+            .UserData = Transparency.Get(),
+            .Textures = TransparencyUses,
+            .Buffers = TransparencyAllBuffers,
+        });
     const Use TemporalUses[] = { { T.SceneColor, Read }, { T.TransparentColor, Optional }, { T.Depth, Read },
                                  { T.GBuffer[3], Read }, { T.TemporalColor, History },     { T.TemporalColor, Write } };
     TemporalAAPass = hz::AddFrameGraphPass(
-        G, { .Name = "Temporal AA", .Execute = ExecuteTemporalAA, .UserData = Antialiasing.Get(), .Textures = TemporalUses });
+        G,
+        {
+            .Name = "Temporal AA",
+            .Execute =
+                [](const hz::FrameGraphContext& Pass, void* UserData)
+            {
+                const FrameInputs&     Frame = Inputs(Pass);
+                const RenderTargets&   Targets = Frame.Targets;
+                const hz::GPUTexture*  Opaque = hz::GetFrameGraphTexture(Pass, Targets.SceneColor);
+                const hz::GPUTexture*  Transparent = hz::GetFrameGraphTexture(Pass, Targets.TransparentColor);
+                const hz::GPUTexture*  History = hz::IsFrameGraphHistoryValid(Pass, Targets.TemporalColor)
+                                                     ? hz::GetFrameGraphHistory(Pass, Targets.TemporalColor)
+                                                     : nullptr;
+                const hz::GPUTexture&  Output = *hz::GetFrameGraphTexture(Pass, Targets.TemporalColor);
+                const TemporalAAInputs ResolveInputs = {
+                    .Color = Transparent ? Transparent : Opaque,
+                    .Opaque = Transparent ? Opaque : nullptr,
+                    .Depth = hz::GetFrameGraphTexture(Pass, Targets.Depth),
+                    .Motion = hz::GetFrameGraphTexture(Pass, Targets.GBuffer[3]),
+                    .History = History,
+                };
+                static_cast<TemporalAA*>(UserData)->Execute(Pass.Commands, Frame.Frame, Frame.LinearSampler, ResolveInputs, Output,
+                                                            Frame.Jitter, Frame.PreviousJitter);
+            },
+            .UserData = Antialiasing.Get(),
+            .Textures = TemporalUses,
+        });
     Use      PostUses[4 + PostEffectsTargets::LuminanceLevels + 2 * PostEffectsTargets::BloomLevels - 1 + 2];
     uint32_t PostUseCount = 0;
     PostUses[PostUseCount++] = { T.SceneColor, Read };
@@ -497,7 +524,41 @@ void RenderPasses::BuildGraph()
     PostUses[PostUseCount++] = { T.AdaptedLuminance, History };
     PostUses[PostUseCount++] = { T.AdaptedLuminance, Write };
     ASSERT(PostUseCount == TF_ARRAY_COUNT(PostUses));
-    hz::AddFrameGraphPass(G, { .Name = "Post", .Execute = ExecutePost, .UserData = PostProcessing.Get(), .Textures = PostUses });
+    hz::AddFrameGraphPass(
+        G,
+        {
+            .Name = "Post",
+            .Execute =
+                [](const hz::FrameGraphContext& Pass, void* UserData)
+            {
+                const FrameInputs&   Frame = Inputs(Pass);
+                const RenderTargets& Targets = Frame.Targets;
+                PostEffectsTargets   PostTargets = { .PreviousAdapted = hz::GetFrameGraphHistory(Pass, Targets.AdaptedLuminance),
+                                                     .Adapted = hz::GetFrameGraphTexture(Pass, Targets.AdaptedLuminance),
+                                                     .AdaptedValid = hz::IsFrameGraphHistoryValid(Pass, Targets.AdaptedLuminance) };
+                for (uint32_t Level = 0; Level < PostEffectsTargets::LuminanceLevels; ++Level)
+                {
+                    PostTargets.Luminance[Level] = hz::GetFrameGraphTexture(Pass, Targets.Luminance[Level]);
+                }
+                for (uint32_t Level = 0; Level < PostEffectsTargets::BloomLevels; ++Level)
+                {
+                    PostTargets.BloomDown[Level] = hz::GetFrameGraphTexture(Pass, Targets.BloomDown[Level]);
+                }
+                for (uint32_t Level = 0; Level + 1 < PostEffectsTargets::BloomLevels; ++Level)
+                {
+                    PostTargets.BloomUp[Level] = hz::GetFrameGraphTexture(Pass, Targets.BloomUp[Level]);
+                }
+                const hz::GPUTexture* Temporal = Frame.TemporalAAEnabled ? hz::GetFrameGraphTexture(Pass, Targets.TemporalColor) : nullptr;
+                const hz::GPUTexture* Transparent = hz::GetFrameGraphTexture(Pass, Targets.TransparentColor);
+                const hz::GPUTexture& SceneColor = Temporal      ? *Temporal
+                                                   : Transparent ? *Transparent
+                                                                 : *hz::GetFrameGraphTexture(Pass, Targets.SceneColor);
+                static_cast<PostEffects*>(UserData)->Execute(Pass.Commands, SceneColor, *hz::GetFrameGraphTexture(Pass, Targets.Backbuffer),
+                                                             Frame.DeltaSeconds, PostTargets);
+            },
+            .UserData = PostProcessing.Get(),
+            .Textures = PostUses,
+        });
 }
 
 RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
