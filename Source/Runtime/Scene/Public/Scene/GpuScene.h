@@ -6,8 +6,8 @@
 
 namespace hz
 {
-// GPU light table, indexed by RenderLightID::index. Color RGB stores radiometric intensity after
-// exposure and area normalization; Color.a is emitter area.
+// Color.rgb includes exposure and area normalization. Directional lights use lux, other lights use radiometric units.
+// Color.a stores emitter area.
 struct GpuLightData
 {
     Vector4           PositionAndInvRadius = Vector4(0.0f);

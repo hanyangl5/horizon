@@ -82,7 +82,7 @@ void ShadowMap::Prepare(const hz::SceneView& View)
             continue;
         }
         Z = normalize(Light.transform.getCol2().getXYZ());
-        Data.LightDirection = Vector4(-Z, Light.intensity * exp2f(Light.exposure) * LuminousEfficacy);
+        Data.LightDirection = Vector4(-Z, Light.intensity * exp2f(Light.exposure));
         Data.LightColor = Vector4(hz::ResolveLightColor(Light), 1.0f);
         Data.ShadowEnabled = 1;
         Data.MainDirectionalIndex = LightIndex;

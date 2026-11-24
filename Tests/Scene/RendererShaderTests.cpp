@@ -1966,8 +1966,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::GPUBuffer    peakFrame = Upload(&peakCamera, sizeof(peakCamera)), peakLighting = Upload(&peakLight, sizeof(peakLight));
     hz::GpuLightData lights[] = {
         { .PositionAndInvRadius = Vector4(0.0f), .DirectionAndType = Vector4(0, 0, -1, 0), .Color = Vector4(1, 0, 0, 0) },
-        { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 0), .DirectionAndType = Vector4(0, 0, -1, 1), .Color = Vector4(0, 1, 0, 0) },
-        { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 0), .DirectionAndType = Vector4(0, 0, -1, 2), .Color = Vector4(0, 0, 1, 0),
+        { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 0), .DirectionAndType = Vector4(0, 0, -1, 1), .Color = Vector4(0, 0.01f, 0, 0) },
+        { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 0), .DirectionAndType = Vector4(0, 0, -1, 2), .Color = Vector4(0, 0, 0.01f, 0),
           .Shape = Vector4(0.5f, 4, 0, 0) },
         { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 4), .DirectionAndType = Vector4(0, 0, -1, 1), .Color = Vector4(10, 10, 10, 0) },
         { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 0), .DirectionAndType = Vector4(1, 0, 0, 2), .Color = Vector4(10, 10, 10, 0),
@@ -1998,7 +1998,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     const LightingFrameData localFrame = { .LightsIndex = lightList.GetSrvIndex(),
                                            .LightCount = TF_ARRAY_COUNT(activeLights),
                                            .ActiveLightsIndex = activeLightList.GetSrvIndex(),
-                                           .MainDirectionalIndex = 5 };
+                                           .MainDirectionalIndex = 5,
+                                           .LuminousEfficacy = 100.0f };
     const hz::GPUBuffer localLighting = Upload(&localFrame, sizeof(localFrame));
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderSources, shaders.string().c_str());
     ClusteredLighting clusters(context);

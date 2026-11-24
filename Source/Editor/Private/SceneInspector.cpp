@@ -396,7 +396,10 @@ void SceneInspector::Panel::DrawProperty(const hz::TypeDesc& Type, const hz::Pro
         }
         else
         {
-            Changed = ImGui::DragFloat(Name, Floats, Step, (float)Field.minimum, (float)Field.maximum, "%.3f",
+            const bool Lux = Type.id == hz::SceneTypes::light && Field.offset == offsetof(hz::Light, intensity) &&
+                             static_cast<const hz::Light*>(World.GetComponent(Selection, Type.id))->Type == hz::LightType::Directional;
+            Changed = ImGui::DragFloat(Name, Floats, Lux ? fmaxf(Step, *Floats * 0.001f) : Step, (float)Field.minimum, (float)Field.maximum,
+                                       Lux ? "%.1f lux" : "%.3f",
                                        Field.minimum < Field.maximum ? ImGuiSliderFlags_AlwaysClamp : ImGuiSliderFlags_None);
         }
         break;

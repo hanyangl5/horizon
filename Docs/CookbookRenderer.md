@@ -66,10 +66,10 @@ reflection, deferred lighting, sky, transparency/resolve, then HDR postprocessin
 Main lit targets use RGBA32F, matching the reference range. PPLL nodes retain the
 reference half4 storage and its 65504 color limit.
 
-The example explicitly chooses a 100 lm/W daylight-white calibration: a World
-light of 1000 W/m^2 becomes 100000 lux at the renderer boundary. This is a white-
-light assumption, not a general lux/watt conversion. Environment calibration is
-1000 cd/m^2 per HDR unit and is shared by sky, lighting, OIT and reflection.
+Directional lights use perpendicular illuminance in lux. The Bistro sun is set to
+100,000 lux. The example applies its 100 lm/W daylight-white calibration to radiometric
+local and dome lights. Sky, indirect lighting, transparency and reflection misses
+share the environment intensity in cd/m² per unit of HDR radiance.
 
 Agility SDK 722 fixes the earlier SDKLayers DXIL-library instrumentation error.
 DeferredLighting binds its graphics PSO before attachment transitions to avoid a

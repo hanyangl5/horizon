@@ -136,7 +136,8 @@ FDirectLighting IntegrateBxDF(GpuLightData Light, uint Type, FGBufferData GBuffe
     return Lighting;
 }
 
-float3 AccumulateDynamicLighting(GpuLightData Light, FGBufferData GBuffer, float3 Position, float3 V, float SurfaceShadow)
+float3 AccumulateDynamicLighting(GpuLightData Light, FGBufferData GBuffer, float3 Position, float3 V, float SurfaceShadow,
+                                 float LuminousEfficacy)
 {
     const uint Type = uint(Light.DirectionAndType.w);
     const bool RadialLight = Type != LightDirectional;
@@ -146,6 +147,7 @@ float3 AccumulateDynamicLighting(GpuLightData Light, FGBufferData GBuffer, float
     float LightMask = 1.0;
     if (RadialLight)
     {
+        Light.Color.rgb *= LuminousEfficacy;
         LightMask = GetLocalLightAttenuation(Light, Type, Position, ToLight, L, DistanceSquared);
     }
     if (LightMask <= 0.0 || SurfaceShadow <= 0.0)
@@ -186,8 +188,7 @@ float3 AccumulateAdditionalLights(LightingFrameData Frame, FGBufferData GBuffer,
         {
             continue;
         }
-        Light.Color.rgb *= Frame.LuminousEfficacy;
-        Result += AccumulateDynamicLighting(Light, GBuffer, Position, V, 1.0);
+        Result += AccumulateDynamicLighting(Light, GBuffer, Position, V, 1.0, Frame.LuminousEfficacy);
     }
     return Result;
 }
@@ -195,8 +196,7 @@ float3 AccumulateAdditionalLights(LightingFrameData Frame, FGBufferData GBuffer,
 float3 EvaluateIndexedLight(ByteAddressBuffer Lights, uint Index, float Efficacy, FGBufferData GBuffer, float3 Position, float3 V)
 {
     GpuLightData Light = Lights.Load<GpuLightData>(Index * sizeof(GpuLightData));
-    Light.Color.rgb *= Efficacy;
-    return AccumulateDynamicLighting(Light, GBuffer, Position, V, 1.0);
+    return AccumulateDynamicLighting(Light, GBuffer, Position, V, 1.0, Efficacy);
 }
 
 float3 AccumulateScreenLights(uint DataIndex, uint2 Pixel, LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V)
@@ -260,7 +260,7 @@ float3 AccumulateMainLight(LightingFrameData Frame, FGBufferData GBuffer, float3
         GpuLightData DirectionalLight = {};
         DirectionalLight.DirectionAndType = float4(normalize(Frame.LightDirection.xyz), LightDirectional);
         DirectionalLight.Color = float4(Frame.LightDirection.w * max(Frame.LightColor.rgb, 0.0), 0.0);
-        Result = AccumulateDynamicLighting(DirectionalLight, GBuffer, Position, V, saturate(SurfaceShadow));
+        Result = AccumulateDynamicLighting(DirectionalLight, GBuffer, Position, V, saturate(SurfaceShadow), Frame.LuminousEfficacy);
     }
     return Result;
 }

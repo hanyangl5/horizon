@@ -386,7 +386,7 @@ private:
         const float      SunAngle = 26.0f * PI / 180.0f;
         const Vector3    Z(-sinf(SunAngle), cosf(SunAngle), 0);
         const Vector3    X = normalize(cross(Vector3(0, 1, 0), Z));
-        const hz::Light  Sun = { .Type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 0.0 };
+        const hz::Light  Sun = { .Type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 100'000.0f };
         const Matrix4    SunPose = Matrix4(Vector4(X, 0), Vector4(cross(Z, X), 0), Vector4(Z, 0), Vector4(0, 0, 0, 1));
         const hz::Entity SunEntity = World->CreatePersistentEntity();
         const bool       Created = World->SetComponent(CameraEntity, hz::SceneTypes::camera, &CameraData) &&

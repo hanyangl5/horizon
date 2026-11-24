@@ -79,7 +79,7 @@ struct Light
 {
     LightType Type = LightType::Point;
     Vector3   color = Vector3(1.0f);
-    // Point/Spot: W/sr; Directional: W/m^2; Dome/area: W/(m^2 sr).
+    // Directional: perpendicular illuminance in lux. Point/Spot: W/sr. Dome/area: W/(m^2 sr).
     // Normalized area lights instead specify total power in W, before texture modulation.
     float     intensity = 1.0f;
     float     range = 0.0f;                  // Optional finite-light cutoff in world meters; 0 means no cutoff.

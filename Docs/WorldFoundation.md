@@ -264,7 +264,7 @@ Flecs 自带 meta（反射）、JSON 序列化、`ChildOf` 关系和 deferred �
 
 | 类型 | 几何与方向 | intensity 的本地约定 |
 | --- | --- | --- |
-| Directional | 沿局部 -Z；angularDiameter 为完整角直径，0 为理想平行光 | 垂直于主方向平面的辐照度，W/m²；改变角直径时保持该值 |
+| Directional | 沿局部 -Z；angularDiameter 为完整角直径，0 为理想平行光 | 垂直于光线的平面上的照度，单位 lux，改变角直径时保持该值 |
 | Point / Spot | 点光源；Spot 沿 -Z，内外锥角为半角 | 辐射强度，W/sr；Spot 为轴上值 |
 | Rect / Disk | 局部 XY 平面，朝 -Z；宽高或半径 | 辐亮度，W/(m²·sr) |
 | Sphere / Cylinder | 球心位于原点；圆柱沿 Y，仅侧面发光 | 辐亮度，W/(m²·sr) |
