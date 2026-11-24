@@ -1,6 +1,7 @@
 #include "Editor/SceneInspector.h"
 #include "Scene/SceneComponents.h"
 #include "InspectorWindow.h"
+#include "TransformGizmo.h"
 #include "Editor/ConsolePanel.h"
 #include "imgui_internal.h"
 #include <stdio.h>
@@ -8,12 +9,12 @@
 struct SceneInspector::Panel
 {
     Panel(SceneInspector& Inspector, const WindowHandle& Owner, hz::World& World, const hz::TypeRegistry& Types, hz::Entity Camera):
-        Inspector(Inspector), World(World), Types(Types), Camera(Camera), Query(World, {}), Window(CreateInspectorWindow(Owner))
+        Inspector(Inspector), World(World), Types(Types), Camera(Camera), Query(World, {}), Window(CreateInspectorWindow(Owner, Gizmo, Inspector.Picking))
     {
     }
 
-    void Draw();
-    void DrawList();
+    void        Draw();
+    void        DrawList();
     void DrawComponents();
     void DrawProperty(const hz::TypeDesc& Type, const hz::PropertyDesc& Field, const void* Source, const hz::PropertyDesc* Array = nullptr,
                       uint32_t Index = 0);
@@ -25,7 +26,16 @@ struct SceneInspector::Panel
     const hz::TypeRegistry& Types;
     const hz::Entity        Camera;
     hz::WorldQuery          Query;
+    TransformGizmo          Gizmo;
     InspectorWindow*        Window;
+    void Select(hz::Entity Entity)
+    {
+        ++Serial;
+        Selection = Entity;
+        FailedField = 0;
+    }
+
+    uint64_t                Serial = 0;
     hz::Entity              Selection;
     const hz::TypeDesc*     Filter = nullptr;
     ConsolePanel            Console;
@@ -37,8 +47,9 @@ struct SceneInspector::Panel
     ImGuiID                 FailedField = 0;
 };
 
-SceneInspector::SceneInspector(const WindowHandle& Owner, hz::World& World, const hz::TypeRegistry& Types, hz::Entity Camera):
-    UI(hz::MakeUnique<Panel>(*this, Owner, World, Types, Camera))
+SceneInspector::SceneInspector(const WindowHandle& Owner, hz::World& World, const hz::TypeRegistry& Types, hz::Entity Camera,
+                               hz::RenderContext& Context, const ViewportGeometry& Geometry):
+    Picking(Context, Geometry), UI(hz::MakeUnique<Panel>(*this, Owner, World, Types, Camera))
 {
     if (!UI->Window)
     {
@@ -48,16 +59,93 @@ SceneInspector::SceneInspector(const WindowHandle& Owner, hz::World& World, cons
 
 SceneInspector::~SceneInspector() { DestroyInspectorWindow(UI->Window); }
 
-void SceneInspector::Update()
+void SceneInspector::RecordOverlay(hz::RenderContext& Context, hz::CommandList& Commands, const hz::GPUTexture& Backbuffer,
+                                   const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
+                                   const hz::GPUSampler& Sampler, bool Transparent, float JitterX, float JitterY)
+{
+    if (!IsInspectorVisible(UI->Window))
+    {
+        return;
+    }
+    const hz::RenderPrimitiveID Selected = UI->Selection.IsValid() ? View.Scene.FindPrimitive(UI->Selection) : hz::RenderPrimitiveID{};
+    if (Picking.HasWork(Selected))
+    {
+        Picking.Record(Commands, Frame, View, Draws, Sampler, Transparent, Selected, Backbuffer, JitterX, JitterY);
+    }
+    UI->Gizmo.Draw(Context, Commands, Backbuffer);
+}
+
+uint64_t SceneInspector::TakeViewportClick(uint32_t Width, uint32_t Height, uint32_t& X, uint32_t& Y)
+{
+    return ConsumeViewportClick(UI->Window, Width, Height, X, Y) ? ++UI->Serial : 0;
+}
+
+void SceneInspector::ApplyPick(uint64_t Serial, const hz::RenderScene& Scene, hz::RenderInstanceID Id)
+{
+    if (Serial != UI->Serial)
+    {
+        return;
+    }
+    hz::Entity                Entity;
+    const hz::RenderInstance* Instance = Scene.GetInstance(Id);
+    if (Instance && Instance->entityGuid.IsValid())
+    {
+        Entity = UI->World.GetEntity(Instance->entityGuid);
+        if (Scene.FindPrimitive(Entity) != Instance->primitive)
+        {
+            Entity = {};
+        }
+    }
+    else if (Instance)
+    {
+        struct Search
+        {
+            const hz::RenderScene& Scene;
+            hz::RenderPrimitiveID  Primitive;
+            hz::Entity             Found;
+        } Match = { Scene, Instance->primitive, {} };
+        UI->Query.Each(
+            [](hz::Entity Candidate, hz::Span<const void*>, void* User)
+            {
+                Search& Match = *static_cast<Search*>(User);
+                if (Match.Scene.FindPrimitive(Candidate) == Match.Primitive)
+                {
+                    Match.Found = Candidate;
+                    return false;
+                }
+                return true;
+            },
+            &Match);
+        Entity = Match.Found;
+    }
+    UI->Select(Entity.IsValid() && UI->World.IsAlive(Entity) ? Entity : hz::Entity{});
+}
+
+void SceneInspector::Update(const hz::RenderScene& Scene)
 {
     EditedPose = {};
+    if (!IsInspectorVisible(UI->Window))
+    {
+        return;
+    }
+    if (UI->Gizmo.Started)
+    {
+        ++UI->Serial;
+        UI->Gizmo.Started = false;
+    }
+    Picking.Update(*this, Scene);
     if (UI->Selection.IsValid() && !UI->World.IsAlive(UI->Selection))
     {
-        UI->Selection = {};
-        UI->FailedField = 0;
+        UI->Select({});
         UI->RefreshAt = 0;
     }
     DrawInspectorWindow(UI->Window, [](void* User) { static_cast<Panel*>(User)->Draw(); }, UI.Get());
+    float Dpi = 1;
+    const float2 Size = GetViewportSize(UI->Window, Dpi);
+    if (UI->Gizmo.Update(UI->World, UI->Selection, UI->Camera, Size, Dpi, NewPose))
+    {
+        EditedPose = UI->Selection;
+    }
 }
 
 const char* SceneInspector::Panel::Label(hz::Entity Entity, char (&Buffer)[96]) const
@@ -160,8 +248,7 @@ void SceneInspector::Panel::DrawList()
                 ImGui::PushID((int)ImHashData(&Entity, sizeof(Entity)));
                 if (ImGui::Selectable(Label(Entity, Buffer), Entity == Selection))
                 {
-                    Selection = Entity;
-                    FailedField = 0;
+                    Select(Entity);
                 }
                 ImGui::PopID();
             }
@@ -180,6 +267,7 @@ void SceneInspector::Panel::Draw()
         return;
     }
     ImGui::PushID((int)ImHashData(&Selection, sizeof(Selection)));
+    ImGui::TextDisabled("Viewport: W Move   E Rotate   R Scale   |   RMB + WASD Fly");
     DrawComponents();
     ImGui::PopID();
 }

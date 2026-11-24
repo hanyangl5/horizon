@@ -584,6 +584,10 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
         Vector4 Eye = Vector4(0, 0, -2, 1);
     } frameData;
     hz::RenderInstance instances[2];
+    instances[0].primitive = { 2, 5 };
+    instances[1].primitive = { 4, 8 };
+    instances[0].id = { 0, 9 };
+    instances[1].id = { 1, 15 };
     instances[0].current = instances[0].previous = Matrix4::translation(Vector3(-0.5f, 0, 0));
     instances[1].current = instances[1].previous = Matrix4::translation(Vector3(0.5f, 0, 0));
     hz::GpuMaterialData materials[2];
@@ -708,6 +712,119 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     EXPECT_EQ(pixels[4], 0u);
     EXPECT_EQ(pixels[5], 255u);
     EXPECT_EQ(pixels[6], 0u);
+
+    SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
+    hz::GPUPipeline pick =
+        context.CreateGraphicsPipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSIndirect" },
+                                                                     { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PickPS" } },
+                                                         .sourceDirectory = DirectoryOtherFiles,
+                                                         .pFileName = "InspectorGeometry.slang" },
+                                         .Depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL },
+                                         .colorTargets = { { .Format = hz::Format::R32G32_UINT } },
+                                         .depthStencilFormat = hz::Format::D24_UNORM_S8_UINT,
+                                         .indirectDrawId = true });
+    hz::GPUPipeline maskPipeline = context.CreateGraphicsPipeline({
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "MaskVS" },
+                                    { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "MaskPS" } },
+                        .sourceDirectory = DirectoryOtherFiles, .pFileName = "InspectorGeometry.slang" },
+        .Depth = { .depthTest = true, .depthWrite = true, .depthFunc = CMP_LEQUAL }, .colorTargets = { { .Format = hz::Format::R8_UNORM } },
+        .depthStencilFormat = hz::Format::D24_UNORM_S8_UINT, .indirectDrawId = true });
+    ASSERT_TRUE(maskPipeline.IsValid());
+    const std::filesystem::path editorShaders = shaders.parent_path().parent_path().parent_path() / "Source/Editor/Shaders";
+    SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, editorShaders.string().c_str());
+    hz::GPUPipeline readPick =
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } },
+                                                        .sourceDirectory = DirectoryOtherFiles,
+                                                        .pFileName = "ViewportPickReadback.slang" } });
+    ASSERT_TRUE(pick.IsValid() && readPick.IsValid());
+    hz::GPUTexture ids = context.CreateTexture({ .Width = 8,
+                                                 .Height = 8,
+                                                 .Format = hz::Format::R32G32_UINT,
+                                                 .StartState = RESOURCE_STATE_RENDER_TARGET,
+                                                 .Descriptors = DESCRIPTOR_TYPE_TEXTURE,
+                                                 .GetRenderTarget = true });
+    hz::GPUBuffer  result = context.CreateBuffer({ .Size = 8,
+                                                   .ElementCount = 1,
+                                                   .StructStride = 8,
+                                                   .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                   .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                   .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+    hz::GPUTexture pickDepth = context.CreateTexture({ .Width = 8,
+                                                       .Height = 8,
+                                                       .Format = hz::Format::D24_UNORM_S8_UINT,
+                                                       .StartState = RESOURCE_STATE_DEPTH_WRITE,
+                                                       .GetRenderTarget = true });
+    // A transparent triangle behind a fully cut-out foreground triangle shares the clicked pixel.
+    instances[1].current = Matrix4::translation(Vector3(-0.5f, 0, 0.25f));
+    materials[0].AlphaMode = 1;
+    materials[0].AlphaCutoff = 0.5f;
+    materials[1].AlphaMode = 2;
+    materials[0].BaseColorFactor[3] = materials[1].BaseColorFactor[3] = 0;
+    hz::GPUBuffer    overlap = input(instances, sizeof(instances)), cutout = input(materials, sizeof(materials));
+    hz::CommandList& picks = context.AcquireCommandList();
+    const uint32_t   x[] = { 16, 48, 63, 16 };
+    for (uint32_t i = 0; i < 4; ++i)
+    {
+        const hz::GPUBuffer& objects = i == 3 ? overlap : instanceBuffer;
+        const hz::GPUBuffer& surfaces = i == 3 ? cutout : materialBuffer;
+        constants[4] = objects.GetSrvIndex();
+        constants[5] = surfaces.GetSrvIndex();
+        picks.BeginRendering(
+            { .colorAttachments = { { .pTexture = &ids, .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE } },
+              .depthAttachment = { .pTexture = &pickDepth, .loadAction = LOAD_ACTION_CLEAR, .ClearValue = { .Depth = 1.0f } } },
+            { .buffers = { &frame, &objects, &surfaces, &vertices, &normal, &uv, &draws, &mesh->GetIndexBuffer() },
+              .indirectBuffers = { &indirect } });
+        picks.SetViewport(-float(x[i] & ~7u), -32, 64, 64);
+        picks.SetScissor(0, 0, 8, 8);
+        picks.SetPipeline(pick);
+        picks.SetRootConstant({ constants, 12 });
+        picks.DrawIndirect(indirect, 0, 2);
+        picks.EndRendering();
+        picks.SetPipeline(readPick);
+        picks.SetRootConstant({ ids.GetSrvIndex(), result.GetUavIndex(), x[i] & 7u, 0 });
+        picks.Dispatch(1, 1, 1, { .sampledTextures = { &ids }, .storageBuffers = { &result } });
+        picks.CopyBuffer(readback, i * 8, result, 0, 8);
+    }
+    context.Wait(context.Submit(picks));
+    EXPECT_EQ(pixels[0], 0u);
+    EXPECT_EQ(pixels[1], 9u);
+    EXPECT_EQ(pixels[2], 1u);
+    EXPECT_EQ(pixels[3], 15u);
+    EXPECT_EQ(pixels[5], 0u); // Background has no generation.
+    EXPECT_EQ(pixels[6], 1u);
+    EXPECT_EQ(pixels[7], 15u);
+
+    hz::GPUTexture mask = context.CreateTexture({ .Width = 64, .Height = 64, .Format = hz::Format::R8_UNORM,
+                                                  .StartState = RESOURCE_STATE_RENDER_TARGET, .Descriptors = DESCRIPTOR_TYPE_TEXTURE,
+                                                  .GetRenderTarget = true });
+    hz::GPUTexture depth = context.CreateTexture({ .Width = 64, .Height = 64, .Format = hz::Format::D24_UNORM_S8_UINT,
+                                                   .StartState = RESOURCE_STATE_DEPTH_WRITE, .GetRenderTarget = true });
+    constants[0] = 1;
+    constants[1] = instances[1].primitive.index;
+    constants[2] = instances[1].primitive.generation;
+    constants[4] = instanceBuffer.GetSrvIndex();
+    constants[5] = materialBuffer.GetSrvIndex();
+    for (float depthValue : { 1.0f, 0.0f })
+    {
+        hz::CommandList& maskCommands = context.AcquireCommandList();
+        maskCommands.BeginRendering(
+            { .colorAttachments = { { .pTexture = &mask, .loadAction = LOAD_ACTION_CLEAR, .storeAction = STORE_ACTION_STORE } },
+              .depthAttachment = { .pTexture = &depth, .loadAction = LOAD_ACTION_CLEAR, .ClearValue = { .Depth = depthValue } } },
+            { .buffers = { &frame, &instanceBuffer, &materialBuffer, &vertices, &normal, &uv, &draws, &mesh->GetIndexBuffer() }, .indirectBuffers = { &indirect } });
+        maskCommands.SetViewport(0, 0, 64, 64);
+        maskCommands.SetScissor(0, 0, 64, 64);
+        maskCommands.SetPipeline(maskPipeline);
+        maskCommands.SetRootConstant({ constants, 12 });
+        maskCommands.DrawIndirect(indirect, 0, 2);
+        maskCommands.EndRendering();
+        maskCommands.SetPipeline(reader);
+        maskCommands.SetRootConstant({ mask.GetSrvIndex(), output.GetUavIndex() });
+        maskCommands.Dispatch(1, 1, 1, { .sampledTextures = { &mask }, .storageBuffers = { &output } });
+        maskCommands.CopyBuffer(readback, 0, output, 0, 32);
+        context.Wait(context.Submit(maskCommands));
+        EXPECT_EQ(pixels[0], 0u);
+        EXPECT_EQ(pixels[4], depthValue > 0.5f ? 255u : 0u);
+    }
 }
 
 TEST_F(SceneAssetLoaderTest, TracesDxrHitsAndMissesAndUpdatesTopLevelInstances)
@@ -1755,6 +1872,13 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                                          .sourceDirectory = DirectoryOtherFiles,
                                                          .pFileName = "DeferredLighting.slang" },
                                          .colorTargets = { { .Format = hz::Format::R32G32B32A32_SFLOAT } } });
+    const std::filesystem::path editorShaders = shaders.parent_path().parent_path().parent_path() / "Source/Editor/Shaders";
+    SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, editorShaders.string().c_str());
+    hz::GPUPipeline outline = context.CreateGraphicsPipeline({
+        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_VERT, .pEntryPoint = "VSMain" }, { .stage = SHADER_STAGE_FRAG, .pEntryPoint = "PSMain" } },
+                        .sourceDirectory = DirectoryOtherFiles, .pFileName = "SelectionOutline.slang" },
+        .colorTargets = { { .Format = hz::Format::R32G32B32A32_SFLOAT, .srcFactor = BC_SRC_ALPHA, .dstFactor = BC_ONE_MINUS_SRC_ALPHA } } });
+    ASSERT_TRUE(outline.IsValid());
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
 
     const char seedSource[] = R"hlsl(
@@ -1763,6 +1887,10 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
             RWTexture2D<float> output = ResourceDescriptorHeap[outputIndex];
             uint w,h; output.GetDimensions(w,h);
             if(id.x < w && id.y < h) output[id.xy] = 2.0 * (id.x + 2 * id.y);
+        }
+        [numthreads(6,1,1)] void CSSelectionMask(uint3 id : SV_DispatchThreadID) {
+            RWTexture2D<float> output = ResourceDescriptorHeap[outputIndex];
+            output[id.xy] = id.x < 3 ? 1.0 : 0.0;
         }
         [numthreads(8,8,1)] void CSMovingPeak(uint3 id : SV_DispatchThreadID) {
             RWTexture2D<float4> output = ResourceDescriptorHeap[outputIndex];
@@ -1779,6 +1907,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     };
 
     hz::GPUPipeline seedLogs = helper(seedSource, sizeof(seedSource) - 1, "CSLogGrid");
+    hz::GPUPipeline seedSelection = helper(seedSource, sizeof(seedSource) - 1, "CSSelectionMask");
     hz::GPUPipeline movingPeak = helper(seedSource, sizeof(seedSource) - 1, "CSMovingPeak");
     hz::GPUPipeline reader = helper(kCookbookTextureReadback, sizeof(kCookbookTextureReadback) - 1, "CSMain");
     ASSERT_TRUE(initialize.IsValid() && reduce.IsValid() && adapt.IsValid() && metering.IsValid() && downsample.IsValid() &&
@@ -1926,6 +2055,23 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         commands.EndRendering();
         read(mapped, mode);
     }
+    hz::GPUTexture selection = image(6, 1, scalar), outlined = image(6, 1, rgba);
+    commands.SetPipeline(seedSelection);
+    commands.SetRootConstant({ selection.GetUavIndex() });
+    commands.Dispatch(1, 1, 1, { .storageTextures = { &selection } });
+    Clear(outlined, 1.2f);
+    commands.BeginRendering(
+        { .colorAttachments = { { .pTexture = &outlined, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } } },
+        { .sampledTextures = { &selection } });
+    commands.SetViewport(0, 0, 6, 1);
+    commands.SetScissor(0, 0, 6, 1);
+    commands.SetPipeline(outline);
+    commands.SetRootConstant({ selection.GetSrvIndex(), sampler.GetIndex(), 0, 0, 0, 0 });
+    commands.Draw(3);
+    commands.EndRendering();
+    read(outlined, 190);
+
+
     struct MeteringConstants
     {
         uint32_t source, log;
@@ -2111,6 +2257,14 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
             EXPECT_TRUE(std::isfinite(value));
             EXPECT_NEAR(value, expected, expected * 2e-5) << roughness;
         }
+    }
+    for (uint32_t x = 0; x < 6; ++x)
+    {
+        const float* color = values + (190 + x) * 4;
+        const bool edge = x == 1 || x == 2;
+        EXPECT_NEAR(color[0], edge ? 1.0f : 1.2f, 1e-5f);
+        EXPECT_NEAR(color[1], edge ? 0.32f : 1.2f, 1e-5f);
+        EXPECT_NEAR(color[2], edge ? 0.02f : 1.2f, 1e-5f);
     }
     EXPECT_GT(values[15 * 4], 65504.0f);
     EXPECT_FLOAT_EQ(values[12 * 4], 50.0f);

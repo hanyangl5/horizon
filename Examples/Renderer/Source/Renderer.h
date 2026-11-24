@@ -18,7 +18,10 @@
 #endif
 
 #include "RenderPasses.h"
+#if defined(HORIZON_EDITOR_MODE)
+#include "RendererConstants.h"
 #include "Editor/SceneInspector.h"
+#endif
 
 inline hz::CVar GVSync("r.VSync", true, "Synchronize presentation to the display.");
 inline hz::CVar GFreezeLights("bistro.FreezeLights", false, "Pause moving point lights and their periodic replacement.");
@@ -96,7 +99,6 @@ public:
         {
             // Persist the driver PSOs built here so the next start only validates them.
             Context->SavePipelineCache();
-            Inspector = hz::MakeUnique<SceneInspector>(pWindow->Handle, *World, *Types, CameraEntity);
             GVSync.SetApplyBool(
                 [](void* User, bool Enabled)
                 {
@@ -228,6 +230,11 @@ private:
 
     bool InitRenderPasses()
     {
+#if defined(HORIZON_EDITOR_MODE)
+        const ViewportGeometry Geometry = { .Shader = "InspectorGeometry.slang", .DepthFormat = hz::Format::D24_UNORM_S8_UINT,
+                                            .BindingSlot = GeometryBindingSlot, .DrawSlot = GeometryDrawSlot };
+        Inspector = hz::MakeUnique<SceneInspector>(pWindow->Handle, *World, *Types, CameraEntity, *Context, Geometry);
+#endif
         const RenderPassesDesc Desc = {
             .Context = Context.Get(),
             .Scene = Scene.Get(),
@@ -243,13 +250,15 @@ public:
     void Exit() override
     {
         GVSync.SetApplyBool(nullptr, nullptr);
-        Inspector = nullptr;
         Camera = nullptr;
         if (Context && Context->IsValid())
         {
             Context->WaitIdle();
         }
         Passes = nullptr;
+#if defined(HORIZON_EDITOR_MODE)
+        Inspector = nullptr;
+#endif
         BistroLights.Reset();
         Scene = nullptr;
         Animation = nullptr;
@@ -279,6 +288,9 @@ public:
             return false;
         }
         const int64_t Start = GetUSec(true);
+#if defined(HORIZON_EDITOR_MODE)
+        Inspector->Picking.Cancel();
+#endif
         const bool    Ready = Passes->Resize(Width, Height);
         LOGF(Info, "Startup/Resize: targets and environment %.1f ms", (GetUSec(true) - Start) / 1000.0);
         return Ready;
@@ -297,7 +309,8 @@ public:
             UpdateBistroPointLights(DeltaTime);
         }
         Animation->Update(DeltaTime);
-        Inspector->Update();
+#if defined(HORIZON_EDITOR_MODE)
+        Inspector->Update(*Scene);
         if (Inspector->EditedPose == CameraEntity)
         {
             Camera->SetPose(Inspector->NewPose.getTranslation(), -Inspector->NewPose.getCol2().getXYZ());
@@ -314,11 +327,28 @@ public:
                 }
             }
         }
+#endif
         Passes->Update(DeltaTime);
     }
     const char* GetName() override { return "Renderer"; }
 
-    void Draw() override { Passes->Execute(); }
+    void Draw() override
+    {
+        const RecordedFrame Frame = Passes->Record();
+        if (!Frame.Commands)
+        {
+            return;
+        }
+#if defined(HORIZON_EDITOR_MODE)
+        Inspector->RecordOverlay(*Context, *Frame.Commands, *Frame.Backbuffer, Frame.Constants, Frame.View, Frame.Draws, Frame.Sampler,
+                                 Frame.Transparent, Frame.Jitter.X, Frame.Jitter.Y);
+#endif
+        const hz::SubmitHandle Submission = Context->Submit(*Frame.Commands, Frame.Backbuffer);
+#if defined(HORIZON_EDITOR_MODE)
+        Inspector->Picking.OnSubmitted(Submission);
+#endif
+        Passes->EndFrame(Frame.View.FrameIndex, Submission);
+    }
 
 private:
     // The cooker runs serially on the main thread, as its interface requires; an unchanged scene only hashes its inputs.
@@ -465,6 +495,8 @@ private:
     hz::UniquePtr<hz::AnimationSystem>  Animation;
     hz::UniquePtr<hz::RenderScene>      Scene;
     hz::UniquePtr<RenderPasses>         Passes;
+#if defined(HORIZON_EDITOR_MODE)
     hz::UniquePtr<SceneInspector>       Inspector;
+#endif
     hz::Entity                          CameraEntity;
 };

@@ -1,4 +1,6 @@
 #include "InspectorWindow.h"
+#include "TransformGizmo.h"
+#include "Editor/ViewportPicking.h"
 
 #include <d3d11.h>
 #include <commctrl.h>
@@ -22,6 +24,11 @@ struct InspectorWindow
     Microsoft::WRL::ComPtr<IDXGISwapChain>         Swapchain;
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView> Target;
     UINT                                           Width = 0, Height = 0;
+    TransformGizmo*                                Gizmo = nullptr;
+    ViewportPicking*                                Picking = nullptr;
+    POINT                                          Press{}, Click{};
+    RECT                                           ClickRect{};
+    bool                                           Pressed = false, Clicked = false, GizmoCapture = false;
     float                                          DpiScale = 1;
 };
 
@@ -29,16 +36,143 @@ static constexpr wchar_t ClassName[] = L"HorizonSceneInspector";
 
 static LRESULT CALLBACK OwnerProc(HWND Owner, UINT Message, WPARAM WParam, LPARAM LParam, UINT_PTR, DWORD_PTR User)
 {
+    InspectorWindow& Window = *reinterpret_cast<InspectorWindow*>(User);
     if (Message == WM_KEYDOWN && WParam == VK_F1)
     {
-        HWND Tool = (HWND)User;
         if (!(LParam & (1L << 30)))
         {
-            ShowWindow(Tool, IsWindowVisible(Tool) ? SW_HIDE : SW_SHOWNORMAL);
+            ShowWindow(Window.Handle, IsInspectorVisible(&Window) ? SW_HIDE : SW_SHOWNOACTIVATE);
         }
         return 0;
     }
+    if (!IsInspectorVisible(&Window))
+    {
+        return DefSubclassProc(Owner, Message, WParam, LParam);
+    }
+    const POINT      Position = { (short)LOWORD(LParam), (short)HIWORD(LParam) };
+    TransformGizmo&  Gizmo = *Window.Gizmo;
+    const float2     Mouse((float)Position.x, (float)Position.y);
+    if (Message == WM_KEYDOWN && !(LParam & (1L << 30)) && !(GetKeyState(VK_RBUTTON) & 0x8000) && !(GetKeyState(VK_CONTROL) & 0x8000) &&
+        !(GetKeyState(VK_MENU) & 0x8000))
+    {
+        switch (WParam)
+        {
+        case 'W':
+            Gizmo.SetTool(TransformGizmo::Tool::Translate);
+            break;
+        case 'E':
+            Gizmo.SetTool(TransformGizmo::Tool::Rotate);
+            break;
+        case 'R':
+            Gizmo.SetTool(TransformGizmo::Tool::Scale);
+            break;
+        }
+    }
+    if (Message == WM_LBUTTONDOWN && !(WParam & MK_RBUTTON) && Gizmo.Press(Mouse))
+    {
+        Window.GizmoCapture = true;
+        SetCapture(Owner);
+        Window.Pressed = Window.Clicked = false;
+        return 0;
+    }
+    if (Message == WM_MOUSEMOVE && Window.GizmoCapture)
+    {
+        Gizmo.Move(Mouse);
+        return 0;
+    }
+    if (Message == WM_LBUTTONUP && Window.GizmoCapture)
+    {
+        Gizmo.Release(Mouse);
+        Window.GizmoCapture = false;
+        ReleaseCapture();
+        return 0;
+    }
+    const bool CancelGesture = Message == WM_SIZE || Message == WM_KILLFOCUS || Message == WM_CANCELMODE || Message == WM_DPICHANGED ||
+                               Message == WM_RBUTTONDOWN || (Message == WM_KEYDOWN && WParam == VK_ESCAPE);
+    if (CancelGesture || (Message == WM_CAPTURECHANGED && Window.GizmoCapture))
+    {
+        const bool Captured = Window.GizmoCapture && GetCapture() == Owner;
+        Window.GizmoCapture = false;
+        Gizmo.Cancel();
+        if (Captured)
+        {
+            ReleaseCapture();
+        }
+    }
+    if (Message == WM_LBUTTONDOWN)
+    {
+        Window.Pressed = !(WParam & MK_RBUTTON);
+        Window.Press = Position;
+    }
+    else if (Window.Pressed && (Message == WM_MOUSEMOVE || Message == WM_LBUTTONUP))
+    {
+        if (abs(Position.x - Window.Press.x) >= GetSystemMetrics(SM_CXDRAG) ||
+            abs(Position.y - Window.Press.y) >= GetSystemMetrics(SM_CYDRAG) || (WParam & MK_RBUTTON))
+        {
+            Window.Pressed = false;
+        }
+        if (Message == WM_LBUTTONUP)
+        {
+            if (Window.Pressed && GetClientRect(Owner, &Window.ClickRect) &&
+                PtInRect(&Window.ClickRect, Position))
+            {
+                Window.Click = Position;
+                Window.Clicked = true;
+            }
+            Window.Pressed = false;
+        }
+    }
+    else if (CancelGesture || Message == WM_CAPTURECHANGED)
+    {
+        Window.Pressed = false;
+        if (Message == WM_SIZE || Message == WM_DPICHANGED)
+        {
+            Window.Clicked = false;
+        }
+    }
     return DefSubclassProc(Owner, Message, WParam, LParam);
+}
+
+static void CancelViewportInput(InspectorWindow& Window)
+{
+    Window.Pressed = Window.Clicked = false;
+    Window.Gizmo->Cancel();
+    Window.Gizmo->Started = false;
+    Window.Picking->Cancel();
+    const HWND Captured = GetCapture();
+    if (Captured == Window.Handle && Window.IO)
+    {
+        for (int Button = 0; Button < ImGuiMouseButton_COUNT; ++Button)
+        {
+            Window.IO->AddMouseButtonEvent(Button, false);
+        }
+    }
+    if (Captured == Window.Handle || (Window.GizmoCapture && Captured == GetWindow(Window.Handle, GW_OWNER)))
+    {
+        ReleaseCapture();
+    }
+    Window.GizmoCapture = false;
+}
+
+bool IsInspectorVisible(const InspectorWindow* Window)
+{
+    return Window && IsWindowVisible(Window->Handle) && !IsIconic(Window->Handle);
+}
+
+bool ConsumeViewportClick(InspectorWindow* Window, uint32_t Width, uint32_t Height, uint32_t& X, uint32_t& Y)
+{
+    if (!Window || !Window->Clicked)
+    {
+        return false;
+    }
+    Window->Clicked = false;
+    if (!Width || !Height || !IsInspectorVisible(Window))
+    {
+        return false;
+    }
+    X = uint32_t(uint64_t(Window->Click.x) * Width / Window->ClickRect.right);
+    Y = uint32_t(uint64_t(Window->Click.y) * Height / Window->ClickRect.bottom);
+    return true;
 }
 
 static LRESULT CALLBACK InspectorProc(HWND Handle, UINT Message, WPARAM WParam, LPARAM LParam)
@@ -48,6 +182,10 @@ static LRESULT CALLBACK InspectorProc(HWND Handle, UINT Message, WPARAM WParam, 
     {
         ShowWindow(Handle, SW_HIDE);
         return 0;
+    }
+    if (Window && ((Message == WM_SHOWWINDOW && !WParam) || (Message == WM_SIZE && WParam == SIZE_MINIMIZED)))
+    {
+        CancelViewportInput(*Window);
     }
     if (Window && Message == WM_DPICHANGED)
     {
@@ -60,7 +198,19 @@ static LRESULT CALLBACK InspectorProc(HWND Handle, UINT Message, WPARAM WParam, 
     return DefWindowProcW(Handle, Message, WParam, LParam);
 }
 
-InspectorWindow* CreateInspectorWindow(const WindowHandle& Owner)
+float2 GetViewportSize(const InspectorWindow* Window, float& Dpi)
+{
+    RECT Rect = {};
+    if (IsInspectorVisible(Window))
+    {
+        const HWND Owner = GetWindow(Window->Handle, GW_OWNER);
+        GetClientRect(Owner, &Rect);
+        Dpi = (float)GetDpiForWindow(Owner) / 96.0f;
+    }
+    return float2((float)Rect.right, (float)Rect.bottom);
+}
+
+InspectorWindow* CreateInspectorWindow(const WindowHandle& Owner, TransformGizmo& Gizmo, ViewportPicking& Picking)
 {
     const WNDCLASSW Class = { .lpfnWndProc = InspectorProc,
                               .hInstance = GetModuleHandleW(nullptr),
@@ -71,6 +221,8 @@ InspectorWindow* CreateInspectorWindow(const WindowHandle& Owner)
         return nullptr;
     }
     InspectorWindow* Window = MemNew(InspectorWindow);
+    Window->Gizmo = &Gizmo;
+    Window->Picking = &Picking;
     const HMONITOR   Monitor = MonitorFromWindow(Owner.window, MONITOR_DEFAULTTONEAREST);
     MONITORINFO      Info = { .cbSize = sizeof(Info) };
     GetMonitorInfoW(Monitor, &Info);
@@ -99,7 +251,7 @@ InspectorWindow* CreateInspectorWindow(const WindowHandle& Owner)
         IO.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         IO.ConfigDpiScaleViewports = true;
         const bool Ready = ImGui_ImplWin32_Init(Window->Handle) && ImGui_ImplDX11_Init(Window->Device.Get(), Window->Commands.Get()) &&
-                           SetWindowSubclass(Owner.window, OwnerProc, (UINT_PTR)Window, (DWORD_PTR)Window->Handle);
+                           SetWindowSubclass(Owner.window, OwnerProc, (UINT_PTR)Window, (DWORD_PTR)Window);
         ImGui::SetCurrentContext(Previous);
         if (Ready)
         {

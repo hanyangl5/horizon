@@ -72,6 +72,18 @@ struct RenderTargets
     hz::FrameGraphTexture Backbuffer;
 };
 
+struct RecordedFrame
+{
+    hz::SceneView          View;
+    const hz::GPUBuffer&   Constants;
+    const hz::GpuDrawList& Draws;
+    const hz::GPUSampler&  Sampler;
+    hz::CommandList*       Commands = nullptr;
+    const hz::GPUTexture*  Backbuffer = nullptr;
+    TemporalJitter         Jitter{};
+    bool                   Transparent = false;
+};
+
 class RenderPasses
 {
 public:
@@ -80,8 +92,9 @@ public:
 
     bool Resize(uint32_t Width, uint32_t Height);
 
-    void Update(float DeltaSeconds);
-    void Execute();
+    void          Update(float DeltaSeconds);
+    RecordedFrame Record();
+    void          EndFrame(uint32_t FrameIndex, hz::SubmitHandle Submission);
 
 private:
     // Uploaded as the frame constant block, so the fields keep the shader's names.

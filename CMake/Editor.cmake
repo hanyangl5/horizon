@@ -2,6 +2,14 @@ set(EDITOR_SOURCE_DIR ${ENGINE_SOURCE_DIR}/Editor)
 set(EDITOR_FILES
     ${EDITOR_SOURCE_DIR}/Public/Editor/SceneInspector.h
     ${EDITOR_SOURCE_DIR}/Public/Editor/ConsolePanel.h
+    ${EDITOR_SOURCE_DIR}/Public/Editor/ViewportPicking.h
+    ${EDITOR_SOURCE_DIR}/Private/TransformGizmo.h
+    ${EDITOR_SOURCE_DIR}/Private/TransformGizmo.cpp
+    ${EDITOR_SOURCE_DIR}/Shaders/TransformGizmo.slang
+    ${EDITOR_SOURCE_DIR}/Private/ViewportPicking.cpp
+    ${EDITOR_SOURCE_DIR}/Shaders/SelectionOutline.slang
+    ${EDITOR_SOURCE_DIR}/Shaders/ViewportPick.slang
+    ${EDITOR_SOURCE_DIR}/Shaders/ViewportPickReadback.slang
     ${EDITOR_SOURCE_DIR}/Private/SceneInspector.cpp
     ${EDITOR_SOURCE_DIR}/Private/ConsolePanel.cpp
     ${EDITOR_SOURCE_DIR}/Private/InspectorWindow.cpp

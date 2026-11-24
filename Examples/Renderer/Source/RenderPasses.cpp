@@ -647,18 +647,21 @@ static Matrix4 CameraViewProjection(const Matrix4& Pose, const hz::Camera& Lens,
     return Projection * inverse(Pose);
 }
 
-void RenderPasses::Execute()
+RecordedFrame RenderPasses::Record()
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::execute");
-    if (Context.IsSuspended())
-    {
-        return;
-    }
-
-    ASSERT(PostProcessing);
-    // Wait for the oldest frame to keep Update/Draw from spinning when all frames are in flight.
     const uint32_t       FrameIndex = NextFrame;
     FrameConstantBuffer& ConstantBuffer = FrameConstants[FrameIndex];
+    const hz::SceneView  View = { .Scene = Scene,
+                                  .GpuScene = GpuSceneData,
+                                  .Assets = Assets,
+                                  .FrameIndex = FrameIndex,
+                                  .Skinning = &Skinning };
+    RecordedFrame        Output = { .View = View, .Constants = ConstantBuffer.Buffer, .Draws = Draws, .Sampler = GBufferPass->Sampler };
+    if (Context.IsSuspended())
+    {
+        return Output;
+    }
     if (ConstantBuffer.Submission.IsValid())
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::waitForFrame");
@@ -666,14 +669,9 @@ void RenderPasses::Execute()
     }
     if (!GpuSceneData.BeginFrame())
     {
-        return;
+        return Output;
     }
     NextFrame = (NextFrame + 1) % FrameConstants.Size();
-    const hz::SceneView     View = { .Scene = Scene,
-                                     .GpuScene = GpuSceneData,
-                                     .Assets = Assets,
-                                     .FrameIndex = FrameIndex,
-                                     .Skinning = &Skinning };
     const hz::RenderCamera* Camera = Scene.GetCamera(CameraId);
     ASSERT(Camera);
     const hz::RenderCamera& CameraState = *Camera;
@@ -767,8 +765,17 @@ void RenderPasses::Execute()
                            .Jitter = Jitter,
                            .PreviousJitter = PreviousJitter };
     hz::ExecuteFrameGraph(Graph, Commands, &Inputs);
-    ConstantBuffer.Submission = Context.Submit(Commands, &Backbuffer);
-    GpuSceneData.EndFrame(ConstantBuffer.Submission);
+    Output.Commands = &Commands;
+    Output.Backbuffer = &Backbuffer;
+    Output.Jitter = Jitter;
+    Output.Transparent = GTransparency.GetBool();
     PreviousJitter = Jitter;
     TemporalAAWasEnabled = GTemporalAA.GetBool();
+    return Output;
+}
+
+void RenderPasses::EndFrame(uint32_t FrameIndex, hz::SubmitHandle Submission)
+{
+    FrameConstants[FrameIndex].Submission = Submission;
+    GpuSceneData.EndFrame(Submission);
 }
