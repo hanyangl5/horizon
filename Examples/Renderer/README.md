@@ -50,8 +50,12 @@ replaced with a newly generated one.
 Deferred and transparent surfaces use the same
 32×32-pixel light masks and depth bins for finite-range lights. Lights with no
 range cutoff are evaluated globally. Ray-traced reflections evaluate lights at
-the hit position. To compare against all active lights, set `EnableClusteredLighting`
-to `false` in `Source/RenderPasses.h` and rebuild the sample.
+the hit position. Press F1 to toggle the Inspector. Its command box accepts a variable
+name to show the current value, or a name and value to change it for this session.
+Use `bistro.FreezeLights 1` to hold the lighting scene fixed, then compare
+`r.ClusteredLighting 0` (full light loop) with `r.ClusteredLighting 1`.
+Enter `help` to list variables or `help r.Bloom` to filter by prefix. Tab completes
+a name and the Up/Down arrow keys recall recent commands.
 Motion vectors use the previously submitted object and camera transforms.
 The preview reconstructs Z from Bistro's BC5 normal maps and supports metallic/roughness
 and emissive maps. MASK follows

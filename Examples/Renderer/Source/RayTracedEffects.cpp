@@ -31,8 +31,17 @@ struct RTConstants
     float    ShadowRadius;
 };
 static_assert(sizeof(RTConstants) == 23 * sizeof(uint32_t));
+hz::CVar GRTShadows("r.RayTracing.Shadows", true, "Ray-traced shadows.");
+hz::CVar GRTAO("r.RayTracing.AO", true, "Ray-traced AO takes precedence over GTAO.");
+hz::CVar GRTReflections("r.RayTracing.Reflections", true, "Ray-traced reflections.");
+static hz::CVar GRTAORadius("r.RayTracing.AO.Radius", 2.0f, 0.0001f, "Maximum occlusion ray distance in meters.");
+
 RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context), Supported(Context.SupportsRayTracing())
 {
+    GRTShadows.SetAvailable(Supported);
+    GRTAO.SetAvailable(Supported);
+    GRTReflections.SetAvailable(Supported);
+    GRTAORadius.SetAvailable(Supported);
     if (!Supported)
     {
         return;
@@ -93,11 +102,13 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     const hz::GPUTexture& Reflection = *Targets.Reflection;
     const uint32_t        Width = Result.GetWidth();
     const uint32_t        Height = Result.GetHeight();
-    if (!(Settings == PreviousSettings))
+    const HistorySettings Current = { .Parameters = Settings, .Shadows = GRTShadows.GetBool(), .AO = GRTAO.GetBool(),
+                                      .Reflections = GRTReflections.GetBool(), .AORadius = GRTAORadius.GetFloat() };
+    if (!(Current == PreviousSettings))
     {
         MarkDirty();
     }
-    PreviousSettings = Settings;
+    PreviousSettings = Current;
     if (AssetRevision != View.GpuScene.GetAssetTables().revision)
     {
         MarkDirty();
@@ -125,13 +136,13 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
                                 .IrradianceIndex = Index(Lighting.Irradiance),
                                 .BrdfIndex = Index(Lighting.BRDFLut),
                                 .EnvironmentSamplerIndex = Lighting.EnvironmentSampler ? Lighting.EnvironmentSampler->GetIndex() : UINT32_MAX,
-                                .ShadowsEnabled = Settings.Shadows,
-                                .AoEnabled = Settings.AO,
+                                .ShadowsEnabled = Current.Shadows,
+                                .AoEnabled = Current.AO,
                                 .AoSamples = TF_MAX(Settings.AOSamples, 1u),
                                 .FrameNumber = FrameIndex++,
                                 .AlphaTestMethod = Settings.ShadowAlphaTestMethod,
                                 .RetraceMaxDepth = Settings.RetraceMaxDepth,
-                                .AoRadius = Settings.AORadius,
+                                .AoRadius = Current.AORadius,
                                 .ShadowRadius = Settings.ShadowRadius,
     };
     const hz::Dependencies SceneDependencies = Draws.GetDependencies(Frame, View);
@@ -151,7 +162,7 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
 
     Commands.BeginGpuTimestamp("RT Reflection");
     Constants.OutputIndex = Reflection.GetUavIndex();
-    if (!Settings.Reflection)
+    if (!Current.Reflections)
     {
         Constants.TlasIndex = UINT32_MAX;
     }

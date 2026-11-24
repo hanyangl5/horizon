@@ -1,32 +1,66 @@
-#include "RendererInspector.h"
+#include "Editor/SceneInspector.h"
+#include "Scene/SceneComponents.h"
 #include "InspectorWindow.h"
+#include "Editor/ConsolePanel.h"
 #include "imgui_internal.h"
 #include <stdio.h>
 
-RendererInspector::RendererInspector(const WindowHandle& Owner, hz::World& World, const hz::TypeRegistry& Types, hz::Entity Camera):
-    World(World), Types(Types), Camera(Camera), Query(World, {}), Window(CreateInspectorWindow(Owner))
+struct SceneInspector::Panel
 {
-    if (!Window)
+    Panel(SceneInspector& Inspector, const WindowHandle& Owner, hz::World& World, const hz::TypeRegistry& Types, hz::Entity Camera):
+        Inspector(Inspector), World(World), Types(Types), Camera(Camera), Query(World, {}), Window(CreateInspectorWindow(Owner))
     {
-        LOGF(Warning, "Renderer Inspector window initialization failed");
+    }
+
+    void Draw();
+    void DrawList();
+    void DrawComponents();
+    void DrawProperty(const hz::TypeDesc& Type, const hz::PropertyDesc& Field, const void* Source, const hz::PropertyDesc* Array = nullptr,
+                      uint32_t Index = 0);
+    void DrawArray(const hz::TypeDesc& Type, const hz::PropertyDesc& Field, const void* Source);
+    const char* Label(hz::Entity Entity, char (&Buffer)[96]) const;
+
+    SceneInspector&         Inspector;
+    hz::World&              World;
+    const hz::TypeRegistry& Types;
+    const hz::Entity        Camera;
+    hz::WorldQuery          Query;
+    InspectorWindow*        Window;
+    hz::Entity              Selection;
+    const hz::TypeDesc*     Filter = nullptr;
+    ConsolePanel            Console;
+    ImGuiTextFilter         Search;
+    hz::Array<hz::Entity>   Rows;
+    hz::Array<char>         StringBuffer;
+    double                  RefreshAt = 0;
+    uint32_t                ArrayVersion = 0;
+    ImGuiID                 FailedField = 0;
+};
+
+SceneInspector::SceneInspector(const WindowHandle& Owner, hz::World& World, const hz::TypeRegistry& Types, hz::Entity Camera):
+    UI(hz::MakeUnique<Panel>(*this, Owner, World, Types, Camera))
+{
+    if (!UI->Window)
+    {
+        LOGF(Warning, "Scene Inspector window initialization failed");
     }
 }
 
-RendererInspector::~RendererInspector() { DestroyInspectorWindow(Window); }
+SceneInspector::~SceneInspector() { DestroyInspectorWindow(UI->Window); }
 
-void RendererInspector::Update()
+void SceneInspector::Update()
 {
     EditedPose = {};
-    if (Selection.IsValid() && !World.IsAlive(Selection))
+    if (UI->Selection.IsValid() && !UI->World.IsAlive(UI->Selection))
     {
-        Selection = {};
-        FailedField = 0;
-        RefreshAt = 0;
+        UI->Selection = {};
+        UI->FailedField = 0;
+        UI->RefreshAt = 0;
     }
-    DrawInspectorWindow(Window, [](void* User) { static_cast<RendererInspector*>(User)->Draw(); }, this);
+    DrawInspectorWindow(UI->Window, [](void* User) { static_cast<Panel*>(User)->Draw(); }, UI.Get());
 }
 
-const char* RendererInspector::Label(hz::Entity Entity, char (&Buffer)[96]) const
+const char* SceneInspector::Panel::Label(hz::Entity Entity, char (&Buffer)[96]) const
 {
     const hz::Name* Name = (const hz::Name*)World.GetComponent(Entity, hz::SceneTypes::name);
     if (Name && Name->value[0])
@@ -64,7 +98,7 @@ const char* RendererInspector::Label(hz::Entity Entity, char (&Buffer)[96]) cons
     return Buffer;
 }
 
-void RendererInspector::DrawList()
+void SceneInspector::Panel::DrawList()
 {
     if (Search.DrawWithHint("Search", "Name or short ID"))
     {
@@ -94,8 +128,8 @@ void RendererInspector::DrawList()
         Query.Each(
             [](hz::Entity Entity, hz::Span<const void*>, void* User)
             {
-                RendererInspector& Inspector = *static_cast<RendererInspector*>(User);
-                char               Buffer[96];
+                Panel& Inspector = *static_cast<Panel*>(User);
+                char   Buffer[96];
                 if ((!Inspector.Filter || Inspector.World.GetComponent(Entity, Inspector.Filter->id)) &&
                     (!Inspector.Search.IsActive() || Inspector.Search.PassFilter(Inspector.Label(Entity, Buffer))))
                 {
@@ -136,8 +170,9 @@ void RendererInspector::DrawList()
     ImGui::EndChild();
 }
 
-void RendererInspector::Draw()
+void SceneInspector::Panel::Draw()
 {
+    Console.Draw();
     DrawList();
     if (!Selection.IsValid())
     {
@@ -149,7 +184,7 @@ void RendererInspector::Draw()
     ImGui::PopID();
 }
 
-void RendererInspector::DrawComponents()
+void SceneInspector::Panel::DrawComponents()
 {
     char Buffer[96];
     ImGui::SeparatorText(Label(Selection, Buffer));
@@ -223,8 +258,8 @@ static bool EditMatrix(Matrix4& Pose, bool FpsCamera)
     return Changed;
 }
 
-void RendererInspector::DrawProperty(const hz::TypeDesc& Type, const hz::PropertyDesc& Field, const void* Source,
-                                     const hz::PropertyDesc* Array, uint32_t Index)
+void SceneInspector::Panel::DrawProperty(const hz::TypeDesc& Type, const hz::PropertyDesc& Field, const void* Source,
+                                         const hz::PropertyDesc* Array, uint32_t Index)
 {
     using Kind = hz::PropertyKind;
     alignas(16) uint8_t Bytes[sizeof(Matrix4)] = {};
@@ -345,13 +380,13 @@ void RendererInspector::DrawProperty(const hz::TypeDesc& Type, const hz::Propert
     if (Changed)
     {
         const hz::PropertyValue Edit = { .kind = Field.kind, .Data = Value, .Size = Size };
-        const bool Accepted = Array ? World.SetArrayElementProperty(Selection, Type.id, Array->id, Index, Field.id, Edit)
-                                    : World.SetProperty(Selection, Type.id, Field.id, Edit);
+        const bool              Accepted = Array ? World.SetArrayElementProperty(Selection, Type.id, Array->id, Index, Field.id, Edit)
+                                                 : World.SetProperty(Selection, Type.id, Field.id, Edit);
         FailedField = Accepted ? 0 : ID;
         if (Accepted && Type.id == hz::SceneTypes::localMatrix && !Array)
         {
-            EditedPose = Selection;
-            NewPose = Pose;
+            Inspector.EditedPose = Selection;
+            Inspector.NewPose = Pose;
         }
         if (Accepted && (Type.id == hz::SceneTypes::name || (Type.id == hz::SceneTypes::light && Field.kind == Kind::Enum)))
         {
@@ -364,7 +399,7 @@ void RendererInspector::DrawProperty(const hz::TypeDesc& Type, const hz::Propert
     }
 }
 
-void RendererInspector::DrawArray(const hz::TypeDesc& Type, const hz::PropertyDesc& Field, const void* Source)
+void SceneInspector::Panel::DrawArray(const hz::TypeDesc& Type, const hz::PropertyDesc& Field, const void* Source)
 {
     const uint32_t Count = Field.pArrayOperations->pCount(Source);
     if (!ImGui::TreeNode(Field.Name, "%s [%u]", Field.Name, Count))

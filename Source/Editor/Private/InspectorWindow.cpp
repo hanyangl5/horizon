@@ -25,7 +25,7 @@ struct InspectorWindow
     float                                          DpiScale = 1;
 };
 
-static constexpr wchar_t ClassName[] = L"HorizonRendererInspector";
+static constexpr wchar_t ClassName[] = L"HorizonSceneInspector";
 
 static LRESULT CALLBACK OwnerProc(HWND Owner, UINT Message, WPARAM WParam, LPARAM LParam, UINT_PTR, DWORD_PTR User)
 {
@@ -77,7 +77,7 @@ InspectorWindow* CreateInspectorWindow(const WindowHandle& Owner)
     Window->DpiScale = ImGui_ImplWin32_GetDpiScaleForMonitor(Monitor);
     const int Width = TF_MIN((int)(570 * Window->DpiScale), Info.rcWork.right - Info.rcWork.left);
     const int Height = TF_MIN((int)(800 * Window->DpiScale), Info.rcWork.bottom - Info.rcWork.top);
-    Window->Handle = CreateWindowExW(WS_EX_TOOLWINDOW, ClassName, L"Renderer Inspector", WS_OVERLAPPEDWINDOW, Info.rcWork.right - Width,
+    Window->Handle = CreateWindowExW(WS_EX_TOOLWINDOW, ClassName, L"Scene Inspector", WS_OVERLAPPEDWINDOW, Info.rcWork.right - Width,
                                      Info.rcWork.top, Width, Height, Owner.window, nullptr, Class.hInstance, nullptr);
     DXGI_SWAP_CHAIN_DESC Desc = {};
     Desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -196,7 +196,7 @@ void DrawInspectorWindow(InspectorWindow* Window, void (*Draw)(void*), void* Use
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(Window->IO->DisplaySize);
     ImGui::SetNextWindowBgAlpha(1.0f);
-    ImGui::Begin("Renderer Inspector", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+    ImGui::Begin("Scene Inspector", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     Draw(User);
     ImGui::End();
     ImGui::Render();

@@ -1,3 +1,4 @@
+#include "Core/ICVar.h"
 #include "GTAO.h"
 
 struct GTAOConstants
@@ -9,6 +10,8 @@ struct GTAOConstants
     uint32_t OutputIndex = UINT32_MAX;
     float    Radius = 0.0f;
 };
+
+static hz::CVar GGTAORadius("r.GTAO.Radius", 1.0f, 0.0001f, "GTAO search radius in meters.");
 
 GTAO::GTAO(hz::RenderContext& Context)
 {
@@ -29,7 +32,7 @@ void GTAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const 
                                     .DepthIndex = HorizonDependencies.Sample(&Depth),
                                     .NormalIndex = HorizonDependencies.Sample(&Normals),
                                     .OutputIndex = HorizonDependencies.Store(&Scratch),
-                                    .Radius = Radius > 0.0f ? Radius : 1e-4f };
+                                    .Radius = GGTAORadius.GetFloat() };
     Commands.BeginGpuTimestamp("GTAO");
     Commands.SetPipeline(HorizonPipeline);
     Commands.SetRootConstants(Horizon);

@@ -1,16 +1,17 @@
 #pragma once
 
 #include "DeferredLighting.h"
+#include "Core/ICVar.h"
 #include "Scene/GpuDrawList.h"
 #include "Core/IUniquePtr.h"
 
+extern hz::CVar GRTShadows;
+extern hz::CVar GRTAO;
+extern hz::CVar GRTReflections;
+
 struct RayTracedEffectsSettings
 {
-    bool     Shadows = true;
-    bool     AO = true;
-    bool     Reflection = true;
     uint32_t AOSamples = 1;
-    float    AORadius = 2.0f;
     float    AOPower = 1.0f;
     float    ShadowRadius = 0.02f;
     // 0: opaque candidates, 1: any-hit alpha test, 2: bounded closest-hit retracing.
@@ -78,7 +79,16 @@ private:
     hz::GPURayTracingPipeline         ReflectionPipeline;
     hz::GPUSampler                 MaterialSampler;
     hz::GPUTexture                 BlueNoise;
-    RayTracedEffectsSettings       PreviousSettings;
+    struct HistorySettings
+    {
+        RayTracedEffectsSettings Parameters;
+        bool Shadows;
+        bool AO;
+        bool Reflections;
+        float AORadius;
+        bool operator==(const HistorySettings&) const = default;
+    };
+    HistorySettings PreviousSettings{};
     uint32_t                       FrameIndex = 0;
     uint64_t                       AssetRevision = 0;
     bool                           MarkedDirty = true;

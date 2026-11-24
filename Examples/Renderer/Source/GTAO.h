@@ -12,8 +12,6 @@ public:
     void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth, const hz::GPUTexture& Normals,
                  const hz::GPUTexture& Occlusion, const hz::GPUTexture& Scratch);
 
-    float Radius = 1.0f;
-
 private:
     hz::GPUPipeline HorizonPipeline;
     hz::GPUPipeline UpsamplePipeline;

@@ -1,4 +1,5 @@
 #include "RenderPasses.h"
+#include "Core/ICVar.h"
 #include "RendererConstants.h"
 
 #include <math.h>
@@ -35,6 +36,11 @@ struct GeometryBindingConstants
     uint32_t SamplerIndex;
 };
 static_assert(sizeof(GeometryBindingConstants) == 5 * sizeof(uint32_t));
+
+static hz::CVar GClusteredLighting("r.ClusteredLighting", true, "0 uses the full light loop, 1 enables light culling.");
+static hz::CVar GTemporalAA("r.TAA", true, "Temporal antialiasing.");
+static hz::CVar GTransparency("r.Transparency", true, "Blended transparent surfaces.");
+static hz::CVar GGTAO("r.GTAO", true, "Screen-space ambient occlusion when ray-traced AO is off.");
 
 GBuffer::GBuffer(hz::RenderContext& Context)
 {
@@ -673,8 +679,8 @@ void RenderPasses::Execute()
     const hz::RenderCamera& CameraState = *Camera;
     const float             AspectInverse = (float)Context.GetHeight() / (float)Context.GetWidth();
     const TemporalJitter    Jitter =
-        EnableTemporalAA ? TemporalAA::GetJitter(Shadows->Data.FrameIndex, Context.GetWidth(), Context.GetHeight()) : TemporalJitter{};
-    if (EnableTemporalAA && !TemporalAAWasEnabled)
+        GTemporalAA.GetBool() ? TemporalAA::GetJitter(Shadows->Data.FrameIndex, Context.GetWidth(), Context.GetHeight()) : TemporalJitter{};
+    if (GTemporalAA.GetBool() && !TemporalAAWasEnabled)
     {
         hz::InvalidateFrameGraphHistory(Graph, Targets.TemporalColor);
     }
@@ -694,8 +700,8 @@ void RenderPasses::Execute()
     // Frame shape the passes depend on.
     const bool RayTracingReady = RayTracing->IsSupported();
     Shadows->Data.EnvironmentMipCount = Environment->GetPrefilteredMipCount();
-    Shadows->Data.RTShadowEnabled = RayTracingReady && RayTracing->Settings.Shadows ? 1u : 0u;
-    Shadows->Data.RTAOEnabled = RayTracingReady && RayTracing->Settings.AO ? 1u : 0u;
+    Shadows->Data.RTShadowEnabled = RayTracingReady && GRTShadows.GetBool() ? 1u : 0u;
+    Shadows->Data.RTAOEnabled = RayTracingReady && GRTAO.GetBool() ? 1u : 0u;
     Shadows->Data.RTAOPower = RayTracing->Settings.AOPower;
     const hz::GpuSceneBuffers& SceneBuffers = GpuSceneData.GetBuffers();
     LightingFrameData&         LightingData = Shadows->Data;
@@ -718,19 +724,19 @@ void RenderPasses::Execute()
     }
     Shadows->Prepare(View);
     const bool Clustered =
-        EnableClusteredLighting && ActiveLights.Count &&
+        GClusteredLighting.GetBool() && ActiveLights.Count &&
         Clusters->Prepare(FrameIndex, Scene.GetLights(), ActiveLights, LightingData.MainDirectionalIndex, Current,
                           CameraState.lens.nearPlane, CameraState.lens.farPlane, Context.GetWidth(), Context.GetHeight());
     const hz::GPUBuffer* Masks = Clustered ? Clusters->GetMask(FrameIndex) : nullptr;
     hz::SetFrameGraphBufferImport(Graph, Targets.LightMasks, Masks);
-    hz::SetFrameGraphPassEnabled(Graph, LightMaskPass, EnableClusteredLighting);
+    hz::SetFrameGraphPassEnabled(Graph, LightMaskPass, GClusteredLighting.GetBool());
     // Ray traced AO replaces the screen space term.
-    hz::SetFrameGraphPassEnabled(Graph, GTAOGraphPass, EnableGTAO && !Shadows->Data.RTAOEnabled);
+    hz::SetFrameGraphPassEnabled(Graph, GTAOGraphPass, GGTAO.GetBool() && !Shadows->Data.RTAOEnabled);
     hz::SetFrameGraphPassEnabled(Graph, RayTracingPass,
                                  RayTracingReady &&
-                                     (RayTracing->Settings.Shadows || RayTracing->Settings.AO || RayTracing->Settings.Reflection));
-    hz::SetFrameGraphPassEnabled(Graph, TransparencyPass, EnableTransparency);
-    hz::SetFrameGraphPassEnabled(Graph, TemporalAAPass, EnableTemporalAA);
+                                     (GRTShadows.GetBool() || GRTAO.GetBool() || GRTReflections.GetBool()));
+    hz::SetFrameGraphPassEnabled(Graph, TransparencyPass, GTransparency.GetBool());
+    hz::SetFrameGraphPassEnabled(Graph, TemporalAAPass, GTemporalAA.GetBool());
     const hz::GPUTexture& Backbuffer = Context.GetCurrentBackbuffer();
     hz::SetFrameGraphTextureImport(Graph, Targets.Backbuffer, &Backbuffer);
     // Stands for all of this frame's lists; passes fetch the individual lists from the draw list itself.
@@ -756,14 +762,14 @@ void RenderPasses::Execute()
                            .DeltaSeconds = DeltaSeconds,
                            .EnvironmentIntensity = Shadows->Data.EnvironmentIntensity,
                            .EnvironmentTint = Shadows->Data.EnvironmentTint,
-                           .RayTracedShadows = RayTracingReady && (RayTracing->Settings.Shadows || RayTracing->Settings.AO),
-                           .RayTracedReflection = RayTracingReady && RayTracing->Settings.Reflection,
-                           .TemporalAAEnabled = EnableTemporalAA,
+                           .RayTracedShadows = RayTracingReady && (GRTShadows.GetBool() || GRTAO.GetBool()),
+                           .RayTracedReflection = RayTracingReady && GRTReflections.GetBool(),
+                           .TemporalAAEnabled = GTemporalAA.GetBool(),
                            .Jitter = Jitter,
                            .PreviousJitter = PreviousJitter };
     hz::ExecuteFrameGraph(Graph, Commands, &Inputs);
     ConstantBuffer.Submission = Context.Submit(Commands, &Backbuffer);
     GpuSceneData.EndFrame(ConstantBuffer.Submission);
     PreviousJitter = Jitter;
-    TemporalAAWasEnabled = EnableTemporalAA;
+    TemporalAAWasEnabled = GTemporalAA.GetBool();
 }

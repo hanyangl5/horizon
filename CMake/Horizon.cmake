@@ -28,6 +28,7 @@ if(${CMAKE_INCLUDE_SHADERS})
     include(Shaders)
 endif()
 include(Runtime)
+include(Editor)
 
 if(HORIZON_BUILD_TOOLS)
     include(AssetPipeline)

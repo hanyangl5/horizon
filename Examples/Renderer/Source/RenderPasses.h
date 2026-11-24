@@ -82,10 +82,6 @@ public:
 
     void Update(float DeltaSeconds);
     void Execute();
-    bool EnableClusteredLighting = true;
-    bool EnableGTAO = true;
-    bool EnableTransparency = true;
-    bool EnableTemporalAA = true;
 
 private:
     // Uploaded as the frame constant block, so the fields keep the shader's names.

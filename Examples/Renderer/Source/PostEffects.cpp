@@ -1,3 +1,4 @@
+#include "Core/ICVar.h"
 #include "PostEffects.h"
 #include "Core/ILog.h"
 #include "Profiler/IProfiler.h"
@@ -70,6 +71,11 @@ static uint32_t BloomLevelSize(uint32_t Size, uint32_t Level)
     const uint32_t Shifted = Size >> Level;
     return Shifted ? Shifted : 1;
 }
+
+static hz::CVar GExposure("r.Exposure", 0.95f, 0.0f, "Exposure compensation multiplier.");
+static hz::CVar GBloom("r.Bloom", true, "Bloom post effect.");
+static hz::CVar GBloomStrength("r.Bloom.Strength", 0.01f, 0.0f, "Bloom contribution to the final color.");
+static hz::CVar GAdaptationSpeed("r.Exposure.AdaptationSpeed", 3.0f, 0.0f, "Luminance adaptation rate.");
 
 PostEffects::PostEffects(hz::RenderContext& Context): Context(Context)
 {
@@ -160,7 +166,7 @@ void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& Scene
 
 void PostEffects::RunBloom(hz::CommandList& Commands, const hz::GPUTexture& SceneColor, const PostEffectsTargets& Targets)
 {
-    if (!Settings.EnableBloom || !Targets.BloomDown[0])
+    if (!GBloom.GetBool() || !Targets.BloomDown[0])
     {
         return;
     }
@@ -179,7 +185,7 @@ void PostEffects::RunBloom(hz::CommandList& Commands, const hz::GPUTexture& Scen
         .AdaptedLuminanceIndex = Previous.GetSrvIndex(),
         .Threshold = 1,
         .AutoExposure = Settings.ToneMapping != ToneMappingMode::None ? 1u : 0u,
-        .Exposure = Settings.Exposure,
+        .Exposure = GExposure.GetFloat(),
     };
     Commands.SetRootConstants(Downsample);
     Commands.Dispatch((BloomWidth + 15) / 16, (BloomHeight + 15) / 16, 1,
@@ -221,7 +227,7 @@ void PostEffects::RunAdaptation(hz::CommandList& Commands, float DeltaSeconds, c
         .InputIndex = Dependencies.Sample(Targets.Luminance[PostEffectsTargets::LuminanceLevels - 1]),
         .OutputIndex = Dependencies.Store(Targets.Adapted),
         .PreviousIndex = Dependencies.Sample(Targets.PreviousAdapted),
-        .AdaptationTime = fmaxf(DeltaSeconds, 0.0f) * fmaxf(Settings.AdaptationSpeed, 0.0f),
+        .AdaptationTime = fmaxf(DeltaSeconds, 0.0f) * fmaxf(GAdaptationSpeed.GetFloat(), 0.0f),
     };
     Commands.SetPipeline(AdaptationPipeline);
     Commands.SetRootConstants(Constants);
@@ -235,15 +241,15 @@ void PostEffects::ToneMap(hz::CommandList& Commands, const hz::GPUTexture& Scene
     const uint32_t     Height = RenderTarget.GetHeight();
     const bool SrgbTarget = Context.GetColorFormat() == hz::Format::R8G8B8A8_SRGB || Context.GetColorFormat() == hz::Format::B8G8R8A8_SRGB;
     hz::DependencyList Dependencies;
-    const hz::GPUTexture*   Bloom = Settings.EnableBloom ? Targets.BloomUp[0] : nullptr;
+    const hz::GPUTexture*   Bloom = GBloom.GetBool() ? Targets.BloomUp[0] : nullptr;
     const PostToneConstants Constants = {
         .SceneColorIndex = Dependencies.Sample(&SceneColor),
         .AdaptedLuminanceIndex = Dependencies.Sample(Targets.PreviousAdapted),
         .BloomIndex = Dependencies.Sample(Bloom),
         .SamplerIndex = Sampler.GetIndex(),
         .ToneMapping = (uint32_t)Settings.ToneMapping,
-        .Exposure = Settings.Exposure,
-        .BloomStrength = Settings.EnableBloom && Bloom ? Settings.BloomStrength : 0.0f,
+        .Exposure = GExposure.GetFloat(),
+        .BloomStrength = GBloom.GetBool() && Bloom ? GBloomStrength.GetFloat() : 0.0f,
         .MaxWhite = Settings.MaxWhite,
         .P = Settings.UchimuraP,
         .A = Settings.UchimuraA,

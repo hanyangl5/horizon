@@ -14,10 +14,6 @@ enum class ToneMappingMode : uint32_t
 struct PostEffectsSettings
 {
     ToneMappingMode ToneMapping = ToneMappingMode::KhronosPBR;
-    float           Exposure = 0.95f;
-    bool            EnableBloom = true;
-    float           BloomStrength = 0.01f;
-    float           AdaptationSpeed = 3.0f;
     float           MaxWhite = 1.0f;
     float           UchimuraP = 1.0f;
     float           UchimuraA = 1.05f;

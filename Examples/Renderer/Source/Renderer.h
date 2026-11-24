@@ -1,5 +1,6 @@
 #pragma once
 #include "Application/IApp.h"
+#include "Core/ICVar.h"
 #include "Application/IFreeCameraController.h"
 #include "Core/ILog.h"
 #include "Core/IMath.h"
@@ -17,7 +18,10 @@
 #endif
 
 #include "RenderPasses.h"
-#include "RendererInspector.h"
+#include "Editor/SceneInspector.h"
+
+inline hz::CVar GVSync("r.VSync", true, "Synchronize presentation to the display.");
+inline hz::CVar GFreezeLights("bistro.FreezeLights", false, "Pause moving point lights and their periodic replacement.");
 
 constexpr const char* SceneDirectory = "Assets/Bistro";
 constexpr const char* SceneSource = "BistroExterior.gltf";
@@ -57,7 +61,7 @@ public:
     {
         settings.Width = 3840;
         settings.Height = 2160;
-        settings.vSyncEnabled = true;
+        settings.vSyncEnabled = GVSync.GetBool();
         settings.showPlatformUI = false;
     }
 
@@ -92,7 +96,14 @@ public:
         {
             // Persist the driver PSOs built here so the next start only validates them.
             Context->SavePipelineCache();
-            Inspector = hz::MakeUnique<RendererInspector>(pWindow->Handle, *World, *Types, CameraEntity);
+            Inspector = hz::MakeUnique<SceneInspector>(pWindow->Handle, *World, *Types, CameraEntity);
+            GVSync.SetApplyBool([](void* User, bool Enabled) {
+                RendererApp& App = *static_cast<RendererApp*>(User);
+                if (!App.Context->SetVSync(Enabled))
+                    return false;
+                App.settings.vSyncEnabled = Enabled;
+                return true;
+            }, this);
         }
         return Ready;
     }
@@ -118,7 +129,7 @@ private:
             .windowHandle = pWindow->Handle,
             .imageCount = 3,
             .enableHDR = EnableHDR,
-            .enableVSync = settings.vSyncEnabled,
+            .enableVSync = GVSync.GetBool(),
             .enableGpuValidation = EnableGpuValidation,
             .enableGpuProfiler = true,
             .enablePipelineCache = true,
@@ -226,6 +237,7 @@ private:
 public:
     void Exit() override
     {
+        GVSync.SetApplyBool(nullptr, nullptr);
         Inspector = nullptr;
         Camera = nullptr;
         if (Context && Context->IsValid())
@@ -275,7 +287,10 @@ public:
         const bool    Updated = World->SetComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose);
         ASSERT(Updated);
         AssetManager->Update();
-        UpdateBistroPointLights(DeltaTime);
+        if (!GFreezeLights.GetBool())
+        {
+            UpdateBistroPointLights(DeltaTime);
+        }
         Animation->Update(DeltaTime);
         Inspector->Update();
         if (Inspector->EditedPose == CameraEntity)
@@ -444,6 +459,6 @@ private:
     hz::UniquePtr<hz::AnimationSystem>  Animation;
     hz::UniquePtr<hz::RenderScene>      Scene;
     hz::UniquePtr<RenderPasses>         Passes;
-    hz::UniquePtr<RendererInspector>    Inspector;
+    hz::UniquePtr<SceneInspector>    Inspector;
     hz::Entity                          CameraEntity;
 };
