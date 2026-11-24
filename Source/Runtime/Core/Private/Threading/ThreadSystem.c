@@ -367,7 +367,7 @@ bool threadSystemAssist(ThreadSystem thandle)
     struct ThreadSystemTask task = getTask(t, UINT64_MAX);
     if (task.func)
         task.func(task.user, UINT64_MAX);
-    return task.func;
+    return task.func != NULL;
 }
 
 bool threadSystemWaitIdleTimeout(ThreadSystem thandle, uint32_t timeout_ms)

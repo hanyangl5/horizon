@@ -35,7 +35,7 @@ jobs:
           - Debug
         compiler:
           # you can specify the version after `-` like "llvm-15.0.2".
-          - llvm-20
+          - clang
           #- gcc-14
           - msvc
         include:
@@ -43,7 +43,7 @@ jobs:
             compiler: msvc
             generator: "Ninja"
           - os: windows-2025
-            compiler: llvm-20
+            compiler: clang
             generator: "Ninja"
     steps:
     - uses: actions/checkout@v4
@@ -68,7 +68,6 @@ jobs:
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
     - name: Setup MSVC developer environment
-      if: ${{ matrix.compiler == 'msvc' }}
       uses: ilammy/msvc-dev-cmd@v1
     - name: Select MSVC compiler for Ninja
       if: ${{ matrix.compiler == 'msvc' }}
@@ -77,15 +76,14 @@ jobs:
         echo "CC=cl" >> "$GITHUB_ENV"
         echo "CXX=cl" >> "$GITHUB_ENV"
     - name: Select LLVM compiler for Ninja
-      if: ${{ matrix.compiler == 'llvm-20' }}
+      if: ${{ matrix.compiler == 'clang' }}
       shell: pwsh
       run: |
-        clang --version
-        ninja --version
-        $clang = (Get-Command clang.exe).Source
-        $clangxx = (Get-Command clang++.exe).Source
+        $llvm = Join-Path $env:VSINSTALLDIR 'VC/Tools/Llvm/x64/bin'
+        $clang = Join-Path $llvm 'clang.exe'
+        & $clang --version
         "CC=$clang" >> $env:GITHUB_ENV
-        "CXX=$clangxx" >> $env:GITHUB_ENV
+        "CXX=$(Join-Path $llvm 'clang++.exe')" >> $env:GITHUB_ENV
     - name: Setup sccache
       uses: mozilla-actions/sccache-action@v0.0.10
     - name: Configure CMake

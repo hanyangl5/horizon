@@ -390,6 +390,7 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
     EXPECT_FALSE(textures[0].IsValid());
     EXPECT_EQ(moved.GetSrvIndex(), indices[2]);
     moved = {};
+    context.WaitIdle(); // Collect the deferred texture before checking descriptor reuse.
     textures[0] = context.CreateTexture(textureDesc);
     EXPECT_EQ(textures[0].GetSrvIndex(), indices[2]);
     EXPECT_EQ(textures[1].GetSrvIndex(), indices[3]);
