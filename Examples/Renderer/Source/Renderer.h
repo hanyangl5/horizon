@@ -231,8 +231,10 @@ private:
     bool InitRenderPasses()
     {
 #if defined(HORIZON_EDITOR_MODE)
-        const ViewportGeometry Geometry = { .Shader = "InspectorGeometry.slang", .DepthFormat = hz::Format::D24_UNORM_S8_UINT,
-                                            .BindingSlot = GeometryBindingSlot, .DrawSlot = GeometryDrawSlot };
+        const ViewportGeometry Geometry = { .Shader = "InspectorGeometry.slang",
+                                            .DepthFormat = hz::Format::D24_UNORM_S8_UINT,
+                                            .BindingSlot = GeometryBindingSlot,
+                                            .DrawSlot = GeometryDrawSlot };
         Inspector = hz::MakeUnique<SceneInspector>(pWindow->Handle, *World, *Types, CameraEntity, *Context, Geometry);
 #endif
         const RenderPassesDesc Desc = {
