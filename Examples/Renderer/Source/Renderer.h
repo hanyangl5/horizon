@@ -345,7 +345,7 @@ public:
 #endif
         const hz::SubmitHandle Submission = Context->Submit(*Frame.Commands, Frame.Backbuffer);
 #if defined(HORIZON_EDITOR_MODE)
-        Inspector->Picking.OnSubmitted(Submission);
+        Inspector->OnPresented(Submission);
 #endif
         Passes->EndFrame(Frame.View.FrameIndex, Submission);
     }

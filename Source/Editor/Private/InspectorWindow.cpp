@@ -10,6 +10,7 @@
 #include "backends/imgui_impl_win32.h"
 #include "Platform/IOperatingSystem.h"
 #include "Core/ILog.h"
+#include "Core/ITime.h"
 #include "Core/IMemory.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandlerEx(HWND, UINT, WPARAM, LPARAM, ImGuiIO&);
@@ -30,6 +31,9 @@ struct InspectorWindow
     RECT                                           ClickRect{};
     bool                                           Pressed = false, Clicked = false, GizmoCapture = false;
     float                                          DpiScale = 1;
+    int64_t                                        SampleStart = -1;
+    uint32_t                                       FrameIntervals = 0;
+    double                                         FrameMs = 0;
 };
 
 static constexpr wchar_t ClassName[] = L"HorizonSceneInspector";
@@ -37,6 +41,10 @@ static constexpr wchar_t ClassName[] = L"HorizonSceneInspector";
 static LRESULT CALLBACK OwnerProc(HWND Owner, UINT Message, WPARAM WParam, LPARAM LParam, UINT_PTR, DWORD_PTR User)
 {
     InspectorWindow& Window = *reinterpret_cast<InspectorWindow*>(User);
+    if (Message == WM_SIZE && WParam == SIZE_MINIMIZED)
+    {
+        Window.SampleStart = -1;
+    }
     if (Message == WM_KEYDOWN && WParam == VK_F1)
     {
         if (!(LParam & (1L << 30)))
@@ -159,6 +167,30 @@ bool IsInspectorVisible(const InspectorWindow* Window)
     return Window && IsWindowVisible(Window->Handle) && !IsIconic(Window->Handle);
 }
 
+void OnViewportPresented(InspectorWindow* Window)
+{
+    if (!IsInspectorVisible(Window))
+    {
+        return;
+    }
+    const int64_t Now = GetUSec(true);
+    if (Window->SampleStart < 0)
+    {
+        Window->SampleStart = Now;
+        Window->FrameIntervals = 0;
+        Window->FrameMs = 0;
+        return;
+    }
+    ++Window->FrameIntervals;
+    const int64_t Elapsed = Now - Window->SampleStart;
+    if (Elapsed >= 500000)
+    {
+        Window->FrameMs = double(Elapsed) / (1000.0 * Window->FrameIntervals);
+        Window->SampleStart = Now;
+        Window->FrameIntervals = 0;
+    }
+}
+
 bool ConsumeViewportClick(InspectorWindow* Window, uint32_t Width, uint32_t Height, uint32_t& X, uint32_t& Y)
 {
     if (!Window || !Window->Clicked)
@@ -185,6 +217,7 @@ static LRESULT CALLBACK InspectorProc(HWND Handle, UINT Message, WPARAM WParam, 
     }
     if (Window && ((Message == WM_SHOWWINDOW && !WParam) || (Message == WM_SIZE && WParam == SIZE_MINIMIZED)))
     {
+        Window->SampleStart = -1;
         CancelViewportInput(*Window);
     }
     if (Window && Message == WM_DPICHANGED)
@@ -349,6 +382,14 @@ void DrawInspectorWindow(InspectorWindow* Window, void (*Draw)(void*), void* Use
     ImGui::SetNextWindowSize(Window->IO->DisplaySize);
     ImGui::SetNextWindowBgAlpha(1.0f);
     ImGui::Begin("Scene Inspector", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+    if (Window->SampleStart >= 0 && Window->FrameMs > 0)
+    {
+        ImGui::Text("Viewport  %.1f FPS  |  %.2f ms/frame", 1000.0 / Window->FrameMs, Window->FrameMs);
+    }
+    else
+    {
+        ImGui::TextDisabled("Viewport  -- FPS");
+    }
     Draw(User);
     ImGui::End();
     ImGui::Render();

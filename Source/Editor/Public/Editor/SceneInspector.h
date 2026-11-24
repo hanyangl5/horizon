@@ -15,6 +15,7 @@ public:
     ~SceneInspector();
 
     ViewportPicking  Picking;
+    void             OnPresented(hz::SubmitHandle Submission);
     void             Update(const hz::RenderScene& Scene);
     void             RecordOverlay(hz::RenderContext& Context, hz::CommandList& Commands, const hz::GPUTexture& Backbuffer,
                                    const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,

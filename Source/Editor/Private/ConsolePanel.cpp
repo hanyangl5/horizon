@@ -47,7 +47,7 @@ void ConsolePanel::Execute()
         return;
     }
 
-    if (!HistoryCount || strcmp(History[(HistoryHead + HistoryLimit - 1) % HistoryLimit], Command))
+    if (!HistoryCount || _stricmp(History[(HistoryHead + HistoryLimit - 1) % HistoryLimit], Command))
     {
         snprintf(History[HistoryHead], InputSize, "%s", Command);
         HistoryHead = (HistoryHead + 1) % HistoryLimit;
