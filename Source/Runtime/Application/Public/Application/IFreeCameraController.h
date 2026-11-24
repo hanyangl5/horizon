@@ -26,6 +26,7 @@ public:
     Matrix4 GetViewMatrix() const;
     // Right-handed scene pose, with local -Z pointing forward.
     Matrix4 GetWorldMatrix() const;
+    void    SetPose(const Vector3& Position, const Vector3& Forward);
     Vector3 GetPosition() const;
 
 private:

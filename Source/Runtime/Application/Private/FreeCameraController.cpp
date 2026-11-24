@@ -152,3 +152,9 @@ Matrix4 FreeCameraController::GetWorldMatrix() const
 }
 
 Vector3 FreeCameraController::GetPosition() const { return pCamera->GetViewPosition(); }
+
+void FreeCameraController::SetPose(const Vector3& Position, const Vector3& Forward)
+{
+    pCamera->MoveTo(Position);
+    pCamera->LookAt(Position + Forward);
+}

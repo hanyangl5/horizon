@@ -17,6 +17,7 @@
 #endif
 
 #include "RenderPasses.h"
+#include "RendererInspector.h"
 
 constexpr const char* SceneDirectory = "Assets/Bistro";
 constexpr const char* SceneSource = "BistroExterior.gltf";
@@ -91,6 +92,7 @@ public:
         {
             // Persist the driver PSOs built here so the next start only validates them.
             Context->SavePipelineCache();
+            Inspector = hz::MakeUnique<RendererInspector>(pWindow->Handle, *World, *Types, CameraEntity);
         }
         return Ready;
     }
@@ -224,6 +226,7 @@ private:
 public:
     void Exit() override
     {
+        Inspector = nullptr;
         Camera = nullptr;
         if (Context && Context->IsValid())
         {
@@ -274,6 +277,23 @@ public:
         AssetManager->Update();
         UpdateBistroPointLights(DeltaTime);
         Animation->Update(DeltaTime);
+        Inspector->Update();
+        if (Inspector->EditedPose == CameraEntity)
+        {
+            Camera->SetPose(Inspector->NewPose.getTranslation(), -Inspector->NewPose.getCol2().getXYZ());
+        }
+        else if (Inspector->EditedPose.IsValid())
+        {
+            for (MovingLight& Motion : BistroLights)
+            {
+                if (Motion.Entity == Inspector->EditedPose)
+                {
+                    Motion.Anchor = Inspector->NewPose;
+                    Motion.Anchor.setTranslation(Inspector->NewPose.getTranslation() - Motion.Travel * sinf(Motion.Phase));
+                    break;
+                }
+            }
+        }
         Passes->Update(DeltaTime);
     }
     const char* GetName() override { return "Renderer"; }
@@ -329,7 +349,7 @@ private:
     struct MovingLight
     {
         hz::Entity Entity;
-        Vector3    Anchor;
+        Matrix4    Anchor;
         Vector3    Travel;
         float      Phase;
         float      Speed;
@@ -345,11 +365,13 @@ private:
     {
         const Vector3 HalfSize(BistroLightGridWidth * 0.5f, BistroLightHeight * 0.5f, BistroLightGridWidth * 0.5f);
         const Vector3 Amplitude = minPerElem(HalfSize * 0.1f, Vector3(0.5f));
+        Vector3 Anchor;
         for (uint32_t Axis = 0; Axis < 3; ++Axis)
         {
-            Motion.Anchor[Axis] = BistroLightCenter[Axis] + (2.0f * RandomLightValue() - 1.0f) * (HalfSize[Axis] - Amplitude[Axis]);
+            Anchor[Axis] = BistroLightCenter[Axis] + (2.0f * RandomLightValue() - 1.0f) * (HalfSize[Axis] - Amplitude[Axis]);
             Motion.Travel[Axis] = (2.0f * RandomLightValue() - 1.0f) * Amplitude[Axis];
         }
+        Motion.Anchor = Matrix4::translation(Anchor);
         Motion.Phase = RandomLightValue() * (2.0f * PI);
         Motion.Speed = 0.5f + RandomLightValue();
         const float     Red = 0.1f + 0.9f * RandomLightValue();
@@ -400,7 +422,8 @@ private:
             {
                 Motion.Phase = fmodf(Motion.Phase, 2.0f * PI);
             }
-            const Matrix4 Pose = Matrix4::translation(Motion.Anchor + Motion.Travel * sinf(Motion.Phase));
+            Matrix4 Pose = Motion.Anchor;
+            Pose.setTranslation(Motion.Anchor.getTranslation() + Motion.Travel * sinf(Motion.Phase));
             const bool    Updated = World->SetComponent(Motion.Entity, hz::SceneTypes::localMatrix, &Pose);
             ASSERT(Updated);
         }
@@ -421,5 +444,6 @@ private:
     hz::UniquePtr<hz::AnimationSystem>  Animation;
     hz::UniquePtr<hz::RenderScene>      Scene;
     hz::UniquePtr<RenderPasses>         Passes;
+    hz::UniquePtr<RendererInspector>    Inspector;
     hz::Entity                          CameraEntity;
 };

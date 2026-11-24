@@ -55,6 +55,12 @@ endfunction()
 add_example_target(HelloTriangle)
 add_example_target(DeferredShading)
 add_example_target(Renderer)
+target_sources(Renderer PRIVATE
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/imgui/backends/imgui_impl_win32.cpp
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/imgui/backends/imgui_impl_dx11.cpp
+)
+target_include_directories(Renderer PRIVATE ${ENGINE_THIRD_PARTY_SOURCE_DIR}/imgui)
+target_link_libraries(Renderer PRIVATE d3d11 d3dcompiler dwmapi comctl32)
 if(TARGET AssetPipeline)
     target_link_libraries(Renderer PRIVATE AssetPipeline)
     target_compile_definitions(Renderer PRIVATE HORIZON_RENDERER_ASSET_COOKING)

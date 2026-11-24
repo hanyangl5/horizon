@@ -184,7 +184,7 @@ add_library(zstd STATIC ${ZSTD_FILES})
 file(GLOB_RECURSE LZ4_FILES ${ENGINE_THIRD_PARTY_SOURCE_DIR}/lz4/*.c)
 add_library(HorizonLZ4 STATIC ${LZ4_FILES})
 
-file(GLOB_RECURSE IMGUI_FILES ${ENGINE_THIRD_PARTY_SOURCE_DIR}/imgui/*.cpp)
+file(GLOB IMGUI_FILES ${ENGINE_THIRD_PARTY_SOURCE_DIR}/imgui/*.cpp)
 add_library(imgui STATIC ${IMGUI_FILES})
 
 add_library(HorizonCJSON STATIC

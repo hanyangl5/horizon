@@ -659,7 +659,7 @@ bool handleMessages()
         TranslateMessage(&msg);
         DispatchMessage(&msg);
 
-        if (WM_CLOSE == msg.message || WM_QUIT == msg.message)
+        if (WM_QUIT == msg.message)
             quit = true;
     }
 
