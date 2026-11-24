@@ -33,9 +33,9 @@
 // Lua function name resolution:
 // - UI Widget "label"s will be included in the name
 //		- For Widget events: label name + "Event Name". e.g., Lua Function name for label - "Press", event - OnEdited : "PressOnEdited"
-//		- For Widget modifier ints/floats: "Set" and "Get" function set will be added as a prefix to label name.
+//		- For Widget modifier ints/floats: "Set" and "Get" function Set will be added as a prefix to label name.
 //											e.g., "X" variable will have "SetX" and "GetX" pair of functions
-// To add global Lua functions, independent of Unit Tests, add definition in UIApp::Init (Check LOGINFO there for example).
+// To Add global Lua functions, independent of Unit Tests, Add definition in UIApp::Init (Check LOGINFO there for example).
 
 #include <ThirdParty/stb/stb_ds.h>
 #include <ThirdParty/bstrlib/bstrlib.h>
@@ -56,8 +56,8 @@ typedef struct PipelineCache PipelineCache;
 /****************************************************************************/
 // MARK: - UI Widget Data Structures
 /****************************************************************************/
-typedef void (*WidgetCallback)(void* pUserData);
-typedef void (*WindowCallback)(void* pUserData);
+typedef void (*WidgetCallback)(void* UserData);
+typedef void (*WindowCallback)(void* UserData);
 
 enum WidgetType
 {
@@ -99,7 +99,7 @@ enum WidgetType
 
 typedef struct UIWidget
 {
-    WidgetType type = {};      // Type of the underlying widget
+    WidgetType Type = {};      // Type of the underlying widget
     void*      pWidget = NULL; // Underlying widget
 
     void*          pOnHoverUserData = NULL;
@@ -190,8 +190,8 @@ typedef struct ButtonWidget
 
 typedef struct SliderFloatWidget
 {
-    char   format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
-    float* pData = NULL;
+    char   Format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
+    float* Data = NULL;
     float  min = 0.f;
     float  max = 0.f;
     float  step = 0.01f;
@@ -199,8 +199,8 @@ typedef struct SliderFloatWidget
 
 typedef struct SliderFloat2Widget
 {
-    char    format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
-    float2* pData = NULL;
+    char    Format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
+    float2* Data = NULL;
     float2  min = float2(0.f, 0.f);
     float2  max = float2(0.f, 0.f);
     float2  step = float2(0.01f, 0.01f);
@@ -208,8 +208,8 @@ typedef struct SliderFloat2Widget
 
 typedef struct SliderFloat3Widget
 {
-    char    format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
-    float3* pData = NULL;
+    char    Format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
+    float3* Data = NULL;
     float3  min = float3(0.f, 0.f, 0.f);
     float3  max = float3(0.f, 0.f, 0.f);
     float3  step = float3(0.01f, 0.01f, 0.01f);
@@ -217,8 +217,8 @@ typedef struct SliderFloat3Widget
 
 typedef struct SliderFloat4Widget
 {
-    char    format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
-    float4* pData = NULL;
+    char    Format[MAX_FORMAT_STR_LENGTH] = { "%.3f" };
+    float4* Data = NULL;
     float4  min = float4(0.f, 0.f, 0.f, 0.f);
     float4  max = float4(0.f, 0.f, 0.f, 0.f);
     float4  step = float4(0.01f, 0.01f, 0.01f, 0.01f);
@@ -226,8 +226,8 @@ typedef struct SliderFloat4Widget
 
 typedef struct SliderIntWidget
 {
-    char     format[MAX_FORMAT_STR_LENGTH] = { "%d" };
-    int32_t* pData = NULL;
+    char     Format[MAX_FORMAT_STR_LENGTH] = { "%d" };
+    int32_t* Data = NULL;
     int32_t  min = 0;
     int32_t  max = 0;
     int32_t  step = 1;
@@ -235,8 +235,8 @@ typedef struct SliderIntWidget
 
 typedef struct SliderUintWidget
 {
-    char      format[MAX_FORMAT_STR_LENGTH] = { "%u" };
-    uint32_t* pData = NULL;
+    char      Format[MAX_FORMAT_STR_LENGTH] = { "%u" };
+    uint32_t* Data = NULL;
     uint32_t  min = 0;
     uint32_t  max = 0;
     uint32_t  step = 1;
@@ -244,18 +244,18 @@ typedef struct SliderUintWidget
 
 typedef struct RadioButtonWidget
 {
-    int32_t* pData = NULL;
+    int32_t* Data = NULL;
     int32_t  radioId = 0;
 } RadioButtonWidget;
 
 typedef struct CheckboxWidget
 {
-    bool* pData = NULL;
+    bool* Data = NULL;
 } CheckboxWidget;
 
 typedef struct OneLineCheckboxWidget
 {
-    bool*  pData = NULL;
+    bool*  Data = NULL;
     float4 color = float4(0.f, 0.f, 0.f, 0.f);
 } OneLineCheckboxWidget;
 
@@ -266,27 +266,27 @@ typedef struct CursorLocationWidget
 
 typedef struct DropdownWidget
 {
-    uint32_t*          pData = NULL;
-    // pNames is a C array of size count
+    uint32_t*          Data = NULL;
+    // pNames is a C array of Size Count
     const char* const* pNames = NULL;
-    uint32_t           count = 0;
+    uint32_t           Count = 0;
 } DropdownWidget;
 
 typedef struct ProgressBarWidget
 {
-    size_t* pData = NULL;
+    size_t* Data = NULL;
     size_t  maxProgress = 0;
 } ProgressBarWidget;
 
 typedef struct ColorSliderWidget
 {
-    float4* pData = NULL;
+    float4* Data = NULL;
 } ColorSliderWidget;
 
 typedef struct HistogramWidget
 {
     float*      pValues = NULL;
-    uint32_t    count = 0;
+    uint32_t    Count = 0;
     float*      minScale = NULL;
     float*      maxScale = NULL;
     float2      histogramSize = float2(0.f, 0.f);
@@ -305,12 +305,12 @@ typedef struct PlotLinesWidget
 
 typedef struct ColorPickerWidget
 {
-    float4* pData = NULL;
+    float4* Data = NULL;
 } ColorPickerWidget;
 
 typedef struct Color3PickerWidget
 {
-    float3* pData = NULL;
+    float3* Data = NULL;
 } Color3PickerWidget;
 
 typedef enum UITextFlags
@@ -324,7 +324,7 @@ typedef void (*TextboxCallback)(bool* keysDown);
 typedef struct TextboxWidget
 {
     bstring*        pText = NULL;
-    unsigned char   flags = UI_TEXT_AUTOSELECT_ALL;
+    unsigned char   Flags = UI_TEXT_AUTOSELECT_ALL;
     TextboxCallback pCallback = NULL;
 } TextboxWidget;
 
@@ -332,7 +332,7 @@ typedef struct DynamicTextWidget
 {
     bstring*      pText = NULL;
     float4*       pColor = NULL;
-    unsigned char flags = 0;
+    unsigned char Flags = 0;
 } DynamicTextWidget;
 
 typedef struct FilledRectWidget
@@ -372,7 +372,7 @@ typedef struct DrawCurveWidget
 
 typedef struct CustomWidget
 {
-    void*          pUserData;
+    void*          UserData;
     WidgetCallback pCallback;
     WidgetCallback pDestroyCallback;
 } CustomWidget;
@@ -409,8 +409,8 @@ enum GuiComponentFlags
 
 typedef struct UIComponentDesc
 {
-    vec2 startPosition = vec2{ 0.0f, 150.0f };
-    vec2 startSize = vec2{ 600.0f, 550.0f };
+    Vector2 startPosition = Vector2{ 0.0f, 150.0f };
+    Vector2 startSize = Vector2{ 600.0f, 550.0f };
 
     uint32_t fontID = 0;
     float    fontSize = 16.0f;
@@ -422,7 +422,7 @@ typedef struct UIComponent
     UIWidget** widgets = NULL;
     //(bool)[dyn_size]
     bool*      widgetsClone = NULL;
-    void*      pUserData = NULL;
+    void*      UserData = NULL;
 
     // Contextual menus when right clicking the title bar
     char const* const*    contextualMenuLabels = NULL;
@@ -436,8 +436,8 @@ typedef struct UIComponent
     float                 alpha = 0.f;
 
     // defaults to GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE
-    // on mobile, GUI_COMPONENT_FLAGS_START_COLLAPSED is also set
-    int32_t flags = 0;
+    // on mobile, GUI_COMPONENT_FLAGS_START_COLLAPSED is also Set
+    int32_t Flags = 0;
 
     bool active = false;
 
@@ -482,8 +482,8 @@ typedef struct UserInterfaceLoadDesc
     PipelineCache* pCache;
     uint32_t       loadType; // enum ReloadType
     hz::Format     colorFormat;
-    uint32_t       width;
-    uint32_t       height;
+    uint32_t       Width;
+    uint32_t       Height;
     uint32_t       displayWidth;
     uint32_t       displayHeight;
 } UserInterfaceLoadDesc;
@@ -523,11 +523,11 @@ typedef struct UserInterfaceDrawData
 FORGE_API void initUserInterface(UserInterfaceDesc* pDesc);
 
 /// Frees Forge Rendering objects and memory associated with the User Interface
-/// To be called at application shutdown time by the App Layer
+/// To be called at application Shutdown time by the App Layer
 FORGE_API void exitUserInterface();
 
 /// Creates graphics pipelines associated with the User Interface
-/// To be called at application load time by the App Layer
+/// To be called at application Load time by the App Layer
 FORGE_API void loadUserInterface(const UserInterfaceLoadDesc* pDesc);
 
 /// Destroys graphics pipelines associated with the User Interface
@@ -536,7 +536,7 @@ FORGE_API void unloadUserInterface(uint32_t unloadType);
 
 /// Renders defined ImGUI components and widgets using The Forge's Renderer
 /// This function also handles rendering the Forge Profiler's UI Window.
-/// If pUIDrawData* is NULL, the current ImGUI state will be used, otherwise the passed in draw data will be used.
+/// If pUIDrawData* is NULL, the current ImGUI state will be used, otherwise the passed in Draw data will be used.
 /// Due to the nature of ImGUI not being thread safe, this call must be made on the main thread if pUIDrawData* is kept NULL.
 FORGE_API void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData = NULL);
 
@@ -557,16 +557,16 @@ inline void uiSetCollapsingHeaderWidgetCollapsed(CollapsingHeaderWidget* pWidget
 // MARK: - Dynamic Widget Public Functions
 /****************************************************************************/
 
-/// Create an independent set of widgets which can be dynamically added to a UI Component
-FORGE_API UIWidget* uiCreateDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, const void* pWidget, WidgetType type);
+/// Create an independent Set of widgets which can be dynamically added to a UI Component
+FORGE_API UIWidget* uiCreateDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, const void* pWidget, WidgetType Type);
 
-/// Free memory associated with a set of dynamic UI widgets
+/// Free memory associated with a Set of dynamic UI widgets
 FORGE_API void uiDestroyDynamicWidgets(DynamicUIWidgets* pDynamicUI);
 
-/// Add an existing set of dynamic widgets to an existing UI Component
+/// Add an existing Set of dynamic widgets to an existing UI Component
 FORGE_API void uiShowDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui);
 
-/// Remove an existing set of dynamic widgets from an existing UI Component
+/// Remove an existing Set of dynamic widgets from an existing UI Component
 FORGE_API void uiHideDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui);
 
 /****************************************************************************/
@@ -586,7 +586,7 @@ FORGE_API void uiSetComponentActive(UIComponent* pGuiComponent, bool active);
 
 /// Create a Widget to be assigned to a given UI Component
 /// User is NOT responsible for freeing this memory at application exit
-FORGE_API UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType type, //-V1071
+FORGE_API UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType Type, //-V1071
                                             bool clone = true);
 
 /// Destroy and free memory associated with a Widget
@@ -606,34 +606,34 @@ FORGE_API void uiDestroyAllComponentWidgets(UIComponent* pGui);
 // app code while the UI Master Switch is disabled.
 
 /// Assign "GuiComponentFlags" enum values to a given UI Component
-FORGE_API void uiSetComponentFlags(UIComponent* pGui, int32_t flags);
+FORGE_API void uiSetComponentFlags(UIComponent* pGui, int32_t Flags);
 
 /// Set whether or not a given Widget is intended to be "deferrred"
 FORGE_API void uiSetWidgetDeferred(UIWidget* pWidget, bool deferred);
 
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget is hovered, usable, and not blocked by anything
-FORGE_API void uiSetWidgetOnHoverCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+FORGE_API void uiSetWidgetOnHoverCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback);
 
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget is currently active (ex. button being held)
-FORGE_API void uiSetWidgetOnActiveCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+FORGE_API void uiSetWidgetOnActiveCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback);
 
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget is currently focused (for keyboard/gamepad nav)
-FORGE_API void uiSetWidgetOnFocusCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+FORGE_API void uiSetWidgetOnFocusCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback);
 
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget just changed its underlying value or was pressed
-FORGE_API void uiSetWidgetOnEditedCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+FORGE_API void uiSetWidgetOnEditedCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback);
 
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget is made inactive from an active state
-FORGE_API void uiSetWidgetOnDeactivatedCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+FORGE_API void uiSetWidgetOnDeactivatedCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback);
 
 /// Assign Widget callback function (pointer to a function which takes and returns void)
 /// Will be called when Widget is made inactive from an active state and its underlying value has changed
-FORGE_API void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback);
+FORGE_API void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback);
 
 /// Set whether or not a given UI Widget should be on the sameline than the previous one
 FORGE_API void uiSetSameLine(UIWidget* pGuiComponent, bool sameLine);
@@ -645,7 +645,7 @@ FORGE_API void uiSetSameLine(UIWidget* pGuiComponent, bool sameLine);
 /// Returns whether or not the UI is currently "focused" by the cursor
 FORGE_API bool uiIsFocused();
 
-/// Callback function to share any type of input data w/ ImGUI.
+/// Callback function to share any Type of input data w/ ImGUI.
 FORGE_API void uiOnInput(uint32_t actionId, bool buttonPress, const float2* pMousePos, const float2* pStick);
 
 /// Callback function to share text entry data w/ ImGUI
@@ -655,7 +655,7 @@ FORGE_API void uiOnText(const wchar_t* pText);
 /// 0 -> Not pressed, 1 -> Digits Only keyboard, 2 -> Full Keyboard (Chars + Digits)
 FORGE_API uint8_t uiWantTextInput();
 
-/// Toggle UI rendering, input processing still works (used to hide UI components while taking screenshots)
+/// Toggle UI rendering, input processing still works (used to Hidden UI components while taking screenshots)
 FORGE_API void uiToggleRendering(bool enabled);
 
 /// Returns whether or not UI rendering is currently enabled (see uiToggleRendering)
@@ -665,7 +665,7 @@ FORGE_API bool uiIsRenderingEnabled();
 /// It's the caller's responsibility to call removeUIDrawData(...) when done.
 FORGE_API UserInterfaceDrawData* addUIDrawData();
 
-/// Populates a UserInterfaceDrawData* with current frame draw data so that it can be passed to cmdDrawUserInterface(Cmd* pCmd,
+/// Populates a UserInterfaceDrawData* with current frame Draw data so that it can be passed to cmdDrawUserInterface(Cmd* pCmd,
 /// UserInterfaceDrawData* pUIDrawData) at a later time.
 FORGE_API void uiPopulateDrawData(UserInterfaceDrawData* pUIDrawData);
 

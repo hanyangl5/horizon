@@ -134,7 +134,7 @@ static void CallbackIOServiceFunc(void* context, io_iterator_t portIterator)
        IOObjectRelease(entry);
 }
 #elif defined(__linux__)
-// mirror of getSystemTime in LinuxTime.c to get around cross compile issues
+// mirror of GetTickCountMs in LinuxTime.c to get around cross compile issues
 uint32_t getHIDTime()
 {
     long            ms;    // Milliseconds
@@ -264,7 +264,7 @@ static void InitSystemNotificationReceiver(void* window)
 #if defined(__linux__)
         initHIDTimer(&gForceRecheckTimer);
 #else
-        initTimer(&gForceRecheckTimer);
+        InitTimer(&gForceRecheckTimer);
 #endif
     }
 }
@@ -300,7 +300,7 @@ static bool CheckForDeviceInstallation(void const* message)
 #if defined(__linux__)
         uint32_t currentTime = getHIDTimerMSec(&gForceRecheckTimer, false);
 #else
-        uint32_t currentTime = getTimerMSec(&gForceRecheckTimer, false);
+        uint32_t currentTime = GetTimerMSec(&gForceRecheckTimer, false);
 #endif
 
         // update every 4 seconds
@@ -374,7 +374,7 @@ int HIDInit(void* window, gainput::InputManager* man)
 	HIDInitControllerTracking();
 	InitSystemNotificationReceiver(window);
 
-	initTimer(&gHIDTimer);
+	InitTimer(&gHIDTimer);
 
 	gHIDInitialized = true;
 	gDevicesChanged = true;
@@ -437,7 +437,7 @@ static void HIDAddDevice(hid_device_info *dev, uint8_t controllertype)
     if (!pFreeList)
     {
         // If this is hit the MAX_DEVICES_TRACKED cap needs to be increased
-        LOGF(LogLevel::eWARNING, "Failed to add controller due to lack of room: \"%ls - %ls\" at path: %s",
+        LOGF(LogLevel::Warning, "Failed to add controller due to lack of room: \"%ls - %ls\" at path: %s",
             dev->manufacturer_string,
             dev->product_string,
             dev->path);
@@ -445,7 +445,7 @@ static void HIDAddDevice(hid_device_info *dev, uint8_t controllertype)
     }
     ASSERT(strlen(dev->path) < MAX_PATH_LENGTH);
 
-    LOGF(LogLevel::eDEBUG, "Adding controller \"%ls - %ls\" at path: %s",
+    LOGF(LogLevel::Debug, "Adding controller \"%ls - %ls\" at path: %s",
         dev->manufacturer_string,
         dev->product_string,
         dev->path);
@@ -557,7 +557,7 @@ static void HIDLoadDevices()
             if (!HIDIsController(dev))
             {
 #if defined(HID_VERBOSE_LOGGING)
-                LOGF(LogLevel::eDEBUG, "Ignoring non-controller \"%ls - %ls\" at path: %s",
+                LOGF(LogLevel::Debug, "Ignoring non-controller \"%ls - %ls\" at path: %s",
                     dev->manufacturer_string,
                     dev->product_string,
                     dev->path);
@@ -569,7 +569,7 @@ static void HIDLoadDevices()
             if (!HIDIsSupported(dev, &type))
             {
 #if defined(HID_VERBOSE_LOGGING)
-                LOGF(LogLevel::eDEBUG, "Ignoring unsupported controller \"%ls - %ls\" at path: %s",
+                LOGF(LogLevel::Debug, "Ignoring unsupported controller \"%ls - %ls\" at path: %s",
                     dev->manufacturer_string,
                     dev->product_string,
                     dev->path);
@@ -661,7 +661,7 @@ static void HIDInitControllerTracking()
 
 static inline void UnsupportedControllerDebug(HIDDeviceInfo* dev, char const* brand)
 {
-    LOGF(LogLevel::eDEBUG, "Unsupported %s controller:   0x%.4X - 0x%.4X   Path: %s",
+    LOGF(LogLevel::Debug, "Unsupported %s controller:   0x%.4X - 0x%.4X   Path: %s",
         brand,
         dev->vendorID,
         dev->productID,
@@ -670,7 +670,7 @@ static inline void UnsupportedControllerDebug(HIDDeviceInfo* dev, char const* br
 
 static inline void FailedToOpenDebug(HIDDeviceInfo* dev, char const* brand)
 {
-    LOGF(LogLevel::eDEBUG, "Failed to open %s controller:   0x%.4X - 0x%.4X   Path: %s",
+    LOGF(LogLevel::Debug, "Failed to open %s controller:   0x%.4X - 0x%.4X   Path: %s",
         brand,
         dev->vendorID,
         dev->productID,
@@ -679,7 +679,7 @@ static inline void FailedToOpenDebug(HIDDeviceInfo* dev, char const* brand)
 
 static inline void SuccessfulOpenDebug(HIDDeviceInfo* dev, char const* brand)
 {
-    LOGF(LogLevel::eDEBUG, "Successfully opened %s controller:   0x%.4X - 0x%.4X   Path: %s",
+    LOGF(LogLevel::Debug, "Successfully opened %s controller:   0x%.4X - 0x%.4X   Path: %s",
         brand,
         dev->vendorID,
         dev->productID,
@@ -693,7 +693,7 @@ void HIDLoadController(uint8_t devID, uint8_t playerNum)
 
     if (!gDeviceBuffer[index].active)
     {
-        LOGF(LogLevel::eWARNING, "Tried to load non-existant device at index %i", index);
+        LOGF(LogLevel::Warning, "Tried to load non-existant device at index %i", index);
         return;
     }
 
@@ -761,7 +761,7 @@ void HIDUnloadController(uint8_t devID)
     HIDController* con = gControllerBuffer + index;
     if (!con->hidDev)
     {
-        LOGF(LogLevel::eWARNING, "Tried to unload non-existant controller at index %i", index);
+        LOGF(LogLevel::Warning, "Tried to unload non-existant controller at index %i", index);
         return;
     }
 
@@ -779,7 +779,7 @@ void HIDHandToInputManager(uint8_t devID)
 	uint8_t index = devID - 1;
 
 	gainput::DeviceId manId = gManager->GetNextId();
-	gPassThroughPads[index] = tf_new(gainput::InputDevicePad, *gManager, manId, devID);
+	gPassThroughPads[index] = MemNew(gainput::InputDevicePad, *gManager, manId, devID);
 
 	gManager->AddDevice(manId, gPassThroughPads[index]);
 
@@ -798,7 +798,7 @@ void HIDRetreiveFromInputManager(uint8_t devID)
     if (gPassThroughPads[index] != NULL)
     {
         gManager->RemoveDevice(gPassThroughPads[index]->GetDeviceId());
-        tf_delete(gPassThroughPads[index]);
+        MemDelete(gPassThroughPads[index]);
         gPassThroughPads[index] = NULL;
     }
 }
@@ -814,7 +814,7 @@ static bool GetController(uint8_t devID, HIDController** outCon)
     HIDController* con = gControllerBuffer + index;
     if (!con->hidDev)
     {
-        LOGF(LogLevel::eWARNING, "Tried to retrieve non-existant controller at index %i", index);
+        LOGF(LogLevel::Warning, "Tried to retrieve non-existant controller at index %i", index);
         return false;
     }
 
@@ -865,7 +865,7 @@ void HIDUpdate(uint8_t devID, gainput::InputDeltaState * state)
 	con->Update(con, state);
 
 	if (con->rumbleEndTime &&
-		con->rumbleEndTime <= getTimerMSec(&gHIDTimer, false))
+		con->rumbleEndTime <= GetTimerMSec(&gHIDTimer, false))
 	{
 		con->DoRumble(con, 0, 0);
 		con->rumbleEndTime = 0;
@@ -917,7 +917,7 @@ void HIDDoRumble(uint8_t devID, float leftFlt, float rightFlt, uint32_t duration
         return;
 
     if (durationMS)
-        con->rumbleEndTime = getTimerMSec(&gHIDTimer, false) + durationMS;
+        con->rumbleEndTime = GetTimerMSec(&gHIDTimer, false) + durationMS;
 
     if (leftFlt < 0)
         leftFlt = 0;
@@ -953,7 +953,7 @@ static void HIDUpdateDevices(gainput::InputDeltaState * state)
             conIt->Update(conIt, state);
 
             if (conIt->rumbleEndTime &&
-                conIt->rumbleEndTime <= getTimerMSec(&gHIDTimer, false))
+                conIt->rumbleEndTime <= GetTimerMSec(&gHIDTimer, false))
             {
                 conIt->DoRumble(conIt, 0, 0);
                 conIt->rumbleEndTime = 0;
@@ -974,5 +974,5 @@ void HIDPromptForDeviceStateReports(gainput::InputDeltaState * state)
 
 uint64_t HIDGetTime()
 {
-	return getTimerMSec(&gHIDTimer, false);
+	return GetTimerMSec(&gHIDTimer, false);
 }

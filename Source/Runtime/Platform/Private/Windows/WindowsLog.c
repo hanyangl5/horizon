@@ -88,7 +88,7 @@ void _FailedAssertImpl(const char* file, int line, const char* statement, const 
             wcscat(str, L"\n\n");
         }
 
-        MAYBE_UNUSED const HWND hwnd = (gLogWindowHandle && isMainThread()) ? *gLogWindowHandle : NULL;
+        MAYBE_UNUSED const HWND hwnd = (gLogWindowHandle && IsMainThread()) ? *gLogWindowHandle : NULL;
         // UNREF_PARAM(hwnd);
 #ifndef AUTOMATED_TESTING
         if (IsDebuggerPresent())

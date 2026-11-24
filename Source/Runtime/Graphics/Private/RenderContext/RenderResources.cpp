@@ -2,71 +2,75 @@
 
 #include "Graphics/RenderContext.h"
 #include "Resources/IResourceLoader.h"
+#include "TextureDescs.h"
 
 #include <stdio.h>
 #include <string.h>
 
 #include "Core/ILog.h"
 
+#include "Core/IMemory.h" //NOTE: this should be the last include in a .cpp
+
 namespace hz
 {
-GPUBuffer::GPUBuffer(RenderContext* context, Buffer* buffer, uint64_t bufferSize, ResourceMemoryUsage memoryUsage,
-                     DescriptorType bufferDescriptors, ResourceState initialState):
-    pContext(context),
-    pBuffer(buffer), size(bufferSize), usage(memoryUsage), descriptors(bufferDescriptors), state(initialState)
+GPUBuffer::GPUBuffer(RenderContext* Context, Buffer* BufferValue, uint64_t BufferSize, ResourceMemoryUsage MemoryUsage,
+                     DescriptorType BufferDescriptors, ResourceState InitialState):
+    pContext(Context), pBuffer(BufferValue), Size(BufferSize), usage(MemoryUsage), Descriptors(BufferDescriptors), state(InitialState)
 {
     ASSERT(pContext && pBuffer);
     ++pContext->resourceCount;
 }
 
-GPUBuffer::~GPUBuffer() { destroy(); }
+GPUBuffer::~GPUBuffer() { Destroy(); }
 
-GPUBuffer::GPUBuffer(GPUBuffer&& other) noexcept:
-    pContext(other.pContext), pBuffer(other.pBuffer), size(other.size), usage(other.usage), descriptors(other.descriptors),
-    state(other.state)
+GPUBuffer::GPUBuffer(GPUBuffer&& Other) noexcept:
+    pContext(Other.pContext), pBuffer(Other.pBuffer), Size(Other.Size), usage(Other.usage), Descriptors(Other.Descriptors),
+    state(Other.state)
 {
-    other.pContext = nullptr;
-    other.pBuffer = nullptr;
-    other.size = 0;
-    other.usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
-    other.descriptors = DESCRIPTOR_TYPE_UNDEFINED;
-    other.state = RESOURCE_STATE_UNDEFINED;
+    Other.pContext = nullptr;
+    Other.pBuffer = nullptr;
+    Other.Size = 0;
+    Other.usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
+    Other.Descriptors = DESCRIPTOR_TYPE_UNDEFINED;
+    Other.state = RESOURCE_STATE_UNDEFINED;
 }
 
-GPUBuffer& GPUBuffer::operator=(GPUBuffer&& other) noexcept
+GPUBuffer& GPUBuffer::operator=(GPUBuffer&& Other) noexcept
 {
-    if (this != &other)
+    if (this != &Other)
     {
-        destroy();
-        pContext = other.pContext;
-        pBuffer = other.pBuffer;
-        size = other.size;
-        usage = other.usage;
-        descriptors = other.descriptors;
-        state = other.state;
-        other.pContext = nullptr;
-        other.pBuffer = nullptr;
-        other.size = 0;
-        other.usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
-        other.descriptors = DESCRIPTOR_TYPE_UNDEFINED;
-        other.state = RESOURCE_STATE_UNDEFINED;
+        Destroy();
+        pContext = Other.pContext;
+        pBuffer = Other.pBuffer;
+        Size = Other.Size;
+        usage = Other.usage;
+        Descriptors = Other.Descriptors;
+        state = Other.state;
+        Other.pContext = nullptr;
+        Other.pBuffer = nullptr;
+        Other.Size = 0;
+        Other.usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
+        Other.Descriptors = DESCRIPTOR_TYPE_UNDEFINED;
+        Other.state = RESOURCE_STATE_UNDEFINED;
     }
     return *this;
 }
 
-void GPUBuffer::destroy()
+void GPUBuffer::Destroy()
 {
     ASSERT((pContext != nullptr) == (pBuffer != nullptr));
     if (pBuffer)
     {
         ASSERT(pContext->resourceCount);
-        --pContext->resourceCount;
-        removeResource(pBuffer);
+        pContext->DeferResource(RenderContext::ResourceType::Buffer, pBuffer);
+        pBuffer = nullptr;
+        pContext = nullptr;
     }
 }
 
-GPUTexture::GPUTexture(RenderContext* context, Texture* texture, RenderTarget* renderTarget, ResourceState initialState, bool ownsResource):
-    pContext(context), pTexture(texture), pRenderTarget(renderTarget), state(initialState), owned(ownsResource)
+GPUTexture::GPUTexture(RenderContext* Context, Texture* TextureValue, RenderTarget* GetRenderTarget, ResourceState InitialState,
+                       bool OwnsResource):
+    pContext(Context), pTexture(TextureValue), pRenderTarget(GetRenderTarget), state(InitialState), owned(OwnsResource)
 {
     ASSERT(pTexture);
     if (owned)
@@ -76,419 +80,660 @@ GPUTexture::GPUTexture(RenderContext* context, Texture* texture, RenderTarget* r
     }
 }
 
-GPUTexture::~GPUTexture() { destroy(); }
+GPUTexture::~GPUTexture() { Destroy(); }
 
-GPUTexture::GPUTexture(GPUTexture&& other) noexcept:
-    pContext(other.pContext), pTexture(other.pTexture), pRenderTarget(other.pRenderTarget), state(other.state), owned(other.owned)
+GPUTexture::GPUTexture(GPUTexture&& Other) noexcept:
+    pContext(Other.pContext), pTexture(Other.pTexture), pRenderTarget(Other.pRenderTarget), state(Other.state), owned(Other.owned)
 {
-    other.pContext = nullptr;
-    other.pTexture = nullptr;
-    other.pRenderTarget = nullptr;
-    other.state = RESOURCE_STATE_UNDEFINED;
-    other.owned = false;
+    Other.pContext = nullptr;
+    Other.pTexture = nullptr;
+    Other.pRenderTarget = nullptr;
+    Other.state = RESOURCE_STATE_UNDEFINED;
+    Other.owned = false;
 }
 
-GPUTexture& GPUTexture::operator=(GPUTexture&& other) noexcept
+GPUTexture& GPUTexture::operator=(GPUTexture&& Other) noexcept
 {
-    if (this != &other)
+    if (this != &Other)
     {
-        destroy();
-        pContext = other.pContext;
-        pTexture = other.pTexture;
-        pRenderTarget = other.pRenderTarget;
-        state = other.state;
-        owned = other.owned;
-        other.pContext = nullptr;
-        other.pTexture = nullptr;
-        other.pRenderTarget = nullptr;
-        other.state = RESOURCE_STATE_UNDEFINED;
-        other.owned = false;
+        Destroy();
+        pContext = Other.pContext;
+        pTexture = Other.pTexture;
+        pRenderTarget = Other.pRenderTarget;
+        state = Other.state;
+        owned = Other.owned;
+        Other.pContext = nullptr;
+        Other.pTexture = nullptr;
+        Other.pRenderTarget = nullptr;
+        Other.state = RESOURCE_STATE_UNDEFINED;
+        Other.owned = false;
     }
     return *this;
 }
 
-void GPUTexture::destroy()
+void GPUTexture::Destroy()
 {
     if (pTexture && owned)
     {
         ASSERT(pContext && pContext->resourceCount);
-        --pContext->resourceCount;
-        if (pRenderTarget)
-            removeRenderTarget(pContext->pRenderer, pRenderTarget);
-        else
-            removeResource(pTexture);
+        pContext->DeferResource(pRenderTarget ? RenderContext::ResourceType::RenderTarget : RenderContext::ResourceType::Texture,
+                                pRenderTarget ? (void*)pRenderTarget : (void*)pTexture);
     }
 }
 
-GPUSampler::GPUSampler(RenderContext* context, Sampler* sampler): pContext(context), pSampler(sampler)
+GPUSampler::GPUSampler(RenderContext* Context, Sampler* SamplerValue): pContext(Context), pSampler(SamplerValue)
 {
     ASSERT(pContext && pSampler);
     ++pContext->resourceCount;
 }
 
-GPUSampler::~GPUSampler() { destroy(); }
+GPUSampler::~GPUSampler() { Destroy(); }
 
-GPUSampler::GPUSampler(GPUSampler&& other) noexcept: pContext(other.pContext), pSampler(other.pSampler)
+GPUSampler::GPUSampler(GPUSampler&& Other) noexcept: pContext(Other.pContext), pSampler(Other.pSampler)
 {
-    other.pContext = nullptr;
-    other.pSampler = nullptr;
+    Other.pContext = nullptr;
+    Other.pSampler = nullptr;
 }
 
-GPUSampler& GPUSampler::operator=(GPUSampler&& other) noexcept
+GPUSampler& GPUSampler::operator=(GPUSampler&& Other) noexcept
 {
-    if (this != &other)
+    if (this != &Other)
     {
-        destroy();
-        pContext = other.pContext;
-        pSampler = other.pSampler;
-        other.pContext = nullptr;
-        other.pSampler = nullptr;
+        Destroy();
+        pContext = Other.pContext;
+        pSampler = Other.pSampler;
+        Other.pContext = nullptr;
+        Other.pSampler = nullptr;
     }
     return *this;
 }
 
-void GPUSampler::destroy()
+void GPUSampler::Destroy()
 {
     ASSERT((pContext != nullptr) == (pSampler != nullptr));
     if (pSampler)
     {
         ASSERT(pContext->resourceCount);
-        --pContext->resourceCount;
-        removeSampler(pContext->pRenderer, pSampler);
+        pContext->DeferResource(RenderContext::ResourceType::Sampler, pSampler);
     }
 }
 
-GPUShader::GPUShader(RenderContext* context, Shader* shader): pContext(context), pShader(shader)
+GPUShader::GPUShader(RenderContext* Context, Shader* ShaderObject): pContext(Context), pShader(ShaderObject)
 {
     ASSERT(pContext && pShader);
     ++pContext->resourceCount;
 }
 
-GPUShader::~GPUShader() { destroy(); }
+GPUShader::~GPUShader() { Destroy(); }
 
-GPUShader::GPUShader(GPUShader&& other) noexcept: pContext(other.pContext), pShader(other.pShader)
+GPUShader::GPUShader(GPUShader&& Other) noexcept: pContext(Other.pContext), pShader(Other.pShader)
 {
-    other.pContext = nullptr;
-    other.pShader = nullptr;
+    Other.pContext = nullptr;
+    Other.pShader = nullptr;
 }
 
-GPUShader& GPUShader::operator=(GPUShader&& other) noexcept
+GPUShader& GPUShader::operator=(GPUShader&& Other) noexcept
 {
-    if (this != &other)
+    if (this != &Other)
     {
-        destroy();
-        pContext = other.pContext;
-        pShader = other.pShader;
-        other.pContext = nullptr;
-        other.pShader = nullptr;
+        Destroy();
+        pContext = Other.pContext;
+        pShader = Other.pShader;
+        Other.pContext = nullptr;
+        Other.pShader = nullptr;
     }
     return *this;
 }
 
-void GPUShader::destroy()
+void GPUShader::Destroy()
 {
     ASSERT((pContext != nullptr) == (pShader != nullptr));
     if (pShader)
     {
         ASSERT(pContext->resourceCount);
-        --pContext->resourceCount;
-        removeShader(pContext->pRenderer, pShader);
+        pContext->DeferResource(RenderContext::ResourceType::Shader, pShader);
     }
 }
 
-GPUPipeline::GPUPipeline(RenderContext* context, Pipeline* pipeline, RootSignature* rootSignature, GPUShader&& shader):
-    pContext(context), pPipeline(pipeline), pRootSignature(rootSignature), shader(std::move(shader))
+GPUPipeline::GPUPipeline(RenderContext* Context, Pipeline* PipelineObject, RootSignature* RootSignatureValue, GPUShader&& ShaderObject,
+                         CommandSignature* DrawSignature):
+    pContext(Context), pPipeline(PipelineObject), pRootSignature(RootSignatureValue), pDrawIndirectSignature(DrawSignature),
+    shader(std::move(ShaderObject))
 {
     ASSERT(pContext && pPipeline && pRootSignature);
     ++pContext->resourceCount;
 }
 
-GPUPipeline::~GPUPipeline() { destroy(); }
+GPUPipeline::~GPUPipeline() { Destroy(); }
 
-GPUPipeline::GPUPipeline(GPUPipeline&& other) noexcept:
-    pContext(other.pContext), pPipeline(other.pPipeline), pRootSignature(other.pRootSignature), shader(std::move(other.shader))
+GPUPipeline::GPUPipeline(GPUPipeline&& Other) noexcept:
+    pContext(Other.pContext), pPipeline(Other.pPipeline), pRootSignature(Other.pRootSignature),
+    pDrawIndirectSignature(Other.pDrawIndirectSignature), shader(std::move(Other.shader))
 {
-    other.pContext = nullptr;
-    other.pPipeline = nullptr;
-    other.pRootSignature = nullptr;
+    Other.pContext = nullptr;
+    Other.pPipeline = nullptr;
+    Other.pRootSignature = nullptr;
+    Other.pDrawIndirectSignature = nullptr;
 }
 
-GPUPipeline& GPUPipeline::operator=(GPUPipeline&& other) noexcept
+GPUPipeline& GPUPipeline::operator=(GPUPipeline&& Other) noexcept
 {
-    if (this != &other)
+    if (this != &Other)
     {
-        destroy();
-        pContext = other.pContext;
-        pPipeline = other.pPipeline;
-        pRootSignature = other.pRootSignature;
-        shader = std::move(other.shader);
-        other.pContext = nullptr;
-        other.pPipeline = nullptr;
-        other.pRootSignature = nullptr;
+        Destroy();
+        pContext = Other.pContext;
+        pPipeline = Other.pPipeline;
+        pRootSignature = Other.pRootSignature;
+        pDrawIndirectSignature = Other.pDrawIndirectSignature;
+        shader = std::move(Other.shader);
+        Other.pContext = nullptr;
+        Other.pPipeline = nullptr;
+        Other.pRootSignature = nullptr;
+        Other.pDrawIndirectSignature = nullptr;
     }
     return *this;
 }
 
-void GPUPipeline::destroy()
+void GPUPipeline::Destroy()
 {
     ASSERT((pContext != nullptr) == (pPipeline != nullptr));
     if (pPipeline)
     {
         ASSERT(pContext->resourceCount && pRootSignature);
-        --pContext->resourceCount;
-        removePipeline(pContext->pRenderer, pPipeline);
-        removeRootSignature(pContext->pRenderer, pRootSignature);
+        pContext->DeferResource(RenderContext::ResourceType::Pipeline, pPipeline, pRootSignature, pDrawIndirectSignature);
     }
 }
 
-GPUBuffer RenderContext::createBuffer(const BufferDesc& input)
+GPUBuffer RenderContext::CreateBuffer(const BufferDesc& Input)
 {
-    ASSERT(ready && input.size && input.initialDataSize <= input.size && ((input.pInitialData != nullptr) == (input.initialDataSize != 0)));
+    ASSERT(ready && Input.Size && Input.initialDataSize <= Input.Size && ((Input.pInitialData != nullptr) == (Input.initialDataSize != 0)));
 
-    ::BufferDesc desc = {};
-    desc.size = input.size;
-    desc.elementCount = input.elementCount;
-    desc.structStride = input.structStride;
-    desc.pName = input.pName;
-    desc.queueType = QUEUE_TYPE_GRAPHICS;
-    desc.memoryUsage = input.usage;
-    desc.startState = input.startState;
-    desc.descriptors = input.descriptors;
-    desc.flags = input.flags;
+    ::BufferDesc Desc = {};
+    Desc.Size = Input.Size;
+    Desc.ElementCount = Input.ElementCount;
+    Desc.StructStride = Input.StructStride;
+    Desc.Name = Input.Name;
+    Desc.QueueType = QUEUE_TYPE_GRAPHICS;
+    Desc.MemoryUsage = Input.usage;
+    Desc.StartState = Input.StartState;
+    Desc.Descriptors = Input.Descriptors;
+    Desc.Flags = Input.Flags;
 
-    Buffer*        buffer = nullptr;
-    SyncToken      token = 0;
-    BufferLoadDesc load = { .ppBuffer = &buffer, .pData = input.pInitialData, .desc = desc };
-    addResource(&load, &token);
-    ASSERT(buffer);
-    waitForToken(&token);
-    return GPUBuffer(this, buffer, input.size, input.usage, input.descriptors, input.startState);
+    Buffer*        BufferValue = nullptr;
+    SyncToken      Token = 0;
+    BufferLoadDesc Load = { .ppBuffer = &BufferValue, .Data = Input.pInitialData, .desc = Desc };
+    addResource(&Load, &Token);
+    ASSERT(BufferValue);
+    waitForToken(&Token);
+    return GPUBuffer(this, BufferValue, Input.Size, Input.usage, Input.Descriptors, Input.StartState);
 }
 
-GPUTexture RenderContext::createTexture(const TextureDesc& input)
+GPUTexture RenderContext::CreateTexture(const TextureDesc& Input)
 {
-    ASSERT(ready && input.width && input.height && input.depth && input.arraySize && input.mipLevels);
+    ASSERT(ready && Input.Width && Input.Height && Input.Depth && Input.ArraySize && Input.MipLevels);
 
-    Texture*      texture = nullptr;
-    RenderTarget* renderTarget = nullptr;
+    Texture*      TextureValue = nullptr;
+    RenderTarget* GetRenderTarget = nullptr;
 
-    if (input.renderTarget)
+    if (Input.GetRenderTarget)
     {
-        const RenderTargetDesc desc = {
-            .flags = input.flags,
-            .width = input.width,
-            .height = input.height,
-            .depth = input.depth,
-            .arraySize = input.arraySize,
-            .mipLevels = input.mipLevels,
-            .sampleCount = input.sampleCount,
-            .format = input.format,
-            .startState = input.startState,
-            .descriptors = input.descriptors,
-            .pName = input.pName,
+        const RenderTargetDesc Desc = {
+            .Flags = Input.Flags,
+            .Width = Input.Width,
+            .Height = Input.Height,
+            .Depth = Input.Depth,
+            .ArraySize = Input.ArraySize,
+            .MipLevels = Input.MipLevels,
+            .SampleCount = Input.SampleCount,
+            .Format = Input.Format,
+            .StartState = Input.StartState,
+            .Descriptors = Input.Descriptors,
+            .Name = Input.Name,
         };
-        addRenderTarget(pRenderer, &desc, &renderTarget);
-        ASSERT(renderTarget);
-        texture = renderTarget->pTexture;
+        addRenderTarget(pRenderer, &Desc, &GetRenderTarget);
+        ASSERT(GetRenderTarget);
+        TextureValue = GetRenderTarget->pTexture;
     }
     else
     {
-        ::TextureDesc desc = {};
-        desc.width = input.width;
-        desc.height = input.height;
-        desc.depth = input.depth;
-        desc.arraySize = input.arraySize;
-        desc.mipLevels = input.mipLevels;
-        desc.sampleCount = input.sampleCount;
-        desc.format = input.format;
-        desc.startState = input.startState;
-        desc.descriptors = input.descriptors;
-        desc.flags = input.flags;
-        desc.pName = input.pName;
-        SyncToken       token = 0;
-        TextureLoadDesc load = { .ppTexture = &texture, .pDesc = &desc };
-        addResource(&load, &token);
-        ASSERT(texture);
-        waitForToken(&token);
+        ::TextureDesc Desc = {};
+        Desc.Width = Input.Width;
+        Desc.Height = Input.Height;
+        Desc.Depth = Input.Depth;
+        Desc.ArraySize = Input.ArraySize;
+        Desc.MipLevels = Input.MipLevels;
+        Desc.SampleCount = Input.SampleCount;
+        Desc.Format = Input.Format;
+        Desc.StartState = Input.StartState;
+        Desc.Descriptors = Input.Descriptors;
+        Desc.Flags = Input.Flags;
+        Desc.Name = Input.Name;
+        SyncToken       Token = 0;
+        TextureLoadDesc Load = { .ppTexture = &TextureValue, .pDesc = &Desc };
+        addResource(&Load, &Token);
+        ASSERT(TextureValue);
+        waitForToken(&Token);
     }
-    return GPUTexture(this, texture, renderTarget, input.startState);
+    return GPUTexture(this, TextureValue, GetRenderTarget, Input.StartState);
 }
 
-GPUSampler RenderContext::createSampler(const SamplerDesc& input)
-{
-    ASSERT(ready);
-    const ::SamplerDesc samplerDesc = {
-        .minFilter = input.minFilter,
-        .magFilter = input.magFilter,
-        .mipMapMode = input.mipMapMode,
-        .addressU = input.addressU,
-        .addressV = input.addressV,
-        .addressW = input.addressW,
-        .mipLodBias = input.mipLodBias,
-        .setLodRange = input.setLodRange,
-        .minLod = input.minLod,
-        .maxLod = input.maxLod,
-        .maxAnisotropy = input.maxAnisotropy,
-        .compareFunc = input.compareFunc,
-    };
-    Sampler* sampler = nullptr;
-    addSampler(pRenderer, &samplerDesc, &sampler);
-    ASSERT(sampler);
-    return GPUSampler(this, sampler);
-}
+uint32_t GPUTexture::GetWidth() const { return pTexture ? pTexture->Width : 0; }
+uint32_t GPUTexture::GetHeight() const { return pTexture ? pTexture->Height : 0; }
+uint32_t GPUTexture::GetArraySize() const { return pTexture ? pTexture->arraySizeMinusOne + 1 : 0; }
+uint32_t GPUTexture::GetMipLevels() const { return pTexture ? pTexture->MipLevels : 0; }
+Format   GPUTexture::GetFormat() const { return pTexture ? pTexture->Format : Format::UNDEFINED; }
 
-Shader* RenderContext::createShader(const ShaderDesc& input)
+GPUTexture* RenderContext::AcquireTransient(const TextureDesc& Input)
 {
-    ASSERT(ready);
-    ShaderSrcDesc source = {};
-    FileStream    sourceFile = {};
-    const void*   pFileSource = nullptr;
-    size_t        fileSize = 0;
-    char          sourcePath[FS_MAX_PATH] = {};
-    if (input.pFileName && (!fsOpenStreamFromPath(input.sourceDirectory, input.pFileName, FM_READ, &sourceFile) ||
-                            !fsStreamMemoryMap(&sourceFile, &fileSize, &pFileSource) || !fileSize || fileSize > UINT32_MAX))
+    ASSERT(ready && Input.Width && Input.Height);
+    uint32_t FreeSlot = transientCapacity;
+    for (uint32_t I = 0; I < transientCapacity; ++I)
     {
-        LOGF(eERROR, "Could not map shader source '%s'", input.pFileName);
-        if (sourceFile.pIO)
-            fsCloseStream(&sourceFile);
+        TransientSlot& Slot = transientSlots[I];
+        if (!Slot.used)
+        {
+            if (FreeSlot == transientCapacity)
+            {
+                FreeSlot = I;
+            }
+            continue;
+        }
+        if (Slot.inUse || !SameTextureDesc(Slot.desc, Input))
+        {
+            continue;
+        }
+        if (Slot.useId && !IsResourceUseComplete(Slot.useId))
+        {
+            continue;
+        }
+        Slot.inUse = true;
+        return &Slot.texture;
+    }
+    if (FreeSlot == transientCapacity)
+    {
+        ASSERT(false);
+        return nullptr;
+    }
+    TransientSlot& Slot = transientSlots[FreeSlot];
+    Slot.texture = CreateTexture(Input);
+    Slot.desc = Input;
+    Slot.useId = 0;
+    Slot.inUse = true;
+    Slot.used = true;
+    return &Slot.texture;
+}
+
+void RenderContext::ReleaseTransient(GPUTexture* TexturePointer)
+{
+    for (uint32_t I = 0; I < transientCapacity; ++I)
+    {
+        if (&transientSlots[I].texture != TexturePointer)
+        {
+            continue;
+        }
+        ASSERT(transientSlots[I].inUse);
+        transientSlots[I].inUse = false;
+        transientSlots[I].useId = GetResourceUseId();
+        return;
+    }
+    ASSERT(false);
+}
+
+void RenderContext::PurgeTransients()
+{
+    for (TransientSlot& Slot : transientSlots)
+    {
+        if (!Slot.used || Slot.inUse)
+        {
+            continue;
+        }
+        Slot.texture = GPUTexture{};
+        Slot.used = false;
+        Slot.useId = 0;
+    }
+}
+
+void RenderContext::ReleaseTransientSlots()
+{
+    for (TransientSlot& Slot : transientSlots)
+    {
+        if (!Slot.used)
+        {
+            continue;
+        }
+        ASSERT(!Slot.inUse);
+        Slot.texture = GPUTexture{};
+        Slot.used = false;
+        Slot.useId = 0;
+    }
+}
+
+GPUTexture RenderContext::LoadTexture(ResourceDirectory Directory, const char* FileName, TextureCreationFlags Flags)
+{
+    ASSERT(ready && FileName);
+    const char* Extension = strrchr(FileName, '.');
+    if (!Extension || (strcmp(Extension, ".dds") && strcmp(Extension, ".ktx")))
+    {
+        LOGF(Error, "Texture '%s' requires a DDS or KTX container", FileName);
         return {};
     }
-    if (pFileSource)
-        snprintf(sourcePath, sizeof(sourcePath), "%s/%s", fsGetResourceDirectory(input.sourceDirectory), input.pFileName);
-    uint32_t stageCount = input.stages.count;
-    for (uint32_t i = 0; i < stageCount; ++i)
+    Texture*        TextureValue = nullptr;
+    bool            Success = false;
+    TextureLoadDesc Desc = { .ppTexture = &TextureValue,
+                             .pFileName = FileName,
+                             .creationFlag = Flags,
+                             .container = strcmp(Extension, ".ktx") == 0 ? TEXTURE_CONTAINER_KTX : TEXTURE_CONTAINER_DDS,
+                             .resourceDirectory = Directory,
+                             .pSuccess = &Success };
+    SyncToken       Token = 0;
+    addResource(&Desc, &Token);
+    waitForToken(&Token);
+    if (!Success || !TextureValue)
     {
-        const ShaderStageDesc& inputStage = *(input.stages.pData + i);
-        ShaderSrcStageDesc*    stage = nullptr;
-        switch (inputStage.stage)
+        if (TextureValue)
+        {
+            removeResource(TextureValue);
+        }
+        LOGF(Error, "Failed to Load texture '%s'", FileName);
+        return {};
+    }
+    return GPUTexture(this, TextureValue, nullptr, RESOURCE_STATE_SHADER_RESOURCE);
+}
+
+GPUSampler RenderContext::CreateSampler(const SamplerDesc& Input)
+{
+    ASSERT(ready);
+    const ::SamplerDesc SamplerDescValue = {
+        .MinFilter = Input.MinFilter,
+        .MagFilter = Input.MagFilter,
+        .MipMapMode = Input.MipMapMode,
+        .AddressU = Input.AddressU,
+        .AddressV = Input.AddressV,
+        .AddressW = Input.AddressW,
+        .MipLodBias = Input.MipLodBias,
+        .SetLodRange = Input.SetLodRange,
+        .MinLod = Input.MinLod,
+        .MaxLod = Input.MaxLod,
+        .MaxAnisotropy = Input.MaxAnisotropy,
+        .CompareFunc = Input.CompareFunc,
+    };
+    Sampler* SamplerValue = nullptr;
+    addSampler(pRenderer, &SamplerDescValue, &SamplerValue);
+    ASSERT(SamplerValue);
+    return GPUSampler(this, SamplerValue);
+}
+
+Shader* RenderContext::CreateShader(const ShaderDesc& Input)
+{
+    ASSERT(ready);
+    ShaderSrcDesc Source = {};
+    FileStream    SourceFile = {};
+    const void*   FileSource = nullptr;
+    size_t        FileSize = 0;
+    char          SourcePath[FS_MAX_PATH] = {};
+    if (Input.pFileName && (!OpenStreamFromPath(Input.sourceDirectory, Input.pFileName, FileModeRead, &SourceFile) ||
+                            !StreamMemoryMap(&SourceFile, &FileSize, &FileSource) || !FileSize || FileSize > UINT32_MAX))
+    {
+        LOGF(Error, "Could not map shader source '%s'", Input.pFileName);
+        if (SourceFile.FileSystem)
+        {
+            CloseStream(&SourceFile);
+        }
+        return {};
+    }
+    if (FileSource)
+    {
+        snprintf(SourcePath, sizeof(SourcePath), "%s/%s", GetResourceDirectory(Input.sourceDirectory), Input.pFileName);
+    }
+    uint32_t StageCount = Input.stages.Count;
+    for (uint32_t I = 0; I < StageCount; ++I)
+    {
+        const ShaderStageDesc& InputStage = *(Input.stages.Data + I);
+        ShaderSrcStageDesc*    Stage = nullptr;
+        switch (InputStage.stage)
         {
         case SHADER_STAGE_VERT:
-            stage = &source.vert;
+            Stage = &Source.vert;
             break;
         case SHADER_STAGE_FRAG:
-            stage = &source.frag;
+            Stage = &Source.frag;
             break;
         case SHADER_STAGE_COMP:
-            stage = &source.comp;
+            Stage = &Source.comp;
             break;
         default:
             ASSERT(false);
             break;
         }
-        source.stages |= inputStage.stage;
-        stage->pName = pFileSource ? sourcePath : inputStage.pName;
-        stage->pByteCode = (void*)(pFileSource ? pFileSource : inputStage.pSource);
-        stage->byteCodeSize = pFileSource ? (uint32_t)fileSize : inputStage.sourceSize;
-        stage->pEntryPoint = inputStage.pEntryPoint;
-        ASSERT(stage->pByteCode && stage->byteCodeSize && stage->pEntryPoint && stage->pEntryPoint[0]);
+        Source.stages |= InputStage.stage;
+        Stage->Name = FileSource ? SourcePath : InputStage.Name;
+        Stage->pByteCode = (void*)(FileSource ? FileSource : InputStage.pSource);
+        Stage->byteCodeSize = FileSource ? (uint32_t)FileSize : InputStage.sourceSize;
+        Stage->pEntryPoint = InputStage.pEntryPoint;
+        ASSERT(Stage->pByteCode && Stage->byteCodeSize && Stage->pEntryPoint && Stage->pEntryPoint[0]);
     }
 
-    Shader*     shader = nullptr;
-    const char* extension = input.pFileName ? strrchr(input.pFileName, '.') : nullptr;
-    if (input.language == ShaderLanguage::Slang ||
-        (input.language == ShaderLanguage::Auto && extension && strcmp(extension, ".slang") == 0))
-        shader = createSlangShader(source);
-    else
-        addShaderSource(pRenderer, &source, &shader);
-    if (sourceFile.pIO)
-        fsCloseStream(&sourceFile);
-    ASSERT(shader);
-    return shader;
-}
-
-GPUPipeline RenderContext::createGraphicsPipeline(const GraphicsPipelineDesc& input)
-{
-    ASSERT(ready && input.colorTargets.count <= MAX_RENDER_TARGETS && (input.colorTargets.pData || !input.colorTargets.count));
-    Shader* shader = this->createShader(input.shaderDesc);
-    ASSERT(shader);
-    Shader*           shaders[] = { shader };
-    RootSignatureDesc rootDesc = { .ppShaders = shaders, .shaderCount = 1 };
-    RootSignature*    rootSignature = nullptr;
-    addRootSignature(pRenderer, &rootDesc, &rootSignature);
-    ASSERT(rootSignature);
-
-    VertexLayout        vertex = input.vertexLayout;
-    RasterizerStateDesc raster = input.rasterizer;
-    DepthStateDesc      depth = input.depth;
-    BlendStateDesc      blend = {
-        .renderTargetMask = (BlendStateTargets)((1u << input.colorTargets.count) - 1),
-        .alphaToCoverage = input.alphaToCoverage,
-        .independentBlend = true,
-    };
-    hz::Format formats[MAX_RENDER_TARGETS] = {};
-    for (uint32_t i = 0; i < input.colorTargets.count; ++i)
+    Shader*     ShaderObject = nullptr;
+    const char* Extension = Input.pFileName ? strrchr(Input.pFileName, '.') : nullptr;
+    if (Input.language == ShaderLanguage::Slang ||
+        (Input.language == ShaderLanguage::Auto && Extension && strcmp(Extension, ".slang") == 0))
     {
-        const ColorTargetDesc& target = input.colorTargets.pData[i];
-        formats[i] = target.format;
-        blend.srcFactors[i] = target.srcFactor;
-        blend.dstFactors[i] = target.dstFactor;
-        blend.srcAlphaFactors[i] = target.srcAlphaFactor;
-        blend.dstAlphaFactors[i] = target.dstAlphaFactor;
-        blend.blendModes[i] = target.blendMode;
-        blend.blendAlphaModes[i] = target.blendAlphaMode;
-        blend.colorWriteMasks[i] = target.colorWriteMask;
+        ShaderObject = CreateSlangShader(Source);
     }
-    const PipelineDesc desc = {
-        .graphicsDesc = {
-            .pShaderProgram = shader,
-            .pRootSignature = rootSignature,
-            .pVertexLayout = vertex.bindingCount && vertex.attribCount ? &vertex : nullptr,
-            .pBlendState = &blend,
-            .pDepthState = &depth,
-            .pRasterizerState = &raster,
-            .pColorFormats = formats,
-            .renderTargetCount = input.colorTargets.count,
-            .sampleCount = input.sampleCount,
-            .depthStencilFormat = input.depthStencilFormat,
-            .primitiveTopo = input.topology,
-        },
-        .pName = input.pName,
-        .type = PIPELINE_TYPE_GRAPHICS,
-    };
-    Pipeline* pipeline = nullptr;
-    addPipeline(pRenderer, &desc, &pipeline);
-    ASSERT(pipeline);
-    return GPUPipeline(this, pipeline, rootSignature, GPUShader(this, shader));
+    else
+        addShaderSource(pRenderer, &Source, &ShaderObject);
+    if (SourceFile.FileSystem)
+    {
+        CloseStream(&SourceFile);
+    }
+    ASSERT(ShaderObject);
+    return ShaderObject;
 }
 
-GPUPipeline RenderContext::createComputePipeline(const ComputePipelineDesc& input)
+GPUPipeline RenderContext::CreateGraphicsPipeline(const GraphicsPipelineDesc& Input)
+{
+    ASSERT(ready && Input.colorTargets.Count <= MAX_RENDER_TARGETS && (Input.colorTargets.Data || !Input.colorTargets.Count));
+    Shader* ShaderObject = this->CreateShader(Input.shaderDesc);
+    ASSERT(ShaderObject);
+    Shader*           Shaders[] = { ShaderObject };
+    RootSignatureDesc RootDesc = { .ppShaders = Shaders, .shaderCount = 1 };
+    RootSignature*    RootSignatureValue = nullptr;
+    addRootSignature(pRenderer, &RootDesc, &RootSignatureValue);
+    ASSERT(RootSignatureValue);
+
+    VertexLayout        Vertex = Input.vertexLayout;
+    RasterizerStateDesc Raster = Input.rasterizer;
+    DepthStateDesc      Depth = Input.Depth;
+    BlendStateDesc      Blend = {
+             .renderTargetMask = (BlendStateTargets)((1u << Input.colorTargets.Count) - 1),
+             .alphaToCoverage = Input.alphaToCoverage,
+             .independentBlend = true,
+    };
+    hz::Format Formats[MAX_RENDER_TARGETS] = {};
+    for (uint32_t I = 0; I < Input.colorTargets.Count; ++I)
+    {
+        const ColorTargetDesc& Target = Input.colorTargets.Data[I];
+        Formats[I] = Target.Format;
+        Blend.srcFactors[I] = Target.srcFactor;
+        Blend.dstFactors[I] = Target.dstFactor;
+        Blend.srcAlphaFactors[I] = Target.srcAlphaFactor;
+        Blend.dstAlphaFactors[I] = Target.dstAlphaFactor;
+        Blend.blendModes[I] = Target.blendMode;
+        Blend.blendAlphaModes[I] = Target.blendAlphaMode;
+        Blend.colorWriteMasks[I] = Target.colorWriteMask;
+    }
+    const PipelineDesc Desc = {
+        .graphicsDesc = {
+            .pShaderProgram = ShaderObject,
+            .pRootSignature = RootSignatureValue,
+            .pVertexLayout = Vertex.bindingCount && Vertex.attribCount ? &Vertex : nullptr,
+            .pBlendState = &Blend,
+            .pDepthState = &Depth,
+            .pRasterizerState = &Raster,
+            .pColorFormats = Formats,
+            .renderTargetCount = Input.colorTargets.Count,
+            .SampleCount = Input.SampleCount,
+            .depthStencilFormat = Input.depthStencilFormat,
+            .primitiveTopo = Input.topology,
+        },
+        .pCache = pPipelineCache,
+        .Name = Input.Name,
+        .Type = PIPELINE_TYPE_GRAPHICS,
+    };
+    Pipeline* PipelineObject = nullptr;
+    addPipeline(pRenderer, &Desc, &PipelineObject);
+    ASSERT(PipelineObject);
+    CommandSignature* DrawSignature = nullptr;
+    if (Input.indirectDrawId)
+    {
+        const uint32_t Constant = getDescriptorIndexFromName(RootSignatureValue, "RootConstant0");
+        ASSERT(Constant != UINT32_MAX);
+        IndirectArgumentDescriptor Arguments[] = {
+            { .Type = INDIRECT_CONSTANT, .index = Constant, .byteSize = sizeof(uint32_t) },
+            { .Type = INDIRECT_DRAW },
+        };
+        const CommandSignatureDesc Signature = { .pRootSignature = RootSignatureValue,
+                                                 .pArgDescs = Arguments,
+                                                 .indirectArgCount = 2,
+                                                 .packed = true };
+        addIndirectCommandSignature(pRenderer, &Signature, &DrawSignature);
+        ASSERT(DrawSignature);
+    }
+    return GPUPipeline(this, PipelineObject, RootSignatureValue, GPUShader(this, ShaderObject), DrawSignature);
+}
+
+GPUPipeline RenderContext::CreateComputePipeline(const ComputePipelineDesc& Input)
 {
     ASSERT(ready);
-    Shader* shader = this->createShader(input.shaderDesc);
-    ASSERT(shader);
-    Shader*           shaders[] = { shader };
-    RootSignatureDesc rootDesc = { .ppShaders = shaders, .shaderCount = 1 };
-    RootSignature*    rootSignature = nullptr;
-    addRootSignature(pRenderer, &rootDesc, &rootSignature);
-    ASSERT(rootSignature);
+    Shader* ShaderObject = this->CreateShader(Input.shaderDesc);
+    ASSERT(ShaderObject);
+    Shader*           Shaders[] = { ShaderObject };
+    RootSignatureDesc RootDesc = { .ppShaders = Shaders, .shaderCount = 1 };
+    RootSignature*    RootSignatureValue = nullptr;
+    addRootSignature(pRenderer, &RootDesc, &RootSignatureValue);
+    ASSERT(RootSignatureValue);
 
-    const PipelineDesc desc = {
-        .computeDesc = { shader, rootSignature },
-        .pName = input.pName,
-        .type = PIPELINE_TYPE_COMPUTE,
+    const PipelineDesc Desc = {
+        .computeDesc = { ShaderObject, RootSignatureValue },
+        .pCache = pPipelineCache,
+        .Name = Input.Name,
+        .Type = PIPELINE_TYPE_COMPUTE,
     };
-    Pipeline* pipeline = nullptr;
-    addPipeline(pRenderer, &desc, &pipeline);
-    ASSERT(pipeline);
-    return GPUPipeline(this, pipeline, rootSignature, GPUShader(this, shader));
+    Pipeline* PipelineObject = nullptr;
+    addPipeline(pRenderer, &Desc, &PipelineObject);
+    ASSERT(PipelineObject);
+    return GPUPipeline(this, PipelineObject, RootSignatureValue, GPUShader(this, ShaderObject));
 }
 
-bool RenderContext::getGpuAddress(const GPUBuffer& buffer, uint64_t* pAddress) const
+bool RenderContext::GetGpuAddress(const GPUBuffer& BufferValue, uint64_t* Address) const
 {
-    ASSERT(ready && buffer.pBuffer && pAddress);
-    *pAddress = buffer.pBuffer->dx.gpuAddress;
+    ASSERT(ready && BufferValue.pBuffer && Address);
+    *Address = BufferValue.pBuffer->dx.gpuAddress;
     return true;
 }
 
-bool RenderContext::updateBuffer(const GPUBuffer& buffer, uint64_t offset, const void* pData, uint64_t size)
+bool RenderContext::UpdateBuffer(const GPUBuffer& BufferValue, uint64_t Offset, const void* Data, uint64_t Size)
 {
-    ASSERT(ready && buffer.pBuffer && pData && size);
-    ASSERT(buffer.usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU && offset <= buffer.size && size <= buffer.size - offset &&
-           buffer.pBuffer->pCpuMappedAddress);
-    if (buffer.usage != RESOURCE_MEMORY_USAGE_CPU_TO_GPU || offset > buffer.size || size > buffer.size - offset ||
-        !buffer.pBuffer->pCpuMappedAddress)
+    ASSERT(ready && BufferValue.pBuffer && Data && Size);
+    ASSERT(BufferValue.usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU && Offset <= BufferValue.Size && Size <= BufferValue.Size - Offset &&
+           BufferValue.pBuffer->pCpuMappedAddress);
+    if (BufferValue.usage != RESOURCE_MEMORY_USAGE_CPU_TO_GPU || Offset > BufferValue.Size || Size > BufferValue.Size - Offset ||
+        !BufferValue.pBuffer->pCpuMappedAddress)
+    {
         return false;
-    memcpy((uint8_t*)buffer.pBuffer->pCpuMappedAddress + offset, pData, (size_t)size);
+    }
+    memcpy((uint8_t*)BufferValue.pBuffer->pCpuMappedAddress + Offset, Data, (size_t)Size);
     return true;
+}
+
+namespace
+{
+constexpr const char* kPipelineCacheFile = "PipelineCache.bin";
+constexpr uint32_t    kPipelineCacheMagic = 0x43505348; // 'HSPC'
+constexpr uint32_t    kPipelineCacheVersion = 1;
+
+struct PipelineCacheHeader
+{
+    uint32_t magic;
+    uint32_t version;
+    uint32_t vendorId;
+    uint32_t deviceId;
+    uint32_t driverHash;
+    uint32_t reserved;
+};
+
+// PSO blobs are driver generated, so the driver and device are what validate a library; DXIL has its own cache.
+PipelineCacheHeader MakeCacheHeader(const GPUSettings& SettingsValue)
+{
+    uint32_t DriverHash = 2166136261u;
+    for (const char* P = SettingsValue.gpuVendorPreset.gpuDriverVersion; *P; ++P)
+    {
+        DriverHash = (DriverHash ^ (uint8_t)*P) * 16777619u;
+    }
+    return { .magic = kPipelineCacheMagic,
+             .version = kPipelineCacheVersion,
+             .vendorId = SettingsValue.gpuVendorPreset.vendorId,
+             .deviceId = SettingsValue.gpuVendorPreset.modelId,
+             .driverHash = DriverHash };
+}
+} // namespace
+
+bool RenderContext::InitPipelineCache()
+{
+    const GPUSettings&        SettingsValue = pRenderer->pGpu->settings;
+    const PipelineCacheHeader Expected = MakeCacheHeader(SettingsValue);
+    PipelineCacheDesc         CacheDesc = {};
+    void*                     Blob = nullptr;
+    FileStream                Stream = {};
+    if (OpenStreamFromPath(DirectoryShaderBinaries, kPipelineCacheFile, FileModeRead, &Stream))
+    {
+        PipelineCacheHeader Header = {};
+        const ssize_t       FileSize = GetStreamFileSize(&Stream);
+        const bool HeaderRead = FileSize > (ssize_t)sizeof(Header) && ReadFromStream(&Stream, &Header, sizeof(Header)) == sizeof(Header);
+        if (HeaderRead && memcmp(&Header, &Expected, sizeof(Header)) == 0)
+        {
+            const size_t BlobSize = (size_t)FileSize - sizeof(Header);
+            Blob = MemAllocate(BlobSize);
+            if (Blob && ReadFromStream(&Stream, Blob, BlobSize) == BlobSize)
+            {
+                CacheDesc.Data = Blob;
+                CacheDesc.Size = BlobSize;
+            }
+        }
+        CloseStream(&Stream);
+    }
+    addPipelineCache(pRenderer, &CacheDesc, &pPipelineCache);
+    MemDeallocate(Blob);
+    return pPipelineCache != nullptr;
+}
+
+void RenderContext::SavePipelineCache()
+{
+    if (!pRenderer || !pPipelineCache)
+    {
+        return;
+    }
+    size_t BlobSize = 0;
+    getPipelineCacheData(pRenderer, pPipelineCache, &BlobSize, nullptr);
+    if (!BlobSize)
+    {
+        return;
+    }
+    uint8_t* Blob = (uint8_t*)MemAllocate(BlobSize);
+    if (!Blob)
+    {
+        return;
+    }
+    getPipelineCacheData(pRenderer, pPipelineCache, &BlobSize, Blob);
+
+    const PipelineCacheHeader Header = MakeCacheHeader(pRenderer->pGpu->settings);
+    FileStream                Stream = {};
+    if (OpenStreamFromPath(DirectoryShaderBinaries, kPipelineCacheFile, FileModeWrite, &Stream))
+    {
+        WriteToStream(&Stream, &Header, sizeof(Header));
+        WriteToStream(&Stream, Blob, BlobSize);
+        CloseStream(&Stream);
+    }
+    MemDeallocate(Blob);
 }
 } // namespace hz

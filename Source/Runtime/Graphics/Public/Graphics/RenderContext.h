@@ -2,8 +2,10 @@
 #pragma once
 
 #include "Core/IFileSystem.h"
+#include "Core/ILog.h"
 #include "Core/ISpan.h"
 #include "RHI/IGraphics.h"
+#include "Graphics/RayTracing.h"
 
 #include <stdint.h>
 
@@ -28,48 +30,48 @@ struct SceneResourceAccess;
 
 struct BufferDesc
 {
-    uint64_t            size = 0;
-    uint32_t            elementCount = 0;
-    uint32_t            structStride = 0;
-    const char*         pName = nullptr;
+    uint64_t            Size = 0;
+    uint32_t            ElementCount = 0;
+    uint32_t            StructStride = 0;
+    const char*         Name = nullptr;
     const void*         pInitialData = nullptr;
     uint64_t            initialDataSize = 0;
     ResourceMemoryUsage usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
-    ResourceState       startState = RESOURCE_STATE_UNDEFINED;
-    DescriptorType      descriptors = DESCRIPTOR_TYPE_UNDEFINED;
-    BufferCreationFlags flags = BUFFER_CREATION_FLAG_NONE;
+    ResourceState       StartState = RESOURCE_STATE_UNDEFINED;
+    DescriptorType      Descriptors = DESCRIPTOR_TYPE_UNDEFINED;
+    BufferCreationFlags Flags = BUFFER_CREATION_FLAG_NONE;
 };
 
 struct TextureDesc
 {
-    uint32_t             width = 0;
-    uint32_t             height = 0;
-    uint32_t             depth = 1;
-    uint32_t             arraySize = 1;
-    uint32_t             mipLevels = 1;
-    SampleCount          sampleCount = SAMPLE_COUNT_1;
-    hz::Format           format = hz::Format::UNDEFINED;
-    ResourceState        startState = RESOURCE_STATE_UNDEFINED;
-    DescriptorType       descriptors = DESCRIPTOR_TYPE_UNDEFINED;
-    TextureCreationFlags flags = TEXTURE_CREATION_FLAG_NONE;
-    bool                 renderTarget = false;
-    const char*          pName = nullptr;
+    uint32_t             Width = 0;
+    uint32_t             Height = 0;
+    uint32_t             Depth = 1;
+    uint32_t             ArraySize = 1;
+    uint32_t             MipLevels = 1;
+    SampleCount          SampleCount = SAMPLE_COUNT_1;
+    hz::Format           Format = hz::Format::UNDEFINED;
+    ResourceState        StartState = RESOURCE_STATE_UNDEFINED;
+    DescriptorType       Descriptors = DESCRIPTOR_TYPE_UNDEFINED;
+    TextureCreationFlags Flags = TEXTURE_CREATION_FLAG_NONE;
+    bool                 GetRenderTarget = false;
+    const char*          Name = nullptr;
 };
 
 struct SamplerDesc
 {
-    FilterType  minFilter = FILTER_LINEAR;
-    FilterType  magFilter = FILTER_LINEAR;
-    MipMapMode  mipMapMode = MIPMAP_MODE_LINEAR;
-    AddressMode addressU = ADDRESS_MODE_REPEAT;
-    AddressMode addressV = ADDRESS_MODE_REPEAT;
-    AddressMode addressW = ADDRESS_MODE_REPEAT;
-    float       mipLodBias = 0.0f;
-    bool        setLodRange = false;
-    float       minLod = 0.0f;
-    float       maxLod = 0.0f;
-    float       maxAnisotropy = 0.0f;
-    CompareMode compareFunc = CMP_NEVER;
+    FilterType  MinFilter = FILTER_LINEAR;
+    FilterType  MagFilter = FILTER_LINEAR;
+    MipMapMode  MipMapMode = MIPMAP_MODE_LINEAR;
+    AddressMode AddressU = ADDRESS_MODE_REPEAT;
+    AddressMode AddressV = ADDRESS_MODE_REPEAT;
+    AddressMode AddressW = ADDRESS_MODE_REPEAT;
+    float       MipLodBias = 0.0f;
+    bool        SetLodRange = false;
+    float       MinLod = 0.0f;
+    float       MaxLod = 0.0f;
+    float       MaxAnisotropy = 0.0f;
+    CompareMode CompareFunc = CMP_NEVER;
 };
 
 struct ShaderStageDesc
@@ -78,7 +80,7 @@ struct ShaderStageDesc
     const void* pSource = nullptr;
     uint32_t    sourceSize = 0;
     const char* pEntryPoint = "main";
-    const char* pName = nullptr;
+    const char* Name = nullptr;
 };
 
 enum class ShaderLanguage
@@ -91,14 +93,14 @@ enum class ShaderLanguage
 struct ShaderDesc
 {
     hz::Span<ShaderStageDesc> stages = {};
-    ResourceDirectory         sourceDirectory = RD_SHADER_SOURCES;
+    ResourceDirectory         sourceDirectory = DirectoryShaderSources;
     const char*               pFileName = nullptr;
     ShaderLanguage            language = ShaderLanguage::Auto;
 };
 
 struct ColorTargetDesc
 {
-    Format        format = Format::UNDEFINED;
+    Format        Format = Format::UNDEFINED;
     BlendConstant srcFactor = BC_ONE;
     BlendConstant dstFactor = BC_ZERO;
     BlendConstant srcAlphaFactor = BC_ONE;
@@ -113,19 +115,20 @@ struct GraphicsPipelineDesc
     ShaderDesc            shaderDesc = {};
     VertexLayout          vertexLayout = {};
     RasterizerStateDesc   rasterizer = { .cullMode = CULL_MODE_NONE, .fillMode = FILL_MODE_SOLID, .frontFace = FRONT_FACE_CCW };
-    DepthStateDesc        depth = { .depthTest = false, .depthWrite = false, .depthFunc = CMP_ALWAYS };
+    DepthStateDesc        Depth = { .depthTest = false, .depthWrite = false, .depthFunc = CMP_ALWAYS };
     Span<ColorTargetDesc> colorTargets = {};
     bool                  alphaToCoverage = false;
     hz::Format            depthStencilFormat = hz::Format::UNDEFINED;
     PrimitiveTopology     topology = PRIMITIVE_TOPO_TRI_LIST;
-    SampleCount           sampleCount = SAMPLE_COUNT_1;
-    const char*           pName = nullptr;
+    SampleCount           SampleCount = SAMPLE_COUNT_1;
+    bool                  indirectDrawId = false;
+    const char*           Name = nullptr;
 };
 
 struct ComputePipelineDesc
 {
     ShaderDesc  shaderDesc = {};
-    const char* pName = nullptr;
+    const char* Name = nullptr;
 };
 
 struct ColorAttachment
@@ -133,7 +136,7 @@ struct ColorAttachment
     const GPUTexture* pTexture;
     LoadActionType    loadAction;
     StoreActionType   storeAction;
-    ClearValue        clearValue;
+    ClearValue        ClearValue;
 };
 
 struct DepthAttachment
@@ -141,7 +144,7 @@ struct DepthAttachment
     const GPUTexture* pTexture;
     LoadActionType    loadAction;
     StoreActionType   storeAction;
-    ClearValue        clearValue;
+    ClearValue        ClearValue;
 };
 
 struct RenderPassDesc
@@ -161,8 +164,8 @@ struct ContextDesc
 {
     const char*  pAppName;
     WindowHandle windowHandle;
-    uint32_t     width;
-    uint32_t     height;
+    uint32_t     Width;
+    uint32_t     Height;
     uint32_t     imageCount;
     hz::Format   colorFormat;
     ColorSpace   colorSpace;
@@ -171,6 +174,8 @@ struct ContextDesc
     bool         enableVSync;
     bool         enableGpuValidation;
     bool         enableGpuProfiler;
+    // Persists the driver pipeline cache between runs; only apps that map DirectoryShaderBinaries should enable it.
+    bool         enablePipelineCache = false;
 };
 
 class GPUBuffer
@@ -182,20 +187,21 @@ public:
     GPUBuffer& operator=(GPUBuffer&&) noexcept;
     GPUBuffer(const GPUBuffer&) = delete;
     GPUBuffer& operator=(const GPUBuffer&) = delete;
-    bool       isValid() const { return pBuffer != nullptr; }
-    Buffer*    get() const { return pBuffer; }
-    uint32_t   getSrvIndex() const { return getBufferSrvIndex(pBuffer); }
-    uint32_t   getUavIndex() const { return getBufferUavIndex(pBuffer); }
-    uint32_t   getCbvIndex() const { return getBufferCbvIndex(pBuffer); }
+    bool       IsValid() const { return pBuffer != nullptr; }
+    Buffer*    Get() const { return pBuffer; }
+    uint64_t   GetSize() const { return Size; }
+    uint32_t   GetSrvIndex() const { return getBufferSrvIndex(pBuffer); }
+    uint32_t   GetUavIndex() const { return getBufferUavIndex(pBuffer); }
+    uint32_t   GetCbvIndex() const { return getBufferCbvIndex(pBuffer); }
 
 private:
     GPUBuffer(RenderContext*, Buffer*, uint64_t, ResourceMemoryUsage, DescriptorType, ResourceState);
-    void                  destroy();
+    void                  Destroy();
     RenderContext*        pContext = nullptr;
     Buffer*               pBuffer = nullptr;
-    uint64_t              size = 0;
+    uint64_t              Size = 0;
     ResourceMemoryUsage   usage = RESOURCE_MEMORY_USAGE_UNKNOWN;
-    DescriptorType        descriptors = DESCRIPTOR_TYPE_UNDEFINED;
+    DescriptorType        Descriptors = DESCRIPTOR_TYPE_UNDEFINED;
     mutable ResourceState state = RESOURCE_STATE_UNDEFINED;
     friend struct SceneResourceAccess;
     friend class CommandList;
@@ -211,15 +217,20 @@ public:
     GPUTexture& operator=(GPUTexture&&) noexcept;
     GPUTexture(const GPUTexture&) = delete;
     GPUTexture&   operator=(const GPUTexture&) = delete;
-    bool          isValid() const { return pTexture != nullptr; }
-    Texture*      get() const { return pTexture; }
-    uint32_t      getSrvIndex() const { return getTextureSrvIndex(pTexture); }
-    uint32_t      getUavIndex(uint32_t mip = 0) const { return getTextureUavIndex(pTexture, mip); }
-    RenderTarget* renderTarget() const { return pRenderTarget; }
+    bool          IsValid() const { return pTexture != nullptr; }
+    Texture*      Get() const { return pTexture; }
+    uint32_t      GetSrvIndex() const { return getTextureSrvIndex(pTexture); }
+    uint32_t      GetUavIndex(uint32_t mip = 0) const { return getTextureUavIndex(pTexture, mip); }
+    RenderTarget* GetRenderTarget() const { return pRenderTarget; }
+    uint32_t      GetWidth() const;
+    uint32_t      GetHeight() const;
+    uint32_t      GetArraySize() const;
+    uint32_t      GetMipLevels() const;
+    Format        GetFormat() const;
 
 private:
     GPUTexture(RenderContext*, Texture*, RenderTarget*, ResourceState, bool owned = true);
-    void                  destroy();
+    void                  Destroy();
     RenderContext*        pContext = nullptr;
     Texture*              pTexture = nullptr;
     RenderTarget*         pRenderTarget = nullptr;
@@ -239,13 +250,13 @@ public:
     GPUSampler& operator=(GPUSampler&&) noexcept;
     GPUSampler(const GPUSampler&) = delete;
     GPUSampler& operator=(const GPUSampler&) = delete;
-    bool        isValid() const { return pSampler != nullptr; }
-    Sampler*    get() const { return pSampler; }
-    uint32_t    getIndex() const { return getSamplerIndex(pSampler); }
+    bool        IsValid() const { return pSampler != nullptr; }
+    Sampler*    Get() const { return pSampler; }
+    uint32_t    GetIndex() const { return getSamplerIndex(pSampler); }
 
 private:
     GPUSampler(RenderContext*, Sampler*);
-    void           destroy();
+    void           Destroy();
     RenderContext* pContext = nullptr;
     Sampler*       pSampler = nullptr;
     friend class CommandList;
@@ -261,12 +272,12 @@ public:
     GPUShader& operator=(GPUShader&&) noexcept;
     GPUShader(const GPUShader&) = delete;
     GPUShader& operator=(const GPUShader&) = delete;
-    bool       isValid() const { return pShader != nullptr; }
-    Shader*    get() const { return pShader; }
+    bool       IsValid() const { return pShader != nullptr; }
+    Shader*    Get() const { return pShader; }
 
 private:
     GPUShader(RenderContext*, Shader*);
-    void           destroy();
+    void           Destroy();
     RenderContext* pContext = nullptr;
     Shader*        pShader = nullptr;
     friend class CommandList;
@@ -282,15 +293,16 @@ public:
     GPUPipeline& operator=(GPUPipeline&&) noexcept;
     GPUPipeline(const GPUPipeline&) = delete;
     GPUPipeline& operator=(const GPUPipeline&) = delete;
-    bool         isValid() const { return pPipeline != nullptr; }
-    Pipeline*    get() const { return pPipeline; }
+    bool         IsValid() const { return pPipeline != nullptr; }
+    Pipeline*    Get() const { return pPipeline; }
 
 private:
-    GPUPipeline(RenderContext*, Pipeline*, RootSignature*, GPUShader&&);
-    void           destroy();
+    GPUPipeline(RenderContext*, Pipeline*, RootSignature*, GPUShader&&, CommandSignature* = nullptr);
+    void              Destroy();
     RenderContext* pContext = nullptr;
     Pipeline*      pPipeline = nullptr;
     RootSignature* pRootSignature = nullptr;
+    CommandSignature* pDrawIndirectSignature = nullptr;
     GPUShader      shader;
     friend class CommandList;
     friend class RenderContext;
@@ -302,6 +314,125 @@ struct Dependencies
     Span<const GPUTexture*> storageTextures = {};
     Span<const GPUBuffer*>  buffers = {};
     Span<const GPUBuffer*>  storageBuffers = {};
+    Span<const GPUBuffer*>  indirectBuffers = {};
+
+    const Dependencies* pShared = nullptr;
+};
+
+// Collects the resources a command touches while handing out their descriptor indices, so binding a
+// resource and declaring its Barrier cannot drift apart. Fixed Capacity, no allocation.
+class DependencyList
+{
+public:
+    // Optional inputs return UINT32_MAX and are not recorded, so call sites need no branch.
+    uint32_t Sample(const GPUTexture* Texture)
+    {
+        if (!Texture || !Texture->IsValid())
+        {
+            return UINT32_MAX;
+        }
+        if (SampledCount < TextureCapacity)
+        {
+            SampledTextures[SampledCount++] = Texture;
+        }
+        else
+        {
+            ASSERT(false);
+        }
+        return Texture->GetSrvIndex();
+    }
+    uint32_t Store(const GPUTexture* Texture)
+    {
+        if (!Texture || !Texture->IsValid())
+        {
+            return UINT32_MAX;
+        }
+        if (StorageCount < TextureCapacity)
+        {
+            StorageTextures[StorageCount++] = Texture;
+        }
+        else
+        {
+            ASSERT(false);
+        }
+        return Texture->GetUavIndex();
+    }
+    uint32_t Read(const GPUBuffer& Buffer)
+    {
+        if (!Buffer.IsValid())
+        {
+            return UINT32_MAX;
+        }
+        if (BufferCount < BufferCapacity)
+        {
+            Buffers[BufferCount++] = &Buffer;
+        }
+        else
+        {
+            ASSERT(false);
+        }
+        return Buffer.GetSrvIndex();
+    }
+    uint32_t Write(const GPUBuffer& Buffer)
+    {
+        if (!Buffer.IsValid())
+        {
+            return UINT32_MAX;
+        }
+        if (StorageBufferCount < BufferCapacity)
+        {
+            StorageBuffers[StorageBufferCount++] = &Buffer;
+        }
+        else
+        {
+            ASSERT(false);
+        }
+        return Buffer.GetUavIndex();
+    }
+    void Indirect(const GPUBuffer& Buffer)
+    {
+        if (!Buffer.IsValid())
+        {
+            return;
+        }
+        if (IndirectCount < BufferCapacity)
+        {
+            IndirectBuffers[IndirectCount++] = &Buffer;
+        }
+        else
+        {
+            ASSERT(false);
+        }
+    }
+    Dependencies Get() const
+    {
+        return { .sampledTextures = { SampledTextures, SampledCount },
+                 .storageTextures = { StorageTextures, StorageCount },
+                 .buffers = { Buffers, BufferCount },
+                 .storageBuffers = { StorageBuffers, StorageBufferCount },
+                 .indirectBuffers = { IndirectBuffers, IndirectCount } };
+    }
+
+private:
+    static constexpr uint32_t TextureCapacity = 16;
+    static constexpr uint32_t BufferCapacity = 8;
+    const GPUTexture*         SampledTextures[TextureCapacity] = {};
+    const GPUTexture*         StorageTextures[TextureCapacity] = {};
+    const GPUBuffer*          Buffers[BufferCapacity] = {};
+    const GPUBuffer*          StorageBuffers[BufferCapacity] = {};
+    const GPUBuffer*          IndirectBuffers[BufferCapacity] = {};
+    uint32_t                  SampledCount = 0;
+    uint32_t                  StorageCount = 0;
+    uint32_t                  BufferCount = 0;
+    uint32_t                  StorageBufferCount = 0;
+    uint32_t                  IndirectCount = 0;
+};
+
+struct BufferCopyRegion
+{
+    uint64_t srcOffset = 0;
+    uint64_t dstOffset = 0;
+    uint64_t Size = 0;
 };
 
 class CommandList
@@ -309,59 +440,73 @@ class CommandList
 public:
     ~CommandList();
 
-    void beginRendering(const RenderPassDesc&, const Dependencies& = {});
-    void endRendering();
-    void setPipeline(const GPUPipeline&);
-    void setVertexBuffer(uint32_t slot, const GPUBuffer&, uint64_t offset, uint32_t stride);
-    void setIndexBuffer(const GPUBuffer&, uint64_t offset, IndexType);
-    void setViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f);
-    void setScissor(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
-    void setRootConstant(Span<const uint32_t> values, uint32_t offsetIn32BitValues = 0);
+    void BeginRendering(const RenderPassDesc&, const Dependencies& = {});
+    void EndRendering();
+    void SetPipeline(const GPUPipeline&);
+    void SetPipeline(const GPURayTracingPipeline&);
+    void BuildAccelerationStructure(GPUAccelerationStructure&, Span<AccelerationStructureInstance> instances = {}, bool Update = false);
+    void UpdateAccelerationStructure(GPUAccelerationStructure&);
+    void TraceRays(const GPURayTracingPipeline&, uint32_t Width, uint32_t Height, uint32_t Depth = 1, const Dependencies& = {});
+    void SetVertexBuffer(uint32_t bindingIndex, const GPUBuffer&, uint64_t offset, uint32_t stride);
+    void SetIndexBuffer(const GPUBuffer&, uint64_t offset, IndexType);
+    void SetViewport(float x, float y, float Width, float Height, float minDepth = 0.0f, float maxDepth = 1.0f);
+    void SetScissor(uint32_t x, uint32_t y, uint32_t Width, uint32_t Height);
+    void SetRootConstant(Span<const uint32_t> values, uint32_t offsetIn32BitValues = 0);
+    // Typed block form. T must mirror the shader constant block field for field, in declaration order.
+    template<typename T>
+    void SetRootConstants(const T& values, uint32_t offsetIn32BitValues = 0)
+    {
+        static_assert(sizeof(T) % sizeof(uint32_t) == 0, "Root constants are uploaded as 32-bit words");
+        SetRootConstant({ (const uint32_t*)&values, (uint32_t)(sizeof(T) / sizeof(uint32_t)) }, offsetIn32BitValues);
+    }
 
-    void draw(uint32_t vertexCount, uint32_t firstVertex = 0);
-    void drawIndexed(uint32_t indexCount, uint32_t firstIndex = 0, uint32_t firstVertex = 0);
-    void drawIndirect(const GPUBuffer& buffer, uint64_t offset, uint32_t drawCount);
-    void drawIndexedIndirect(const GPUBuffer& buffer, uint64_t offset, uint32_t drawCount);
-    void dispatch(uint32_t groupCountX, uint32_t groupCountY = 1, uint32_t groupCountZ = 1, const Dependencies& = {});
-    void dispatchIndirect(const GPUBuffer& buffer, uint64_t offset, const Dependencies& = {});
+    void Draw(uint32_t vertexCount, uint32_t firstVertex = 0);
+    void DrawIndexed(uint32_t indexCount, uint32_t firstIndex = 0, uint32_t firstVertex = 0);
+    void DrawIndirect(const GPUBuffer& buffer, uint64_t offset, uint32_t drawCount);
+    void DrawIndexedIndirect(const GPUBuffer& buffer, uint64_t offset, uint32_t drawCount);
+    void Dispatch(uint32_t groupCountX, uint32_t groupCountY = 1, uint32_t groupCountZ = 1, const Dependencies& = {});
+    void DispatchIndirect(const GPUBuffer& buffer, uint64_t offset, const Dependencies& = {});
 
-    void beginGpuTimestamp(const char* name);
-    void endGpuTimestamp();
+    void BeginGpuTimestamp(const char* name);
+    void EndGpuTimestamp();
 
-    void copyBuffer(const GPUBuffer& dst, uint64_t dstOffset, const GPUBuffer& src, uint64_t srcOffset, uint64_t size);
-    void fillBuffer(const GPUBuffer& dst, uint64_t dstOffset, uint32_t value, uint64_t size);
-    void updateBuffer(const GPUBuffer& dst, uint64_t dstOffset, const void* pData, uint64_t size);
+    void CopyBuffer(const GPUBuffer& dst, uint64_t dstOffset, const GPUBuffer& src, uint64_t srcOffset, uint64_t Size);
+    // Transitions both buffers once for all regions.
+    void CopyBufferRegions(const GPUBuffer& dst, const GPUBuffer& src, Span<BufferCopyRegion> regions);
+    void FillBuffer(const GPUBuffer& dst, uint64_t dstOffset, uint32_t value, uint64_t Size);
+    void UpdateBuffer(const GPUBuffer& dst, uint64_t dstOffset, const void* Data, uint64_t Size);
 
-    void copyTexture(const GPUTexture& dst, const GPUTexture& src);
+    void CopyTexture(const GPUTexture& dst, const GPUTexture& src);
 
-    void pushDebugGroupLabel(const char* label, uint32_t colorRGBA) const;
-    void insertDebugEventLabel(const char* label, uint32_t colorRGBA) const;
-    void popDebugGroupLabel() const;
+    void PushDebugGroupLabel(const char* label, uint32_t colorRGBA) const;
+    void InsertDebugEventLabel(const char* label, uint32_t colorRGBA) const;
+    void PopDebugGroupLabel() const;
 
 private:
     CommandList() = default;
     CommandList(const CommandList&) = delete;
     CommandList& operator=(const CommandList&) = delete;
-    void         reset(Cmd*, uint64_t gpuProfilerToken);
-    void         clear();
-    void         beginGpuFrameProfile();
-    void         endGpuFrameProfile();
-    void         addBufferBarriers(Span<const GPUBuffer*> buffers, bool storage);
-    Buffer*      createUploadBuffer(uint64_t size);
-    void         barrier(uint32_t bufferCount, BufferBarrier*, uint32_t textureCount, TextureBarrier*, uint32_t renderTargetCount,
+    void         Reset(Cmd*, uint64_t gpuProfilerToken);
+    void         Clear();
+    void         BeginGpuFrameProfile();
+    void         EndGpuFrameProfile();
+    void         AddBufferBarriers(Span<const GPUBuffer*> buffers, bool storage);
+    void         AddIndirectBarriers(Span<const GPUBuffer*> buffers);
+    Buffer*      CreateUploadBuffer(uint64_t Size);
+    void         Barrier(uint32_t bufferCount, BufferBarrier*, uint32_t textureCount, TextureBarrier*, uint32_t renderTargetCount,
                          RenderTargetBarrier*);
-    void         barrier(const Dependencies&, const GPUBuffer* pIndirectBuffer);
+    void         Barrier(const Dependencies&, const GPUBuffer* pIndirectBuffer);
 
     Cmd*                 pCmd = nullptr;
     RenderContext*       pContext = nullptr;
     RootSignature*       pCurrentRootSignature = nullptr;
+    CommandSignature*    pCurrentDrawIndirectSignature = nullptr;
     uint64_t             gpuProfilerToken = UINT64_MAX;
-    uint64_t             gpuTimestampToken = 0;
     Buffer*              pVertexBuffers[MAX_VERTEX_BINDINGS] = {};
     uint32_t             vertexStrides[MAX_VERTEX_BINDINGS] = {};
     uint64_t             vertexOffsets[MAX_VERTEX_BINDINGS] = {};
     uint32_t             vertexBufferCount = 0;
-    uint32_t             slot = UINT32_MAX;
+    uint32_t             commandIndex = UINT32_MAX;
     BufferBarrier*       bufferBarriers = nullptr;
     TextureBarrier*      textureBarriers = nullptr;
     RenderTargetBarrier* renderTargetBarriers = nullptr;
@@ -371,8 +516,8 @@ private:
 struct SubmitHandle
 {
     uint64_t id = 0;
-    uint32_t slot = 0;
-    bool     isValid() const { return id != 0; }
+    uint32_t commandIndex = 0;
+    bool     IsValid() const { return id != 0; }
 };
 
 class RenderContext
@@ -382,37 +527,80 @@ public:
     ~RenderContext();
     RenderContext(const RenderContext&) = delete;
     RenderContext& operator=(const RenderContext&) = delete;
-    bool           isValid() const { return ready; }
+    bool           IsValid() const { return ready; }
 
-    void waitIdle();
+    void WaitIdle();
+    // Persists the driver-owned pipeline cache; call once the startup pipelines exist.
+    void SavePipelineCache();
 
-    bool                  resize(uint32_t width, uint32_t height);
-    bool                  setVSync(bool enabled);
-    CommandList&          acquireCommandList();
-    SubmitHandle          submit(CommandList&, const GPUTexture* pPresent = nullptr);
-    void                  wait(SubmitHandle);
-    uint32_t              getWidth() const;
-    uint32_t              getHeight() const;
-    hz::Format            getColorFormat() const;
-    bool                  isHDREnabled() const;
-    OutputMode            getOutputMode() const;
-    const HDRDisplayInfo& getHDRDisplayInfo() const;
-    const HDRMetadata&    getHDRMetadata() const;
-    const GPUTexture&     getCurrentBackbuffer();
-    bool                  isSuspended() const;
+    bool                  Resize(uint32_t Width, uint32_t Height);
+    bool                  SetVSync(bool enabled);
+    CommandList&          AcquireCommandList();
+    SubmitHandle          Submit(CommandList&, const GPUTexture* pPresent = nullptr);
+    void                  Wait(SubmitHandle);
+    bool                  IsComplete(SubmitHandle) const;
+    uint32_t              GetWidth() const;
+    uint32_t              GetHeight() const;
+    hz::Format            GetColorFormat() const;
+    bool                  IsHDREnabled() const;
+    OutputMode            GetOutputMode() const;
+    const HDRDisplayInfo& GetHDRDisplayInfo() const;
+    const HDRMetadata&    GetHDRMetadata() const;
+    const GPUTexture&     GetCurrentBackbuffer();
+    bool                  IsSuspended() const;
 
-    GPUBuffer   createBuffer(const BufferDesc&);
-    GPUTexture  createTexture(const TextureDesc&);
-    GPUSampler  createSampler(const SamplerDesc& = {});
-    GPUPipeline createGraphicsPipeline(const GraphicsPipelineDesc&);
-    GPUPipeline createComputePipeline(const ComputePipelineDesc&);
-    bool        getGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
-    bool        updateBuffer(const GPUBuffer&, uint64_t offset, const void* pData, uint64_t size);
+    bool                     SupportsRayTracing() const;
+    GPUAccelerationStructure CreateAccelerationStructure(const AccelerationStructureDesc&);
+    GPURayTracingPipeline    CreateRayTracingPipeline(const RayTracingPipelineDesc&);
+    GPUBuffer                CreateBuffer(const BufferDesc&);
+    GPUTexture               CreateTexture(const TextureDesc&);
+    // Pooled per-frame target, or null when every matching slot is still in use. The pool keeps the
+    // Handle alive between frames, so its resource state survives; ReleaseTransient parks it again.
+    GPUTexture*              AcquireTransient(const TextureDesc&);
+    void                     ReleaseTransient(GPUTexture* pTexture);
+    // Destroys parked targets, for example when the render Size changes and their Descriptors no longer
+    // match. Call after waiting for the GPU; targets still in use are kept.
+    void                     PurgeTransients();
+    GPUTexture               LoadTexture(ResourceDirectory, const char* pFileName, TextureCreationFlags = TEXTURE_CREATION_FLAG_NONE);
+    GPUSampler               CreateSampler(const SamplerDesc& = {});
+    GPUPipeline              CreateGraphicsPipeline(const GraphicsPipelineDesc&);
+    GPUPipeline              CreateComputePipeline(const ComputePipelineDesc&);
+    bool                     GetGpuAddress(const GPUBuffer&, uint64_t* pAddress) const;
+    bool                     UpdateBuffer(const GPUBuffer&, uint64_t offset, const void* Data, uint64_t Size);
+    // Destroys the buffer once the open command list and all earlier submissions complete.
+    void                     DeferRelease(GPUBuffer&& buffer);
+    // Identifies the open command list, or the latest submission when none is open.
+    uint64_t                 GetResourceUseId() const;
+    bool                     IsResourceUseComplete(uint64_t useId) const;
 
 private:
-    struct CommandSlot
+    enum class ResourceType
     {
-        ~CommandSlot();
+        Buffer,
+        Texture,
+        RenderTarget,
+        Sampler,
+        Shader,
+        Pipeline,
+        AccelerationStructure,
+        RayTracingPipeline
+    };
+    struct DeferredResource
+    {
+        void*        resource = nullptr;
+        void*        secondary = nullptr;
+        void*        tertiary = nullptr;
+        uint64_t useId = 0;
+        ResourceType Type = ResourceType::Buffer;
+    };
+    void DeferResource(ResourceType Type, void* resource, void* secondary = nullptr, void* tertiary = nullptr);
+    void ReleaseAccelerationStructure(AccelerationStructureData*);
+    void DestroyAccelerationStructure(AccelerationStructureData*);
+    void ReleaseTransientSlots();
+
+    struct CommandResources
+    {
+        ~CommandResources();
 
         CmdPool*    pCmdPool = nullptr;
         Cmd*        pCmd = nullptr;
@@ -423,16 +611,29 @@ private:
         uint64_t    submitId = 0;
     };
 
-    bool    initDevice();
-    bool    createSwapChain();
-    void    destroySwapChain();
-    void    destroyDevice(bool waitForGpu);
-    void    cleanup();
-    Shader* createShader(const ShaderDesc&);
-    Shader* createSlangShader(const ShaderSrcDesc&);
-    void    destroyShaderCompiler();
+    // A parked target keeps its Handle so resource state and descriptor indices stay valid between frames.
+    struct TransientSlot
+    {
+        GPUTexture  texture;
+        TextureDesc desc = {};
+        uint64_t    useId = 0;
+        bool        inUse = false;
+        bool        used = false;
+    };
 
-    slang::IGlobalSession* pSlangSession = nullptr;
+    bool     InitDevice();
+    bool     CreateSwapChain();
+    void     DestroySwapChain();
+    void     DestroyDevice(bool waitForGpu);
+    void     Cleanup();
+    void     CollectDeferredResources();
+    uint64_t GetPendingUseId() const;
+    Shader*  CreateShader(const ShaderDesc&);
+    Shader*  CreateSlangShader(const ShaderSrcDesc&);
+    bool     InitPipelineCache();
+
+    Raytracing*    pRaytracing = nullptr;
+    PipelineCache* pPipelineCache = nullptr;
 
     ContextDesc               desc = {};
     HDRDisplayInfo            hdrDisplayInfo = {};
@@ -445,14 +646,17 @@ private:
     CommandSignature*         pDrawIndirectSignature = nullptr;
     CommandSignature*         pDrawIndexedIndirectSignature = nullptr;
     CommandSignature*         pDispatchIndirectSignature = nullptr;
-    // TODO: Use a dynamic array for command slots to support more than 32 command lists if needed
+    // TODO: Use a dynamic array for command resources to support more than 32 command lists if needed
     static constexpr uint32_t maxCommandLists = 16;
-    CommandSlot               commandSlots[maxCommandLists] = {};
+    CommandResources          commandResources[maxCommandLists] = {};
     Semaphore*                pImageAcquiredSemaphore = nullptr;
     GPUTexture                backbuffers[MAX_SWAPCHAIN_IMAGES] = {};
+    DeferredResource*         deferredResources = nullptr;
     uint64_t                  gpuProfilerToken = UINT64_MAX;
     uint64_t                  nextSubmitId = 1;
-    uint32_t                  nextCommandSlot = 0;
+    uint32_t                  nextCommandIndex = 0;
+    static constexpr uint32_t transientCapacity = 64;
+    TransientSlot             transientSlots[transientCapacity] = {};
     uint32_t                  swapchainImageIndex = 0;
     char                      appName[128] = {};
     bool                      resourceLoaderInitialized = false;
@@ -467,7 +671,10 @@ private:
     friend class GPUSampler;
     friend class GPUShader;
     friend class GPUPipeline;
+    friend class GPUAccelerationStructure;
+    friend class GPURayTracingPipeline;
     friend class CommandList;
+    friend class AccelerationStructureData;
 };
 
 } // namespace hz

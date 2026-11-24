@@ -25,7 +25,7 @@
 /*
  * Variant on RTree implementation using binary tree with leaf nodes containg between min/max allowed points
  *
- * Include "Rtree.h" file in each .c/.cpp file where you want to use the RTree.
+ * Include "RTree.h" file in Each .c/.cpp file where you want to use the RTree.
  *
  * - In exacly *one* .c/.cpp file define following macro before this include:
  *
@@ -49,23 +49,23 @@
 extern "C"
 {
 #endif
-    typedef void (*ForEachRLeafItemIntersectionFn)(void* pUserData, void* pData);
-    typedef bool (*CompareRLeafItemFn)(void* pUserData, void* pData);
+typedef void (*ForEachRLeafItemIntersectionFn)(void* UserData, void* Data);
+typedef bool (*CompareRLeafItemFn)(void* UserData, void* Data);
 
-    typedef struct RTreeDescriptor
-    {
-        uint32_t minElementsPerNode;
-        uint32_t maxElementsPerNode;
-        uint32_t maxElements;
-    } RTreeDescriptor;
+typedef struct RTreeDescriptor
+{
+    uint32_t minElementsPerNode;
+    uint32_t maxElementsPerNode;
+    uint32_t maxElements;
+} RTreeDescriptor;
 
     typedef struct RTree RTree;
 
     void initRTree(const RTreeDescriptor* pDesc, struct RTree** ppRTree);
     void exitRTree(RTree* pRTree);
-    void insertRTreePoint(RTree* pRTree, const float point[2], void* pData);
+    void insertRTreePoint(RTree* pRTree, const float point[2], void* Data);
     bool removeRTreePoint(RTree* pRTree, const float point[2], void* pToCompare, CompareRLeafItemFn pFn);
-    void queryRTree(RTree* pRTree, const float minMax[4], ForEachRLeafItemIntersectionFn pFn, void* pUserData);
+    void queryRTree(RTree* pRTree, const float minMax[4], ForEachRLeafItemIntersectionFn pFn, void* UserData);
 
     // For Visual Studio IntelliSense.
 #if defined(__cplusplus) && defined(__INTELLISENSE__)
@@ -172,7 +172,7 @@ extern "C"
         totalSize += pDesc->maxElements * maxElementsPerNode * sizeof(uint32_t);
         totalSize += maxElementsPerNode * 2 * sizeof(uint32_t);
 
-        RTree* pRTree = (RTree*)tf_malloc(totalSize);
+        RTree* pRTree = (RTree*)MemAllocate(totalSize);
         ASSERT(pRTree);
 
         pRTree->maxElementsPerNode = maxElementsPerNode;
@@ -199,7 +199,7 @@ extern "C"
     void exitRTree(RTree* pRTree)
     {
         ASSERT(pRTree);
-        tf_free(pRTree);
+        MemDeallocate(pRTree);
     }
 
     void rtree_update_node_box(RTree* pRTree, const uint32_t treeIndex, bool recursive)
@@ -232,18 +232,18 @@ extern "C"
         // 	| Pivot | Root | rightPivot	| leftPivot | leftRoot |
         // P:	-       0		0		    1			 1
 
-        leftRoot.parentIndex = root.leftOrFirst;                         // set leftRoot parent index
-        pRTree->pTree[pivot.leftOrFirst].parentIndex = root.leftOrFirst; // set leftPivot parent index
-        pRTree->pTree[pivot.leftOrFirst + 1] = leftRoot;                 // set leftRoot
+        leftRoot.parentIndex = root.leftOrFirst;                         // Set leftRoot parent index
+        pRTree->pTree[pivot.leftOrFirst].parentIndex = root.leftOrFirst; // Set leftPivot parent index
+        pRTree->pTree[pivot.leftOrFirst + 1] = leftRoot;                 // Set leftRoot
         if (leftRoot.countOrNode == INTERNAL_NODE)
         {
             pRTree->pTree[leftRoot.leftOrFirst].parentIndex = pivot.leftOrFirst + 1;
             pRTree->pTree[leftRoot.leftOrFirst + 1].parentIndex = pivot.leftOrFirst + 1;
         }
 
-        pivot.parentIndex = root.parentIndex;                          // set pivot parent index
-        root.parentIndex = pRTree->pTree[treeIndex].parentIndex;       // set root parent index
-        rightPivot.parentIndex = pRTree->pTree[treeIndex].parentIndex; // set leftPivot parent index
+        pivot.parentIndex = root.parentIndex;                          // Set pivot parent index
+        root.parentIndex = pRTree->pTree[treeIndex].parentIndex;       // Set root parent index
+        rightPivot.parentIndex = pRTree->pTree[treeIndex].parentIndex; // Set leftPivot parent index
 
         pivot.leftOrFirst = root.leftOrFirst;
         root.leftOrFirst = pRTree->pTree[treeIndex].leftOrFirst;
@@ -275,18 +275,18 @@ extern "C"
         // 	| pivot | leftPivot | Root 		| rightRoot | rightPivot |
         // P:	-  		0			0			2			2
 
-        rightRoot.parentIndex = root.leftOrFirst + 1;                            // set rightRoot parent index
-        pRTree->pTree[pivot.leftOrFirst + 1].parentIndex = root.leftOrFirst + 1; // set rightPivot parent index
-        pRTree->pTree[pivot.leftOrFirst] = rightRoot;                            // set rightRoot
+        rightRoot.parentIndex = root.leftOrFirst + 1;                            // Set rightRoot parent index
+        pRTree->pTree[pivot.leftOrFirst + 1].parentIndex = root.leftOrFirst + 1; // Set rightPivot parent index
+        pRTree->pTree[pivot.leftOrFirst] = rightRoot;                            // Set rightRoot
         if (rightRoot.countOrNode == INTERNAL_NODE)
         {
             pRTree->pTree[rightRoot.leftOrFirst].parentIndex = pivot.leftOrFirst;
             pRTree->pTree[rightRoot.leftOrFirst + 1].parentIndex = pivot.leftOrFirst;
         }
 
-        pivot.parentIndex = root.parentIndex;                         // set pivot parent index
-        root.parentIndex = pRTree->pTree[treeIndex].parentIndex;      // set root parent index
-        leftPivot.parentIndex = pRTree->pTree[treeIndex].parentIndex; // set leftPivot parent index
+        pivot.parentIndex = root.parentIndex;                         // Set pivot parent index
+        root.parentIndex = pRTree->pTree[treeIndex].parentIndex;      // Set root parent index
+        leftPivot.parentIndex = pRTree->pTree[treeIndex].parentIndex; // Set leftPivot parent index
 
         pivot.leftOrFirst = root.leftOrFirst;
         root.leftOrFirst = pRTree->pTree[treeIndex].leftOrFirst;
@@ -345,11 +345,11 @@ extern "C"
         const uint32_t print_stack_size = 2048;
         uint32_t       tree_stack[print_stack_size];
         uint32_t       node_stack[print_stack_size];
-        uint32_t       depth = 0;
+        uint32_t       Depth = 0;
         uint8_t        stack_ptr = 0;
 
         tree_stack[stack_ptr++] = 0; // Set root node as start point
-        RAW_LOGF(LogLevel::eINFO, "Print RTree \n");
+        RAW_LOGF(LogLevel::Info, "Print RTree \n");
         do
         {
             uint8_t node_ptr = stack_ptr;
@@ -357,7 +357,7 @@ extern "C"
             memcpy(node_stack, tree_stack, print_stack_size * sizeof(uint32_t));
 
             char buffer[8192] = {};
-            sprintf(buffer, "%u: ", depth);
+            sprintf(buffer, "%u: ", Depth);
             uint32_t offset = strlen(buffer);
             do
             {
@@ -381,8 +381,8 @@ extern "C"
 
             } while (node_ptr > 0);
             sprintf(buffer + offset, "\n");
-            RAW_LOGF(LogLevel::eINFO, buffer);
-            ++depth;
+            RAW_LOGF(LogLevel::Info, buffer);
+            ++Depth;
         } while (stack_ptr > 0);
     }
 #else
@@ -566,17 +566,17 @@ extern "C"
         }
     }
 
-    void insertRTreePoint(RTree* pRTree, const float point[2], void* pData)
+    void insertRTreePoint(RTree* pRTree, const float point[2], void* Data)
     {
         ASSERT(pRTree);
         pRTree->pPoints[pRTree->dataCount][0] = point[0];
         pRTree->pPoints[pRTree->dataCount][1] = point[1];
-        pRTree->ppData[pRTree->dataCount] = pData;
+        pRTree->ppData[pRTree->dataCount] = Data;
         rtree_insert_point(pRTree, 0, pRTree->dataCount);
         ++pRTree->dataCount;
     }
 
-    void queryRTree(RTree* pRTree, const float minMax[4], ForEachRLeafItemIntersectionFn pFn, void* pUserData)
+    void queryRTree(RTree* pRTree, const float minMax[4], ForEachRLeafItemIntersectionFn pFn, void* UserData)
     {
         ASSERT(pRTree);
         uint32_t tree_stack[RTREE_STACK_SIZE];
@@ -594,7 +594,7 @@ extern "C"
                         // check element against area
                         if (rtree_box_contains_point(minMax, pRTree->pPoints[pRTree->pIndices[node->leftOrFirst + i]]))
                         {
-                            pFn(pUserData, pRTree->ppData[pRTree->pIndices[node->leftOrFirst + i]]);
+                            pFn(UserData, pRTree->ppData[pRTree->pIndices[node->leftOrFirst + i]]);
                         }
                     }
                 }
@@ -644,7 +644,7 @@ extern "C"
         RTreeNode* node = &pTree[treeIndex];
         ASSERT(index < node->leftOrFirst + node->countOrNode && index >= node->leftOrFirst);
 
-        // Reduce data count and switch data last data location
+        // Reduce data Count and switch data last data location
         // This ensures usability of dataCount as last index for inserting new points
         --pRTree->dataCount;
         pRTree->ppData[pRTree->pIndices[index]] = pRTree->ppData[pRTree->dataCount];
@@ -694,7 +694,7 @@ extern "C"
         {
             --pRTree->leafNodes; // Amount of leave nodes is reduced by one
             uint8_t  isLeftNode = treeIndex % 2;
-            // Replace empty data space with the current outer leave node
+            // Replace Empty data space with the current outer leave node
             uint32_t outerNodeIndex;
             bool     succeed = rtree_get_leave_node(pRTree, pRTree->maxElementsPerNode * pRTree->leafNodes, &outerNodeIndex);
             ASSERT(succeed);
@@ -710,7 +710,7 @@ extern "C"
             RTreeNode*     sibling = &pTree[siblingIndex];
             ASSERT(sibling->parentIndex == node->parentIndex);
             sibling->parentIndex = pTree[node->parentIndex].parentIndex;
-            if (sibling->countOrNode == INTERNAL_NODE) // update child node parent index
+            if (sibling->countOrNode == INTERNAL_NODE) // Update child node parent index
             {
                 pTree[sibling->leftOrFirst].parentIndex = node->parentIndex;
                 pTree[sibling->leftOrFirst + 1].parentIndex = node->parentIndex;
@@ -722,15 +722,15 @@ extern "C"
 
             // Move outer nodes to free locations if not working on outer nodes
             // pTree[treeIndex] + pTree[siblingIndex] going to be free locations
-            // get "leafNodes * 2 (-1)" left and right and move to free space
-            // update parent leftOrFirst location
+            // Get "leafNodes * 2 (-1)" left and right and move to free space
+            // Update parent leftOrFirst location
             if (pRTree->leafNodes * 2 != treeIndex && pRTree->leafNodes * 2 != siblingIndex)
             {
                 pTree[pTree[pRTree->leafNodes * 2].parentIndex].leftOrFirst = isLeftNode ? treeIndex : treeIndex - 1;
                 pTree[treeIndex] = isLeftNode ? pTree[pRTree->leafNodes * 2 - 1] : pTree[pRTree->leafNodes * 2];
                 pTree[siblingIndex] = isLeftNode ? pTree[pRTree->leafNodes * 2] : pTree[pRTree->leafNodes * 2 - 1];
 
-                // update child node parent index
+                // Update child node parent index
                 if (pTree[treeIndex].countOrNode == INTERNAL_NODE)
                 {
                     pTree[pTree[treeIndex].leftOrFirst].parentIndex = treeIndex;

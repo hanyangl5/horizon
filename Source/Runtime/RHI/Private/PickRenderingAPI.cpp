@@ -64,7 +64,7 @@ extern HRESULT  d3d12_addDirectStorageQueue(DirectStorage* pDirectStorage, const
 extern void     d3d12_removeDirectStorageQueue(DirectStorageQueue* pQueue);
 extern HRESULT  d3d12_openDirectStorageFile(DirectStorage* pDirectStorage, const wchar_t* pPath, DirectStorageFile** ppFile);
 extern void     d3d12_closeDirectStorageFile(DirectStorageFile* pFile);
-extern HRESULT  d3d12_addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t capacity, const char* pName,
+extern HRESULT  d3d12_addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t Capacity, const char* Name,
                                                   DirectStorageStatusArray** ppStatusArray);
 extern void     d3d12_removeDirectStorageStatusArray(DirectStorageStatusArray* pStatusArray);
 extern bool     d3d12_isDirectStorageStatusComplete(DirectStorageStatusArray* pStatusArray, uint32_t index);
@@ -89,11 +89,11 @@ extern void     d3d12_addShaderBinary(Renderer* pRenderer, const BinaryShaderDes
 extern void     d3d12_removeShader(Renderer* pRenderer, Shader* pShaderProgram);
 extern void     d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pDesc, RootSignature** ppRootSignature);
 extern void     d3d12_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature);
-extern uint32_t d3d12_getDescriptorIndexFromName(const RootSignature* pRootSignature, const char* pName);
+extern uint32_t d3d12_getDescriptorIndexFromName(const RootSignature* pRootSignature, const char* Name);
 extern void     d3d12_addPipeline(Renderer* pRenderer, const PipelineDesc* pPipelineSettings, Pipeline** ppPipeline);
 extern void     d3d12_removePipeline(Renderer* pRenderer, Pipeline* pPipeline);
 extern void     d3d12_addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc, PipelineCache** ppPipelineCache);
-extern void     d3d12_getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* pData);
+extern void     d3d12_getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* Data);
 #if defined(SHADER_STATS_AVAILABLE)
 extern void d3d12_addPipelineStats(Renderer* pRenderer, Pipeline* pPipeline, bool generateDisassembly, PipelineStats* pOutStats);
 extern void d3d12_removePipelineStats(Renderer* pRenderer, PipelineStats* pStats);
@@ -105,8 +105,8 @@ extern void d3d12_endCmd(Cmd* pCmd);
 extern void d3d12_cmdBindRenderTargets(Cmd* pCmd, const BindRenderTargetsDesc* pDesc);
 extern void d3d12_cmdSetSampleLocations(Cmd* pCmd, SampleCount samplesCount, uint32_t gridSizeX, uint32_t gridSizeY,
                                         SampleLocations* plocations);
-extern void d3d12_cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth);
-extern void d3d12_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+extern void       d3d12_cmdSetViewport(Cmd* pCmd, float x, float y, float Width, float Height, float minDepth, float maxDepth);
+extern void       d3d12_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t Width, uint32_t Height);
 extern void d3d12_cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val);
 extern void d3d12_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline);
 extern void d3d12_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants,
@@ -137,7 +137,7 @@ extern void       d3d12_addIndirectCommandSignature(Renderer* pRenderer, const C
                                                     CommandSignature** ppCommandSignature);
 extern void       d3d12_removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature);
 extern void d3d12_cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, unsigned int maxCommandCount, Buffer* pIndirectBuffer,
-                                     uint64_t bufferOffset, Buffer* pCounterBuffer, uint64_t counterBufferOffset);
+                                     uint64_t bufferOffset, Buffer* CounterBuffer, uint64_t counterBufferOffset);
 extern void d3d12_getTimestampFrequency(Queue* pQueue, double* pFrequency);
 extern void d3d12_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** ppQueryPool);
 extern void d3d12_removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool);
@@ -149,14 +149,14 @@ extern void d3d12_getQueryData(Renderer* pRenderer, QueryPool* pQueryPool, uint3
 extern void d3d12_calculateMemoryStats(Renderer* pRenderer, char** ppStats);
 extern void d3d12_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes);
 extern void d3d12_freeMemoryStats(Renderer* pRenderer, char* pStats);
-extern void d3d12_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName);
+extern void d3d12_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* Name);
 extern void d3d12_cmdEndDebugMarker(Cmd* pCmd);
-extern void d3d12_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName);
+extern void d3d12_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* Name);
 extern void d3d12_cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc);
-extern void d3d12_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName);
-extern void d3d12_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName);
-extern void d3d12_setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* pName);
-extern void d3d12_setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* pName);
+extern void d3d12_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* Name);
+extern void d3d12_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* Name);
+extern void d3d12_setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* Name);
+extern void d3d12_setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* Name);
 extern bool d3d12_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing);
 extern void d3d12_removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
 extern void d3d12_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
@@ -165,13 +165,19 @@ extern uint32_t d3d12_getAccelerationStructureSrvIndex(const AccelerationStructu
 extern void     d3d12_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 extern void     d3d12_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 extern void     d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
+extern uint64_t   d3d12_getAccelerationStructureGpuAddress(const AccelerationStructure*);
+extern void       d3d12_addRaytracingPipeline(Raytracing*, const RaytracingPipelineDesc*, RaytracingPipeline**);
+extern void       d3d12_removeRaytracingPipeline(Raytracing*, RaytracingPipeline*);
+extern RootSignature* d3d12_getRaytracingPipelineRootSignature(RaytracingPipeline*);
+extern void           d3d12_cmdBindRaytracingPipeline(Cmd*, RaytracingPipeline*);
+extern void           d3d12_cmdTraceRays(Cmd*, RaytracingPipeline*, uint32_t, uint32_t, uint32_t);
 extern void     d3d12_getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut);
 extern void     d3d12_getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut);
 extern void     d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer);
 extern void     d3d12_removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 extern void     d3d12_mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 extern void     d3d12_unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-extern void d3d12_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+extern void d3d12_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t Size);
 extern void d3d12_cmdCopyTexture(Cmd* pCmd, Texture* pDstTexture, Texture* pSrcTexture);
 extern void d3d12_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc);
 extern void d3d12_cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const SubresourceDataDesc* pSubresourceDesc);
@@ -305,11 +311,11 @@ FORGE_RENDERER_API void FORGE_CALLCONV closeDirectStorageFile(DirectStorageFile*
     d3d12_closeDirectStorageFile(pFile);
 }
 
-FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t capacity, const char* pName,
+FORGE_RENDERER_API HRESULT FORGE_CALLCONV addDirectStorageStatusArray(DirectStorage* pDirectStorage, uint32_t Capacity, const char* Name,
                                                                       DirectStorageStatusArray** ppStatusArray)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    return d3d12_addDirectStorageStatusArray(pDirectStorage, capacity, pName, ppStatusArray);
+    return d3d12_addDirectStorageStatusArray(pDirectStorage, Capacity, Name, ppStatusArray);
 }
 
 FORGE_RENDERER_API void FORGE_CALLCONV removeDirectStorageStatusArray(DirectStorageStatusArray* pStatusArray)
@@ -454,10 +460,10 @@ FORGE_RENDERER_API void FORGE_CALLCONV removeRootSignature(Renderer* pRenderer, 
     d3d12_removeRootSignature(pRenderer, pRootSignature);
 }
 
-FORGE_RENDERER_API uint32_t FORGE_CALLCONV getDescriptorIndexFromName(const RootSignature* pRootSignature, const char* pName)
+FORGE_RENDERER_API uint32_t FORGE_CALLCONV getDescriptorIndexFromName(const RootSignature* pRootSignature, const char* Name)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    return d3d12_getDescriptorIndexFromName(pRootSignature, pName);
+    return d3d12_getDescriptorIndexFromName(pRootSignature, Name);
 }
 
 FORGE_RENDERER_API void FORGE_CALLCONV addPipeline(Renderer* pRenderer, const PipelineDesc* pPipelineSettings, Pipeline** ppPipeline)
@@ -479,10 +485,10 @@ FORGE_RENDERER_API void FORGE_CALLCONV addPipelineCache(Renderer* pRenderer, con
     d3d12_addPipelineCache(pRenderer, pDesc, ppPipelineCache);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* pData)
+FORGE_RENDERER_API void FORGE_CALLCONV getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* Data)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_getPipelineCacheData(pRenderer, pPipelineCache, pSize, pData);
+    d3d12_getPipelineCacheData(pRenderer, pPipelineCache, pSize, Data);
 }
 
 #if defined(SHADER_STATS_AVAILABLE)
@@ -537,17 +543,17 @@ FORGE_RENDERER_API void FORGE_CALLCONV cmdSetSampleLocations(Cmd* pCmd, SampleCo
     d3d12_cmdSetSampleLocations(pCmd, samplesCount, gridSizeX, gridSizeY, plocations);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth,
+FORGE_RENDERER_API void FORGE_CALLCONV cmdSetViewport(Cmd* pCmd, float x, float y, float Width, float Height, float minDepth,
                                                       float maxDepth)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_cmdSetViewport(pCmd, x, y, width, height, minDepth, maxDepth);
+    d3d12_cmdSetViewport(pCmd, x, y, Width, Height, minDepth, maxDepth);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+FORGE_RENDERER_API void FORGE_CALLCONV cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t Width, uint32_t Height)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_cmdSetScissor(pCmd, x, y, width, height);
+    d3d12_cmdSetScissor(pCmd, x, y, Width, Height);
 }
 
 FORGE_RENDERER_API void FORGE_CALLCONV cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
@@ -694,11 +700,11 @@ FORGE_RENDERER_API void FORGE_CALLCONV removeIndirectCommandSignature(Renderer* 
 }
 
 FORGE_RENDERER_API void FORGE_CALLCONV cmdExecuteIndirect(Cmd* pCmd, CommandSignature* pCommandSignature, unsigned int maxCommandCount,
-                                                          Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* pCounterBuffer,
+                                                          Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* CounterBuffer,
                                                           uint64_t counterBufferOffset)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_cmdExecuteIndirect(pCmd, pCommandSignature, maxCommandCount, pIndirectBuffer, bufferOffset, pCounterBuffer, counterBufferOffset);
+    d3d12_cmdExecuteIndirect(pCmd, pCommandSignature, maxCommandCount, pIndirectBuffer, bufferOffset, CounterBuffer, counterBufferOffset);
 }
 
 FORGE_RENDERER_API void FORGE_CALLCONV getTimestampFrequency(Queue* pQueue, double* pFrequency)
@@ -767,10 +773,10 @@ FORGE_RENDERER_API void FORGE_CALLCONV freeMemoryStats(Renderer* pRenderer, char
     d3d12_freeMemoryStats(pRenderer, pStats);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
+FORGE_RENDERER_API void FORGE_CALLCONV cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* Name)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_cmdBeginDebugMarker(pCmd, r, g, b, pName);
+    d3d12_cmdBeginDebugMarker(pCmd, r, g, b, Name);
 }
 
 FORGE_RENDERER_API void FORGE_CALLCONV cmdEndDebugMarker(Cmd* pCmd)
@@ -779,10 +785,10 @@ FORGE_RENDERER_API void FORGE_CALLCONV cmdEndDebugMarker(Cmd* pCmd)
     d3d12_cmdEndDebugMarker(pCmd);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
+FORGE_RENDERER_API void FORGE_CALLCONV cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* Name)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_cmdAddDebugMarker(pCmd, r, g, b, pName);
+    d3d12_cmdAddDebugMarker(pCmd, r, g, b, Name);
 }
 
 FORGE_RENDERER_API void FORGE_CALLCONV cmdWriteMarker(Cmd* pCmd, const MarkerDesc* pDesc)
@@ -791,28 +797,28 @@ FORGE_RENDERER_API void FORGE_CALLCONV cmdWriteMarker(Cmd* pCmd, const MarkerDes
     d3d12_cmdWriteMarker(pCmd, pDesc);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
+FORGE_RENDERER_API void FORGE_CALLCONV setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* Name)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_setBufferName(pRenderer, pBuffer, pName);
+    d3d12_setBufferName(pRenderer, pBuffer, Name);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
+FORGE_RENDERER_API void FORGE_CALLCONV setTextureName(Renderer* pRenderer, Texture* pTexture, const char* Name)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_setTextureName(pRenderer, pTexture, pName);
+    d3d12_setTextureName(pRenderer, pTexture, Name);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* pName)
+FORGE_RENDERER_API void FORGE_CALLCONV setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* Name)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_setRenderTargetName(pRenderer, pRenderTarget, pName);
+    d3d12_setRenderTargetName(pRenderer, pRenderTarget, Name);
 }
 
-FORGE_RENDERER_API void FORGE_CALLCONV setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* pName)
+FORGE_RENDERER_API void FORGE_CALLCONV setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* Name)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_setPipelineName(pRenderer, pPipeline, pName);
+    d3d12_setPipelineName(pRenderer, pPipeline, Name);
 }
 
 FORGE_RENDERER_API bool FORGE_CALLCONV initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
@@ -894,10 +900,10 @@ void FORGE_CALLCONV unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
     d3d12_unmapBuffer(pRenderer, pBuffer);
 }
 
-void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
+void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t Size)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_VERBOSE();
-    d3d12_cmdUpdateBuffer(pCmd, pBuffer, dstOffset, pSrcBuffer, srcOffset, size);
+    d3d12_cmdUpdateBuffer(pCmd, pBuffer, dstOffset, pSrcBuffer, srcOffset, Size);
 }
 
 void FORGE_CALLCONV cmdCopyTexture(Cmd* pCmd, Texture* pDstTexture, Texture* pSrcTexture)
@@ -939,7 +945,7 @@ static void initRendererAPI(const char* appName, const RendererDesc* pSettings, 
         initD3D12Renderer(appName, pSettings, ppRenderer);
         break;
     default:
-        LOGF(LogLevel::eERROR, "No Renderer API defined!");
+        LOGF(LogLevel::Error, "No Renderer API defined!");
         break;
     }
 }
@@ -952,7 +958,7 @@ static void exitRendererAPI(Renderer* pRenderer, const RendererApi api)
         exitD3D12Renderer(pRenderer);
         break;
     default:
-        LOGF(LogLevel::eERROR, "No Renderer API defined!");
+        LOGF(LogLevel::Error, "No Renderer API defined!");
         break;
     }
 }
@@ -966,7 +972,7 @@ static void initRendererContextAPI(const char* appName, const RendererContextDes
         initD3D12RendererContext(appName, pSettings, ppContext);
         break;
     default:
-        LOGF(LogLevel::eERROR, "No Renderer API defined!");
+        LOGF(LogLevel::Error, "No Renderer API defined!");
         break;
     }
 }
@@ -979,7 +985,7 @@ static void exitRendererContextAPI(RendererContext* pContext, const RendererApi 
         exitD3D12RendererContext(pContext);
         break;
     default:
-        LOGF(LogLevel::eERROR, "No Renderer API defined!");
+        LOGF(LogLevel::Error, "No Renderer API defined!");
         break;
     }
 }
@@ -1003,8 +1009,8 @@ void initRendererContext(const char* appName, const RendererContextDesc* pSettin
     }
     else
     {
-        LOGF(LogLevel::eWARNING, "Requested Graphics API has been marked as disabled and/or not supported in the Renderer's descriptor!");
-        LOGF(LogLevel::eWARNING, "Falling back to the first available API...");
+        LOGF(LogLevel::Warning, "Requested Graphics API has been marked as disabled and/or not supported in the Renderer's descriptor!");
+        LOGF(LogLevel::Warning, "Falling back to the first available API...");
     }
 
     removeGPUConfigurationRules();
@@ -1024,7 +1030,7 @@ void setupPlatformParameters(Renderer* pRenderer)
     gPlatformParameters.availableGpuCount = 0;
     gPlatformParameters.selectedGpuIndex = 0;
 
-    // update available gpus and renderer api
+    // Update available gpus and renderer api
     if (pRenderer != NULL)
     {
         uint32_t gpuCount = pRenderer->pContext->gpuCount;
@@ -1058,11 +1064,11 @@ void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer**
     }
     else
     {
-        LOGF(LogLevel::eWARNING, "Requested Graphics API has been marked as disabled and/or not supported in the Renderer's descriptor!");
-        LOGF(LogLevel::eWARNING, "Falling back to the first available API...");
+        LOGF(LogLevel::Warning, "Requested Graphics API has been marked as disabled and/or not supported in the Renderer's descriptor!");
+        LOGF(LogLevel::Warning, "Falling back to the first available API...");
     }
 
-    // set available gpus and renderer api
+    // Set available gpus and renderer api
     setupPlatformParameters(*ppRenderer);
     // configure the user's settings using the newly created device
     if (pSettings->pExtendedSettings && *ppRenderer)
@@ -1081,4 +1087,30 @@ void exitRenderer(Renderer* pRenderer)
     exitRendererAPI(pRenderer, pRenderer->rendererApi);
     gPlatformParameters.availableGpuCount = 0;
     gPlatformParameters.selectedGpuIndex = 0;
+}
+
+FORGE_RENDERER_API uint64_t FORGE_CALLCONV getAccelerationStructureGpuAddress(const AccelerationStructure* structure)
+{
+    return d3d12_getAccelerationStructureGpuAddress(structure);
+}
+FORGE_RENDERER_API void FORGE_CALLCONV addRaytracingPipeline(Raytracing* rt, const RaytracingPipelineDesc* desc,
+                                                             RaytracingPipeline** pipeline)
+{
+    d3d12_addRaytracingPipeline(rt, desc, pipeline);
+}
+FORGE_RENDERER_API void FORGE_CALLCONV removeRaytracingPipeline(Raytracing* rt, RaytracingPipeline* pipeline)
+{
+    d3d12_removeRaytracingPipeline(rt, pipeline);
+}
+FORGE_RENDERER_API RootSignature* FORGE_CALLCONV getRaytracingPipelineRootSignature(RaytracingPipeline* pipeline)
+{
+    return d3d12_getRaytracingPipelineRootSignature(pipeline);
+}
+FORGE_RENDERER_API void FORGE_CALLCONV cmdBindRaytracingPipeline(Cmd* cmd, RaytracingPipeline* pipeline)
+{
+    d3d12_cmdBindRaytracingPipeline(cmd, pipeline);
+}
+FORGE_RENDERER_API void FORGE_CALLCONV cmdTraceRays(Cmd* cmd, RaytracingPipeline* pipeline, uint32_t Width, uint32_t Height, uint32_t Depth)
+{
+    d3d12_cmdTraceRays(cmd, pipeline, Width, Height, Depth);
 }

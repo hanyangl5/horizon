@@ -30,14 +30,14 @@
 
 typedef struct BufferAllocatorPlotWidget
 {
-    float2      size = float2(0.f, 0.f);
-    const char* pName = NULL;
+    float2      Size = float2(0.f, 0.f);
+    const char* Name = NULL;
     int64_t*    pValues = NULL;
 } BufferAllocatorPlotWidget;
 
 namespace ImGui
 {
-// Copied ImGui::PlotEx and modified it to be able to have different colors on each histogram bar to represent fragmentation.
+// Copied ImGui::PlotEx and modified it to be able to have different colors on Each histogram bar to represent fragmentation.
 static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data, int values_count, int values_offset,
                                              const char* overlay_text, ImVec2 frame_size)
 {
@@ -99,9 +99,9 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
                 if (rb < 0)
                     rb = -rb;
 
-                long long size = rb - lb;
-                SetTooltip("[%lli;%lli) %lli; [%s;%s) %s; free chunk count: %lli", lb, rb, size, humanReadableSize(lb).str,
-                           humanReadableSize(rb).str, humanReadableSize(size).str, intensity);
+                long long Size = rb - lb;
+                SetTooltip("[%lli;%lli) %lli; [%s;%s) %s; free chunk count: %lli", lb, rb, Size, HumanReadableSize(lb).str,
+                           HumanReadableSize(rb).str, HumanReadableSize(Size).str, intensity);
             }
             idx_hovered = v_idx;
         }
@@ -132,7 +132,7 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
 
                 int64_t intensity = intData[v1_idx * 2 + 1];
 
-                // set redness based on intensity
+                // Set redness based on intensity
                 uint8_t blue = 0x33;
                 uint8_t green = 0x99;
                 uint8_t red = 0xff;
@@ -150,7 +150,7 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
 
             const ImVec2 tp1 = ImVec2(t1, 1.0f - ImSaturate((v1 - scale_min) * inv_scale));
 
-            // NB: Draw calls are merged together by the DrawList system. Still, we should render our batch are lower level to save a bit of
+            // NB: Draw calls are merged together by the DrawList system. Still, we should render our batch are lower level to Save a bit of
             // CPU.
             ImVec2 pos0 = ImLerp(inner_bb.Min, inner_bb.Max, tp0);
             ImVec2 pos1 = ImLerp(inner_bb.Min, inner_bb.Max, ImVec2(tp1.x, histogram_zero_line_t));
@@ -181,11 +181,11 @@ static int PlotBufferChunkAllocatorHistogram(const char* label, const void* data
 }
 } // namespace ImGui
 
-static void internalProcessBufferAllocatorPlotWidget(void* pUserData)
+static void internalProcessBufferAllocatorPlotWidget(void* UserData)
 {
-    BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pUserData;
+    BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)UserData;
 
-    int            nValues = (int)pPlotWidget->size[0];
+    int            nValues = (int)pPlotWidget->Size[0];
     const int64_t* values = pPlotWidget->pValues;
 
     if (!values)
@@ -193,40 +193,40 @@ static void internalProcessBufferAllocatorPlotWidget(void* pUserData)
 
     unsigned char labelBuf[MAX_LABEL_STR_LENGTH];
     bstring       label = bemptyfromarr(labelBuf);
-    bformat(&label, "%s##%p", pPlotWidget->pName, values);
+    bformat(&label, "%s##%p", pPlotWidget->Name, values);
     ASSERT(!bownsdata(&label));
 
     char title[1024];
 
-    size_t tlen = strlen(pPlotWidget->pName);
+    size_t tlen = strlen(pPlotWidget->Name);
 
     if (tlen > 1023)
         tlen = 1023;
-    memcpy(title, pPlotWidget->pName, tlen);
+    memcpy(title, pPlotWidget->Name, tlen);
     title[tlen] = 0;
 
     if (tlen < 900)
     {
-        snprintf(title + tlen, TF_ARRAY_COUNT(title) - tlen, " %s; fragments: %lli", humanReadableSize((size_t)values[0]).str,
+        snprintf(title + tlen, TF_ARRAY_COUNT(title) - tlen, " %s; fragments: %lli", HumanReadableSize((size_t)values[0]).str,
                  (long long)values[1]);
         title[tlen++] = ' ';
     }
 
-    ImGui::PlotBufferChunkAllocatorHistogram((const char*)label.data, values + 2, nValues, 0, title, pPlotWidget->size);
+    ImGui::PlotBufferChunkAllocatorHistogram((const char*)label.data, values + 2, nValues, 0, title, pPlotWidget->Size);
 }
 
-static void internalDestroyBufferAllocatorPlotWidget(void* pUserData)
+static void internalDestroyBufferAllocatorPlotWidget(void* UserData)
 {
-    BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pUserData;
-    tf_free(pPlotWidget->pValues);
+    BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)UserData;
+    MemDeallocate(pPlotWidget->pValues);
     pPlotWidget->pValues = NULL;
 }
 
-UIWidget* uiCreateBufferChunkAllocatorPlotWidget(UIComponent* pGui, const char* pLabel, BufferAllocatorPlotWidget* pUserData)
+UIWidget* uiCreateBufferChunkAllocatorPlotWidget(UIComponent* pGui, const char* pLabel, BufferAllocatorPlotWidget* UserData)
 {
     CustomWidget customWidget = {};
     customWidget.pCallback = internalProcessBufferAllocatorPlotWidget;
-    customWidget.pUserData = pUserData;
+    customWidget.UserData = UserData;
     customWidget.pDestroyCallback = internalDestroyBufferAllocatorPlotWidget;
     return uiCreateComponentWidget(pGui, pLabel, &customWidget, WIDGET_TYPE_CUSTOM);
 }
@@ -238,36 +238,38 @@ static inline uint64_t histogramPointOffsetAproximation(uint32_t point, uint32_t
 
 /// Update data from BufferChunkAllocator once
 /// Caller takes care of race conditions
-/// Widget must be of type CustomWidget and pUserData needs to point to BufferAllocatorPlotWidget. If you created the widget using
+/// Widget must be of Type CustomWidget and UserData needs to point to BufferAllocatorPlotWidget. If you created the widget using
 /// uiCreateBufferChunkAllocatorPlotWidget it's okay
-static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, float2 size, struct BufferChunkAllocator* data)
+static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, float2 Size, struct BufferChunkAllocator* data)
 {
     ASSERT(pWidget);
-    ASSERT(pWidget->type == WIDGET_TYPE_CUSTOM);
-    if (pWidget->type != WIDGET_TYPE_CUSTOM) //-V547
+    ASSERT(pWidget->Type == WIDGET_TYPE_CUSTOM);
+    if (pWidget->Type != WIDGET_TYPE_CUSTOM) //-V547
+    {
         return;
+    }
 
     CustomWidget*              pCustomWidget = (CustomWidget*)pWidget->pWidget;
-    BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pCustomWidget->pUserData;
+    BufferAllocatorPlotWidget* pPlotWidget = (BufferAllocatorPlotWidget*)pCustomWidget->UserData;
 
-    if (pPlotWidget->size.x != size.x || pPlotWidget->pValues == NULL)
+    if (pPlotWidget->Size.x != Size.x || pPlotWidget->pValues == NULL)
     {
-        tf_free(pPlotWidget->pValues);
+        MemDeallocate(pPlotWidget->pValues);
 
-        const uint32_t nValues = (uint32_t)size[0];
+        const uint32_t nValues = (uint32_t)Size[0];
         const size_t   allocSize = sizeof(int64_t) * 2 * (nValues + 2);
-        pPlotWidget->pValues = (int64_t*)tf_calloc(1, allocSize);
+        pPlotWidget->pValues = (int64_t*)MemCallocate(1, allocSize);
         memset(pPlotWidget->pValues, 0, allocSize);
     }
 
-    pPlotWidget->size = size;
+    pPlotWidget->Size = Size;
 
-    uint32_t nValues = (uint32_t)pPlotWidget->size[0];
+    uint32_t nValues = (uint32_t)pPlotWidget->Size[0];
     int64_t* values = pPlotWidget->pValues;
 
     uint32_t unusedChunkCount = (uint32_t)arrlenu(data->unusedChunks);
 
-    values[0] = (int64_t)data->size;
+    values[0] = (int64_t)data->Size;
     ++values;
 
     int64_t* fragmentCount = values;
@@ -284,15 +286,17 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
 
         if (ci == 0 && freeChunk->offset == 0)
             floatingOccupiedChunks -= 1;
-        if (ci == unusedChunkCount - 1 && freeChunk->offset + freeChunk->size == data->size)
+        if (ci == unusedChunkCount - 1 && freeChunk->offset + freeChunk->Size == data->Size)
+        {
             floatingOccupiedChunks -= 1;
+        }
 
         uint64_t point_beg = 0;
 
         // while we are on occupied zone
         for (; point < nValues; ++point)
         {
-            point_beg = histogramPointOffsetAproximation(point, nValues, data->size);
+            point_beg = histogramPointOffsetAproximation(point, nValues, data->Size);
 
             if (point_beg >= freeChunk->offset)
                 break;
@@ -303,17 +307,19 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
             intensity = 0;
         }
 
-        // we hit free zone, add free chunk in a point
+        // we hit free zone, Add free chunk in a point
         ++intensity;
 
         // while we are in the free chunk
         for (uint64_t point_end = point_beg; point < nValues; ++point)
         {
             point_beg = point_end;
-            point_end = histogramPointOffsetAproximation(point + 1, nValues, data->size);
+            point_end = histogramPointOffsetAproximation(point + 1, nValues, data->Size);
 
-            if (point_end > freeChunk->offset + freeChunk->size)
+            if (point_end > freeChunk->offset + freeChunk->Size)
+            {
                 break;
+            }
 
             values[2 * point] = -(int64_t)point_beg;
             values[2 * point + 1] = intensity;
@@ -327,7 +333,7 @@ static void uiSetWidgetAllocatorPlotBufferChunkAllocatorData(UIWidget* pWidget, 
     // fill remaining space as occupied
     while (point < nValues)
     {
-        values[2 * point] = (int64_t)histogramPointOffsetAproximation(point, nValues, data->size);
+        values[2 * point] = (int64_t)histogramPointOffsetAproximation(point, nValues, data->Size);
         values[2 * point + 1] = intensity;
         ++point;
         intensity = 0;

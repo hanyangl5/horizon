@@ -62,7 +62,7 @@ extern "C"
      stbds_temp((t)-1))
 #define bhgeti(t, k)                   bhgeti_impl(t, k, __FILE__, __LINE__, __FUNCTION__, "bhgeti")
 
-/* get value */
+/* Get value */
 #define bhget(t, k)                    (bhgetp_impl(t, k, __FILE__, __LINE__, __FUNCTION__, "bhget")->value)
 #define bhgets(t, k)                   (*bhgetp_impl(t, k, __FILE__, __LINE__, __FUNCTION__, "bhgets"))
 
@@ -113,7 +113,7 @@ extern "C"
             bhfree(strmap);
         }
 
-        /* bstrings can't be managed by hash map */
+        /* bstrings can't be managed by Hash map */
         //{
         //	s.key = bconstfromliteral("a");
         //	s.value = 1;
@@ -125,7 +125,7 @@ extern "C"
         //	shfree(strmap);
         //}
 
-        /* bstrings can't be managed by hash map */
+        /* bstrings can't be managed by Hash map */
         //{
         //	s.key = "a", s.value = 1;
         //	sh_new_arena(strmap);
@@ -170,23 +170,23 @@ extern "C"
             {
                 bstring key;
                 char    value;
-            }* hash = NULL;
+            }*      Hash = NULL;
             bstring name = bconstfromliteral("jen");
             bstring bob = bconstfromliteral("bob");
-            bhput(hash, bob, 'h');
-            ASSERT(bhget(hash, bob) == 'h');
-            bhput(hash, bob, 'e');
-            ASSERT(bhget(hash, bob) == 'e');
-            bhput(hash, bob, 'l');
-            ASSERT(bhget(hash, bob) == 'l');
-            bhput(hash, bob, 'x');
-            ASSERT(bhget(hash, bob) == 'x');
-            bhput(hash, bob, 'o');
-            ASSERT(bhget(hash, bob) == 'o');
+            bhput(Hash, bob, 'h');
+            ASSERT(bhget(Hash, bob) == 'h');
+            bhput(Hash, bob, 'e');
+            ASSERT(bhget(Hash, bob) == 'e');
+            bhput(Hash, bob, 'l');
+            ASSERT(bhget(Hash, bob) == 'l');
+            bhput(Hash, bob, 'x');
+            ASSERT(bhget(Hash, bob) == 'x');
+            bhput(Hash, bob, 'o');
+            ASSERT(bhget(Hash, bob) == 'o');
 
-            bhput(hash, name, 'l');
-            ASSERT(bhget(hash, name) == 'l');
-            bhfree(hash);
+            bhput(Hash, name, 'l');
+            ASSERT(bhget(Hash, name) == 'l');
+            bhfree(Hash);
         }
     }
 

@@ -184,7 +184,7 @@ add_library(zstd STATIC ${ZSTD_FILES})
 file(GLOB_RECURSE LZ4_FILES ${ENGINE_THIRD_PARTY_SOURCE_DIR}/lz4/*.c)
 add_library(HorizonLZ4 STATIC ${LZ4_FILES})
 
-file(GLOB_RECURSE IMGUI_FILES ${ENGINE_THIRD_PARTY_SOURCE_DIR}/imgui/*.cpp)
+file(GLOB IMGUI_FILES ${ENGINE_THIRD_PARTY_SOURCE_DIR}/imgui/*.cpp)
 add_library(imgui STATIC ${IMGUI_FILES})
 
 add_library(HorizonCJSON STATIC
@@ -226,6 +226,10 @@ add_subdirectory(${ENGINE_THIRD_PARTY_SOURCE_DIR}/gainput)
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/include/ozz/base/platform.h
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/containers/string_archive.cc
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/io/archive.cc
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/io/stream.cc
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/log.cc
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/maths/box.cc
+    ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/maths/simd_math.cc
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/maths/math_archive.cc
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/maths/simd_math_archive.cc
     ${ENGINE_THIRD_PARTY_SOURCE_DIR}/ozz-animation/src/base/maths/soa_math_archive.cc
@@ -346,3 +350,4 @@ foreach(LIB ${THIRD_PARTY_DEPS})
 endforeach()
 
 set_target_properties(D3D12MemoryAllocator PROPERTIES FOLDER "Horizon/ThirdParty")
+include(Flecs)

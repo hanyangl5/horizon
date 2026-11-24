@@ -45,8 +45,8 @@ void ClipController::Update(float dt)
         newTime = timeRatio + dt * (playbackSpeed / duration);
     }
 
-    // Must be called even if time doesn't change, in order to update previous
-    // frame time ratio. Uses SetTimeRatio function in order to update
+    // Must be called even if time doesn't change, in order to Update previous
+    // frame time ratio. Uses SetTimeRatio function in order to Update
     // mPreviousTime an wrap time value in the unit interval (depending on loop
     // mode).
     SetTimeRatio(newTime);

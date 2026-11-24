@@ -40,18 +40,18 @@ enum JointMeshType
 struct UniformSkeletonBlock
 {
     CameraMatrix projectView;
-    mat4         viewMatrix;
+    Matrix4      viewMatrix;
 
-    vec4  color[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
+    Vector4 color[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
     // Point Light Information
-    vec4  lightPosition;
-    vec4  lightColor;
-    vec4  jointColor;
+    Vector4 lightPosition;
+    Vector4 lightColor;
+    Vector4 jointColor;
     uint4 skeletonInfo;
-    mat4  toWorldMat[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
+    Matrix4 toWorldMat[MAX_SKELETON_BATCHER_BLOCK_INSTANCES];
 };
 
-// Description needed to handle buffer updates and draw calls
+// Description needed to Handle buffer updates and Draw calls
 struct SkeletonRenderDesc
 {
     Renderer* renderer;
@@ -82,12 +82,12 @@ typedef struct SkeletonBatcherLoadDesc
     ReloadType  loadType;
     hz::Format  colorFormat;
     hz::Format  depthFormat;
-    SampleCount sampleCount;
-    uint32_t    sampleQuality;
+    SampleCount SampleCount;
+    uint32_t    SampleQuality;
 } SkeletonBatcherLoadDesc;
 
 // Allows for efficiently instance rendering all joints and bones of all skeletons in the scene
-// Will eventually be a debug option and a part of a much larger Animation System's draw functionalities
+// Will eventually be a debug option and a part of a much larger Animation System's Draw functionalities
 class FORGE_API SkeletonBatcher
 {
 public:
@@ -101,7 +101,7 @@ public:
 
     void Unload(ReloadType reloadType);
 
-    // Add a rig to the list of skeletons to draw
+    // Add a rig to the list of skeletons to Draw
     void AddAnimatedObject(AnimatedObject* animatedObject);
 
     void RemoveAnimatedObject(AnimatedObject* animatedObject);
@@ -110,16 +110,16 @@ public:
     void SetActiveRigs(uint32_t activeRigs);
 
     // Update uniforms that will be shared between all skeletons
-    void SetSharedUniforms(const CameraMatrix& projViewMat, const mat4& viewMat, const Vector3& lightPos, const Vector3& lightColor);
+    void SetSharedUniforms(const CameraMatrix& projViewMat, const Matrix4& viewMat, const Vector3& lightPos, const Vector3& lightColor);
 
     // Must be called on a single thread before any call to SetPerInstanceUniforms
     void PreSetInstanceUniforms(const uint32_t frameIndex);
 
-    // Update all the instanced uniform data for each batch of joints and bones
+    // Update all the instanced uniform data for Each batch of joints and bones
     // Can be called asyncronously for different object ranges
     void SetPerInstanceUniforms(const uint32_t frameIndex, int32_t numObjects = -1, uint32_t objectsOffset = 0);
 
-    // Instance draw all the skeletons
+    // Instance Draw all the skeletons
     void Draw(Cmd* cmd, const uint32_t frameIndex);
 
     Shader*        jointShader = NULL;
@@ -141,7 +141,7 @@ private:
     uint32_t numAnimatedObjects = 0;
     uint32_t numActiveAnimatedObjects = 0;
 
-    // Application variables used to be able to update buffers
+    // Application variables used to be able to Update buffers
     Renderer* renderer = NULL;
     Buffer*   jointVertexBuffer = NULL;
     Buffer*   boneVertexBuffer = NULL;
@@ -152,7 +152,7 @@ private:
 
     uint32_t rootConstantIndex = 0;
 
-    // Buffer pointers that will get updated for each batch to be rendered
+    // Buffer pointers that will Get updated for Each batch to be rendered
     Buffer** projViewUniformBufferJoints = NULL;
     Buffer** projViewUniformBufferBones = NULL;
 
@@ -165,13 +165,13 @@ private:
     tfrg_atomic32_t instanceCount = 0;
 
     // Keeps track of the number of batches we will send for instanced rendering
-    // for each frame index
+    // for Each frame index
     tfrg_atomic32_t* batchCounts = NULL;
 
-    // Keeps track of the size of the last batch as it can be less than MAX_INSTANCES
+    // Keeps track of the Size of the last batch as it can be less than MAX_INSTANCES
     tfrg_atomic32_t* batchSize = NULL;
 
-    // Determines if this renderer will need to draw bones between each joint
+    // Determines if this renderer will need to Draw bones between Each joint
     // Set in initialize
     bool drawBones = false;
 

@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include <ThirdParty/stb/stb_ds.h>
+#include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
 
 hz::CommandList::~CommandList()
 {
@@ -15,478 +16,572 @@ hz::CommandList::~CommandList()
     arrfree(renderTargetBarriers);
 }
 
-void hz::CommandList::reset(Cmd* cmd, uint64_t profilerToken)
+void hz::CommandList::Reset(Cmd* CmdValue, uint64_t ProfilerToken)
 {
-    pCmd = cmd;
+    pCmd = CmdValue;
     pCurrentRootSignature = nullptr;
-    gpuProfilerToken = profilerToken;
+    pCurrentDrawIndirectSignature = nullptr;
+    gpuProfilerToken = ProfilerToken;
     memset(pVertexBuffers, 0, sizeof(pVertexBuffers));
     memset(vertexStrides, 0, sizeof(vertexStrides));
     memset(vertexOffsets, 0, sizeof(vertexOffsets));
     vertexBufferCount = 0;
 }
 
-void hz::CommandList::clear()
+void hz::CommandList::Clear()
 {
     pCmd = nullptr;
     pCurrentRootSignature = nullptr;
+    pCurrentDrawIndirectSignature = nullptr;
 }
 
-void hz::CommandList::barrier(uint32_t bufferCount, BufferBarrier* pBufferBarriers, uint32_t textureCount, TextureBarrier* pTextureBarriers,
-                              uint32_t renderTargetCount, RenderTargetBarrier* pRenderTargetBarriers)
+void hz::CommandList::Barrier(uint32_t BufferCount, BufferBarrier* BufferBarriers, uint32_t TextureCount, TextureBarrier* TextureBarriers,
+                              uint32_t RenderTargetCount, RenderTargetBarrier* RenderTargetBarriers)
 {
-    if (bufferCount || textureCount || renderTargetCount)
-        cmdResourceBarrier(pCmd, bufferCount, pBufferBarriers, textureCount, pTextureBarriers, renderTargetCount, pRenderTargetBarriers);
-}
-
-void hz::CommandList::addBufferBarriers(hz::Span<const hz::GPUBuffer*> buffers, bool storage)
-{
-    for (const hz::GPUBuffer* buffer : buffers)
+    if (BufferCount || TextureCount || RenderTargetCount)
     {
-        if (buffer->usage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
+        cmdResourceBarrier(pCmd, BufferCount, BufferBarriers, TextureCount, TextureBarriers, RenderTargetCount, RenderTargetBarriers);
+    }
+}
+
+void hz::CommandList::AddBufferBarriers(hz::Span<const hz::GPUBuffer*> Buffers, bool Storage)
+{
+    for (const hz::GPUBuffer* BufferValue : Buffers)
+    {
+        if (!BufferValue || BufferValue->usage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
+        {
             continue;
-        ResourceState state = RESOURCE_STATE_UNORDERED_ACCESS;
-        if (!storage)
-        {
-            state = RESOURCE_STATE_SHADER_RESOURCE;
-            if (buffer->descriptors & (DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER))
-                state |= RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-            if (buffer->descriptors & DESCRIPTOR_TYPE_INDEX_BUFFER)
-                state |= RESOURCE_STATE_INDEX_BUFFER;
-            if (buffer->descriptors & DESCRIPTOR_TYPE_INDIRECT_BUFFER)
-                state |= RESOURCE_STATE_INDIRECT_ARGUMENT;
         }
-        if (buffer->state != state || storage)
+        ResourceState StateValue = RESOURCE_STATE_UNORDERED_ACCESS;
+        if (!Storage)
         {
-            const BufferBarrier bufferBarrier = { .pBuffer = buffer->pBuffer, .currentState = buffer->state, .newState = state };
-            arrpush(bufferBarriers, bufferBarrier);
-            buffer->state = state;
+            StateValue = RESOURCE_STATE_SHADER_RESOURCE;
+            if (BufferValue->Descriptors & (DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER))
+            {
+                StateValue |= RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+            }
+            if (BufferValue->Descriptors & DESCRIPTOR_TYPE_INDEX_BUFFER)
+            {
+                StateValue |= RESOURCE_STATE_INDEX_BUFFER;
+            }
+            if (BufferValue->Descriptors & DESCRIPTOR_TYPE_INDIRECT_BUFFER)
+            {
+                StateValue |= RESOURCE_STATE_INDIRECT_ARGUMENT;
+            }
+        }
+        if (BufferValue->state != StateValue || Storage)
+        {
+            const BufferBarrier BufferBarrierValue = { .pBuffer = BufferValue->pBuffer,
+                                                       .currentState = BufferValue->state,
+                                                       .newState = StateValue };
+            arrpush(bufferBarriers, BufferBarrierValue);
+            BufferValue->state = StateValue;
         }
     }
 }
 
-void hz::CommandList::barrier(const hz::Dependencies& dependencies, const hz::GPUBuffer* pIndirectBuffer)
+void hz::CommandList::AddIndirectBarriers(Span<const GPUBuffer*> Buffers)
 {
+    for (const GPUBuffer* BufferValue : Buffers)
+    {
+        if (!BufferValue || (BufferValue->state & RESOURCE_STATE_INDIRECT_ARGUMENT))
+        {
+            continue;
+        }
+        const BufferBarrier Transition = { .pBuffer = BufferValue->pBuffer,
+                                           .currentState = BufferValue->state,
+                                           .newState = RESOURCE_STATE_INDIRECT_ARGUMENT };
+        arrpush(bufferBarriers, Transition);
+        BufferValue->state = RESOURCE_STATE_INDIRECT_ARGUMENT;
+    }
+}
+
+void hz::CommandList::Barrier(const hz::Dependencies& DependenciesValue, const hz::GPUBuffer* IndirectBuffer)
+{
+    if (DependenciesValue.pShared)
+    {
+        Barrier(*DependenciesValue.pShared, nullptr);
+    }
     arrsetlen(bufferBarriers, 0);
     arrsetlen(textureBarriers, 0);
     arrsetlen(renderTargetBarriers, 0);
 
-    const auto addTextureBarrier = [&](const hz::GPUTexture& texture, ResourceState state)
+    const auto AddTextureBarrier = [&](const hz::GPUTexture& TextureValue, ResourceState StateValue)
     {
-        if (texture.state != state || state == RESOURCE_STATE_UNORDERED_ACCESS)
+        if (TextureValue.state != StateValue || StateValue == RESOURCE_STATE_UNORDERED_ACCESS)
         {
-            if (texture.pRenderTarget)
+            if (TextureValue.pRenderTarget)
             {
-                const RenderTargetBarrier renderTargetBarrier = {
-                    .pRenderTarget = texture.pRenderTarget,
-                    .currentState = texture.state,
-                    .newState = state,
+                const RenderTargetBarrier RenderTargetBarrierValue = {
+                    .pRenderTarget = TextureValue.pRenderTarget,
+                    .currentState = TextureValue.state,
+                    .newState = StateValue,
                 };
-                arrpush(renderTargetBarriers, renderTargetBarrier);
+                arrpush(renderTargetBarriers, RenderTargetBarrierValue);
             }
             else
             {
-                const TextureBarrier textureBarrier = {
-                    .pTexture = texture.pTexture,
-                    .currentState = texture.state,
-                    .newState = state,
+                const TextureBarrier TextureBarrierValue = {
+                    .pTexture = TextureValue.pTexture,
+                    .currentState = TextureValue.state,
+                    .newState = StateValue,
                 };
-                arrpush(textureBarriers, textureBarrier);
+                arrpush(textureBarriers, TextureBarrierValue);
             }
-            texture.state = state;
+            TextureValue.state = StateValue;
         }
     };
 
-    for (const hz::GPUTexture* texture : dependencies.sampledTextures)
-        addTextureBarrier(*texture, RESOURCE_STATE_SHADER_RESOURCE);
-    for (const hz::GPUTexture* texture : dependencies.storageTextures)
-        addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
-    addBufferBarriers(dependencies.buffers, false);
-    addBufferBarriers(dependencies.storageBuffers, true);
-    if (pIndirectBuffer && pIndirectBuffer->state != RESOURCE_STATE_INDIRECT_ARGUMENT)
+    for (const hz::GPUTexture* TextureValue : DependenciesValue.sampledTextures)
     {
-        const BufferBarrier indirectBarrier = {
-            .pBuffer = pIndirectBuffer->pBuffer,
-            .currentState = pIndirectBuffer->state,
+        if (TextureValue)
+        {
+            AddTextureBarrier(*TextureValue, RESOURCE_STATE_SHADER_RESOURCE);
+        }
+    }
+    for (const hz::GPUTexture* TextureValue : DependenciesValue.storageTextures)
+    {
+        if (TextureValue)
+        {
+            AddTextureBarrier(*TextureValue, RESOURCE_STATE_UNORDERED_ACCESS);
+        }
+    }
+    AddBufferBarriers(DependenciesValue.buffers, false);
+    AddBufferBarriers(DependenciesValue.storageBuffers, true);
+    AddIndirectBarriers(DependenciesValue.indirectBuffers);
+    if (IndirectBuffer && IndirectBuffer->state != RESOURCE_STATE_INDIRECT_ARGUMENT)
+    {
+        const BufferBarrier IndirectBarrier = {
+            .pBuffer = IndirectBuffer->pBuffer,
+            .currentState = IndirectBuffer->state,
             .newState = RESOURCE_STATE_INDIRECT_ARGUMENT,
         };
-        arrpush(bufferBarriers, indirectBarrier);
-        pIndirectBuffer->state = RESOURCE_STATE_INDIRECT_ARGUMENT;
+        arrpush(bufferBarriers, IndirectBarrier);
+        IndirectBuffer->state = RESOURCE_STATE_INDIRECT_ARGUMENT;
     }
 
-    barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, (uint32_t)arrlen(textureBarriers), textureBarriers,
+    Barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, (uint32_t)arrlen(textureBarriers), textureBarriers,
             (uint32_t)arrlen(renderTargetBarriers), renderTargetBarriers);
 }
 
-void hz::CommandList::beginRendering(const hz::RenderPassDesc& desc, const hz::Dependencies& dependencies)
+void hz::CommandList::BeginRendering(const hz::RenderPassDesc& Desc, const hz::Dependencies& DependenciesValue)
 {
-    ASSERT(desc.colorAttachments.count <= MAX_RENDER_TARGETS && (desc.colorAttachments.pData || !desc.colorAttachments.count));
+    ASSERT(Desc.colorAttachments.Count <= MAX_RENDER_TARGETS && (Desc.colorAttachments.Data || !Desc.colorAttachments.Count));
+    if (DependenciesValue.pShared)
+    {
+        Barrier(*DependenciesValue.pShared, nullptr);
+    }
     arrsetlen(bufferBarriers, 0);
     arrsetlen(textureBarriers, 0);
     arrsetlen(renderTargetBarriers, 0);
 
-    const auto addTextureBarrier = [&](const hz::GPUTexture& texture, ResourceState state)
+    const auto AddTextureBarrier = [&](const hz::GPUTexture& TextureValue, ResourceState StateValue)
     {
-        if (texture.state != state || state == RESOURCE_STATE_UNORDERED_ACCESS)
+        if (TextureValue.state != StateValue || StateValue == RESOURCE_STATE_UNORDERED_ACCESS)
         {
-            if (texture.pRenderTarget)
+            if (TextureValue.pRenderTarget)
             {
-                const RenderTargetBarrier renderTargetBarrier = {
-                    .pRenderTarget = texture.pRenderTarget,
-                    .currentState = texture.state,
-                    .newState = state,
+                const RenderTargetBarrier RenderTargetBarrierValue = {
+                    .pRenderTarget = TextureValue.pRenderTarget,
+                    .currentState = TextureValue.state,
+                    .newState = StateValue,
                 };
-                arrpush(renderTargetBarriers, renderTargetBarrier);
+                arrpush(renderTargetBarriers, RenderTargetBarrierValue);
             }
             else
             {
-                const TextureBarrier textureBarrier = {
-                    .pTexture = texture.pTexture,
-                    .currentState = texture.state,
-                    .newState = state,
+                const TextureBarrier TextureBarrierValue = {
+                    .pTexture = TextureValue.pTexture,
+                    .currentState = TextureValue.state,
+                    .newState = StateValue,
                 };
-                arrpush(textureBarriers, textureBarrier);
+                arrpush(textureBarriers, TextureBarrierValue);
             }
-            texture.state = state;
+            TextureValue.state = StateValue;
         }
     };
 
-    for (const hz::GPUTexture* texture : dependencies.sampledTextures)
-        addTextureBarrier(*texture, RESOURCE_STATE_SHADER_RESOURCE);
-    for (const hz::GPUTexture* texture : dependencies.storageTextures)
-        addTextureBarrier(*texture, RESOURCE_STATE_UNORDERED_ACCESS);
-    addBufferBarriers(dependencies.buffers, false);
-    addBufferBarriers(dependencies.storageBuffers, true);
-
-    BindRenderTargetsDesc bind = { .renderTargetCount = desc.colorAttachments.count };
-    for (uint32_t i = 0; i < desc.colorAttachments.count; ++i)
+    for (const hz::GPUTexture* TextureValue : DependenciesValue.sampledTextures)
     {
-        const hz::ColorAttachment& input = desc.colorAttachments.pData[i];
-        addTextureBarrier(*input.pTexture, RESOURCE_STATE_RENDER_TARGET);
-        bind.renderTargets[i] = {
-            .pRenderTarget = input.pTexture->pRenderTarget,
-            .loadAction = input.loadAction,
-            .storeAction = input.storeAction,
-            .clearValue = input.clearValue,
-            .overrideClearValue = input.loadAction == LOAD_ACTION_CLEAR,
+        if (TextureValue)
+        {
+            AddTextureBarrier(*TextureValue, RESOURCE_STATE_SHADER_RESOURCE);
+        }
+    }
+    for (const hz::GPUTexture* TextureValue : DependenciesValue.storageTextures)
+    {
+        if (TextureValue)
+        {
+            AddTextureBarrier(*TextureValue, RESOURCE_STATE_UNORDERED_ACCESS);
+        }
+    }
+    AddBufferBarriers(DependenciesValue.buffers, false);
+    AddBufferBarriers(DependenciesValue.storageBuffers, true);
+    AddIndirectBarriers(DependenciesValue.indirectBuffers);
+
+    BindRenderTargetsDesc Bind = { .renderTargetCount = Desc.colorAttachments.Count };
+    for (uint32_t I = 0; I < Desc.colorAttachments.Count; ++I)
+    {
+        const hz::ColorAttachment& Input = Desc.colorAttachments.Data[I];
+        AddTextureBarrier(*Input.pTexture, RESOURCE_STATE_RENDER_TARGET);
+        Bind.renderTargets[I] = {
+            .pRenderTarget = Input.pTexture->pRenderTarget,
+            .loadAction = Input.loadAction,
+            .storeAction = Input.storeAction,
+            .ClearValue = Input.ClearValue,
+            .overrideClearValue = Input.loadAction == LOAD_ACTION_CLEAR,
         };
     }
 
-    if (desc.depthAttachment.pTexture)
+    if (Desc.depthAttachment.pTexture)
     {
-        const hz::DepthAttachment& input = desc.depthAttachment;
-        addTextureBarrier(*input.pTexture, RESOURCE_STATE_DEPTH_WRITE);
-        bind.depthStencil = {
-            .pDepthStencil = input.pTexture->pRenderTarget,
-            .loadAction = input.loadAction,
-            .storeAction = input.storeAction,
-            .clearValue = input.clearValue,
-            .overrideClearValue = input.loadAction == LOAD_ACTION_CLEAR,
+        const hz::DepthAttachment& Input = Desc.depthAttachment;
+        AddTextureBarrier(*Input.pTexture, RESOURCE_STATE_DEPTH_WRITE);
+        Bind.depthStencil = {
+            .pDepthStencil = Input.pTexture->pRenderTarget,
+            .loadAction = Input.loadAction,
+            .loadActionStencil = TinyImageFormat_HasStencil((TinyImageFormat)Input.pTexture->pRenderTarget->Format) ? Input.loadAction
+                                                                                                                    : LOAD_ACTION_DONTCARE,
+            .storeAction = Input.storeAction,
+            .ClearValue = Input.ClearValue,
+            .overrideClearValue = Input.loadAction == LOAD_ACTION_CLEAR,
         };
     }
 
-    barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, (uint32_t)arrlen(textureBarriers), textureBarriers,
+    Barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, (uint32_t)arrlen(textureBarriers), textureBarriers,
             (uint32_t)arrlen(renderTargetBarriers), renderTargetBarriers);
-    cmdBindRenderTargets(pCmd, &bind);
+    cmdBindRenderTargets(pCmd, &Bind);
 }
-void hz::CommandList::endRendering() { cmdBindRenderTargets(pCmd, nullptr); }
+void hz::CommandList::EndRendering() { cmdBindRenderTargets(pCmd, nullptr); }
 
-void hz::CommandList::setPipeline(const hz::GPUPipeline& pipeline)
+void hz::CommandList::SetPipeline(const hz::GPUPipeline& PipelineObject)
 {
-    pCurrentRootSignature = pipeline.pRootSignature;
-    cmdBindPipeline(pCmd, pipeline.pPipeline);
+    pCurrentRootSignature = PipelineObject.pRootSignature;
+    pCurrentDrawIndirectSignature = PipelineObject.pDrawIndirectSignature;
+    cmdBindPipeline(pCmd, PipelineObject.pPipeline);
 }
 
-void hz::CommandList::setVertexBuffer(uint32_t slot, const hz::GPUBuffer& buffer, uint64_t offset, uint32_t stride)
+void hz::CommandList::SetVertexBuffer(uint32_t BindingIndex, const hz::GPUBuffer& BufferValue, uint64_t Offset, uint32_t Stride)
 {
-    pVertexBuffers[slot] = buffer.pBuffer;
-    vertexOffsets[slot] = offset;
-    vertexStrides[slot] = stride;
-    if (slot == vertexBufferCount)
+    pVertexBuffers[BindingIndex] = BufferValue.pBuffer;
+    vertexOffsets[BindingIndex] = Offset;
+    vertexStrides[BindingIndex] = Stride;
+    if (BindingIndex == vertexBufferCount)
+    {
         ++vertexBufferCount;
+    }
     cmdBindVertexBuffer(pCmd, vertexBufferCount, pVertexBuffers, vertexStrides, vertexOffsets);
 }
 
-void hz::CommandList::setIndexBuffer(const hz::GPUBuffer& buffer, uint64_t offset, IndexType type)
+void hz::CommandList::SetIndexBuffer(const hz::GPUBuffer& BufferValue, uint64_t Offset, IndexType Type)
 {
-    cmdBindIndexBuffer(pCmd, buffer.pBuffer, type, offset);
+    cmdBindIndexBuffer(pCmd, BufferValue.pBuffer, Type, Offset);
 }
 
-void hz::CommandList::setViewport(float x, float y, float w, float h, float minD, float maxD)
+void hz::CommandList::SetViewport(float X, float Y, float W, float H, float MinD, float MaxD)
 {
-    cmdSetViewport(pCmd, x, y, w, h, minD, maxD);
+    cmdSetViewport(pCmd, X, Y, W, H, MinD, MaxD);
 }
-void hz::CommandList::setScissor(uint32_t x, uint32_t y, uint32_t w, uint32_t h) { cmdSetScissor(pCmd, x, y, w, h); }
-void hz::CommandList::setRootConstant(Span<const uint32_t> values, uint32_t offsetIn32BitValues)
+void hz::CommandList::SetScissor(uint32_t X, uint32_t Y, uint32_t W, uint32_t H) { cmdSetScissor(pCmd, X, Y, W, H); }
+void hz::CommandList::SetRootConstant(Span<const uint32_t> Values, uint32_t OffsetIn32BitValues)
 {
-    ASSERT(pCurrentRootSignature && values.pData && values.count);
-    const uint32_t descriptorIndex = getDescriptorIndexFromName(pCurrentRootSignature, "RootConstant0");
-    ASSERT(descriptorIndex != UINT32_MAX);
-    cmdBindPushConstants(pCmd, pCurrentRootSignature, descriptorIndex, values.pData, values.count, offsetIn32BitValues);
+    ASSERT(pCurrentRootSignature && Values.Data && Values.Count);
+    const uint32_t DescriptorIndex = getDescriptorIndexFromName(pCurrentRootSignature, "RootConstant0");
+    ASSERT(DescriptorIndex != UINT32_MAX);
+    // C++ mirrors of the shader block are maintained by hand; catch a struct that outgrew the reflected block.
+    ASSERTMSG(OffsetIn32BitValues + Values.Count <= pCurrentRootSignature->pDescriptors[DescriptorIndex].Size,
+              "Root constants [%u, %u) exceed the shader's RootConstant0 block of %u values", OffsetIn32BitValues,
+              OffsetIn32BitValues + Values.Count, pCurrentRootSignature->pDescriptors[DescriptorIndex].Size);
+    cmdBindPushConstants(pCmd, pCurrentRootSignature, DescriptorIndex, Values.Data, Values.Count, OffsetIn32BitValues);
 }
 
-void hz::CommandList::draw(uint32_t count, uint32_t first) { cmdDraw(pCmd, count, first); }
-void hz::CommandList::drawIndexed(uint32_t count, uint32_t first, uint32_t vertex) { cmdDrawIndexed(pCmd, count, first, vertex); }
+void hz::CommandList::Draw(uint32_t Count, uint32_t First) { cmdDraw(pCmd, Count, First); }
+void hz::CommandList::DrawIndexed(uint32_t Count, uint32_t First, uint32_t Vertex) { cmdDrawIndexed(pCmd, Count, First, Vertex); }
 
-void hz::CommandList::drawIndirect(const hz::GPUBuffer& buffer, uint64_t offset, uint32_t drawCount)
+void hz::CommandList::DrawIndirect(const hz::GPUBuffer& BufferValue, uint64_t Offset, uint32_t DrawCount)
 {
-    if (buffer.state != RESOURCE_STATE_INDIRECT_ARGUMENT)
+    if (!(BufferValue.state & RESOURCE_STATE_INDIRECT_ARGUMENT))
     {
-        BufferBarrier indirectBarrier = {
-            .pBuffer = buffer.pBuffer,
-            .currentState = buffer.state,
+        BufferBarrier IndirectBarrier = {
+            .pBuffer = BufferValue.pBuffer,
+            .currentState = BufferValue.state,
             .newState = RESOURCE_STATE_INDIRECT_ARGUMENT,
         };
-        barrier(1, &indirectBarrier, 0, nullptr, 0, nullptr);
-        buffer.state = RESOURCE_STATE_INDIRECT_ARGUMENT;
+        Barrier(1, &IndirectBarrier, 0, nullptr, 0, nullptr);
+        BufferValue.state = RESOURCE_STATE_INDIRECT_ARGUMENT;
     }
-    cmdExecuteIndirect(pCmd, pContext->pDrawIndirectSignature, drawCount, buffer.pBuffer, offset, nullptr, 0);
+    cmdExecuteIndirect(pCmd, pCurrentDrawIndirectSignature ? pCurrentDrawIndirectSignature : pContext->pDrawIndirectSignature, DrawCount,
+                       BufferValue.pBuffer, Offset, nullptr, 0);
 }
 
-void hz::CommandList::drawIndexedIndirect(const hz::GPUBuffer& buffer, uint64_t offset, uint32_t drawCount)
+void hz::CommandList::DrawIndexedIndirect(const hz::GPUBuffer& BufferValue, uint64_t Offset, uint32_t DrawCount)
 {
-    if (buffer.state != RESOURCE_STATE_INDIRECT_ARGUMENT)
+    if (!(BufferValue.state & RESOURCE_STATE_INDIRECT_ARGUMENT))
     {
-        BufferBarrier indirectBarrier = {
-            .pBuffer = buffer.pBuffer,
-            .currentState = buffer.state,
+        BufferBarrier IndirectBarrier = {
+            .pBuffer = BufferValue.pBuffer,
+            .currentState = BufferValue.state,
             .newState = RESOURCE_STATE_INDIRECT_ARGUMENT,
         };
-        barrier(1, &indirectBarrier, 0, nullptr, 0, nullptr);
-        buffer.state = RESOURCE_STATE_INDIRECT_ARGUMENT;
+        Barrier(1, &IndirectBarrier, 0, nullptr, 0, nullptr);
+        BufferValue.state = RESOURCE_STATE_INDIRECT_ARGUMENT;
     }
-    cmdExecuteIndirect(pCmd, pContext->pDrawIndexedIndirectSignature, drawCount, buffer.pBuffer, offset, nullptr, 0);
+    cmdExecuteIndirect(pCmd, pContext->pDrawIndexedIndirectSignature, DrawCount, BufferValue.pBuffer, Offset, nullptr, 0);
 }
 
-void hz::CommandList::dispatch(uint32_t x, uint32_t y, uint32_t z, const hz::Dependencies& dependencies)
+void hz::CommandList::Dispatch(uint32_t X, uint32_t Y, uint32_t Z, const hz::Dependencies& DependenciesValue)
 {
-    barrier(dependencies, nullptr);
-    cmdDispatch(pCmd, x, y, z);
+    Barrier(DependenciesValue, nullptr);
+    cmdDispatch(pCmd, X, Y, Z);
 }
 
-void hz::CommandList::dispatchIndirect(const hz::GPUBuffer& buffer, uint64_t offset, const hz::Dependencies& dependencies)
+void hz::CommandList::DispatchIndirect(const hz::GPUBuffer& BufferValue, uint64_t Offset, const hz::Dependencies& DependenciesValue)
 {
-    barrier(dependencies, &buffer);
-    cmdExecuteIndirect(pCmd, pContext->pDispatchIndirectSignature, 1, buffer.pBuffer, offset, nullptr, 0);
+    Barrier(DependenciesValue, &BufferValue);
+    cmdExecuteIndirect(pCmd, pContext->pDispatchIndirectSignature, 1, BufferValue.pBuffer, Offset, nullptr, 0);
 }
 
-Buffer* hz::CommandList::createUploadBuffer(uint64_t size)
+Buffer* hz::CommandList::CreateUploadBuffer(uint64_t Size)
 {
-    const ::BufferDesc desc = {
-        .size = size,
-        .pName = "CommandList upload buffer",
-        .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
-        .queueType = QUEUE_TYPE_GRAPHICS,
-        .startState = RESOURCE_STATE_GENERIC_READ,
+    const ::BufferDesc Desc = {
+        .Size = Size,
+        .Name = "CommandList Upload buffer",
+        .MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+        .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+        .QueueType = QUEUE_TYPE_GRAPHICS,
+        .StartState = RESOURCE_STATE_GENERIC_READ,
     };
-    Buffer* buffer = nullptr;
-    addBuffer(pContext->pRenderer, &desc, &buffer);
-    arrpush(pContext->commandSlots[slot].transientBuffers, buffer);
-    return buffer;
+    Buffer* BufferValue = nullptr;
+    addBuffer(pContext->pRenderer, &Desc, &BufferValue);
+    arrpush(pContext->commandResources[commandIndex].transientBuffers, BufferValue);
+    return BufferValue;
 }
 
-void hz::CommandList::copyBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, const hz::GPUBuffer& src, uint64_t srcOffset, uint64_t size)
+void hz::CommandList::CopyBuffer(const hz::GPUBuffer& Dst, uint64_t DstOffset, const hz::GPUBuffer& Src, uint64_t SrcOffset, uint64_t Size)
 {
-    const ResourceState dstState = dst.state;
-    const ResourceState srcState = src.state;
-    arrsetlen(bufferBarriers, 0);
-    if (dst.usage == RESOURCE_MEMORY_USAGE_GPU_ONLY && dst.state != RESOURCE_STATE_COPY_DEST)
+    const BufferCopyRegion Region = { .srcOffset = SrcOffset, .dstOffset = DstOffset, .Size = Size };
+    CopyBufferRegions(Dst, Src, { &Region, 1 });
+}
+
+void hz::CommandList::CopyBufferRegions(const hz::GPUBuffer& Dst, const hz::GPUBuffer& Src, Span<BufferCopyRegion> Regions)
+{
+    if (!Regions.Count)
     {
-        const BufferBarrier dstBarrier = {
-            .pBuffer = dst.pBuffer,
-            .currentState = dst.state,
+        return;
+    }
+    const ResourceState DstState = Dst.state;
+    const ResourceState SrcState = Src.state;
+    arrsetlen(bufferBarriers, 0);
+    if (Dst.usage == RESOURCE_MEMORY_USAGE_GPU_ONLY && Dst.state != RESOURCE_STATE_COPY_DEST)
+    {
+        const BufferBarrier DstBarrier = {
+            .pBuffer = Dst.pBuffer,
+            .currentState = Dst.state,
             .newState = RESOURCE_STATE_COPY_DEST,
         };
-        arrpush(bufferBarriers, dstBarrier);
-        dst.state = RESOURCE_STATE_COPY_DEST;
+        arrpush(bufferBarriers, DstBarrier);
+        Dst.state = RESOURCE_STATE_COPY_DEST;
     }
-    if (src.usage == RESOURCE_MEMORY_USAGE_GPU_ONLY && src.state != RESOURCE_STATE_COPY_SOURCE)
+    if (Src.usage == RESOURCE_MEMORY_USAGE_GPU_ONLY && Src.state != RESOURCE_STATE_COPY_SOURCE)
     {
-        const BufferBarrier srcBarrier = {
-            .pBuffer = src.pBuffer,
-            .currentState = src.state,
+        const BufferBarrier SrcBarrier = {
+            .pBuffer = Src.pBuffer,
+            .currentState = Src.state,
             .newState = RESOURCE_STATE_COPY_SOURCE,
         };
-        arrpush(bufferBarriers, srcBarrier);
-        src.state = RESOURCE_STATE_COPY_SOURCE;
+        arrpush(bufferBarriers, SrcBarrier);
+        Src.state = RESOURCE_STATE_COPY_SOURCE;
     }
-    barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, 0, nullptr, 0, nullptr);
-    cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, src.pBuffer, srcOffset, size);
+    Barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, 0, nullptr, 0, nullptr);
+    for (const BufferCopyRegion& Region : Regions)
+    {
+        cmdUpdateBuffer(pCmd, Dst.pBuffer, Region.dstOffset, Src.pBuffer, Region.srcOffset, Region.Size);
+    }
 
     arrsetlen(bufferBarriers, 0);
-    if (dst.state != dstState)
+    if (Dst.state != DstState)
     {
-        const BufferBarrier dstBarrier = {
-            .pBuffer = dst.pBuffer,
-            .currentState = dst.state,
-            .newState = dstState,
+        const BufferBarrier DstBarrier = {
+            .pBuffer = Dst.pBuffer,
+            .currentState = Dst.state,
+            .newState = DstState,
         };
-        arrpush(bufferBarriers, dstBarrier);
-        dst.state = dstState;
+        arrpush(bufferBarriers, DstBarrier);
+        Dst.state = DstState;
     }
-    if (src.state != srcState)
+    if (Src.state != SrcState)
     {
-        const BufferBarrier srcBarrier = {
-            .pBuffer = src.pBuffer,
-            .currentState = src.state,
-            .newState = srcState,
+        const BufferBarrier SrcBarrier = {
+            .pBuffer = Src.pBuffer,
+            .currentState = Src.state,
+            .newState = SrcState,
         };
-        arrpush(bufferBarriers, srcBarrier);
-        src.state = srcState;
+        arrpush(bufferBarriers, SrcBarrier);
+        Src.state = SrcState;
     }
-    barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, 0, nullptr, 0, nullptr);
+    Barrier((uint32_t)arrlen(bufferBarriers), bufferBarriers, 0, nullptr, 0, nullptr);
 }
 
-void hz::CommandList::fillBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, uint32_t value, uint64_t size)
+void hz::CommandList::FillBuffer(const hz::GPUBuffer& Dst, uint64_t DstOffset, uint32_t Value, uint64_t Size)
 {
-    const auto fill = [&](void* pData)
+    const auto Fill = [&](void* Data)
     {
-        uint8_t* bytes = (uint8_t*)pData;
-        for (uint64_t offset = 0; offset < size; offset += sizeof(value))
+        uint8_t* Bytes = (uint8_t*)Data;
+        for (uint64_t Offset = 0; Offset < Size; Offset += sizeof(Value))
         {
-            const size_t writeSize = (size_t)TF_MIN((uint64_t)sizeof(value), size - offset);
-            memcpy(bytes + offset, &value, writeSize);
+            const size_t WriteSize = (size_t)TF_MIN((uint64_t)sizeof(Value), Size - Offset);
+            memcpy(Bytes + Offset, &Value, WriteSize);
         }
     };
 
-    if (dst.usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
+    if (Dst.usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
     {
-        fill((uint8_t*)dst.pBuffer->pCpuMappedAddress + dstOffset);
+        Fill((uint8_t*)Dst.pBuffer->pCpuMappedAddress + DstOffset);
     }
     else
     {
-        Buffer* upload = createUploadBuffer(size);
-        fill(upload->pCpuMappedAddress);
+        Buffer* Upload = CreateUploadBuffer(Size);
+        Fill(Upload->pCpuMappedAddress);
 
-        const ResourceState dstState = dst.state;
-        BufferBarrier       dstBarrier = { .pBuffer = dst.pBuffer };
-        if (dst.state != RESOURCE_STATE_COPY_DEST)
+        const ResourceState DstState = Dst.state;
+        BufferBarrier       DstBarrier = { .pBuffer = Dst.pBuffer };
+        if (Dst.state != RESOURCE_STATE_COPY_DEST)
         {
-            dstBarrier.currentState = dst.state;
-            dstBarrier.newState = RESOURCE_STATE_COPY_DEST;
-            barrier(1, &dstBarrier, 0, nullptr, 0, nullptr);
-            dst.state = RESOURCE_STATE_COPY_DEST;
+            DstBarrier.currentState = Dst.state;
+            DstBarrier.newState = RESOURCE_STATE_COPY_DEST;
+            Barrier(1, &DstBarrier, 0, nullptr, 0, nullptr);
+            Dst.state = RESOURCE_STATE_COPY_DEST;
         }
-        cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, upload, 0, size);
-        if (dst.state != dstState)
+        cmdUpdateBuffer(pCmd, Dst.pBuffer, DstOffset, Upload, 0, Size);
+        if (Dst.state != DstState)
         {
-            dstBarrier.currentState = dst.state;
-            dstBarrier.newState = dstState;
-            barrier(1, &dstBarrier, 0, nullptr, 0, nullptr);
-            dst.state = dstState;
+            DstBarrier.currentState = Dst.state;
+            DstBarrier.newState = DstState;
+            Barrier(1, &DstBarrier, 0, nullptr, 0, nullptr);
+            Dst.state = DstState;
         }
     }
 }
 
-void hz::CommandList::updateBuffer(const hz::GPUBuffer& dst, uint64_t dstOffset, const void* pData, uint64_t size)
+void hz::CommandList::UpdateBuffer(const hz::GPUBuffer& Dst, uint64_t DstOffset, const void* Data, uint64_t Size)
 {
-    if (dst.usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
+    if (Dst.usage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
     {
-        memcpy((uint8_t*)dst.pBuffer->pCpuMappedAddress + dstOffset, pData, (size_t)size);
+        memcpy((uint8_t*)Dst.pBuffer->pCpuMappedAddress + DstOffset, Data, (size_t)Size);
     }
     else
     {
-        Buffer* upload = createUploadBuffer(size);
-        memcpy(upload->pCpuMappedAddress, pData, (size_t)size);
+        Buffer* Upload = CreateUploadBuffer(Size);
+        memcpy(Upload->pCpuMappedAddress, Data, (size_t)Size);
 
-        const ResourceState dstState = dst.state;
-        BufferBarrier       dstBarrier = { .pBuffer = dst.pBuffer };
-        if (dst.state != RESOURCE_STATE_COPY_DEST)
+        const ResourceState DstState = Dst.state;
+        BufferBarrier       DstBarrier = { .pBuffer = Dst.pBuffer };
+        if (Dst.state != RESOURCE_STATE_COPY_DEST)
         {
-            dstBarrier.currentState = dst.state;
-            dstBarrier.newState = RESOURCE_STATE_COPY_DEST;
-            barrier(1, &dstBarrier, 0, nullptr, 0, nullptr);
-            dst.state = RESOURCE_STATE_COPY_DEST;
+            DstBarrier.currentState = Dst.state;
+            DstBarrier.newState = RESOURCE_STATE_COPY_DEST;
+            Barrier(1, &DstBarrier, 0, nullptr, 0, nullptr);
+            Dst.state = RESOURCE_STATE_COPY_DEST;
         }
-        cmdUpdateBuffer(pCmd, dst.pBuffer, dstOffset, upload, 0, size);
-        if (dst.state != dstState)
+        cmdUpdateBuffer(pCmd, Dst.pBuffer, DstOffset, Upload, 0, Size);
+        if (Dst.state != DstState)
         {
-            dstBarrier.currentState = dst.state;
-            dstBarrier.newState = dstState;
-            barrier(1, &dstBarrier, 0, nullptr, 0, nullptr);
-            dst.state = dstState;
+            DstBarrier.currentState = Dst.state;
+            DstBarrier.newState = DstState;
+            Barrier(1, &DstBarrier, 0, nullptr, 0, nullptr);
+            Dst.state = DstState;
         }
     }
 }
 
-void hz::CommandList::copyTexture(const hz::GPUTexture& dst, const hz::GPUTexture& src)
+void hz::CommandList::CopyTexture(const hz::GPUTexture& Dst, const hz::GPUTexture& Src)
 {
-    const ResourceState dstState = dst.state;
-    const ResourceState srcState = src.state;
+    const ResourceState DstState = Dst.state;
+    const ResourceState SrcState = Src.state;
     arrsetlen(textureBarriers, 0);
     arrsetlen(renderTargetBarriers, 0);
-    const auto transition = [&](const hz::GPUTexture& texture, ResourceState state)
+    const auto Transition = [&](const hz::GPUTexture& TextureValue, ResourceState StateValue)
     {
-        if (texture.state != state && texture.pRenderTarget)
+        if (TextureValue.state != StateValue && TextureValue.pRenderTarget)
         {
-            const RenderTargetBarrier textureBarrier = {
-                .pRenderTarget = texture.pRenderTarget,
-                .currentState = texture.state,
-                .newState = state,
+            const RenderTargetBarrier TextureBarrierValue = {
+                .pRenderTarget = TextureValue.pRenderTarget,
+                .currentState = TextureValue.state,
+                .newState = StateValue,
             };
-            arrpush(renderTargetBarriers, textureBarrier);
+            arrpush(renderTargetBarriers, TextureBarrierValue);
         }
-        else if (texture.state != state)
+        else if (TextureValue.state != StateValue)
         {
-            const TextureBarrier textureBarrier = {
-                .pTexture = texture.pTexture,
-                .currentState = texture.state,
-                .newState = state,
+            const TextureBarrier TextureBarrierValue = {
+                .pTexture = TextureValue.pTexture,
+                .currentState = TextureValue.state,
+                .newState = StateValue,
             };
-            arrpush(textureBarriers, textureBarrier);
+            arrpush(textureBarriers, TextureBarrierValue);
         }
-        texture.state = state;
+        TextureValue.state = StateValue;
     };
 
-    transition(dst, RESOURCE_STATE_COPY_DEST);
-    transition(src, RESOURCE_STATE_COPY_SOURCE);
-    barrier(0, nullptr, (uint32_t)arrlen(textureBarriers), textureBarriers, (uint32_t)arrlen(renderTargetBarriers), renderTargetBarriers);
-    cmdCopyTexture(pCmd, dst.pTexture, src.pTexture);
+    Transition(Dst, RESOURCE_STATE_COPY_DEST);
+    Transition(Src, RESOURCE_STATE_COPY_SOURCE);
+    Barrier(0, nullptr, (uint32_t)arrlen(textureBarriers), textureBarriers, (uint32_t)arrlen(renderTargetBarriers), renderTargetBarriers);
+    cmdCopyTexture(pCmd, Dst.pTexture, Src.pTexture);
 
     arrsetlen(textureBarriers, 0);
     arrsetlen(renderTargetBarriers, 0);
-    transition(dst, dstState);
-    transition(src, srcState);
-    barrier(0, nullptr, (uint32_t)arrlen(textureBarriers), textureBarriers, (uint32_t)arrlen(renderTargetBarriers), renderTargetBarriers);
+    Transition(Dst, DstState);
+    Transition(Src, SrcState);
+    Barrier(0, nullptr, (uint32_t)arrlen(textureBarriers), textureBarriers, (uint32_t)arrlen(renderTargetBarriers), renderTargetBarriers);
 }
 
-void hz::CommandList::pushDebugGroupLabel(const char* label, uint32_t colorRGBA) const
+void hz::CommandList::PushDebugGroupLabel(const char* Label, uint32_t ColorRgba) const
 {
-    const float r = (float)((colorRGBA >> 0) & 0xff) / 255.0f;
-    const float g = (float)((colorRGBA >> 8) & 0xff) / 255.0f;
-    const float b = (float)((colorRGBA >> 16) & 0xff) / 255.0f;
-    cmdBeginDebugMarker(pCmd, r, g, b, label);
+    const float R = (float)((ColorRgba >> 0) & 0xff) / 255.0f;
+    const float G = (float)((ColorRgba >> 8) & 0xff) / 255.0f;
+    const float B = (float)((ColorRgba >> 16) & 0xff) / 255.0f;
+    cmdBeginDebugMarker(pCmd, R, G, B, Label);
 }
 
-void hz::CommandList::insertDebugEventLabel(const char* label, uint32_t colorRGBA) const
+void hz::CommandList::InsertDebugEventLabel(const char* Label, uint32_t ColorRgba) const
 {
-    const float r = (float)((colorRGBA >> 0) & 0xff) / 255.0f;
-    const float g = (float)((colorRGBA >> 8) & 0xff) / 255.0f;
-    const float b = (float)((colorRGBA >> 16) & 0xff) / 255.0f;
-    cmdAddDebugMarker(pCmd, r, g, b, label);
+    const float R = (float)((ColorRgba >> 0) & 0xff) / 255.0f;
+    const float G = (float)((ColorRgba >> 8) & 0xff) / 255.0f;
+    const float B = (float)((ColorRgba >> 16) & 0xff) / 255.0f;
+    cmdAddDebugMarker(pCmd, R, G, B, Label);
 }
 
-void hz::CommandList::popDebugGroupLabel() const { cmdEndDebugMarker(pCmd); }
+void hz::CommandList::PopDebugGroupLabel() const { cmdEndDebugMarker(pCmd); }
 
-void hz::CommandList::beginGpuFrameProfile()
+void hz::CommandList::BeginGpuFrameProfile()
 {
     if (gpuProfilerToken != PROFILE_INVALID_TOKEN)
         cmdBeginGpuFrameProfile(pCmd, gpuProfilerToken);
 }
-void hz::CommandList::endGpuFrameProfile()
+void hz::CommandList::EndGpuFrameProfile()
 {
     if (gpuProfilerToken != PROFILE_INVALID_TOKEN)
         cmdEndGpuFrameProfile(pCmd, gpuProfilerToken);
 }
-void hz::CommandList::beginGpuTimestamp(const char* name)
+void hz::CommandList::BeginGpuTimestamp(const char* NameValue)
 {
-    gpuTimestampToken =
-        gpuProfilerToken != PROFILE_INVALID_TOKEN ? cmdBeginGpuTimestampQuery(pCmd, gpuProfilerToken, name) : PROFILE_INVALID_TOKEN;
+    if (gpuProfilerToken != PROFILE_INVALID_TOKEN)
+    {
+        cmdBeginGpuTimestampQuery(pCmd, gpuProfilerToken, NameValue);
+    }
+    else
+    {
+        cmdBeginDebugMarker(pCmd, 1, 1, 0, NameValue);
+    }
 }
-void hz::CommandList::endGpuTimestamp()
+void hz::CommandList::EndGpuTimestamp()
 {
-    if (gpuTimestampToken != PROFILE_INVALID_TOKEN)
-        cmdEndGpuTimestampQuery(pCmd, gpuTimestampToken);
-    gpuTimestampToken = 0;
+    if (gpuProfilerToken != PROFILE_INVALID_TOKEN)
+    {
+        cmdEndGpuTimestampQuery(pCmd, gpuProfilerToken);
+    }
+    else
+    {
+        cmdEndDebugMarker(pCmd);
+    }
 }

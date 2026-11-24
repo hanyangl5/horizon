@@ -51,14 +51,14 @@ static void initThreadIDKey(void)
 static ThreadID getCurrentPthreadID(void)
 {
     static tfrg_atomic32_t counter = 1;
-    callOnce(&gKeyInitGuard, initThreadIDKey);
+    CallOnce(&gKeyInitGuard, initThreadIDKey);
 
     void*     ptr = pthread_getspecific(gThreadIDKey);
     uintptr_t ptr_id = (uintptr_t)ptr;
     ASSERT(ptr_id < THREAD_ID_MAX);
     ThreadID id = (ThreadID)ptr_id;
 
-    // thread id wasn't set
+    // thread id wasn't Set
     if (id == 0)
     {
         id = (ThreadID)tfrg_atomic32_add_relaxed(&counter, 1);

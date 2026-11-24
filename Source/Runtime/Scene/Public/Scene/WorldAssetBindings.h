@@ -1,0 +1,53 @@
+/* Copyright (c) 2026 Horizon */
+#pragma once
+
+#include "Scene/AssetManager.h"
+#include "Scene/World.h"
+
+namespace hz
+{
+enum class AssetBindingState : uint32_t
+{
+    Pending,
+    Ready,
+    Failed,
+};
+
+struct MaterialAssetBinding
+{
+    uint64_t    submesh = 0;
+    AssetID     asset;
+    AssetHandle Handle;
+};
+
+struct MeshAssetBinding
+{
+    AssetHandle                mesh;
+    // Same order as MeshAsset::GetDescription().submeshes; handles are borrowed from this binding.
+    Span<MaterialAssetBinding> materials;
+    AssetBindingState          state = AssetBindingState::Pending;
+};
+
+class WorldAssetBindingsData;
+
+class WorldAssetBindings
+{
+public:
+    // World and asset manager must outlive bindings. Destroy bindings before asset manager Shutdown or World replacement.
+    WorldAssetBindings(World& world, AssetManager& assetManager);
+    ~WorldAssetBindings();
+    WorldAssetBindings(const WorldAssetBindings&) = delete;
+    WorldAssetBindings& operator=(const WorldAssetBindings&) = delete;
+
+    // Call outside World query/Defer scopes. The caller advances asset manager loading with AssetManager::Update().
+    void                    Update();
+    // Views expire at the next Update/Clear. Pending and failed bindings must not be rendered.
+    const MeshAssetBinding* Get(Entity entity) const;
+    uint32_t                GetCount() const;
+    // Releases all leases; the next Update rebuilds bindings, including previously failed requests.
+    void                    Clear();
+
+private:
+    WorldAssetBindingsData* Data = nullptr;
+};
+} // namespace hz

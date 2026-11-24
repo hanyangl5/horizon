@@ -266,3 +266,10 @@ build_msvc
 !Source/ThirdParty/DirectStorage/**/*.dll
 !Source/ThirdParty/DirectStorage/**/*.lib
 !Source/ThirdParty/DirectStorage/**/*.winmd
+/Assets/
+
+# Local Renderer textures and generated preview assets
+/Examples/Renderer/Assets/
+
+# ImGui layout written next to the working directory
+**/imgui.ini

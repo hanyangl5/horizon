@@ -2750,7 +2750,9 @@ static T* stbds_shmode_func_wrapper(T*, size_t elemsize, size_t elemalign, int m
 //   IMPLEMENTATION
 //
 
-#ifdef STB_DS_IMPLEMENTATION
+// Emitted once per translation unit: unity builds include this header from several sources.
+#if defined(STB_DS_IMPLEMENTATION) && !defined(STB_DS_IMPLEMENTATION_EMITTED)
+#define STB_DS_IMPLEMENTATION_EMITTED
 #include <string.h>
 
 #include "Core/ILog.h"
@@ -2818,7 +2820,7 @@ void* stbds_arrgrowf(void* a, size_t elemsize, size_t elemalign, size_t addlen, 
     size_t offset = elemalign + sizeof(stbds_array_header) - 1;
     ASSERT((elemalign & (elemalign - 1)) == 0 && "Alignment is not a power of 2");
     // orig pointer
-    b0 = tf_realloc_internal((a) ? stbds_mem_begin(a) : NULL, elemsize * min_cap + offset, FILE_NAME, FILE_LINE, pFunction);
+    b0 = MemReallocateInternal((a) ? stbds_mem_begin(a) : NULL, elemsize * min_cap + offset, FILE_NAME, FILE_LINE, pFunction);
     // if (num_prev < 65536) prev_allocs[num_prev++] = (int *) (char *) b;
     //  Align b1
     b1 = (void*)(((uintptr_t)b0 + offset) & ~(elemalign - 1));
@@ -2856,7 +2858,7 @@ void stbds_arrfree_func(const void* a STBDS_FN_ALLOC_ARGS)
 #define FUNCTION_NAME __FUNCTION__
     const char* pFunction = FUNCTION_NAME;
 #endif
-    tf_free_internal(((a) ? stbds_mem_begin(a) : NULL), FILE_NAME, FILE_LINE, pFunction);
+    MemDeallocateInternal(((a) ? stbds_mem_begin(a) : NULL), FILE_NAME, FILE_LINE, pFunction);
 }
 
 //
@@ -2970,7 +2972,7 @@ static inline void STBDS_HM_STRING_free_key(stbds_hash_index* table, const void*
 #endif
     ASSERT(keysize == sizeof(char*));
     if (table->string.mode == STBDS_SH_STRDUP)
-        tf_free_internal(*(char**)(key), FILE_NAME, FILE_LINE, pFunction);
+        MemDeallocateInternal(*(char**)(key), FILE_NAME, FILE_LINE, pFunction);
 }
 
 static inline void STBDS_HM_CONST_BSTRING_free_key(stbds_hash_index* table, void* key, size_t keysize STBDS_FN_ALLOC_ARGS) {}
@@ -3050,7 +3052,7 @@ static stbds_hash_index* stbds_make_hash_index(size_t slot_count, stbds_hash_ind
     const char* pFunction = FUNCTION_NAME;
 #endif
     stbds_hash_index* t;
-    t = (stbds_hash_index*)tf_realloc_internal(
+    t = (stbds_hash_index*)MemReallocateInternal(
         NULL, (slot_count >> STBDS_BUCKET_SHIFT) * sizeof(stbds_hash_bucket) + sizeof(stbds_hash_index) + STBDS_CACHE_LINE_SIZE - 1,
         FILE_NAME, FILE_LINE, pFunction);
     t->storage = (stbds_hash_bucket*)STBDS_ALIGN_FWD((size_t)(t + 1), STBDS_CACHE_LINE_SIZE);
@@ -3448,12 +3450,12 @@ void stbds_hmfree_func(const void* a, size_t elemsize STBDS_FN_ALLOC_ARGS)
             size_t i;
             // skip 0th element, which is default
             for (i = 1; i < stbds_header(a)->length; ++i)
-                tf_free_internal(*(char**)((char*)a + elemsize * i), FILE_NAME, FILE_LINE, pFunction);
+                MemDeallocateInternal(*(char**)((char*)a + elemsize * i), FILE_NAME, FILE_LINE, pFunction);
         }
         stbds_strreset_func(&stbds_hash_table(a)->string STBDS_FN_ALLOC_PARAMS);
     }
-    tf_free_internal(stbds_header(a)->hash_table, FILE_NAME, FILE_LINE, pFunction);
-    tf_free_internal(stbds_mem_begin(a), FILE_NAME, FILE_LINE, pFunction);
+    MemDeallocateInternal(stbds_header(a)->hash_table, FILE_NAME, FILE_LINE, pFunction);
+    MemDeallocateInternal(stbds_mem_begin(a), FILE_NAME, FILE_LINE, pFunction);
 }
 
 static ptrdiff_t stbds_hm_find_slot(void* a, size_t elemsize, const void* key, size_t keysize, size_t keyoffset, int mode)
@@ -3627,7 +3629,7 @@ void* stbds_hmput_key(void* a, size_t elemsize, size_t elemalign, const void* ke
         slot_count = (table == NULL) ? STBDS_BUCKET_LENGTH : table->slot_count * 2;
         nt = stbds_make_hash_index(slot_count, table STBDS_FN_ALLOC_PARAMS);
         if (table)
-            tf_free_internal(table, FILE_NAME, FILE_LINE, pFunction);
+            MemDeallocateInternal(table, FILE_NAME, FILE_LINE, pFunction);
         else
         {
             STBDS_HM_DISPATCH_ASSIGN(mode, nt->string.mode, _default_storage_mode);
@@ -3839,13 +3841,13 @@ void* stbds_hmdel_key(void* a, size_t elemsize, const void* key, size_t keysize,
                 if (table->used_count < table->used_count_shrink_threshold && table->slot_count > STBDS_BUCKET_LENGTH)
                 {
                     stbds_header(raw_a)->hash_table = stbds_make_hash_index(table->slot_count >> 1, table STBDS_FN_ALLOC_PARAMS);
-                    tf_free_internal(table, FILE_NAME, FILE_LINE, pFunction);
+                    MemDeallocateInternal(table, FILE_NAME, FILE_LINE, pFunction);
                     STBDS_STATS(++stbds_hash_shrink);
                 }
                 else if (table->tombstone_count > table->tombstone_count_threshold)
                 {
                     stbds_header(raw_a)->hash_table = stbds_make_hash_index(table->slot_count, table STBDS_FN_ALLOC_PARAMS);
-                    tf_free_internal(table, FILE_NAME, FILE_LINE, pFunction);
+                    MemDeallocateInternal(table, FILE_NAME, FILE_LINE, pFunction);
                     STBDS_STATS(++stbds_hash_rebuild);
                 }
 
@@ -3874,7 +3876,7 @@ static char* stbds_strdup(char* str STBDS_FN_ALLOC_ARGS)
     // to keep replaceable allocator simple, we don't want to use strdup.
     // rolling our own also avoids problem of strdup vs _strdup
     size_t len = strlen(str) + 1;
-    char*  p = (char*)tf_realloc_internal(NULL, len, FILE_NAME, FILE_LINE, pFunction);
+    char*  p = (char*)MemReallocateInternal(NULL, len, FILE_NAME, FILE_LINE, pFunction);
     memmove(p, str, len);
     return p;
 }
@@ -3933,7 +3935,7 @@ char* stbds_stralloc_func(stbds_string_arena* a, char* str STBDS_FN_ALLOC_ARGS)
             // note that we still advance string_block so block size will continue
             // increasing, so e.g. if somebody only calls this with 1000-long strings,
             // eventually the arena will start doubling and handling those as well
-            stbds_string_block* sb = (stbds_string_block*)tf_realloc_internal(NULL, sizeof(*sb) - 8 + len, FILE_NAME, FILE_LINE, pFunction);
+            stbds_string_block* sb = (stbds_string_block*)MemReallocateInternal(NULL, sizeof(*sb) - 8 + len, FILE_NAME, FILE_LINE, pFunction);
             memmove(sb->storage, str, len);
             if (a->storage)
             {
@@ -3952,7 +3954,7 @@ char* stbds_stralloc_func(stbds_string_arena* a, char* str STBDS_FN_ALLOC_ARGS)
         else
         {
             stbds_string_block* sb =
-                (stbds_string_block*)tf_realloc_internal(NULL, sizeof(*sb) - 8 + blocksize, FILE_NAME, FILE_LINE, pFunction);
+                (stbds_string_block*)MemReallocateInternal(NULL, sizeof(*sb) - 8 + blocksize, FILE_NAME, FILE_LINE, pFunction);
             sb->next = a->storage;
             a->storage = sb;
             a->remaining = blocksize;
@@ -3987,7 +3989,7 @@ void stbds_strreset_func(stbds_string_arena* a STBDS_FN_ALLOC_ARGS)
     while (x)
     {
         y = x->next;
-        tf_free_internal(x, FILE_NAME, FILE_LINE, pFunction);
+        MemDeallocateInternal(x, FILE_NAME, FILE_LINE, pFunction);
         x = y;
     }
     memset(a, 0, sizeof(*a));

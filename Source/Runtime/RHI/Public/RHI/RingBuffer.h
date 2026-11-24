@@ -63,7 +63,7 @@ typedef struct GpuCmdRingDesc
     uint32_t poolCount;
     // Number of command buffers to be created per command pool
     uint32_t cmdPerPoolCount;
-    // Whether to add fence, semaphore for this ring
+    // Whether to Add fence, semaphore for this ring
     bool     addSyncPrimitives;
 } GpuCmdRingDesc;
 
@@ -92,7 +92,7 @@ typedef struct GpuCmdRing
 void addGPURingBuffer(Renderer* pRenderer, const BufferDesc* pBufferDesc, GPURingBuffer* pRingBuffer);
 
 void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBufferSize, GPURingBuffer* pRingBuffer,
-                             bool const ownMemory = false, ResourceMemoryUsage memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU);
+                             bool const ownMemory = false, ResourceMemoryUsage MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU);
 void removeGPURingBuffer(GPURingBuffer* pRingBuffer);
 
 void resetGPURingBuffer(GPURingBuffer* pRingBuffer);

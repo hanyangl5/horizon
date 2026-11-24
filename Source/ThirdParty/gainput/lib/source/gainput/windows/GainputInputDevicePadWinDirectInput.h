@@ -525,7 +525,7 @@ typedef struct LinearAllocator
 	inline void Reserve(size_t newCapacity)
 	{
 		capacity = newCapacity;
-		buffer = (uint8_t*)tf_malloc(capacity);
+		buffer = (uint8_t*)MemAllocate(capacity);
 	}
 
 	inline uint8_t* Allocate(size_t size)
@@ -543,7 +543,7 @@ typedef struct LinearAllocator
 	{
 		if (offset < size)
 		{
-			DLOGF(LogLevel::eERROR, "offset < size");
+			DLOGF(LogLevel::Error, "offset < size");
 			return;
 		}
 		offset -= size;
@@ -551,7 +551,7 @@ typedef struct LinearAllocator
 
 	inline void Reset() { offset = 0; }
 
-	~LinearAllocator() { tf_free(buffer); }
+	~LinearAllocator() { MemDeallocate(buffer); }
 
 	private:
 	uint8_t* buffer;
@@ -610,7 +610,7 @@ static XInputType IsXInputDevice(const GUID* pGuidProductFromDirectInput)
 			return XInputType::InputTypeNone;
 		}
 
-		RawDevList = (PRAWINPUTDEVICELIST)tf_malloc(sizeof(RAWINPUTDEVICELIST) * RawDevListCount);
+		RawDevList = (PRAWINPUTDEVICELIST)MemAllocate(sizeof(RAWINPUTDEVICELIST) * RawDevListCount);
 		if (RawDevList == NULL)
 		{
 			return XInputType::InputTypeNone;
@@ -618,7 +618,7 @@ static XInputType IsXInputDevice(const GUID* pGuidProductFromDirectInput)
 
 		if (GetRawInputDeviceList(RawDevList, &RawDevListCount, sizeof(RAWINPUTDEVICELIST)) == -1)
 		{
-			tf_free(RawDevList);
+			MemDeallocate(RawDevList);
 			RawDevList = NULL;
 			return XInputType::InputTypeNone;
 		}
@@ -870,7 +870,7 @@ static void PrintControllerInfo(const DIDEVICEINSTANCE* pdidInstance)
 		product = (UINT16)HIWORD(pdidInstance->guidProduct.Data1);
 	}
 	LOGF(
-		LogLevel::eDEBUG, "GamePad Name: %s , GUID: %s, Product Id: %d, Vendor Id: %d", pdidInstance->tszProductName, guid_string, product,
+		LogLevel::Debug, "GamePad Name: %s , GUID: %s, Product Id: %d, Vendor Id: %d", pdidInstance->tszProductName, guid_string, product,
 		vendor);
 }
 
@@ -1055,7 +1055,7 @@ public:
 		// TF Edit : Need this function to provide a way to free the allocated memory before the TF Memory Logger exits
 		if (RawDevList != NULL)
 		{
-			tf_free(RawDevList);
+			MemDeallocate(RawDevList);
 			RawDevList = NULL;
 		}
 	}
@@ -1077,7 +1077,7 @@ public:
 		HRESULT initRe = CoInitializeEx(0, COINIT_MULTITHREADED);
 		if (FAILED(initRe))
 		{
-			LOGF(LogLevel::eERROR, "CoInitializeEx failed: %08x", initRe);
+			LOGF(LogLevel::Error, "CoInitializeEx failed: %08x", initRe);
 			return false;
 		}
 
@@ -1086,12 +1086,12 @@ public:
 		HRESULT re = CoCreateInstance(CLSID_DirectInput8, NULL, CLSCTX_INPROC_SERVER, IID_IDirectInput8, (LPVOID*)&gamePads.dinput);
 		if (FAILED(re))
 		{
-			LOGF(LogLevel::eERROR, "CoCreateInstance failed for gamePad %08x", re);
+			LOGF(LogLevel::Error, "CoCreateInstance failed for gamePad %08x", re);
 			return false;
 		}
 		if (!gamePads.dinput)
 		{
-			LOGF(LogLevel::eERROR, "gamePads.dinput is null");
+			LOGF(LogLevel::Error, "gamePads.dinput is null");
 			return false;
 		}
 		//initialize
@@ -1352,7 +1352,7 @@ public:
 						result = GetRawInputDeviceInfo(raw.header.hDevice, RIDI_DEVICENAME, NULL, &bufferSize);
 						if (result != 0)
 						{
-							DLOGF(LogLevel::eERROR, "result!=0");
+							DLOGF(LogLevel::Error, "result!=0");
 							allocator.Free(size);
 							return;
 						}
@@ -1361,7 +1361,7 @@ public:
 						gamepadInfo.rawInputDeviceHandle = raw.header.hDevice;
 						if (result == -1)
 						{
-							DLOGF(LogLevel::eERROR, "result==-1");
+							DLOGF(LogLevel::Error, "result==-1");
 						}
 					}
 				}
@@ -1492,7 +1492,7 @@ public:
 		}
 		if (gamepadInfo.hidDevice == INVALID_HANDLE_VALUE)
 		{
-			DLOGF(LogLevel::eERROR, "gamepadInfo.hidDevice == INVALID_HANDLE_VALUE");
+			DLOGF(LogLevel::Error, "gamepadInfo.hidDevice == INVALID_HANDLE_VALUE");
 			return false;
 		}
 		//assert(gamepadInfo.hidDevice != INVALID_HANDLE_VALUE);
@@ -1508,12 +1508,12 @@ public:
 		BOOL  result = WriteFile(gamepadInfo.hidDevice, buf, sizeof(buf), &bytes_written, NULL);
 		if (result != TRUE)
 		{
-			DLOGF(LogLevel::eERROR, "result != TRUE");
+			DLOGF(LogLevel::Error, "result != TRUE");
 			return false;
 		}
 		if (bytes_written != ARRAYSIZE(buf))
 		{
-			DLOGF(LogLevel::eERROR, "bytes_written != ARRAYSIZE(buf)");
+			DLOGF(LogLevel::Error, "bytes_written != ARRAYSIZE(buf)");
 			return false;
 		}
 		return result;
@@ -1528,7 +1528,7 @@ public:
 		}
 		if (gamepadInfo.hidDevice == INVALID_HANDLE_VALUE)
 		{
-			DLOGF(LogLevel::eERROR, "gamepadInfo.hidDevice == INVALID_HANDLE_VALUE");
+			DLOGF(LogLevel::Error, "gamepadInfo.hidDevice == INVALID_HANDLE_VALUE");
 			return false;
 		}
 		//assert(gamepadInfo.hidDevice != INVALID_HANDLE_VALUE);
@@ -1547,12 +1547,12 @@ public:
 		BOOL  result = WriteFile(gamepadInfo.hidDevice, buf, sizeof(buf), &bytes_written, NULL);
 		if (result != TRUE)
 		{
-			DLOGF(LogLevel::eERROR, "result != TRUE");
+			DLOGF(LogLevel::Error, "result != TRUE");
 			return false;
 		}
 		if (bytes_written != ARRAYSIZE(buf))
 		{
-			DLOGF(LogLevel::eERROR, "bytes_written != ARRAYSIZE(buf)");
+			DLOGF(LogLevel::Error, "bytes_written != ARRAYSIZE(buf)");
 			return false;
 		}
 		return result;

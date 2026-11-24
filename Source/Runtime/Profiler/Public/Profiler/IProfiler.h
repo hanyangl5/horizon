@@ -79,7 +79,7 @@ FORGE_API void initProfiler(ProfilerDesc* pDesc);
 // Call on application exit
 FORGE_API void exitProfiler();
 
-// Call once per frame to update profiler
+// Call once per frame to Update profiler
 FORGE_API void flipProfiler();
 
 // Legacy MicroProfile benchmark/dump APIs are parked while Tracy capture export is wired up.
@@ -89,11 +89,11 @@ FORGE_API void flipProfiler();
 
 //------ Profiler UI Widget --------//
 
-// Call once per frame before AppUI.Draw, draw requested Gpu profiler timers
+// Call once per frame before AppUI.Draw, Draw requested Gpu profiler timers
 // Returns text dimensions so caller can align other UI elements
 FORGE_API float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfileToken, FontDrawDesc* pDrawDesc);
 
-// Call once per frame before AppUI.Draw, draw requested Cpu profile time
+// Call once per frame before AppUI.Draw, Draw requested Cpu profile time
 // Returns text dimensions so caller can align other UI elements
 FORGE_API float2 cmdDrawCpuProfile(Cmd* pCmd, float2 screenCoordsInPx, FontDrawDesc* pDrawDesc);
 
@@ -123,7 +123,7 @@ FORGE_API void cmdBeginGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken, bo
 // Preferred time to call this function is right before calling endCmd
 FORGE_API void cmdEndGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken);
 
-FORGE_API ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, ProfileToken nProfileToken, const char* pName, bool bUseMarker = true);
+FORGE_API ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, ProfileToken nProfileToken, const char* Name, bool bUseMarker = true);
 
 FORGE_API void cmdEndGpuTimestampQuery(Cmd* pCmd, ProfileToken nProfileToken);
 
@@ -141,9 +141,9 @@ FORGE_API uint64_t cpuProfileEnter(ProfileToken nToken);
 
 FORGE_API void cpuProfileLeave(ProfileToken nToken, uint64_t nTick);
 
-FORGE_API ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t nColor);
+FORGE_API ProfileToken getCpuProfileToken(const char* pGroup, const char* Name, uint32_t nColor);
 FORGE_API void         removeCpuProfileToken(ProfileToken nToken);
-FORGE_API uint64_t     cpuProfileEnterNamed(const char* pGroup, const char* pName, uint32_t nColor);
+FORGE_API uint64_t     cpuProfileEnterNamed(const char* pGroup, const char* Name, uint32_t nColor);
 
 struct CpuProfileScopeMarker
 {
@@ -160,16 +160,16 @@ struct CpuProfileScopeMarker
 #define PROFILER_CONCAT0(a, b) a##b
 #define PROFILER_CONCAT(a, b)  PROFILER_CONCAT0(a, b)
 // Call at the start of a block to profile cpu time between '{' '}'
-// TODO(profiler): Register these static tokens and release them from exitProfiler().
+// TODO(profiler): Register these static tokens and Release them from exitProfiler().
 #define PROFILER_SET_CPU_SCOPE(group, name, color)                                                             \
     static ProfileToken   PROFILER_CONCAT(cpuProfileToken, __LINE__) = getCpuProfileToken(group, name, color); \
     CpuProfileScopeMarker PROFILER_CONCAT(marker, __LINE__)(PROFILER_CONCAT(cpuProfileToken, __LINE__))
 
 // Cpu times in milliseconds
-FORGE_API float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThreadID = NULL);
-FORGE_API float getCpuProfileAvgTime(const char* pGroup, const char* pName, ThreadID* pThreadID = NULL);
-FORGE_API float getCpuProfileMinTime(const char* pGroup, const char* pName, ThreadID* pThreadID = NULL);
-FORGE_API float getCpuProfileMaxTime(const char* pGroup, const char* pName, ThreadID* pThreadID = NULL);
+FORGE_API float getCpuProfileTime(const char* pGroup, const char* Name, ThreadID* pThreadID = NULL);
+FORGE_API float getCpuProfileAvgTime(const char* pGroup, const char* Name, ThreadID* pThreadID = NULL);
+FORGE_API float getCpuProfileMinTime(const char* pGroup, const char* Name, ThreadID* pThreadID = NULL);
+FORGE_API float getCpuProfileMaxTime(const char* pGroup, const char* Name, ThreadID* pThreadID = NULL);
 
 FORGE_API float getCpuFrameTime();
 FORGE_API float getCpuAvgFrameTime();

@@ -24,9 +24,6 @@
 
 #pragma once
 
-#include <ozz/animation/runtime/animation.h>
-#include <ozz/animation/runtime/skeleton.h>
-
 #include <ThirdParty/bstrlib/bstrlib.h>
 
 #include "Core/IFileSystem.h"
@@ -38,16 +35,13 @@
 #define STRCMP(a, b)  (stricmp(a, b) == 0)
 
 #define MAX_FLAGS     100
-#define MAX_FILTERS   100
-
-#define MAX_MIPLEVELS 16 //= TINYDDS_MAX_MIPMAPLEVELS
 
 // Error codes returned by AssetPipelineRun
 typedef enum AssetPipelineErrorCode
 {
     ASSET_PIPELINE_SUCCESS = 0,
     ASSET_PIPELINE_GENERAL_FAILURE = 1,
-    // TODO: add more error codes as needed
+    // TODO: Add more error codes as needed
 } AssetPipelineErrorCode;
 
 enum AssetPipelineProcessMode
@@ -68,12 +62,7 @@ struct ProcessAssetsSettings
 
 enum AssetPipelineProcess
 {
-    PROCESS_ANIMATIONS,
-    PROCESS_TFX,
     PROCESS_GLTF,
-    PROCESS_TEXTURES,
-    PROCESS_WRITE_ZIP,
-    PROCESS_WRITE_ZIP_ALL,
 };
 
 struct AssetPipelineProcessCommand
@@ -94,7 +83,7 @@ struct AssetPipelineParams
 
     const char* mInDir;
     const char* mOutDir;
-    const char* mOutSubdir; // If set, the subdirectory of the input filepath will be ignored and this one will be used instead
+    const char* mOutSubdir; // If Set, the subdirectory of the input filepath will be ignored and this one will be used instead
 
     // From argc and argv
     const char* mFlags[MAX_FLAGS];
@@ -106,160 +95,21 @@ struct AssetPipelineParams
 
     ResourceDirectory mRDInput;
     ResourceDirectory mRDOutput;
-
-    // TODO looks like this directory is always set to nothing
-    ResourceDirectory mRDZipWrite;
 };
 
-struct SkeletonAndAnimations
-{
-    struct AnimationFile
-    {
-        bstring mInputAnim;      // Path relative to AssetPipeline in directory
-        bstring mOutputAnimPath; // Path relative to ProcessAnimationsParams::mSkeletonAndAnimOutRd
-    };
-
-    bstring mSkeletonInFile;  // Path relative to AssetPipeline in directory
-    bstring mSkeletonOutFile; // Path relative to ProcessAnimationsParams::mSkeletonAndAnimOutRd
-
-    AnimationFile* mAnimations; // stbds array
-};
-
-typedef enum TextureCompression
-{
-    COMPRESSION_NONE,
-    COMPRESSION_ASTC,
-    COMPRESSION_BC,
-} TextureCompression;
-
-typedef enum DXT
-{
-    DXT_NONE,
-    DXT_BC1, // RGB + 1A
-    DXT_BC3, // RGB + 8A
-    DXT_BC4, // Single Channel
-    DXT_BC5, // Two channels
-    DXT_BC6, // RGB HalfFloats
-    DXT_BC7,
-} DXT;
-
-typedef enum ASTC
-{
-    ASTC_NONE,
-    ASTC_4x4,
-    ASTC_4x4_SLOW,
-    ASTC_8x8,
-    ASTC_8x8_SLOW,
-} ASTC;
-
-typedef enum TextureContainer
-{
-    CONTAINER_DDS,
-    CONTAINER_KTX
-#ifdef PROSPERO_GNF
-    ,
-    CONTAINER_GNF_ORBIS,
-    CONTAINER_GNF_PROSPERO
-#endif
-#ifdef XBOX_SCARLETT_DDS
-    ,
-    CONTAINER_SCARLETT_DDS
-#endif
-} TextureContainer;
-
-typedef enum TextureMipmap
-{
-    MIPMAP_DEFAULT,
-    MIPMAP_CUSTOM,
-    MIPMAP_NONE
-} TextureMipmap;
-
-typedef struct ProcessedTextureData
-{
-    bstring  mOutputFilePath;
-    uint32_t mWidth;
-    uint32_t mHeight;
-    uint32_t mDepth;
-    uint32_t mArraySize;
-    uint32_t mMipLevels;
-    uint32_t mFormat;
-} ProcessedTextureData;
-
-void GenerateMipmaps(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImageDataSize, TextureDesc* pTextDesc);
-
-typedef void (*GenerateMipmapsCallback)(uint8_t* ppData[MAX_MIPLEVELS], uint32_t* pImageDataSize, TextureDesc* pTextureDesc,
-                                        uint32_t channelsCount, void* pUserData);
-
-typedef struct ProcessTexturesParams
-{
-    const char*             mInExt;
-    TextureContainer        mContainer;
-    TextureCompression      mCompression;
-    ASTC                    mOverrideASTC;
-    DXT                     mOverrideBC;
-    bool                    mInputLinearColorSpace;
-    TextureMipmap           mGenerateMipmaps;
-    GenerateMipmapsCallback pGenerateMipmapsCallback;
-    void*                   pCallbackUserData;
-
-    // Used for vMF with a normal texture (only single file mode for now)
-    const char* pRoughnessFilePath;
-
-    // Optional, leave null if you don't want this data
-    // User is in charge of freeing the memory of this array and internal elements
-    ProcessedTextureData** ppOutProcessedTextureData;
-} ProcessTexturesParams;
-
-struct ProcessTressFXParams
-{
-    uint32_t mFollowHairCount;
-    float    mMaxRadiusAroundGuideHair;
-    float    mTipSeperationFactor;
-};
-
-struct WriteZipParams
-{
-    const char* mFilters[MAX_FILTERS];
-    int         mFiltersCount;
-    const char* mZipFileName;
-};
-
-struct RuntimeAnimationSettings
-{
-    // Resource dir where all animation/skeleton (.ozz assets) will be outputed to
-    ResourceDirectory mSkeletonAndAnimOutRd = RD_MIDDLEWARE_2;
-
-    // Enabling this might introduce noise to the animation
-    bool mOptimizeTracks = false;
-
-    // ozz defaults, 1mm tolerance and 10cm distance
-    float mOptimizationTolerance = 1e-3f;
-    float mOptimizationDistance = 1e-1f;
-
-    // TODO: Add settings per joints, we might want root joint to have less optimization because it affects all the joints of the skeleton
-    // and everything might look shaky
-    //       See joints_setting_override variable in ozz::animation::offline::AnimationOptimizer for more information on this
-};
-
-struct ProcessAnimationsParams
-{
-    SkeletonAndAnimations*   pSkeletonAndAnims = nullptr;
-    RuntimeAnimationSettings mAnimationSettings; // Global settings applied to all animations
-};
-
-// Callback used to provide the user with the 'extras' in each cgltf_mesh node of the gltf file.
+// Callback used to provide the user with the 'extras' in Each cgltf_mesh node of the gltf file.
 // This allows the user to read custom data that might be stored in this field.
 //     - jsonDataLenght is inclusive, you have to read from indexes to jsonData [0, jsonDataLength]
 typedef void (*GLTFReadExtrasCallback)(uint32_t meshIdx, uint32_t meshCount, const char* jsonData, const uint32_t jsonDataLength,
-                                       void* pUserData);
+                                       void* UserData);
 
-// Callback used to let the user write into the binary mesh asset any custom fields/flags that were imported
+// Callback used to let the user write into the binary mesh asset any custom fields/Flags that were imported
 // from the gltf file.
 // This callback is invoked twice:
-//     1. pDst being nullptr: the user should just write the size it requires to write all data into pOutSize.
-//     2. pDst being a valid pointer: the user should serialize the data into pDst, the buffer will be at least
+//     1. pDst being nullptr: the user should just write the Size it requires to write all data into pOutSize.
+//     2. pDst being a valid pointer: the user should Serialize the data into pDst, the buffer will be at least
 //        as big as the value assigned to pOutSize in the first call to this callback.
-typedef void (*MeshWriteExtrasCallback)(uint32_t* pOutSize, void* pDst, void* pUserData);
+typedef void (*MeshWriteExtrasCallback)(uint32_t* pOutSize, void* pDst, void* UserData);
 
 typedef enum MeshOptimizerFlags
 {
@@ -292,22 +142,13 @@ struct ProcessGLTFParams
     void*                   pCallbackUserData; // User data passed to all the callbacks in this structure
 };
 
-void CheckIfGltfHasAnimations(ResourceDirectory resourceDirInput, const char* gltfFileName, uint32_t& numAnimationsOut);
-
-bool ProcessAnimations(AssetPipelineParams* assetParams, ProcessAnimationsParams* pProcessAnimationsParams);
-void ReleaseSkeletonAndAnimationParams(SkeletonAndAnimations* pStbdsArray);
-
 void CreateDirectoryForFile(ResourceDirectory resourceDir, const char* filename);
 
-typedef void (*OnFind)(ResourceDirectory resourceDir, const char* fileName, void* pUserData);
-void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const char* ext, OnFind onFindCallback, void* pUserData,
+typedef void (*OnFind)(ResourceDirectory resourceDir, const char* fileName, void* UserData);
+void DirectorySearch(ResourceDirectory resourceDir, const char* subDir, const char* ext, OnFind onFindCallback, void* UserData,
                      bool recursive);
 
-bool ProcessTFX(AssetPipelineParams* assetParams, ProcessTressFXParams* tfxParams);
 bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams);
-bool ProcessTextures(AssetPipelineParams* assetParams, ProcessTexturesParams* texturesParams);
-bool WriteZip(AssetPipelineParams* assetParams, WriteZipParams* zipParams);
-bool ZipAllAssets(AssetPipelineParams* assetParams, WriteZipParams* zipParams);
 
 // Error code 0 means success, see AssetPipelineErrorCode for other codes
 int AssetPipelineRun(AssetPipelineParams* assetParams);

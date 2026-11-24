@@ -1,0 +1,42 @@
+/* Copyright (c) 2026 Horizon */
+#pragma once
+
+#include "Core/IFileSystem.h"
+#include "Scene/AssetManager.h"
+
+namespace hz
+{
+class GPUTexture;
+class TextureAssetData;
+class TextureAssetLoaderData;
+
+class TextureAsset
+{
+public:
+    TextureAsset() = default;
+    ~TextureAsset();
+    TextureAsset(const TextureAsset&) = delete;
+    TextureAsset& operator=(const TextureAsset&) = delete;
+
+    const GPUTexture& GetTexture() const;
+
+private:
+    TextureAssetData* Data = nullptr;
+    friend class TextureAssetLoaderData;
+};
+
+class TextureAssetLoader
+{
+public:
+    explicit TextureAssetLoader(RenderContext& context, ResourceDirectory cookedDirectory = DirectoryMeshes,
+                                ResourceDirectory sourceDirectory = DirectoryTextures);
+    ~TextureAssetLoader();
+    TextureAssetLoader(const TextureAssetLoader&) = delete;
+    TextureAssetLoader& operator=(const TextureAssetLoader&) = delete;
+
+    AssetLoader GetLoader();
+
+private:
+    TextureAssetLoaderData* Data = nullptr;
+};
+} // namespace hz

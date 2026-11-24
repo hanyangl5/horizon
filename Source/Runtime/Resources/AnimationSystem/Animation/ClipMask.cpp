@@ -40,7 +40,7 @@ void ClipMask::Initialize(Rig* rig)
 void ClipMask::Exit()
 {
     ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
-    allocator->Deallocate(jointWeights.data());
+    allocator->Deallocate(jointWeights.GetData());
     jointWeights = {};
 }
 
@@ -68,7 +68,7 @@ void ClipMask::SetAllChildrenOf(int32_t jointIndex, float setValue)
     {
         UNREF_PARAM(jointParent);
         // Sets the weight_setting of all the joints children to setValue. Note
-        // that weights are stored in SoA format.
+        // that weights are stored in SoA Format.
         const int32_t jointId = joint;
         jointWeights[jointId / 4].setElem(jointId % 4, setValue);
     };

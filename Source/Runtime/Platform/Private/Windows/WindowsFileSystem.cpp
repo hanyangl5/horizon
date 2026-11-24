@@ -27,11 +27,11 @@
 #include <functional>
 
 #if !defined(XBOX)
-// clang-format off
+// clang-Format off
 #include "shlobj.h"
 #include "commdlg.h"
 #include <WinBase.h>
-// clang-format on
+// clang-Format on
 #endif
 #include <io.h>
 #include <stdio.h>
@@ -57,50 +57,52 @@ static inline T withUTF16Path(const char* path, T (*function)(const wchar_t*))
 
 extern "C"
 {
-    bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
-    void fsGetParentPath(const char* path, char* output);
+bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+void GetParentPath(const char* path, char* output);
 }
 
 #ifndef XBOX
 static bool        gInitialized = false;
-static const char* gResourceMounts[RM_COUNT];
+static const char* gResourceMounts[MountCount];
 static char        gProjectResourcePath[FS_MAX_PATH] = {};
 static char        gApplicationPath[FS_MAX_PATH] = {};
 static char        gDocumentsPath[FS_MAX_PATH] = {};
 
-bool initFileSystem(FileSystemInitDesc* pDesc)
+bool InitFileSystem(FileSystemInitDesc* pDesc)
 {
     if (gInitialized)
     {
-        LOGF(LogLevel::eWARNING, "FileSystem already initialized.");
+        LOGF(LogLevel::Warning, "FileSystem already initialized.");
         return true;
     }
     ASSERT(pDesc);
 
-    for (uint32_t i = 0; i < RM_COUNT; ++i)
+    for (uint32_t i = 0; i < MountCount; ++i)
+    {
         gResourceMounts[i] = "";
+    }
 
     // Get application directory
     wchar_t utf16Path[FS_MAX_PATH];
     GetModuleFileNameW(0, utf16Path, FS_MAX_PATH);
     char applicationFilePath[FS_MAX_PATH] = {};
     WideCharToMultiByte(CP_UTF8, 0, utf16Path, -1, applicationFilePath, MAX_PATH, NULL, NULL);
-    fsGetParentPath(applicationFilePath, gApplicationPath);
-    gResourceMounts[RM_PROJECT] = PROJECT_ROOT;
-    fsMergeDirAndFileName(PROJECT_ROOT, "Assets", '\\', sizeof gProjectResourcePath, gProjectResourcePath);
-    gResourceMounts[RM_CONTENT] = gProjectResourcePath;
-    gResourceMounts[RM_DEBUG] = gApplicationPath;
+    GetParentPath(applicationFilePath, gApplicationPath);
+    gResourceMounts[MountProject] = PROJECT_ROOT;
+    MergeDirAndFileName(PROJECT_ROOT, "Assets", '\\', sizeof gProjectResourcePath, gProjectResourcePath);
+    gResourceMounts[MountContent] = gProjectResourcePath;
+    gResourceMounts[MountDebug] = gApplicationPath;
 
     // Get user directory
     PWSTR userDocuments = NULL;
     SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &userDocuments);
     WideCharToMultiByte(CP_UTF8, 0, userDocuments, -1, gDocumentsPath, MAX_PATH, NULL, NULL);
     CoTaskMemFree(userDocuments);
-    gResourceMounts[RM_DOCUMENTS] = gDocumentsPath;
-    gResourceMounts[RM_SAVE_0] = gApplicationPath;
+    gResourceMounts[MountDocuments] = gDocumentsPath;
+    gResourceMounts[MountSave0] = gApplicationPath;
 
     // Override Resource mounts
-    for (uint32_t i = 0; i < RM_COUNT; ++i)
+    for (uint32_t i = 0; i < MountCount; ++i)
     {
         if (pDesc->pResourceMounts[i])
             gResourceMounts[i] = pDesc->pResourceMounts[i];
@@ -119,10 +121,10 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
     return true;
 }
 
-void exitFileSystem(void) { gInitialized = false; }
+void ExitFileSystem(void) { gInitialized = false; }
 #endif
 
-static bool fsDirectoryExists(const char* path)
+static bool DirectoryExists(const char* path)
 {
     return withUTF16Path<bool>(path,
                                [](const wchar_t* pathStr)
@@ -132,36 +134,38 @@ static bool fsDirectoryExists(const char* path)
                                });
 }
 
-static bool fsCreateDirectory(const char* path)
+static bool MakeDirectory(const char* path)
 {
-    if (fsDirectoryExists(path))
+    if (DirectoryExists(path))
     {
         return true;
     }
 
     char parentPath[FS_MAX_PATH] = { 0 };
-    fsGetParentPath(path, parentPath);
+    GetParentPath(path, parentPath);
     if (parentPath[0] != 0)
     {
-        if (!fsDirectoryExists(parentPath))
+        if (!DirectoryExists(parentPath))
         {
-            fsCreateDirectory(parentPath);
+            MakeDirectory(parentPath);
         }
     }
     return withUTF16Path<bool>(path, [](const wchar_t* pathStr) { return ::CreateDirectoryW(pathStr, NULL) ? true : false; });
 }
 
-bool fsCreateResourceDirectory(ResourceDirectory resourceDir) { return fsCreateDirectory(fsGetResourceDirectory(resourceDir)); }
+bool CreateResourceDirectory(ResourceDirectory resourceDir) { return MakeDirectory(GetResourceDirectory(resourceDir)); }
 
-time_t fsGetLastModifiedTime(ResourceDirectory rd, const char* fileName)
+time_t GetLastModifiedTime(ResourceDirectory rd, const char* fileName)
 {
     char filePath[FS_MAX_PATH] = { 0 };
-    if (!fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '\\', sizeof filePath, filePath))
+    if (!MergeDirAndFileName(GetResourceDirectory(rd), fileName, '\\', sizeof filePath, filePath))
+    {
         return 0;
+    }
 
     // Fix paths for Windows 7 - needs to be generalized and propagated
     // eastl::string path = eastl::string(filePath);
-    // auto directoryPos = path.find(":");
+    // auto directoryPos = path.Find(":");
     // eastl::string cleanPath = path.substr(directoryPos - 1);
 
     struct stat fileInfo = { 0 };
@@ -172,7 +176,7 @@ time_t fsGetLastModifiedTime(ResourceDirectory rd, const char* fileName)
 struct WindowsFileStream
 {
     FILE*  file;
-    HANDLE handle;
+    HANDLE Handle;
     HANDLE fileMapping;
     LPVOID mapView;
 };
@@ -207,41 +211,41 @@ public:
     const char* c_str() { return utf8; }
 };
 
-static inline FORGE_CONSTEXPR const char* fsFileModeToString(FileMode mode)
+static inline FORGE_CONSTEXPR const char* FileModeToString(FileMode mode)
 {
-    mode = (FileMode)(mode & ~FM_ALLOW_READ);
+    mode = (FileMode)(mode & ~FileModeAllowRead);
     switch (mode)
     {
-    case FM_READ:
+    case FileModeRead:
         return "rb";
-    case FM_WRITE:
+    case FileModeWrite:
         return "wb";
-    case FM_WRITE_APPEND:
+    case FileModeWriteAppend:
         return "ab";
-    case FM_READ_WRITE:
+    case FileModeReadWrite:
         return "rb+";
-    case FM_READ_APPEND:
+    case FileModeReadAppend:
         return "ab+";
     default:
         return "r";
     }
 }
 
-static inline FORGE_CONSTEXPR const char* fsOverwriteFileModeToString(FileMode mode)
+static inline FORGE_CONSTEXPR const char* OverwriteFileModeToString(FileMode mode)
 {
     switch (mode)
     {
-    case FM_READ_WRITE:
+    case FileModeReadWrite:
         return "wb+";
     default:
-        return fsFileModeToString(mode);
+        return FileModeToString(mode);
     }
 }
 
 bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)
 {
     char filePath[FS_MAX_PATH];
-    fsMergeDirAndFileName(fsGetResourceDirectory(resourceDir), fileName, '\\', sizeof filePath, filePath);
+    MergeDirAndFileName(GetResourceDirectory(resourceDir), fileName, '\\', sizeof filePath, filePath);
 
     // Path utf-16 conversion
     size_t  filePathLen = strlen(filePath) + 1;
@@ -250,13 +254,13 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
     MultiByteToWideChar(CP_UTF8, 0, filePath, (int)filePathLen, pathStr, (int)filePathLen);
 
     // Mode string utf-16 conversion
-    const char* modeStr = fsFileModeToString(mode);
+    const char* modeStr = FileModeToString(mode);
 
     wchar_t modeWStr[4] = {};
     mbstowcs(modeWStr, modeStr, 4);
 
     FILE* fp = NULL;
-    if (mode & FM_ALLOW_READ)
+    if (mode & FileModeAllowRead)
     {
         fp = _wfsopen(pathStr, modeWStr, _SH_DENYWR);
     }
@@ -270,11 +274,11 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
     if (!fp)
     {
         // Try changing mode to 'w+' or 'wb+'
-        if ((mode & FM_READ_WRITE) == FM_READ_WRITE)
+        if ((mode & FileModeReadWrite) == FileModeReadWrite)
         {
-            modeStr = fsOverwriteFileModeToString(mode);
+            modeStr = OverwriteFileModeToString(mode);
             mbstowcs(modeWStr, modeStr, 4);
-            if (mode & FM_ALLOW_READ)
+            if (mode & FileModeAllowRead)
             {
                 fp = _wfsopen(pathStr, modeWStr, _SH_DENYWR);
             }
@@ -289,15 +293,15 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
     {
         *pOut = {};
         pOut->mode = mode;
-        pOut->pIO = pSystemFileIO;
+        pOut->FileSystem = SystemFileIO;
 
         WSD(stream, pOut);
         stream->file = fp;
 
-        stream->handle = (HANDLE)_get_osfhandle(_fileno(fp));
-        if (stream->handle == INVALID_HANDLE_VALUE)
+        stream->Handle = (HANDLE)_get_osfhandle(_fileno(fp));
+        if (stream->Handle == INVALID_HANDLE_VALUE)
         {
-            LOGF(LogLevel::eERROR, "Error getting file handle for %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
+            LOGF(LogLevel::Error, "Error getting file handle for %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
             fclose(fp);
             return false;
         }
@@ -306,7 +310,7 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
     }
     else
     {
-        LOGF(LogLevel::eERROR, "Error opening file: %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
+        LOGF(LogLevel::Error, "Error opening file: %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
     }
 
     return false;
@@ -316,7 +320,7 @@ static bool ioWindowsFsOpen(IFileSystem*, ResourceDirectory rd, const char* file
 {
     if (PlatformOpenFile(rd, fileName, mode, pOut))
     {
-        pOut->mount = fsGetResourceDirectoryMount(rd);
+        pOut->mount = GetResourceDirectoryMount(rd);
         return true;
     }
     return false;
@@ -326,9 +330,11 @@ static ssize_t ioWindowsFsGetSize(FileStream* fs)
 {
     WSD(stream, fs);
     LARGE_INTEGER fileSize = {};
-    if (GetFileSizeEx(stream->handle, &fileSize))
+    if (GetFileSizeEx(stream->Handle, &fileSize))
+    {
         return (ssize_t)fileSize.QuadPart;
-    LOGF(eERROR, "Failed to get file size: %s", WindowsErrorString().c_str());
+    }
+    LOGF(Error, "Failed to Get file size: %s", WindowsErrorString().c_str());
     return -1;
 }
 
@@ -337,18 +343,20 @@ static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** o
     *outSize = 0;
     *outData = NULL;
 
-    if (fs->mode & FM_WRITE)
+    if (fs->mode & FileModeWrite)
+    {
         return false;
+    }
 
     WSD(stream, fs);
 
     // mapped already
     if (!stream->mapView)
     {
-        HANDLE fileMapping = CreateFileMappingW(stream->handle, NULL, PAGE_READONLY, 0, 0, NULL);
+        HANDLE fileMapping = CreateFileMappingW(stream->Handle, NULL, PAGE_READONLY, 0, 0, NULL);
         if (!fileMapping)
         {
-            LOGF(eERROR, "Failed to CreateFileMappingW, %s", WindowsErrorString().c_str());
+            LOGF(Error, "Failed to CreateFileMappingW, %s", WindowsErrorString().c_str());
             return false;
         }
 
@@ -357,7 +365,7 @@ static bool ioWindowsFsMemoryMap(FileStream* fs, size_t* outSize, void const** o
         LPVOID mem = MapViewOfFile(fileMapping, FILE_MAP_READ, 0, 0, 0);
         if (!mem)
         {
-            LOGF(eERROR, "Failed to MapViewOfFile, %s", WindowsErrorString().c_str());
+            LOGF(Error, "Failed to MapViewOfFile, %s", WindowsErrorString().c_str());
             CloseHandle(fileMapping);
             return false;
         }
@@ -377,7 +385,7 @@ static bool ioWindowsFsClose(FileStream* fs)
 
     if (stream->mapView && !UnmapViewOfFile(stream->mapView))
     {
-        LOGF(eERROR, "Error unmapping file: %s", WindowsErrorString().c_str());
+        LOGF(Error, "Error unmapping file: %s", WindowsErrorString().c_str());
     }
 
     if (stream->fileMapping != INVALID_HANDLE_VALUE)
@@ -388,38 +396,38 @@ static bool ioWindowsFsClose(FileStream* fs)
 
     if (fclose(stream->file) == EOF)
     {
-        LOGF(LogLevel::eERROR, "Error closing system FileStream: %s (%x)", strerror(errno), errno);
+        LOGF(LogLevel::Error, "Error closing system FileStream: %s (%x)", strerror(errno), errno);
         return false;
     }
 
     return true;
 }
 
-static size_t ioWindowsFsRead(FileStream* fs, void* dst, size_t size)
+static size_t ioWindowsFsRead(FileStream* fs, void* dst, size_t Size)
 {
     WSD(stream, fs);
-    size_t read = fread(dst, 1, size, stream->file);
-    if (read != size && ferror(stream->file))
+    size_t read = fread(dst, 1, Size, stream->file);
+    if (read != Size && ferror(stream->file))
     {
-        LOGF(LogLevel::eERROR, "Error reading %s bytes from file: %s (%x)", humanReadableSize(size).str, strerror(errno), errno);
+        LOGF(LogLevel::Error, "Error reading %s bytes from file: %s (%x)", HumanReadableSize(Size).str, strerror(errno), errno);
     }
     return read;
 }
 
-static size_t ioWindowsFsWrite(FileStream* fs, const void* src, size_t size)
+static size_t ioWindowsFsWrite(FileStream* fs, const void* src, size_t Size)
 {
-    if ((fs->mode & (FM_WRITE | FM_APPEND)) == 0)
+    if ((fs->mode & (FileModeWrite | FileModeAppend)) == 0)
     {
-        LOGF(LogLevel::eERROR, "Writing to FileStream with mode %i", fs->mode);
+        LOGF(LogLevel::Error, "Writing to FileStream with mode %i", fs->mode);
         return 0;
     }
 
     WSD(stream, fs);
-    size_t written = fwrite(src, 1, size, stream->file);
+    size_t written = fwrite(src, 1, Size, stream->file);
 
-    if (written != size)
+    if (written != Size)
     {
-        LOGF(LogLevel::eERROR, "Error writing to system FileStream: %s (%x)", strerror(errno), errno);
+        LOGF(LogLevel::Error, "Error writing to system FileStream: %s (%x)", strerror(errno), errno);
     }
 
     return written;
@@ -451,7 +459,7 @@ static ssize_t ioWindowsFsGetPosition(FileStream* fs)
     ssize_t position = _ftelli64(stream->file);
     if (position < 0)
     {
-        LOGF(LogLevel::eERROR, "Error getting seek position in FileStream: %s (%x)", strerror(errno), errno);
+        LOGF(LogLevel::Error, "Error getting seek position in FileStream: %s (%x)", strerror(errno), errno);
     }
     return position;
 }
@@ -461,7 +469,7 @@ bool ioWindowsFsFlush(FileStream* fs)
     WSD(stream, fs);
     if (fflush(stream->file))
     {
-        LOGF(LogLevel::eWARNING, "Error flushing system FileStream: %s (%x)", strerror(errno), errno);
+        LOGF(LogLevel::Warning, "Error flushing system FileStream: %s (%x)", strerror(errno), errno);
         return false;
     }
     return true;
@@ -496,4 +504,4 @@ static IFileSystem gWindowsFileIO = {
     NULL,
 };
 
-IFileSystem* pSystemFileIO = &gWindowsFileIO;
+IFileSystem* SystemFileIO = &gWindowsFileIO;

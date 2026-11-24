@@ -36,7 +36,7 @@
 // Maximum number of clips that can make up one animation
 const uint32_t MAX_NUM_CLIPS = 10;
 
-// Descriptors for each layer/clip that will make up the blended animation
+// Descriptors for Each layer/clip that will make up the blended animation
 struct LayerProperty
 {
     Clip*           clip = NULL;
@@ -77,11 +77,11 @@ public:
     // Will sample the animation at dt, storing the local transform results in localTrans
     bool Sample(float dt, ozz::span<SoaTransform>& localTrans);
 
-    // Hard set the current animation with timeRatio [0,1] (based on the longest clip)
+    // Hard Set the current animation with timeRatio [0,1] (based on the longest clip)
     void SetTimeRatio(float timeRatio);
 
 private:
-    // Sets the various blend parameters based on the type of blend set
+    // Sets the various blend parameters based on the Type of blend Set
     void UpdateBlendParameters();
 
     // Blend the sampled clips together based on their blend parameters
@@ -100,13 +100,13 @@ public:
     // Array of clip masks that can alter per joint weights of clips
     ClipMask* clipMasks[MAX_NUM_CLIPS] = {};
 
-    // Sampling cache that will be given as input when each clip is sampled
+    // Sampling cache that will be given as input when Each clip is sampled
     ozz::animation::SamplingJob::Context* clipSamplingCaches[MAX_NUM_CLIPS] = {};
 
-    // The buffer of local transforms that will be updated as output when each clip is sampled
+    // The buffer of local transforms that will be updated as output when Each clip is sampled
     ozz::span<SoaTransform> clipLocalTrans[MAX_NUM_CLIPS];
 
-    // The blend layers that will be set each sampling based on each clip's properties
+    // The blend layers that will be Set Each sampling based on Each clip's properties
     ozz::span<ozz::animation::BlendingJob::Layer> layers;
     ozz::span<ozz::animation::BlendingJob::Layer> additiveLayers;
 
@@ -141,6 +141,6 @@ public:
     float blendRatio = 0.5f;
 
     // Controls if the UpdateBlendParameters() function gets called or not
-    // A value of false implies that all blend parameters will be set externally
+    // A value of false implies that all blend parameters will be Set externally
     bool autoSetBlendParams = true;
 };

@@ -36,6 +36,7 @@ struct AccelerationStructureDescBottom;
 struct RootSignature;
 struct ShaderResource;
 struct ID3D12Device5;
+struct RaytracingPipeline;
 
 enum AccelerationStructureType : uint32_t
 {
@@ -83,21 +84,21 @@ struct AccelerationStructureInstanceDesc
     uint32_t                           instanceID;
     uint32_t                           instanceMask;
     uint32_t                           instanceContributionToHitGroupIndex;
-    AccelerationStructureInstanceFlags flags;
+    AccelerationStructureInstanceFlags Flags;
 };
 
 struct AccelerationStructureGeometryDesc
 {
     Buffer*                            pVertexBuffer;
     Buffer*                            pIndexBuffer;
-    uint32_t                           vertexOffset;
+    uint64_t                           vertexOffset;
     uint32_t                           vertexCount;
     uint32_t                           vertexStride;
     hz::Format                         vertexFormat;
-    uint32_t                           indexOffset;
+    uint64_t                           indexOffset;
     uint32_t                           indexCount;
     IndexType                          indexType;
-    AccelerationStructureGeometryFlags flags;
+    AccelerationStructureGeometryFlags Flags;
 };
 /************************************************************************/
 //	  Bottom Level Structures define the geometry data such as vertex buffers, index buffers
@@ -120,8 +121,8 @@ struct AccelerationStructureDescTop
 
 struct AccelerationStructureDesc
 {
-    AccelerationStructureType       type;
-    AccelerationStructureBuildFlags flags;
+    AccelerationStructureType       Type;
+    AccelerationStructureBuildFlags Flags;
     union
     {
         AccelerationStructureDescBottom bottom;
@@ -133,12 +134,15 @@ struct RaytracingBuildASDesc
 {
     AccelerationStructure* pAccelerationStructure;
     bool                   issueRWBarrier;
+    bool                   Update = false;
+    Buffer*                pInstanceBuffer = nullptr;
+    uint32_t               instanceCount = UINT32_MAX;
 };
 
 FORGE_RENDERER_API bool FORGE_CALLCONV initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing);
 FORGE_RENDERER_API void FORGE_CALLCONV removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
 
-/// pScratchBufferSize - Holds the size of scratch buffer to be passed to cmdBuildAccelerationStructure
+/// pScratchBufferSize - Holds the Size of scratch buffer to be passed to cmdBuildAccelerationStructure
 FORGE_RENDERER_API void FORGE_CALLCONV     addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDesc* pDesc,
                                                                     AccelerationStructure** ppAccelerationStructure);
 FORGE_RENDERER_API uint32_t FORGE_CALLCONV getAccelerationStructureSrvIndex(const AccelerationStructure* pAccelerationStructure);
@@ -149,3 +153,41 @@ FORGE_RENDERER_API void FORGE_CALLCONV removeAccelerationStructureScratch(Raytra
                                                                           AccelerationStructure* pAccelerationStructure);
 
 FORGE_RENDERER_API void FORGE_CALLCONV cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
+
+struct RaytracingInstanceData
+{
+    float    transform[12];
+    uint32_t instanceIdAndMask;
+    uint32_t hitGroupAndFlags;
+    uint64_t address;
+};
+static_assert(sizeof(RaytracingInstanceData) == 64);
+
+struct RaytracingHitGroupDesc
+{
+    const char* Name;
+    const char* pClosestHit;
+    const char* pAnyHit;
+    const char* pIntersection;
+};
+
+struct RaytracingPipelineDesc
+{
+    const void*                   pLibrary;
+    uint64_t                      librarySize;
+    const char*                   pRayGeneration;
+    const char* const*            ppMissShaders;
+    uint32_t                      missShaderCount;
+    const RaytracingHitGroupDesc* pHitGroups;
+    uint32_t                      hitGroupCount;
+    uint32_t                      payloadSize;
+    uint32_t                      attributeSize;
+    uint32_t                      maxRecursionDepth;
+    uint32_t                      rootConstantSize;
+};
+FORGE_RENDERER_API uint64_t FORGE_CALLCONV       getAccelerationStructureGpuAddress(const AccelerationStructure*);
+FORGE_RENDERER_API void FORGE_CALLCONV           addRaytracingPipeline(Raytracing*, const RaytracingPipelineDesc*, RaytracingPipeline**);
+FORGE_RENDERER_API void FORGE_CALLCONV           removeRaytracingPipeline(Raytracing*, RaytracingPipeline*);
+FORGE_RENDERER_API RootSignature* FORGE_CALLCONV getRaytracingPipelineRootSignature(RaytracingPipeline*);
+FORGE_RENDERER_API void FORGE_CALLCONV           cmdBindRaytracingPipeline(Cmd*, RaytracingPipeline*);
+FORGE_RENDERER_API void FORGE_CALLCONV           cmdTraceRays(Cmd*, RaytracingPipeline*, uint32_t Width, uint32_t Height, uint32_t Depth);

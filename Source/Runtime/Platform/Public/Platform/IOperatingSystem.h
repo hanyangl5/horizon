@@ -42,7 +42,7 @@
 typedef uint64_t uint64;
 #endif
 
-// Support fixed set of OS versions in order to minimize maintenance efforts
+// Support fixed Set of OS versions in order to minimize maintenance efforts
 // Two runtimes. Using IOS in the name as iOS versions are easier to remember
 // Try to match the macOS version with the relevant features in iOS version
 #define IOS14_API     API_AVAILABLE(macos(11.0), ios(14.1))
@@ -113,9 +113,9 @@ typedef uint64_t uint64;
 
 typedef enum WindowMode
 {
-    WM_WINDOWED,
-    WM_FULLSCREEN,
-    WM_BORDERLESS
+    WindowModeWindowed,
+    WindowModeFullscreen,
+    WindowModeBorderless
 } WindowMode;
 
 typedef struct RectDesc
@@ -128,18 +128,18 @@ typedef struct RectDesc
 
 typedef enum WindowHandleType
 {
-    WINDOW_HANDLE_TYPE_UNKNOWN,
-    WINDOW_HANDLE_TYPE_WIN32,
-    WINDOW_HANDLE_TYPE_XLIB,
-    WINDOW_HANDLE_TYPE_XCB,
-    WINDOW_HANDLE_TYPE_WAYLAND,
-    WINDOW_HANDLE_TYPE_ANDROID,
-    WINDOW_HANDLE_TYPE_VI_NN,
+    WindowHandleTypeUnknown,
+    WindowHandleTypeWin32,
+    WindowHandleTypeXlib,
+    WindowHandleTypeXcb,
+    WindowHandleTypeWayland,
+    WindowHandleTypeAndroid,
+    WindowHandleTypeViNn,
 } WindowHandleType;
 
 typedef struct WindowHandle
 {
-    WindowHandleType type;
+    WindowHandleType Type;
 
 #if defined(_WIN32)
     HWND window;
@@ -179,37 +179,37 @@ typedef struct WindowHandle
 
 typedef struct WindowDesc
 {
-    WindowHandle handle;
-    RectDesc     windowedRect;
-    RectDesc     fullscreenRect;
-    RectDesc     clientRect;
-    uint32_t     windowsFlags;
-    bool         fullScreen;
-    bool         cursorCaptured;
-    bool         iconified;
-    bool         maximized;
-    bool         minimized;
-    bool         hide;
-    bool         noresizeFrame;
-    bool         borderlessWindow;
-    bool         overrideDefaultPosition;
-    bool         centered;
-    bool         forceLowDPI;
+    WindowHandle Handle;
+    RectDesc     WindowedRect;
+    RectDesc     FullscreenRect;
+    RectDesc     ClientRect;
+    uint32_t     Flags;
+    bool         Fullscreen;
+    bool         CursorCaptured;
+    bool         Iconified;
+    bool         Maximized;
+    bool         Minimized;
+    bool         Hidden;
+    bool         NoResizeFrame;
+    bool         Borderless;
+    bool         OverrideDefaultPosition;
+    bool         Centered;
+    bool         ForceLowDpi;
 
-    int32_t windowMode;
+    int32_t Mode;
 
-    int32_t pCurRes[MAX_MONITOR_COUNT];
-    int32_t pLastRes[MAX_MONITOR_COUNT];
+    int32_t CurrentResolution[MAX_MONITOR_COUNT];
+    int32_t LastResolution[MAX_MONITOR_COUNT];
 
-    int32_t wndX;
-    int32_t wndY;
-    int32_t wndW;
-    int32_t wndH;
+    int32_t WindowX;
+    int32_t WindowY;
+    int32_t WindowWidth;
+    int32_t WindowHeight;
 
-    bool    cursorHidden;
-    int32_t cursorInsideWindow;
-    bool    cursorCaptureRequested;
-    bool    minimizeRequested;
+    bool    CursorHidden;
+    int32_t CursorInsideWindow;
+    bool    CursorCaptureRequested;
+    bool    MinimizeRequested;
 
 #if WINDOW_DETAILS
     bstring pWindowedRectLabel;
@@ -234,132 +234,132 @@ typedef struct WindowDesc
 
 typedef struct Resolution
 {
-    uint32_t width;
-    uint32_t height;
+    uint32_t Width;
+    uint32_t Height;
 } Resolution;
 
 // Monitor data
 //
 typedef struct
 {
-    RectDesc     monitorRect;
-    RectDesc     workRect;
-    unsigned int dpi[2];
-    unsigned int physicalSize[2];
-    // This size matches the static size of DISPLAY_DEVICE.DeviceName
+    RectDesc     MonitorRect;
+    RectDesc     WorkRect;
+    unsigned int Dpi[2];
+    unsigned int PhysicalSize[2];
+    // This Size matches the static Size of DISPLAY_DEVICE.DeviceName
 #if defined(_WINDOWS) || defined(XBOX)
-    WCHAR adapterName[32];
-    WCHAR displayName[32];
-    WCHAR publicAdapterName[128];
-    WCHAR publicDisplayName[128];
+    WCHAR AdapterName[32];
+    WCHAR DisplayName[32];
+    WCHAR PublicAdapterName[128];
+    WCHAR PublicDisplayName[128];
 #elif defined(__APPLE__)
 #if defined(TARGET_IOS)
 #else
     CGDirectDisplayID displayID;
-    char              publicAdapterName[64];
-    char              publicDisplayName[64];
+    char              PublicAdapterName[64];
+    char              PublicDisplayName[64];
 #endif
 #elif defined(__linux__) && !defined(__ANDROID__)
     Screen* screen;
-    char    adapterName[32];
-    char    displayName[32];
-    char    publicAdapterName[64];
-    char    publicDisplayName[64];
+    char    AdapterName[32];
+    char    DisplayName[32];
+    char    PublicAdapterName[64];
+    char    PublicDisplayName[64];
 #else
-    char                     adapterName[32];
-    char                     displayName[32];
-    char                     publicAdapterName[64];
-    char                     publicDisplayName[64];
+    char AdapterName[32];
+    char DisplayName[32];
+    char PublicAdapterName[64];
+    char PublicDisplayName[64];
 #endif
     // stb_ds array of Resolutions
-    Resolution* resolutions;
-    Resolution  defaultResolution;
-    bool        modesPruned;
-    bool        modeChanged;
+    Resolution* Resolutions;
+    Resolution  DefaultResolution;
+    bool        ModesPruned;
+    bool        ModeChanged;
 } MonitorDesc;
 
 typedef enum ThermalStatus
 {
-    THERMAL_STATUS_MIN = -2,
+    ThermalStatusMin = -2,
 
-    THERMAL_STATUS_NOT_SUPPORTED = -2, // Current platform/device/build doesn't support ThermalStatus queries
-    THERMAL_STATUS_ERROR = -1,         // There was an error retrieving thermal status
+    ThermalStatusNotSupported = -2, // Current platform/device/build doesn't support ThermalStatus queries
+    ThermalStatusError = -1,        // There was an error retrieving thermal status
 
     // Note: These enum names are taken from Android, we might want to rename them or create our own
-    THERMAL_STATUS_NONE = 0,     // Means we didn't get any thermal status data yet (maybe device doesn't support it)
-    THERMAL_STATUS_LIGHT = 1,    // iOS Nominal
-    THERMAL_STATUS_MODERATE = 2, // iOS Fair
-    THERMAL_STATUS_SEVERE = 3,   // iOS Serious
-    THERMAL_STATUS_CRITICAL = 4, // iOS Critical
-    THERMAL_STATUS_EMERGENCY = 5,
-    THERMAL_STATUS_SHUTDOWN = 6,
+    ThermalStatusNone = 0,     // Means we didn't Get any thermal status data yet (maybe device doesn't support it)
+    ThermalStatusLight = 1,    // iOS Nominal
+    ThermalStatusModerate = 2, // iOS Fair
+    ThermalStatusSevere = 3,   // iOS Serious
+    ThermalStatusCritical = 4, // iOS Critical
+    ThermalStatusEmergency = 5,
+    ThermalStatusShutdown = 6,
 
-    THERMAL_STATUS_MAX,
+    ThermalStatusMax,
 } ThermalStatus;
 
-inline int getRectWidth(const RectDesc* rect) { return rect->right - rect->left; }
-inline int getRectHeight(const RectDesc* rect) { return rect->bottom - rect->top; }
+inline int GetRectWidth(const RectDesc* rect) { return rect->right - rect->left; }
+inline int GetRectHeight(const RectDesc* rect) { return rect->bottom - rect->top; }
 
 // Window handling
-FORGE_API void openWindow(const char* app_name, WindowDesc* winDesc);
-FORGE_API void closeWindow(WindowDesc* winDesc);
-FORGE_API void setWindowRect(WindowDesc* winDesc, const RectDesc* rect);
-FORGE_API void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height);
-FORGE_API void setWindowed(WindowDesc* winDesc, unsigned width, unsigned height);
-FORGE_API void setBorderless(WindowDesc* winDesc, unsigned width, unsigned height);
-FORGE_API void setFullscreen(WindowDesc* winDesc);
-FORGE_API void showWindow(WindowDesc* winDesc);
-FORGE_API void hideWindow(WindowDesc* winDesc);
-FORGE_API void maximizeWindow(WindowDesc* winDesc);
-FORGE_API void minimizeWindow(WindowDesc* winDesc);
-FORGE_API void centerWindow(WindowDesc* winDesc);
-FORGE_API void captureCursor(WindowDesc* winDesc, bool bEnable);
+FORGE_API void OpenWindow(const char* app_name, WindowDesc* winDesc);
+FORGE_API void ClosePlatformWindow(WindowDesc* winDesc);
+FORGE_API void SetWindowRect(WindowDesc* winDesc, const RectDesc* rect);
+FORGE_API void SetWindowSize(WindowDesc* winDesc, unsigned Width, unsigned Height);
+FORGE_API void SetWindowed(WindowDesc* winDesc, unsigned Width, unsigned Height);
+FORGE_API void SetBorderless(WindowDesc* winDesc, unsigned Width, unsigned Height);
+FORGE_API void SetFullscreen(WindowDesc* winDesc);
+FORGE_API void MakeWindowVisible(WindowDesc* winDesc);
+FORGE_API void HideWindow(WindowDesc* winDesc);
+FORGE_API void MaximizeWindow(WindowDesc* winDesc);
+FORGE_API void MinimizeWindow(WindowDesc* winDesc);
+FORGE_API void CenterWindow(WindowDesc* winDesc);
+FORGE_API void CaptureCursor(WindowDesc* winDesc, bool bEnable);
 
 // Mouse and cursor handling
-FORGE_API void* createCursor(const char* path);
-FORGE_API void  setCursor(void* cursor);
-FORGE_API void  showCursor(void);
-FORGE_API void  hideCursor(void);
-FORGE_API bool  isCursorInsideTrackingArea(void);
-FORGE_API void  setMousePositionRelative(const WindowDesc* winDesc, int32_t x, int32_t y);
-FORGE_API void  setMousePositionAbsolute(int32_t x, int32_t y);
+FORGE_API void* CreateCursorFromFile(const char* path);
+FORGE_API void  SetActiveCursor(void* cursor);
+FORGE_API void  ShowMouseCursor(void);
+FORGE_API void  HideMouseCursor(void);
+FORGE_API bool  IsCursorInsideTrackingArea(void);
+FORGE_API void  SetMousePositionRelative(const WindowDesc* winDesc, int32_t x, int32_t y);
+FORGE_API void  SetMousePositionAbsolute(int32_t x, int32_t y);
 
-FORGE_API void getRecommendedResolution(RectDesc* rect);
-FORGE_API void getRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect);
+FORGE_API void GetRecommendedResolution(RectDesc* rect);
+FORGE_API void GetRecommendedWindowRect(WindowDesc* winDesc, RectDesc* rect);
 // Sets video mode for specified display
-FORGE_API void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
+FORGE_API void SetResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
 
-FORGE_API MonitorDesc* getMonitor(uint32_t index);
-FORGE_API uint32_t     getMonitorCount(void);
-FORGE_API uint32_t     getActiveMonitorIdx(void);
+FORGE_API MonitorDesc* GetMonitor(uint32_t index);
+FORGE_API uint32_t     GetMonitorCount(void);
+FORGE_API uint32_t     GetActiveMonitorIndex(void);
 // pArray pointer to array with at least 2 elements(x,y)
-FORGE_API void         getMonitorDpiScale(uint32_t monitorIndex, float dpiScale[2]);
+FORGE_API void         GetMonitorDpiScale(uint32_t monitorIndex, float dpiScale[2]);
 
-FORGE_API bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
+FORGE_API bool IsResolutionSupported(const MonitorDesc* pMonitor, const Resolution* pRes);
 
-FORGE_API ThermalStatus getThermalStatus(void);
+FORGE_API ThermalStatus GetThermalStatus(void);
 
 inline const char* getThermalStatusString(ThermalStatus thermalStatus)
 {
     switch (thermalStatus)
     {
-    case THERMAL_STATUS_NOT_SUPPORTED:
+    case ThermalStatusNotSupported:
         return "NotSupported";
-    case THERMAL_STATUS_ERROR:
+    case ThermalStatusError:
         return "Error";
-    case THERMAL_STATUS_NONE:
+    case ThermalStatusNone:
         return "None";
-    case THERMAL_STATUS_LIGHT:
+    case ThermalStatusLight:
         return "Light";
-    case THERMAL_STATUS_MODERATE:
+    case ThermalStatusModerate:
         return "Moderate";
-    case THERMAL_STATUS_SEVERE:
+    case ThermalStatusSevere:
         return "Severe";
-    case THERMAL_STATUS_CRITICAL:
+    case ThermalStatusCritical:
         return "Critical";
-    case THERMAL_STATUS_EMERGENCY:
+    case ThermalStatusEmergency:
         return "Emergency";
-    case THERMAL_STATUS_SHUTDOWN:
+    case ThermalStatusShutdown:
         return "Shutdown";
     default:
         return "Invalid";
@@ -370,20 +370,20 @@ inline const char* getThermalStatusString(ThermalStatus thermalStatus)
 #if defined(_WINDOWS) || defined(__ANDROID__)
 typedef enum ResetType
 {
-    RESET_TYPE_NONE = 0,
-    RESET_TYPE_API_SWITCH = 0x1,
-    RESET_TYPE_GRAPHIC_CARD_SWITCH = 0x2,
+    ResetTypeNone = 0,
+    ResetTypeApiSwitch = 0x1,
+    ResetTypeGraphicCardSwitch = 0x2,
 #if defined(_WINDOWS)
-    RESET_TYPE_DEVICE_LOST = 0x4,
+    ResetTypeDeviceLost = 0x4,
 #endif
 } ResetType;
 
 typedef struct ResetDesc
 {
-    ResetType type;
+    ResetType Type;
 } ResetDesc;
 
-FORGE_API void requestReset(const ResetDesc* pResetDesc);
+FORGE_API void RequestReset(const ResetDesc* pResetDesc);
 #endif
 
 // Reload
@@ -399,7 +399,7 @@ COMPILE_ASSERT(RELOAD_TYPE_COUNT == 3);
 
 typedef struct ReloadDesc
 {
-    ReloadType type;
+    ReloadType Type;
 } ReloadDesc;
 
 #if defined(ANDROID)
@@ -429,7 +429,7 @@ inline const char* getMemoryStateString(MemoryState state)
     }
 }
 
-FORGE_API MemoryState getMemoryState(void);
+FORGE_API MemoryState GetMemoryState(void);
 #endif
 
 typedef struct OSInfo
@@ -439,22 +439,22 @@ typedef struct OSInfo
     char osDeviceName[256];
 } OSInfo;
 
-FORGE_API OSInfo* getOsInfo(void);
+FORGE_API OSInfo* GetOsInfo(void);
 
 //------------------------------------------------------------------------
 // PLATFORM LAYER
 //------------------------------------------------------------------------
 
-FORGE_API void requestReload(const ReloadDesc* pReloadDesc);
+FORGE_API void RequestReload(const ReloadDesc* pReloadDesc);
 
 // API functions
-FORGE_API void requestShutdown(void);
+FORGE_API void RequestShutdown(void);
 typedef void (*errorMessagePopupCallbackFn)(void);
-FORGE_API void errorMessagePopup(const char* title, const char* msg, WindowHandle* windowHandle, errorMessagePopupCallbackFn callback);
+FORGE_API void ErrorMessagePopup(const char* title, const char* msg, WindowHandle* windowHandle, errorMessagePopupCallbackFn callback);
 
 // Custom processing of OS pipe messages
 typedef int32_t (*CustomMessageProcessor)(WindowDesc* pWindow, void* msg);
-FORGE_API void setCustomMessageProcessor(CustomMessageProcessor proc);
+FORGE_API void SetCustomMessageProcessor(CustomMessageProcessor proc);
 
 // Shell commands
 
@@ -463,7 +463,7 @@ extern "C"
 {
 #endif
     /// @param stdOutFile The file to which the output of the command should be written. May be NULL.
-    FORGE_API int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile);
+FORGE_API int SystemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile);
 #ifdef __cplusplus
 }
 #endif

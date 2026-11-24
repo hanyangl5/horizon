@@ -29,7 +29,7 @@
 
 /*
 
-// when we are in windowed mode and the user wants to resize the window with the mouse
+// when we are in windowed mode and the user wants to Resize the window with the mouse
 void onResize(RectDesc rect);
 
 // this pair of functions initializes and exits once during start-up and shut-down of the application
@@ -50,17 +50,17 @@ void exitApp();
 // device changes can come from a user switching from hardware to Warp rendering support or switching on and off MSAA and other quality
 settings
 // typically shaders, textures, render targets and buffers are loaded here
-bool load();
+bool Load();
 void unload();
 
 // hot swap from input device ... mouse, keyboard, controller etc..
 void initInput();
 void exitInput();
 
-// this is input / math update -> everything CPU only ... no Graphics API calls
-void update(float deltaTime);
+// this is input / math Update -> everything CPU only ... no Graphics API calls
+void Update(float deltaTime);
 
-// only Graphics API draw calls and command buffer generation
+// only Graphics API Draw calls and command buffer generation
 void drawFrame(float deltaTime);
 */
 
@@ -68,7 +68,7 @@ void drawFrame(float deltaTime);
 // so what is going to happen if the user changes the graphics device?
 // There must be a call to exitApp() initApp() to initialize the renderer from scratch ... let's say with a new MSAA settings
 // then unload() needs to be called to unload all the device dependent things like shaders and textures (are they still dependent in DirectX
-// 12 / Vulkan?) then load() needs to be called to load all the device dependent things from scratch again ... It needs to make sure that
+// 12 / Vulkan?) then Load() needs to be called to Load all the device dependent things from scratch again ... It needs to make sure that
 // only the bare minimum of tasks is done here, so no memory allocation and deallocation apart from the necessary
 
 // hot-swap the input device
@@ -97,10 +97,10 @@ public:
 
     struct Settings
     {
-        /// Window width
-        int32_t width = -1;
-        /// Window height
-        int32_t height = -1;
+        /// Window Width
+        int32_t Width = -1;
+        /// Window Height
+        int32_t Height = -1;
         /// monitor index
         int32_t monitorIndex = -1;
         /// x position for window
@@ -108,13 +108,13 @@ public:
         /// y position for window
         int32_t windowY = 0;
         /// Set to true if fullscreen mode has been requested
-        bool    fullScreen = false;
+        bool    Fullscreen = false;
         /// Set to true if app wants to use an external window
         bool    externalWindow = false;
-        /// Drag to resize enabled
+        /// Drag to Resize enabled
         bool    dragToResize = true;
         /// Border less window
-        bool    borderlessWindow = false;
+        bool    Borderless = false;
         /// Set to true if oversize windows requested
         bool    allowedOverSizeWindows = false;
         /// if settings is already initiazlied we don't fill when opening window
@@ -124,11 +124,11 @@ public:
         // Benchmarking is parked while the legacy MicroProfile dump path is replaced.
         // bool    mBenchmarking = false;
         /// if the window is positioned in the center of the screen
-        bool    centered = true;
+        bool    Centered = true;
         /// if the window is focused or in foreground
         bool    focused = true;
         /// Force lowDPI settings for this window
-        bool    forceLowDPI = false;
+        bool    ForceLowDpi = false;
         /// if the platform user interface is visible
         bool    showPlatformUI = true;
 
@@ -141,7 +141,7 @@ public:
 #if defined(TARGET_IOS)
         bool    showStatusBar = false;
         float   contentScaleFactor = 0.f;
-        // Use to set iPhone's/Ipad target display refresh rate.
+        // Use to Set iPhone's/Ipad target display refresh rate.
         int32_t maxDisplayRefreshRate = -1;
 #endif
     } settings;

@@ -396,7 +396,7 @@ static void initGoodBstrings(unsigned char (*staticBufs)[STATIC_BUF_COUNT][STATI
 	for (int i = 0; i < (int)ARR_SIZE(cStrings); ++i, ++bufi)
 	{
 		int len = cStringSizes[i];
-		pBuf = (unsigned char*)tf_malloc(len);
+		pBuf = (unsigned char*)MemAllocate(len);
 		memcpy(pBuf, cStrings[i], len);
 		(*out)[bufi].data = pBuf;
 		(*out)[bufi].slen = len - 1;
@@ -405,7 +405,7 @@ static void initGoodBstrings(unsigned char (*staticBufs)[STATIC_BUF_COUNT][STATI
 
 	/* NOT null terminated dynamic strings with slen capacity */
 	/* Note: empty string mlen should be at least 1*/
-	pBuf = (unsigned char*)tf_malloc(1);
+	pBuf = (unsigned char*)MemAllocate(1);
 	(*out)[bufi].data = pBuf;
 	(*out)[bufi].slen = 0;
 	(*out)[bufi].mlen = 1 | BSTR_DYNAMIC_BIT;
@@ -415,7 +415,7 @@ static void initGoodBstrings(unsigned char (*staticBufs)[STATIC_BUF_COUNT][STATI
 	{
 		int len = cStringSizes[i] - 1;
 		ASSERT(len >= 1);
-		pBuf = (unsigned char*)tf_malloc(len);
+		pBuf = (unsigned char*)MemAllocate(len);
 		memcpy(pBuf, cStrings[i], len);
 		(*out)[bufi].data = pBuf;
 		(*out)[bufi].slen = len;
@@ -427,7 +427,7 @@ static void initGoodBstrings(unsigned char (*staticBufs)[STATIC_BUF_COUNT][STATI
 	for (int i = 0; i < (int)ARR_SIZE(cStrings); ++i, ++bufi)
 	{
 		int len = cStringSizes[i];
-		pBuf = (unsigned char*)tf_malloc(len + 100);
+		pBuf = (unsigned char*)MemAllocate(len + 100);
 		memcpy(pBuf, cStrings[i], len);
 		(*out)[bufi].data = pBuf;
 		(*out)[bufi].slen = len - 1;  /* exclude null terminator */
@@ -438,7 +438,7 @@ static void initGoodBstrings(unsigned char (*staticBufs)[STATIC_BUF_COUNT][STATI
 	for (int i = 0; i < (int)ARR_SIZE(cStrings); ++i, ++bufi)
 	{
 		int len = cStringSizes[i] - 1;
-		pBuf = (unsigned char*)tf_malloc(len + 100);
+		pBuf = (unsigned char*)MemAllocate(len + 100);
 		memcpy(pBuf, cStrings[i], len);
 		(*out)[bufi].data = pBuf;
 		(*out)[bufi].slen = len;

@@ -127,7 +127,7 @@ struct hid_device_ {
 
 static hid_device *new_hid_device(void)
 {
-	hid_device *dev = (hid_device*) tf_calloc(1, sizeof(hid_device));
+	hid_device *dev = (hid_device*) MemCallocate(1, sizeof(hid_device));
 	dev->device_handle = NULL;
 	dev->blocking = 1;
 	dev->uses_numbered_reports = 0;
@@ -157,8 +157,8 @@ static void free_hid_device(hid_device *dev)
 	struct input_report *rpt = dev->input_reports;
 	while (rpt) {
 		struct input_report *next = rpt->next;
-		tf_free(rpt->data);
-		tf_free(rpt);
+		MemDeallocate(rpt->data);
+		MemDeallocate(rpt);
 		rpt = next;
 	}
 
@@ -169,7 +169,7 @@ static void free_hid_device(hid_device *dev)
 		CFRelease(dev->run_loop_mode);
 	if (dev->source)
 		CFRelease(dev->source);
-	tf_free(dev->input_report_buf);
+	MemDeallocate(dev->input_report_buf);
 
 	/* Clean up the thread objects */
 	thread_barrier_destroy(&dev->shutdown_barrier);
@@ -178,7 +178,7 @@ static void free_hid_device(hid_device *dev)
 	destroyMutex(&dev->mutex);
 
 	/* Free the structure itself. */
-	tf_free(dev);
+	MemDeallocate(dev);
 }
 
 static struct hid_api_version api_version = {
@@ -305,7 +305,7 @@ static int get_product_string(IOHIDDeviceRef device, wchar_t *buf, size_t len)
 static wchar_t *dup_wcs(const wchar_t *s)
 {
 	size_t len = wcslen(s);
-	wchar_t *ret = (wchar_t*) tf_malloc((len+1)*sizeof(wchar_t));
+	wchar_t *ret = (wchar_t*) MemAllocate((len+1)*sizeof(wchar_t));
 	wcscpy(ret, s);
 
 	return ret;
@@ -428,7 +428,7 @@ static struct hid_device_info *create_device_info_with_usage(IOHIDDeviceRef dev,
 		return NULL;
 	}
 
-	cur_dev = (struct hid_device_info *)tf_calloc(1, sizeof(struct hid_device_info));
+	cur_dev = (struct hid_device_info *)MemCallocate(1, sizeof(struct hid_device_info));
 	if (cur_dev == NULL) {
 		return NULL;
 	}
@@ -456,7 +456,7 @@ static struct hid_device_info *create_device_info_with_usage(IOHIDDeviceRef dev,
 		/* max value of entry_id(uint64_t) is 18446744073709551615 which is 20 characters long,
 		   so for (max) "path" string 'DevSrvsID:18446744073709551615' we would need
 		   9+1+20+1=31 bytes byffer, but allocate 32 for simple alignment */
-		cur_dev->path = tf_calloc(1, 32);
+		cur_dev->path = MemCallocate(1, 32);
 		if (cur_dev->path != NULL) {
 			snprintf(cur_dev->path, 32, "DevSrvsID:%llu", entry_id);
 		}
@@ -464,7 +464,7 @@ static struct hid_device_info *create_device_info_with_usage(IOHIDDeviceRef dev,
 
 	if (cur_dev->path == NULL) {
 		/* for whatever reason, trying to keep it a non-NULL string */
-		cur_dev->path = (char*)tf_calloc(1, sizeof *cur_dev->path);
+		cur_dev->path = (char*)MemCallocate(1, sizeof *cur_dev->path);
 	}
 
 	/* Serial Number */
@@ -589,7 +589,7 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 
 	/* Convert the list into a C array so we can iterate easily. */
 	num_devices = CFSetGetCount(device_set);
-	IOHIDDeviceRef *device_array = (IOHIDDeviceRef*) tf_calloc(num_devices, sizeof(IOHIDDeviceRef));
+	IOHIDDeviceRef *device_array = (IOHIDDeviceRef*) MemCallocate(num_devices, sizeof(IOHIDDeviceRef));
 	CFSetGetValues(device_set, (const void **) device_array);
 
 	/* Iterate over each device, making an entry for it. */
@@ -619,7 +619,7 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 		}
 	}
 
-	tf_free(device_array);
+	MemDeallocate(device_array);
 	CFRelease(device_set);
 
 	return root;
@@ -631,11 +631,11 @@ void  HID_API_EXPORT hid_free_enumeration(struct hid_device_info *devs)
 	struct hid_device_info *d = devs;
 	while (d) {
 		struct hid_device_info *next = d->next;
-		tf_free(d->path);
-		tf_free(d->serial_number);
-		tf_free(d->manufacturer_string);
-		tf_free(d->product_string);
-		tf_free(d);
+		MemDeallocate(d->path);
+		MemDeallocate(d->serial_number);
+		MemDeallocate(d->manufacturer_string);
+		MemDeallocate(d->product_string);
+		MemDeallocate(d);
 		d = next;
 	}
 }
@@ -705,8 +705,8 @@ static void hid_report_callback(void *context, IOReturn result, void *sender,
 	hid_device *dev = (hid_device*) context;
 
 	/* Make a new Input Report object */
-	rpt = (struct input_report*) tf_calloc(1, sizeof(struct input_report));
-	rpt->data = (uint8_t*) tf_calloc(1, report_length);
+	rpt = (struct input_report*) MemCallocate(1, sizeof(struct input_report));
+	rpt->data = (uint8_t*) MemCallocate(1, report_length);
 	memcpy(rpt->data, report, report_length);
 	rpt->len = report_length;
 	rpt->next = NULL;
@@ -875,7 +875,7 @@ hid_device * HID_API_EXPORT hid_open_path(const char *path)
 
 		/* Create the buffers for receiving data */
 		dev->max_input_report_len = (CFIndex) get_max_report_length(dev->device_handle);
-		dev->input_report_buf = (uint8_t*) tf_calloc(dev->max_input_report_len, sizeof(uint8_t));
+		dev->input_report_buf = (uint8_t*) MemCallocate(dev->max_input_report_len, sizeof(uint8_t));
 
 		/* Create the Run Loop Mode for this device.
 		   printing the reference seems to work. */
@@ -1003,8 +1003,8 @@ static int return_data(hid_device *dev, unsigned char *data, size_t length)
 	size_t len = (length < rpt->len)? length: rpt->len;
 	memcpy(data, rpt->data, len);
 	dev->input_reports = rpt->next;
-	tf_free(rpt->data);
-	tf_free(rpt);
+	MemDeallocate(rpt->data);
+	MemDeallocate(rpt);
 	return (int)len;
 }
 

@@ -3,100 +3,136 @@
 #include "Core/IContainer.h"
 #include "Core/IMath.h"
 #include "Core/IUniquePtr.h"
+#include "Graphics/FrameGraph.h"
 #include "Graphics/RenderContext.h"
-#include "Scene/ISceneManager.h"
-#include "Scene/SceneGeometry.h"
-
-class FreeCameraController;
+#include "Scene/GpuDrawList.h"
+#include "Scene/GpuSkinning.h"
+#include "FrustumCulling.h"
+#include "ClusteredLighting.h"
+#include "PostEffects.h"
+#include "GTAO.h"
+#include "TemporalAA.h"
+#include "EnvironmentPass.h"
+#include "ShadowMap.h"
+#include "DeferredLighting.h"
+#include "Transparency.h"
+#include "RayTracedEffects.h"
+#include "Skinning.h"
 
 struct RenderPassesDesc
 {
-    hz::RenderContext*        pContext = nullptr;
-    SceneManager*             pScenes = nullptr;
-    SceneAssetHandle          scene = {};
-    const SceneAssetInstance* pInstances = nullptr;
-    uint32_t                  instanceCount = 0;
-    float                     verticalFov = PI / 4.0f;
+    hz::RenderContext* Context = nullptr;
+    hz::RenderScene*   Scene = nullptr;
+    hz::AssetManager*  AssetManager = nullptr;
+    hz::RenderCameraID Camera;
 };
 
 class GBuffer
 {
 public:
-    GBuffer(hz::RenderContext& context);
-    void               update();
-    void               execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const hz::GPUBuffer& draws, const hz::GPUBuffer& materials,
-                               SceneManager& scenes, SceneAssetHandle scene, hz::Span<const SceneAssetInstance> instances);
-    void               load(uint32_t width, uint32_t height);
-    void               unload();
-    hz::RenderContext& context;
-    static constexpr uint32_t gbufferCount = 4;
-    hz::GPUPipeline           pipeline;
-    hz::GPUSampler            sampler;
-    hz::GPUTexture            gbuffer[gbufferCount];
-    hz::GPUTexture            depth;
+    static constexpr uint32_t TextureCount = 4;
+
+    GBuffer(hz::RenderContext& Context);
+    void Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
+                 const hz::GPUTexture* const (&Textures)[TextureCount], const hz::GPUTexture& Depth);
+
+    hz::GPUPipeline Pipeline;
+    hz::GPUSampler  Sampler;
 };
 
-class Lighting
+// Frame graph handles of the renderer's resources; passes look up their concrete textures through these.
+struct RenderTargets
 {
-public:
-    Lighting(hz::RenderContext& context);
-    void               update();
-    void               execute(hz::CommandList& cmd, const hz::GPUBuffer& frame, const GBuffer& gbuffer);
-    void               load(uint32_t width, uint32_t height);
-    void               unload();
-    hz::GPUTexture     sceneColor;
-    hz::RenderContext& context;
-    hz::GPUPipeline    pipeline;
-};
-
-class PostProcessing
-{
-public:
-    PostProcessing(hz::RenderContext& context);
-    void update();
-    void execute(hz::CommandList& cmd, const hz::GPUTexture& renderTarget, const hz::GPUTexture& sceneColor, const hz::GPUTexture& depth);
-    void load(uint32_t width, uint32_t height);
-    void unload();
-    hz::RenderContext& context;
-    hz::GPUPipeline    pipeline;
+    // The draw lists GpuDrawList owns; culling writes them and the drawing passes read them.
+    hz::FrameGraphBuffer  DrawLists;
+    hz::FrameGraphBuffer  LightMasks;
+    // The streams the skinning pass writes; the passes that draw or trace geometry read them.
+    hz::FrameGraphBuffer  SkinnedVertices;
+    hz::FrameGraphTexture GBuffer[GBuffer::TextureCount];
+    hz::FrameGraphTexture Depth;
+    hz::FrameGraphTexture ShadowMap;
+    hz::FrameGraphTexture Occlusion;
+    hz::FrameGraphTexture OcclusionScratch;
+    hz::FrameGraphTexture RTResult;
+    hz::FrameGraphTexture RTScratch;
+    hz::FrameGraphTexture RTReflection;
+    hz::FrameGraphTexture RTReflectionHistory;
+    hz::FrameGraphTexture RTHistory;
+    hz::FrameGraphTexture RTPreviousDepth;
+    hz::FrameGraphTexture SceneColor;
+    hz::FrameGraphTexture OITHeads;
+    hz::FrameGraphTexture TransparentColor;
+    hz::FrameGraphTexture TemporalColor;
+    hz::FrameGraphBuffer  OITNodes;
+    hz::FrameGraphBuffer  OITCounters;
+    hz::FrameGraphTexture Luminance[PostEffectsTargets::LuminanceLevels];
+    hz::FrameGraphTexture BloomDown[PostEffectsTargets::BloomLevels];
+    hz::FrameGraphTexture BloomUp[PostEffectsTargets::BloomLevels - 1];
+    hz::FrameGraphTexture AdaptedLuminance;
+    hz::FrameGraphTexture Backbuffer;
 };
 
 class RenderPasses
 {
 public:
-    RenderPasses(const RenderPassesDesc& desc);
-    ~RenderPasses() = default;
+    RenderPasses(const RenderPassesDesc& Desc);
+    ~RenderPasses();
 
-    bool load(uint32_t width, uint32_t height);
-    void unload();
-    void update(const FreeCameraController& camera);
-    void execute();
+    bool Resize(uint32_t Width, uint32_t Height);
+
+    void Update(float DeltaSeconds);
+    void Execute();
 
 private:
+    // Uploaded as the frame constant block, so the fields keep the shader's names.
     struct FrameData
     {
-        Matrix4 viewProjection;
-        Matrix4 previousViewProjection;
-        Matrix4 inverseViewProjection;
-        Vector4 eye;
+        Matrix4 ViewProjection;
+        Matrix4 PreviousViewProjection;
+        Matrix4 InverseViewProjection;
+        Vector4 Eye;
     };
 
-    bool                 initRenderResources();
-    const SceneGeometry& getGeometry() const;
+    struct FrameConstantBuffer
+    {
+        hz::GPUBuffer    Buffer;
+        hz::SubmitHandle Submission;
+    };
 
-    hz::RenderContext&            pContext;
-    SceneManager*                 pScenes = nullptr;
-    SceneAssetHandle              scene = {};
-    hz::Array<SceneAssetInstance> instances;
-    float                         verticalFov = PI / 4.0f;
+    void BuildGraph();
 
-    hz::unique_ptr<GBuffer>        gbuffer;
-    hz::unique_ptr<Lighting>       lighting;
-    hz::unique_ptr<PostProcessing> postprocessing;
-    hz::GPUBuffer                  frame;
-    hz::GPUBuffer                  draws;
-    hz::GPUBuffer                  materials;
-    FrameData                      frameData = {};
-    Matrix4                        previousViewProjection;
-    bool                           hasPreviousViewProjection = false;
+    hz::RenderContext& Context;
+    hz::RenderScene&   Scene;
+    hz::AssetManager&  Assets;
+    hz::RenderCameraID CameraId;
+
+    hz::UniquePtr<FrustumCulling>          Culling;
+    hz::UniquePtr<SkinningPass>            SkinningCompute;
+    hz::UniquePtr<GBuffer>                 GBufferPass;
+    hz::UniquePtr<DeferredLighting>        Lighting;
+    hz::UniquePtr<ClusteredLighting>       Clusters;
+    hz::UniquePtr<PostEffects>             PostProcessing;
+    hz::UniquePtr<GTAO>                    GroundTruthAO;
+    hz::UniquePtr<EnvironmentPass>         Environment;
+    hz::UniquePtr<ShadowMap>               Shadows;
+    hz::UniquePtr<Transparency>            Transparency;
+    hz::UniquePtr<RayTracedEffects>        RayTracing;
+    hz::UniquePtr<TemporalAA>              Antialiasing;
+    hz::GPUSampler                         LinearSampler;
+    hz::GpuDrawList                        Draws;
+    float                                  DeltaSeconds = 1.0f / 60.0f;
+    hz::FixedArray<FrameConstantBuffer, 3> FrameConstants;
+    uint32_t                               NextFrame = 0;
+    hz::GpuScene                           GpuSceneData;
+    hz::GpuSkinning                        Skinning;
+    hz::FrameGraph*                        Graph = nullptr;
+    RenderTargets                          Targets;
+    hz::FrameGraphPass                     SkinningGraphPass;
+    hz::FrameGraphPass                     LightMaskPass;
+    hz::FrameGraphPass                     GTAOGraphPass;
+    hz::FrameGraphPass                     RayTracingPass;
+    hz::FrameGraphPass                     TransparencyPass;
+    hz::FrameGraphPass                     TemporalAAPass;
+    TemporalJitter                         PreviousJitter = TemporalJitter{};
+    bool                                   TemporalAAWasEnabled = false;
 };

@@ -38,8 +38,8 @@ static bool ShaderResourceCmp(ShaderResource* a, ShaderResource* b)
 {
     bool isSame = true;
 
-    isSame = isSame && (a->type == b->type);
-    isSame = isSame && (a->set == b->set);
+    isSame = isSame && (a->Type == b->Type);
+    isSame = isSame && (a->Set == b->Set);
     isSame = isSame && (a->reg == b->reg);
 
 #ifdef RESOURCE_NAME_CHECK
@@ -59,7 +59,7 @@ static bool ShaderVariableCmp(ShaderVariable* a, ShaderVariable* b)
     bool isSame = true;
 
     isSame = isSame && (a->offset == b->offset);
-    isSame = isSame && (a->size == b->size);
+    isSame = isSame && (a->Size == b->Size);
     isSame = isSame && (a->name_size == b->name_size);
 
     // early exit before string cmp
@@ -76,10 +76,10 @@ void destroyShaderReflection(ShaderReflection* pReflection)
     if (pReflection == NULL)
         return;
 
-    tf_free(pReflection->pNamePool);
-    tf_free(pReflection->pVertexInputs);
-    tf_free(pReflection->pShaderResources);
-    tf_free(pReflection->pVariables);
+    MemDeallocate(pReflection->pNamePool);
+    MemDeallocate(pReflection->pVertexInputs);
+    MemDeallocate(pReflection->pShaderResources);
+    MemDeallocate(pReflection->pVariables);
 }
 
 void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, PipelineReflection* pOutReflection)
@@ -87,17 +87,17 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
     // Parameter checks
     if (pReflection == NULL)
     {
-        LOGF(LogLevel::eERROR, "Parameter 'pReflection' is NULL.");
+        LOGF(LogLevel::Error, "Parameter 'pReflection' is NULL.");
         return;
     }
     if (stageCount == 0)
     {
-        LOGF(LogLevel::eERROR, "Parameter 'stageCount' is 0.");
+        LOGF(LogLevel::Error, "Parameter 'stageCount' is 0.");
         return;
     }
     if (pOutReflection == NULL)
     {
-        LOGF(LogLevel::eERROR, "Parameter 'pOutShaderReflection' is NULL.");
+        LOGF(LogLevel::Error, "Parameter 'pOutShaderReflection' is NULL.");
         return;
     }
 
@@ -107,7 +107,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
     {
         if ((combinedShaderStages & pReflection[i].shaderStage) != 0)
         {
-            LOGF(LogLevel::eERROR, "Duplicate shader stage was detected in shader reflection array.");
+            LOGF(LogLevel::Error, "Duplicate shader stage was detected in shader reflection array.");
             return;
         }
         combinedShaderStages = (ShaderStage)(combinedShaderStages | pReflection[i].shaderStage);
@@ -115,7 +115,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
 
     // Combine all shaders
     // this will have a large amount of looping
-    // 1. count number of resources
+    // 1. Count number of resources
     uint32_t        vertexStageIndex = ~0u;
     uint32_t        hullStageIndex = ~0u;
     uint32_t        domainStageIndex = ~0u;
@@ -160,15 +160,15 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
             bool unique = true;
 
             // Go through all already added shader resources to see if this shader
-            //  resource was already added from a different shader stage. If we find a
-            //  duplicate shader resource, we add the shader stage to the shader stage
+            //  resource was already added from a different shader stage. If we Find a
+            //  duplicate shader resource, we Add the shader stage to the shader stage
             //  mask of that resource instead.
             for (uint32_t k = 0; k < (uint32_t)arrlen(pUniqueResources); ++k)
             {
                 unique = !ShaderResourceCmp(&pSrcRef->pShaderResources[j], pUniqueResources[k]);
                 if (unique == false)
                 {
-                    // update shader usage
+                    // Update shader usage
                     // NOT SURE
                     // shaderUsage[k] = (ShaderStage)(shaderUsage[k] & pSrcRef->pShaderResources[j].used_stages);
                     ASSERT(pShaderUsage);
@@ -181,7 +181,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
                 }
             }
 
-            // If it's unique, we add it to the list of shader resourceas
+            // If it's unique, we Add it to the list of shader resourceas
             if (unique == true)
             {
                 arrpush(pShaderUsage, pSrcRef->pShaderResources[j].used_stages);
@@ -194,8 +194,8 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
         {
             bool unique = true;
             // Go through all already added shader variables to see if this shader
-            //  variable was already added from a different shader stage. If we find a
-            //  duplicate shader variables, we don't add it.
+            //  variable was already added from a different shader stage. If we Find a
+            //  duplicate shader variables, we don't Add it.
             for (uint32_t k = 0; k < (uint32_t)arrlen(pUniqueVariable); ++k)
             {
                 unique = !ShaderVariableCmp(&pSrcRef->pVariables[j], pUniqueVariable[k]);
@@ -203,7 +203,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
                     break;
             }
 
-            // If it's unique we add it to the list of shader variables
+            // If it's unique we Add it to the list of shader variables
             if (unique)
             {
                 arrpush(pUniqueVariableParent, &pSrcRef->pShaderResources[pSrcRef->pVariables[j].parent_index]);
@@ -212,10 +212,10 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
         }
     }
 
-    // Copy over the shader resources in a dynamic array of the correct size
+    // Copy over the shader resources in a dynamic array of the correct Size
     if (arrlen(pUniqueResources))
     {
-        pResources = (ShaderResource*)tf_calloc(arrlen(pUniqueResources), sizeof(ShaderResource));
+        pResources = (ShaderResource*)MemCallocate(arrlen(pUniqueResources), sizeof(ShaderResource));
 
         for (uint32_t i = 0; i < (uint32_t)arrlen(pUniqueResources); ++i)
         {
@@ -224,10 +224,10 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
         }
     }
 
-    // Copy over the shader variables in a dynamic array of the correct size
+    // Copy over the shader variables in a dynamic array of the correct Size
     if (arrlen(pUniqueVariable))
     {
-        pVariables = (ShaderVariable*)tf_malloc(sizeof(ShaderVariable) * arrlen(pUniqueVariable));
+        pVariables = (ShaderVariable*)MemAllocate(sizeof(ShaderVariable) * arrlen(pUniqueVariable));
 
         for (uint32_t i = 0; i < (uint32_t)arrlen(pUniqueVariable); ++i)
         {
@@ -276,6 +276,6 @@ void destroyPipelineReflection(PipelineReflection* pReflection)
     for (uint32_t i = 0; i < pReflection->stageReflectionCount; ++i)
         destroyShaderReflection(&pReflection->stageReflections[i]);
 
-    tf_free(pReflection->pShaderResources);
-    tf_free(pReflection->pVariables);
+    MemDeallocate(pReflection->pShaderResources);
+    MemDeallocate(pReflection->pVariables);
 }

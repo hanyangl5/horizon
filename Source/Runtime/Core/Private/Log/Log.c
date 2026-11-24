@@ -49,13 +49,13 @@ typedef struct LogCallback
     uint32_t      level;
 } LogCallback;
 
-static void initLogCallback(LogCallback* pLogCallback, const char* id, void* pUserData, LogCallbackFn callback, LogCloseFn close,
+static void initLogCallback(LogCallback* pLogCallback, const char* id, void* UserData, LogCallbackFn callback, LogCloseFn close,
                             LogFlushFn flush, uint32_t level)
 {
     strncpy(pLogCallback->id, id, sizeof pLogCallback->id - 1);
     pLogCallback->id[sizeof pLogCallback->id - 1] = 0;
 
-    pLogCallback->userData = pUserData;
+    pLogCallback->userData = UserData;
     pLogCallback->callback = callback;
     pLogCallback->close = close;
     pLogCallback->flush = flush;
@@ -85,7 +85,7 @@ static void     addInitialLogFile(const char* appName);
 static bool     isLogCallback(const char* id);
 static uint32_t writeLogPreamble(char* buffer, uint32_t buffer_size, const char* file, int line);
 
-bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
 
 // Returns the part of the path after the last / or \ (if any).
 static const char* getFilename(const char* path)
@@ -106,8 +106,8 @@ static void defaultCallback(void* user_data, const char* message)
     FileStream* fh = (FileStream*)user_data;
     ASSERT(fh);
 
-    fsWriteToStream(fh, message, strlen(message));
-    fsFlushStream(fh);
+    WriteToStream(fh, message, strlen(message));
+    FlushStream(fh);
 }
 
 // Close callback
@@ -115,8 +115,8 @@ static void defaultClose(void* user_data)
 {
     FileStream* fh = (FileStream*)user_data;
     ASSERT(fh);
-    fsCloseStream(fh);
-    tf_free(fh);
+    CloseStream(fh);
+    MemDeallocate(fh);
 }
 
 // Flush callback
@@ -125,21 +125,21 @@ static void defaultFlush(void* user_data)
     FileStream* fh = (FileStream*)user_data;
     ASSERT(fh);
 
-    fsFlushStream(fh);
+    FlushStream(fh);
 }
 
-void initLog(const char* appName, LogLevel level /* = eALL */)
+void InitLog(const char* appName, LogLevel level /* = All */)
 {
     if (!gIsLoggerInitialized)
     {
         gLogger.pCallbacks = NULL;
         gLogger.callbacksSize = 0;
-        initMutex(&gLogger.logMutex);
+        InitMutex(&gLogger.logMutex);
         gLogger.logLevel = level;
         gLogger.indentation = 0;
 
-        setMainThread();
-        setCurrentThreadName("MainThread");
+        SetMainThread();
+        SetCurrentThreadName("MainThread");
 
         if (appName)
             addInitialLogFile(appName);
@@ -148,9 +148,9 @@ void initLog(const char* appName, LogLevel level /* = eALL */)
     }
 }
 
-void exitLog(void)
+void ExitLog(void)
 {
-    LOGF(eINFO, "Shutting down log system.");
+    LOGF(Info, "Shutting down log system.");
 
     for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
     {
@@ -158,28 +158,28 @@ void exitLog(void)
             pCallback->close(pCallback->userData);
     }
 
-    destroyMutex(&gLogger.logMutex);
-    tf_free(gLogger.pCallbacks);
+    DestroyMutex(&gLogger.logMutex);
+    MemDeallocate(gLogger.pCallbacks);
     gIsLoggerInitialized = false;
 }
 
-void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
+void AddLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
 {
     if (filename == NULL)
         return;
 
     FileStream fh;
     memset(&fh, 0, sizeof(FileStream));
-    if (fsOpenStreamFromPath(RD_LOG, filename, file_mode, &fh)) // If the File Exists
+    if (OpenStreamFromPath(DirectoryLog, filename, file_mode, &fh)) // If the File Exists
     {
-        FileStream* user = (FileStream*)tf_malloc(sizeof(FileStream));
+        FileStream* user = (FileStream*)MemAllocate(sizeof(FileStream));
         *user = fh;
         // AddCallback will try to acquire mutex
         char path[FS_MAX_PATH] = { 0 };
-        fsMergeDirAndFileName(fsGetResourceDirectory(RD_LOG), filename, '/', sizeof path, path);
-        addLogCallback(path, log_level, user, defaultCallback, defaultClose, defaultFlush);
+        MergeDirAndFileName(GetResourceDirectory(DirectoryLog), filename, '/', sizeof path, path);
+        AddLogCallback(path, log_level, user, defaultCallback, defaultClose, defaultFlush);
 
-        acquireMutex(&gLogger.logMutex);
+        LockMutex(&gLogger.logMutex);
         {
             // Header
             static const char header[] = "date       time     "
@@ -187,29 +187,29 @@ void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level)
                                          "                   file:line  "
                                          "  v |\n";
 
-            fsWriteToStream(&fh, header, sizeof(header) - 1);
-            fsFlushStream(&fh);
+            WriteToStream(&fh, header, sizeof(header) - 1);
+            FlushStream(&fh);
         }
-        releaseMutex(&gLogger.logMutex);
+        UnlockMutex(&gLogger.logMutex);
 
-        writeLog(eINFO, __FILE__, __LINE__, "Opened log file %s", filename);
+        WriteLog(Info, __FILE__, __LINE__, "Opened log file %s", filename);
     }
     else
     {
-        writeLog(eERROR, __FILE__, __LINE__, "Failed to create log file %s", filename); // will try to acquire mutex
+        WriteLog(Error, __FILE__, __LINE__, "Failed to create log file %s", filename); // will try to acquire mutex
     }
 }
 
-void addLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close, LogFlushFn flush)
+void AddLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close, LogFlushFn flush)
 {
-    acquireMutex(&gLogger.logMutex);
+    LockMutex(&gLogger.logMutex);
     {
         if (!isLogCallback(id))
         {
             LogCallback logCallback;
             memset(&logCallback, 0, sizeof(LogCallback));
             initLogCallback(&logCallback, id, user_data, callback, close, flush, log_level);
-            LogCallback* pNewArray = (LogCallback*)tf_realloc(gLogger.pCallbacks, sizeof(LogCallback) * (gLogger.callbacksSize + 1));
+            LogCallback* pNewArray = (LogCallback*)MemReallocate(gLogger.pCallbacks, sizeof(LogCallback) * (gLogger.callbacksSize + 1));
             ASSERT(pNewArray != NULL);
             gLogger.pCallbacks = pNewArray;
             gLogger.pCallbacks[gLogger.callbacksSize] = logCallback;
@@ -218,12 +218,12 @@ void addLogCallback(const char* id, uint32_t log_level, void* user_data, LogCall
         else
             close(user_data);
     }
-    releaseMutex(&gLogger.logMutex);
+    UnlockMutex(&gLogger.logMutex);
 }
 
 typedef char LogStr[LOG_LEVEL_SIZE + 1];
 
-void writeLogVaList(uint32_t level, const char* filename, int line_number, const char* message, va_list args)
+void WriteLogVaList(uint32_t level, const char* filename, int line_number, const char* message, va_list args)
 {
     typedef struct Prefix
     {
@@ -231,12 +231,12 @@ void writeLogVaList(uint32_t level, const char* filename, int line_number, const
         const char* second;
     } Prefix;
 
-    static Prefix logLevelPrefixes[] = { { eWARNING, "WARN| " }, { eINFO, "INFO| " }, { eDEBUG, " DBG| " }, { eERROR, " ERR| " } };
+    static Prefix logLevelPrefixes[] = { { Warning, "WARN| " }, { Info, "INFO| " }, { Debug, " DBG| " }, { Error, " ERR| " } };
 
     uint32_t log_levels[LEVELS_LOG];
     uint32_t log_level_count = 0;
 
-    // Check flags
+    // Check Flags
     for (uint32_t i = 0; i < sizeof(logLevelPrefixes) / sizeof(logLevelPrefixes[0]); ++i)
     {
         Prefix* it = &logLevelPrefixes[i];
@@ -260,17 +260,17 @@ void writeLogVaList(uint32_t level, const char* filename, int line_number, const
     gLogBuffer[offset] = '\n';
     gLogBuffer[offset + 1] = 0;
 
-    // Log for each flag
+    // Log for Each flag
     for (uint32_t i = 0; i < log_level_count; ++i)
     {
         strncpy(gLogBuffer + preable_end, logLevelPrefixes[log_levels[i]].second, LOG_LEVEL_SIZE);
 
         if (gConsoleLogging)
         {
-            _PrintUnicode(gLogBuffer, level & eERROR);
+            _PrintUnicode(gLogBuffer, level & Error);
         }
 
-        acquireMutex(&gLogger.logMutex);
+        LockMutex(&gLogger.logMutex);
         {
             for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
             {
@@ -278,19 +278,19 @@ void writeLogVaList(uint32_t level, const char* filename, int line_number, const
                     pCallback->callback(pCallback->userData, gLogBuffer);
             }
         }
-        releaseMutex(&gLogger.logMutex);
+        UnlockMutex(&gLogger.logMutex);
     }
 }
 
-void writeLog(uint32_t level, const char* filename, int line_number, const char* message, ...)
+void WriteLog(uint32_t level, const char* filename, int line_number, const char* message, ...)
 {
     va_list args;
     va_start(args, message);
-    writeLogVaList(level, filename, line_number, message, args);
+    WriteLogVaList(level, filename, line_number, message, args);
     va_end(args);
 }
 
-void writeRawLog(uint32_t level, bool error, const char* message, ...)
+void WriteRawLog(uint32_t level, bool error, const char* message, ...)
 {
     va_list args;
     va_start(args, message);
@@ -302,7 +302,7 @@ void writeRawLog(uint32_t level, bool error, const char* message, ...)
         _PrintUnicode(gLogBuffer, error);
     }
 
-    acquireMutex(&gLogger.logMutex);
+    LockMutex(&gLogger.logMutex);
     {
         for (LogCallback* pCallback = gLogger.pCallbacks; pCallback != gLogger.pCallbacks + gLogger.callbacksSize; ++pCallback)
         {
@@ -310,10 +310,10 @@ void writeRawLog(uint32_t level, bool error, const char* message, ...)
                 pCallback->callback(pCallback->userData, gLogBuffer);
         }
     }
-    releaseMutex(&gLogger.logMutex);
+    UnlockMutex(&gLogger.logMutex);
 }
 
-void _FailedAssert(const char* file, int line, const char* statement, const char* msgFmt, ...)
+void FailedAssert(const char* file, int line, const char* statement, const char* msgFmt, ...)
 {
     char usrMsgBuf[LOG_MAX_BUFFER];
     if (msgFmt && msgFmt[0])
@@ -338,9 +338,9 @@ void _FailedAssert(const char* file, int line, const char* statement, const char
     else
     {
         if (usrMsgBuf[0])
-            writeLog(eERROR, file, line, "Assert failed: %s\nAssert message: %s", statement, usrMsgBuf);
+            WriteLog(Error, file, line, "Assert failed: %s\nAssert message: %s", statement, usrMsgBuf);
         else
-            writeLog(eERROR, file, line, "Assert failed: %s", statement);
+            WriteLog(Error, file, line, "Assert failed: %s", statement);
     }
 
     _FailedAssertImpl(file, line, statement, usrMsgBuf[0] ? usrMsgBuf : NULL);
@@ -363,7 +363,7 @@ static void addInitialLogFile(const char* appName)
     }
     strncat(exeFileName, extension, extensionLength + 1);
 
-    addLogFile(exeFileName, FM_WRITE_ALLOW_READ, eALL);
+    AddLogFile(exeFileName, FileModeWriteAllowRead, All);
 }
 
 static uint32_t writeLogPreamble(char* buffer, uint32_t buffer_size, const char* file, int line)
@@ -379,7 +379,7 @@ static uint32_t writeLogPreamble(char* buffer, uint32_t buffer_size, const char*
 #elif defined(ORBIS) || defined(PROSPERO)
         localtime_s(&t, &time_info);
 #elif defined(NX64)
-        t = getTimeSinceStart();
+        t = GetUnixTimeSeconds();
         localtime_r(&t, &time_info);
 #else
         localtime_r(&t, &time_info);
@@ -391,7 +391,7 @@ static uint32_t writeLogPreamble(char* buffer, uint32_t buffer_size, const char*
     if (pos < buffer_size)
     {
         char thread_name[MAX_THREAD_NAME_LENGTH + 1] = { 0 };
-        getCurrentThreadName(thread_name, MAX_THREAD_NAME_LENGTH + 1);
+        GetCurrentThreadName(thread_name, MAX_THREAD_NAME_LENGTH + 1);
         pos += snprintf(buffer + pos, buffer_size - pos, "[%-15s]", thread_name[0] == 0 ? "NoName" : thread_name);
     }
 
@@ -420,17 +420,17 @@ static bool isLogCallback(const char* id)
 }
 
 #else
-void initLog(const char* appName, LogLevel level) {}
-void exitLog(void) {}
+void InitLog(const char* appName, LogLevel level) {}
+void ExitLog(void) {}
 
-void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level) {}
-void addLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close, LogFlushFn flush) {}
+void AddLogFile(const char* filename, FileMode file_mode, LogLevel log_level) {}
+void AddLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close, LogFlushFn flush) {}
 
-void writeLog(uint32_t level, const char* filename, int line_number, const char* message, va_list args) {}
-void writeLog(uint32_t level, const char* filename, int line_number, const char* message, ...) {}
-void writeRawLog(uint32_t level, bool error, const char* message, ...) {}
+void WriteLog(uint32_t level, const char* filename, int line_number, const char* message, va_list args) {}
+void WriteLog(uint32_t level, const char* filename, int line_number, const char* message, ...) {}
+void WriteRawLog(uint32_t level, bool error, const char* message, ...) {}
 
-void _FailedAssert(const char* file, int line, const char* statement, const char* msgFmt, ...) {}
+void FailedAssert(const char* file, int line, const char* statement, const char* msgFmt, ...) {}
 #endif
 
 // minimum length is 7 + precision
@@ -438,12 +438,12 @@ static size_t doubleToShortStr(double d, int precision, char* str)
 {
     *str = 0;
 
-    int size = snprintf(NULL, 0, "%.*f", precision, d);
-    snprintf(str, (unsigned)size + 1, "%.*f", precision, d);
+    int Size = snprintf(NULL, 0, "%.*f", precision, d);
+    snprintf(str, (unsigned)Size + 1, "%.*f", precision, d);
 
-    // remove trailing zeroes
-    int end = size;
-    for (int i = size - 1; i >= 0; i--)
+    // Remove trailing zeroes
+    int end = Size;
+    for (int i = Size - 1; i >= 0; i--)
     {
         if (str[i] == '0')
         {
@@ -464,13 +464,13 @@ static size_t doubleToShortStr(double d, int precision, char* str)
     return end > 0 ? (size_t)end : 0;
 }
 
-struct HumanReadableValue humanReadableSSize(ssize_t size)
+struct HumanReadableValue HumanReadableSSize(ssize_t Size)
 {
     const char* strs[] = {
         "B\0", "KB", "MB", "GB", "TB",
     };
 
-    double value = (double)size;
+    double value = (double)Size;
 
     uint64_t i = 0;
 
@@ -485,7 +485,7 @@ struct HumanReadableValue humanReadableSSize(ssize_t size)
     return hrs;
 }
 
-struct HumanReadableValue humanReadableTimeD(double value)
+struct HumanReadableValue HumanReadableTimeD(double value)
 {
     const char* strs[] = {
         "ns", "ms", "s\0", "m\0", "h\0", "d\0",
@@ -493,10 +493,10 @@ struct HumanReadableValue humanReadableTimeD(double value)
 
     uint64_t i = 0;
 
-    double capacity = 1000;
-    while ((value < 0 ? -value : value) >= capacity && i < sizeof(strs) / sizeof(*strs) - 1)
+    double Capacity = 1000;
+    while ((value < 0 ? -value : value) >= Capacity && i < sizeof(strs) / sizeof(*strs) - 1)
     {
-        value /= capacity;
+        value /= Capacity;
         ++i;
 
         switch (i)
@@ -504,13 +504,13 @@ struct HumanReadableValue humanReadableTimeD(double value)
         case 0:
         case 1:
         case 2:
-            capacity = 1000;
+            Capacity = 1000;
             break;
         case 3:
-            capacity = 60;
+            Capacity = 60;
             break;
         case 4:
-            capacity = 24;
+            Capacity = 24;
             break;
         }
     }

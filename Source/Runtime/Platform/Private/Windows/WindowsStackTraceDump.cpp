@@ -54,7 +54,7 @@ bool WindowsStackTrace::Init()
 
     SetUnhandledExceptionFilter(&dumpStackTrace);
 
-    initMutex(&dbgHelpMutex);
+    InitMutex(&dbgHelpMutex);
 
     init = true;
     return true;
@@ -62,16 +62,16 @@ bool WindowsStackTrace::Init()
 
 void WindowsStackTrace::Exit() { init = false; }
 
-void* WindowsStackTrace::Alloc(size_t size)
+void* WindowsStackTrace::Alloc(size_t Size)
 {
-    if ((usedMemorySize + size) > preallocatedMemorySize)
+    if ((usedMemorySize + Size) > preallocatedMemorySize)
     {
-        Log("Not enough preallocated memory remaining for allocation of %u bytes", size);
+        Log("Not enough preallocated memory remaining for allocation of %u bytes", Size);
         return NULL;
     }
 
     void* pMem = ((uint8_t*)preallocatedMemory + usedMemorySize);
-    usedMemorySize += size;
+    usedMemorySize += Size;
     return pMem;
 }
 
@@ -82,18 +82,18 @@ void WindowsStackTrace::Log(const char* fmt, ...)
 
     if (init)
     {
-        // Use the normal log output if we haven't shutdown the log system yet
-        writeLogVaList(LogLevel::eERROR, __FILE__, __LINE__, fmt, args);
+        // Use the normal log output if we haven't Shutdown the log system yet
+        WriteLogVaList(LogLevel::Error, __FILE__, __LINE__, fmt, args);
     }
     else
     {
-        // Manually write output if we have already shutdown OS systems.
+        // Manually write output if we have already Shutdown OS systems.
         const char* outputBuf;
         char        fmtBuf[1024];
         int         charsWritten = vsnprintf(fmtBuf, sizeof(fmtBuf), fmt, args);
         if (charsWritten < 0)
         {
-            // Some kind of formatting error occurred, just print the format string instead
+            // Some kind of formatting error occurred, just print the Format string instead
             outputBuf = fmt;
         }
         else

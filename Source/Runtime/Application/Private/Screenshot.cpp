@@ -37,9 +37,9 @@
 #include "Core/IMath.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#define STBIW_MALLOC  tf_malloc
-#define STBIW_REALLOC tf_realloc
-#define STBIW_FREE    tf_free
+#define STBIW_MALLOC  MemAllocate
+#define STBIW_REALLOC MemReallocate
+#define STBIW_FREE    MemDeallocate
 #define STBIW_ASSERT  ASSERT
 #include <ThirdParty/stb/stb_image_write.h>
 static Cmd*               gCmd = 0;
@@ -84,7 +84,7 @@ void initScreenshotInterface(Renderer* pRenderer, Queue* pGraphicsQueue)
     CmdDesc cmdDesc = {};
     cmdDesc.pPool = pCmdPool;
 #ifdef ENABLE_GRAPHICS_DEBUG
-    cmdDesc.pName = "Screenshot Cmd";
+    cmdDesc.Name = "Screenshot Cmd";
 #endif // ENABLE_GRAPHICS_DEBUG
     addCmd(pRenderer, &cmdDesc, &gCmd);
 
@@ -99,7 +99,7 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
     ASSERT(pRenderTarget);
     ASSERT(pRenderer);
 
-    // Calculate the size of buffer required for copying the src texture.
+    // Calculate the Size of buffer required for copying the src texture.
     D3D12_RESOURCE_DESC                resourceDesc = pRenderTarget->pTexture->dx.pResource->GetDesc();
     uint64_t                           padded_size = 0;
     uint64_t                           row_size = 0;
@@ -110,12 +110,12 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
     // Add a staging buffer.
     Buffer*    buffer = 0;
     BufferDesc bufferDesc = {};
-    bufferDesc.descriptors = DESCRIPTOR_TYPE_BUFFER;
-    bufferDesc.memoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
-    bufferDesc.size = padded_size;
-    bufferDesc.flags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    bufferDesc.startState = RESOURCE_STATE_COPY_DEST;
-    bufferDesc.format = pRenderTarget->format;
+    bufferDesc.Descriptors = DESCRIPTOR_TYPE_BUFFER;
+    bufferDesc.MemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
+    bufferDesc.Size = padded_size;
+    bufferDesc.Flags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    bufferDesc.StartState = RESOURCE_STATE_COPY_DEST;
+    bufferDesc.Format = pRenderTarget->Format;
     addBuffer(pRenderer, &bufferDesc, &buffer);
 
     beginCmd(pCmd);
@@ -182,11 +182,11 @@ struct stbiw_ctx
     int      offset;
 };
 
-static void stbiw_func(void* context, void* data, int size)
+static void stbiw_func(void* context, void* data, int Size)
 {
     stbiw_ctx* ctx = (stbiw_ctx*)context;
-    memcpy(ctx->pBuffer + ctx->offset, data, size);
-    ctx->offset += size;
+    memcpy(ctx->pBuffer + ctx->offset, data, Size);
+    ctx->offset += Size;
 }
 
 void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool noAlpha, bool forceFlipRedBlue)
@@ -209,10 +209,10 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     waitQueueIdle(pCmdPool->pQueue);
 
     // Allocate temp space
-    uint16_t byteSize = (uint16_t)TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pRenderTarget->format) / 8;
-    uint8_t  channelCount = (uint8_t)TinyImageFormat_ChannelCount((TinyImageFormat)pRenderTarget->format);
-    uint32_t size = pRenderTarget->width * pRenderTarget->height * max((uint16_t)4U, byteSize);
-    uint8_t* alloc = (uint8_t*)tf_malloc(size);
+    uint16_t byteSize = (uint16_t)TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pRenderTarget->Format) / 8;
+    uint8_t  channelCount = (uint8_t)TinyImageFormat_ChannelCount((TinyImageFormat)pRenderTarget->Format);
+    uint32_t Size = pRenderTarget->Width * pRenderTarget->Height * max((uint16_t)4U, byteSize);
+    uint8_t* alloc = (uint8_t*)MemAllocate(Size);
 
     resetCmdPool(pRendererRef, pCmdPool);
 
@@ -228,35 +228,35 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
     if (COLOR_SPACE_SDR_SRGB < pSwapChain->colorSpace)
     {
         // decode pixels
-        ASSERT(TinyImageFormat_CanDecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->format));
+        ASSERT(TinyImageFormat_CanDecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->Format));
         TinyImageFormat_FetchInput fetchInput = { { (void*)alloc } };
-        uint32_t                   floatBufferSize = pRenderTarget->width * pRenderTarget->height * sizeof(float4);
-        float*                     pDecoded = (float*)tf_malloc(floatBufferSize);
-        const bool                 result = TinyImageFormat_DecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->format, &fetchInput,
-                                                                 pRenderTarget->width * pRenderTarget->height, pDecoded);
+        uint32_t                   floatBufferSize = pRenderTarget->Width * pRenderTarget->Height * sizeof(float4);
+        float*                     pDecoded = (float*)MemAllocate(floatBufferSize);
+        const bool                 result = TinyImageFormat_DecodeLogicalPixelsF((TinyImageFormat)pRenderTarget->Format, &fetchInput,
+                                                                                 pRenderTarget->Width * pRenderTarget->Height, pDecoded);
         ASSERT(result);
 
-        pEncoded = tf_malloc(floatBufferSize);
+        pEncoded = MemAllocate(floatBufferSize);
         stbiw_ctx ctx = { (uint8_t*)pEncoded };
-        stbi_write_hdr_to_func(stbiw_func, &ctx, pRenderTarget->width, pRenderTarget->height, 4, pDecoded);
-        tf_free(pDecoded);
+        stbi_write_hdr_to_func(stbiw_func, &ctx, pRenderTarget->Width, pRenderTarget->Height, 4, pDecoded);
+        MemDeallocate(pDecoded);
         encodedSize = ctx.offset;
     }
     else
     {
         // Flip the BGRA to RGBA
-        const bool flipRedBlueChannel = forceFlipRedBlue || !(pRenderTarget->format == hz::Format::R8G8B8A8_UNORM ||
-                                                              pRenderTarget->format == hz::Format::R8G8B8A8_SRGB);
+        const bool flipRedBlueChannel = forceFlipRedBlue || !(pRenderTarget->Format == hz::Format::R8G8B8A8_UNORM ||
+                                                              pRenderTarget->Format == hz::Format::R8G8B8A8_SRGB);
 
         if (flipRedBlueChannel)
         {
             int8_t* imageData = ((int8_t*)alloc);
 
-            for (uint32_t h = 0; h < pRenderTarget->height; ++h)
+            for (uint32_t h = 0; h < pRenderTarget->Height; ++h)
             {
-                for (uint32_t w = 0; w < pRenderTarget->width; ++w)
+                for (uint32_t w = 0; w < pRenderTarget->Width; ++w)
                 {
-                    uint32_t pixelIndex = (h * pRenderTarget->width + w) * channelCount;
+                    uint32_t pixelIndex = (h * pRenderTarget->Width + w) * channelCount;
                     int8_t*  pixel = imageData + pixelIndex;
 
                     // Swap blue and red.
@@ -271,7 +271,7 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
         {
             uint8_t* imageData = ((uint8_t*)alloc);
 
-            for (uint32_t i = 0; i < pRenderTarget->width * pRenderTarget->height; i++)
+            for (uint32_t i = 0; i < pRenderTarget->Width * pRenderTarget->Height; i++)
             {
                 void* dst = &imageData[i * 3]; // RGB
                 void* src = &imageData[i * 4]; // RGBA
@@ -284,25 +284,25 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, bool no
 
         // Convert image data to png. Use global stbi_write_png_compression_level to configure compression level
         stbi_write_png_compression_level = 4; // Default is 8, which takes longer to process
-        pEncoded = stbi_write_png_to_mem((unsigned char*)alloc, pRenderTarget->width * byteSize, pRenderTarget->width,
-                                         pRenderTarget->height, channelCount, &encodedSize);
+        pEncoded = stbi_write_png_to_mem((unsigned char*)alloc, pRenderTarget->Width * byteSize, pRenderTarget->Width,
+                                         pRenderTarget->Height, channelCount, &encodedSize);
     }
 
     // Save screenshot to disk.
     FileStream fs = {};
-    if (fsOpenStreamFromPath(RD_SCREENSHOTS, screenshotFileName, FM_WRITE, &fs))
+    if (OpenStreamFromPath(DirectoryScreenshots, screenshotFileName, FileModeWrite, &fs))
     {
-        LOGF(eINFO, "Writing screenshot to %s", screenshotFileName);
-        VERIFY(fsWriteToStream(&fs, pEncoded, (size_t)encodedSize) == (size_t)encodedSize);
-        VERIFY(fsCloseStream(&fs));
+        LOGF(Info, "Writing screenshot to %s", screenshotFileName);
+        VERIFY(WriteToStream(&fs, pEncoded, (size_t)encodedSize) == (size_t)encodedSize);
+        VERIFY(CloseStream(&fs));
     }
     else
     {
-        LOGF(eERROR, "Failed to open file for a screenshot: %s", gScreenshotName);
+        LOGF(Error, "Failed to open file for a screenshot: %s", gScreenshotName);
     }
 
-    tf_free(alloc);
-    tf_free(pEncoded);
+    MemDeallocate(alloc);
+    MemDeallocate(pEncoded);
 
     gCaptureFlag = false;
     updateUIVisibility();

@@ -198,7 +198,7 @@ struct hid_device_ {
 
 static hid_device *new_hid_device()
 {
-	hid_device *dev = (hid_device*) tf_calloc(1, sizeof(hid_device));
+	hid_device *dev = (hid_device*) MemCallocate(1, sizeof(hid_device));
 	dev->device_handle = INVALID_HANDLE_VALUE;
 	dev->blocking = TRUE;
 	dev->output_report_length = 0;
@@ -225,11 +225,11 @@ static void free_hid_device(hid_device *dev)
 	CloseHandle(dev->write_ol.hEvent);
 	CloseHandle(dev->device_handle);
 	LocalFree(dev->last_error_str);
-	tf_free(dev->write_buf);
-	tf_free(dev->feature_buf);
-	tf_free(dev->read_buf);
+	MemDeallocate(dev->write_buf);
+	MemDeallocate(dev->feature_buf);
+	MemDeallocate(dev->read_buf);
 	hid_free_device_info(dev->device_info);
-	tf_free(dev);
+	MemDeallocate(dev);
 }
 
 static void register_error(hid_device *dev, const char *op)
@@ -389,8 +389,8 @@ static void hid_internal_get_ble_info(struct hid_device_info* dev, DEVINST dev_n
 	len = 0;
 	cr = CM_Get_DevNode_PropertyW(dev_node, &PKEY_DeviceInterface_Bluetooth_Manufacturer, &property_type, NULL, &len, 0);
 	if (cr == CR_BUFFER_SMALL && property_type == DEVPROP_TYPE_STRING) {
-		tf_free(dev->manufacturer_string);
-		dev->manufacturer_string = (wchar_t*)tf_calloc(len, sizeof(BYTE));
+		MemDeallocate(dev->manufacturer_string);
+		dev->manufacturer_string = (wchar_t*)MemCallocate(len, sizeof(BYTE));
 		CM_Get_DevNode_PropertyW(dev_node, &PKEY_DeviceInterface_Bluetooth_Manufacturer, &property_type, (PBYTE)dev->manufacturer_string, &len, 0);
 	}
 
@@ -398,8 +398,8 @@ static void hid_internal_get_ble_info(struct hid_device_info* dev, DEVINST dev_n
 	len = 0;
 	cr = CM_Get_DevNode_PropertyW(dev_node, &PKEY_DeviceInterface_Bluetooth_DeviceAddress, &property_type, NULL, &len, 0);
 	if (cr == CR_BUFFER_SMALL && property_type == DEVPROP_TYPE_STRING) {
-		tf_free(dev->serial_number);
-		dev->serial_number = (wchar_t*)tf_calloc(len, sizeof(BYTE));
+		MemDeallocate(dev->serial_number);
+		dev->serial_number = (wchar_t*)MemCallocate(len, sizeof(BYTE));
 		CM_Get_DevNode_PropertyW(dev_node, &PKEY_DeviceInterface_Bluetooth_DeviceAddress, &property_type, (PBYTE)dev->serial_number, &len, 0);
 	}
 
@@ -412,8 +412,8 @@ static void hid_internal_get_ble_info(struct hid_device_info* dev, DEVINST dev_n
 	len = 0;
 	cr = CM_Get_DevNode_PropertyW(dev_node, &DEVPKEY_NAME, &property_type, NULL, &len, 0);
 	if (cr == CR_BUFFER_SMALL && property_type == DEVPROP_TYPE_STRING) {
-		tf_free(dev->product_string);
-		dev->product_string = (wchar_t*)tf_calloc(len, sizeof(BYTE));
+		MemDeallocate(dev->product_string);
+		dev->product_string = (wchar_t*)MemCallocate(len, sizeof(BYTE));
 		CM_Get_DevNode_PropertyW(dev_node, &DEVPKEY_NAME, &property_type, (PBYTE)dev->product_string, &len, 0);
 	}
 }
@@ -440,7 +440,7 @@ static void hid_internal_get_info(struct hid_device_info* dev)
 	tmp = dev->path;
 
 	len = (ULONG)strlen(tmp);
-	interface_path = (wchar_t*)tf_calloc(len + 1, sizeof(wchar_t));
+	interface_path = (wchar_t*)MemCallocate(len + 1, sizeof(wchar_t));
 	memset(&state, 0, sizeof(state));
 
 	if (mbsrtowcs(interface_path, &tmp, len, &state) == (size_t)-1)
@@ -450,7 +450,7 @@ static void hid_internal_get_info(struct hid_device_info* dev)
 	len = 0;
 	cr = CM_Get_Device_Interface_PropertyW(interface_path, &DEVPKEY_Device_InstanceId, &property_type, NULL, &len, 0);
 	if (cr == CR_BUFFER_SMALL && property_type == DEVPROP_TYPE_STRING) {
-		device_id = (wchar_t*)tf_calloc(len, sizeof(BYTE));
+		device_id = (wchar_t*)MemCallocate(len, sizeof(BYTE));
 		cr = CM_Get_Device_Interface_PropertyW(interface_path, &DEVPKEY_Device_InstanceId, &property_type, (PBYTE)device_id, &len, 0);
 	}
 	if (cr != CR_SUCCESS)
@@ -470,7 +470,7 @@ static void hid_internal_get_info(struct hid_device_info* dev)
 	len = 0;
 	cr = CM_Get_DevNode_PropertyW(dev_node, &DEVPKEY_Device_CompatibleIds, &property_type, NULL, &len, 0);
 	if (cr == CR_BUFFER_SMALL && property_type == DEVPROP_TYPE_STRING_LIST) {
-		compatible_ids = (wchar_t*)tf_calloc(len, sizeof(BYTE));
+		compatible_ids = (wchar_t*)MemCallocate(len, sizeof(BYTE));
 		cr = CM_Get_DevNode_PropertyW(dev_node, &DEVPKEY_Device_CompatibleIds, &property_type, (PBYTE)compatible_ids, &len, 0);
 	}
 	if (cr != CR_SUCCESS)
@@ -491,15 +491,15 @@ static void hid_internal_get_info(struct hid_device_info* dev)
 		}
 	}
 end:
-	tf_free(interface_path);
-	tf_free(device_id);
-	tf_free(compatible_ids);
+	MemDeallocate(interface_path);
+	MemDeallocate(device_id);
+	MemDeallocate(compatible_ids);
 }
 
 static wchar_t* DuplicateWideStr(wchar_t* str)
 {
 	size_t len = wcslen(str);
-	wchar_t* dup = (wchar_t*)tf_malloc((len + 1) * sizeof(*dup));
+	wchar_t* dup = (wchar_t*)MemAllocate((len + 1) * sizeof(*dup));
 	wcscpy(dup, str);
 	return dup;
 }
@@ -517,14 +517,14 @@ static struct hid_device_info *hid_get_device_info(const char *path, HANDLE hand
 	wchar_t wstr[WSTR_LEN]; /* TODO: Determine Size */
 
 	/* Create the record. */
-	dev = (struct hid_device_info*)tf_calloc(1, sizeof(struct hid_device_info));
+	dev = (struct hid_device_info*)MemCallocate(1, sizeof(struct hid_device_info));
 
 	/* Fill out the record */
 	dev->next = NULL;
 
 	if (path) {
 		size_t len = strlen(path);
-		dev->path = (char*)tf_calloc(len + 1, sizeof(char));
+		dev->path = (char*)MemCallocate(len + 1, sizeof(char));
 		memcpy(dev->path, path, len + 1);
 	}
 	else
@@ -597,11 +597,11 @@ static struct hid_device_info *hid_get_device_info(const char *path, HANDLE hand
 
 static void hid_free_device_info(struct hid_device_info* dev)
 {
-	tf_free(dev->path);
-	tf_free(dev->serial_number);
-	tf_free(dev->manufacturer_string);
-	tf_free(dev->product_string);
-	tf_free(dev);
+	MemDeallocate(dev->path);
+	MemDeallocate(dev->serial_number);
+	MemDeallocate(dev->manufacturer_string);
+	MemDeallocate(dev->product_string);
+	MemDeallocate(dev);
 }
 
 struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned short vendor_id, unsigned short product_id)
@@ -664,7 +664,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			NULL);
 
 		/* Allocate a long enough structure for device_interface_detail_data. */
-		device_interface_detail_data = (SP_DEVICE_INTERFACE_DETAIL_DATA_A*) tf_malloc(required_size);
+		device_interface_detail_data = (SP_DEVICE_INTERFACE_DETAIL_DATA_A*) MemAllocate(required_size);
 		device_interface_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_A);
 
 		/* Get the detailed data for this device. The detail data gives us
@@ -738,7 +738,7 @@ cont_close:
 		CloseHandle(read_handle);
 cont:
 		/* We no longer need the detail data. It can be freed */
-		tf_free(device_interface_detail_data);
+		MemDeallocate(device_interface_detail_data);
 
 		device_index++;
 
@@ -855,7 +855,7 @@ HID_API_EXPORT hid_device * HID_API_CALL hid_open_path(const char *path)
 	dev->feature_report_length = caps.FeatureReportByteLength;
 	HidD_FreePreparsedData(pp_data);
 
-	dev->read_buf = (char*) tf_malloc(dev->input_report_length);
+	dev->read_buf = (char*) MemAllocate(dev->input_report_length);
 
 	dev->device_info = hid_get_device_info(path, dev->device_handle);
 
@@ -893,7 +893,7 @@ int HID_API_EXPORT HID_API_CALL hid_write(hid_device *dev, const unsigned char *
 		buf = (unsigned char *) data;
 	} else {
 		if (dev->write_buf == NULL)
-			dev->write_buf = (unsigned char *) tf_malloc(dev->output_report_length);
+			dev->write_buf = (unsigned char *) MemAllocate(dev->output_report_length);
 		buf = dev->write_buf;
 		memcpy(buf, data, length);
 		memset(buf + length, 0, dev->output_report_length - length);
@@ -1042,7 +1042,7 @@ int HID_API_EXPORT HID_API_CALL hid_send_feature_report(hid_device *dev, const u
 		length_to_send = length;
 	} else {
 		if (dev->feature_buf == NULL)
-			dev->feature_buf = (unsigned char *) tf_malloc(dev->feature_report_length);
+			dev->feature_buf = (unsigned char *) MemAllocate(dev->feature_report_length);
 		buf = dev->feature_buf;
 		memcpy(buf, data, length);
 		memset(buf + length, 0, dev->feature_report_length - length);

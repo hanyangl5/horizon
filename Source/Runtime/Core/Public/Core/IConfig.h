@@ -241,10 +241,10 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #endif
 
 #ifdef _WINDOWS
-// Restrict compilation to Windows 7 APIs
-#define NTDDI_VERSION NTDDI_WIN7
-#define WINVER        _WIN32_WINNT_WIN7
-#define _WIN32_WINNT  _WIN32_WINNT_WIN7
+// Per-Monitor DPI Aware V2 requires Windows 10 version 1703.
+#define NTDDI_VERSION NTDDI_WIN10_RS2
+#define WINVER        _WIN32_WINNT_WIN10
+#define _WIN32_WINNT  _WIN32_WINNT_WIN10
 #endif
 
 #else
@@ -267,9 +267,9 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #define ENABLE_SCREENSHOT
 //#define ENABLE_PROFILER
 #define ENABLE_MESHOPTIMIZER
-// Uncomment this to enable empty mounts
+// Uncomment this to enable Empty mounts
 // used for absolute paths
-//#define ENABLE_FS_EMPTY_MOUNT
+// #define ENABLE_FS_EMPTY_MOUNT
 
 #ifdef ENABLE_PROFILER
 // Enable this if you want to have the profiler through a web browser, see PROFILE_WEBSERVER_PORT for server location
@@ -290,7 +290,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //   contains the Assert/Logging/Memory functionality
 //   - FORGE_RENDERER_API: is used to expose Renderer functionality, wich usually only the Engine needs access to (the Game should leverage
 //   the Engine and never call the Renderer).
-//                         This define allows to hide Renderer functionality to the Game, so that if someone tries to use it it'll get a
+//                         This define allows to Hidden Renderer functionality to the Game, so that if someone tries to use it it'll Get a
 //                         linker error.
 #define FORGE_API
 #define FORGE_RENDERER_API
@@ -302,9 +302,9 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #endif
 
 #define ENABLE_LOGGING
-#define DEFAULT_LOG_LEVEL eALL
+#define DEFAULT_LOG_LEVEL All
 #if !defined(NDEBUG)
-//#define ENABLE_MEMORY_TRACKING
+// #define ENABLE_MEMORY_TRACKING
 #endif
 // #define ENABLE_FORGE_STACKTRACE_DUMP
 
@@ -324,7 +324,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //// Config validation
 //////////////////////////////////////////////
 #if !defined(ENABLE_LOGGING) && !defined(DEFAULT_LOG_LEVEL)
-#define DEFAULT_LOG_LEVEL eNONE
+#define DEFAULT_LOG_LEVEL None
 #endif
 
 #if defined(_DEBUG) && defined(NDEBUG)

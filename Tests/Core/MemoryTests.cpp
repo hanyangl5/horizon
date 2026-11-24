@@ -26,130 +26,130 @@ int LifetimeProbe::dtorCount = 0;
 // Verifies aligned, zero-initialized, and resized allocations through the core memory helpers.
 TEST(CoreMemoryTest, AllocationHelpersAllocateAlignedZeroedAndResizableMemory)
 {
-    ASSERT_TRUE(initMemAlloc(nullptr));
-    const MemoryTrackingStats initialStats = memGetTrackingStats();
-    if (initialStats.trackingEnabled)
+    ASSERT_TRUE(InitMemoryAlloc(nullptr));
+    const MemoryTrackingStats initialStats = GetMemoryTrackingStats();
+    if (initialStats.TrackingEnabled)
     {
-        EXPECT_EQ(initialStats.liveRequestedBytes, 0u);
-        EXPECT_EQ(initialStats.liveActualBytes, 0u);
-        EXPECT_EQ(initialStats.liveAllocationCount, 0u);
+        EXPECT_EQ(initialStats.LiveRequestedBytes, 0u);
+        EXPECT_EQ(initialStats.LiveActualBytes, 0u);
+        EXPECT_EQ(initialStats.LiveAllocationCount, 0u);
     }
 
-    void* aligned = tf_memalign(64, 128);
+    void* aligned = MemAllocateAligned(64, 128);
     ASSERT_NE(aligned, nullptr);
     EXPECT_EQ((uintptr_t)aligned % 64u, 0u);
-    const MemoryTrackingStats alignedStats = memGetTrackingStats();
-    if (alignedStats.trackingEnabled)
+    const MemoryTrackingStats alignedStats = GetMemoryTrackingStats();
+    if (alignedStats.TrackingEnabled)
     {
-        EXPECT_EQ(alignedStats.liveRequestedBytes, 128u);
-        EXPECT_GE(alignedStats.liveActualBytes, alignedStats.liveRequestedBytes);
-        EXPECT_EQ(alignedStats.liveSlackBytes, alignedStats.liveActualBytes - alignedStats.liveRequestedBytes);
-        EXPECT_EQ(alignedStats.liveAllocationCount, 1u);
+        EXPECT_EQ(alignedStats.LiveRequestedBytes, 128u);
+        EXPECT_GE(alignedStats.LiveActualBytes, alignedStats.LiveRequestedBytes);
+        EXPECT_EQ(alignedStats.LiveSlackBytes, alignedStats.LiveActualBytes - alignedStats.LiveRequestedBytes);
+        EXPECT_EQ(alignedStats.LiveAllocationCount, 1u);
     }
-    tf_free(aligned);
+    MemDeallocate(aligned);
 
-    auto* zeroed = (unsigned char*)tf_calloc(8, sizeof(unsigned char));
+    auto* zeroed = (unsigned char*)MemCallocate(8, sizeof(unsigned char));
     ASSERT_NE(zeroed, nullptr);
     for (size_t i = 0; i < 8; ++i)
     {
         EXPECT_EQ(zeroed[i], 0u);
     }
-    tf_free(zeroed);
+    MemDeallocate(zeroed);
 
-    auto* bytes = (unsigned char*)tf_malloc(4);
+    auto* bytes = (unsigned char*)MemAllocate(4);
     ASSERT_NE(bytes, nullptr);
     bytes[0] = 1;
     bytes[1] = 2;
     bytes[2] = 3;
     bytes[3] = 4;
 
-    bytes = (unsigned char*)tf_realloc(bytes, 8);
+    bytes = (unsigned char*)MemReallocate(bytes, 8);
     ASSERT_NE(bytes, nullptr);
     EXPECT_EQ(bytes[0], 1u);
     EXPECT_EQ(bytes[1], 2u);
     EXPECT_EQ(bytes[2], 3u);
     EXPECT_EQ(bytes[3], 4u);
-    tf_free(bytes);
+    MemDeallocate(bytes);
 
-    void* resized = tf_realloc(nullptr, 32);
+    void* resized = MemReallocate(nullptr, 32);
     ASSERT_NE(resized, nullptr);
-    EXPECT_EQ(tf_realloc(resized, 0), nullptr);
-    EXPECT_EQ(tf_calloc(SIZE_MAX, 2), nullptr);
+    EXPECT_EQ(MemReallocate(resized, 0), nullptr);
+    EXPECT_EQ(MemCallocate(SIZE_MAX, 2), nullptr);
 
-    const MemoryTrackingStats finalStats = memGetTrackingStats();
-    if (finalStats.trackingEnabled)
+    const MemoryTrackingStats finalStats = GetMemoryTrackingStats();
+    if (finalStats.TrackingEnabled)
     {
-        EXPECT_EQ(finalStats.liveRequestedBytes, 0u);
-        EXPECT_EQ(finalStats.liveActualBytes, 0u);
-        EXPECT_EQ(finalStats.liveSlackBytes, 0u);
-        EXPECT_EQ(finalStats.liveAllocationCount, 0u);
-        EXPECT_GE(finalStats.peakRequestedBytes, 128u);
-        EXPECT_GE(finalStats.peakActualBytes, finalStats.peakRequestedBytes);
-        EXPECT_GE(finalStats.totalAllocationCount, 3u);
-        EXPECT_GE(finalStats.reallocationCount, 1u);
-        EXPECT_EQ(finalStats.failedAllocationCount, 1u);
+        EXPECT_EQ(finalStats.LiveRequestedBytes, 0u);
+        EXPECT_EQ(finalStats.LiveActualBytes, 0u);
+        EXPECT_EQ(finalStats.LiveSlackBytes, 0u);
+        EXPECT_EQ(finalStats.LiveAllocationCount, 0u);
+        EXPECT_GE(finalStats.PeakRequestedBytes, 128u);
+        EXPECT_GE(finalStats.PeakActualBytes, finalStats.PeakRequestedBytes);
+        EXPECT_GE(finalStats.TotalAllocationCount, 3u);
+        EXPECT_GE(finalStats.ReallocationCount, 1u);
+        EXPECT_EQ(finalStats.FailedAllocationCount, 1u);
     }
 
-    exitMemAlloc();
+    ExitMemoryAlloc();
 }
 
 TEST(CoreMemoryTest, ConcurrentReallocationsLeaveNoLiveAllocations)
 {
-    ASSERT_TRUE(initMemAlloc(nullptr));
+    ASSERT_TRUE(InitMemoryAlloc(nullptr));
     ThreadHandle threads[4] = {};
     uint32_t     started = 0;
     ThreadDesc   desc = {
-          .pFunc =
+          .Func =
             [](void*)
         {
             for (uint32_t i = 0; i < 256; ++i)
             {
-                unsigned char* bytes = (unsigned char*)tf_malloc(32);
+                unsigned char* bytes = (unsigned char*)MemAllocate(32);
                 ASSERT_NE(bytes, nullptr);
                 bytes[0] = 42;
-                unsigned char* resized = (unsigned char*)tf_realloc(bytes, 4096 + i * 16);
+                unsigned char* resized = (unsigned char*)MemReallocate(bytes, 4096 + i * 16);
                 if (!resized)
                 {
-                    tf_free(bytes);
+                    MemDeallocate(bytes);
                     FAIL() << "reallocation failed";
                 }
                 EXPECT_EQ(resized[0], 42);
-                tf_free(resized);
+                MemDeallocate(resized);
             }
         },
     };
     for (; started < TF_ARRAY_COUNT(threads); ++started)
     {
-        if (!initThread(&desc, &threads[started]))
+        if (!InitThread(&desc, &threads[started]))
             break;
     }
     for (uint32_t i = 0; i < started; ++i)
-        joinThread(threads[i]);
+        JoinThread(threads[i]);
     EXPECT_EQ(started, TF_ARRAY_COUNT(threads));
-    const MemoryTrackingStats stats = memGetTrackingStats();
-    if (stats.trackingEnabled)
+    const MemoryTrackingStats stats = GetMemoryTrackingStats();
+    if (stats.TrackingEnabled)
     {
-        EXPECT_EQ(stats.liveAllocationCount, 0u);
-        EXPECT_EQ(stats.liveRequestedBytes, 0u);
-        EXPECT_EQ(stats.liveActualBytes, 0u);
-        EXPECT_EQ(stats.reallocationCount, started * 256u);
+        EXPECT_EQ(stats.LiveAllocationCount, 0u);
+        EXPECT_EQ(stats.LiveRequestedBytes, 0u);
+        EXPECT_EQ(stats.LiveActualBytes, 0u);
+        EXPECT_EQ(stats.ReallocationCount, started * 256u);
     }
-    exitMemAlloc();
+    ExitMemoryAlloc();
 }
 
-// Verifies that tf_new and tf_delete invoke constructors and destructors exactly once.
+// Verifies that MemNew and MemDelete invoke constructors and destructors exactly once.
 TEST(CoreMemoryTest, TfNewAndTfDeleteRespectObjectLifetime)
 {
     LifetimeProbe::ctorCount = 0;
     LifetimeProbe::dtorCount = 0;
 
-    LifetimeProbe* probe = tf_new(LifetimeProbe, 123);
+    LifetimeProbe* probe = MemNew(LifetimeProbe, 123);
     ASSERT_NE(probe, nullptr);
     EXPECT_EQ(probe->value, 123);
     EXPECT_EQ(LifetimeProbe::ctorCount, 1);
     EXPECT_EQ(LifetimeProbe::dtorCount, 0);
 
-    tf_delete(probe);
+    MemDelete(probe);
 
     EXPECT_EQ(LifetimeProbe::ctorCount, 1);
     EXPECT_EQ(LifetimeProbe::dtorCount, 1);

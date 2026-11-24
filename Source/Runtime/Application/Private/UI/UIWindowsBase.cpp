@@ -67,7 +67,7 @@
 static IApp*       pApp = nullptr;
 static WindowDesc* gWindowDesc = nullptr;
 static bool        gShowPlatformUI = true;
-static ResetDesc   gResetDescriptor = { RESET_TYPE_NONE };
+static ResetDesc   gResetDescriptor = { ResetTypeNone };
 static ReloadDesc  gReloadDescriptor = { RELOAD_TYPE_ALL };
 /// CPU
 static CpuInfo     gCpu;
@@ -103,26 +103,26 @@ extern "C" HWND* gLogWindowHandle;
 
 static inline float CounterToSecondsElapsed(int64_t start, int64_t end) { return (float)(end - start) / (float)1e6; }
 
-ThermalStatus getThermalStatus() { return THERMAL_STATUS_NOT_SUPPORTED; }
+ThermalStatus GetThermalStatus() { return ThermalStatusNotSupported; }
 
 //------------------------------------------------------------------------
 // OPERATING SYSTEM INTERFACE FUNCTIONS
 //------------------------------------------------------------------------
 
-void requestShutdown() { PostQuitMessage(0); }
+void RequestShutdown() { PostQuitMessage(0); }
 
-void requestReset(const ResetDesc* pResetDesc) { gResetDescriptor = *pResetDesc; }
+void RequestReset(const ResetDesc* pResetDesc) { gResetDescriptor = *pResetDesc; }
 
-void requestReload(const ReloadDesc* pReloadDesc) { gReloadDescriptor = *pReloadDesc; }
+void RequestReload(const ReloadDesc* pReloadDesc) { gReloadDescriptor = *pReloadDesc; }
 
-void errorMessagePopup(const char* title, const char* msg, WindowHandle* handle, errorMessagePopupCallbackFn callback)
+void ErrorMessagePopup(const char* title, const char* msg, WindowHandle* Handle, errorMessagePopupCallbackFn callback)
 {
-    UNREF_PARAM(handle);
+    UNREF_PARAM(Handle);
 #if defined(AUTOMATED_TESTING)
-    LOGF(eERROR, title);
-    LOGF(eERROR, msg);
+    LOGF(Error, title);
+    LOGF(Error, msg);
 #else
-    MessageBoxA((HWND)handle->window, msg, title, MB_OK);
+    MessageBoxA((HWND)Handle->window, msg, title, MB_OK);
 #endif
     if (callback)
     {
@@ -131,11 +131,11 @@ void errorMessagePopup(const char* title, const char* msg, WindowHandle* handle,
 }
 
 CustomMessageProcessor sCustomProc = nullptr;
-void                   setCustomMessageProcessor(CustomMessageProcessor proc) { sCustomProc = proc; }
+void                   SetCustomMessageProcessor(CustomMessageProcessor proc) { sCustomProc = proc; }
 
 CpuInfo* getCpuInfo() { return &gCpu; }
 
-OSInfo* getOsInfo() { return &gOsInfo; }
+OSInfo* GetOsInfo() { return &gOsInfo; }
 
 void getOsVersion(ULONG& majorVersion, ULONG& minorVersion, ULONG& buildNumber)
 {
@@ -260,11 +260,11 @@ void setupPlatformUI(const IApp::Settings* pSettings)
 
     // VSYNC CONTROL
     UIComponentDesc uiDesc = {};
-    uiDesc.startPosition = vec2(pSettings->width * 0.7f, pSettings->height * 0.8f);
+    uiDesc.startPosition = Vector2(pSettings->Width * 0.7f, pSettings->Height * 0.8f);
     uiCreateComponent("VSync Control", &uiDesc, &pToggleVSyncComponent);
 
     CheckboxWidget checkbox;
-    checkbox.pData = &pApp->settings.vSyncEnabled;
+    checkbox.Data = &pApp->settings.vSyncEnabled;
     uiCreateComponentWidget(pToggleVSyncComponent, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
 
     // MICROPROFILER UI
@@ -273,7 +273,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
 #if defined(ENABLE_FORGE_RELOAD_SHADER)
     // RELOAD CONTROL
     uiDesc = {};
-    uiDesc.startPosition = vec2(pSettings->width * 0.7f, pSettings->height * 0.9f);
+    uiDesc.startPosition = Vector2(pSettings->Width * 0.7f, pSettings->Height * 0.9f);
     uiCreateComponent("Reload Control", &uiDesc, &pReloadShaderComponent);
 
     platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
@@ -281,24 +281,24 @@ void setupPlatformUI(const IApp::Settings* pSettings)
 
     // API SWITCHING
     uiDesc = {};
-    uiDesc.startPosition = vec2(pSettings->width * 0.6f, pSettings->height * 0.01f);
+    uiDesc.startPosition = Vector2(pSettings->Width * 0.6f, pSettings->Height * 0.01f);
     uiCreateComponent("Graphics Control", &uiDesc, &pAPISwitchingComponent);
 
     static const char* pApiNames[] = { "D3D12" };
 
     // Select Api
     DropdownWidget selectApUIWidget = {};
-    selectApUIWidget.pData = &gSelectedApiIndex;
+    selectApUIWidget.Data = &gSelectedApiIndex;
 
     selectApUIWidget.pNames = pApiNames;
-    selectApUIWidget.count = (uint32_t)elementsOf(pApiNames);
+    selectApUIWidget.Count = (uint32_t)elementsOf(pApiNames);
 
     pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingComponent, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
-    pSelectApUIWidget->pOnEdited = [](void* pUserData)
+    pSelectApUIWidget->pOnEdited = [](void* UserData)
     {
-        UNREF_PARAM(pUserData);
-        ResetDesc resetDescriptor{ RESET_TYPE_API_SWITCH };
-        requestReset(&resetDescriptor);
+        UNREF_PARAM(UserData);
+        ResetDesc resetDescriptor{ ResetTypeApiSwitch };
+        RequestReset(&resetDescriptor);
     };
     UNREF_PARAM(pSelectApUIWidget);
 
@@ -306,17 +306,17 @@ void setupPlatformUI(const IApp::Settings* pSettings)
                                       gPlatformParameters.ppAvailableGpuNames[2], gPlatformParameters.ppAvailableGpuNames[3] };
 
     DropdownWidget selectGraphicCardUIWidget = {};
-    selectGraphicCardUIWidget.pData = &gPlatformParameters.selectedGpuIndex;
+    selectGraphicCardUIWidget.Data = &gPlatformParameters.selectedGpuIndex;
     selectGraphicCardUIWidget.pNames = gpuNames;
-    selectGraphicCardUIWidget.count = gPlatformParameters.availableGpuCount;
+    selectGraphicCardUIWidget.Count = gPlatformParameters.availableGpuCount;
 
     pSelectGraphicCardWidget =
         uiCreateComponentWidget(pAPISwitchingComponent, "Select Graphic Card", &selectGraphicCardUIWidget, WIDGET_TYPE_DROPDOWN);
-    pSelectGraphicCardWidget->pOnEdited = [](void* pUserData)
+    pSelectGraphicCardWidget->pOnEdited = [](void* UserData)
     {
-        UNREF_PARAM(pUserData);
-        ResetDesc resetDescriptor{ RESET_TYPE_GRAPHIC_CARD_SWITCH };
-        requestReset(&resetDescriptor);
+        UNREF_PARAM(UserData);
+        ResetDesc resetDescriptor{ ResetTypeGraphicCardSwitch };
+        RequestReset(&resetDescriptor);
     };
     UNREF_PARAM(pSelectGraphicCardWidget);
 
@@ -366,35 +366,46 @@ int WindowsMain(int argc, char** argv, IApp* app)
     UNREF_PARAM(argc);
     UNREF_PARAM(argv);
 
-    if (!initMemAlloc(app->GetName()))
+    if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) &&
+        !AreDpiAwarenessContextsEqual(GetThreadDpiAwarenessContext(), DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+    {
+        OutputDebugStringA("Horizon could not enable Per-Monitor DPI Aware V2.\n");
         return EXIT_FAILURE;
+    }
 
-    FileSystemInitDesc fsDesc = {};
-    fsDesc.pAppName = app->GetName();
-    if (!initFileSystem(&fsDesc))
+    if (!InitMemoryAlloc(app->GetName()))
+    {
         return EXIT_FAILURE;
+    }
 
-    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
-    fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_PIPELINE_CACHE, "PipelineCaches");
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_COMPILED_MATERIALS, "CompiledMaterials");
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_ANIMATIONS, "Animation");
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_AUDIO, "Audio");
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
-    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-    fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_SCREENSHOTS, "Screenshots");
-    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_DEBUG, "");
-    fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "");
+    FileSystemInitDesc FileSystemDesc = {};
+    FileSystemDesc.pAppName = app->GetName();
+    if (!InitFileSystem(&FileSystemDesc))
+    {
+        return EXIT_FAILURE;
+    }
+
+    SetResourceDirectoryPath(SystemFileIO, MountDebug, DirectoryShaderBinaries, "CompiledShaders");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryShaderSources, "Shaders");
+    SetResourceDirectoryPath(SystemFileIO, MountSave0, DirectoryPipelineCache, "PipelineCaches");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryTextures, "Textures");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryCompiledMaterials, "CompiledMaterials");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryMeshes, "Meshes");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryFonts, "Fonts");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryAnimations, "Animation");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryAudio, "Audio");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryGpuConfig, "GPUCfg");
+    SetResourceDirectoryPath(SystemFileIO, MountDebug, DirectoryLog, "");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryScripts, "Scripts");
+    SetResourceDirectoryPath(SystemFileIO, MountSave0, DirectoryScreenshots, "Screenshots");
+    SetResourceDirectoryPath(SystemFileIO, MountDebug, DirectoryDebug, "");
+    SetResourceDirectoryPath(SystemFileIO, MountContent, DirectoryOtherFiles, "");
 
 #ifdef ENABLE_MTUNER
     rmemInit(0);
 #endif
 
-    initLog(app->GetName(), DEFAULT_LOG_LEVEL);
+    InitLog(app->GetName(), DEFAULT_LOG_LEVEL);
 
     ULONG majorVersion = 0;
     ULONG minorVersion = 0;
@@ -403,7 +414,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
     snprintf(gOsInfo.osName, 256, "Windows PC");
     snprintf(gOsInfo.osVersion, 256, "%lu.%lu (Build: %lu)", majorVersion, minorVersion, buildNumber);
     snprintf(gOsInfo.osDeviceName, 256, "Unknown");
-    LOGF(LogLevel::eINFO, "Operating System: %s. Version: %s. Device Name: %s.", gOsInfo.osName, gOsInfo.osVersion, gOsInfo.osDeviceName);
+    LOGF(LogLevel::Info, "Operating System: %s. Version: %s. Device Name: %s.", gOsInfo.osName, gOsInfo.osVersion, gOsInfo.osDeviceName);
 
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
     if (!WindowsStackTrace::Init())
@@ -412,7 +423,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
     pApp = app;
     pWindowAppRef = app;
-
     initWindowClass();
 
     // Used for automated testing, if enabled app will exit after DEFAULT_AUTOMATION_FRAME_COUNT (240) frames
@@ -428,44 +438,44 @@ int WindowsMain(int argc, char** argv, IApp* app)
     gWindow = &window;     // WindowsWindow.cpp
     gWindowDesc = &window; // WindowsBase.cpp
     gLogWindowHandle =
-        (HWND*)&window.handle
-            .window; // WindowsLog.c, save the address to this handle to avoid having to adding includes to WindowsLog.c to use WindowDesc*.
+        (HWND*)&window.Handle
+            .window; // WindowsLog.c, Save the address to this Handle to avoid having to adding includes to WindowsLog.c to use WindowDesc*.
 
     if (pSettings->monitorIndex < 0 || pSettings->monitorIndex >= (int)gMonitorCount)
     {
         pSettings->monitorIndex = 0;
     }
 
-    if (pSettings->width <= 0 || pSettings->height <= 0)
+    if (pSettings->Width <= 0 || pSettings->Height <= 0)
     {
         RectDesc rect = {};
 
-        getRecommendedResolution(&rect);
-        pSettings->width = getRectWidth(&rect);
-        pSettings->height = getRectHeight(&rect);
+        GetRecommendedResolution(&rect);
+        pSettings->Width = GetRectWidth(&rect);
+        pSettings->Height = GetRectHeight(&rect);
     }
 
-    MonitorDesc* monitor = getMonitor(pSettings->monitorIndex);
+    MonitorDesc* monitor = GetMonitor(pSettings->monitorIndex);
     ASSERT(monitor != nullptr);
 
-    gWindow->clientRect = { (int)pSettings->windowX + monitor->monitorRect.left, (int)pSettings->windowY + monitor->monitorRect.top,
-                            (int)pSettings->width, (int)pSettings->height };
+    gWindow->ClientRect = { (int)pSettings->windowX + monitor->MonitorRect.left, (int)pSettings->windowY + monitor->MonitorRect.top,
+                            (int)pSettings->Width, (int)pSettings->Height };
 
-    gWindow->windowedRect = gWindow->clientRect;
-    gWindow->fullScreen = pSettings->fullScreen;
-    gWindow->maximized = false;
-    gWindow->noresizeFrame = !pSettings->dragToResize;
-    gWindow->borderlessWindow = pSettings->borderlessWindow;
-    gWindow->centered = false; // pSettings->centered;
-    gWindow->forceLowDPI = pSettings->forceLowDPI;
-    gWindow->overrideDefaultPosition = true;
-    gWindow->cursorCaptured = false;
+    gWindow->WindowedRect = gWindow->ClientRect;
+    gWindow->Fullscreen = pSettings->Fullscreen;
+    gWindow->Maximized = false;
+    gWindow->NoResizeFrame = !pSettings->dragToResize;
+    gWindow->Borderless = pSettings->Borderless;
+    gWindow->Centered = false; // pSettings->Centered;
+    gWindow->ForceLowDpi = pSettings->ForceLowDpi;
+    gWindow->OverrideDefaultPosition = true;
+    gWindow->CursorCaptured = false;
 
     if (!pSettings->externalWindow)
-        openWindow(pApp->GetName(), gWindow);
+        OpenWindow(pApp->GetName(), gWindow);
 
-    pSettings->width = gWindow->fullScreen ? getRectWidth(&gWindow->fullscreenRect) : getRectWidth(&gWindow->clientRect);
-    pSettings->height = gWindow->fullScreen ? getRectHeight(&gWindow->fullscreenRect) : getRectHeight(&gWindow->clientRect);
+    pSettings->Width = gWindow->Fullscreen ? GetRectWidth(&gWindow->FullscreenRect) : GetRectWidth(&gWindow->ClientRect);
+    pSettings->Height = gWindow->Fullscreen ? GetRectHeight(&gWindow->FullscreenRect) : GetRectHeight(&gWindow->ClientRect);
 
     pApp->pCommandLine = GetCommandLineA();
 
@@ -481,7 +491,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
             if (i + 1 < argc && isdigit(*argv[i + 1]))
                 targetFrameCount = min(max(atoi(argv[i + 1]), 32), 512);
         }
-        else if (strcmp(argv[i], "--request-recompile-after") == 0)
+        else if (strcmp(argv[i], "--Request-recompile-after") == 0)
         {
             extern uint32_t gReloadServerRequestRecompileAfter;
             if (i + 1 < argc && isdigit(*argv[i + 1]))
@@ -496,14 +506,14 @@ int WindowsMain(int argc, char** argv, IApp* app)
         {
             strcpy(benchmarkOutput, argv[i + 1]);
         }
-        // Allow to set renderer API through command line so that we are able to test the same build with differnt APIs
+        // Allow to Set renderer API through command line so that we are able to test the same build with differnt APIs
         // On the TheForge Jenkins setup we change APIs through a lua script that changes the selector variable in the UI,
         // but for projects where we compile without our lua interface we cannot do this.
         else if (strcmp(argv[i], "--d3d12") == 0)
         {
             if (paramRenderingAPIFound)
             {
-                LOGF(eERROR, "Two command line parameters are requesting the rendering API, only one is allowed.");
+                LOGF(Error, "Two command line parameters are requesting the rendering API, only one is allowed.");
                 ASSERT(false);
                 return -1;
             }
@@ -518,7 +528,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
             return EXIT_FAILURE;
 
         Timer t;
-        initTimer(&t);
+        InitTimer(&t);
         if (!pApp->Init())
         {
             const char* pRendererReason;
@@ -529,9 +539,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
             if (pApp->unsupported)
             {
-                errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
-                                  &pApp->pWindow->handle, NULL);
-                exitLog();
+                ErrorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
+                                  &pApp->pWindow->Handle, NULL);
+                ExitLog();
                 return 0;
             }
 
@@ -544,7 +554,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
         if (!pApp->Load(&gReloadDescriptor))
             return EXIT_FAILURE;
 
-        LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", getTimerMSec(&t, false) / 1000.0f);
+        LOGF(LogLevel::Info, "Application Init+Load+Reload %fms", (double)GetTimerMSec(&t, false));
     }
 
     // #ifdef AUTOMATED_TESTING
@@ -554,10 +564,10 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
     bool    baseSubsystemAppDrawn = false;
     bool    quit = false;
-    int64_t lastCounter = getUSec(false);
+    int64_t lastCounter = GetUSec(false);
     while (!quit)
     {
-        int64_t counter = getUSec(false);
+        int64_t counter = GetUSec(false);
         float   deltaTime = CounterToSecondsElapsed(lastCounter, counter);
         lastCounter = counter;
 
@@ -572,41 +582,47 @@ int WindowsMain(int argc, char** argv, IApp* app)
         deltaTime = AUTOMATION_FIXED_FRAME_TIME;
 #endif
 
-        bool lastMinimized = gWindow->minimized;
+        bool lastMinimized = gWindow->Minimized;
 
         extern bool handleMessages();
-        quit = handleMessages() || pSettings->quit;
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("App::handleMessages");
+            quit = handleMessages() || pSettings->quit;
+        }
 
         // UPDATE BASE INTERFACES
-        updateBaseSubsystems(deltaTime, baseSubsystemAppDrawn);
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("App::updateBaseSubsystems");
+            updateBaseSubsystems(deltaTime, baseSubsystemAppDrawn);
+        }
         baseSubsystemAppDrawn = false;
 
-        if (gResetDescriptor.type != RESET_TYPE_NONE)
+        if (gResetDescriptor.Type != ResetTypeNone)
         {
-            if (gResetDescriptor.type & RESET_TYPE_DEVICE_LOST)
+            if (gResetDescriptor.Type & ResetTypeDeviceLost)
             {
-                errorMessagePopup(
+                ErrorMessagePopup(
                     "Graphics Device Lost",
                     "Connection to the graphics device has been lost.\nPlease verify the integrity of your graphics drivers.\nCheck the "
                     "logs for further details.",
-                    &pApp->pWindow->handle, NULL);
+                    &pApp->pWindow->Handle, NULL);
             }
 
-            if (gResetDescriptor.type & RESET_TYPE_GRAPHIC_CARD_SWITCH)
+            if (gResetDescriptor.Type & ResetTypeGraphicCardSwitch)
             {
                 ASSERT(gPlatformParameters.selectedGpuIndex < gPlatformParameters.availableGpuCount);
                 gPlatformParameters.preferedGpuId = gPlatformParameters.pAvailableGpuIds[gPlatformParameters.selectedGpuIndex];
             }
 
-            gReloadDescriptor.type = RELOAD_TYPE_ALL;
+            gReloadDescriptor.Type = RELOAD_TYPE_ALL;
             pApp->Unload(&gReloadDescriptor);
             pApp->Exit();
 
             gPlatformParameters.selectedRendererApi = (RendererApi)gSelectedApiIndex;
             pSettings->initialized = false;
 
-            closeWindow(app->pWindow);
-            openWindow(app->GetName(), app->pWindow);
+            ClosePlatformWindow(app->pWindow);
+            OpenWindow(app->GetName(), app->pWindow);
 
             exitBaseSubsystems();
 
@@ -615,14 +631,14 @@ int WindowsMain(int argc, char** argv, IApp* app)
                     return EXIT_FAILURE;
 
                 Timer t;
-                initTimer(&t);
+                InitTimer(&t);
                 if (!pApp->Init())
                 {
                     if (pApp->unsupported)
                     {
-                        errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
-                                          &pApp->pWindow->handle, NULL);
-                        exitLog();
+                        ErrorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
+                                          &pApp->pWindow->Handle, NULL);
+                        ExitLog();
                         return 0;
                     }
                     return EXIT_FAILURE;
@@ -634,36 +650,36 @@ int WindowsMain(int argc, char** argv, IApp* app)
                 if (!pApp->Load(&gReloadDescriptor))
                     return EXIT_FAILURE;
 
-                LOGF(LogLevel::eINFO, "Application Reset %fms", getTimerMSec(&t, false) / 1000.0f);
+                LOGF(LogLevel::Info, "Application Reset %fms", GetTimerMSec(&t, false) / 1000.0f);
             }
 
-            gResetDescriptor.type = RESET_TYPE_NONE;
+            gResetDescriptor.Type = ResetTypeNone;
             continue;
         }
 
-        if (gReloadDescriptor.type != RELOAD_TYPE_ALL)
+        if (gReloadDescriptor.Type != RELOAD_TYPE_ALL)
         {
             Timer t;
-            initTimer(&t);
+            InitTimer(&t);
 
             pApp->Unload(&gReloadDescriptor);
             if (!pApp->Load(&gReloadDescriptor))
                 return EXIT_FAILURE;
 
-            LOGF(LogLevel::eINFO, "Application Reload %fms", getTimerMSec(&t, false) / 1000.0f);
-            gReloadDescriptor.type = RELOAD_TYPE_ALL;
+            LOGF(LogLevel::Info, "Application Reload %fms", GetTimerMSec(&t, false) / 1000.0f);
+            gReloadDescriptor.Type = RELOAD_TYPE_ALL;
             continue;
         }
 
-        // If window is minimized let other processes take over
-        if (gWindow->minimized)
+        // If window is Minimized let other processes take over
+        if (gWindow->Minimized)
         {
-            // Call update once after minimize so app can react.
-            if (lastMinimized != gWindow->minimized)
+            // Call Update once after minimize so app can react.
+            if (lastMinimized != gWindow->Minimized)
             {
                 pApp->Update(deltaTime);
             }
-            threadSleep(1);
+            ThreadSleep(1);
             continue;
         }
 
@@ -683,7 +699,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 #ifdef AUTOMATED_TESTING
         extern bool gAutomatedTestingScriptsFinished;
-        // wait for the automated testing if it hasn't managed to finish in time
+        // Wait for the automated testing if it hasn't managed to finish in time
         if (gAutomatedTestingScriptsFinished && frameCounter >= targetFrameCount)
             quit = true;
         frameCounter++;
@@ -698,7 +714,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
     //     }
     // #endif
 
-    gReloadDescriptor.type = RELOAD_TYPE_ALL;
+    gReloadDescriptor.Type = RELOAD_TYPE_ALL;
     pApp->settings.quit = true;
     pApp->Unload(&gReloadDescriptor);
     pApp->Exit();
@@ -709,18 +725,18 @@ int WindowsMain(int argc, char** argv, IApp* app)
     WindowsStackTrace::Exit();
 #endif
 
-    exitLog();
+    ExitLog();
 
     exitBaseSubsystems();
 
-    exitFileSystem();
+    ExitFileSystem();
 
 #ifdef ENABLE_MTUNER
     rmemUnload();
     rmemShutDown();
 #endif
 
-    exitMemAlloc();
+    ExitMemoryAlloc();
 
     gWindow = NULL;
     gWindowDesc = NULL;

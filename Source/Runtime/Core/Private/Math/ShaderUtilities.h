@@ -36,9 +36,9 @@
 // PVS-Studio reports 'error V813: Decreased performance.' when passing parameters bigger than 8 bytes by value
 #define CONST_REF(T) const T&
 
-#define float4x4     mat4
-#define float3x3     mat3
-#define to_f3x3(M)   mat3(M.getUpper3x3())
+#define float4x4     Matrix4
+#define float3x3     Matrix3
+#define to_f3x3(M)   Matrix3(M.getUpper3x3())
 
 inline float2 saturate(float2 f) { return float2(saturate(f.x), saturate(f.y)); }
 
@@ -62,14 +62,14 @@ inline float3x3 adjoint(CONST_REF(float3x3) m)
 // Adjoint matrix is the same as transpose(inverse(m)) as long as the model matrix doesn't have shears.
 inline float3x3 adjoint_float4x4(CONST_REF(float4x4) m) { return adjoint(to_f3x3(m)); }
 
-inline float linearizeDepth(float depth, float nearPlane, float farPlane)
+inline float linearizeDepth(float Depth, float nearPlane, float farPlane)
 {
-    return (nearPlane * farPlane) / (farPlane + depth * (nearPlane - farPlane));
+    return (nearPlane * farPlane) / (farPlane + Depth * (nearPlane - farPlane));
 }
 
-inline float linearizeDepthReverseZ(float depth, float nearPlane, float farPlane)
+inline float linearizeDepthReverseZ(float Depth, float nearPlane, float farPlane)
 {
-    return (nearPlane * farPlane) / (nearPlane + depth * (farPlane - nearPlane));
+    return (nearPlane * farPlane) / (nearPlane + Depth * (farPlane - nearPlane));
 }
 
 inline float2 octWrap_float2(float2 v)
@@ -148,7 +148,7 @@ inline uint packFloat3DirectionToHalf2(CONST_REF(float3) dir)
 
 //------------------------------------------------------------------------------
 //	Pack three positive normalized numbers between 0.0 and 1.0 into a 32-bit fp
-// channel of a render target.  The bits given to each member are:
+// channel of a render target.  The bits given to Each member are:
 //
 //		x = 16 bits
 //		y = 8 bits
@@ -179,7 +179,7 @@ inline float pack3PNForFP32(float3 channel)
     // to prevent an exponent that is 0 we can check
     // check if SEEEEEEE is all 0
     // only check the highest 7-bit 0111 1111 0000 0000 0000 0000 0000 0000 == 0x7F000000
-    // to prevent all 7-bits from going zero we add 0000 0001 0000 0000 0000 0000 because we assume that
+    // to prevent all 7-bits from going zero we Add 0000 0001 0000 0000 0000 0000 because we assume that
     // all are zero :-;
     uValue |= (uint(channel.z * 253.0f + 1.5f)) << 24; // goes from bit 24 to 31
 

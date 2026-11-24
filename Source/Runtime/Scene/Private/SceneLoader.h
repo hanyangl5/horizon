@@ -2,7 +2,7 @@ struct LoadedScene
 {
     MeshData                 meshData;
     Scene                    scene;
-    std::vector<BoundingBox> worldBoxes;
+    hz::Array<BoundingBox>   worldBoxes;
     BoundingBox              worldBounds;
 };
 
@@ -11,7 +11,7 @@ LoadedScene loadDemoScene()
     LoadedScene loadedScene;
     loadBistro(loadedScene.meshData, loadedScene.scene);
 
-    loadedScene.worldBoxes.resize(loadedScene.scene.globalTransform.size());
+    loadedScene.worldBoxes.Resize(loadedScene.scene.globalTransform.Size());
     for (auto& p : loadedScene.scene.meshForNode)
     {
         loadedScene.worldBoxes[p.first] = loadedScene.meshData.boxes[p.second].getTransformed(loadedScene.scene.globalTransform[p.first]);

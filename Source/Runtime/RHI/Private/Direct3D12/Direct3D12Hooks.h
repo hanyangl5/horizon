@@ -61,11 +61,11 @@ extern HRESULT hook_create_graphics_pipeline_state(ID3D12Device* pDevice, const 
 extern HRESULT hook_create_compute_pipeline_state(ID3D12Device* pDevice, const D3D12_COMPUTE_PIPELINE_STATE_DESC* pDesc, void* pExtensions,
                                                   uint32_t extensionCout, ID3D12PipelineState** ppPipeline);
 extern HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE* pClearValue,
-                                         D3D12_RESOURCE_STATES startState, uint32_t flags, Buffer* pOutBuffer);
+                                         D3D12_RESOURCE_STATES StartState, uint32_t Flags, Buffer* pOutBuffer);
 extern HRESULT hook_add_special_resource(Renderer* pRenderer, const D3D12_RESOURCE_DESC* pDesc, const D3D12_CLEAR_VALUE* pClearValue,
-                                         D3D12_RESOURCE_STATES startState, uint32_t flags, Texture* pOutTexture);
-extern HRESULT hook_add_placed_resource(Renderer* pRenderer, const ResourcePlacement* pPlacement, const D3D12_RESOURCE_DESC* pDesc,
-                                        const D3D12_CLEAR_VALUE* pClearValue, D3D12_RESOURCE_STATES startState,
+                                         D3D12_RESOURCE_STATES StartState, uint32_t Flags, Texture* pOutTexture);
+extern HRESULT hook_add_placed_resource(Renderer* pRenderer, const ResourcePlacement* Placement, const D3D12_RESOURCE_DESC* pDesc,
+                                        const D3D12_CLEAR_VALUE* pClearValue, D3D12_RESOURCE_STATES StartState,
                                         ID3D12Resource** ppOutResource);
 // HRESULT create_swap_chain(struct Renderer* pRenderer, struct SwapChain* pSwapChain, DXGI_SWAP_CHAIN_DESC1* desc, IDXGISwapChain1**
 // swapchain);
@@ -81,11 +81,11 @@ extern HRESULT    hook_signal(Queue* pQueue, ID3D12Fence* pFence, uint64_t fence
 extern HRESULT    hook_signal_flush(Queue* pQueue, ID3D12Fence* pFence, uint64_t fenceValue);
 
 extern void hook_fill_gpu_desc(ID3D12Device* pDevice, D3D_FEATURE_LEVEL featureLevel, GpuDesc* pInOutDesc);
-extern void hook_modify_descriptor_heap_size(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t* pInOutSize);
-extern void hook_modify_heap_flags(DescriptorType type, D3D12_HEAP_FLAGS* pInOutFlags);
+extern void hook_modify_descriptor_heap_size(D3D12_DESCRIPTOR_HEAP_TYPE Type, uint32_t* pInOutSize);
+extern void hook_modify_heap_flags(DescriptorType Type, D3D12_HEAP_FLAGS* pInOutFlags);
 extern void hook_modify_buffer_resource_desc(const BufferDesc* pBuffer, D3D12_RESOURCE_DESC* pInOutDesc);
 extern void hook_modify_texture_resource_flags(TextureCreationFlags creationFlags, D3D12_RESOURCE_FLAGS* pInOutFlags);
-extern void hook_modify_shader_compile_flags(uint32_t stage, bool enablePrimitiveId, const WCHAR** pData, uint32_t* pInOutNumFlags);
+extern void hook_modify_shader_compile_flags(uint32_t stage, bool enablePrimitiveId, const WCHAR** Data, uint32_t* pInOutNumFlags);
 extern void hook_modify_rootsignature_flags(uint32_t stages, D3D12_ROOT_SIGNATURE_FLAGS* pInOutFlags);
 extern void hook_modify_command_signature_desc(D3D12_COMMAND_SIGNATURE_DESC* pInOutDesc, uint32_t padding);
 extern void hook_pre_resolve_query(Cmd* pCmd);

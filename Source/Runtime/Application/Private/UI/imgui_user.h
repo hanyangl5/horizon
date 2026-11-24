@@ -37,11 +37,11 @@ namespace ImGui
     * components -> Number of values in value_p
     * minv -> min float value. If minv == maxv then no limits are applied
     * max -> max float value. Same as above.
-    * format -> format to print the float value as. (Mainly used to control number of decimal points)
+    * Format -> Format to print the float value as. (Mainly used to control number of decimal points)
     * minimumHitRadius -> Determines what's the minimum hit radius for the knob to start rotating and change the value.
-    * windowWidthRatio -> [0,FLT_MAX] value that determines the final size of the all the knobs on the same line with respect to the
-   containing window. Value of 1.0f with component = 1 --> Size of 1 knob takes full width  .. with 2 knobs and value of 1 --> each knob is
-   half width and so on.
+    * windowWidthRatio -> [0,FLT_MAX] value that determines the final Size of the all the knobs on the same line with respect to the
+   containing window. Value of 1.0f with component = 1 --> Size of 1 knob takes full Width  .. with 2 knobs and value of 1 --> Each knob is
+   half Width and so on.
     * doubleTapForText -> If true then double clicking on knob will open a text box
     * spawnText ->
     *     If true and doubleTapForText is true then the widget spawn a textu box instead of the knob widget.
@@ -50,6 +50,6 @@ namespace ImGui
      * framePaddingScale -> Multipler to control extra padding on left side of first knob
     **/
 int KnobFloatN(const char* label, float* value_p, const int& components, const float& step = 1.0f, const float& minv = 0.f,
-               const float& maxv = 0.f, const char* format = "%.1f", const float& minimumHitRadius = 0.5f, float windowWidthRatio = 1.0f,
+               const float& maxv = 0.f, const char* Format = "%.1f", const float& minimumHitRadius = 0.5f, float windowWidthRatio = 1.0f,
                bool doubleTapForText = true, bool spawnText = true, float framePaddingScale = 3.0f);
 } // namespace ImGui

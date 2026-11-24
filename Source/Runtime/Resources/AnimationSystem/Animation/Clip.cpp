@@ -51,33 +51,33 @@ bool Clip::Sample(ozz::animation::SamplingJob::Context* cacheInput, ozz::span<So
 bool Clip::LoadClip(const ResourceDirectory resourceDir, const char* fileName)
 {
     FileStream file = {};
-    if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ, &file))
+    if (!OpenStreamFromPath(resourceDir, fileName, FileModeRead, &file))
     {
-        LOGF(eERROR, "Cannot open clip file '%s'", fileName);
+        LOGF(Error, "Cannot open clip file '%s'", fileName);
         return false;
     }
 
-    ssize_t size = fsGetStreamFileSize(&file);
-    void*   data = tf_malloc(size);
-    fsReadFromStream(&file, data, (size_t)size);
-    fsCloseStream(&file);
+    ssize_t Size = GetStreamFileSize(&file);
+    void*   data = MemAllocate(Size);
+    ReadFromStream(&file, data, (size_t)Size);
+    CloseStream(&file);
 
     // Archive is doing a lot of freads from disk which is slow on some platforms and also generally not good
     // So we just read the entire file once into a mem stream so the freads from IArchive are actually
     // only reading from system memory instead of disk or network
     FileStream memStream = {};
-    fsOpenStreamFromMemory(data, size, FM_READ, true, &memStream);
+    OpenStreamFromMemory(data, Size, FileModeRead, true, &memStream);
 
     ozz::io::IArchive archive(&memStream);
     if (!archive.TestTag<ozz::animation::Animation>())
     {
-        LOGF(eERROR, "Archive doesn't contain the expected object type. '%s'", fileName);
+        LOGF(Error, "Archive doesn't contain the expected object type. '%s'", fileName);
         return false;
     }
 
     archive >> animation;
 
-    fsCloseStream(&memStream);
+    CloseStream(&memStream);
 
     return true;
 }

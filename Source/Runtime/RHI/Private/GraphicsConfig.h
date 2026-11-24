@@ -31,8 +31,8 @@
 #if defined(EXTERNAL_RENDERER_CONFIG_FILEPATH)
 #include EXTERNAL_RENDERER_CONFIG_FILEPATH
 #elif defined(EXTERNAL_RENDERER_CONFIG_FILEPATH_NO_STRING)
-// When invoking clanng from FastBuild the EXTERNAL_CONFIG_FILEPATH define doesn't get expanded to a string,
-// quotes are removed, that's why we add this variation of the macro that turns the define back into a valid string
+// When invoking clanng from FastBuild the EXTERNAL_CONFIG_FILEPATH define doesn't Get expanded to a string,
+// quotes are removed, that's why we Add this variation of the macro that turns the define back into a valid string
 #define TF_EXTERNAL_CONFIG_STRINGIFY2(x) #x
 #define TF_EXTERNAL_CONFIG_STRINGIFY(x)  TF_EXTERNAL_CONFIG_STRINGIFY2(x)
 
@@ -67,7 +67,7 @@ enum
     MAX_DEBUG_NAME_LENGTH = 128,
     MAX_MIP_LEVELS = 0xFFFFFFFF,
     MAX_SWAPCHAIN_IMAGES = 3,
-    MAX_GPU_VENDOR_STRING_LENGTH = 64, // max size for GPUVendorPreset strings
+    MAX_GPU_VENDOR_STRING_LENGTH = 64, // max Size for GPUVendorPreset strings
 };
 #endif
 
@@ -140,7 +140,7 @@ FORGE_API void addGPUConfigurationRules(ExtendedSettings* pExtendedSettings);
 // free GPU selection scratch data
 FORGE_API void removeGPUConfigurationRules();
 
-// set default value, samplerAnisotropySupported, graphicsQueueSupported, primitiveID
+// Set default value, samplerAnisotropySupported, graphicsQueueSupported, primitiveID
 FORGE_API void setDefaultGPUSettings(struct GPUSettings* pGpuSettings);
 
 // selects the best GPU for the playground's built-in adapter policy

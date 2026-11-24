@@ -40,14 +40,14 @@ public:
     // Must be called to clean up if the clip mask was initialized
     void Exit();
 
-    // Will set the weight of all joints to 1.0f
+    // Will Set the weight of all joints to 1.0f
     void EnableAllJoints();
 
-    // Will set the weight of all joints to 0.0f
+    // Will Set the weight of all joints to 0.0f
     void DisableAllJoints();
 
-    // Will set the weight of the joint at jointIndex and all of its children
-    // to setValue. All other joints will be set to zero
+    // Will Set the weight of the joint at jointIndex and all of its children
+    // to setValue. All other joints will be Set to zero
     void SetAllChildrenOf(int32_t jointIndex, float setValue);
 
     // Get the joint weights

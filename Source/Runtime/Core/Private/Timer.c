@@ -23,61 +23,70 @@
  */
 
 #include "Core/ITime.h"
+#include "Core/ITime.h"
 
-void initTimer(Timer* pTimer) { resetTimer(pTimer); }
+void InitTimer(Timer* Timer) { ResetTimer(Timer); }
 
-unsigned getTimerMSec(Timer* pTimer, bool reset)
+unsigned GetTimerMSec(Timer* Timer, bool Reset)
 {
-    unsigned currentTime = getSystemTime();
-    unsigned elapsedTime = currentTime - pTimer->startTime;
-    if (reset)
-        pTimer->startTime = currentTime;
+    unsigned CurrentTime = GetTickCountMs();
+    unsigned ElapsedTime = CurrentTime - Timer->StartTime;
+    if (Reset)
+    {
+        Timer->StartTime = CurrentTime;
+    }
 
-    return elapsedTime;
+    return ElapsedTime;
 }
 
-void resetTimer(Timer* pTimer) { pTimer->startTime = getSystemTime(); }
+void ResetTimer(Timer* Timer) { Timer->StartTime = GetTickCountMs(); }
 
-void initHiresTimer(HiresTimer* pTimer)
+void InitHiresTimer(HiresTimer* Timer)
 {
-    *pTimer = (HiresTimer){ 0 };
-    resetHiresTimer(pTimer);
+    *Timer = (HiresTimer){ 0 };
+    ResetHiresTimer(Timer);
 }
 
-int64_t getHiresTimerUSec(HiresTimer* pTimer, bool reset)
+int64_t GetHiresTimerUSec(HiresTimer* Timer, bool Reset)
 {
-    int64_t currentTime = getUSec(true);
-    int64_t elapsedTime = currentTime - pTimer->startTime;
+    int64_t CurrentTime = GetUSec(true);
+    int64_t ElapsedTime = CurrentTime - Timer->StartTime;
 
     // Correct for possible weirdness with changing internal frequency
-    if (elapsedTime < 0)
-        elapsedTime = 0;
+    if (ElapsedTime < 0)
+    {
+        ElapsedTime = 0;
+    }
 
-    if (reset)
-        pTimer->startTime = currentTime;
+    if (Reset)
+    {
+        Timer->StartTime = CurrentTime;
+    }
 
-    pTimer->history[pTimer->historyIndex] = elapsedTime;
-    pTimer->historyIndex = (pTimer->historyIndex + 1) % HIRES_TIMER_LENGTH_OF_HISTORY;
+    Timer->History[Timer->HistoryIndex] = ElapsedTime;
+    Timer->HistoryIndex = (Timer->HistoryIndex + 1) % HIRES_TIMER_LENGTH_OF_HISTORY;
 
-    return elapsedTime;
+    return ElapsedTime;
 }
 
-int64_t getHiresTimerUSecAverage(HiresTimer* pTimer)
+int64_t GetHiresTimerUSecAverage(HiresTimer* Timer)
 {
-    int64_t elapsedTime = 0;
+    int64_t ElapsedTime = 0;
     for (uint32_t i = 0; i < HIRES_TIMER_LENGTH_OF_HISTORY; ++i)
-        elapsedTime += pTimer->history[i];
-    elapsedTime /= HIRES_TIMER_LENGTH_OF_HISTORY;
+        ElapsedTime += Timer->History[i];
+    ElapsedTime /= HIRES_TIMER_LENGTH_OF_HISTORY;
 
     // Correct for overflow
-    if (elapsedTime < 0)
-        elapsedTime = 0;
+    if (ElapsedTime < 0)
+    {
+        ElapsedTime = 0;
+    }
 
-    return elapsedTime;
+    return ElapsedTime;
 }
 
-float getHiresTimerSeconds(HiresTimer* pTimer, bool reset) { return (float)(getHiresTimerUSec(pTimer, reset) / 1e6); }
+float GetHiresTimerSeconds(HiresTimer* Timer, bool Reset) { return (float)(GetHiresTimerUSec(Timer, Reset) / 1e6); }
 
-float getHiresTimerSecondsAverage(HiresTimer* pTimer) { return (float)(getHiresTimerUSecAverage(pTimer) / 1e6); }
+float GetHiresTimerSecondsAverage(HiresTimer* Timer) { return (float)(GetHiresTimerUSecAverage(Timer) / 1e6); }
 
-void resetHiresTimer(HiresTimer* pTimer) { pTimer->startTime = getUSec(true); }
+void ResetHiresTimer(HiresTimer* Timer) { Timer->StartTime = GetUSec(true); }

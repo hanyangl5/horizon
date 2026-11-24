@@ -459,12 +459,12 @@ inline bool isNormalizedEst(const Vector3& v)
 
 inline void print(const Vector3 & vec)
 {
-	LOGF(eINFO, "( %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ());
+	LOGF(Info, "( %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ());
 }
 
 inline void print(const Vector3 & vec, const char * name)
 {
-	LOGF(eINFO, "%s: ( %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ());
+	LOGF(Info, "%s: ( %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -1262,12 +1262,12 @@ inline void store3PtrU(const Vector4& v, float* f) {
 
 inline void print(const Vector4 & vec)
 {
-	LOGF(eINFO, "( %f %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(Info, "( %f %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 inline void print(const Vector4 & vec, const char * name)
 {
-	LOGF(eINFO, "%s: ( %f %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(Info, "%s: ( %f %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -1640,12 +1640,12 @@ inline bool isNormalizedEst(const Vector3d& v)
 
 inline void print(const Vector3d & vec)
 {
-	LOGF(eINFO, "( %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ());
+	LOGF(Info, "( %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ());
 }
 
 inline void print(const Vector3d & vec, const char * name)
 {
-	LOGF(eINFO, "%s: ( %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ());
+	LOGF(Info, "%s: ( %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -2474,12 +2474,12 @@ inline void store3PtrU(const Vector4d& v, double* f) {
 
 inline void print(const Vector4d & vec)
 {
-	LOGF(eINFO, "( %f %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(Info, "( %f %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 inline void print(const Vector4d & vec, const char * name)
 {
-	LOGF(eINFO, "%s: ( %f %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(Info, "%s: ( %f %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -2766,12 +2766,12 @@ inline const Point3 select(const Point3 & pnt0, const Point3 & pnt1, bool select
 
 inline void print(const Point3 & pnt)
 {
-	LOGF(eINFO, "( %f %f %f )\n", pnt.getX(), pnt.getY(), pnt.getZ());
+	LOGF(Info, "( %f %f %f )\n", pnt.getX(), pnt.getY(), pnt.getZ());
 }
 
 inline void print(const Point3 & pnt, const char * name)
 {
-	LOGF(eINFO, "%s: ( %f %f %f )\n", name, pnt.getX(), pnt.getY(), pnt.getZ());
+	LOGF(Info, "%s: ( %f %f %f )\n", name, pnt.getX(), pnt.getY(), pnt.getZ());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -3511,12 +3511,12 @@ inline const int sum(const IVector3 & vec)
 
 inline void print(const IVector3 & vec)
 {
-	LOGF(eINFO, "( %i %i %i )\n", vec.getX(), vec.getY(), vec.getZ());
+	LOGF(Info, "( %i %i %i )\n", vec.getX(), vec.getY(), vec.getZ());
 }
 
 inline void print(const IVector3 & vec, const char * name)
 {
-	LOGF(eINFO, "%s: ( %i %i %i )\n", name, vec.getX(), vec.getY(), vec.getZ());
+	LOGF(Info, "%s: ( %i %i %i )\n", name, vec.getX(), vec.getY(), vec.getZ());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -3728,12 +3728,12 @@ inline const uint sum(const UVector3 & vec)
 
 inline void print(const UVector3 & vec)
 {
-	LOGF(eINFO, "( %u %u %u )\n", vec.getX(), vec.getY(), vec.getZ());
+	LOGF(Info, "( %u %u %u )\n", vec.getX(), vec.getY(), vec.getZ());
 }
 
 inline void print(const UVector3 & vec, const char * name)
 {
-	LOGF(eINFO, "%s: ( %u %u %u )\n", name, vec.getX(), vec.getY(), vec.getZ());
+	LOGF(Info, "%s: ( %u %u %u )\n", name, vec.getX(), vec.getY(), vec.getZ());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -3975,12 +3975,12 @@ inline const int sum(const IVector4 & vec)
 
 inline void print(const IVector4 & vec)
 {
-	LOGF(eINFO, "( %i %i %i %i )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(Info, "( %i %i %i %i )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 inline void print(const IVector4 & vec, const char * name)
 {
-	LOGF(eINFO, "%s: ( %i %i %i %i )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(Info, "%s: ( %i %i %i %i )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 #endif // VECTORMATH_DEBUG
@@ -4198,12 +4198,12 @@ inline const uint sum(const UVector4 & vec)
 
 inline void print(const UVector4 & vec)
 {
-	LOGF(eINFO, "( %u %u %u %u )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(Info, "( %u %u %u %u )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 inline void print(const UVector4 & vec, const char * name)
 {
-	LOGF(eINFO, "%s: ( %u %u %u %u )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+	LOGF(Info, "%s: ( %u %u %u %u )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }
 
 #endif // VECTORMATH_DEBUG

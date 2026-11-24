@@ -33,17 +33,17 @@ void addGPURingBuffer(Renderer* pRenderer, const BufferDesc* pBufferDesc, GPURin
 {
     *pRingBuffer = {};
     pRingBuffer->pRenderer = pRenderer;
-    pRingBuffer->maxBufferSize = pBufferDesc->size;
+    pRingBuffer->maxBufferSize = pBufferDesc->Size;
     pRingBuffer->bufferAlignment = sizeof(float[4]);
     BufferLoadDesc loadDesc = {};
     loadDesc.desc = *pBufferDesc;
-    loadDesc.desc.pName = "GPURingBuffer";
+    loadDesc.desc.Name = "GPURingBuffer";
     loadDesc.ppBuffer = &pRingBuffer->pBuffer;
     addResource(&loadDesc, NULL);
 }
 
 void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBufferSize, GPURingBuffer* pRingBuffer, bool const ownMemory,
-                             ResourceMemoryUsage memoryUsage)
+                             ResourceMemoryUsage MemoryUsage)
 {
     *pRingBuffer = {};
     pRingBuffer->pRenderer = pRenderer;
@@ -54,16 +54,16 @@ void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBuffer
     pRingBuffer->maxBufferSize = maxUniformBufferSize;
 
     BufferDesc ubDesc = {};
-    ubDesc.descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ubDesc.memoryUsage = memoryUsage;
-    ubDesc.flags =
-        (ubDesc.memoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY ? BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT : BUFFER_CREATION_FLAG_NONE) |
+    ubDesc.Descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ubDesc.MemoryUsage = MemoryUsage;
+    ubDesc.Flags =
+        (ubDesc.MemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY ? BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT : BUFFER_CREATION_FLAG_NONE) |
         BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 
     if (ownMemory)
-        ubDesc.flags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-    ubDesc.size = maxUniformBufferSize;
-    ubDesc.pName = "UniformGPURingBuffer";
+        ubDesc.Flags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+    ubDesc.Size = maxUniformBufferSize;
+    ubDesc.Name = "UniformGPURingBuffer";
     BufferLoadDesc loadDesc = {};
     loadDesc.desc = ubDesc;
     loadDesc.ppBuffer = &pRingBuffer->pBuffer;
@@ -117,7 +117,7 @@ void addGpuCmdRing(Renderer* pRenderer, const GpuCmdRingDesc* pDesc, GpuCmdRing*
 #ifdef ENABLE_GRAPHICS_DEBUG
             static char buffer[MAX_DEBUG_NAME_LENGTH];
             snprintf(buffer, sizeof(buffer), "GpuCmdRing Pool %u Cmd %u", pool, cmd);
-            cmdDesc.pName = buffer;
+            cmdDesc.Name = buffer;
 #endif // ENABLE_GRAPHICS_DEBUG
             addCmd(pRenderer, &cmdDesc, &pOut->pCmds[pool][cmd]);
 

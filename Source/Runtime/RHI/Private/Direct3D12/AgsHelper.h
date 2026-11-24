@@ -48,8 +48,8 @@ static void agsPrintDriverInfo()
 #if defined(AMDAGS)
     if (pAgsContext)
     {
-        LOGF(eINFO, "AMD Display Driver Version %u", gAgsGpuInfo.driverVersion);
-        LOGF(eINFO, "AMD Radeon Software Version %s", gAgsGpuInfo.radeonSoftwareVersion);
+        LOGF(Info, "AMD Display Driver Version %u", gAgsGpuInfo.driverVersion);
+        LOGF(Info, "AMD Radeon Software Version %s", gAgsGpuInfo.radeonSoftwareVersion);
     }
 #endif
 }

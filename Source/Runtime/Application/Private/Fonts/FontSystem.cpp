@@ -28,7 +28,7 @@
 
 #include "RHI/IGraphics.h"
 
-// include Fontstash (should be after MemoryTracking so that it also detects memory free/remove in fontstash)
+// include Fontstash (should be after MemoryTracking so that it also detects memory free/Remove in fontstash)
 #define FONTSTASH_IMPLEMENTATION
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
 #include <ThirdParty/stb/stb_ds.h>
@@ -52,8 +52,8 @@ struct Fontstash
     void**       fontBuffers;
     uint32_t*    fontBufferSizes;
     float        fontMaxSize;
-    uint32_t     width;
-    uint32_t     height;
+    uint32_t     Width;
+    uint32_t     Height;
 
     // Renderer
     Renderer*      pRenderer;
@@ -70,7 +70,7 @@ struct Fontstash
     const uint8_t* pPixels;
     bool           updateTexture;
 
-    // Render size
+    // Render Size
     float2 scaleBias;
     float2 dpiScale;
     float  dpiScaleMin;
@@ -89,7 +89,7 @@ struct Fontstash
 struct FontstashDrawData
 {
     CameraMatrix projView;
-    mat4         worldMat;
+    Matrix4      worldMat;
     Cmd*         pCmd;
     bool         text3D;
 };
@@ -97,11 +97,11 @@ struct FontstashDrawData
 static Fontstash gFontstash = {};
 
 // --  FONS renderer implementation --
-static int fonsImplementationGenerateTexture(void* userPtr, int width, int height)
+static int fonsImplementationGenerateTexture(void* userPtr, int Width, int Height)
 {
     UNREF_PARAM(userPtr);
-    gFontstash.width = width;
-    gFontstash.height = height;
+    gFontstash.Width = Width;
+    gFontstash.Height = Height;
     gFontstash.updateTexture = true;
     return 1;
 }
@@ -121,8 +121,8 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
         return;
     }
 
-    FontstashDrawData* draw = (FontstashDrawData*)userPtr;
-    Cmd*               pCmd = draw->pCmd;
+    FontstashDrawData* Draw = (FontstashDrawData*)userPtr;
+    Cmd*               pCmd = Draw->pCmd;
 
     if (gFontstash.updateTexture)
     {
@@ -132,7 +132,7 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
 #endif
         TextureUpdateDesc updateDesc = { gFontstash.pAtlasTexture, 0, 1, 0, 1, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
         beginUpdateResource(&updateDesc);
-        TextureSubresourceUpdate subresource = updateDesc.getSubresourceUpdateDesc(0, 0);
+        TextureSubresourceUpdate subresource = updateDesc.GetSubresourceUpdateDesc(0, 0);
         for (uint32_t r = 0; r < subresource.rowCount; ++r)
         {
             memcpy(subresource.pMappedData + r * subresource.dstRowStride, gFontstash.pPixels + r * subresource.srcRowStride,
@@ -144,21 +144,21 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
     }
 
     GPURingBufferOffset buffer = getGPURingBufferOffset(&gFontstash.meshRingBuffer, nverts * sizeof(float4));
-    BufferUpdateDesc    update = { buffer.pBuffer, buffer.offset };
-    beginUpdateResource(&update);
-    float4* vtx = (float4*)update.pMappedData;
+    BufferUpdateDesc    Update = { buffer.pBuffer, buffer.offset };
+    beginUpdateResource(&Update);
+    float4* vtx = (float4*)Update.pMappedData;
     // build vertices
     for (int impl = 0; impl < nverts; impl++)
     {
         float4 vert = { verts[impl * 2 + 0], verts[impl * 2 + 1], tcoords[impl * 2 + 0], tcoords[impl * 2 + 1] };
         memcpy((void*)&vtx[impl], &vert, sizeof(vert));
     }
-    endUpdateResource(&update);
+    endUpdateResource(&Update);
 
     // extract color
     float4 color = unpackA8B8G8R8_SRGB(*colors);
 
-    uint32_t  pipelineIndex = draw->text3D ? 1 : 0;
+    uint32_t  pipelineIndex = Draw->text3D ? 1 : 0;
     Pipeline* pPipeline = gFontstash.pPipelines[pipelineIndex];
     ASSERT(pPipeline);
 
@@ -179,9 +179,9 @@ static void fonsImplementationRenderText(void* userPtr, const float* verts, cons
     data.textureIndex = getTextureSrvIndex(gFontstash.pAtlasTexture);
     data.samplerIndex = getSamplerIndex(gFontstash.pDefaultSampler);
 
-    if (draw->text3D)
+    if (Draw->text3D)
     {
-        CameraMatrix mvp = (draw->projView * draw->worldMat);
+        CameraMatrix mvp = (Draw->projView * Draw->worldMat);
         data.color = color;
         data.scaleBias.x = -data.scaleBias.x;
 
@@ -214,21 +214,21 @@ bool platformInitFontSystem()
 {
 #ifdef ENABLE_FORGE_FONTS
     float          dpiScale[2] = {};
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, dpiScale);
+    const uint32_t monitorIdx = GetActiveMonitorIndex();
+    GetMonitorDpiScale(monitorIdx, dpiScale);
     gFontstash.dpiScale.x = dpiScale[0];
     gFontstash.dpiScale.y = dpiScale[1];
 
     gFontstash.dpiScaleMin = min(gFontstash.dpiScale.x, gFontstash.dpiScale.y);
 
-    gFontstash.width = gFontstash.TextureAtlasDimension * (int)ceilf(gFontstash.dpiScale.x);
-    gFontstash.height = gFontstash.TextureAtlasDimension * (int)ceilf(gFontstash.dpiScale.y);
-    gFontstash.fontMaxSize = min(gFontstash.width, gFontstash.height) / 10.0f; // see fontstash.h, line 1271, for fontSize calculation
+    gFontstash.Width = gFontstash.TextureAtlasDimension * (int)ceilf(gFontstash.dpiScale.x);
+    gFontstash.Height = gFontstash.TextureAtlasDimension * (int)ceilf(gFontstash.dpiScale.y);
+    gFontstash.fontMaxSize = min(gFontstash.Width, gFontstash.Height) / 10.0f; // see fontstash.h, line 1271, for fontSize calculation
 
     // create FONS context
     FONSparams params = {};
-    params.width = gFontstash.width;
-    params.height = gFontstash.height;
+    params.width = gFontstash.Width;
+    params.height = gFontstash.Height;
     params.flags = (unsigned char)FONS_ZERO_TOPLEFT;
     params.renderCreate = fonsImplementationGenerateTexture;
     params.renderUpdate = fonsImplementationModifyTexture;
@@ -248,7 +248,7 @@ void platformExitFontSystem()
     // unload font buffers
     for (ptrdiff_t i = 0; i < arrlen(gFontstash.fontBuffers); ++i)
     {
-        tf_free(gFontstash.fontBuffers[i]);
+        MemDeallocate(gFontstash.fontBuffers[i]);
     }
     arrfree(gFontstash.fontBuffers);
     // unload font buffer sizes
@@ -269,16 +269,16 @@ bool initFontSystem(FontSystemDesc* pDesc)
 
     // create image
     TextureDesc desc = {};
-    desc.arraySize = 1;
-    desc.depth = 1;
-    desc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
-    desc.format = hz::Format::R8_UNORM;
-    desc.height = gFontstash.height;
-    desc.mipLevels = 1;
-    desc.sampleCount = SAMPLE_COUNT_1;
-    desc.startState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-    desc.width = gFontstash.width;
-    desc.pName = "Fontstash Texture";
+    desc.ArraySize = 1;
+    desc.Depth = 1;
+    desc.Descriptors = DESCRIPTOR_TYPE_TEXTURE;
+    desc.Format = hz::Format::R8_UNORM;
+    desc.Height = gFontstash.Height;
+    desc.MipLevels = 1;
+    desc.SampleCount = SAMPLE_COUNT_1;
+    desc.StartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    desc.Width = gFontstash.Width;
+    desc.Name = "Fontstash Texture";
     TextureLoadDesc loadDesc = {};
     loadDesc.ppTexture = &gFontstash.pAtlasTexture;
     loadDesc.pDesc = &desc;
@@ -295,18 +295,18 @@ bool initFontSystem(FontSystemDesc* pDesc)
                                 ADDRESS_MODE_CLAMP_TO_EDGE };
     addSampler(gFontstash.pRenderer, &samplerDesc, &gFontstash.pDefaultSampler);
 
-    const BufferDesc uniformDesc = { .size = 65536,
-                                     .elementCount = 65536 / 4,
-                                     .memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                     .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
-                                     .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW };
+    const BufferDesc uniformDesc = { .Size = 65536,
+                                     .ElementCount = 65536 / 4,
+                                     .MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                     .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+                                     .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW };
     addGPURingBuffer(gFontstash.pRenderer, &uniformDesc, &gFontstash.uniformRingBuffer);
 
     BufferDesc vbDesc = {};
-    vbDesc.descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-    vbDesc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    vbDesc.size = pDesc->fontstashRingSizeBytes;
-    vbDesc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    vbDesc.Descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+    vbDesc.MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    vbDesc.Size = pDesc->fontstashRingSizeBytes;
+    vbDesc.Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
     addGPURingBuffer(gFontstash.pRenderer, &vbDesc, &gFontstash.meshRingBuffer);
     /************************************************************************/
     /************************************************************************/
@@ -356,16 +356,16 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
         vertexLayout.bindingCount = 1;
         vertexLayout.attribCount = 2;
         vertexLayout.attribs[0].semantic = SEMANTIC_POSITION;
-        vertexLayout.attribs[0].format = hz::Format::R32G32_SFLOAT;
+        vertexLayout.attribs[0].Format = hz::Format::R32G32_SFLOAT;
         vertexLayout.attribs[0].binding = 0;
         vertexLayout.attribs[0].location = 0;
         vertexLayout.attribs[0].offset = 0;
 
         vertexLayout.attribs[1].semantic = SEMANTIC_TEXCOORD0;
-        vertexLayout.attribs[1].format = hz::Format::R32G32_SFLOAT;
+        vertexLayout.attribs[1].Format = hz::Format::R32G32_SFLOAT;
         vertexLayout.attribs[1].binding = 0;
         vertexLayout.attribs[1].location = 1;
-        vertexLayout.attribs[1].offset = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)vertexLayout.attribs[0].format) / 8;
+        vertexLayout.attribs[1].offset = TinyImageFormat_BitSizeOfBlock((TinyImageFormat)vertexLayout.attribs[0].Format) / 8;
 
         BlendStateDesc blendStateDesc = {};
         blendStateDesc.srcFactors[0] = BC_SRC_ALPHA;
@@ -393,21 +393,21 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
 
         PipelineDesc pipelineDesc = {};
         pipelineDesc.pCache = pDesc->pCache;
-        pipelineDesc.type = PIPELINE_TYPE_GRAPHICS;
+        pipelineDesc.Type = PIPELINE_TYPE_GRAPHICS;
         pipelineDesc.graphicsDesc.vrFoveatedRendering = true;
         pipelineDesc.graphicsDesc.primitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         pipelineDesc.graphicsDesc.renderTargetCount = 1;
-        pipelineDesc.graphicsDesc.sampleCount = SAMPLE_COUNT_1;
+        pipelineDesc.graphicsDesc.SampleCount = SAMPLE_COUNT_1;
         pipelineDesc.graphicsDesc.pBlendState = &blendStateDesc;
         pipelineDesc.graphicsDesc.pRootSignature = gFontstash.pRootSignature;
         pipelineDesc.graphicsDesc.pVertexLayout = &vertexLayout;
         pipelineDesc.graphicsDesc.renderTargetCount = 1;
-        pipelineDesc.graphicsDesc.sampleCount = SAMPLE_COUNT_1;
-        pipelineDesc.graphicsDesc.sampleQuality = 0;
+        pipelineDesc.graphicsDesc.SampleCount = SAMPLE_COUNT_1;
+        pipelineDesc.graphicsDesc.SampleQuality = 0;
         pipelineDesc.graphicsDesc.pColorFormats = (hz::Format*)&pDesc->colorFormat;
 
-        uint32_t count = pDesc->depthFormat == hz::Format::UNDEFINED ? 1 : 2;
-        for (uint32_t i = 0; i < count; ++i)
+        uint32_t Count = pDesc->depthFormat == hz::Format::UNDEFINED ? 1 : 2;
+        for (uint32_t i = 0; i < Count; ++i)
         {
             pipelineDesc.graphicsDesc.depthStencilFormat = (i > 0) ? pDesc->depthFormat : hz::Format::UNDEFINED;
             pipelineDesc.graphicsDesc.pShaderProgram = gFontstash.pShaders[i];
@@ -419,7 +419,7 @@ void loadFontSystem(const FontSystemLoadDesc* pDesc)
 
     if (pDesc->loadType & RELOAD_TYPE_RESIZE)
     {
-        gFontstash.scaleBias = { 2.0f / (float)pDesc->width, -2.0f / (float)pDesc->height };
+        gFontstash.scaleBias = { 2.0f / (float)pDesc->Width, -2.0f / (float)pDesc->Height };
     }
 
 #endif
@@ -465,20 +465,20 @@ void cmdDrawTextWithFont(Cmd* pCmd, float2 screenCoordsInPx, const FontDrawDesc*
     float       y = screenCoordsInPx.getY();
     int         fontID = pDesc->fontID;
     unsigned    color = pDesc->fontColor;
-    float       size = pDesc->fontSize;
+    float       Size = pDesc->fontSize;
     float       spacing = pDesc->fontSpacing;
     float       blur = pDesc->fontBlur;
 
-    FontstashDrawData draw = {};
-    draw.text3D = false;
-    draw.pCmd = pCmd;
-    // clamp the font size to max size.
-    // Precomputed font texture puts limitation to the maximum size.
-    size = min(size, gFontstash.fontMaxSize);
+    FontstashDrawData Draw = {};
+    Draw.text3D = false;
+    Draw.pCmd = pCmd;
+    // clamp the font Size to max Size.
+    // Precomputed font texture puts limitation to the maximum Size.
+    Size = min(Size, gFontstash.fontMaxSize);
 
     FONScontext* fs = gFontstash.pContext;
-    fs->params.userPtr = &draw; // -V506 (draw only used inside this function)
-    fonsSetSize(fs, size * gFontstash.dpiScaleMin);
+    fs->params.userPtr = &Draw; // -V506 (Draw only used inside this function)
+    fonsSetSize(fs, Size * gFontstash.dpiScaleMin);
     fonsSetFont(fs, fontID);
     fonsSetColor(fs, color);
     fonsSetSpacing(fs, spacing * gFontstash.dpiScaleMin);
@@ -492,7 +492,7 @@ void cmdDrawTextWithFont(Cmd* pCmd, float2 screenCoordsInPx, const FontDrawDesc*
 #endif
 }
 
-void cmdDrawWorldSpaceTextWithFont(Cmd* pCmd, const mat4* pMatWorld, const CameraMatrix* pMatProjView, const FontDrawDesc* pDesc)
+void cmdDrawWorldSpaceTextWithFont(Cmd* pCmd, const Matrix4* pMatWorld, const CameraMatrix* pMatProjView, const FontDrawDesc* pDesc)
 {
 #ifdef ENABLE_FORGE_FONTS
     // ASSERT(pFontStash);
@@ -504,26 +504,26 @@ void cmdDrawWorldSpaceTextWithFont(Cmd* pCmd, const mat4* pMatWorld, const Camer
     ASSERT(pMatProjView);
 
     const char*         message = pDesc->pText;
-    const mat4&         worldMat = *pMatWorld;
+    const Matrix4&      worldMat = *pMatWorld;
     const CameraMatrix& projView = *pMatProjView;
     int                 fontID = pDesc->fontID;
     unsigned            color = pDesc->fontColor;
-    float               size = pDesc->fontSize;
+    float               Size = pDesc->fontSize;
     float               spacing = pDesc->fontSpacing;
     float               blur = pDesc->fontBlur;
 
-    FontstashDrawData draw = {};
-    draw.text3D = true;
-    draw.projView = projView;
-    draw.worldMat = worldMat;
-    draw.pCmd = pCmd;
-    // clamp the font size to max size.
-    // Precomputed font texture puts limitation to the maximum size.
-    size = min(size, gFontstash.fontMaxSize);
+    FontstashDrawData Draw = {};
+    Draw.text3D = true;
+    Draw.projView = projView;
+    Draw.worldMat = worldMat;
+    Draw.pCmd = pCmd;
+    // clamp the font Size to max Size.
+    // Precomputed font texture puts limitation to the maximum Size.
+    Size = min(Size, gFontstash.fontMaxSize);
 
     FONScontext* fs = gFontstash.pContext;
-    fs->params.userPtr = &draw; // -V506 (draw only used inside this function)
-    fonsSetSize(fs, size * gFontstash.dpiScaleMin);
+    fs->params.userPtr = &Draw; // -V506 (Draw only used inside this function)
+    fonsSetSize(fs, Size * gFontstash.dpiScaleMin);
     fonsSetFont(fs, fontID);
     fonsSetColor(fs, color);
     fonsSetSpacing(fs, spacing * gFontstash.dpiScaleMin);
@@ -538,44 +538,44 @@ void cmdDrawDebugFontAtlas(Cmd* pCmd, float2 screenCoordInPx)
 #ifdef ENABLE_FORGE_FONTS
     ASSERT(gFontstash.renderInitialized && "Font Rendering not initialized! Make sure to call initFontRendering!");
 
-    FontstashDrawData draw = {};
-    draw.text3D = false;
-    draw.pCmd = pCmd;
+    FontstashDrawData Draw = {};
+    Draw.text3D = false;
+    Draw.pCmd = pCmd;
 
     FONScontext* fs = gFontstash.pContext;
-    fs->params.userPtr = &draw; // -V506 (draw only used inside this function)
+    fs->params.userPtr = &Draw; // -V506 (Draw only used inside this function)
     fonsDrawDebug(fs, screenCoordInPx.x, screenCoordInPx.y);
 #endif
 }
 
-void fntDefineFonts(const FontDesc* pDescs, uint32_t count, uint32_t* pOutIDs)
+void fntDefineFonts(const FontDesc* pDescs, uint32_t Count, uint32_t* pOutIDs)
 {
 #ifdef ENABLE_FORGE_FONTS
     ASSERT(pDescs);
     ASSERT(pOutIDs);
-    ASSERT(count > 0);
+    ASSERT(Count > 0);
 
-    arrsetcap(gFontstash.fontBuffers, arrcap(gFontstash.fontBuffers) + count);
-    arrsetcap(gFontstash.fontBufferSizes, arrcap(gFontstash.fontBufferSizes) + count);
+    arrsetcap(gFontstash.fontBuffers, arrcap(gFontstash.fontBuffers) + Count);
+    arrsetcap(gFontstash.fontBufferSizes, arrcap(gFontstash.fontBufferSizes) + Count);
 
-    for (uint32_t i = 0; i < count; ++i)
+    for (uint32_t i = 0; i < Count; ++i)
     {
         uint32_t     id;
         FONScontext* fs = gFontstash.pContext;
 
         FileStream fh = {};
-        if (fsOpenStreamFromPath(RD_FONTS, pDescs[i].pFontPath, FM_READ, &fh))
+        if (OpenStreamFromPath(DirectoryFonts, pDescs[i].pFontPath, FileModeRead, &fh))
         {
-            ssize_t bytes = fsGetStreamFileSize(&fh);
-            void*   buffer = tf_malloc(bytes);
-            fsReadFromStream(&fh, buffer, bytes);
+            ssize_t bytes = GetStreamFileSize(&fh);
+            void*   buffer = MemAllocate(bytes);
+            ReadFromStream(&fh, buffer, bytes);
 
-            // add buffer to font buffers for cleanup
+            // Add buffer to font buffers for Cleanup
             arrpush(gFontstash.fontBuffers, buffer);
             ASSERT(bytes < UINT32_MAX);
             arrpush(gFontstash.fontBufferSizes, (uint32_t)bytes);
 
-            fsCloseStream(&fh);
+            CloseStream(&fh);
 
             id = fonsAddFontMem(fs, pDescs[i].pFontName, (unsigned char*)buffer, (int)bytes, 0);
         }
@@ -596,10 +596,10 @@ int2 fntGetFontAtlasSize()
 #ifdef ENABLE_FORGE_FONTS
     ASSERT(gFontstash.renderInitialized && "Font Rendering not initialized! Make sure to call initFontRendering!");
 
-    int2         size = {};
+    int2         Size = {};
     FONScontext* fs = gFontstash.pContext;
-    fonsGetAtlasSize(fs, &size.x, &size.y);
-    return size;
+    fonsGetAtlasSize(fs, &Size.x, &Size.y);
+    return Size;
 #endif
 }
 

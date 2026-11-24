@@ -316,7 +316,7 @@ InputManager::CreateControllers(int cnt)
 
 	for (int i = 0; i < mPadCnt; ++i)
 	{
-		gainput::InputDevicePad* newPad = tf_new(gainput::InputDevicePad, *this, InvalidDeviceId, i, InputDevice::DV_STANDARD);
+		gainput::InputDevicePad* newPad = MemNew(gainput::InputDevicePad, *this, InvalidDeviceId, i, InputDevice::DV_STANDARD);
 		GAINPUT_ASSERT(newPad);
 		mPads.push_back(newPad);
 	}

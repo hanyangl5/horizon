@@ -57,14 +57,14 @@ void AnimatedObject::Initialize(Rig* rig, Animation* animation)
     totalSize += (sizeof(Vector3)) * rig->numJoints;
 #endif
 
-    void* alloc = tf_memalign(alignof(Matrix4), totalSize);
+    void* alloc = MemAllocateAligned(alignof(Matrix4), totalSize);
 
     jointWorldMats = ozz::span<Matrix4>((Matrix4*)alloc, rig->numJoints);
-    jointModelMats = ozz::span<Matrix4>(jointWorldMats.data() + rig->numJoints, rig->numJoints);
-    localTrans = ozz::span<SoaTransform>((SoaTransform*)(jointModelMats.data() + rig->numJoints), rig->numSoaJoints); //-V1027
+    jointModelMats = ozz::span<Matrix4>(jointWorldMats.GetData() + rig->numJoints, rig->numJoints);
+    localTrans = ozz::span<SoaTransform>((SoaTransform*)(jointModelMats.GetData() + rig->numJoints), rig->numSoaJoints); //-V1027
 
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
-    jointScales = ozz::span<Vector3>((Vector3*)(localTrans.data() + rig->numSoaJoints), rig->numJoints); //-V1027
+    jointScales = ozz::span<Vector3>((Vector3*)(localTrans.GetData() + rig->numSoaJoints), rig->numJoints); //-V1027
 #endif
 
     for (uint32_t i = 0; i < rig->numJoints; ++i)
@@ -85,7 +85,7 @@ void AnimatedObject::Initialize(Rig* rig, Animation* animation)
 
 void AnimatedObject::Exit()
 {
-    tf_free(jointWorldMats.data());
+    MemDeallocate(jointWorldMats.GetData());
 
     jointModelMats = {};
     jointWorldMats = {};
@@ -101,7 +101,7 @@ void AnimatedObject::Exit()
 
 void AnimatedObject::ComputePose(const Matrix4& rootTransform)
 {
-    // Set the world matrix of each joint
+    // Set the world matrix of Each joint
     for (uint32_t jointIndex = 0; jointIndex < rig->numJoints; jointIndex++)
     {
         jointWorldMats[jointIndex] = rootTransform * jointModelMats[jointIndex];
@@ -114,14 +114,14 @@ void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
     UNREF_PARAM(rootTransform);
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
     // Traverses through the skeleton's joint hierarchy, placing bones between
-    // joints and altering the size of joints and bones to reflect distances
+    // joints and altering the Size of joints and bones to reflect distances
     // between joints
 
     // Store smallest bone lenth to be reused for root joint scale
     float minBoneLen = 0.f;
     bool  minBoneLenSet = false;
 
-    // For each joint
+    // For Each joint
     for (uint32_t childIndex = 0; childIndex < rig->numJoints; childIndex++)
     {
         // Do not make a bone if it is the root
@@ -135,13 +135,13 @@ void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
         const int32_t parentIndex = rig->skeleton.joint_parents()[childIndex];
 
         // Selects joint matrices.
-        const mat4 parentMat = jointModelMats[parentIndex];
-        const mat4 childMat = jointModelMats[childIndex];
+        const Matrix4 parentMat = jointModelMats[parentIndex];
+        const Matrix4 childMat = jointModelMats[childIndex];
 
-        vec3  boneDir = childMat.getCol3().getXYZ() - parentMat.getCol3().getXYZ();
+        Vector3 boneDir = childMat.getCol3().getXYZ() - parentMat.getCol3().getXYZ();
         float boneLen = length(boneDir);
 
-        // Save smallest boneLen for the root joints scale size
+        // Save smallest boneLen for the root joints scale Size
         if ((!minBoneLenSet) || (boneLen < minBoneLen))
         {
             minBoneLen = boneLen;
@@ -150,17 +150,17 @@ void AnimatedObject::ComputeJointScales(const Matrix4& rootTransform)
 
         // Sets the scale of the joint equivilant to the boneLen between it and its parent joint
         // Separete from world so outside objects can use a joint's world mat w/o its scale
-        jointScales[childIndex] = vec3(boneLen / 2.0f);
+        jointScales[childIndex] = Vector3(boneLen / 2.0f);
     }
 
     // Set the root joints scale based on the saved min value
-    jointScales[rig->rootIndex] = vec3(minBoneLen / 2.0f);
+    jointScales[rig->rootIndex] = Vector3(minBoneLen / 2.0f);
 #endif
 }
 
 bool AnimatedObject::Update(float dt)
 {
-    // sample the current animation to get localTrans
+    // sample the current animation to Get localTrans
     if (!animation->Sample(dt, localTrans))
         return false;
 

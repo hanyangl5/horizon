@@ -25,10 +25,10 @@ static_assert(IsMoveOnlyGpuResource<hz::GPUPipeline>);
 static_assert(!std::is_polymorphic_v<hz::CommandList>);
 static_assert(!std::is_polymorphic_v<hz::RenderContext>);
 static_assert(std::is_same_v<decltype(hz::BufferDesc{}.usage), ResourceMemoryUsage>);
-static_assert(std::is_same_v<decltype(hz::BufferDesc{}.startState), ResourceState>);
-static_assert(std::is_same_v<decltype(hz::BufferDesc{}.descriptors), DescriptorType>);
-static_assert(std::is_same_v<decltype(hz::BufferDesc{}.flags), BufferCreationFlags>);
-static_assert(std::is_same_v<decltype(hz::TextureDesc{}.flags), TextureCreationFlags>);
+static_assert(std::is_same_v<decltype(hz::BufferDesc{}.StartState), ResourceState>);
+static_assert(std::is_same_v<decltype(hz::BufferDesc{}.Descriptors), DescriptorType>);
+static_assert(std::is_same_v<decltype(hz::BufferDesc{}.Flags), BufferCreationFlags>);
+static_assert(std::is_same_v<decltype(hz::TextureDesc{}.Flags), TextureCreationFlags>);
 static_assert(std::is_same_v<decltype(hz::ShaderStageDesc{}.stage), ShaderStage>);
 static_assert(std::is_same_v<decltype(hz::GraphicsPipelineDesc{}.vertexLayout), VertexLayout>);
 
@@ -37,36 +37,36 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
 #if defined(_WINDOWS)
     const hz::ContextDesc desc = {
         .pAppName = "RenderContextTest",
-        .width = 0,
-        .height = 0,
+        .Width = 0,
+        .Height = 0,
         .imageCount = 2,
         .colorFormat = hz::Format::B8G8R8A8_SRGB,
         .colorSpace = COLOR_SPACE_SDR_SRGB,
     };
     hz::RenderContext context(desc);
-    EXPECT_TRUE(context.isSuspended());
-    EXPECT_EQ(context.getWidth(), 0u);
-    EXPECT_EQ(context.getHeight(), 0u);
+    EXPECT_TRUE(context.IsSuspended());
+    EXPECT_EQ(context.GetWidth(), 0u);
+    EXPECT_EQ(context.GetHeight(), 0u);
 
     const uint32_t       initial = 17;
     const hz::BufferDesc bufferDesc = {
-        .size = sizeof(initial),
-        .elementCount = 1,
-        .structStride = sizeof(initial),
-        .pName = "RenderContextTest.Buffer",
+        .Size = sizeof(initial),
+        .ElementCount = 1,
+        .StructStride = sizeof(initial),
+        .Name = "RenderContextTest.Buffer",
         .pInitialData = &initial,
         .initialDataSize = sizeof(initial),
         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-        .startState = RESOURCE_STATE_SHADER_RESOURCE,
-        .descriptors = DESCRIPTOR_TYPE_BUFFER,
-        .flags = BUFFER_CREATION_FLAG_NONE,
+        .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+        .Descriptors = DESCRIPTOR_TYPE_BUFFER,
+        .Flags = BUFFER_CREATION_FLAG_NONE,
     };
     {
-        hz::GPUBuffer first = context.createBuffer(bufferDesc);
-        ASSERT_TRUE(first.isValid());
+        hz::GPUBuffer first = context.CreateBuffer(bufferDesc);
+        ASSERT_TRUE(first.IsValid());
         hz::GPUBuffer second((hz::GPUBuffer&&)first);
-        EXPECT_FALSE(first.isValid());
-        EXPECT_TRUE(second.isValid());
+        EXPECT_FALSE(first.IsValid());
+        EXPECT_TRUE(second.IsValid());
     }
 
     const char                source[] = "cbuffer RootConstant0 { uint outputIndex; };"
@@ -77,31 +77,31 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
           .pSource = source,
           .sourceSize = sizeof(source) - 1,
           .pEntryPoint = "CSMain",
-          .pName = "RenderContextTest.Compute" },
+          .Name = "RenderContextTest.Compute" },
     };
     const hz::ComputePipelineDesc pipelineDesc = {
         .shaderDesc = { .stages = stages },
-        .pName = "RenderContextTest.Pipeline",
+        .Name = "RenderContextTest.Pipeline",
     };
-    const MemoryTrackingStats before = memGetTrackingStats();
+    const MemoryTrackingStats before = GetMemoryTrackingStats();
     {
-        hz::GPUPipeline first = context.createComputePipeline(pipelineDesc);
-        ASSERT_TRUE(first.isValid());
-        Pipeline* const pPipeline = first.get();
+        hz::GPUPipeline first = context.CreateComputePipeline(pipelineDesc);
+        ASSERT_TRUE(first.IsValid());
+        Pipeline* const pPipeline = first.Get();
         hz::GPUPipeline second(std::move(first));
-        EXPECT_FALSE(first.isValid());
-        EXPECT_EQ(second.get(), pPipeline);
+        EXPECT_FALSE(first.IsValid());
+        EXPECT_EQ(second.Get(), pPipeline);
 
-        first = context.createComputePipeline(pipelineDesc);
+        first = context.CreateComputePipeline(pipelineDesc);
         first = std::move(second);
-        EXPECT_FALSE(second.isValid());
-        EXPECT_EQ(first.get(), pPipeline);
+        EXPECT_FALSE(second.IsValid());
+        EXPECT_EQ(first.Get(), pPipeline);
         first = hz::GPUPipeline{};
-        EXPECT_FALSE(first.isValid());
+        EXPECT_FALSE(first.IsValid());
         const char vertexSource[] = "float4 main(uint id : SV_VertexID) : SV_Position { return float4(0, 0, 0, 1); }";
         const char fragmentSource[] = "struct Output { float4 first : SV_Target0; float4 second : SV_Target1; };"
                                       "Output main() { Output result; result.first = 1; result.second = 0.5; return result; }";
-        second = context.createGraphicsPipeline({
+        second = context.CreateGraphicsPipeline({
             .shaderDesc = {
                 .stages = {
                     { .stage = SHADER_STAGE_VERT, .pSource = vertexSource, .sourceSize = sizeof(vertexSource) - 1 },
@@ -109,18 +109,18 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
                 },
             },
             .colorTargets = {
-                { .format = hz::Format::R8G8B8A8_UNORM },
-                { .format = hz::Format::R16G16B16A16_SFLOAT, .srcFactor = BC_SRC_ALPHA, .dstFactor = BC_ONE_MINUS_SRC_ALPHA },
+                { .Format = hz::Format::R8G8B8A8_UNORM },
+                { .Format = hz::Format::R16G16B16A16_SFLOAT, .srcFactor = BC_SRC_ALPHA, .dstFactor = BC_ONE_MINUS_SRC_ALPHA },
             },
-            .pName = "RenderContextTest.MrtPipeline",
+            .Name = "RenderContextTest.MrtPipeline",
         });
-        EXPECT_TRUE(second.isValid());
+        EXPECT_TRUE(second.IsValid());
     }
-    const MemoryTrackingStats after = memGetTrackingStats();
-    if (before.trackingEnabled)
+    const MemoryTrackingStats after = GetMemoryTrackingStats();
+    if (before.TrackingEnabled)
     {
-        EXPECT_EQ(after.liveAllocationCount, before.liveAllocationCount);
-        EXPECT_EQ(after.liveRequestedBytes, before.liveRequestedBytes);
+        EXPECT_EQ(after.LiveAllocationCount, before.LiveAllocationCount);
+        EXPECT_EQ(after.LiveRequestedBytes, before.LiveRequestedBytes);
     }
 #else
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
@@ -130,42 +130,42 @@ TEST(RenderContextLiveTest, OwnsDeviceAndResourceLifetime)
 TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
 {
 #if defined(_WINDOWS)
-    hz::RenderContext context({ .pAppName = "SlangComputeTest", .width = 0, .height = 0 });
+    hz::RenderContext context({ .pAppName = "SlangComputeTest", .Width = 0, .Height = 0 });
     const char        source[] = R"(
         cbuffer RootConstant0 { uint outputIndex; };
         T identity<T>(T value) { return value; }
         [numthreads(4, 1, 1)]
         void CSMain(uint3 id : SV_DispatchThreadID) { RWStructuredBuffer<uint> Results = ResourceDescriptorHeap[outputIndex]; Results[id.x] = identity<uint>(id.x + 23); }
     )";
-    hz::GPUPipeline pipeline = context.createComputePipeline({
+    hz::GPUPipeline pipeline = context.CreateComputePipeline({
         .shaderDesc = {
             .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1,
                           .pEntryPoint = "CSMain" } },
             .language = hz::ShaderLanguage::Slang,
         },
     });
-    ASSERT_TRUE(pipeline.isValid());
-    hz::GPUBuffer    output = context.createBuffer({
-        .size = 4 * sizeof(uint32_t),
-        .elementCount = 4,
-        .structStride = sizeof(uint32_t),
-        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-        .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
+    ASSERT_TRUE(pipeline.IsValid());
+    hz::GPUBuffer    output = context.CreateBuffer({
+           .Size = 4 * sizeof(uint32_t),
+           .ElementCount = 4,
+           .StructStride = sizeof(uint32_t),
+           .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+           .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+           .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
     });
-    hz::GPUBuffer    readback = context.createBuffer({
-        .size = 4 * sizeof(uint32_t),
-        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-        .startState = RESOURCE_STATE_COPY_DEST,
-        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+    hz::GPUBuffer    readback = context.CreateBuffer({
+           .Size = 4 * sizeof(uint32_t),
+           .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+           .StartState = RESOURCE_STATE_COPY_DEST,
+           .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
     });
-    hz::CommandList& commands = context.acquireCommandList();
-    commands.setPipeline(pipeline);
-    commands.setRootConstant({ output.getUavIndex() });
-    commands.dispatch(1, 1, 1, { .storageBuffers = { &output } });
-    commands.copyBuffer(readback, 0, output, 0, 4 * sizeof(uint32_t));
-    context.wait(context.submit(commands));
-    const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.SetPipeline(pipeline);
+    commands.SetRootConstant({ output.GetUavIndex() });
+    commands.Dispatch(1, 1, 1, { .storageBuffers = { &output } });
+    commands.CopyBuffer(readback, 0, output, 0, 4 * sizeof(uint32_t));
+    context.Wait(context.Submit(commands));
+    const uint32_t* values = (const uint32_t*)readback.Get()->pCpuMappedAddress;
     ASSERT_NE(values, nullptr);
     for (uint32_t i = 0; i < 4; ++i)
         EXPECT_EQ(values[i], i + 23);
@@ -185,7 +185,7 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
             return FragmentOnly[0] + Shared[0];
         }
     )";
-    hz::GPUPipeline graphics = context.createGraphicsPipeline({
+    hz::GPUPipeline graphics = context.CreateGraphicsPipeline({
         .shaderDesc = {
             .stages = {
                 { .stage = SHADER_STAGE_VERT, .pSource = graphicsSource, .sourceSize = sizeof(graphicsSource) - 1,
@@ -195,9 +195,86 @@ TEST(RenderContextLiveTest, CompilesSlangWithBindlessResources)
             },
             .language = hz::ShaderLanguage::Slang,
         },
-        .colorTargets = { { .format = hz::Format::R8G8B8A8_UNORM } },
+        .colorTargets = { { .Format = hz::Format::R8G8B8A8_UNORM } },
     });
-    EXPECT_TRUE(graphics.isValid());
+    EXPECT_TRUE(graphics.IsValid());
+#else
+    GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
+#endif
+}
+
+TEST(RenderContextLiveTest, CopiesBufferRegionsAndDefersBufferRelease)
+{
+#if defined(_WINDOWS)
+    hz::RenderContext context({ .pAppName = "BufferRegionsTest", .Width = 0, .Height = 0, .enableGpuValidation = true });
+    uint32_t          values[16];
+    for (uint32_t i = 0; i < 16; ++i)
+        values[i] = 100 + i;
+    hz::GPUBuffer staging = context.CreateBuffer({
+        .Size = sizeof(values),
+        .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+        .StartState = RESOURCE_STATE_GENERIC_READ,
+        .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+    });
+    hz::GPUBuffer target = context.CreateBuffer({
+        .Size = sizeof(values),
+        .ElementCount = 16,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+        .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
+    });
+    hz::GPUBuffer readback = context.CreateBuffer({
+        .Size = sizeof(values),
+        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+        .StartState = RESOURCE_STATE_COPY_DEST,
+        .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+    });
+    ASSERT_TRUE(staging.IsValid() && target.IsValid() && readback.IsValid());
+    ASSERT_TRUE(context.UpdateBuffer(staging, 0, values, sizeof(values)));
+
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.FillBuffer(target, 0, 0, sizeof(values));
+    const hz::BufferCopyRegion regions[] = {
+        { .srcOffset = 0, .dstOffset = 8 * sizeof(uint32_t), .Size = 4 * sizeof(uint32_t) },
+        { .srcOffset = 12 * sizeof(uint32_t), .dstOffset = 0, .Size = 2 * sizeof(uint32_t) },
+    };
+    commands.CopyBufferRegions(target, staging, regions);
+    commands.CopyBuffer(readback, 0, target, 0, sizeof(values));
+    context.Wait(context.Submit(commands));
+    const uint32_t* result = (const uint32_t*)readback.Get()->pCpuMappedAddress;
+    ASSERT_NE(result, nullptr);
+    for (uint32_t i = 0; i < 16; ++i)
+    {
+        const uint32_t expected = i < 2 ? 112 + i : (i >= 8 && i < 12 ? 100 + i - 8 : 0);
+        EXPECT_EQ(result[i], expected) << i;
+    }
+
+    // Released buffers return their SRV index for immediate reuse, which makes the Release point observable.
+    const hz::BufferDesc rawDesc = {
+        .Size = sizeof(values),
+        .ElementCount = 16,
+        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+        .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+        .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
+    };
+    hz::GPUBuffer released = context.CreateBuffer(rawDesc);
+    ASSERT_TRUE(released.IsValid());
+    const uint32_t   releasedIndex = released.GetSrvIndex();
+    hz::CommandList& pending = context.AcquireCommandList();
+    pending.CopyBufferRegions(released, staging, regions);
+    context.DeferRelease(std::move(released));
+    EXPECT_FALSE(released.IsValid());
+    // The open command list still references the buffer, so idling the queue must not Release it.
+    context.WaitIdle();
+    {
+        const hz::GPUBuffer probe = context.CreateBuffer(rawDesc);
+        EXPECT_NE(probe.GetSrvIndex(), releasedIndex);
+    }
+    context.Wait(context.Submit(pending));
+    context.Submit(context.AcquireCommandList());
+    const hz::GPUBuffer reused = context.CreateBuffer(rawDesc);
+    EXPECT_EQ(reused.GetSrvIndex(), releasedIndex);
+    context.WaitIdle();
 #else
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
 #endif
@@ -231,91 +308,91 @@ TEST(RenderContextLiveTest, SamplesBindlessTexturesAndRecyclesViews)
             output[id.x] = uint4(round(source.SampleLevel(surface, float2(0.5, 0.5), 1) * 255)) * config.multiplier + raw.Load(0);
         }
     )";
-    hz::GPUPipeline   write = context.createComputePipeline(
+    hz::GPUPipeline   write = context.CreateComputePipeline(
         { .shaderDesc = {
-              .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Write" } },
-              .language = hz::ShaderLanguage::Slang,
+                .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Write" } },
+                .language = hz::ShaderLanguage::Slang,
           } });
-    hz::GPUPipeline read = context.createComputePipeline(
+    hz::GPUPipeline read = context.CreateComputePipeline(
         { .shaderDesc = {
               .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "Read" } },
               .language = hz::ShaderLanguage::Slang,
           } });
-    ASSERT_TRUE(write.isValid() && read.isValid());
+    ASSERT_TRUE(write.IsValid() && read.IsValid());
     const hz::TextureDesc textureDesc = {
-        .width = 2,
-        .height = 2,
-        .mipLevels = 2,
-        .format = hz::Format::R8G8B8A8_UNORM,
-        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-        .descriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE,
+        .Width = 2,
+        .Height = 2,
+        .MipLevels = 2,
+        .Format = hz::Format::R8G8B8A8_UNORM,
+        .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+        .Descriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE,
     };
-    hz::GPUTexture textures[] = { context.createTexture(textureDesc), context.createTexture(textureDesc) };
-    hz::GPUSampler sampler = context.createSampler({ .minFilter = FILTER_NEAREST, .magFilter = FILTER_NEAREST });
+    hz::GPUTexture textures[] = { context.CreateTexture(textureDesc), context.CreateTexture(textureDesc) };
+    hz::GPUSampler sampler = context.CreateSampler({ .MinFilter = FILTER_NEAREST, .MagFilter = FILTER_NEAREST });
     const uint32_t configData[64] = { 2 };
     const uint32_t bias = 3;
-    hz::GPUBuffer  config = context.createBuffer({
-        .size = 256,
-        .elementCount = 64,
-        .structStride = 4,
-        .pInitialData = configData,
-        .initialDataSize = sizeof(configData),
-        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-        .startState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
-        .descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER,
+    hz::GPUBuffer  config = context.CreateBuffer({
+         .Size = 256,
+         .ElementCount = 64,
+         .StructStride = 4,
+         .pInitialData = configData,
+         .initialDataSize = sizeof(configData),
+         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+         .StartState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
+         .Descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER,
     });
-    hz::GPUBuffer  raw = context.createBuffer({
-        .size = 4,
-        .elementCount = 1,
-        .pInitialData = &bias,
-        .initialDataSize = sizeof(bias),
-        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-        .startState = RESOURCE_STATE_SHADER_RESOURCE,
-        .descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
+    hz::GPUBuffer  raw = context.CreateBuffer({
+         .Size = 4,
+         .ElementCount = 1,
+         .pInitialData = &bias,
+         .initialDataSize = sizeof(bias),
+         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+         .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+         .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
     });
-    hz::GPUBuffer  output = context.createBuffer({
-        .size = 32,
-        .elementCount = 2,
-        .structStride = 16,
-        .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
-        .startState = RESOURCE_STATE_UNORDERED_ACCESS,
-        .descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
+    hz::GPUBuffer  output = context.CreateBuffer({
+         .Size = 32,
+         .ElementCount = 2,
+         .StructStride = 16,
+         .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+         .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+         .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER,
     });
-    hz::GPUBuffer  readback = context.createBuffer({
-        .size = 32,
-        .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
-        .startState = RESOURCE_STATE_COPY_DEST,
-        .flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
+    hz::GPUBuffer  readback = context.CreateBuffer({
+         .Size = 32,
+         .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+         .StartState = RESOURCE_STATE_COPY_DEST,
+         .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT,
     });
-    EXPECT_NE(config.getCbvIndex(), config.getUavIndex());
-    EXPECT_EQ(textures[0].getUavIndex(1), textures[0].getUavIndex(0) + 1);
-    const uint32_t   indices[] = { textures[0].getUavIndex(1), textures[1].getUavIndex(1), textures[0].getSrvIndex(),
-                                   textures[1].getSrvIndex(),  sampler.getIndex(),         output.getUavIndex(),
-                                   config.getCbvIndex(),       raw.getSrvIndex() };
-    hz::CommandList& commands = context.acquireCommandList();
-    commands.setPipeline(write);
-    commands.setRootConstant({ indices, 4 });
-    commands.setRootConstant({ indices + 4, 4 }, 4);
-    commands.dispatch(1, 1, 1, { .storageTextures = { &textures[0], &textures[1] } });
-    commands.setPipeline(read);
-    commands.setRootConstant({ indices, 4 });
-    commands.setRootConstant({ indices + 4, 4 }, 4);
-    commands.dispatch(1, 1, 1,
+    EXPECT_NE(config.GetCbvIndex(), config.GetUavIndex());
+    EXPECT_EQ(textures[0].GetUavIndex(1), textures[0].GetUavIndex(0) + 1);
+    const uint32_t   indices[] = { textures[0].GetUavIndex(1), textures[1].GetUavIndex(1), textures[0].GetSrvIndex(),
+                                   textures[1].GetSrvIndex(),  sampler.GetIndex(),         output.GetUavIndex(),
+                                   config.GetCbvIndex(),       raw.GetSrvIndex() };
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.SetPipeline(write);
+    commands.SetRootConstant({ indices, 4 });
+    commands.SetRootConstant({ indices + 4, 4 }, 4);
+    commands.Dispatch(1, 1, 1, { .storageTextures = { &textures[0], &textures[1] } });
+    commands.SetPipeline(read);
+    commands.SetRootConstant({ indices, 4 });
+    commands.SetRootConstant({ indices + 4, 4 }, 4);
+    commands.Dispatch(1, 1, 1,
                       { .sampledTextures = { &textures[0], &textures[1] }, .buffers = { &config, &raw }, .storageBuffers = { &output } });
-    commands.copyBuffer(readback, 0, output, 0, 32);
-    context.wait(context.submit(commands));
+    commands.CopyBuffer(readback, 0, output, 0, 32);
+    context.Wait(context.Submit(commands));
     const uint32_t  expected[] = { 513, 3, 3, 513, 3, 513, 3, 513 };
-    const uint32_t* values = (const uint32_t*)readback.get()->pCpuMappedAddress;
+    const uint32_t* values = (const uint32_t*)readback.Get()->pCpuMappedAddress;
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(expected); ++i)
         EXPECT_EQ(values[i], expected[i]);
 
     hz::GPUTexture moved(std::move(textures[0]));
-    EXPECT_FALSE(textures[0].isValid());
-    EXPECT_EQ(moved.getSrvIndex(), indices[2]);
+    EXPECT_FALSE(textures[0].IsValid());
+    EXPECT_EQ(moved.GetSrvIndex(), indices[2]);
     moved = {};
-    textures[0] = context.createTexture(textureDesc);
-    EXPECT_EQ(textures[0].getSrvIndex(), indices[2]);
-    EXPECT_EQ(textures[1].getSrvIndex(), indices[3]);
+    textures[0] = context.CreateTexture(textureDesc);
+    EXPECT_EQ(textures[0].GetSrvIndex(), indices[2]);
+    EXPECT_EQ(textures[1].GetSrvIndex(), indices[3]);
 #else
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
 #endif
@@ -326,21 +403,21 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
 #if defined(_WINDOWS)
     initWindowClass();
     WindowDesc window = {
-        .windowedRect = { 0, 0, 640, 480 },
-        .fullscreenRect = { 0, 0, 640, 480 },
-        .clientRect = { 0, 0, 640, 480 },
-        .hide = true,
-        .noresizeFrame = true,
-        .overrideDefaultPosition = true,
+        .WindowedRect = { 0, 0, 640, 480 },
+        .FullscreenRect = { 0, 0, 640, 480 },
+        .ClientRect = { 0, 0, 640, 480 },
+        .Hidden = true,
+        .NoResizeFrame = true,
+        .OverrideDefaultPosition = true,
     };
-    openWindow("RenderContextResizeTest", &window);
-    ASSERT_NE(window.handle.window, nullptr);
+    OpenWindow("RenderContextResizeTest", &window);
+    ASSERT_NE(window.Handle.window, nullptr);
 
     const hz::ContextDesc desc = {
         .pAppName = "RenderContextResizeTest",
-        .windowHandle = window.handle,
-        .width = 640,
-        .height = 480,
+        .windowHandle = window.Handle,
+        .Width = 640,
+        .Height = 480,
         .imageCount = 2,
         .colorFormat = hz::Format::B8G8R8A8_SRGB,
         .colorSpace = COLOR_SPACE_SDR_SRGB,
@@ -348,32 +425,53 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
     hz::RenderContext context(desc);
 
     const uint32_t sizes[][2] = { { 900, 600 }, { 1400, 800 }, { 640, 480 }, { 1280, 720 } };
-    for (const auto& size : sizes)
+    for (const auto& Size : sizes)
     {
-        ASSERT_TRUE(context.resize(size[0], size[1]));
-        hz::CommandList&       prepare = context.acquireCommandList();
-        const hz::SubmitHandle prepareSubmit = context.submit(prepare);
+        ASSERT_TRUE(context.Resize(Size[0], Size[1]));
+        hz::CommandList&       prepare = context.AcquireCommandList();
+        const hz::SubmitHandle prepareSubmit = context.Submit(prepare);
 
-        hz::CommandList&      commands = context.acquireCommandList();
-        const hz::GPUTexture& backbuffer = context.getCurrentBackbuffer();
-        commands.beginRendering({
+        hz::CommandList&      commands = context.AcquireCommandList();
+        const hz::GPUTexture& backbuffer = context.GetCurrentBackbuffer();
+        commands.BeginRendering({
             .colorAttachments = { {
                 .pTexture = &backbuffer,
                 .loadAction = LOAD_ACTION_CLEAR,
                 .storeAction = STORE_ACTION_STORE,
-                .clearValue = { .r = 0.0f, .g = 0.0f, .b = 0.0f, .a = 1.0f },
+                .ClearValue = { .r = 0.0f, .g = 0.0f, .b = 0.0f, .a = 1.0f },
             } },
         });
-        commands.endRendering();
-        const hz::SubmitHandle presentSubmit = context.submit(commands, &backbuffer);
-        EXPECT_TRUE(prepareSubmit.isValid());
-        EXPECT_TRUE(presentSubmit.isValid());
-        context.wait(presentSubmit);
+        commands.EndRendering();
+        const hz::SubmitHandle presentSubmit = context.Submit(commands, &backbuffer);
+        EXPECT_TRUE(prepareSubmit.IsValid());
+        EXPECT_TRUE(presentSubmit.IsValid());
+        context.Wait(presentSubmit);
     }
 
-    closeWindow(&window);
+    ClosePlatformWindow(&window);
     exitWindowClass();
 #else
     GTEST_SKIP() << "RenderContext production backend is Windows/D3D12 only";
 #endif
+}
+
+TEST(DependencyListTest, SkipsOptionalResourcesAndReportsIndices)
+{
+    hz::GPUTexture     texture;
+    hz::GPUBuffer      buffer;
+    hz::DependencyList dependencies;
+    // Null and uninitialized handles are optional: they report the invalid index and Add no Barrier.
+    EXPECT_EQ(dependencies.Sample(nullptr), UINT32_MAX);
+    EXPECT_EQ(dependencies.Sample(&texture), UINT32_MAX);
+    EXPECT_EQ(dependencies.Store(nullptr), UINT32_MAX);
+    EXPECT_EQ(dependencies.Store(&texture), UINT32_MAX);
+    EXPECT_EQ(dependencies.Read(buffer), UINT32_MAX);
+    EXPECT_EQ(dependencies.Write(buffer), UINT32_MAX);
+    dependencies.Indirect(buffer);
+    const hz::Dependencies recorded = dependencies.Get();
+    EXPECT_EQ(recorded.sampledTextures.Count, 0u);
+    EXPECT_EQ(recorded.storageTextures.Count, 0u);
+    EXPECT_EQ(recorded.buffers.Count, 0u);
+    EXPECT_EQ(recorded.storageBuffers.Count, 0u);
+    EXPECT_EQ(recorded.indirectBuffers.Count, 0u);
 }

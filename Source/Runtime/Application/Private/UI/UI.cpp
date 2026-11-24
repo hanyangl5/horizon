@@ -23,6 +23,7 @@
  */
 #include <ThirdParty/tinyimageformat/tinyimageformat_base.h>
 #include <ThirdParty/tinyimageformat/tinyimageformat_query.h>
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include <ThirdParty/imgui/imgui_internal.h>
 #include <ThirdParty/imgui/imgui.h>
 #include "Application/IFont.h"
@@ -36,6 +37,53 @@
 
 #include "Core/IMemory.h"
 
+ImFileHandle ImFileOpen(const char* Filename, const char* Mode)
+{
+    FileMode Access;
+    switch (Mode[0])
+    {
+    case 'r':
+        Access = FileModeRead;
+        break;
+    case 'w':
+        Access = FileModeWrite;
+        break;
+    case 'a':
+        Access = FileModeWriteAppend;
+        break;
+    default:
+        return nullptr;
+    }
+    if (strchr(Mode, '+'))
+    {
+        Access = FileMode(Access | FileModeReadWrite);
+    }
+    FileStream* File = MemNew(FileStream);
+    if (OpenStreamFromPath(DirectoryLog, Filename, Access, File))
+    {
+        return File;
+    }
+    MemDelete(File);
+    return nullptr;
+}
+
+bool ImFileClose(ImFileHandle File)
+{
+    const bool Closed = CloseStream(File);
+    MemDelete(File);
+    return Closed;
+}
+
+ImU64 ImFileGetSize(ImFileHandle File) { return GetStreamFileSize(File); }
+ImU64 ImFileRead(void* Data, ImU64 Size, ImU64 Count, ImFileHandle File)
+{
+    return Size ? ReadFromStream(File, Data, Size * Count) / Size : 0;
+}
+ImU64 ImFileWrite(const void* Data, ImU64 Size, ImU64 Count, ImFileHandle File)
+{
+    return Size ? WriteToStream(File, Data, Size * Count) / Size : 0;
+}
+
 #if defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64)
 #define TOUCH_INPUT 1
 #endif
@@ -44,13 +92,12 @@
 
 #define MAX_LABEL_LENGTH            128
 
-#define LABELID(prop, buffer)       snprintf(buffer, MAX_LABEL_LENGTH, "##%llu", (unsigned long long)(prop.pData))
+#define LABELID(prop, buffer)       snprintf(buffer, MAX_LABEL_LENGTH, "##%llu", (unsigned long long)(prop.Data))
 #define LABELID1(prop, buffer)      snprintf(buffer, MAX_LABEL_LENGTH, "##%llu", (unsigned long long)(prop))
 
 #define MAX_LUA_STR_LEN             256
 static const uint32_t MAX_FRAMES = 3;
 
-#define FORGE_UI_USE_32BIT_INDEXES
 #define FORGE_UI_MAX_VERTEXES (64 * 1024)
 #define FORGE_UI_MAX_INDEXES  (128 * 1024)
 
@@ -59,8 +106,8 @@ struct GUIDriverUpdate
     UIComponent** pUIComponents = NULL;
     uint32_t      componentCount = 0;
     float         deltaTime = 0.f;
-    float         width = 0.f;
-    float         height = 0.f;
+    float         Width = 0.f;
+    float         Height = 0.f;
     bool          showDemoWindow = false;
 };
 
@@ -73,8 +120,8 @@ struct UIAppImpl
 
 typedef struct UserInterface
 {
-    float    width = 0.f;
-    float    height = 0.f;
+    float    Width = 0.f;
+    float    Height = 0.f;
     float    displayWidth = 0.f;
     float    displayHeight = 0.f;
     uint32_t maxDynamicUIUpdatesPerBatch = 20u;
@@ -119,13 +166,8 @@ typedef struct UserInterface
     /// Default states
     Sampler*       pDefaultSampler = NULL;
     VertexLayout   vertexLayoutTextured = {};
-    float          navInputs[ImGuiNavInput_COUNT] = { 0.0f };
-    const float2*  pMovePosition = NULL;
-    uint32_t       lastUpdateCount = 0;
-    float2         lastUpdateMin[64] = {};
-    float2         lastUpdateMax[64] = {};
     bool           active = false;
-    bool           postUpdateKeyDownStates[ImGuiKey::ImGuiKey_COUNT] = { false };
+    bool           ModifierDown[4][2] = {};
 
     // Since gestures events always come first, we want to dismiss any other inputs after that
     bool handledGestures = false;
@@ -144,7 +186,7 @@ extern void remoteAppSendDrawData(UserInterfaceDrawData* pDrawData);
 extern void remoteAppReceiveInputData();
 extern bool remoteAppIsConnected();
 extern bool remoteAppShouldSendFontTexture();
-extern void remoteControlSendTexture(hz::Format format, uint64_t textureId, uint32_t width, uint32_t height, uint32_t size,
+extern void remoteControlSendTexture(hz::Format Format, uint64_t textureId, uint32_t Width, uint32_t Height, uint32_t Size,
                                      unsigned char* ptr);
 #endif
 
@@ -255,16 +297,16 @@ static void      processWidgetCallbacks(UIWidget* pWidget, bool deferred = false
 static void      processWidget(UIWidget* pWidget);
 static void      destroyWidget(UIWidget* pWidget, bool freeUnderlying);
 
-static void* alloc_func(size_t size, void* user_data)
+static void* alloc_func(size_t Size, void* user_data)
 {
     UNREF_PARAM(user_data);
-    return tf_malloc(size);
+    return MemAllocate(Size);
 }
 
 static void dealloc_func(void* ptr, void* user_data)
 {
     UNREF_PARAM(user_data);
-    tf_free(ptr);
+    MemDeallocate(ptr);
 }
 
 static void SetDefaultStyle()
@@ -322,8 +364,8 @@ static void SetDefaultStyle()
         ImLerp(style.Colors[ImGuiCol_HeaderActive], style.Colors[ImGuiCol_TitleBgActive], 0.80f), style.Colors[ImGuiCol_TitleBg], 0.40f);
     style.Colors[ImGuiCol_DockingPreview] = style.Colors[ImGuiCol_HeaderActive] * ImVec4(1.0f, 1.0f, 1.0f, 0.7f);
     float          dpiScale[2];
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, dpiScale);
+    const uint32_t monitorIdx = GetActiveMonitorIndex();
+    GetMonitorDpiScale(monitorIdx, dpiScale);
     style.ScaleAllSizes(min(dpiScale[0], dpiScale[1]));
 }
 
@@ -380,19 +422,19 @@ void DrawDriverMemoryTrackingUI(void*)
         const ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders;
         if (ImGui::BeginTable("DriverMemoryTrackingTable", 3, tableFlags))
         {
-            for (uint32_t type = 0; type < GetTrackedObjectTypeCount(); ++type)
+            for (uint32_t Type = 0; Type < GetTrackedObjectTypeCount(); ++Type)
             {
                 float colors[2] = { 0.05f, 0.4f };
-                ImGui::PushStyleColor(ImGuiCol_TableRowBg, ImVec4(colors[type % 2]));
+                ImGui::PushStyleColor(ImGuiCol_TableRowBg, float4(colors[Type % 2]));
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", entries[type].name);
+                ImGui::Text("%s", entries[Type].name);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::Text("Memory: %zu %s", (size_t)(entries[type].memAmount / memDivisor), memUnit);
+                ImGui::Text("Memory: %zu %s", (size_t)(entries[Type].memAmount / memDivisor), memUnit);
 
                 ImGui::TableSetColumnIndex(2);
-                ImGui::Text("Alloc count: %zu", (size_t)entries[type].memAllocs);
+                ImGui::Text("Alloc count: %zu", (size_t)entries[Type].memAllocs);
                 ImGui::PopStyleColor();
             }
             ImGui::EndTable();
@@ -455,19 +497,19 @@ void DrawDeviceMemoryReportUI(void*)
         const ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders;
         if (ImGui::BeginTable("DeviceMemoryTrackingTable", 3, tableFlags))
         {
-            for (uint32_t type = 0; type < GetTrackedObjectTypeCount(); ++type)
+            for (uint32_t Type = 0; Type < GetTrackedObjectTypeCount(); ++Type)
             {
                 float colors[2] = { 0.05f, 0.4f };
-                ImGui::PushStyleColor(ImGuiCol_TableRowBg, ImVec4(colors[type % 2]));
+                ImGui::PushStyleColor(ImGuiCol_TableRowBg, float4(colors[Type % 2]));
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", entries[type].name);
+                ImGui::Text("%s", entries[Type].name);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::Text("Memory: %lu %s", entries[type].memAmount / memDivisor, memUnit);
+                ImGui::Text("Memory: %lu %s", entries[Type].memAmount / memDivisor, memUnit);
 
                 ImGui::TableSetColumnIndex(2);
-                ImGui::Text("Alloc count: %lu", entries[type].memAllocs);
+                ImGui::Text("Alloc count: %lu", entries[Type].memAllocs);
                 ImGui::PopStyleColor();
             }
             ImGui::EndTable();
@@ -486,11 +528,10 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
 {
     ImGuiIO& io = ImGui::GetIO();
 
-    // Build and load the texture atlas into a texture
-    int            width, height, bytesPerPixel;
+    // Build and Load the texture atlas into a texture
+    int            Width, Height, bytesPerPixel;
     unsigned char* pixels = NULL;
 
-    io.Fonts->ClearInputData();
     if (pFontBuffer == NULL)
     {
         *pFont = (uintptr_t)io.Fonts->AddFontDefault();
@@ -514,25 +555,22 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
     }
 
     io.Fonts->Build();
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &bytesPerPixel);
+    io.Fonts->GetTexDataAsRGBA32(&pixels, &Width, &Height, &bytesPerPixel);
 
-    // At this point you've got the texture data and you need to upload that your your graphic system:
-    // After we have created the texture, store its pointer/identifier (_in whichever format your engine uses_) in 'io.Fonts->TexID'.
-    // This will be passed back to your via the renderer. Basically ImTextureID == void*. Read FAQ below for details about ImTextureID.
     Texture*        pTexture = NULL;
     SyncToken       token = {};
     TextureLoadDesc loadDesc = {};
     TextureDesc     textureDesc = {};
-    textureDesc.arraySize = 1;
-    textureDesc.depth = 1;
-    textureDesc.descriptors = DESCRIPTOR_TYPE_TEXTURE;
-    textureDesc.format = hz::Format::R8G8B8A8_UNORM;
-    textureDesc.height = height;
-    textureDesc.mipLevels = 1;
-    textureDesc.sampleCount = SAMPLE_COUNT_1;
-    textureDesc.startState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-    textureDesc.width = width;
-    textureDesc.pName = "ImGui Font Texture";
+    textureDesc.ArraySize = 1;
+    textureDesc.Depth = 1;
+    textureDesc.Descriptors = DESCRIPTOR_TYPE_TEXTURE;
+    textureDesc.Format = hz::Format::R8G8B8A8_UNORM;
+    textureDesc.Height = Height;
+    textureDesc.MipLevels = 1;
+    textureDesc.SampleCount = SAMPLE_COUNT_1;
+    textureDesc.StartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    textureDesc.Width = Width;
+    textureDesc.Name = "ImGui Font Texture";
     loadDesc.pDesc = &textureDesc;
     loadDesc.ppTexture = &pTexture;
     addResource(&loadDesc, &token);
@@ -540,7 +578,7 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
 
     TextureUpdateDesc updateDesc = { pTexture, 0, 1, 0, 1, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
     beginUpdateResource(&updateDesc);
-    TextureSubresourceUpdate subresource = updateDesc.getSubresourceUpdateDesc(0, 0);
+    TextureSubresourceUpdate subresource = updateDesc.GetSubresourceUpdateDesc(0, 0);
     for (uint32_t r = 0; r < subresource.rowCount; ++r)
     {
         memcpy(subresource.pMappedData + r * subresource.dstRowStride, pixels + r * subresource.srcRowStride, subresource.srcRowStride);
@@ -551,7 +589,7 @@ uint32_t addImguiFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGly
     arrpush(pUserInterface->pCachedFontsArr, newCachedFont);
 
     ptrdiff_t fontTextureIndex = arrlen(pUserInterface->pCachedFontsArr) - 1;
-    io.Fonts->TexID = (void*)fontTextureIndex;
+    io.Fonts->SetTexID((ImTextureID)fontTextureIndex);
 
     return (uint32_t)fontTextureIndex;
 }
@@ -572,7 +610,7 @@ static CollapsingHeaderWidget* cloneCollapsingHeaderWidget(const void* pWidget)
 {
     const CollapsingHeaderWidget* pOriginalWidget = (const CollapsingHeaderWidget*)pWidget;
     CollapsingHeaderWidget*       pClonedWidget =
-        (CollapsingHeaderWidget*)tf_malloc(sizeof(CollapsingHeaderWidget) + sizeof(UIWidget*) * pOriginalWidget->widgetsCount);
+        (CollapsingHeaderWidget*)MemAllocate(sizeof(CollapsingHeaderWidget) + sizeof(UIWidget*) * pOriginalWidget->widgetsCount);
 
     pClonedWidget->pGroupedWidgets = (UIWidget**)(pClonedWidget + 1);
     pClonedWidget->widgetsCount = pOriginalWidget->widgetsCount;
@@ -592,7 +630,7 @@ static CollapsingHeaderWidget* cloneCollapsingHeaderWidget(const void* pWidget)
 static DebugTexturesWidget* cloneDebugTexturesWidget(const void* pWidget)
 {
     const DebugTexturesWidget* pOriginalWidget = (const DebugTexturesWidget*)pWidget;
-    DebugTexturesWidget*       pClonedWidget = (DebugTexturesWidget*)tf_malloc(sizeof(DebugTexturesWidget));
+    DebugTexturesWidget*       pClonedWidget = (DebugTexturesWidget*)MemAllocate(sizeof(DebugTexturesWidget));
 
     pClonedWidget->pTextures = pOriginalWidget->pTextures;
     pClonedWidget->texturesCount = pOriginalWidget->texturesCount;
@@ -605,7 +643,7 @@ static DebugTexturesWidget* cloneDebugTexturesWidget(const void* pWidget)
 static LabelWidget* cloneLabelWidget(const void* pWidget)
 {
     UNREF_PARAM(pWidget);
-    LabelWidget* pClonedWidget = (LabelWidget*)tf_calloc(1, sizeof(LabelWidget));
+    LabelWidget* pClonedWidget = (LabelWidget*)MemCallocate(1, sizeof(LabelWidget));
 
     return pClonedWidget;
 }
@@ -614,7 +652,7 @@ static LabelWidget* cloneLabelWidget(const void* pWidget)
 static ColorLabelWidget* cloneColorLabelWidget(const void* pWidget)
 {
     const ColorLabelWidget* pOriginalWidget = (const ColorLabelWidget*)pWidget;
-    ColorLabelWidget*       pClonedWidget = (ColorLabelWidget*)tf_calloc(1, sizeof(ColorLabelWidget));
+    ColorLabelWidget*       pClonedWidget = (ColorLabelWidget*)MemCallocate(1, sizeof(ColorLabelWidget));
 
     pClonedWidget->color = pOriginalWidget->color;
 
@@ -625,7 +663,7 @@ static ColorLabelWidget* cloneColorLabelWidget(const void* pWidget)
 static HorizontalSpaceWidget* cloneHorizontalSpaceWidget(const void* pWidget)
 {
     UNREF_PARAM(pWidget);
-    HorizontalSpaceWidget* pClonedWidget = (HorizontalSpaceWidget*)tf_calloc(1, sizeof(HorizontalSpaceWidget));
+    HorizontalSpaceWidget* pClonedWidget = (HorizontalSpaceWidget*)MemCallocate(1, sizeof(HorizontalSpaceWidget));
 
     return pClonedWidget;
 }
@@ -634,7 +672,7 @@ static HorizontalSpaceWidget* cloneHorizontalSpaceWidget(const void* pWidget)
 static SeparatorWidget* cloneSeparatorWidget(const void* pWidget)
 {
     UNREF_PARAM(pWidget);
-    SeparatorWidget* pClonedWidget = (SeparatorWidget*)tf_calloc(1, sizeof(SeparatorWidget));
+    SeparatorWidget* pClonedWidget = (SeparatorWidget*)MemCallocate(1, sizeof(SeparatorWidget));
 
     return pClonedWidget;
 }
@@ -643,7 +681,7 @@ static SeparatorWidget* cloneSeparatorWidget(const void* pWidget)
 static VerticalSeparatorWidget* cloneVerticalSeparatorWidget(const void* pWidget)
 {
     const VerticalSeparatorWidget* pOriginalWidget = (const VerticalSeparatorWidget*)pWidget;
-    VerticalSeparatorWidget*       pClonedWidget = (VerticalSeparatorWidget*)tf_calloc(1, sizeof(VerticalSeparatorWidget));
+    VerticalSeparatorWidget*       pClonedWidget = (VerticalSeparatorWidget*)MemCallocate(1, sizeof(VerticalSeparatorWidget));
 
     pClonedWidget->lineCount = pOriginalWidget->lineCount;
 
@@ -654,7 +692,7 @@ static VerticalSeparatorWidget* cloneVerticalSeparatorWidget(const void* pWidget
 static ButtonWidget* cloneButtonWidget(const void* pWidget)
 {
     UNREF_PARAM(pWidget);
-    ButtonWidget* pClonedWidget = (ButtonWidget*)tf_calloc(1, sizeof(ButtonWidget));
+    ButtonWidget* pClonedWidget = (ButtonWidget*)MemCallocate(1, sizeof(ButtonWidget));
 
     return pClonedWidget;
 }
@@ -663,12 +701,12 @@ static ButtonWidget* cloneButtonWidget(const void* pWidget)
 static SliderFloatWidget* cloneSliderFloatWidget(const void* pWidget)
 {
     const SliderFloatWidget* pOriginalWidget = (const SliderFloatWidget*)pWidget;
-    SliderFloatWidget*       pClonedWidget = (SliderFloatWidget*)tf_calloc(1, sizeof(SliderFloatWidget));
+    SliderFloatWidget*       pClonedWidget = (SliderFloatWidget*)MemCallocate(1, sizeof(SliderFloatWidget));
 
-    memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
-    strcpy(pClonedWidget->format, pOriginalWidget->format);
+    memset(pClonedWidget->Format, 0, MAX_FORMAT_STR_LENGTH);
+    strcpy(pClonedWidget->Format, pOriginalWidget->Format);
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->min = pOriginalWidget->min;
     pClonedWidget->max = pOriginalWidget->max;
     pClonedWidget->step = pOriginalWidget->step;
@@ -680,12 +718,12 @@ static SliderFloatWidget* cloneSliderFloatWidget(const void* pWidget)
 static SliderFloat2Widget* cloneSliderFloat2Widget(const void* pWidget)
 {
     const SliderFloat2Widget* pOriginalWidget = (const SliderFloat2Widget*)pWidget;
-    SliderFloat2Widget*       pClonedWidget = (SliderFloat2Widget*)tf_calloc(1, sizeof(SliderFloat2Widget));
+    SliderFloat2Widget*       pClonedWidget = (SliderFloat2Widget*)MemCallocate(1, sizeof(SliderFloat2Widget));
 
-    memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
-    strcpy(pClonedWidget->format, pOriginalWidget->format);
+    memset(pClonedWidget->Format, 0, MAX_FORMAT_STR_LENGTH);
+    strcpy(pClonedWidget->Format, pOriginalWidget->Format);
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->min = pOriginalWidget->min;
     pClonedWidget->max = pOriginalWidget->max;
     pClonedWidget->step = pOriginalWidget->step;
@@ -697,12 +735,12 @@ static SliderFloat2Widget* cloneSliderFloat2Widget(const void* pWidget)
 static SliderFloat3Widget* cloneSliderFloat3Widget(const void* pWidget)
 {
     const SliderFloat3Widget* pOriginalWidget = (const SliderFloat3Widget*)pWidget;
-    SliderFloat3Widget*       pClonedWidget = (SliderFloat3Widget*)tf_calloc(1, sizeof(SliderFloat3Widget));
+    SliderFloat3Widget*       pClonedWidget = (SliderFloat3Widget*)MemCallocate(1, sizeof(SliderFloat3Widget));
 
-    memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
-    strcpy(pClonedWidget->format, pOriginalWidget->format);
+    memset(pClonedWidget->Format, 0, MAX_FORMAT_STR_LENGTH);
+    strcpy(pClonedWidget->Format, pOriginalWidget->Format);
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->min = pOriginalWidget->min;
     pClonedWidget->max = pOriginalWidget->max;
     pClonedWidget->step = pOriginalWidget->step;
@@ -714,12 +752,12 @@ static SliderFloat3Widget* cloneSliderFloat3Widget(const void* pWidget)
 static SliderFloat4Widget* cloneSliderFloat4Widget(const void* pWidget)
 {
     const SliderFloat4Widget* pOriginalWidget = (const SliderFloat4Widget*)pWidget;
-    SliderFloat4Widget*       pClonedWidget = (SliderFloat4Widget*)tf_calloc(1, sizeof(SliderFloat4Widget));
+    SliderFloat4Widget*       pClonedWidget = (SliderFloat4Widget*)MemCallocate(1, sizeof(SliderFloat4Widget));
 
-    memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
-    strcpy(pClonedWidget->format, pOriginalWidget->format);
+    memset(pClonedWidget->Format, 0, MAX_FORMAT_STR_LENGTH);
+    strcpy(pClonedWidget->Format, pOriginalWidget->Format);
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->min = pOriginalWidget->min;
     pClonedWidget->max = pOriginalWidget->max;
     pClonedWidget->step = pOriginalWidget->step;
@@ -731,12 +769,12 @@ static SliderFloat4Widget* cloneSliderFloat4Widget(const void* pWidget)
 static SliderIntWidget* cloneSliderIntWidget(const void* pWidget)
 {
     const SliderIntWidget* pOriginalWidget = (const SliderIntWidget*)pWidget;
-    SliderIntWidget*       pClonedWidget = (SliderIntWidget*)tf_calloc(1, sizeof(SliderIntWidget));
+    SliderIntWidget*       pClonedWidget = (SliderIntWidget*)MemCallocate(1, sizeof(SliderIntWidget));
 
-    memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
-    strcpy(pClonedWidget->format, pOriginalWidget->format);
+    memset(pClonedWidget->Format, 0, MAX_FORMAT_STR_LENGTH);
+    strcpy(pClonedWidget->Format, pOriginalWidget->Format);
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->min = pOriginalWidget->min;
     pClonedWidget->max = pOriginalWidget->max;
     pClonedWidget->step = pOriginalWidget->step;
@@ -748,12 +786,12 @@ static SliderIntWidget* cloneSliderIntWidget(const void* pWidget)
 static SliderUintWidget* cloneSliderUintWidget(const void* pWidget)
 {
     const SliderUintWidget* pOriginalWidget = (const SliderUintWidget*)pWidget;
-    SliderUintWidget*       pClonedWidget = (SliderUintWidget*)tf_calloc(1, sizeof(SliderUintWidget));
+    SliderUintWidget*       pClonedWidget = (SliderUintWidget*)MemCallocate(1, sizeof(SliderUintWidget));
 
-    memset(pClonedWidget->format, 0, MAX_FORMAT_STR_LENGTH);
-    strcpy(pClonedWidget->format, pOriginalWidget->format);
+    memset(pClonedWidget->Format, 0, MAX_FORMAT_STR_LENGTH);
+    strcpy(pClonedWidget->Format, pOriginalWidget->Format);
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->min = pOriginalWidget->min;
     pClonedWidget->max = pOriginalWidget->max;
     pClonedWidget->step = pOriginalWidget->step;
@@ -765,9 +803,9 @@ static SliderUintWidget* cloneSliderUintWidget(const void* pWidget)
 static RadioButtonWidget* cloneRadioButtonWidget(const void* pWidget)
 {
     const RadioButtonWidget* pOriginalWidget = (const RadioButtonWidget*)pWidget;
-    RadioButtonWidget*       pClonedWidget = (RadioButtonWidget*)tf_calloc(1, sizeof(RadioButtonWidget));
+    RadioButtonWidget*       pClonedWidget = (RadioButtonWidget*)MemCallocate(1, sizeof(RadioButtonWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->radioId = pOriginalWidget->radioId;
 
     return pClonedWidget;
@@ -777,9 +815,9 @@ static RadioButtonWidget* cloneRadioButtonWidget(const void* pWidget)
 static CheckboxWidget* cloneCheckboxWidget(const void* pWidget)
 {
     const CheckboxWidget* pOriginalWidget = (const CheckboxWidget*)pWidget;
-    CheckboxWidget*       pClonedWidget = (CheckboxWidget*)tf_calloc(1, sizeof(CheckboxWidget));
+    CheckboxWidget*       pClonedWidget = (CheckboxWidget*)MemCallocate(1, sizeof(CheckboxWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
 
     return pClonedWidget;
 }
@@ -788,9 +826,9 @@ static CheckboxWidget* cloneCheckboxWidget(const void* pWidget)
 static OneLineCheckboxWidget* cloneOneLineCheckboxWidget(const void* pWidget)
 {
     const OneLineCheckboxWidget* pOriginalWidget = (const OneLineCheckboxWidget*)pWidget;
-    OneLineCheckboxWidget*       pClonedWidget = (OneLineCheckboxWidget*)tf_calloc(1, sizeof(OneLineCheckboxWidget));
+    OneLineCheckboxWidget*       pClonedWidget = (OneLineCheckboxWidget*)MemCallocate(1, sizeof(OneLineCheckboxWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->color = pOriginalWidget->color;
 
     return pClonedWidget;
@@ -800,7 +838,7 @@ static OneLineCheckboxWidget* cloneOneLineCheckboxWidget(const void* pWidget)
 static CursorLocationWidget* cloneCursorLocationWidget(const void* pWidget)
 {
     const CursorLocationWidget* pOriginalWidget = (const CursorLocationWidget*)pWidget;
-    CursorLocationWidget*       pClonedWidget = (CursorLocationWidget*)tf_calloc(1, sizeof(CursorLocationWidget));
+    CursorLocationWidget*       pClonedWidget = (CursorLocationWidget*)MemCallocate(1, sizeof(CursorLocationWidget));
 
     pClonedWidget->location = pOriginalWidget->location;
 
@@ -812,11 +850,11 @@ static DropdownWidget* cloneDropdownWidget(const void* pWidget)
 {
     const DropdownWidget* pOriginalWidget = (const DropdownWidget*)pWidget;
 
-    DropdownWidget* pClonedWidget = (DropdownWidget*)tf_malloc(sizeof(DropdownWidget));
+    DropdownWidget* pClonedWidget = (DropdownWidget*)MemAllocate(sizeof(DropdownWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->pNames = pOriginalWidget->pNames;
-    pClonedWidget->count = pOriginalWidget->count;
+    pClonedWidget->Count = pOriginalWidget->Count;
 
     return pClonedWidget;
 }
@@ -825,7 +863,7 @@ static DropdownWidget* cloneDropdownWidget(const void* pWidget)
 static ColumnWidget* cloneColumnWidget(const void* pWidget)
 {
     const ColumnWidget* pOriginalWidget = (const ColumnWidget*)pWidget;
-    ColumnWidget*       pClonedWidget = (ColumnWidget*)tf_malloc(sizeof(ColumnWidget) + sizeof(UIWidget*) * pOriginalWidget->widgetsCount);
+    ColumnWidget* pClonedWidget = (ColumnWidget*)MemAllocate(sizeof(ColumnWidget) + sizeof(UIWidget*) * pOriginalWidget->widgetsCount);
     pClonedWidget->pPerColumnWidgets = (UIWidget**)(pClonedWidget + 1);
     pClonedWidget->widgetsCount = pOriginalWidget->widgetsCount;
 
@@ -839,9 +877,9 @@ static ColumnWidget* cloneColumnWidget(const void* pWidget)
 static ProgressBarWidget* cloneProgressBarWidget(const void* pWidget)
 {
     const ProgressBarWidget* pOriginalWidget = (const ProgressBarWidget*)pWidget;
-    ProgressBarWidget*       pClonedWidget = (ProgressBarWidget*)tf_calloc(1, sizeof(ProgressBarWidget));
+    ProgressBarWidget*       pClonedWidget = (ProgressBarWidget*)MemCallocate(1, sizeof(ProgressBarWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
     pClonedWidget->maxProgress = pOriginalWidget->maxProgress;
 
     return pClonedWidget;
@@ -851,9 +889,9 @@ static ProgressBarWidget* cloneProgressBarWidget(const void* pWidget)
 static ColorSliderWidget* cloneColorSliderWidget(const void* pWidget)
 {
     const ColorSliderWidget* pOriginalWidget = (const ColorSliderWidget*)pWidget;
-    ColorSliderWidget*       pClonedWidget = (ColorSliderWidget*)tf_calloc(1, sizeof(ColorSliderWidget));
+    ColorSliderWidget*       pClonedWidget = (ColorSliderWidget*)MemCallocate(1, sizeof(ColorSliderWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
 
     return pClonedWidget;
 }
@@ -862,10 +900,10 @@ static ColorSliderWidget* cloneColorSliderWidget(const void* pWidget)
 static HistogramWidget* cloneHistogramWidget(const void* pWidget)
 {
     const HistogramWidget* pOriginalWidget = (const HistogramWidget*)pWidget;
-    HistogramWidget*       pClonedWidget = (HistogramWidget*)tf_calloc(1, sizeof(HistogramWidget));
+    HistogramWidget*       pClonedWidget = (HistogramWidget*)MemCallocate(1, sizeof(HistogramWidget));
 
     pClonedWidget->pValues = pOriginalWidget->pValues;
-    pClonedWidget->count = pOriginalWidget->count;
+    pClonedWidget->Count = pOriginalWidget->Count;
     pClonedWidget->minScale = pOriginalWidget->minScale;
     pClonedWidget->maxScale = pOriginalWidget->maxScale;
     pClonedWidget->histogramSize = pOriginalWidget->histogramSize;
@@ -878,7 +916,7 @@ static HistogramWidget* cloneHistogramWidget(const void* pWidget)
 static PlotLinesWidget* clonePlotLinesWidget(const void* pWidget)
 {
     const PlotLinesWidget* pOriginalWidget = (const PlotLinesWidget*)pWidget;
-    PlotLinesWidget*       pClonedWidget = (PlotLinesWidget*)tf_calloc(1, sizeof(PlotLinesWidget));
+    PlotLinesWidget*       pClonedWidget = (PlotLinesWidget*)MemCallocate(1, sizeof(PlotLinesWidget));
 
     pClonedWidget->values = pOriginalWidget->values;
     pClonedWidget->numValues = pOriginalWidget->numValues;
@@ -894,9 +932,9 @@ static PlotLinesWidget* clonePlotLinesWidget(const void* pWidget)
 static ColorPickerWidget* cloneColorPickerWidget(const void* pWidget)
 {
     const ColorPickerWidget* pOriginalWidget = (const ColorPickerWidget*)pWidget;
-    ColorPickerWidget*       pClonedWidget = (ColorPickerWidget*)tf_calloc(1, sizeof(ColorPickerWidget));
+    ColorPickerWidget*       pClonedWidget = (ColorPickerWidget*)MemCallocate(1, sizeof(ColorPickerWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
 
     return pClonedWidget;
 }
@@ -905,9 +943,9 @@ static ColorPickerWidget* cloneColorPickerWidget(const void* pWidget)
 static Color3PickerWidget* cloneColor3PickerWidget(const void* pWidget)
 {
     const Color3PickerWidget* pOriginalWidget = (const Color3PickerWidget*)pWidget;
-    Color3PickerWidget*       pClonedWidget = (Color3PickerWidget*)tf_calloc(1, sizeof(Color3PickerWidget));
+    Color3PickerWidget*       pClonedWidget = (Color3PickerWidget*)MemCallocate(1, sizeof(Color3PickerWidget));
 
-    pClonedWidget->pData = pOriginalWidget->pData;
+    pClonedWidget->Data = pOriginalWidget->Data;
 
     return pClonedWidget;
 }
@@ -917,10 +955,10 @@ static TextboxWidget* cloneTextboxWidget(const void* pWidget)
 {
     const TextboxWidget* pOriginalWidget = (const TextboxWidget*)pWidget;
 
-    TextboxWidget* pClonedWidget = (TextboxWidget*)tf_malloc(sizeof(TextboxWidget));
+    TextboxWidget* pClonedWidget = (TextboxWidget*)MemAllocate(sizeof(TextboxWidget));
 
     pClonedWidget->pText = pOriginalWidget->pText;
-    pClonedWidget->flags = pOriginalWidget->flags;
+    pClonedWidget->Flags = pOriginalWidget->Flags;
     pClonedWidget->pCallback = pOriginalWidget->pCallback;
 
     return pClonedWidget;
@@ -931,7 +969,7 @@ static DynamicTextWidget* cloneDynamicTextWidget(const void* pWidget)
 {
     const DynamicTextWidget* pOriginalWidget = (const DynamicTextWidget*)pWidget;
 
-    DynamicTextWidget* pClonedWidget = (DynamicTextWidget*)tf_malloc(sizeof(DynamicTextWidget));
+    DynamicTextWidget* pClonedWidget = (DynamicTextWidget*)MemAllocate(sizeof(DynamicTextWidget));
 
     pClonedWidget->pText = pOriginalWidget->pText;
     pClonedWidget->pColor = pOriginalWidget->pColor;
@@ -943,7 +981,7 @@ static DynamicTextWidget* cloneDynamicTextWidget(const void* pWidget)
 static FilledRectWidget* cloneFilledRectWidget(const void* pWidget)
 {
     const FilledRectWidget* pOriginalWidget = (const FilledRectWidget*)pWidget;
-    FilledRectWidget*       pClonedWidget = (FilledRectWidget*)tf_calloc(1, sizeof(FilledRectWidget));
+    FilledRectWidget*       pClonedWidget = (FilledRectWidget*)MemCallocate(1, sizeof(FilledRectWidget));
 
     pClonedWidget->pos = pOriginalWidget->pos;
     pClonedWidget->scale = pOriginalWidget->scale;
@@ -956,7 +994,7 @@ static FilledRectWidget* cloneFilledRectWidget(const void* pWidget)
 static DrawTextWidget* cloneDrawTextWidget(const void* pWidget)
 {
     const DrawTextWidget* pOriginalWidget = (const DrawTextWidget*)pWidget;
-    DrawTextWidget*       pClonedWidget = (DrawTextWidget*)tf_calloc(1, sizeof(DrawTextWidget));
+    DrawTextWidget*       pClonedWidget = (DrawTextWidget*)MemCallocate(1, sizeof(DrawTextWidget));
 
     pClonedWidget->pos = pOriginalWidget->pos;
     pClonedWidget->color = pOriginalWidget->color;
@@ -968,7 +1006,7 @@ static DrawTextWidget* cloneDrawTextWidget(const void* pWidget)
 static DrawTooltipWidget* cloneDrawTooltipWidget(const void* pWidget)
 {
     const DrawTooltipWidget* pOriginalWidget = (const DrawTooltipWidget*)pWidget;
-    DrawTooltipWidget*       pClonedWidget = (DrawTooltipWidget*)tf_calloc(1, sizeof(DrawTooltipWidget));
+    DrawTooltipWidget*       pClonedWidget = (DrawTooltipWidget*)MemCallocate(1, sizeof(DrawTooltipWidget));
 
     pClonedWidget->showTooltip = pOriginalWidget->showTooltip;
     pClonedWidget->text = pOriginalWidget->text;
@@ -980,7 +1018,7 @@ static DrawTooltipWidget* cloneDrawTooltipWidget(const void* pWidget)
 static DrawLineWidget* cloneDrawLineWidget(const void* pWidget)
 {
     const DrawLineWidget* pOriginalWidget = (const DrawLineWidget*)pWidget;
-    DrawLineWidget*       pClonedWidget = (DrawLineWidget*)tf_calloc(1, sizeof(DrawLineWidget));
+    DrawLineWidget*       pClonedWidget = (DrawLineWidget*)MemCallocate(1, sizeof(DrawLineWidget));
 
     pClonedWidget->pos1 = pOriginalWidget->pos1;
     pClonedWidget->pos2 = pOriginalWidget->pos2;
@@ -994,7 +1032,7 @@ static DrawLineWidget* cloneDrawLineWidget(const void* pWidget)
 static DrawCurveWidget* cloneDrawCurveWidget(const void* pWidget)
 {
     const DrawCurveWidget* pOriginalWidget = (const DrawCurveWidget*)pWidget;
-    DrawCurveWidget*       pClonedWidget = (DrawCurveWidget*)tf_calloc(1, sizeof(DrawCurveWidget));
+    DrawCurveWidget*       pClonedWidget = (DrawCurveWidget*)MemCallocate(1, sizeof(DrawCurveWidget));
 
     pClonedWidget->pos = pOriginalWidget->pos;
     pClonedWidget->numPoints = pOriginalWidget->numPoints;
@@ -1008,10 +1046,10 @@ static DrawCurveWidget* cloneDrawCurveWidget(const void* pWidget)
 static CustomWidget* cloneCustomWidget(const void* pWidget)
 {
     const CustomWidget* pOriginalWidget = (const CustomWidget*)pWidget;
-    CustomWidget*       pClonedWidget = (CustomWidget*)tf_calloc(1, sizeof(CustomWidget));
+    CustomWidget*       pClonedWidget = (CustomWidget*)MemCallocate(1, sizeof(CustomWidget));
 
     pClonedWidget->pCallback = pOriginalWidget->pCallback;
-    pClonedWidget->pUserData = pOriginalWidget->pUserData;
+    pClonedWidget->UserData = pOriginalWidget->UserData;
     pClonedWidget->pDestroyCallback = pOriginalWidget->pDestroyCallback;
 
     return pClonedWidget;
@@ -1020,7 +1058,7 @@ static CustomWidget* cloneCustomWidget(const void* pWidget)
 // UIWidget private functions
 static void cloneWidgetBase(UIWidget* pDstWidget, const UIWidget* pSrcWidget)
 {
-    pDstWidget->type = pSrcWidget->type;
+    pDstWidget->Type = pSrcWidget->Type;
     strcpy(pDstWidget->label, pSrcWidget->label);
 
     pDstWidget->pOnHoverUserData = pSrcWidget->pOnHoverUserData;
@@ -1042,10 +1080,10 @@ static void cloneWidgetBase(UIWidget* pDstWidget, const UIWidget* pSrcWidget)
 // UIWidget private functions
 static UIWidget* cloneWidget(const UIWidget* pOtherWidget)
 {
-    UIWidget* pWidget = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
+    UIWidget* pWidget = (UIWidget*)MemCallocate(1, sizeof(UIWidget));
     cloneWidgetBase(pWidget, pOtherWidget);
 
-    switch (pOtherWidget->type)
+    switch (pOtherWidget->Type)
     {
     case WIDGET_TYPE_COLLAPSING_HEADER:
     {
@@ -1267,10 +1305,12 @@ static void processWidgetCallbacks(UIWidget* pWidget, bool deferred)
         pWidget->active = ImGui::IsItemActive();
         pWidget->focused = ImGui::IsItemFocused();
 
-        // ImGui::Button doesn't set the IsItemEdited flag, we assing ourselves:
+        // ImGui::Button doesn't Set the IsItemEdited flag, we assing ourselves:
         // pWidget->edited = ImGui::Button(...);
-        if (pWidget->type != WIDGET_TYPE_BUTTON)
+        if (pWidget->Type != WIDGET_TYPE_BUTTON)
+        {
             pWidget->edited = ImGui::IsItemEdited();
+        }
 
         pWidget->deactivated = ImGui::IsItemDeactivated();
         pWidget->deactivatedAfterEdit = ImGui::IsItemDeactivatedAfterEdit();
@@ -1311,15 +1351,15 @@ static void processCollapsingHeaderWidget(UIWidget* pWidget)
         pOriginalWidget->previousCollapsed = pOriginalWidget->collapsed;
     }
 
-    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_CollapsingHeader;
+    ImGuiTreeNodeFlags Flags = ImGuiTreeNodeFlags_CollapsingHeader;
     if (pOriginalWidget->defaultOpen)
-        flags |= ImGuiTreeNodeFlags_DefaultOpen;
+        Flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
     unsigned char labelBuf[MAX_LABEL_STR_LENGTH];
     bstring       label = bemptyfromarr(labelBuf);
     bformat(&label, "%s##%p", pWidget->label, pOriginalWidget);
 
-    if (!pOriginalWidget->headerIsVisible || ImGui::CollapsingHeader((const char*)label.data, flags))
+    if (!pOriginalWidget->headerIsVisible || ImGui::CollapsingHeader((const char*)label.data, Flags))
     {
         for (uint32_t i = 0; i < pOriginalWidget->widgetsCount; ++i)
         {
@@ -1343,7 +1383,7 @@ static void processDebugTexturesWidget(UIWidget* pWidget)
         ptrdiff_t id = pUserInterface->maxUIFonts + ((ptrdiff_t)pUserInterface->frameIdx * pUserInterface->maxDynamicUIUpdatesPerBatch +
                                                      pUserInterface->dynamicTexturesCount++);
         hmput(pUserInterface->pTextureHashmap, id, texture);
-        ImGui::Image((void*)id, pOriginalWidget->textureDisplaySize);
+        ImGui::Image((ImTextureID)id, pOriginalWidget->textureDisplaySize);
         ImGui::SameLine();
     }
 
@@ -1417,11 +1457,11 @@ static void processSliderFloatWidget(UIWidget* pWidget)
     SliderFloatWidget* pOriginalWidget = (SliderFloatWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
     ImGui::Text("%s", pWidget->label);
-    ImGui::SliderFloatWithSteps(label, pOriginalWidget->pData, pOriginalWidget->min, pOriginalWidget->max, pOriginalWidget->step,
-                                pOriginalWidget->format);
+    ImGui::SliderFloatWithSteps(label, pOriginalWidget->Data, pOriginalWidget->min, pOriginalWidget->max, pOriginalWidget->step,
+                                pOriginalWidget->Format);
     processWidgetCallbacks(pWidget);
 }
 
@@ -1434,10 +1474,10 @@ static void processSliderFloat2Widget(UIWidget* pWidget)
     for (uint32_t i = 0; i < 2; ++i)
     {
         char label[MAX_LABEL_LENGTH];
-        LABELID1(&pOriginalWidget->pData->operator[](i), label);
+        LABELID1(&pOriginalWidget->Data->operator[](i), label);
 
-        ImGui::SliderFloatWithSteps(label, &pOriginalWidget->pData->operator[](i), pOriginalWidget->min[i], pOriginalWidget->max[i],
-                                    pOriginalWidget->step[i], pOriginalWidget->format);
+        ImGui::SliderFloatWithSteps(label, &pOriginalWidget->Data->operator[](i), pOriginalWidget->min[i], pOriginalWidget->max[i],
+                                    pOriginalWidget->step[i], pOriginalWidget->Format);
         processWidgetCallbacks(pWidget);
     }
 }
@@ -1451,9 +1491,9 @@ static void processSliderFloat3Widget(UIWidget* pWidget)
     for (uint32_t i = 0; i < 3; ++i)
     {
         char label[MAX_LABEL_LENGTH];
-        LABELID1(&pOriginalWidget->pData->operator[](i), label);
-        ImGui::SliderFloatWithSteps(label, &pOriginalWidget->pData->operator[](i), pOriginalWidget->min[i], pOriginalWidget->max[i],
-                                    pOriginalWidget->step[i], pOriginalWidget->format);
+        LABELID1(&pOriginalWidget->Data->operator[](i), label);
+        ImGui::SliderFloatWithSteps(label, &pOriginalWidget->Data->operator[](i), pOriginalWidget->min[i], pOriginalWidget->max[i],
+                                    pOriginalWidget->step[i], pOriginalWidget->Format);
         processWidgetCallbacks(pWidget);
     }
 }
@@ -1467,9 +1507,9 @@ static void processSliderFloat4Widget(UIWidget* pWidget)
     for (uint32_t i = 0; i < 4; ++i)
     {
         char label[MAX_LABEL_LENGTH];
-        LABELID1(&pOriginalWidget->pData->operator[](i), label);
-        ImGui::SliderFloatWithSteps(label, &pOriginalWidget->pData->operator[](i), pOriginalWidget->min[i], pOriginalWidget->max[i],
-                                    pOriginalWidget->step[i], pOriginalWidget->format);
+        LABELID1(&pOriginalWidget->Data->operator[](i), label);
+        ImGui::SliderFloatWithSteps(label, &pOriginalWidget->Data->operator[](i), pOriginalWidget->min[i], pOriginalWidget->max[i],
+                                    pOriginalWidget->step[i], pOriginalWidget->Format);
         processWidgetCallbacks(pWidget);
     }
 }
@@ -1480,11 +1520,11 @@ static void processSliderIntWidget(UIWidget* pWidget)
     SliderIntWidget* pOriginalWidget = (SliderIntWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
     ImGui::Text("%s", pWidget->label);
-    ImGui::SliderIntWithSteps(label, pOriginalWidget->pData, pOriginalWidget->min, pOriginalWidget->max, pOriginalWidget->step,
-                              pOriginalWidget->format);
+    ImGui::SliderIntWithSteps(label, pOriginalWidget->Data, pOriginalWidget->min, pOriginalWidget->max, pOriginalWidget->step,
+                              pOriginalWidget->Format);
     processWidgetCallbacks(pWidget);
 }
 
@@ -1494,11 +1534,11 @@ static void processSliderUintWidget(UIWidget* pWidget)
     SliderUintWidget* pOriginalWidget = (SliderUintWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
     ImGui::Text("%s", pWidget->label);
-    ImGui::SliderIntWithSteps(label, (int32_t*)pOriginalWidget->pData, (int32_t)pOriginalWidget->min, (int32_t)pOriginalWidget->max,
-                              (int32_t)pOriginalWidget->step, pOriginalWidget->format);
+    ImGui::SliderIntWithSteps(label, (int32_t*)pOriginalWidget->Data, (int32_t)pOriginalWidget->min, (int32_t)pOriginalWidget->max,
+                              (int32_t)pOriginalWidget->step, pOriginalWidget->Format);
     processWidgetCallbacks(pWidget);
 }
 
@@ -1508,10 +1548,10 @@ static void processRadioButtonWidget(UIWidget* pWidget)
     RadioButtonWidget* pOriginalWidget = (RadioButtonWidget*)(pWidget->pWidget);
     unsigned char      labelBuf[MAX_LABEL_STR_LENGTH];
     bstring            label = bemptyfromarr(labelBuf);
-    bformat(&label, "%s##%p", pWidget->label, pOriginalWidget->pData);
+    bformat(&label, "%s##%p", pWidget->label, pOriginalWidget->Data);
     ASSERT(!bownsdata(&label));
 
-    ImGui::RadioButton((const char*)label.data, pOriginalWidget->pData, pOriginalWidget->radioId);
+    ImGui::RadioButton((const char*)label.data, pOriginalWidget->Data, pOriginalWidget->radioId);
     processWidgetCallbacks(pWidget);
 }
 
@@ -1521,10 +1561,10 @@ static void processCheckboxWidget(UIWidget* pWidget)
     CheckboxWidget* pOriginalWidget = (CheckboxWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
     ImGui::Text("%s", pWidget->label);
-    ImGui::Checkbox(label, pOriginalWidget->pData);
+    ImGui::Checkbox(label, pOriginalWidget->Data);
     processWidgetCallbacks(pWidget);
 }
 
@@ -1534,9 +1574,9 @@ static void processOneLineCheckboxWidget(UIWidget* pWidget)
     OneLineCheckboxWidget* pOriginalWidget = (OneLineCheckboxWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
-    ImGui::Checkbox(label, pOriginalWidget->pData);
+    ImGui::Checkbox(label, pOriginalWidget->Data);
     ImGui::SameLine();
     ImGui::TextColored(pOriginalWidget->color, "%s", pWidget->label);
     processWidgetCallbacks(pWidget);
@@ -1556,19 +1596,21 @@ static void processDropdownWidget(UIWidget* pWidget)
 {
     DropdownWidget* pOriginalWidget = (DropdownWidget*)(pWidget->pWidget);
 
-    if (pOriginalWidget->count == 0)
+    if (pOriginalWidget->Count == 0)
+    {
         return;
+    }
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
-    uint32_t* pCurrent = pOriginalWidget->pData;
+    uint32_t* pCurrent = pOriginalWidget->Data;
     ImGui::Text("%s", pWidget->label);
     ASSERT(pOriginalWidget->pNames);
 
     if (ImGui::BeginCombo(label, pOriginalWidget->pNames[*pCurrent]))
     {
-        for (uint32_t i = 0; i < pOriginalWidget->count; ++i)
+        for (uint32_t i = 0; i < pOriginalWidget->Count; ++i)
         {
             bool isSelected = (*pCurrent == i);
 
@@ -1605,7 +1647,7 @@ static void processColumnWidget(UIWidget* pWidget)
 
     // Test a simple 4 col table.
     ImGui::BeginColumns(pWidget->label, (int)pOriginalWidget->widgetsCount,
-                        ImGuiColumnsFlags_NoResize | ImGuiColumnsFlags_NoForceWithinWindow);
+                        ImGuiOldColumnFlags_NoResize | ImGuiOldColumnFlags_NoForceWithinWindow);
 
     for (uint32_t i = 0; i < pOriginalWidget->widgetsCount; ++i)
     {
@@ -1623,7 +1665,7 @@ static void processProgressBarWidget(UIWidget* pWidget)
 {
     ProgressBarWidget* pOriginalWidget = (ProgressBarWidget*)(pWidget->pWidget);
 
-    size_t currProgress = *(pOriginalWidget->pData);
+    size_t currProgress = *(pOriginalWidget->Data);
     ImGui::Text("%s", pWidget->label);
     ImGui::ProgressBar((float)currProgress / pOriginalWidget->maxProgress);
     processWidgetCallbacks(pWidget);
@@ -1635,9 +1677,9 @@ static void processColorSliderWidget(UIWidget* pWidget)
     ColorSliderWidget* pOriginalWidget = (ColorSliderWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
-    float4* combo_color = pOriginalWidget->pData;
+    float4* combo_color = pOriginalWidget->Data;
 
     float col[4] = { combo_color->x, combo_color->y, combo_color->z, combo_color->w };
     ImGui::Text("%s", pWidget->label);
@@ -1661,7 +1703,7 @@ static void processHistogramWidget(UIWidget* pWidget)
     bformat(&label, "%s##%p", pWidget->label, pOriginalWidget->pValues);
     ASSERT(!bownsdata(&label));
 
-    ImGui::PlotHistogram((const char*)label.data, pOriginalWidget->pValues, pOriginalWidget->count, 0, pOriginalWidget->histogramTitle,
+    ImGui::PlotHistogram((const char*)label.data, pOriginalWidget->pValues, pOriginalWidget->Count, 0, pOriginalWidget->histogramTitle,
                          *(pOriginalWidget->minScale), *(pOriginalWidget->maxScale), pOriginalWidget->histogramSize);
 
     processWidgetCallbacks(pWidget);
@@ -1689,9 +1731,9 @@ void processColorPickerWidget(UIWidget* pWidget)
     ColorPickerWidget* pOriginalWidget = (ColorPickerWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
-    float4* combo_color = pOriginalWidget->pData;
+    float4* combo_color = pOriginalWidget->Data;
 
     float col[4] = { combo_color->x, combo_color->y, combo_color->z, combo_color->w };
     ImGui::Text("%s", pWidget->label);
@@ -1710,9 +1752,9 @@ void processColor3PickerWidget(UIWidget* pWidget)
     Color3PickerWidget* pOriginalWidget = (Color3PickerWidget*)(pWidget->pWidget);
 
     char label[MAX_LABEL_LENGTH];
-    LABELID1(pOriginalWidget->pData, label);
+    LABELID1(pOriginalWidget->Data, label);
 
-    float3* combo_color = pOriginalWidget->pData;
+    float3* combo_color = pOriginalWidget->Data;
 
     float col[3] = { combo_color->x, combo_color->y, combo_color->z };
     ImGui::Text("%s", pWidget->label);
@@ -1726,24 +1768,38 @@ void processColor3PickerWidget(UIWidget* pWidget)
     processWidgetCallbacks(pWidget);
 }
 
+static constexpr ImGuiKey KeyboardKeys[] = {
+    ImGuiKey_Tab,        ImGuiKey_LeftArrow, ImGuiKey_RightArrow, ImGuiKey_UpArrow,   ImGuiKey_DownArrow,  ImGuiKey_PageUp,
+    ImGuiKey_PageDown,   ImGuiKey_Home,      ImGuiKey_End,        ImGuiKey_Insert,    ImGuiKey_Delete,     ImGuiKey_Backspace,
+    ImGuiKey_Space,      ImGuiKey_Enter,     ImGuiKey_Escape,     ImGuiKey_LeftCtrl,  ImGuiKey_RightCtrl,  ImGuiKey_LeftShift,
+    ImGuiKey_RightShift, ImGuiKey_LeftAlt,   ImGuiKey_RightAlt,   ImGuiKey_LeftSuper, ImGuiKey_RightSuper, ImGuiKey_A,
+    ImGuiKey_C,          ImGuiKey_V,         ImGuiKey_X,          ImGuiKey_Y,         ImGuiKey_Z,          ImGuiKey_F2,
+};
+static_assert(TF_ARRAY_COUNT(KeyboardKeys) == UISystemInputActions::UI_ACTION_KEY_F2 - UISystemInputActions::UI_ACTION_KEY_TAB + 1);
+
 static int TextboxCallbackFunc(ImGuiInputTextCallbackData* data)
 {
     TextboxWidget* pWidget = (TextboxWidget*)data->UserData;
 
-    if (data->EventFlag & ImGuiInputTextFlags_CallbackAlways)
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
     {
-        if (pWidget->flags & UI_TEXT_ENABLE_RESIZE)
+        bstring*  Text = pWidget->pText;
+        const int Result = balloc(Text, data->BufSize);
+        ASSERT(Result == BSTR_OK);
+        data->Buf = (char*)Text->data;
+    }
+    else if (data->EventFlag == ImGuiInputTextFlags_CallbackAlways && pWidget->pCallback)
+    {
+        bool KeysDown[ImGuiKey_NamedKey_END] = {};
+        for (int Key = ImGuiKey_NamedKey_BEGIN; Key < ImGuiKey_NamedKey_END; ++Key)
         {
-            bstring* pStr = pWidget->pText;
-            ASSERT(data->Buf == (const char*)pStr->data);
-            int res = balloc(pStr, data->BufTextLen + 1);
-            ASSERT(res == BSTR_OK);
-            data->Buf = (char*)pStr->data;
-            data->BufSize = bmlen(pStr);
+            KeysDown[Key] = ImGui::GetIO().KeysData[Key - ImGuiKey_NamedKey_BEGIN].Down;
         }
-
-        if (pWidget->pCallback)
-            pWidget->pCallback(ImGui::GetIO().KeysDown);
+        for (uint32_t Index = 0; Index < TF_ARRAY_COUNT(KeyboardKeys); ++Index)
+        {
+            KeysDown[UISystemInputActions::UI_ACTION_KEY_TAB + Index] = KeysDown[KeyboardKeys[Index]];
+        }
+        pWidget->pCallback(KeysDown);
     }
 
     return 0;
@@ -1757,16 +1813,22 @@ void processTextboxWidget(UIWidget* pWidget)
 
     ASSERT(biscstr(pText));
     char label[MAX_LABEL_LENGTH];
-    LABELID1((const char*)pText->data, label);
+    LABELID1(pText, label);
 
-    uint32_t flags = 0;
-    if (pOriginalWidget->flags & UI_TEXT_AUTOSELECT_ALL)
-        flags |= ImGuiInputTextFlags_AutoSelectAll;
+    uint32_t Flags = 0;
+    if (pOriginalWidget->Flags & UI_TEXT_AUTOSELECT_ALL)
+    {
+        Flags |= ImGuiInputTextFlags_AutoSelectAll;
+    }
     if (pOriginalWidget->pCallback)
-        flags |= ImGuiInputTextFlags_CallbackAlways;
+        Flags |= ImGuiInputTextFlags_CallbackAlways;
+    if (pOriginalWidget->Flags & UI_TEXT_ENABLE_RESIZE)
+    {
+        Flags |= ImGuiInputTextFlags_CallbackResize;
+    }
 
     ImGui::Text("%s", pWidget->label);
-    ImGui::InputText(label, (char*)pText->data, bmlen(pText), flags, TextboxCallbackFunc, pOriginalWidget);
+    ImGui::InputText(label, (char*)pText->data, bmlen(pText), Flags, TextboxCallbackFunc, pOriginalWidget);
     pText->slen = (int)strlen((const char*)pText->data);
 
     processWidgetCallbacks(pWidget);
@@ -1787,7 +1849,7 @@ void processFilledRectWidget(UIWidget* pWidget)
     FilledRectWidget* pOriginalWidget = (FilledRectWidget*)(pWidget->pWidget);
 
     ImGuiWindow* window = ImGui::GetCurrentWindow();
-    float2       pos = window->Pos - window->Scroll + pOriginalWidget->pos;
+    float2       pos = float2(window->Pos - window->Scroll) + pOriginalWidget->pos;
     float2       pos2 = float2(pos.x + pOriginalWidget->scale.x, pos.y + pOriginalWidget->scale.y);
 
     ImGui::GetWindowDrawList()->AddRectFilled(pos, pos2, ImGui::GetColorU32(pOriginalWidget->color));
@@ -1801,7 +1863,7 @@ void processDrawTextWidget(UIWidget* pWidget)
     DrawTextWidget* pOriginalWidget = (DrawTextWidget*)(pWidget->pWidget);
 
     ImGuiWindow* window = ImGui::GetCurrentWindow();
-    float2       pos = window->Pos - window->Scroll + pOriginalWidget->pos;
+    float2       pos = float2(window->Pos - window->Scroll) + pOriginalWidget->pos;
     const float2 line_size = ImGui::CalcTextSize(pWidget->label);
 
     ImGui::GetWindowDrawList()->AddText(pos, ImGui::GetColorU32(pOriginalWidget->color), pWidget->label);
@@ -1836,8 +1898,8 @@ void processDrawLineWidget(UIWidget* pWidget)
     DrawLineWidget* pOriginalWidget = (DrawLineWidget*)(pWidget->pWidget);
 
     ImGuiWindow* window = ImGui::GetCurrentWindow();
-    float2       pos1 = window->Pos - window->Scroll + pOriginalWidget->pos1;
-    float2       pos2 = window->Pos - window->Scroll + pOriginalWidget->pos2;
+    float2       pos1 = float2(window->Pos - window->Scroll) + pOriginalWidget->pos1;
+    float2       pos2 = float2(window->Pos - window->Scroll) + pOriginalWidget->pos2;
 
     ImGui::GetWindowDrawList()->AddLine(pos1, pos2, ImGui::GetColorU32(pOriginalWidget->color));
 
@@ -1860,8 +1922,8 @@ void processDrawCurveWidget(UIWidget* pWidget)
 
     for (uint32_t i = 0; i < pOriginalWidget->numPoints - 1; i++)
     {
-        float2 pos1 = window->Pos - window->Scroll + pOriginalWidget->pos[i];
-        float2 pos2 = window->Pos - window->Scroll + pOriginalWidget->pos[i + 1];
+        float2 pos1 = float2(window->Pos - window->Scroll) + pOriginalWidget->pos[i];
+        float2 pos2 = float2(window->Pos - window->Scroll) + pOriginalWidget->pos[i + 1];
         ImGui::GetWindowDrawList()->AddLine(pos1, pos2, ImGui::GetColorU32(pOriginalWidget->color), pOriginalWidget->thickness);
     }
 
@@ -1874,7 +1936,7 @@ void processCustomWidget(UIWidget* pWidget)
     CustomWidget* pOriginalWidget = (CustomWidget*)(pWidget->pWidget);
 
     if (pOriginalWidget->pCallback)
-        pOriginalWidget->pCallback(pOriginalWidget->pUserData);
+        pOriginalWidget->pCallback(pOriginalWidget->UserData);
 
     // Note that we do not process widget callbacks for custom widgets
 }
@@ -1883,7 +1945,7 @@ void processWidget(UIWidget* pWidget)
 {
     pWidget->displayPosition = ImGui::GetCursorScreenPos();
 
-    switch (pWidget->type)
+    switch (pWidget->Type)
     {
     case WIDGET_TYPE_COLLAPSING_HEADER:
     {
@@ -2098,7 +2160,7 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
 {
     if (freeUnderlying)
     {
-        switch (pWidget->type)
+        switch (pWidget->Type)
         {
         case WIDGET_TYPE_COLLAPSING_HEADER:
         {
@@ -2154,7 +2216,7 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
         {
             CustomWidget* pOriginalWidget = (CustomWidget*)(pWidget->pWidget);
             if (pOriginalWidget->pDestroyCallback)
-                pOriginalWidget->pDestroyCallback(pOriginalWidget->pUserData);
+                pOriginalWidget->pDestroyCallback(pOriginalWidget->UserData);
             break;
         }
 
@@ -2162,11 +2224,11 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
             ASSERT(0);
         }
 
-        tf_free(pWidget->pWidget);
+        MemDeallocate(pWidget->pWidget);
         pWidget->pWidget = NULL;
     }
 
-    tf_free(pWidget);
+    MemDeallocate(pWidget);
     pWidget = NULL;
 }
 
@@ -2176,11 +2238,11 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
 // MARK: - Dynamic UI Public Functions
 /****************************************************************************/
 
-UIWidget* uiCreateDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, const void* pWidget, WidgetType type)
+UIWidget* uiCreateDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, const void* pWidget, WidgetType Type)
 {
 #ifdef ENABLE_FORGE_UI
     UIWidget widget{};
-    widget.type = type;
+    widget.Type = Type;
     widget.pWidget = (void*)pWidget;
     strcpy(widget.label, pLabel);
 
@@ -2196,7 +2258,7 @@ void uiShowDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui)
     for (ptrdiff_t i = 0; i < arrlen(pDynamicUI->dynamicProperties); ++i)
     {
         UIWidget* pWidget = pDynamicUI->dynamicProperties[i];
-        UIWidget* pNewWidget = uiCreateComponentWidget(pGui, pWidget->label, pWidget->pWidget, pWidget->type, false);
+        UIWidget* pNewWidget = uiCreateComponentWidget(pGui, pWidget->label, pWidget->pWidget, pWidget->Type, false);
         cloneWidgetBase(pNewWidget, pWidget);
     }
 #endif
@@ -2208,7 +2270,7 @@ void uiHideDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui)
     for (ptrdiff_t i = 0; i < arrlen(pDynamicUI->dynamicProperties); i++)
     {
         // We should not erase the widgets in this for-loop, otherwise the IDs
-        // in mDynamicPropHandles will not match once  UIComponent::widgets changes size.
+        // in mDynamicPropHandles will not match once  UIComponent::widgets changes Size.
         uiDestroyComponentWidget(pGui, pDynamicUI->dynamicProperties[i]);
     }
 #endif
@@ -2234,11 +2296,11 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(ppUIComponent);
-    UIComponent* pComponent = (UIComponent*)(tf_calloc(1, sizeof(UIComponent)));
+    UIComponent* pComponent = (UIComponent*)(MemCallocate(1, sizeof(UIComponent)));
     pComponent->hasCloseButton = false;
-    pComponent->flags = GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE;
+    pComponent->Flags = GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE;
 #if defined(TARGET_IOS) || defined(__ANDROID__)
-    pComponent->flags |= GUI_COMPONENT_FLAGS_START_COLLAPSED;
+    pComponent->Flags |= GUI_COMPONENT_FLAGS_START_COLLAPSED;
 #endif
 
 #ifdef ENABLE_FORGE_FONTS
@@ -2253,7 +2315,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
     uint32_t fontBufferSize = fntGetRawFontDataSize(pDesc->fontID);
     if (pFontBuffer)
     {
-        // See if that specific font id and size is already in use, if so just reuse it
+        // See if that specific font id and Size is already in use, if so just reuse it
         ptrdiff_t cachedFontIndex = -1;
         for (ptrdiff_t i = 0; i < arrlen(pUserInterface->pCachedFontsArr); ++i)
         {
@@ -2269,7 +2331,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
             }
         }
 
-        if (cachedFontIndex == -1) // didn't find that font in the cache
+        if (cachedFontIndex == -1) // didn't Find that font in the cache
         {
             // Ensure we don't pass max amount of fonts
             if (arrlen(pUserInterface->pCachedFontsArr) < pUserInterface->maxUIFonts)
@@ -2279,15 +2341,15 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
             }
             else
             {
-                LOGF(eWARNING, "uiCreateComponent() has reached fonts capacity.  Consider increasing 'maxUIFonts' when initializing the "
-                               "user interface.");
+                LOGF(Warning, "uiCreateComponent() has reached fonts capacity.  Consider increasing 'maxUIFonts' when initializing the "
+                              "user interface.");
                 useDefaultFallbackFont = true;
             }
         }
     }
     else
     {
-        LOGF(eWARNING, "uiCreateComponent() uses an unknown font id (%u).  Will fallback to default UI font.", pDesc->fontID);
+        LOGF(Warning, "uiCreateComponent() uses an unknown font id (%u).  Will fallback to default UI font.", pDesc->fontID);
         useDefaultFallbackFont = true;
     }
 #else
@@ -2334,7 +2396,7 @@ void uiDestroyComponent(UIComponent* pGui)
         arrfree(pGui->widgets);
     }
 
-    tf_free(pGui);
+    MemDeallocate(pGui);
 #endif
 }
 
@@ -2350,11 +2412,11 @@ void uiSetComponentActive(UIComponent* pUIComponent, bool active)
 // MARK: - Public UIWidget Add/Remove Functions
 /****************************************************************************/
 
-UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType type, bool clone /* = true*/)
+UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType Type, bool clone /* = true*/)
 {
 #ifdef ENABLE_FORGE_UI
-    UIWidget* pBaseWidget = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
-    pBaseWidget->type = type;
+    UIWidget* pBaseWidget = (UIWidget*)MemCallocate(1, sizeof(UIWidget));
+    pBaseWidget->Type = Type;
     pBaseWidget->pWidget = (void*)pWidget;
     strcpy(pBaseWidget->label, pLabel);
 
@@ -2362,7 +2424,7 @@ UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const v
     arrpush(pGui->widgetsClone, clone);
 
     if (clone)
-        tf_free(pBaseWidget);
+        MemDeallocate(pBaseWidget);
 
     return pGui->widgets[arrlen(pGui->widgets) - 1];
 #else
@@ -2406,12 +2468,12 @@ void uiDestroyAllComponentWidgets(UIComponent* pGui)
 // MARK: - Safe Public Setter Functions
 /****************************************************************************/
 
-void uiSetComponentFlags(UIComponent* pGui, int32_t flags)
+void uiSetComponentFlags(UIComponent* pGui, int32_t Flags)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pGui);
 
-    pGui->flags = flags;
+    pGui->Flags = Flags;
 #endif
 }
 
@@ -2424,62 +2486,62 @@ void uiSetWidgetDeferred(UIWidget* pWidget, bool deferred)
 #endif
 }
 
-void uiSetWidgetOnHoverCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback)
+void uiSetWidgetOnHoverCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pWidget);
 
-    pWidget->pOnHoverUserData = pUserData;
+    pWidget->pOnHoverUserData = UserData;
     pWidget->pOnHover = callback;
 #endif
 }
 
-void uiSetWidgetOnActiveCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback)
+void uiSetWidgetOnActiveCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pWidget);
 
-    pWidget->pOnActiveUserData = pUserData;
+    pWidget->pOnActiveUserData = UserData;
     pWidget->pOnActive = callback;
 #endif
 }
 
-void uiSetWidgetOnFocusCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback)
+void uiSetWidgetOnFocusCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pWidget);
 
-    pWidget->pOnFocusUserData = pUserData;
+    pWidget->pOnFocusUserData = UserData;
     pWidget->pOnFocus = callback;
 #endif
 }
 
-void uiSetWidgetOnEditedCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback)
+void uiSetWidgetOnEditedCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pWidget);
 
-    pWidget->pOnEditedUserData = pUserData;
+    pWidget->pOnEditedUserData = UserData;
     pWidget->pOnEdited = callback;
 #endif
 }
 
-void uiSetWidgetOnDeactivatedCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback)
+void uiSetWidgetOnDeactivatedCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pWidget);
 
-    pWidget->pOnDeactivatedUserData = pUserData;
+    pWidget->pOnDeactivatedUserData = UserData;
     pWidget->pOnDeactivated = callback;
 #endif
 }
 
-void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, void* pUserData, WidgetCallback callback)
+void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, void* UserData, WidgetCallback callback)
 {
 #ifdef ENABLE_FORGE_UI
     ASSERT(pWidget);
 
-    pWidget->pOnDeactivatedAfterEditUserData = pUserData;
+    pWidget->pOnDeactivatedAfterEditUserData = UserData;
     pWidget->pOnDeactivatedAfterEdit = callback;
 #endif
 }
@@ -2501,11 +2563,11 @@ void uiNewFrame()
         if (remoteAppShouldSendFontTexture())
         {
             unsigned char* pPixelData = NULL;
-            int            width = 0;
-            int            height = 0;
-            ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pPixelData, &width, &height);
-            remoteControlSendTexture(hz::Format::R8G8B8A8_SRGB, (uint64_t)ImGui::GetIO().Fonts->TexID, width, height, width * height * 4,
-                                     pPixelData);
+            int            Width = 0;
+            int            Height = 0;
+            ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pPixelData, &Width, &Height);
+            remoteControlSendTexture(hz::Format::R8G8B8A8_SRGB, (uint64_t)ImGui::GetIO().Fonts->TexRef.GetTexID(), Width, Height,
+                                     Width * Height * 4, pPixelData);
         }
     }
 #endif
@@ -2522,18 +2584,18 @@ void uiEndFrame() { ImGui::EndFrame(); }
 bool platformInitUserInterface()
 {
 #ifdef ENABLE_FORGE_UI
-    UserInterface* pAppUI = tf_new(UserInterface);
+    UserInterface* pAppUI = MemNew(UserInterface);
 
     pAppUI->showDemoUiWindow = false;
 
     pAppUI->handledGestures = false;
     pAppUI->active = true;
-    memset(pAppUI->postUpdateKeyDownStates, 0, sizeof(pAppUI->postUpdateKeyDownStates));
 
-    const uint32_t monitorIdx = getActiveMonitorIdx();
-    getMonitorDpiScale(monitorIdx, pAppUI->dpiScale);
+    const uint32_t monitorIdx = GetActiveMonitorIndex();
+    GetMonitorDpiScale(monitorIdx, pAppUI->dpiScale);
 
     //// init UI (input)
+    IMGUI_CHECKVERSION();
     ImGui::SetAllocatorFunctions(alloc_func, dealloc_func);
     pAppUI->context = ImGui::CreateContext();
     ImGui::SetCurrentContext(pAppUI->context);
@@ -2542,34 +2604,12 @@ bool platformInitUserInterface()
 
     ImGuiIO& io = ImGui::GetIO();
 
-    // TODO: Might be a good idea to considder adding these flags in some platforms:
+    // TODO: Might be a good idea to considder adding these Flags in some platforms:
     //         - ImGuiConfigFlags_NavEnableKeyboard
     io.ConfigFlags = ImGuiConfigFlags_NavEnableGamepad;
 
-    // Tell ImGui that we support ImDrawCmd::VtxOffset, otherwise ImGui will always set it to 0
+    // Tell ImGui that we support ImDrawCmd::VtxOffset, otherwise ImGui will always Set it to 0
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
-
-    io.KeyMap[ImGuiKey_Tab] = UISystemInputActions::UI_ACTION_KEY_TAB;
-    io.KeyMap[ImGuiKey_LeftArrow] = UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW;
-    io.KeyMap[ImGuiKey_RightArrow] = UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW;
-    io.KeyMap[ImGuiKey_UpArrow] = UISystemInputActions::UI_ACTION_KEY_UP_ARROW;
-    io.KeyMap[ImGuiKey_DownArrow] = UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW;
-    io.KeyMap[ImGuiKey_PageUp] = UISystemInputActions::UI_ACTION_KEY_PAGE_UP;
-    io.KeyMap[ImGuiKey_PageDown] = UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN;
-    io.KeyMap[ImGuiKey_Home] = UISystemInputActions::UI_ACTION_KEY_HOME;
-    io.KeyMap[ImGuiKey_End] = UISystemInputActions::UI_ACTION_KEY_END;
-    io.KeyMap[ImGuiKey_Insert] = UISystemInputActions::UI_ACTION_KEY_INSERT;
-    io.KeyMap[ImGuiKey_Delete] = UISystemInputActions::UI_ACTION_KEY_DELETE;
-    io.KeyMap[ImGuiKey_Backspace] = UISystemInputActions::UI_ACTION_KEY_BACK_SPACE;
-    io.KeyMap[ImGuiKey_Space] = UISystemInputActions::UI_ACTION_KEY_SPACE;
-    io.KeyMap[ImGuiKey_Enter] = UISystemInputActions::UI_ACTION_KEY_ENTER;
-    io.KeyMap[ImGuiKey_Escape] = UISystemInputActions::UI_ACTION_KEY_ESCAPE;
-    io.KeyMap[ImGuiKey_A] = UISystemInputActions::UI_ACTION_KEY_A;
-    io.KeyMap[ImGuiKey_C] = UISystemInputActions::UI_ACTION_KEY_C;
-    io.KeyMap[ImGuiKey_V] = UISystemInputActions::UI_ACTION_KEY_V;
-    io.KeyMap[ImGuiKey_X] = UISystemInputActions::UI_ACTION_KEY_X;
-    io.KeyMap[ImGuiKey_Y] = UISystemInputActions::UI_ACTION_KEY_Y;
-    io.KeyMap[ImGuiKey_Z] = UISystemInputActions::UI_ACTION_KEY_Z;
 
     pUserInterface = pAppUI;
 #endif
@@ -2583,13 +2623,14 @@ void platformExitUserInterface()
     for (ptrdiff_t i = 0; i < arrlen(pUserInterface->components); ++i)
     {
         uiDestroyAllComponentWidgets(pUserInterface->components[i]);
-        tf_free(pUserInterface->components[i]);
+        MemDeallocate(pUserInterface->components[i]);
     }
     arrfree(pUserInterface->components);
 
     ImGui::DestroyContext(pUserInterface->context);
 
-    tf_delete(pUserInterface);
+    MemDelete(pUserInterface);
+    pUserInterface = nullptr;
 #endif
 }
 
@@ -2619,35 +2660,31 @@ void platformUpdateUserInterface(float deltaTime)
     guiUpdate.pUIComponents = activeComponents;
     guiUpdate.componentCount = (uint32_t)arrlenu(activeComponents);
     guiUpdate.deltaTime = deltaTime;
-    guiUpdate.width = pUserInterface->displayWidth;
-    guiUpdate.height = pUserInterface->displayHeight;
+    guiUpdate.Width = pUserInterface->displayWidth;
+    guiUpdate.Height = pUserInterface->displayHeight;
     guiUpdate.showDemoWindow = pUserInterface->showDemoUiWindow;
 
     ImGui::SetCurrentContext(pUserInterface->context);
-    // #TODO: Use window size as render-target size cannot be trusted to be the same as window size
+    // #TODO: Use window Size as render-target Size cannot be trusted to be the same as window Size
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize.x = pUserInterface->displayWidth;
     io.DisplaySize.y = pUserInterface->displayHeight;
-    io.DisplayFramebufferScale.x = pUserInterface->width / pUserInterface->displayWidth;
-    io.DisplayFramebufferScale.y = pUserInterface->height / pUserInterface->displayHeight;
-    io.FontGlobalScale = min(io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+    io.DisplayFramebufferScale.x = pUserInterface->Width / pUserInterface->displayWidth;
+    io.DisplayFramebufferScale.y = pUserInterface->Height / pUserInterface->displayHeight;
+    ImGui::GetStyle().FontScaleMain = min(io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
     io.DeltaTime = guiUpdate.deltaTime;
-    if (pUserInterface->pMovePosition)
-        io.MousePos = *pUserInterface->pMovePosition * io.DisplayFramebufferScale;
 
     // Gamepad connected
     {
         bool anyGamepadConnected = false;
         for (uint32_t i = 0; i < MAX_INPUT_GAMEPADS; ++i)
-            anyGamepadConnected |= gamePadConnected(i);
+            anyGamepadConnected |= IsGamePadConnected(i);
 
         if (anyGamepadConnected)
             io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
         else
             io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
     }
-
-    memcpy(io.NavInputs, pUserInterface->navInputs, sizeof(pUserInterface->navInputs));
 
     uiNewFrame();
 
@@ -2656,8 +2693,6 @@ void platformUpdateUserInterface(float deltaTime)
         if (guiUpdate.showDemoWindow)
             ImGui::ShowDemoWindow();
 
-        pUserInterface->lastUpdateCount = guiUpdate.componentCount;
-
         for (uint32_t compIndex = 0; compIndex < guiUpdate.componentCount; ++compIndex)
         {
             if (!guiUpdate.pUIComponents)
@@ -2665,7 +2700,7 @@ void platformUpdateUserInterface(float deltaTime)
 
             UIComponent*          pComponent = guiUpdate.pUIComponents[compIndex];
             char                  title[MAX_TITLE_STR_LENGTH] = { 0 };
-            int32_t               UIComponentFlags = pComponent->flags;
+            int32_t               UIComponentFlags = pComponent->Flags;
             bool*                 pCloseButtonActiveValue = pComponent->hasCloseButton ? &pComponent->hasCloseButton : NULL;
             const char* const*    contextualMenuLabels = pComponent->contextualMenuLabels;
             const WidgetCallback* contextualMenuCallbacks = pComponent->contextualMenuCallbacks;
@@ -2707,8 +2742,6 @@ void platformUpdateUserInterface(float deltaTime)
                 guiWinFlags |= ImGuiWindowFlags_AlwaysVerticalScrollbar;
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_HORIZONTAL_SCROLLBAR)
                 guiWinFlags |= ImGuiWindowFlags_AlwaysHorizontalScrollbar;
-            if (UIComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_USE_WINDOW_PADDING)
-                guiWinFlags |= ImGuiWindowFlags_AlwaysUseWindowPadding;
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_INPUT)
                 guiWinFlags |= ImGuiWindowFlags_NoNavInputs;
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_FOCUS)
@@ -2716,11 +2749,12 @@ void platformUpdateUserInterface(float deltaTime)
             if (UIComponentFlags & GUI_COMPONENT_FLAGS_NO_DOCKING)
                 guiWinFlags |= ImGuiWindowFlags_NoDocking;
 
-            ImGui::PushFont((ImFont*)pComponent->pFont);
+            ImFont* Font = (ImFont*)pComponent->pFont;
+            ImGui::PushFont(Font, Font ? Font->LegacySize : 0.f);
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, pComponent->alpha);
 
             if (pComponent->pPreProcessCallback)
-                pComponent->pPreProcessCallback(pComponent->pUserData);
+                pComponent->pPreProcessCallback(pComponent->UserData);
 
             bool result = ImGui::Begin(title, pCloseButtonActiveValue, guiWinFlags);
             if (result)
@@ -2733,7 +2767,7 @@ void platformUpdateUserInterface(float deltaTime)
                         if (ImGui::MenuItem(contextualMenuLabels[i]))
                         {
                             if (contextualMenuCallbacks && contextualMenuCallbacks[i])
-                                contextualMenuCallbacks[i](pComponent->pUserData);
+                                contextualMenuCallbacks[i](pComponent->UserData);
                         }
                     }
                     ImGui::EndPopup();
@@ -2764,19 +2798,17 @@ void platformUpdateUserInterface(float deltaTime)
             }
 
             float2 pos = ImGui::GetWindowPos();
-            float2 size = ImGui::GetWindowSize();
+            float2 Size = ImGui::GetWindowSize();
             pCurrentWindowRect->x = pos.x;
             pCurrentWindowRect->y = pos.y;
-            pCurrentWindowRect->z = size.x;
-            pCurrentWindowRect->w = size.y;
-            pUserInterface->lastUpdateMin[compIndex] = pos;
-            pUserInterface->lastUpdateMax[compIndex] = pos + size;
+            pCurrentWindowRect->z = Size.x;
+            pCurrentWindowRect->w = Size.y;
 
             // Need to call ImGui::End event if result is false since we called ImGui::Begin
             ImGui::End();
 
             if (pComponent->pPostProcessCallback)
-                pComponent->pPostProcessCallback(pComponent->pUserData);
+                pComponent->pPostProcessCallback(pComponent->UserData);
 
             ImGui::PopStyleVar();
             ImGui::PopFont();
@@ -2806,16 +2838,7 @@ void platformUpdateUserInterface(float deltaTime)
         }
     }
 
-    if (!io.MouseDown[0])
-    {
-        io.MousePos = float2(-FLT_MAX);
-    }
-
     pUserInterface->handledGestures = false;
-
-    // Apply post update keydown states
-    COMPILE_ASSERT(sizeof(pUserInterface->postUpdateKeyDownStates) == sizeof(io.KeysDown));
-    memcpy(io.KeysDown, pUserInterface->postUpdateKeyDownStates, sizeof(io.KeysDown));
 
     arrfree(activeComponents);
 
@@ -2862,17 +2885,17 @@ static void cmdPrepareRenderingForUI(Cmd* pCmd, const float2& displayPos, const 
     const float                  R = displayPos.x + displaySize.x;
     const float                  T = displayPos.y;
     const float                  B = displayPos.y + displaySize.y;
-    alignas(alignof(mat4)) float mvp[4][4] = {
+    alignas(alignof(Matrix4)) float mvp[4][4] = {
         { 2.0f / (R - L), 0.0f, 0.0f, 0.0f },
         { 0.0f, 2.0f / (T - B), 0.0f, 0.0f },
         { 0.0f, 0.0f, 0.5f, 0.0f },
         { (R + L) / (L - R), (T + B) / (B - T), 0.5f, 1.0f },
     };
 
-    BufferUpdateDesc update = { pUserInterface->pUniformBuffer[pUserInterface->frameIdx] };
-    beginUpdateResource(&update);
-    memcpy(update.pMappedData, &mvp, sizeof(mvp));
-    endUpdateResource(&update);
+    BufferUpdateDesc Update = { pUserInterface->pUniformBuffer[pUserInterface->frameIdx] };
+    beginUpdateResource(&Update);
+    memcpy(Update.pMappedData, &mvp, sizeof(mvp));
+    endUpdateResource(&Update);
 
     const uint32_t vertexStride = sizeof(ImDrawVert);
 
@@ -2889,7 +2912,7 @@ static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawC
                              Pipeline** ppPipelineInOut, Pipeline** ppPrevPipelineInOut, int32_t& globalVtxOffsetInOut,
                              int32_t& globalIdxOffsetInOut, uint32_t& prevTextureIndexInOut)
 {
-    // for (uint32_t i = 0; i < (uint32_t)pCmdList->CmdBuffer.size(); i++)
+    // for (uint32_t i = 0; i < (uint32_t)pCmdList->CmdBuffer.Size(); i++)
     //{
     //	const ImDrawCmd* pImDrawCmd = &pCmdList->CmdBuffer[i];
     //	if (pImDrawCmd->UserCallback)
@@ -2925,7 +2948,7 @@ static void cmdDrawUICommand(Cmd* pCmd, const UserInterfaceDrawCommand* pImDrawC
         pTexture = (Texture*)id;
 #endif
     const uint32_t textureIndex = getTextureSrvIndex(pTexture);
-    *ppPipelineInOut = pUserInterface->pPipelineTextured[(uint32_t)log2(pTexture->sampleCount)];
+    *ppPipelineInOut = pUserInterface->pPipelineTextured[(uint32_t)log2(pTexture->SampleCount)];
     if (*ppPrevPipelineInOut != *ppPipelineInOut)
     {
         cmdBindPipeline(pCmd, *ppPipelineInOut);
@@ -2974,27 +2997,27 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     addSampler(pUserInterface->pRenderer, &samplerDesc, &pUserInterface->pDefaultSampler);
 
     BufferLoadDesc vbDesc = {};
-    vbDesc.desc.descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-    vbDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    vbDesc.desc.size = VERTEX_BUFFER_SIZE * pDesc->frameCount;
-    vbDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    vbDesc.desc.pName = "UI Vertex Buffer";
+    vbDesc.desc.Descriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+    vbDesc.desc.MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    vbDesc.desc.Size = VERTEX_BUFFER_SIZE * pDesc->frameCount;
+    vbDesc.desc.Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    vbDesc.desc.Name = "UI Vertex Buffer";
     vbDesc.ppBuffer = &pUserInterface->pVertexBuffer;
     addResource(&vbDesc, NULL);
 
     BufferLoadDesc ibDesc = vbDesc;
-    ibDesc.desc.descriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-    ibDesc.desc.size = INDEX_BUFFER_SIZE * pDesc->frameCount;
-    vbDesc.desc.pName = "UI Index Buffer";
+    ibDesc.desc.Descriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
+    ibDesc.desc.Size = INDEX_BUFFER_SIZE * pDesc->frameCount;
+    vbDesc.desc.Name = "UI Index Buffer";
     ibDesc.ppBuffer = &pUserInterface->pIndexBuffer;
     addResource(&ibDesc, NULL);
 
     BufferLoadDesc ubDesc = {};
-    ubDesc.desc.descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    ubDesc.desc.memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-    ubDesc.desc.flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    ubDesc.desc.size = sizeof(mat4);
-    vbDesc.desc.pName = "UI Uniform Buffer";
+    ubDesc.desc.Descriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ubDesc.desc.MemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+    ubDesc.desc.Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+    ubDesc.desc.Size = sizeof(Matrix4);
+    vbDesc.desc.Name = "UI Uniform Buffer";
     for (uint32_t i = 0; i < pDesc->frameCount; ++i)
     {
         ubDesc.ppBuffer = &pUserInterface->pUniformBuffer[i];
@@ -3005,23 +3028,23 @@ void initUserInterface(UserInterfaceDesc* pDesc)
     vertexLayout->bindingCount = 1;
     vertexLayout->attribCount = 3;
     vertexLayout->attribs[0].semantic = SEMANTIC_POSITION;
-    vertexLayout->attribs[0].format = hz::Format::R32G32_SFLOAT;
+    vertexLayout->attribs[0].Format = hz::Format::R32G32_SFLOAT;
     vertexLayout->attribs[0].binding = 0;
     vertexLayout->attribs[0].location = 0;
     vertexLayout->attribs[0].offset = 0;
     vertexLayout->attribs[1].semantic = SEMANTIC_TEXCOORD0;
-    vertexLayout->attribs[1].format = hz::Format::R32G32_SFLOAT;
+    vertexLayout->attribs[1].Format = hz::Format::R32G32_SFLOAT;
     vertexLayout->attribs[1].binding = 0;
     vertexLayout->attribs[1].location = 1;
     vertexLayout->attribs[1].offset =
-        TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pUserInterface->vertexLayoutTextured.attribs[0].format) / 8;
+        TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pUserInterface->vertexLayoutTextured.attribs[0].Format) / 8;
     vertexLayout->attribs[2].semantic = SEMANTIC_COLOR;
-    vertexLayout->attribs[2].format = hz::Format::R8G8B8A8_UNORM;
+    vertexLayout->attribs[2].Format = hz::Format::R8G8B8A8_UNORM;
     vertexLayout->attribs[2].binding = 0;
     vertexLayout->attribs[2].location = 2;
     vertexLayout->attribs[2].offset =
         vertexLayout->attribs[1].offset +
-        TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pUserInterface->vertexLayoutTextured.attribs[1].format) / 8;
+        TinyImageFormat_BitSizeOfBlock((TinyImageFormat)pUserInterface->vertexLayoutTextured.attribs[1].Format) / 8;
 
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = pDesc->settingsFilename;
@@ -3068,12 +3091,13 @@ void exitUserInterface()
     arrfree(pUserInterface->pCachedFontsArr);
     hmfree(pUserInterface->pTextureHashmap);
 
-    // Resources can no longer be used. Force ImGui to clear all use:
+    // Resources can no longer be used. Force ImGui to Clear all use:
     {
         ImGui::SetCurrentContext(pUserInterface->context);
         uiNewFrame();
         uiEndFrame();
     }
+    pUserInterface->pRenderer = nullptr;
 
     /************************************************************************/
     // Remote Control
@@ -3131,13 +3155,13 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
 
         PipelineDesc desc = {};
         desc.pCache = pUserInterface->pPipelineCache;
-        desc.type = PIPELINE_TYPE_GRAPHICS;
+        desc.Type = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& pipelineDesc = desc.graphicsDesc;
         pipelineDesc.depthStencilFormat = hz::Format::UNDEFINED;
         pipelineDesc.renderTargetCount = 1;
-        pipelineDesc.sampleCount = SAMPLE_COUNT_1;
+        pipelineDesc.SampleCount = SAMPLE_COUNT_1;
         pipelineDesc.pBlendState = &blendStateDesc;
-        pipelineDesc.sampleQuality = 0;
+        pipelineDesc.SampleQuality = 0;
         pipelineDesc.pColorFormats = (hz::Format*)&pDesc->colorFormat;
         pipelineDesc.pDepthState = &depthStateDesc;
         pipelineDesc.pRasterizerState = &rasterizerStateDesc;
@@ -3154,16 +3178,16 @@ void loadUserInterface(const UserInterfaceLoadDesc* pDesc)
 
     if (pDesc->loadType & RELOAD_TYPE_RESIZE)
     {
-        pUserInterface->width = (float)pDesc->width;
-        pUserInterface->height = (float)pDesc->height;
-        pUserInterface->displayWidth = pDesc->displayWidth == 0 ? pUserInterface->width : (float)pDesc->displayWidth;
-        pUserInterface->displayHeight = pDesc->displayHeight == 0 ? pUserInterface->height : (float)pDesc->displayHeight;
+        pUserInterface->Width = (float)pDesc->Width;
+        pUserInterface->Height = (float)pDesc->Height;
+        pUserInterface->displayWidth = pDesc->displayWidth == 0 ? pUserInterface->Width : (float)pDesc->displayWidth;
+        pUserInterface->displayHeight = pDesc->displayHeight == 0 ? pUserInterface->Height : (float)pDesc->displayHeight;
     }
 
 #if TOUCH_INPUT
-    bool loadVirtualJoystick(ReloadType loadType, hz::Format colorFormat, uint32_t width, uint32_t height, uint32_t displayWidth,
+    bool loadVirtualJoystick(ReloadType loadType, hz::Format colorFormat, uint32_t Width, uint32_t Height, uint32_t displayWidth,
                              uint32_t dispayHeight);
-    loadVirtualJoystick((ReloadType)pDesc->loadType, pDesc->colorFormat, pUserInterface->width, pUserInterface->height,
+    loadVirtualJoystick((ReloadType)pDesc->loadType, pDesc->colorFormat, pUserInterface->Width, pUserInterface->Height,
                         pUserInterface->displayWidth, pUserInterface->displayHeight);
 #endif
 #endif
@@ -3267,8 +3291,8 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
 
     if (pUIDrawData->vertexCount > FORGE_UI_MAX_VERTEXES || pUIDrawData->indexCount > FORGE_UI_MAX_INDEXES)
     {
-        LOGF(eWARNING, "UI exceeds amount of verts/inds.  Consider updating FORGE_UI_MAX_VERTEXES/FORGE_UI_MAX_INDEXES defines.");
-        LOGF(eWARNING, "Num verts: %u (max %d) | Num inds: %u (max %d)", pUIDrawData->vertexCount, FORGE_UI_MAX_VERTEXES,
+        LOGF(Warning, "UI exceeds amount of verts/inds.  Consider updating FORGE_UI_MAX_VERTEXES/FORGE_UI_MAX_INDEXES defines.");
+        LOGF(Warning, "Num verts: %u (max %d) | Num inds: %u (max %d)", pUIDrawData->vertexCount, FORGE_UI_MAX_VERTEXES,
              pUIDrawData->indexCount, FORGE_UI_MAX_INDEXES);
         pUIDrawData->vertexCount = pUIDrawData->vertexCount > FORGE_UI_MAX_VERTEXES ? FORGE_UI_MAX_VERTEXES : pUIDrawData->vertexCount;
         pUIDrawData->indexCount = pUIDrawData->indexCount > FORGE_UI_MAX_INDEXES ? FORGE_UI_MAX_INDEXES : pUIDrawData->indexCount;
@@ -3279,15 +3303,15 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
 
     if (pUIDrawData->vertexBufferData && pUIDrawData->indexBufferData)
     {
-        BufferUpdateDesc update = { pUserInterface->pVertexBuffer, vOffset };
-        beginUpdateResource(&update);
-        memcpy(update.pMappedData, pUIDrawData->vertexBufferData, (size_t)pUIDrawData->vertexCount * pUIDrawData->vertexSize);
-        endUpdateResource(&update);
+        BufferUpdateDesc Update = { pUserInterface->pVertexBuffer, vOffset };
+        beginUpdateResource(&Update);
+        memcpy(Update.pMappedData, pUIDrawData->vertexBufferData, (size_t)pUIDrawData->vertexCount * pUIDrawData->vertexSize);
+        endUpdateResource(&Update);
 
-        update = { pUserInterface->pIndexBuffer, iOffset };
-        beginUpdateResource(&update);
-        memcpy(update.pMappedData, pUIDrawData->indexBufferData, (size_t)pUIDrawData->indexCount * pUIDrawData->indexSize);
-        endUpdateResource(&update);
+        Update = { pUserInterface->pIndexBuffer, iOffset };
+        beginUpdateResource(&Update);
+        memcpy(Update.pMappedData, pUIDrawData->indexBufferData, (size_t)pUIDrawData->indexCount * pUIDrawData->indexSize);
+        endUpdateResource(&Update);
     }
     else
     {
@@ -3296,15 +3320,15 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
         for (int32_t i = 0; i < pImDrawData->CmdListsCount; i++)
         {
             const ImDrawList* pCmdList = pImDrawData->CmdLists[i];
-            BufferUpdateDesc  update = { pUserInterface->pVertexBuffer, vtxDst };
-            beginUpdateResource(&update);
-            memcpy(update.pMappedData, pCmdList->VtxBuffer.Data, pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
-            endUpdateResource(&update);
+            BufferUpdateDesc  Update = { pUserInterface->pVertexBuffer, vtxDst };
+            beginUpdateResource(&Update);
+            memcpy(Update.pMappedData, pCmdList->VtxBuffer.Data, pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
+            endUpdateResource(&Update);
 
-            update = { pUserInterface->pIndexBuffer, idxDst };
-            beginUpdateResource(&update);
-            memcpy(update.pMappedData, pCmdList->IdxBuffer.Data, pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
-            endUpdateResource(&update);
+            Update = { pUserInterface->pIndexBuffer, idxDst };
+            beginUpdateResource(&Update);
+            memcpy(Update.pMappedData, pCmdList->IdxBuffer.Data, pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
+            endUpdateResource(&Update);
 
             vtxDst += (pCmdList->VtxBuffer.size() * sizeof(ImDrawVert));
             idxDst += (pCmdList->IdxBuffer.size() * sizeof(ImDrawIdx));
@@ -3349,7 +3373,7 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
 
                 UserInterfaceDrawCommand drawCommand = {};
                 drawCommand.clipRect = pImDrawCmd->ClipRect;
-                drawCommand.textureId = (uint64_t)pImDrawCmd->TextureId;
+                drawCommand.textureId = (uint64_t)pImDrawCmd->GetTexID();
                 drawCommand.vertexOffset = pImDrawCmd->VtxOffset;
                 drawCommand.indexOffset = pImDrawCmd->IdxOffset;
                 if (c == pCmdList->CmdBuffer.size() - 1)
@@ -3389,11 +3413,15 @@ void cmdDrawUserInterface(Cmd* pCmd, UserInterfaceDrawData* pUIDrawData)
 void uiOnText(const wchar_t* pText)
 {
 #ifdef ENABLE_FORGE_UI
+    if (!pUserInterface || !pUserInterface->pRenderer)
+    {
+        return;
+    }
     ImGui::SetCurrentContext(pUserInterface->context);
     ImGuiIO& io = ImGui::GetIO();
     uint32_t len = (uint32_t)wcslen(pText);
     for (uint32_t i = 0; i < len; ++i)
-        io.AddInputCharacter(pText[i]);
+        io.AddInputCharacterUTF16(pText[i]);
 #endif
 }
 
@@ -3403,7 +3431,20 @@ void uiOnButton(uint32_t actionId, bool press, const float2* pVec)
     ImGui::SetCurrentContext(pUserInterface->context);
     ImGuiIO& io = ImGui::GetIO();
     if (pVec)
-        pUserInterface->pMovePosition = pVec;
+        io.AddMousePosEvent(pVec->x, pVec->y);
+
+    if (actionId >= UISystemInputActions::UI_ACTION_KEY_TAB && actionId <= UISystemInputActions::UI_ACTION_KEY_F2)
+    {
+        if (actionId >= UISystemInputActions::UI_ACTION_KEY_CONTROL_L && actionId <= UISystemInputActions::UI_ACTION_KEY_SUPER_R)
+        {
+            static constexpr ImGuiKey Modifiers[] = { ImGuiMod_Ctrl, ImGuiMod_Shift, ImGuiMod_Alt, ImGuiMod_Super };
+            const uint32_t            Index = actionId - UISystemInputActions::UI_ACTION_KEY_CONTROL_L;
+            pUserInterface->ModifierDown[Index / 2][Index % 2] = press;
+            io.AddKeyEvent(Modifiers[Index / 2], press || pUserInterface->ModifierDown[Index / 2][1 - Index % 2]);
+        }
+        io.AddKeyEvent(KeyboardKeys[actionId - UISystemInputActions::UI_ACTION_KEY_TAB], press);
+        return;
+    }
 
     switch (actionId)
     {
@@ -3420,212 +3461,55 @@ void uiOnButton(uint32_t actionId, bool press, const float2* pVec)
         }
         break;
     case UISystemInputActions::UI_ACTION_NAV_ACTIVATE:
-        pUserInterface->navInputs[ImGuiNavInput_Activate] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadFaceDown, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_CANCEL:
-        pUserInterface->navInputs[ImGuiNavInput_Cancel] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadFaceRight, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_INPUT:
-        pUserInterface->navInputs[ImGuiNavInput_Input] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadFaceUp, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_MENU:
-        pUserInterface->navInputs[ImGuiNavInput_Menu] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadFaceLeft, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_TWEAK_WINDOW_LEFT:
-        pUserInterface->navInputs[ImGuiNavInput_DpadLeft] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadDpadLeft, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_TWEAK_WINDOW_RIGHT:
-        pUserInterface->navInputs[ImGuiNavInput_DpadRight] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadDpadRight, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_TWEAK_WINDOW_UP:
-        pUserInterface->navInputs[ImGuiNavInput_DpadUp] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadDpadUp, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_TWEAK_WINDOW_DOWN:
-        pUserInterface->navInputs[ImGuiNavInput_DpadDown] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadDpadDown, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_FOCUS_PREV:
-        pUserInterface->navInputs[ImGuiNavInput_FocusPrev] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadL1, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_FOCUS_NEXT:
-        pUserInterface->navInputs[ImGuiNavInput_FocusNext] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadR1, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_TWEAK_SLOW:
-        pUserInterface->navInputs[ImGuiNavInput_TweakSlow] = (float)press;
+        io.AddKeyEvent(ImGuiKey_GamepadL1, press);
         break;
     case UISystemInputActions::UI_ACTION_NAV_TWEAK_FAST:
-        pUserInterface->navInputs[ImGuiNavInput_TweakFast] = (float)press;
-        break;
-
-    case UISystemInputActions::UI_ACTION_KEY_CONTROL_L:
-    case UISystemInputActions::UI_ACTION_KEY_CONTROL_R:
-        io.KeyCtrl = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_SHIFT_L:
-    case UISystemInputActions::UI_ACTION_KEY_SHIFT_R:
-        io.KeyShift = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_ALT_L:
-    case UISystemInputActions::UI_ACTION_KEY_ALT_R:
-        io.KeyAlt = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_SUPER_L:
-    case UISystemInputActions::UI_ACTION_KEY_SUPER_R:
-        io.KeySuper = press;
+        io.AddKeyEvent(ImGuiKey_GamepadR1, press);
         break;
     case UISystemInputActions::UI_ACTION_MOUSE_LEFT:
+        io.AddMouseButtonEvent(ImGuiMouseButton_Left, press);
+        break;
     case UISystemInputActions::UI_ACTION_MOUSE_RIGHT:
+        io.AddMouseButtonEvent(ImGuiMouseButton_Right, press);
+        break;
     case UISystemInputActions::UI_ACTION_MOUSE_MIDDLE:
+        io.AddMouseButtonEvent(ImGuiMouseButton_Middle, press);
+        break;
     case UISystemInputActions::UI_ACTION_MOUSE_SCROLL_UP:
     case UISystemInputActions::UI_ACTION_MOUSE_SCROLL_DOWN:
-    case UISystemInputActions::UI_ACTION_MOUSE_MOVE:
-    {
-        const float scrollScale =
-            0.25f; // This should maybe be customized by client?  1.f would scroll ~5 lines of txt according to ImGui doc.
-        pUserInterface->navInputs[ImGuiNavInput_Activate] = (float)press;
-        if (pVec)
-        {
-            if (UISystemInputActions::UI_ACTION_MOUSE_LEFT == actionId)
-                io.MouseDown[0] = press;
-            else if (UISystemInputActions::UI_ACTION_MOUSE_RIGHT == actionId)
-                io.MouseDown[1] = press;
-            else if (UISystemInputActions::UI_ACTION_MOUSE_MIDDLE == actionId)
-                io.MouseDown[2] = press;
-            else if (UISystemInputActions::UI_ACTION_MOUSE_SCROLL_UP == actionId)
-                io.MouseWheel = 1.f * scrollScale;
-            else if (UISystemInputActions::UI_ACTION_MOUSE_SCROLL_DOWN == actionId)
-                io.MouseWheel = -1.f * scrollScale;
-        }
-        if (io.MousePos.x != -FLT_MAX && io.MousePos.y != -FLT_MAX)
-        {
-            io.MousePos = *pVec;
-            break;
-        }
-        else if (pVec)
-        {
-            io.MousePos = *pVec;
-            for (uint32_t i = 0; i < pUserInterface->lastUpdateCount; ++i)
-            {
-                if (ImGui::IsMouseHoveringRect(pUserInterface->lastUpdateMin[i], pUserInterface->lastUpdateMax[i], false))
-                {
-                    // TOOD: io.WantCaptureMouse is meant to be for the application to read, ImGui modifies it internally. We should find
-                    // another way to do this rather than changing it.
-                    io.WantCaptureMouse = true;
-                }
-            }
-            break;
-        }
-        break;
-    }
-
-    // Note that for keyboard keys, we only set them to true here if they are pressed because we may have a press/release
-    // happening in one frame and it would never get registered.  Instead, unpressed are deferred at the end of update().
-    // This scenario occurs with mobile soft (on-screen) keyboards.
-    case UISystemInputActions::UI_ACTION_KEY_TAB:
         if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_TAB] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_TAB] = press;
+            io.AddMouseWheelEvent(0.0f, actionId == UISystemInputActions::UI_ACTION_MOUSE_SCROLL_UP ? 0.25f : -0.25f);
         break;
-    case UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_LEFT_ARROW] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_RIGHT_ARROW] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_UP_ARROW:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_UP_ARROW] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_UP_ARROW] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_DOWN_ARROW] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_PAGE_UP:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_PAGE_UP] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_PAGE_UP] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_PAGE_DOWN] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_HOME:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_HOME] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_HOME] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_END:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_END] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_END] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_INSERT:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_INSERT] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_INSERT] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_DELETE:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_DELETE] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_DELETE] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_BACK_SPACE:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_BACK_SPACE] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_BACK_SPACE] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_SPACE:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_SPACE] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_SPACE] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_ENTER:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_ENTER] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_ENTER] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_ESCAPE:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_ESCAPE] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_ESCAPE] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_A:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_A] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_A] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_C:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_C] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_C] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_V:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_V] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_V] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_X:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_X] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_X] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_Y:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_Y] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_Y] = press;
-        break;
-    case UISystemInputActions::UI_ACTION_KEY_Z:
-        if (press)
-            io.KeysDown[UISystemInputActions::UI_ACTION_KEY_Z] = true;
-        pUserInterface->postUpdateKeyDownStates[UISystemInputActions::UI_ACTION_KEY_Z] = press;
-        break;
-
     default:
         break;
     }
@@ -3643,26 +3527,11 @@ void uiOnStick(uint32_t actionId, const float2* pStick)
     {
         ASSERT(pStick);
         const float2 vec = *pStick;
-        if (vec.x < 0.f)
-            pUserInterface->navInputs[ImGuiNavInput_LStickLeft] = abs(vec.x);
-        else if (vec.x > 0.f)
-            pUserInterface->navInputs[ImGuiNavInput_LStickRight] = vec.x;
-        else
-        {
-            pUserInterface->navInputs[ImGuiNavInput_LStickLeft] = 0.f;
-            pUserInterface->navInputs[ImGuiNavInput_LStickRight] = 0.f;
-        }
-
-        if (vec.y < 0.f)
-            pUserInterface->navInputs[ImGuiNavInput_LStickDown] = abs(vec.y);
-        else if (vec.y > 0.f)
-            pUserInterface->navInputs[ImGuiNavInput_LStickUp] = vec.y;
-        else
-        {
-            pUserInterface->navInputs[ImGuiNavInput_LStickDown] = 0.f;
-            pUserInterface->navInputs[ImGuiNavInput_LStickUp] = 0.f;
-        }
-
+        ImGuiIO&     io = ImGui::GetIO();
+        io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickLeft, vec.x < 0.f, max(-vec.x, 0.f));
+        io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickRight, vec.x > 0.f, max(vec.x, 0.f));
+        io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickDown, vec.y < 0.f, max(-vec.y, 0.f));
+        io.AddKeyAnalogEvent(ImGuiKey_GamepadLStickUp, vec.y > 0.f, max(vec.y, 0.f));
         break;
     }
     }
@@ -3672,6 +3541,10 @@ void uiOnStick(uint32_t actionId, const float2* pStick)
 void uiOnInput(uint32_t actionId, bool buttonPress, const float2* pMousePos, const float2* pStick)
 {
 #ifdef ENABLE_FORGE_UI
+    if (!pUserInterface || !pUserInterface->pRenderer)
+    {
+        return;
+    }
     if (actionId == UISystemInputActions::UI_ACTION_NAV_SCROLL_MOVE_WINDOW)
         uiOnStick(actionId, pStick);
     else
@@ -3683,7 +3556,7 @@ uint8_t uiWantTextInput()
 {
 #ifdef ENABLE_FORGE_UI
     ImGui::SetCurrentContext(pUserInterface->context);
-    // The User flags are not what I expect them to be.
+    // The User Flags are not what I expect them to be.
     // We need access to Per-Component InputFlags
     ImGuiContext*       guiContext = (ImGuiContext*)pUserInterface->context;
     ImGuiInputTextFlags currentInputFlags = guiContext->InputTextState.Flags;
@@ -3739,7 +3612,7 @@ bool uiIsRenderingEnabled()
 
 UserInterfaceDrawData* addUIDrawData()
 {
-    UserInterfaceDrawData* pRet = (UserInterfaceDrawData*)tf_calloc(1, sizeof(UserInterfaceDrawData));
+    UserInterfaceDrawData* pRet = (UserInterfaceDrawData*)MemCallocate(1, sizeof(UserInterfaceDrawData));
     return pRet;
 }
 
@@ -3755,8 +3628,8 @@ void uiPopulateDrawData(UserInterfaceDrawData* pUIDrawData)
     ImDrawData* pImDrawData = ImGui::GetDrawData();
     fillDrawInformation(pUIDrawData, pImDrawData);
 
-    pUIDrawData->vertexBufferData = (unsigned char*)tf_malloc(pUIDrawData->vertexCount * sizeof(ImDrawVert));
-    pUIDrawData->indexBufferData = (unsigned char*)tf_malloc(pUIDrawData->indexCount * sizeof(ImDrawIdx));
+    pUIDrawData->vertexBufferData = (unsigned char*)MemAllocate(pUIDrawData->vertexCount * sizeof(ImDrawVert));
+    pUIDrawData->indexBufferData = (unsigned char*)MemAllocate(pUIDrawData->indexCount * sizeof(ImDrawIdx));
 
     uint64_t vtxOffset = 0;
     uint64_t idxOffset = 0;
@@ -3789,7 +3662,7 @@ void uiPopulateDrawData(UserInterfaceDrawData* pUIDrawData)
             if (pUIDrawData->drawCommands)
             {
                 pUIDrawData->drawCommands[drawCommandsOffset].clipRect = pImDrawCmd->ClipRect;
-                pUIDrawData->drawCommands[drawCommandsOffset].textureId = (uint64_t)pImDrawCmd->TextureId;
+                pUIDrawData->drawCommands[drawCommandsOffset].textureId = (uint64_t)pImDrawCmd->GetTexID();
                 pUIDrawData->drawCommands[drawCommandsOffset].vertexOffset = pImDrawCmd->VtxOffset;
                 pUIDrawData->drawCommands[drawCommandsOffset].indexOffset = pImDrawCmd->IdxOffset;
                 if (c == pCmdList->CmdBuffer.size() - 1)
@@ -3815,8 +3688,8 @@ void removeUIDrawData(UserInterfaceDrawData* pUIDrawData)
 {
     if (pUIDrawData)
     {
-        tf_free(pUIDrawData->vertexBufferData);
-        tf_free(pUIDrawData->indexBufferData);
+        MemDeallocate(pUIDrawData->vertexBufferData);
+        MemDeallocate(pUIDrawData->indexBufferData);
         arrfree(pUIDrawData->drawCommands);
     }
 }

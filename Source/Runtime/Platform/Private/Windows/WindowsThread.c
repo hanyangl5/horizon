@@ -83,53 +83,53 @@ static BOOL callOnceImpl(MAYBE_UNUSED PINIT_ONCE initOnce, PVOID pWrapper, MAYBE
     return TRUE;
 }
 
-void callOnce(CallOnceGuard* pGuard, CallOnceFn fn)
+void CallOnce(CallOnceGuard* pGuard, CallOnceFn fn)
 {
     CallOnceFnWrapper wrapper = { fn };
     InitOnceExecuteOnce(pGuard, callOnceImpl, &wrapper, NULL);
 }
 
-bool initMutex(Mutex* mutex)
+bool InitMutex(Mutex* mutex)
 {
-    return InitializeCriticalSectionAndSpinCount((CRITICAL_SECTION*)&mutex->handle, (DWORD)MUTEX_DEFAULT_SPIN_COUNT);
+    return InitializeCriticalSectionAndSpinCount((CRITICAL_SECTION*)&mutex->Handle, (DWORD)MUTEX_DEFAULT_SPIN_COUNT);
 }
 
-void destroyMutex(Mutex* mutex)
+void DestroyMutex(Mutex* mutex)
 {
-    CRITICAL_SECTION* cs = (CRITICAL_SECTION*)&mutex->handle;
+    CRITICAL_SECTION* cs = (CRITICAL_SECTION*)&mutex->Handle;
     DeleteCriticalSection(cs);
-    memset(&mutex->handle, 0, sizeof(mutex->handle));
+    memset(&mutex->Handle, 0, sizeof(mutex->Handle));
 }
 
-void acquireMutex(Mutex* mutex) { EnterCriticalSection((CRITICAL_SECTION*)&mutex->handle); }
+void LockMutex(Mutex* mutex) { EnterCriticalSection((CRITICAL_SECTION*)&mutex->Handle); }
 
-bool tryAcquireMutex(Mutex* mutex) { return TryEnterCriticalSection((CRITICAL_SECTION*)&mutex->handle); }
+bool TryLockMutex(Mutex* mutex) { return TryEnterCriticalSection((CRITICAL_SECTION*)&mutex->Handle); }
 
-void releaseMutex(Mutex* mutex) { LeaveCriticalSection((CRITICAL_SECTION*)&mutex->handle); }
+void UnlockMutex(Mutex* mutex) { LeaveCriticalSection((CRITICAL_SECTION*)&mutex->Handle); }
 
-bool initConditionVariable(ConditionVariable* cv)
+bool InitConditionVariable(ConditionVariable* cv)
 {
-    cv->pHandle = (CONDITION_VARIABLE*)tf_calloc(1, sizeof(CONDITION_VARIABLE));
-    InitializeConditionVariable((PCONDITION_VARIABLE)cv->pHandle);
+    cv->Handle = (CONDITION_VARIABLE*)MemCallocate(1, sizeof(CONDITION_VARIABLE));
+    InitializeConditionVariable((PCONDITION_VARIABLE)cv->Handle);
     return true;
 }
 
-void destroyConditionVariable(ConditionVariable* cv) { tf_free(cv->pHandle); }
+void DestroyConditionVariable(ConditionVariable* cv) { MemDeallocate(cv->Handle); }
 
-void waitConditionVariable(ConditionVariable* cv, Mutex* pMutex, uint32_t ms)
+void WaitConditionVariable(ConditionVariable* cv, Mutex* pMutex, uint32_t ms)
 {
-    SleepConditionVariableCS((PCONDITION_VARIABLE)cv->pHandle, (PCRITICAL_SECTION)&pMutex->handle, ms);
+    SleepConditionVariableCS((PCONDITION_VARIABLE)cv->Handle, (PCRITICAL_SECTION)&pMutex->Handle, ms);
 }
 
-void wakeOneConditionVariable(ConditionVariable* cv) { WakeConditionVariable((PCONDITION_VARIABLE)cv->pHandle); }
+void SignalConditionVariable(ConditionVariable* cv) { WakeConditionVariable((PCONDITION_VARIABLE)cv->Handle); }
 
-void wakeAllConditionVariable(ConditionVariable* cv) { WakeAllConditionVariable((PCONDITION_VARIABLE)cv->pHandle); }
+void BroadcastConditionVariable(ConditionVariable* cv) { WakeAllConditionVariable((PCONDITION_VARIABLE)cv->Handle); }
 
 static ThreadID mainThreadID = 0;
 
-void setMainThread() { mainThreadID = getCurrentThreadID(); }
+void SetMainThread() { mainThreadID = GetCurrentThreadID(); }
 
-ThreadID getCurrentThreadID() { return GetCurrentThreadId(); /* Windows built-in function*/ }
+ThreadID GetCurrentThreadID() { return GetCurrentThreadId(); /* Windows built-in function*/ }
 
 char* thread_name()
 {
@@ -137,16 +137,16 @@ char* thread_name()
     return name;
 }
 
-void getCurrentThreadName(char* buffer, int size)
+void GetCurrentThreadName(char* buffer, int Size)
 {
     const char* name = thread_name();
     if (name[0])
-        snprintf(buffer, (size_t)size, "%s", name);
+        snprintf(buffer, (size_t)Size, "%s", name);
     else
         buffer[0] = 0;
 }
 
-void setCurrentThreadName(const char* name)
+void SetCurrentThreadName(const char* name)
 {
     strcpy_s(thread_name(), MAX_THREAD_NAME_LENGTH + 1, name);
 #if defined(ENABLE_PROFILER)
@@ -154,19 +154,19 @@ void setCurrentThreadName(const char* name)
 #endif
 }
 
-bool isMainThread() { return getCurrentThreadID() == mainThreadID; }
+bool IsMainThread() { return GetCurrentThreadID() == mainThreadID; }
 
 typedef int(__cdecl* SETTHREADDESCFUNC)(HANDLE, PCWSTR);
 
 unsigned WINAPI ThreadFunctionStatic(void* data)
 {
     ThreadDesc item = *((ThreadDesc*)(data));
-    tf_free(data);
+    MemDeallocate(data);
 
     if (item.threadName[0] != 0)
     {
         // Local TheForge thread name, used for logging
-        setCurrentThreadName(item.threadName);
+        SetCurrentThreadName(item.threadName);
 
 #ifdef _WINDOWS
         HINSTANCE hinstLib = GetModuleHandle(TEXT("KernelBase.dll"));
@@ -186,7 +186,7 @@ unsigned WINAPI ThreadFunctionStatic(void* data)
 
     if (item.setAffinityMask)
     {
-        uint32_t nCores = getNumCPUCores();
+        uint32_t nCores = GetNumCpuCores();
 
         for (uint32_t groupId = 0; groupId < nCores / 64; ++groupId)
         {
@@ -198,46 +198,50 @@ unsigned WINAPI ThreadFunctionStatic(void* data)
             BOOL res = SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, NULL);
             if (res != 0)
             {
-                LOGF(eERROR, "Failed to set affinity for thread %s for CPU group %u: 0x%x", item.threadName, groupId, res);
+                LOGF(Error, "Failed to Set affinity for thread %s for CPU group %u: 0x%x", item.threadName, groupId, res);
             }
         }
     }
 
-    item.pFunc(item.pData);
+    item.Func(item.Data);
     return 0;
 }
 
-void threadSleep(unsigned mSec) { Sleep(mSec); }
+void ThreadSleep(unsigned mSec) { Sleep(mSec); }
 
-bool initThread(ThreadDesc* pDesc, ThreadHandle* pHandle)
+bool InitThread(ThreadDesc* pDesc, ThreadHandle* Handle)
 {
-    ASSERT(pHandle);
-    *pHandle = NULL;
+    ASSERT(Handle);
+    *Handle = NULL;
 
     // Copy the contents of ThreadDesc because if the variable is in the stack we might access corrupted data.
-    ThreadDesc* pDescCopy = (ThreadDesc*)tf_malloc(sizeof(ThreadDesc));
+    ThreadDesc* pDescCopy = (ThreadDesc*)MemAllocate(sizeof(ThreadDesc));
     *pDescCopy = *pDesc;
 
-    *pHandle = (ThreadHandle)_beginthreadex(0, 0, ThreadFunctionStatic, pDescCopy, 0, 0);
-    return *pHandle != NULL;
+    *Handle = (ThreadHandle)_beginthreadex(0, 0, ThreadFunctionStatic, pDescCopy, 0, 0);
+    return *Handle != NULL;
 }
 
-void joinThread(ThreadHandle handle)
+void JoinThread(ThreadHandle Handle)
 {
-    if (!handle)
+    if (!Handle)
+    {
         return;
-    WaitForSingleObject((HANDLE)handle, INFINITE);
-    CloseHandle((HANDLE)handle);
+    }
+    WaitForSingleObject((HANDLE)Handle, INFINITE);
+    CloseHandle((HANDLE)Handle);
 }
 
-void detachThread(ThreadHandle handle)
+void DetachThread(ThreadHandle Handle)
 {
-    if (!handle)
+    if (!Handle)
+    {
         return;
-    CloseHandle((HANDLE)handle);
+    }
+    CloseHandle((HANDLE)Handle);
 }
 
-unsigned int getNumCPUCores(void)
+unsigned int GetNumCpuCores(void)
 {
     struct _SYSTEM_INFO systemInfo;
     GetSystemInfo(&systemInfo);
@@ -247,11 +251,11 @@ unsigned int getNumCPUCores(void)
 // Performance stats functions
 #if defined(ENABLE_THREAD_PERFORMANCE_STATS)
 
-int initPerformanceStats(PerformanceStatsFlags flags)
+int InitPerformanceStats(PerformanceStatsFlags Flags)
 {
-    UNREF_PARAM(flags);
+    UNREF_PARAM(Flags);
 #if defined(XBOX)
-    for (uint32_t i = 0; i < getNumCPUCores(); ++i)
+    for (uint32_t i = 0; i < GetNumCpuCores(); ++i)
     {
         gThreadIds[i] = -1;
         gThreadWorkTimes[i] = 0;
@@ -266,7 +270,7 @@ int initPerformanceStats(PerformanceStatsFlags flags)
 
     gLastSamplingTime = creationTime;
 
-    initMutex(&gThreadTimesMutex);
+    InitMutex(&gThreadTimesMutex);
 
 #else
     HRESULT hres;
@@ -280,7 +284,7 @@ int initPerformanceStats(PerformanceStatsFlags flags)
     uli.LowPart = currSysTime.dwLowDateTime;
     uli.HighPart = currSysTime.dwHighDateTime;
 
-    for (uint32_t i = 0; i < getNumCPUCores(); i++)
+    for (uint32_t i = 0; i < GetNumCpuCores(); i++)
     {
         pOldTimeStamp[i] = uli.QuadPart;
         pOldPprocUsage[i] = 0;
@@ -308,19 +312,19 @@ int initPerformanceStats(PerformanceStatsFlags flags)
     return 1;
 }
 
-void updatePerformanceStats()
+void UpdatePerformanceStats()
 {
 #if defined(XBOX)
     // Update current thread times
     HANDLE currThread = GetCurrentThread();
-    DWORD  threadId = GetCurrentThreadId();
+    DWORD  threadId = GetCurrentThreadID();
     DWORD  coreId = GetCurrentProcessorNumber();
 
     FILETIME creation, exit, user, kernel;
     GetThreadTimes(currThread, &creation, &exit, &kernel, &user);
 
     uint32_t threadIdx = (uint32_t)-1;
-    for (uint32_t i = 0; i < getNumCPUCores(); i++)
+    for (uint32_t i = 0; i < GetNumCpuCores(); i++)
     {
         if (gThreadIds[i] == (int)threadId)
         {
@@ -337,7 +341,7 @@ void updatePerformanceStats()
     ASSERT(threadIdx != -1);
 
     {
-        acquireMutex(&gThreadTimesMutex);
+        LockMutex(&gThreadTimesMutex);
 
         uint64_t lowPart = (uint64_t)user.dwLowDateTime;
         uint64_t highPart = (uint64_t)user.dwHighDateTime;
@@ -352,16 +356,18 @@ void updatePerformanceStats()
         // Update total user / kernel times
         gPrevThreadWorkTimes[threadIdx] = userTime + kernelTime;
 
-        releaseMutex(&gThreadTimesMutex);
+        UnlockMutex(&gThreadTimesMutex);
     }
 #endif
 }
 
-PerformanceStats getPerformanceStats()
+PerformanceStats GetPerformanceStats()
 {
     PerformanceStats ret = { { 0 } };
-    for (uint32_t i = 0; i < getNumCPUCores(); i++)
+    for (uint32_t i = 0; i < GetNumCpuCores(); i++)
+    {
         ret.coreUsagePercentage[i] = -1;
+    }
 
 #if defined(XBOX)
     FILETIME currTime;
@@ -374,15 +380,15 @@ PerformanceStats getPerformanceStats()
     // Time elapsed since last sampling
     uint64_t elapsedTime = processTime - gLastSamplingTime;
     {
-        acquireMutex(&gThreadTimesMutex);
+        LockMutex(&gThreadTimesMutex);
 
-        for (uint32_t i = 0; i < getNumCPUCores(); ++i)
+        for (uint32_t i = 0; i < GetNumCpuCores(); ++i)
         {
             ret.coreUsagePercentage[i] = (100.0f * ((float)gThreadWorkTimes[i] / elapsedTime));
             gThreadWorkTimes[i] = 0;
         }
 
-        releaseMutex(&gThreadTimesMutex);
+        UnlockMutex(&gThreadTimesMutex);
     }
 
     gLastSamplingTime = processTime;
@@ -456,7 +462,7 @@ PerformanceStats getPerformanceStats()
     return ret;
 }
 
-void exitPerformanceStats()
+void ExitPerformanceStats()
 {
 #if !defined(XBOX)
     gWbemService->lpVtbl->Release(gWbemService);

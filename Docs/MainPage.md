@@ -36,7 +36,13 @@ The runtime is split into these public modules:
   Roadmap for growing the existing threading primitives into a production job
   system, frame scheduler, and resource-loading synchronization model.
 
+- [World Design Tutorial](WorldTutorial.md)
+  A 15-20 minute walkthrough of assets, World entities, the GPU scene,
+  ownership, and persistence.
+
 - [World Foundation](WorldFoundation.md)
+- [GPUScene](GPUScene.md)
+- [Skeletal Animation](Animation.md)
   Asset identity, ECS World, transform hierarchy, serialization, reflection,
   and RenderScene extraction roadmap within the Scene runtime module.
 

@@ -2,7 +2,7 @@
 
 #include "RHI/IGraphics.h"
 
-// Verifies that default GPU settings reset the structure and enable the baseline capabilities expected by the renderer.
+// Verifies that default GPU settings Reset the structure and enable the baseline capabilities expected by the renderer.
 TEST(RHIGraphicsConfigTest, DefaultGpuSettingsInitializeBaselineCapabilities)
 {
     GPUSettings settings = {};

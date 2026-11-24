@@ -13,154 +13,277 @@
 
 namespace hz
 {
-RenderContext::CommandSlot::~CommandSlot() { arrfree(transientBuffers); }
+RenderContext::CommandResources::~CommandResources() { arrfree(transientBuffers); }
 
-RenderContext::RenderContext(const ContextDesc& input)
+RenderContext::RenderContext(const ContextDesc& Input)
 {
-    const bool valid = input.pAppName && input.pAppName[0] && strlen(input.pAppName) < sizeof(appName) &&
-                       (!input.imageCount || input.imageCount <= MAX_SWAPCHAIN_IMAGES);
-    ASSERT(valid);
-    if (!valid)
-        return;
-
-    desc = input;
-    desc.imageCount = input.imageCount ? input.imageCount : 3;
-    memcpy(appName, input.pAppName, strlen(input.pAppName) + 1);
-
-    const bool deviceInitialized = initDevice();
-    ASSERT(deviceInitialized);
-    if (!deviceInitialized)
+    const bool Valid = Input.pAppName && Input.pAppName[0] && strlen(Input.pAppName) < sizeof(appName) &&
+                       (!Input.imageCount || Input.imageCount <= MAX_SWAPCHAIN_IMAGES);
+    ASSERT(Valid);
+    if (!Valid)
     {
-        destroyDevice(false);
         return;
     }
 
-    suspended = !input.width || !input.height;
-    const bool initialized = suspended || createSwapChain();
-    ASSERT(initialized);
-    if (!initialized)
-        cleanup();
+    desc = Input;
+    desc.imageCount = Input.imageCount ? Input.imageCount : 3;
+    memcpy(appName, Input.pAppName, strlen(Input.pAppName) + 1);
+
+    const bool DeviceInitialized = InitDevice();
+    ASSERT(DeviceInitialized);
+    if (!DeviceInitialized)
+    {
+        DestroyDevice(false);
+        return;
+    }
+
+    suspended = !Input.Width || !Input.Height;
+    if (desc.enablePipelineCache)
+    {
+        InitPipelineCache();
+    }
+    const bool Initialized = suspended || CreateSwapChain();
+    ASSERT(Initialized);
+    if (!Initialized)
+    {
+        Cleanup();
+    }
 }
 
-RenderContext::~RenderContext() { cleanup(); }
+RenderContext::~RenderContext() { Cleanup(); }
 
-void RenderContext::waitIdle() { waitQueueIdle(pGraphicsQueue); }
-
-bool RenderContext::initDevice()
+void RenderContext::WaitIdle()
 {
-    const RendererContextDesc contextDesc = {
+    waitQueueIdle(pGraphicsQueue);
+    CollectDeferredResources();
+}
+
+void RenderContext::DeferRelease(GPUBuffer&& BufferValue)
+{
+    if (!BufferValue.pBuffer)
+    {
+        return;
+    }
+    ASSERT(ready && BufferValue.pContext == this);
+    BufferValue.Destroy();
+}
+
+uint64_t RenderContext::GetResourceUseId() const
+{
+    for (const CommandResources& Resources : commandResources)
+    {
+        if (Resources.commands.pCmd)
+        {
+            return nextSubmitId;
+        }
+    }
+    return nextSubmitId - 1;
+}
+
+uint64_t RenderContext::GetPendingUseId() const
+{
+    // Submissions complete in order on the single graphics queue.
+    uint64_t Pending = UINT64_MAX;
+    for (const CommandResources& Resources : commandResources)
+    {
+        if (Resources.commands.pCmd)
+        {
+            Pending = TF_MIN(Pending, nextSubmitId);
+        }
+        if (Resources.submitId && Resources.submitId < Pending)
+        {
+            FenceStatus Status = FENCE_STATUS_COMPLETE;
+            getFenceStatus(pRenderer, Resources.pFence, &Status);
+            if (Status == FENCE_STATUS_INCOMPLETE)
+            {
+                Pending = Resources.submitId;
+            }
+        }
+    }
+    return Pending;
+}
+
+bool RenderContext::IsResourceUseComplete(uint64_t UseId) const { return UseId < GetPendingUseId(); }
+
+void RenderContext::DeferResource(ResourceType Type, void* Resource, void* Secondary, void* Tertiary)
+{
+    if (Resource)
+    {
+        const DeferredResource Deferred = { .resource = Resource,
+                                            .secondary = Secondary,
+                                            .tertiary = Tertiary,
+                                            .useId = GetResourceUseId(),
+                                            .Type = Type };
+        arrpush(deferredResources, Deferred);
+    }
+}
+
+void RenderContext::CollectDeferredResources()
+{
+    const uint64_t Pending = GetPendingUseId();
+    uint32_t       Kept = 0;
+    // Destruction may enqueue dependent resources, which are processed in the same pass.
+    for (uint32_t I = 0; I < (uint32_t)arrlen(deferredResources); ++I)
+    {
+        const DeferredResource Resource = deferredResources[I];
+        if (Resource.useId >= Pending)
+        {
+            deferredResources[Kept++] = Resource;
+            continue;
+        }
+        ASSERT(resourceCount);
+        --resourceCount;
+        switch (Resource.Type)
+        {
+        case ResourceType::Buffer:
+            removeResource((Buffer*)Resource.resource);
+            break;
+        case ResourceType::Texture:
+            removeResource((Texture*)Resource.resource);
+            break;
+        case ResourceType::RenderTarget:
+            removeRenderTarget(pRenderer, (RenderTarget*)Resource.resource);
+            break;
+        case ResourceType::Sampler:
+            removeSampler(pRenderer, (Sampler*)Resource.resource);
+            break;
+        case ResourceType::Shader:
+            removeShader(pRenderer, (Shader*)Resource.resource);
+            break;
+        case ResourceType::Pipeline:
+            if (Resource.tertiary)
+            {
+                removeIndirectCommandSignature(pRenderer, (CommandSignature*)Resource.tertiary);
+            }
+            removePipeline(pRenderer, (Pipeline*)Resource.resource);
+            removeRootSignature(pRenderer, (RootSignature*)Resource.secondary);
+            break;
+        case ResourceType::AccelerationStructure:
+            DestroyAccelerationStructure((AccelerationStructureData*)Resource.resource);
+            break;
+        case ResourceType::RayTracingPipeline:
+            removeRaytracingPipeline(pRaytracing, (RaytracingPipeline*)Resource.resource);
+            break;
+        }
+    }
+    arrsetlen(deferredResources, Kept);
+}
+
+bool RenderContext::InitDevice()
+{
+    const RendererContextDesc ContextDescValue = {
         .enableGpuBasedValidation = desc.enableGpuValidation,
     };
-    initRendererContext(appName, &contextDesc, &pRendererContext);
+    initRendererContext(appName, &ContextDescValue, &pRendererContext);
     if (!pRendererContext)
         return false;
 
-    const RendererDesc rendererDesc = {
+    const RendererDesc RendererDescValue = {
         .shaderTarget = SHADER_TARGET_6_6,
         .pContext = pRendererContext,
         .enableGpuBasedValidation = desc.enableGpuValidation,
     };
-    initRenderer(appName, &rendererDesc, &pRenderer);
+    initRenderer(appName, &RendererDescValue, &pRenderer);
     if (!pRenderer)
         return false;
 
-    QueueDesc queueDesc = {
-        .type = QUEUE_TYPE_GRAPHICS,
+    QueueDesc QueueDescValue = {
+        .Type = QUEUE_TYPE_GRAPHICS,
         .flag = QUEUE_FLAG_NONE,
         .priority = QUEUE_PRIORITY_NORMAL,
-        .pName = "RenderContext Graphics Queue",
+        .Name = "RenderContext Graphics Queue",
     };
-    addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+    addQueue(pRenderer, &QueueDescValue, &pGraphicsQueue);
     if (!pGraphicsQueue)
         return false;
 
-    IndirectArgumentDescriptor drawArgument = { .type = INDIRECT_DRAW };
-    CommandSignatureDesc       drawSignatureDesc = {
-        .pArgDescs = &drawArgument,
-        .indirectArgCount = 1,
-        .packed = true,
+    IndirectArgumentDescriptor DrawArgument = { .Type = INDIRECT_DRAW };
+    CommandSignatureDesc       DrawSignatureDesc = {
+              .pArgDescs = &DrawArgument,
+              .indirectArgCount = 1,
+              .packed = true,
     };
-    addIndirectCommandSignature(pRenderer, &drawSignatureDesc, &pDrawIndirectSignature);
+    addIndirectCommandSignature(pRenderer, &DrawSignatureDesc, &pDrawIndirectSignature);
 
-    IndirectArgumentDescriptor drawIndexedArgument = { .type = INDIRECT_DRAW_INDEX };
-    CommandSignatureDesc       drawIndexedSignatureDesc = {
-        .pArgDescs = &drawIndexedArgument,
-        .indirectArgCount = 1,
-        .packed = true,
+    IndirectArgumentDescriptor DrawIndexedArgument = { .Type = INDIRECT_DRAW_INDEX };
+    CommandSignatureDesc       DrawIndexedSignatureDesc = {
+              .pArgDescs = &DrawIndexedArgument,
+              .indirectArgCount = 1,
+              .packed = true,
     };
-    addIndirectCommandSignature(pRenderer, &drawIndexedSignatureDesc, &pDrawIndexedIndirectSignature);
+    addIndirectCommandSignature(pRenderer, &DrawIndexedSignatureDesc, &pDrawIndexedIndirectSignature);
 
-    IndirectArgumentDescriptor dispatchArgument = { .type = INDIRECT_DISPATCH };
-    CommandSignatureDesc       dispatchSignatureDesc = {
-        .pArgDescs = &dispatchArgument,
-        .indirectArgCount = 1,
-        .packed = true,
+    IndirectArgumentDescriptor DispatchArgument = { .Type = INDIRECT_DISPATCH };
+    CommandSignatureDesc       DispatchSignatureDesc = {
+              .pArgDescs = &DispatchArgument,
+              .indirectArgCount = 1,
+              .packed = true,
     };
-    addIndirectCommandSignature(pRenderer, &dispatchSignatureDesc, &pDispatchIndirectSignature);
+    addIndirectCommandSignature(pRenderer, &DispatchSignatureDesc, &pDispatchIndirectSignature);
     ASSERT(pDrawIndirectSignature && pDrawIndexedIndirectSignature && pDispatchIndirectSignature);
 
     gpuProfilerToken = PROFILE_INVALID_TOKEN;
 #if defined(ENABLE_TRACY_MEMORY)
     const bool initializeProfiler = true;
 #else
-    const bool initializeProfiler = desc.enableGpuProfiler;
+    const bool InitializeProfiler = desc.enableGpuProfiler;
 #endif
-    if (initializeProfiler)
+    if (InitializeProfiler)
     {
-        Queue*       queues[] = { pGraphicsQueue };
-        const char*  names[] = { appName };
-        ProfilerDesc profilerDesc = {
+        Queue*       Queues[] = { pGraphicsQueue };
+        const char*  Names[] = { appName };
+        ProfilerDesc ProfilerDescValue = {
             .pRenderer = pRenderer,
-            .ppQueues = queues,
-            .ppProfilerNames = names,
+            .ppQueues = Queues,
+            .ppProfilerNames = Names,
             .pProfileTokens = &gpuProfilerToken,
             .gpuProfilerCount = desc.enableGpuProfiler ? 1u : 0u,
         };
-        initProfiler(&profilerDesc);
+        initProfiler(&ProfilerDescValue);
         profilerInitialized = true;
     }
 
-    ResourceLoaderDesc loaderDesc = gDefaultResourceLoaderDesc;
-    loaderDesc.bufferSize = 16u * 1024u * 1024u;
-    initResourceLoaderInterface(pRenderer, &loaderDesc);
+    ResourceLoaderDesc LoaderDesc = gDefaultResourceLoaderDesc;
+    LoaderDesc.bufferSize = 16u * 1024u * 1024u;
+    initResourceLoaderInterface(pRenderer, &LoaderDesc);
     resourceLoaderInitialized = true;
 
     addSemaphore(pRenderer, &pImageAcquiredSemaphore);
     ASSERT(pImageAcquiredSemaphore);
-    for (uint32_t i = 0; i < maxCommandLists; ++i)
+    for (uint32_t I = 0; I < maxCommandLists; ++I)
     {
-        CommandSlot& slot = commandSlots[i];
-        CmdPoolDesc  poolDesc = {
-            .pQueue = pGraphicsQueue,
-            .transient = false,
+        CommandResources& Resources = commandResources[I];
+        CmdPoolDesc       PoolDesc = {
+                  .pQueue = pGraphicsQueue,
+                  .transient = false,
         };
-        addCmdPool(pRenderer, &poolDesc, &slot.pCmdPool);
-        ASSERT(slot.pCmdPool);
+        addCmdPool(pRenderer, &PoolDesc, &Resources.pCmdPool);
+        ASSERT(Resources.pCmdPool);
 
-        CmdDesc cmdDesc = { .pPool = slot.pCmdPool };
-        addCmd(pRenderer, &cmdDesc, &slot.pCmd);
-        addFence(pRenderer, &slot.pFence);
-        addSemaphore(pRenderer, &slot.pSemaphore);
-        ASSERT(slot.pCmd && slot.pFence && slot.pSemaphore);
-        slot.commands.pContext = this;
-        slot.commands.slot = i;
+        CmdDesc CmdDescValue = { .pPool = Resources.pCmdPool };
+        addCmd(pRenderer, &CmdDescValue, &Resources.pCmd);
+        addFence(pRenderer, &Resources.pFence);
+        addSemaphore(pRenderer, &Resources.pSemaphore);
+        ASSERT(Resources.pCmd && Resources.pFence && Resources.pSemaphore);
+        Resources.commands.pContext = this;
+        Resources.commands.commandIndex = I;
     }
 
     ready = true;
     return true;
 }
 
-bool RenderContext::createSwapChain()
+bool RenderContext::CreateSwapChain()
 {
     ASSERT(ready && !pSwapChain);
-    Queue*        queues[] = { pGraphicsQueue };
-    SwapChainDesc swapDesc = {
+    Queue*        Queues[] = { pGraphicsQueue };
+    SwapChainDesc SwapDesc = {
         .windowHandle = desc.windowHandle,
-        .ppPresentQueues = queues,
+        .ppPresentQueues = Queues,
         .presentQueueCount = 1,
         .imageCount = desc.imageCount,
-        .width = desc.width,
-        .height = desc.height,
+        .Width = desc.Width,
+        .Height = desc.Height,
         .colorFormat = desc.colorFormat,
         .enableVsync = desc.enableVSync,
         .colorSpace = desc.colorSpace,
@@ -168,75 +291,93 @@ bool RenderContext::createSwapChain()
     };
     if (desc.enableHDR)
     {
-        swapDesc.colorFormat = hz::Format::UNDEFINED;
+        SwapDesc.colorFormat = hz::Format::UNDEFINED;
         // TODO: Prefer scRGB for windowed presentation and HDR10 for fullscreen presentation.
-        swapDesc.colorSpace = COLOR_SPACE_P2020;
-        if (swapDesc.hdrMetadata.maxMasteringLuminance <= 0.0f)
-            swapDesc.hdrMetadata.maxMasteringLuminance = 1000.0f;
-        if (swapDesc.hdrMetadata.minMasteringLuminance <= 0.0f)
-            swapDesc.hdrMetadata.minMasteringLuminance = 0.001f;
-        if (swapDesc.hdrMetadata.maxContentLightLevel <= 0.0f)
-            swapDesc.hdrMetadata.maxContentLightLevel = 1000.0f;
-        if (swapDesc.hdrMetadata.maxFrameAverageLightLevel <= 0.0f)
-            swapDesc.hdrMetadata.maxFrameAverageLightLevel = 400.0f;
-        swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
-        if (swapDesc.colorFormat == hz::Format::UNDEFINED)
+        SwapDesc.colorSpace = COLOR_SPACE_P2020;
+        if (SwapDesc.hdrMetadata.maxMasteringLuminance <= 0.0f)
         {
-            swapDesc.colorSpace = COLOR_SPACE_EXTENDED_SRGB;
-            swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
+            SwapDesc.hdrMetadata.maxMasteringLuminance = 1000.0f;
         }
-        if (swapDesc.colorFormat == hz::Format::UNDEFINED)
+        if (SwapDesc.hdrMetadata.minMasteringLuminance <= 0.0f)
         {
-            LOGF(LogLevel::eWARNING, "HDR presentation is unavailable; falling back to SDR sRGB");
-            swapDesc.colorSpace = COLOR_SPACE_SDR_SRGB;
-            swapDesc.hdrMetadata = {};
+            SwapDesc.hdrMetadata.minMasteringLuminance = 0.001f;
+        }
+        if (SwapDesc.hdrMetadata.maxContentLightLevel <= 0.0f)
+        {
+            SwapDesc.hdrMetadata.maxContentLightLevel = 1000.0f;
+        }
+        if (SwapDesc.hdrMetadata.maxFrameAverageLightLevel <= 0.0f)
+        {
+            SwapDesc.hdrMetadata.maxFrameAverageLightLevel = 400.0f;
+        }
+        SwapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &SwapDesc, SwapDesc.colorSpace);
+        if (SwapDesc.colorFormat == hz::Format::UNDEFINED)
+        {
+            SwapDesc.colorSpace = COLOR_SPACE_EXTENDED_SRGB;
+            SwapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &SwapDesc, SwapDesc.colorSpace);
+        }
+        if (SwapDesc.colorFormat == hz::Format::UNDEFINED)
+        {
+            LOGF(LogLevel::Warning, "HDR presentation is unavailable; falling back to SDR sRGB");
+            SwapDesc.colorSpace = COLOR_SPACE_SDR_SRGB;
+            SwapDesc.hdrMetadata = {};
         }
     }
-    else if (swapDesc.colorFormat == hz::Format::UNDEFINED)
+    else if (SwapDesc.colorFormat == hz::Format::UNDEFINED)
     {
-        swapDesc.colorSpace = COLOR_SPACE_SDR_SRGB;
+        SwapDesc.colorSpace = COLOR_SPACE_SDR_SRGB;
     }
 
-    if (swapDesc.colorFormat == hz::Format::UNDEFINED)
-        swapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &swapDesc, swapDesc.colorSpace);
-    if (swapDesc.colorFormat == hz::Format::UNDEFINED)
+    if (SwapDesc.colorFormat == hz::Format::UNDEFINED)
     {
-        LOGF(LogLevel::eERROR, "No supported swapchain format is available");
+        SwapDesc.colorFormat = getSupportedSwapchainFormat(pRenderer, &SwapDesc, SwapDesc.colorSpace);
+    }
+    if (SwapDesc.colorFormat == hz::Format::UNDEFINED)
+    {
+        LOGF(LogLevel::Error, "No supported swapchain format is available");
         return false;
     }
 
-    addSwapChain(pRenderer, &swapDesc, &pSwapChain);
+    addSwapChain(pRenderer, &SwapDesc, &pSwapChain);
     if (pSwapChain)
     {
-        desc.colorFormat = pSwapChain->format;
+        desc.colorFormat = pSwapChain->Format;
         desc.colorSpace = pSwapChain->colorSpace;
         hdrDisplayInfo = pSwapChain->hdrDisplayInfo;
         hdrMetadata = pSwapChain->hdrMetadata;
         if (pSwapChain->colorSpace == COLOR_SPACE_P2020)
+        {
             outputMode = OUTPUT_MODE_HDR10;
+        }
         else if (pSwapChain->colorSpace == COLOR_SPACE_EXTENDED_SRGB)
+        {
             outputMode = OUTPUT_MODE_SCRGB;
+        }
         else
             outputMode = OUTPUT_MODE_SDR;
-        for (uint32_t i = 0; i < pSwapChain->imageCount; ++i)
+        for (uint32_t I = 0; I < pSwapChain->imageCount; ++I)
         {
-            RenderTarget* target = pSwapChain->ppRenderTargets[i];
-            backbuffers[i] = GPUTexture(nullptr, target->pTexture, target, RESOURCE_STATE_PRESENT, false);
+            RenderTarget* Target = pSwapChain->ppRenderTargets[I];
+            backbuffers[I] = GPUTexture(nullptr, Target->pTexture, Target, RESOURCE_STATE_PRESENT, false);
         }
     }
     return pSwapChain != nullptr;
 }
 
-void RenderContext::destroySwapChain()
+void RenderContext::DestroySwapChain()
 {
-    for (const CommandSlot& slot : commandSlots)
-        ASSERT(!slot.commands.pCmd);
+    for (const CommandResources& Resources : commandResources)
+    {
+        ASSERT(!Resources.commands.pCmd);
+    }
     ASSERT(!imageAcquired);
     if (pSwapChain)
     {
         waitQueueIdle(pGraphicsQueue);
-        for (GPUTexture& backbuffer : backbuffers)
-            backbuffer = GPUTexture{};
+        for (GPUTexture& Backbuffer : backbuffers)
+        {
+            Backbuffer = GPUTexture{};
+        }
         removeSwapChain(pRenderer, pSwapChain);
         pSwapChain = nullptr;
     }
@@ -244,20 +385,27 @@ void RenderContext::destroySwapChain()
     imageAcquireWaitPending = false;
 }
 
-void RenderContext::cleanup()
+void RenderContext::Cleanup()
 {
-    destroyShaderCompiler();
-    for (const CommandSlot& slot : commandSlots)
-        ASSERT(!slot.commands.pCmd);
-    destroySwapChain();
-    destroyDevice(true);
+    SavePipelineCache();
+    for (const CommandResources& Resources : commandResources)
+    {
+        ASSERT(!Resources.commands.pCmd);
+    }
+    ReleaseTransientSlots();
+    DestroySwapChain();
+    DestroyDevice(true);
 }
 
-void RenderContext::destroyDevice(bool waitForGpu)
+void RenderContext::DestroyDevice(bool WaitForGpu)
 {
     ready = false;
-    if (waitForGpu && pGraphicsQueue)
+    if (WaitForGpu && pGraphicsQueue)
+    {
         waitQueueIdle(pGraphicsQueue);
+    }
+    CollectDeferredResources();
+    arrfree(deferredResources);
     if (profilerInitialized)
     {
         exitProfiler();
@@ -271,25 +419,40 @@ void RenderContext::destroyDevice(bool waitForGpu)
     }
     if (pRenderer)
     {
-        for (CommandSlot& slot : commandSlots)
+        if (pPipelineCache)
         {
-            for (uint32_t i = 0; i < (uint32_t)arrlen(slot.transientBuffers); ++i)
-                removeBuffer(pRenderer, slot.transientBuffers[i]);
-            arrsetlen(slot.transientBuffers, 0);
-            if (slot.pSemaphore)
-                removeSemaphore(pRenderer, slot.pSemaphore);
-            if (slot.pFence)
-                removeFence(pRenderer, slot.pFence);
-            if (slot.pCmd)
-                removeCmd(pRenderer, slot.pCmd);
-            if (slot.pCmdPool)
-                removeCmdPool(pRenderer, slot.pCmdPool);
-            slot.pSemaphore = nullptr;
-            slot.pFence = nullptr;
-            slot.pCmd = nullptr;
-            slot.pCmdPool = nullptr;
-            slot.submitId = 0;
-            slot.commands.clear();
+            removePipelineCache(pRenderer, pPipelineCache);
+            pPipelineCache = nullptr;
+        }
+        for (CommandResources& Resources : commandResources)
+        {
+            for (uint32_t I = 0; I < (uint32_t)arrlen(Resources.transientBuffers); ++I)
+            {
+                removeBuffer(pRenderer, Resources.transientBuffers[I]);
+            }
+            arrsetlen(Resources.transientBuffers, 0);
+            if (Resources.pSemaphore)
+            {
+                removeSemaphore(pRenderer, Resources.pSemaphore);
+            }
+            if (Resources.pFence)
+            {
+                removeFence(pRenderer, Resources.pFence);
+            }
+            if (Resources.pCmd)
+            {
+                removeCmd(pRenderer, Resources.pCmd);
+            }
+            if (Resources.pCmdPool)
+            {
+                removeCmdPool(pRenderer, Resources.pCmdPool);
+            }
+            Resources.pSemaphore = nullptr;
+            Resources.pFence = nullptr;
+            Resources.pCmd = nullptr;
+            Resources.pCmdPool = nullptr;
+            Resources.submitId = 0;
+            Resources.commands.Clear();
         }
         if (pImageAcquiredSemaphore)
         {
@@ -312,6 +475,11 @@ void RenderContext::destroyDevice(bool waitForGpu)
             pDispatchIndirectSignature = nullptr;
         }
     }
+    if (pRaytracing)
+    {
+        removeRaytracing(pRenderer, pRaytracing);
+        pRaytracing = nullptr;
+    }
     if (pGraphicsQueue)
     {
         removeQueue(pRenderer, pGraphicsQueue);
@@ -329,165 +497,204 @@ void RenderContext::destroyDevice(bool waitForGpu)
     }
 }
 
-bool RenderContext::resize(uint32_t width, uint32_t height)
+bool RenderContext::Resize(uint32_t Width, uint32_t Height)
 {
-    for (const CommandSlot& slot : commandSlots)
-        ASSERT(!slot.commands.pCmd);
+    for (const CommandResources& Resources : commandResources)
+    {
+        ASSERT(!Resources.commands.pCmd);
+    }
     ASSERT(!imageAcquired);
-    if (!suspended && desc.width == width && desc.height == height)
+    if (!suspended && desc.Width == Width && desc.Height == Height)
+    {
         return true;
+    }
 
-    destroySwapChain();
-    desc.width = width;
-    desc.height = height;
-    suspended = !width || !height;
+    DestroySwapChain();
+    desc.Width = Width;
+    desc.Height = Height;
+    suspended = !Width || !Height;
     if (suspended)
         return true;
 
-    const bool created = createSwapChain();
-    ASSERT(created);
-    if (!created)
+    const bool Created = CreateSwapChain();
+    ASSERT(Created);
+    if (!Created)
     {
-        destroySwapChain();
+        DestroySwapChain();
         suspended = true;
     }
-    return created;
+    return Created;
 }
 
-bool RenderContext::setVSync(bool enabled)
+bool RenderContext::SetVSync(bool Enabled)
 {
-    for (const CommandSlot& slot : commandSlots)
-        ASSERT(!slot.commands.pCmd);
-    if (desc.enableVSync == enabled)
+    for (const CommandResources& Resources : commandResources)
+    {
+        ASSERT(!Resources.commands.pCmd);
+    }
+    if (desc.enableVSync == Enabled)
+    {
         return true;
-    desc.enableVSync = enabled;
+    }
+    desc.enableVSync = Enabled;
     if (suspended)
         return true;
 
     ASSERT(pSwapChain);
     toggleVSync(pRenderer, &pSwapChain);
-    const bool updated = (pSwapChain->enableVsync != 0) == enabled;
-    ASSERT(updated);
-    return updated;
+    const bool Updated = (pSwapChain->enableVsync != 0) == Enabled;
+    ASSERT(Updated);
+    return Updated;
 }
 
-CommandList& RenderContext::acquireCommandList()
+CommandList& RenderContext::AcquireCommandList()
 {
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::AcquireCommandList");
     ASSERT(ready);
-    for (const CommandSlot& slot : commandSlots)
-        ASSERT(!slot.commands.pCmd);
-
-    CommandSlot* available = nullptr;
-    for (uint32_t offset = 0; offset < maxCommandLists; ++offset)
+    for (const CommandResources& Resources : commandResources)
     {
-        CommandSlot& slot = commandSlots[(nextCommandSlot + offset) % maxCommandLists];
-        if (slot.submitId)
+        ASSERT(!Resources.commands.pCmd);
+    }
+
+    CommandResources* Available = nullptr;
+    for (uint32_t Offset = 0; Offset < maxCommandLists; ++Offset)
+    {
+        CommandResources& Resources = commandResources[(nextCommandIndex + Offset) % maxCommandLists];
+        if (Resources.submitId)
         {
-            FenceStatus status = FENCE_STATUS_NOTSUBMITTED;
-            getFenceStatus(pRenderer, slot.pFence, &status);
-            if (status == FENCE_STATUS_COMPLETE)
+            FenceStatus Status = FENCE_STATUS_NOTSUBMITTED;
+            getFenceStatus(pRenderer, Resources.pFence, &Status);
+            if (Status == FENCE_STATUS_COMPLETE)
             {
-                slot.submitId = 0;
-                // Reclaim completed submissions even when a different command slot is selected.
-                for (uint32_t i = 0; i < (uint32_t)arrlen(slot.transientBuffers); ++i)
-                    removeBuffer(pRenderer, slot.transientBuffers[i]);
-                arrsetlen(slot.transientBuffers, 0);
+                Resources.submitId = 0;
+                // Reclaim completed submissions even when a different command resources is selected.
+                for (uint32_t I = 0; I < (uint32_t)arrlen(Resources.transientBuffers); ++I)
+                {
+                    removeBuffer(pRenderer, Resources.transientBuffers[I]);
+                }
+                arrsetlen(Resources.transientBuffers, 0);
             }
         }
-        if (!slot.submitId && !available)
-            available = &slot;
+        if (!Resources.submitId && !Available)
+        {
+            Available = &Resources;
+        }
     }
 
-    if (!available)
+    if (!Available)
     {
-        available = &commandSlots[nextCommandSlot];
-        waitForFences(pRenderer, 1, &available->pFence);
-        available->submitId = 0;
+        Available = &commandResources[nextCommandIndex];
+        waitForFences(pRenderer, 1, &Available->pFence);
+        Available->submitId = 0;
     }
 
-    for (uint32_t i = 0; i < (uint32_t)arrlen(available->transientBuffers); ++i)
-        removeBuffer(pRenderer, available->transientBuffers[i]);
-    arrsetlen(available->transientBuffers, 0);
-    resetCmdPool(pRenderer, available->pCmdPool);
-    beginCmd(available->pCmd);
-    available->commands.reset(available->pCmd, gpuProfilerToken);
-    available->commands.beginGpuFrameProfile();
-    nextCommandSlot = (available->commands.slot + 1) % maxCommandLists;
-    return available->commands;
+    for (uint32_t I = 0; I < (uint32_t)arrlen(Available->transientBuffers); ++I)
+    {
+        removeBuffer(pRenderer, Available->transientBuffers[I]);
+    }
+    arrsetlen(Available->transientBuffers, 0);
+    CollectDeferredResources();
+    resetCmdPool(pRenderer, Available->pCmdPool);
+    beginCmd(Available->pCmd);
+    Available->commands.Reset(Available->pCmd, gpuProfilerToken);
+    Available->commands.BeginGpuFrameProfile();
+    nextCommandIndex = (Available->commands.commandIndex + 1) % maxCommandLists;
+    return Available->commands;
 }
 
-SubmitHandle RenderContext::submit(CommandList& commands, const GPUTexture* pPresent)
+SubmitHandle RenderContext::Submit(CommandList& Commands, const GPUTexture* Present)
 {
-    ASSERT(commands.slot < maxCommandLists);
-    CommandSlot& slot = commandSlots[commands.slot];
-    ASSERT(&commands == &slot.commands && commands.pCmd == slot.pCmd && !slot.submitId);
-    if (pPresent)
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::Submit");
+    ASSERT(Commands.commandIndex < maxCommandLists);
+    CommandResources& Resources = commandResources[Commands.commandIndex];
+    ASSERT(&Commands == &Resources.commands && Commands.pCmd == Resources.pCmd && !Resources.submitId);
+    if (Present)
     {
-        ASSERT(imageAcquired && pPresent == &backbuffers[swapchainImageIndex]);
-        RenderTargetBarrier presentBarrier = {
-            .pRenderTarget = pPresent->pRenderTarget,
-            .currentState = pPresent->state,
+        ASSERT(imageAcquired && Present == &backbuffers[swapchainImageIndex]);
+        RenderTargetBarrier PresentBarrier = {
+            .pRenderTarget = Present->pRenderTarget,
+            .currentState = Present->state,
             .newState = RESOURCE_STATE_PRESENT,
         };
-        commands.barrier(0, nullptr, 0, nullptr, 1, &presentBarrier);
-        pPresent->state = RESOURCE_STATE_PRESENT;
+        Commands.Barrier(0, nullptr, 0, nullptr, 1, &PresentBarrier);
+        Present->state = RESOURCE_STATE_PRESENT;
     }
-    commands.endGpuFrameProfile();
-    endCmd(slot.pCmd);
+    Commands.EndGpuFrameProfile();
+    endCmd(Resources.pCmd);
 
-    Semaphore*      waitSemaphores[] = { pImageAcquiredSemaphore };
-    QueueSubmitDesc submitDesc = {
-        .ppCmds = &slot.pCmd,
-        .pSignalFence = slot.pFence,
-        .ppWaitSemaphores = imageAcquireWaitPending ? waitSemaphores : nullptr,
-        .ppSignalSemaphores = pPresent ? &slot.pSemaphore : nullptr,
+    Semaphore*      WaitSemaphores[] = { pImageAcquiredSemaphore };
+    QueueSubmitDesc SubmitDesc = {
+        .ppCmds = &Resources.pCmd,
+        .pSignalFence = Resources.pFence,
+        .ppWaitSemaphores = imageAcquireWaitPending ? WaitSemaphores : nullptr,
+        .ppSignalSemaphores = Present ? &Resources.pSemaphore : nullptr,
         .cmdCount = 1,
         .waitSemaphoreCount = imageAcquireWaitPending ? 1u : 0u,
-        .signalSemaphoreCount = pPresent ? 1u : 0u,
+        .signalSemaphoreCount = Present ? 1u : 0u,
     };
-    queueSubmit(pGraphicsQueue, &submitDesc);
+    queueSubmit(pGraphicsQueue, &SubmitDesc);
     imageAcquireWaitPending = false;
 
-    if (pPresent)
+    if (Present)
     {
-        QueuePresentDesc presentDesc = {
+        QueuePresentDesc PresentDesc = {
             .pSwapChain = pSwapChain,
-            .ppWaitSemaphores = &slot.pSemaphore,
+            .ppWaitSemaphores = &Resources.pSemaphore,
             .waitSemaphoreCount = 1,
             .index = (uint8_t)swapchainImageIndex,
             .submitDone = true,
         };
-        queuePresent(pGraphicsQueue, &presentDesc);
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::present");
+            queuePresent(pGraphicsQueue, &PresentDesc);
+        }
         imageAcquired = false;
         flipProfiler();
     }
 
-    const SubmitHandle handle = { .id = nextSubmitId++, .slot = commands.slot };
-    slot.submitId = handle.id;
-    commands.clear();
-    return handle;
+    const SubmitHandle Handle = { .id = nextSubmitId++, .commandIndex = Commands.commandIndex };
+    Resources.submitId = Handle.id;
+    Commands.Clear();
+    return Handle;
 }
 
-void RenderContext::wait(SubmitHandle handle)
+void RenderContext::Wait(SubmitHandle Handle)
 {
-    ASSERT(handle.isValid() && handle.slot < maxCommandLists);
-    CommandSlot& slot = commandSlots[handle.slot];
-    if (slot.submitId == handle.id)
-        waitForFences(pRenderer, 1, &slot.pFence);
+    PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::Wait");
+    ASSERT(Handle.IsValid() && Handle.commandIndex < maxCommandLists);
+    CommandResources& Resources = commandResources[Handle.commandIndex];
+    if (Resources.submitId == Handle.id)
+    {
+        waitForFences(pRenderer, 1, &Resources.pFence);
+    }
 }
 
-uint32_t              RenderContext::getWidth() const { return desc.width; }
-uint32_t              RenderContext::getHeight() const { return desc.height; }
-hz::Format            RenderContext::getColorFormat() const { return desc.colorFormat; }
-bool                  RenderContext::isHDREnabled() const { return outputMode != OUTPUT_MODE_SDR; }
-OutputMode            RenderContext::getOutputMode() const { return outputMode; }
-const HDRDisplayInfo& RenderContext::getHDRDisplayInfo() const { return hdrDisplayInfo; }
-const HDRMetadata&    RenderContext::getHDRMetadata() const { return hdrMetadata; }
-const GPUTexture&     RenderContext::getCurrentBackbuffer()
+bool RenderContext::IsComplete(SubmitHandle Handle) const
+{
+    ASSERT(Handle.IsValid() && Handle.commandIndex < maxCommandLists);
+    const CommandResources& Resources = commandResources[Handle.commandIndex];
+    if (Resources.submitId != Handle.id)
+    {
+        return true;
+    }
+    FenceStatus Status = FENCE_STATUS_INCOMPLETE;
+    getFenceStatus(pRenderer, Resources.pFence, &Status);
+    return Status != FENCE_STATUS_INCOMPLETE;
+}
+
+uint32_t              RenderContext::GetWidth() const { return desc.Width; }
+uint32_t              RenderContext::GetHeight() const { return desc.Height; }
+hz::Format            RenderContext::GetColorFormat() const { return desc.colorFormat; }
+bool                  RenderContext::IsHDREnabled() const { return outputMode != OUTPUT_MODE_SDR; }
+OutputMode            RenderContext::GetOutputMode() const { return outputMode; }
+const HDRDisplayInfo& RenderContext::GetHDRDisplayInfo() const { return hdrDisplayInfo; }
+const HDRMetadata&    RenderContext::GetHDRMetadata() const { return hdrMetadata; }
+const GPUTexture&     RenderContext::GetCurrentBackbuffer()
 {
     ASSERT(!suspended && pSwapChain);
     if (!imageAcquired)
     {
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderContext::acquireNextImage");
         acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &swapchainImageIndex);
         ASSERT(swapchainImageIndex < pSwapChain->imageCount);
         imageAcquired = true;
@@ -495,6 +702,6 @@ const GPUTexture&     RenderContext::getCurrentBackbuffer()
     }
     return backbuffers[swapchainImageIndex];
 }
-bool RenderContext::isSuspended() const { return suspended; }
+bool RenderContext::IsSuspended() const { return suspended; }
 
 } // namespace hz

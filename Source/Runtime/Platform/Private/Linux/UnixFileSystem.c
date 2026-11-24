@@ -32,14 +32,14 @@
 #include "Core/IFileSystem.h"
 #include "Core/ILog.h"
 
-bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
-void fsGetParentPath(const char* path, char* output);
+bool MergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
+void GetParentPath(const char* path, char* output);
 
 #if defined(__APPLE__)
 #include <sys/param.h>
 #endif
 
-static bool fsDirectoryExists(const char* path)
+static bool DirectoryExists(const char* path)
 {
     struct stat s;
     if (stat(path, &s))
@@ -50,37 +50,37 @@ static bool fsDirectoryExists(const char* path)
     return (s.st_mode & S_IFDIR) != 0;
 }
 
-static bool fsUnixCreateDirectory(const char* path)
+static bool UnixCreateDirectory(const char* path)
 {
-    if (fsDirectoryExists(path)) // Check if directory already exists
+    if (DirectoryExists(path)) // Check if directory already exists
     {
         return true;
     }
 
     char parentPath[FS_MAX_PATH] = { 0 };
-    fsGetParentPath(path, parentPath);
+    GetParentPath(path, parentPath);
 
     // Recursively create all parent directories.
     if (parentPath[0] != 0)
     {
-        fsUnixCreateDirectory(parentPath);
+        UnixCreateDirectory(parentPath);
     }
 
     if (mkdir(path, 0777) != 0)
     {
-        LOGF(eINFO, "Unable to create directory at %s: %s", path, strerror(errno));
+        LOGF(Info, "Unable to create directory at %s: %s", path, strerror(errno));
         return false;
     }
 
     return true;
 }
 
-bool fsCreateResourceDirectory(ResourceDirectory resourceDir) { return fsUnixCreateDirectory(fsGetResourceDirectory(resourceDir)); }
+bool CreateResourceDirectory(ResourceDirectory resourceDir) { return UnixCreateDirectory(GetResourceDirectory(resourceDir)); }
 
-time_t fsGetLastModifiedTime(ResourceDirectory rd, const char* fileName)
+time_t GetLastModifiedTime(ResourceDirectory rd, const char* fileName)
 {
     char filePath[FS_MAX_PATH];
-    fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '/', sizeof filePath, filePath);
+    MergeDirAndFileName(GetResourceDirectory(rd), fileName, '/', sizeof filePath, filePath);
 
     struct stat fileInfo = { 0 };
     stat(filePath, &fileInfo);
@@ -89,7 +89,7 @@ time_t fsGetLastModifiedTime(ResourceDirectory rd, const char* fileName)
 
 struct UnixFileStream
 {
-    ssize_t size;
+    ssize_t Size;
     void*   mapping;
     int     descriptor;
 };
@@ -119,7 +119,7 @@ static const char* getFileName(const struct UnixFileStream* stream, char* buffer
     }
 #endif
 
-    LOGF(eERROR, "Failed to get file name for %i descriptor: %s", stream->descriptor, strerror(errno));
+    LOGF(Error, "Failed to Get file name for %i descriptor: %s", stream->descriptor, strerror(errno));
     return "unknown file name";
 }
 
@@ -128,18 +128,18 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
     memset(fs, 0, sizeof *fs);
 
     char filePath[FS_MAX_PATH];
-    fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '/', sizeof filePath, filePath);
+    MergeDirAndFileName(GetResourceDirectory(rd), fileName, '/', sizeof filePath, filePath);
 
     int oflags = 0;
 
     // 666
     mode_t omode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IROTH;
 
-    if (mode & FM_WRITE)
+    if (mode & FileModeWrite)
     {
         oflags |= O_CREAT;
 
-        if (mode & FM_APPEND)
+        if (mode & FileModeAppend)
         {
             oflags |= O_APPEND;
         }
@@ -148,7 +148,7 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
             oflags |= O_TRUNC;
         }
 
-        if (mode & FM_READ)
+        if (mode & FileModeRead)
         {
             oflags |= O_RDWR;
         }
@@ -166,30 +166,30 @@ static bool ioUnixFsOpen(IFileSystem* io, const ResourceDirectory rd, const char
     // Might fail to open the file for read+write if file doesn't exist
     if (fd < 0)
     {
-        LOGF(eERROR, "Error opening file '%s': %s", filePath, strerror(errno));
+        LOGF(Error, "Error opening file '%s': %s", filePath, strerror(errno));
         return false;
     }
 
     USD(stream, fs);
 
-    stream->size = -1;
+    stream->Size = -1;
     stream->descriptor = fd;
 
     struct stat finfo;
     if (fstat(stream->descriptor, &finfo) == 0)
     {
-        stream->size = finfo.st_size;
+        stream->Size = finfo.st_size;
     }
     else
     {
-        LOGF(eERROR, "Failed to get size for file '%s': %s", filePath, strerror(errno));
+        LOGF(Error, "Failed to Get size for file '%s': %s", filePath, strerror(errno));
     }
 
     fs->mode = mode;
-    fs->pIO = io;
-    fs->mount = fsGetResourceDirectoryMount(rd);
+    fs->FileSystem = io;
+    fs->mount = GetResourceDirectoryMount(rd);
 
-    if ((mode & FM_READ) && (mode & FM_APPEND) && !(mode & FM_WRITE))
+    if ((mode & FileModeRead) && (mode & FileModeAppend) && !(mode & FileModeWrite))
     {
         if (!io->Seek(fs, SBO_END_OF_FILE, 0))
         {
@@ -206,32 +206,38 @@ static bool ioUnixFsMemoryMap(FileStream* fs, size_t* outSize, void const** outD
     *outSize = 0;
     *outData = NULL;
 
-    if (fs->mode & FM_WRITE)
+    if (fs->mode & FileModeWrite)
+    {
         return false;
+    }
 
     USD(stream, fs);
 
     // if not mapped already
     if (!stream->mapping)
     {
-        if (stream->size < 0)
+        if (stream->Size < 0)
+        {
             return false;
-        if (stream->size == 0)
+        }
+        if (stream->Size == 0)
+        {
             return true;
+        }
 
-        void* mem = mmap(NULL, (size_t)stream->size, PROT_READ, MAP_PRIVATE, stream->descriptor, 0);
+        void* mem = mmap(NULL, (size_t)stream->Size, PROT_READ, MAP_PRIVATE, stream->descriptor, 0);
 
         if (mem == MAP_FAILED)
         {
             char buffer[1024];
-            LOGF(eERROR, "mmap is failed for file '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
+            LOGF(Error, "mmap is failed for file '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
             return false;
         }
 
         stream->mapping = mem;
     }
 
-    *outSize = (size_t)stream->size;
+    *outSize = (size_t)stream->Size;
     *outData = stream->mapping;
     return true;
 }
@@ -242,10 +248,10 @@ static bool ioUnixFsClose(FileStream* fs)
 
     if (stream->mapping)
     {
-        if (munmap(stream->mapping, (size_t)stream->size))
+        if (munmap(stream->mapping, (size_t)stream->Size))
         {
             char buffer[1024];
-            LOGF(eERROR, "Error unmapping file '%s': '%s'", getFileName(stream, buffer, sizeof buffer), strerror(errno));
+            LOGF(Error, "Error unmapping file '%s': '%s'", getFileName(stream, buffer, sizeof buffer), strerror(errno));
         }
         else
         {
@@ -253,7 +259,7 @@ static bool ioUnixFsClose(FileStream* fs)
         }
     }
 
-#if defined(FORGE_DEBUG) // we can't get file name after closing it
+#if defined(FORGE_DEBUG) // we can't Get file name after closing it
     char buffer[1024];
     getFileName(stream, buffer, sizeof buffer);
 #endif
@@ -262,24 +268,24 @@ static bool ioUnixFsClose(FileStream* fs)
     if (!success)
     {
 #if defined(FORGE_DEBUG)
-        LOGF(eERROR, "Error after closing file '%s': '%s'", buffer, strerror(errno));
+        LOGF(Error, "Error after closing file '%s': '%s'", buffer, strerror(errno));
 #else
-        LOGF(eERROR, "Error after closing file: '%s'", strerror(errno));
+        LOGF(Error, "Error after closing file: '%s'", strerror(errno));
 #endif
     }
     stream->descriptor = -1;
     return success;
 }
 
-static size_t ioUnixFsRead(FileStream* fs, void* dst, size_t size)
+static size_t ioUnixFsRead(FileStream* fs, void* dst, size_t Size)
 {
     USD(stream, fs);
-    ssize_t res = read(stream->descriptor, dst, size);
+    ssize_t res = read(stream->descriptor, dst, Size);
     if (res >= 0)
         return (size_t)res;
 
     char buffer[1024];
-    LOGF(eERROR, "Error reading %s from file '%s': %s", humanReadableSize(size).str, getFileName(stream, buffer, sizeof buffer),
+    LOGF(Error, "Error reading %s from file '%s': %s", HumanReadableSize(Size).str, getFileName(stream, buffer, sizeof buffer),
          strerror(errno));
     return 0;
 }
@@ -293,19 +299,19 @@ static ssize_t ioUnixFsGetPosition(FileStream* fs)
         return res;
 
     char buffer[1024];
-    LOGF(eERROR, "Error getting file position '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
+    LOGF(Error, "Error getting file position '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
     return false;
 }
 
-static size_t ioUnixFsWrite(FileStream* fs, const void* src, size_t size)
+static size_t ioUnixFsWrite(FileStream* fs, const void* src, size_t Size)
 {
     USD(stream, fs);
-    ssize_t res = write(stream->descriptor, src, size);
+    ssize_t res = write(stream->descriptor, src, Size);
     if (res >= 0)
         return (size_t)res;
 
     char buffer[1024];
-    LOGF(eERROR, "Error writing %s from file '%s': %s", humanReadableSize(size).str, getFileName(stream, buffer, sizeof buffer),
+    LOGF(Error, "Error writing %s from file '%s': %s", HumanReadableSize(Size).str, getFileName(stream, buffer, sizeof buffer),
          strerror(errno));
     return 0;
 }
@@ -333,14 +339,16 @@ static bool ioUnixFsSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t offs
         return true;
 
     char buffer[1024];
-    LOGF(eERROR, "Error seeking file '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
+    LOGF(Error, "Error seeking file '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
     return false;
 }
 
 static bool ioUnixFsFlush(FileStream* fs)
 {
-    if (!(fs->mode & FM_WRITE))
+    if (!(fs->mode & FileModeWrite))
+    {
         return true;
+    }
 
     USD(stream, fs);
 
@@ -355,7 +363,7 @@ static bool ioUnixFsFlush(FileStream* fs)
 #endif
 
     char buffer[1024];
-    LOGF(eERROR, "Failed to flush file '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
+    LOGF(Error, "Failed to flush file '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
     return false;
 }
 
@@ -364,13 +372,15 @@ static bool unixFsUpdateSize(struct UnixFileStream* stream)
     off_t offset = lseek(stream->descriptor, 0, SEEK_CUR);
     if (offset < 0)
         return false;
-    off_t size = lseek(stream->descriptor, 0, SEEK_END);
-    if (size < 0)
-        return false;
-
-    if (offset == size)
+    off_t Size = lseek(stream->descriptor, 0, SEEK_END);
+    if (Size < 0)
     {
-        stream->size = size;
+        return false;
+    }
+
+    if (offset == Size)
+    {
+        stream->Size = Size;
         return true;
     }
 
@@ -378,20 +388,22 @@ static bool unixFsUpdateSize(struct UnixFileStream* stream)
     if (offset2 < 0 || offset2 != offset)
     {
         char buffer[1024];
-        LOGF(eERROR, "File position is broken and so file is closed '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
+        LOGF(Error, "File position is broken and so file is closed '%s': %s", getFileName(stream, buffer, sizeof buffer), strerror(errno));
         close(stream->descriptor);
         stream->descriptor = -1;
     }
-    stream->size = size;
+    stream->Size = Size;
     return true;
 }
 
 static ssize_t ioUnixFsGetSize(FileStream* fs)
 {
     USD(stream, fs);
-    if ((fs->mode & FM_WRITE) && !unixFsUpdateSize(stream))
+    if ((fs->mode & FileModeWrite) && !unixFsUpdateSize(stream))
+    {
         return -1;
-    return stream->size;
+    }
+    return stream->Size;
 }
 
 static bool ioUnixFsIsAtEnd(FileStream* fs) { return ioUnixFsGetPosition(fs) >= ioUnixFsGetSize(fs); }
@@ -402,7 +414,7 @@ IFileSystem gUnixSystemFileIO = {
 };
 
 #if !defined(ANDROID)
-IFileSystem* pSystemFileIO = &gUnixSystemFileIO;
+IFileSystem* SystemFileIO = &gUnixSystemFileIO;
 #endif
 
 #endif

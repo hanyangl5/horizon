@@ -1,0 +1,128 @@
+/* Copyright (c) 2026 Horizon */
+#pragma once
+
+#include "Core/ISpan.h"
+#include "Scene/SceneComponents.h"
+#include "Scene/World.h"
+
+namespace hz
+{
+struct SceneAssetTexture
+{
+    AssetID     id;
+    const char* pPath = "";
+    const char* pSource = "";
+    bool        srgb = false;
+    bool        cooked = false; // Path is relative to the cooked output root; otherwise the source root.
+};
+
+enum class MaterialAlphaMode : uint32_t
+{
+    Opaque,
+    Mask,
+    Blend,
+};
+
+struct SceneAssetMaterial
+{
+    AssetID           id;
+    const char*       Name = "";
+    AssetID           baseColorTexture;
+    AssetID           normalTexture;
+    AssetID           metallicRoughnessTexture;
+    AssetID           emissiveTexture;
+    float             baseColorFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    float             metallicFactor = 1.0f;
+    float             roughnessFactor = 1.0f;
+    float             emissiveFactor[3] = {};
+    MaterialAlphaMode alphaMode = MaterialAlphaMode::Opaque;
+    float             alphaCutoff = 0.5f;
+    bool              doubleSided = false;
+    // Application-defined bits that renderer lists filter on, for example to draw an outline for a subset of materials.
+    uint32_t          tags = 0;
+};
+
+struct SceneAssetSubmesh
+{
+    SubmeshID id = 0;
+    uint32_t  Draw = 0;
+    AssetID   material;
+};
+
+struct SceneAssetMesh
+{
+    AssetID                 id;
+    const char*             Name = "";
+    const char*             pGeometry = "";
+    Span<SceneAssetSubmesh> submeshes;
+};
+
+// A standalone cooked file holding one ozz skeleton and the skins bound to it.
+struct SceneAssetSkeleton
+{
+    AssetID     id;
+    const char* Name = "";
+    const char* pPath = "";
+};
+
+// A standalone cooked file holding one ozz animation, with one track per joint of its skeleton.
+struct SceneAssetAnimation
+{
+    AssetID     id;
+    const char* Name = "";
+    const char* pPath = "";
+    AssetID     skeleton;
+};
+
+struct SceneAssetNode
+{
+    const char*    Name = "";
+    uint32_t       parent = UINT32_MAX;
+    AssetID        mesh;
+    // The entity that owns a skeleton plays its animation; skinned meshes are its direct children.
+    AssetID        skeleton;
+    AssetID        animation;
+    // Skin of the parent node's skeleton that deforms the mesh, or UINT32_MAX for a rigid mesh.
+    uint32_t       skin = UINT32_MAX;
+    LocalTransform transform;
+    Matrix4        matrix = Matrix4::identity();
+    // Only the selected representation is used; matrices are never decomposed.
+    bool           hasMatrix = false;
+};
+
+class SceneAssetData;
+
+class SceneAsset
+{
+public:
+    SceneAsset() = default;
+    ~SceneAsset();
+    SceneAsset(SceneAsset&& other) noexcept;
+    SceneAsset& operator=(SceneAsset&& other) noexcept;
+    SceneAsset(const SceneAsset&) = delete;
+    SceneAsset& operator=(const SceneAsset&) = delete;
+
+    // Owns decoded data. Failed reads preserve the previously loaded asset.
+    // Cooked scenes stay JSON on purpose: the same document is also the re-cook identity store, and one
+    // Parse at Load costs far less than a binary layout plus a separate identity file.
+    bool                     Parse(Span<char> json);
+    bool                     IsValid() const { return Data != nullptr; }
+    AssetID                  GetID() const;
+    const char*              GetSource() const;
+    const char*              GetContentHash() const;
+    // Views and strings remain valid until the owning payload is replaced or destroyed.
+    Span<SceneAssetNode>     GetNodes() const;
+    Span<SceneAssetMesh>     GetMeshes() const;
+    Span<SceneAssetMaterial> GetMaterials() const;
+    Span<SceneAssetTexture>  GetTextures() const;
+    Span<SceneAssetSkeleton>  GetSkeletons() const;
+    Span<SceneAssetAnimation> GetAnimations() const;
+    // Creates independent persistent entities beneath a new root, owned by World.
+    // Requires builtin types and a committed World; the payload can be released afterwards.
+    // Guid generation failure returns an invalid Entity and rolls back the new entities.
+    Entity                   Instantiate(World& world, Entity parent = {}) const;
+
+private:
+    SceneAssetData* Data = nullptr;
+};
+} // namespace hz

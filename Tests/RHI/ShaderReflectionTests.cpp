@@ -34,13 +34,13 @@ uint32_t findVariableIndexByName(const PipelineReflection& reflection, const cha
     return UINT32_MAX;
 }
 
-ShaderResource makeResource(DescriptorType type, uint32_t set, uint32_t reg, ShaderStage stage, const char* name)
+ShaderResource makeResource(DescriptorType Type, uint32_t Set, uint32_t reg, ShaderStage stage, const char* name)
 {
     return {
-        .type = type,
-        .set = set,
+        .Type = Type,
+        .Set = Set,
         .reg = reg,
-        .size = 1,
+        .Size = 1,
         .used_stages = stage,
         .name = name,
         .name_size = (uint32_t)strlen(name),
@@ -48,13 +48,13 @@ ShaderResource makeResource(DescriptorType type, uint32_t set, uint32_t reg, Sha
     };
 }
 
-ShaderVariable makeVariable(const char* name, uint32_t parentIndex, uint32_t offset, uint32_t size)
+ShaderVariable makeVariable(const char* name, uint32_t parentIndex, uint32_t offset, uint32_t Size)
 {
     return {
         .name = name,
         .parent_index = parentIndex,
         .offset = offset,
-        .size = size,
+        .Size = Size,
         .name_size = (uint32_t)strlen(name),
     };
 }
@@ -134,8 +134,8 @@ TEST(RHIShaderReflectionTest, PipelineReflectionCombinesStagesAndDeduplicatesBin
     EXPECT_EQ(pipeline.pVariables[cameraPosIndex].parent_index, frameDataIndex);
     EXPECT_EQ(pipeline.pVariables[exposureIndex].parent_index, frameDataIndex);
 
-    tf_free(pipeline.pShaderResources);
-    tf_free(pipeline.pVariables);
+    MemDeallocate(pipeline.pShaderResources);
+    MemDeallocate(pipeline.pVariables);
 }
 
 // Verifies that descriptor-name helpers detect root constants and root CBVs regardless of letter case.

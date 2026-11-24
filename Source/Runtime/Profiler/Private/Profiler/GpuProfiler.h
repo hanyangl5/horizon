@@ -38,8 +38,8 @@ typedef struct GpuTimer
 
     char     name[64] = "Timer";
     uint32_t index = 0;
-    uint32_t historyIndex = 0;
-    uint32_t depth = 0;
+    uint32_t HistoryIndex = 0;
+    uint32_t Depth = 0;
 
     uint64_t     startGpuTime = 0;
     uint64_t     endGpuTime = 0;
@@ -47,7 +47,7 @@ typedef struct GpuTimer
     uint64_t     gpuMinTime = 0;
     uint64_t     gpuMaxTime = 0;
     uint64_t     gpuHistory[LENGTH_OF_HISTORY] = {};
-    size_t       hash = 0;
+    size_t       Hash = 0;
     ProfileToken token = {};
     void*        pBackendGpuZone = NULL;
     GpuTimer*    pParent = NULL;
@@ -83,5 +83,5 @@ struct GpuProfilerContainer
 {
     static const uint32_t MAX_GPU_PROFILERS = 8;
     GpuProfiler*          profilers[MAX_GPU_PROFILERS] = { NULL };
-    uint32_t              size = 0;
+    uint32_t              Size = 0;
 };

@@ -33,17 +33,19 @@
 // MARK: - File iteration
 /************************************************************************/
 
-bool fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char*** out, int* count)
+bool GetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char*** out, int* Count)
 {
     *out = NULL;
-    *count = 0;
+    *Count = 0;
 
     char directoryPath[FS_MAX_PATH] = { 0 };
-    fsAppendPathComponent(fsGetResourceDirectory(resourceDir), subDirectory, directoryPath);
+    AppendPathComponent(GetResourceDirectory(resourceDir), subDirectory, directoryPath);
 
     FsDirectoryIterator iterator = NULL;
-    if (!fsDirectoryIteratorOpen(resourceDir, subDirectory, &iterator))
+    if (!DirectoryIteratorOpen(resourceDir, subDirectory, &iterator))
+    {
         return false;
+    }
 
     if (extension)
     {
@@ -62,7 +64,7 @@ bool fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
     for (;;)
     {
         struct FsDirectoryIteratorEntry entry;
-        success = fsDirectoryIteratorNext(iterator, &entry);
+        success = DirectoryIteratorNext(iterator, &entry);
         if (!success || !entry.name)
             break;
 
@@ -70,7 +72,7 @@ bool fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
             continue;
 
         char fileExt[FS_MAX_PATH] = { 0 };
-        fsGetPathExtension(entry.name, fileExt);
+        GetPathExtension(entry.name, fileExt);
         size_t fileExtLen = strlen(fileExt);
 
         if ((!extension) || (extension[0] == 0 && fileExtLen == 0) || (fileExtLen > 0 && strncasecmp(fileExt, extension, fileExtLen) == 0))
@@ -81,13 +83,13 @@ bool fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
 
     if (!success || !filesFound)
     {
-        fsDirectoryIteratorClose(iterator);
+        DirectoryIteratorClose(iterator);
         return success;
     }
 
     size_t stringsSize = filesFound * sizeof(char*) + filesFound * sizeof(char) * FS_MAX_PATH;
 
-    char** stringList = (char**)tf_malloc(stringsSize);
+    char** stringList = (char**)MemAllocate(stringsSize);
 
     char* firstString = ((char*)stringList + filesFound * sizeof(char*));
     for (int i = 0; i < filesFound; ++i)
@@ -99,7 +101,7 @@ bool fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
     for (;;)
     {
         struct FsDirectoryIteratorEntry entry;
-        success = fsDirectoryIteratorNext(iterator, &entry);
+        success = DirectoryIteratorNext(iterator, &entry);
         if (!success || !entry.name)
             break;
 
@@ -107,44 +109,46 @@ bool fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
             continue;
 
         char fileExt[FS_MAX_PATH] = { 0 };
-        fsGetPathExtension(entry.name, fileExt);
+        GetPathExtension(entry.name, fileExt);
         size_t fileExtLen = strlen(fileExt);
 
         if ((!extension) || (extension[0] == 0 && fileExtLen == 0) || (fileExtLen > 0 && strncasecmp(fileExt, extension, fileExtLen) == 0))
         {
             char result[FS_MAX_PATH] = { 0 };
-            fsAppendPathComponent(subDirectory, entry.name, result);
+            AppendPathComponent(subDirectory, entry.name, result);
             char* dest = stringList[strIndex++];
             strcpy(dest, result);
         }
     }
 
-    fsDirectoryIteratorClose(iterator);
+    DirectoryIteratorClose(iterator);
 
     if (!success)
     {
-        tf_free(*out);
+        MemDeallocate(*out);
     }
     else
     {
         *out = stringList;
-        *count = filesFound;
+        *Count = filesFound;
     }
 
     return success;
 }
 
-bool fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char*** out, int* count)
+bool GetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char*** out, int* Count)
 {
     *out = NULL;
-    *count = 0;
+    *Count = 0;
 
     char directoryPath[FS_MAX_PATH] = { 0 };
-    fsAppendPathComponent(fsGetResourceDirectory(resourceDir), subDirectory, directoryPath);
+    AppendPathComponent(GetResourceDirectory(resourceDir), subDirectory, directoryPath);
 
     FsDirectoryIterator iterator = NULL;
-    if (!fsDirectoryIteratorOpen(resourceDir, subDirectory, &iterator))
+    if (!DirectoryIteratorOpen(resourceDir, subDirectory, &iterator))
+    {
         return false;
+    }
 
     bool success = true;
 
@@ -153,7 +157,7 @@ bool fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
     for (;;)
     {
         struct FsDirectoryIteratorEntry entry;
-        success = fsDirectoryIteratorNext(iterator, &entry);
+        success = DirectoryIteratorNext(iterator, &entry);
         if (!success || !entry.name)
             break;
 
@@ -163,12 +167,12 @@ bool fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
 
     if (!success || !filesFound)
     {
-        fsDirectoryIteratorClose(iterator);
+        DirectoryIteratorClose(iterator);
         return success;
     }
 
     size_t stringsSize = filesFound * sizeof(char*) + filesFound * sizeof(char) * FS_MAX_PATH;
-    char** stringList = (char**)tf_malloc(stringsSize);
+    char** stringList = (char**)MemAllocate(stringsSize);
     char*  firstString = ((char*)stringList + filesFound * sizeof(char*));
     for (int i = 0; i < filesFound; ++i)
     {
@@ -176,13 +180,13 @@ bool fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
     }
 
     *out = stringList;
-    *count = filesFound;
+    *Count = filesFound;
 
     int strIndex = 0;
     for (;;)
     {
         struct FsDirectoryIteratorEntry entry;
-        success = fsDirectoryIteratorNext(iterator, &entry);
+        success = DirectoryIteratorNext(iterator, &entry);
         if (!success || !entry.name)
             break;
 
@@ -190,21 +194,21 @@ bool fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
             continue;
 
         char result[FS_MAX_PATH] = { 0 };
-        fsAppendPathComponent(subDirectory, entry.name, result);
+        AppendPathComponent(subDirectory, entry.name, result);
         char* dest = stringList[strIndex++];
         strcpy(dest, result);
     }
 
-    fsDirectoryIteratorClose(iterator);
+    DirectoryIteratorClose(iterator);
 
     if (!success)
     {
-        tf_free(*out);
+        MemDeallocate(*out);
     }
     else
     {
         *out = stringList;
-        *count = filesFound;
+        *Count = filesFound;
     }
 
     return success;
@@ -216,11 +220,11 @@ bool fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
 #include <errno.h>
 #include <sys/stat.h>
 
-bool fsCheckPath(ResourceDirectory rd, const char* path, bool* exist, bool* isDir, bool* isFile)
+bool CheckPath(ResourceDirectory rd, const char* path, bool* exist, bool* isDir, bool* isFile)
 {
-    const char* resourcePath = fsGetResourceDirectory(rd);
+    const char* resourcePath = GetResourceDirectory(rd);
     char        fullPath[FS_MAX_PATH] = { 0 };
-    fsAppendPathComponent(resourcePath, path, fullPath);
+    AppendPathComponent(resourcePath, path, fullPath);
 
     // 'lstat' won't resolve symlink entries, so we use 'stat'.
     // We are only interested in entry targeted by symlink
@@ -240,24 +244,24 @@ bool fsCheckPath(ResourceDirectory rd, const char* path, bool* exist, bool* isDi
     if (errno == ENOENT)
         return true;
 
-    LOGF(eERROR, "Failed to retreive path '%s' info: '%'", fullPath, strerror(errno));
+    LOGF(Error, "Failed to retreive path '%s' info: '%'", fullPath, strerror(errno));
     return false;
 }
 
-bool fsDirectoryIteratorOpen(ResourceDirectory rd, const char* dir, FsDirectoryIterator* out)
+bool DirectoryIteratorOpen(ResourceDirectory rd, const char* dir, FsDirectoryIterator* out)
 {
     *out = 0;
 
-    const char* resourcePath = fsGetResourceDirectory(rd);
+    const char* resourcePath = GetResourceDirectory(rd);
     char        fullPath[FS_MAX_PATH] = { 0 };
-    fsAppendPathComponent(resourcePath, dir, fullPath);
+    AppendPathComponent(resourcePath, dir, fullPath);
 
     DIR* directory = opendir(fullPath);
     if (!directory)
     {
         if (errno == ENOENT)
             return false;
-        LOGF(eERROR, "Failed to open directory '%s': '%'", fullPath, strerror(errno));
+        LOGF(Error, "Failed to open directory '%s': '%'", fullPath, strerror(errno));
         return false;
     }
 
@@ -265,18 +269,18 @@ bool fsDirectoryIteratorOpen(ResourceDirectory rd, const char* dir, FsDirectoryI
     return true;
 }
 
-void fsDirectoryIteratorClose(FsDirectoryIterator iterator)
+void DirectoryIteratorClose(FsDirectoryIterator iterator)
 {
     DIR* directory = (DIR*)iterator;
 
     if (closedir(directory))
     {
         // We expect only EBADF here - Invalid directory stream descriptor.
-        LOGF(eERROR, "Failed to close directory: '%'", strerror(errno));
+        LOGF(Error, "Failed to close directory: '%'", strerror(errno));
     }
 }
 
-bool fsDirectoryIteratorNext(FsDirectoryIterator iterator, struct FsDirectoryIteratorEntry* outEntry)
+bool DirectoryIteratorNext(FsDirectoryIterator iterator, struct FsDirectoryIteratorEntry* outEntry)
 {
     *outEntry = (struct FsDirectoryIteratorEntry){ 0 };
 
@@ -288,7 +292,7 @@ bool fsDirectoryIteratorNext(FsDirectoryIterator iterator, struct FsDirectoryIte
         struct dirent* entry = readdir(directory);
         if (errno)
         {
-            LOGF(eERROR, "Failed to iterate directory: '%'", strerror(errno));
+            LOGF(Error, "Failed to iterate directory: '%'", strerror(errno));
             return false;
         }
 
@@ -311,12 +315,12 @@ bool fsDirectoryIteratorNext(FsDirectoryIterator iterator, struct FsDirectoryIte
             break;
 
         case DT_LNK:     // link to file, needed to resolve
-        case DT_UNKNOWN: // filesystem doesn't support getting type from dirent
+        case DT_UNKNOWN: // filesystem doesn't support getting Type from dirent
         {
             struct stat st = { 0 };
             if (stat(entry->d_name, &st))
             {
-                LOGF(eERROR, "Failed to retreive path '%s' info: '%'", entry->d_name, strerror(errno));
+                LOGF(Error, "Failed to retreive path '%s' info: '%'", entry->d_name, strerror(errno));
                 continue;
             }
 

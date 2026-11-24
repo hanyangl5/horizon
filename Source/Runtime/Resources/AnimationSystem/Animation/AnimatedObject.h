@@ -48,11 +48,11 @@ struct AimIKDesc
     const Vector3* jointUpVectors;
     // Twist_angle rotates joint around the target vector.
     float          twistAngle;
-    // Weight given to the IK correction clamped in range [0,1]. Applied to each joint in chain.
+    // Weight given to the IK correction clamped in range [0,1]. Applied to Each joint in chain.
     float          jointWeight;
     // Chain Length
     int32_t        jointChainLength;
-    // Optional boolean output value, set to true if target can be reached with IK
+    // Optional boolean output value, Set to true if target can be reached with IK
     // computations.
     bool           reached;
 };
@@ -77,7 +77,7 @@ struct TwoBonesIKDesc
     float   twistAngle;
     // Array of joint indexes.
     int32_t jointChain[3];
-    // Optional boolean output value, set to true if target can be reached with IK
+    // Optional boolean output value, Set to true if target can be reached with IK
     // computations.
     bool    reached;
 };
@@ -106,21 +106,21 @@ public:
     // compute joint scales
     void ComputeJointScales(const Matrix4& rootTransform);
 
-    // Have rig update to display in its bind pose
+    // Have rig Update to display in its bind pose
     void ComputeBindPose(const Matrix4& rootTransform);
 
     // Gets the world matrix without any scale data of the joint at index (returns identity if index is invalid)
     inline Matrix4 GetJointWorldMatNoScale(uint32_t index) const
     {
         ASSERT(rig && index < rig->numJoints);
-        mat4 withScale = jointWorldMats[index];
+        Matrix4 withScale = jointWorldMats[index];
 
         // Normalize the first three collumns
-        vec4 col0 = vec4(normalize(withScale.getCol0().getXYZ()), withScale.getCol0().getW());
-        vec4 col1 = vec4(normalize(withScale.getCol1().getXYZ()), withScale.getCol1().getW());
-        vec4 col2 = vec4(normalize(withScale.getCol2().getXYZ()), withScale.getCol2().getW());
+        Vector4 col0 = Vector4(normalize(withScale.getCol0().getXYZ()), withScale.getCol0().getW());
+        Vector4 col1 = Vector4(normalize(withScale.getCol1().getXYZ()), withScale.getCol1().getW());
+        Vector4 col2 = Vector4(normalize(withScale.getCol2().getXYZ()), withScale.getCol2().getW());
 
-        mat4 withoutScale = mat4(col0, col1, col2, withScale.getCol3());
+        Matrix4 withoutScale = Matrix4(col0, col1, col2, withScale.getCol3());
         return withoutScale;
     }
 
@@ -131,13 +131,13 @@ public:
     Animation* animation = NULL;
 
     // Transform to apply to entire rig
-    Matrix4 rootTransform = Matrix4::identity(); // TODO: Do we need this here? Might be better if it's provided in each call to
+    Matrix4 rootTransform = Matrix4::identity(); // TODO: Do we need this here? Might be better if it's provided in Each call to
                                                  // ComputePose, less duplicated state
 
     // Buffer of local transforms as sampled from the animation.
     ozz::span<SoaTransform> localTrans;
 
-    // Buffer of joint model space matrices set by animations
+    // Buffer of joint model space matrices Set by animations
     ozz::span<Matrix4> jointModelMats;
     // Buffer of world model space matrices for joints.
     ozz::span<Matrix4> jointWorldMats;
@@ -146,12 +146,12 @@ public:
 #ifdef ENABLE_FORGE_ANIMATION_DEBUG
 
     // Color of the joints
-    Vector4 jointColor = vec4(.9f, .9f, .9f, 1.f); // white
+    Vector4 jointColor = Vector4(.9f, .9f, .9f, 1.f); // white
 
     // Color of the bones
-    Vector4 boneColor = vec4(0.9f, 0.6f, 0.1f, 1.0f); // orange
+    Vector4 boneColor = Vector4(0.9f, 0.6f, 0.1f, 1.0f); // orange
 
-    // Scales to apply to each joint - will be proportional to length of its child's bone
+    // Scales to apply to Each joint - will be proportional to length of its child's bone
     ozz::span<Vector3> jointScales;
 
 #endif

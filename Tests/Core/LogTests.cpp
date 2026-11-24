@@ -56,19 +56,19 @@ TEST(CoreLogTest, InteractiveModeToggleRoundTrips)
     EXPECT_EQ(_IsInteractiveMode(), initial);
 }
 
-// Verifies that log callbacks receive formatted and raw messages and are closed during shutdown.
+// Verifies that log callbacks receive formatted and raw messages and are closed during Shutdown.
 TEST(CoreLogTest, CallbackReceivesFormattedAndRawMessages)
 {
     LogCapture capture = {};
 
-    initLog(nullptr, eALL);
-    //setCurrentThreadName("CoreLogUT");
-    addLogCallback("CoreLogTest.CallbackReceivesFormattedAndRawMessages", eALL, &capture, captureLog, closeLogCapture, nullptr);
+    InitLog(nullptr, All);
+    //SetCurrentThreadName("CoreLogUT");
+    AddLogCallback("CoreLogTest.CallbackReceivesFormattedAndRawMessages", All, &capture, captureLog, closeLogCapture, nullptr);
 
-    writeLog(eINFO, __FILE__, __LINE__, "hello %d", 42);
-    writeRawLog(eWARNING, false, "raw warning");
+    WriteLog(Info, __FILE__, __LINE__, "hello %d", 42);
+    WriteRawLog(Warning, false, "raw warning");
 
-    exitLog();
+    ExitLog();
 
     EXPECT_GE(capture.messageCount, 2u);
     EXPECT_TRUE(containsMessage(capture, "INFO|"));
@@ -77,11 +77,11 @@ TEST(CoreLogTest, CallbackReceivesFormattedAndRawMessages)
     EXPECT_EQ(capture.closeCount, 1);
 }
 
-// Verifies that human-readable log helpers format representative size and time values.
+// Verifies that human-readable log helpers Format representative Size and time values.
 TEST(CoreLogTest, HumanReadableHelpersFormatExpectedUnits)
 {
-    EXPECT_STREQ(humanReadableSize(999).str, "999B");
-    EXPECT_STREQ(humanReadableSize(1024).str, "1KB");
-    EXPECT_STREQ(humanReadableSize(1536).str, "1.5KB");
-    EXPECT_STRNE(humanReadableTime(500).str, "");
+    EXPECT_STREQ(HumanReadableSize(999).str, "999B");
+    EXPECT_STREQ(HumanReadableSize(1024).str, "1KB");
+    EXPECT_STREQ(HumanReadableSize(1536).str, "1.5KB");
+    EXPECT_STRNE(HumanReadableTime(500).str, "");
 }

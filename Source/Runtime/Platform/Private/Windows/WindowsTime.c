@@ -26,10 +26,10 @@
 
 #include <stdint.h>
 #include <time.h>
-// clang-format off
+// clang-Format off
 #include <windows.h>
 #include <timeapi.h>
-// clang-format on
+// clang-Format on
 
 #include "Core/ILog.h"
 #include "Core/IThread.h"
@@ -38,9 +38,9 @@
 /************************************************************************/
 // Time Related Functions
 /************************************************************************/
-uint32_t getSystemTime() { return (uint32_t)timeGetTime(); }
+uint32_t GetTickCountMs() { return (uint32_t)timeGetTime(); }
 
-uint32_t getTimeSinceStart() { return (uint32_t)time(NULL); }
+uint32_t GetUnixTimeSeconds() { return (uint32_t)time(NULL); }
 
 static CallOnceGuard timeInitGuard = INIT_CALL_ONCE_GUARD;
 static int64_t       highResTimerFrequency = 0;
@@ -85,17 +85,17 @@ static void initTime(void)
     timerToUSecDiv /= divisor;
 
     // If the multiplier is 1, there's no way our "simple" formula will overflow.
-    // If the divisor is 1, then we still might overflow, but int64MulDiv wouldn't prevent it.
+    // If the divisor is 1, then we still might overflow, but Int64MulDiv wouldn't prevent it.
     alwaysSimpleMulDiv = (timerToUSecMul == 1) || (timerToUSecDiv == 1);
 }
 
 static void ensureTimeInit()
 {
     // Make sure time constants are initialized before anyone tries to use them
-    callOnce(&timeInitGuard, initTime);
+    CallOnce(&timeInitGuard, initTime);
 }
 
-int64_t getTimerFrequency()
+int64_t GetTimerFrequency()
 {
     ensureTimeInit();
 
@@ -104,8 +104,8 @@ int64_t getTimerFrequency()
 
 // The `precise` param is being used to specify the way in which the usec is calculated.
 // If it's false, then a normal unsafe multiplication and division operations are made.
-// If it's true, a special int64MulDiv function is called that avoids the overflow.
-int64_t getUSec(bool precise)
+// If it's true, a special Int64MulDiv function is called that avoids the overflow.
+int64_t GetUSec(bool precise)
 {
     ensureTimeInit();
 
@@ -120,6 +120,6 @@ int64_t getUSec(bool precise)
     }
     else
     {
-        return int64MulDiv(counter.QuadPart, timerToUSecMul, timerToUSecDiv);
+        return Int64MulDiv(counter.QuadPart, timerToUSecMul, timerToUSecDiv);
     }
 }

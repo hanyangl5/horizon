@@ -13,17 +13,19 @@ class Array
 {
 public:
     Array() = default;
-    explicit Array(uint32_t count) { resize(count); }
+    explicit Array(uint32_t Count) { Resize(Count); }
     explicit Array(Span<T> values)
     {
-        ASSERT(values.pData || !values.count);
-        reserve(values.count);
-        for (uint32_t i = 0; i < values.count; ++i)
-            ::new ((void*)(pData + i)) T(values.pData[i]);
-        stbds_arrsetlen(pData, values.count);
+        ASSERT(values.Data || !values.Count);
+        Reserve(values.Count);
+        for (uint32_t i = 0; i < values.Count; ++i)
+        {
+            ::new ((void*)(Data + i)) T(values.Data[i]);
+        }
+        stbds_arrsetlen(Data, values.Count);
     }
 
-    Array(const Array& other): Array(Span<T>(other.data(), other.size())) {}
+    Array(const Array& other): Array(Span<T>(other.GetData(), other.Size())) {}
     Array& operator=(const Array& other)
     {
         if (this != &other)
@@ -34,104 +36,108 @@ public:
         return *this;
     }
 
-    Array(Array&& other) noexcept: pData(other.pData) { other.pData = nullptr; }
+    Array(Array&& other) noexcept: Data(other.Data) { other.Data = nullptr; }
     Array& operator=(Array&& other) noexcept
     {
         if (this != &other)
         {
-            reset();
-            pData = other.pData;
-            other.pData = nullptr;
+            Reset();
+            Data = other.Data;
+            other.Data = nullptr;
         }
         return *this;
     }
 
-    ~Array() { reset(); }
+    ~Array() { Reset(); }
 
-    uint32_t size() const { return (uint32_t)stbds_arrlenu(pData); }
-    uint32_t capacity() const { return (uint32_t)stbds_arrcap(pData); }
-    bool     empty() const { return size() == 0; }
+    uint32_t Size() const { return (uint32_t)stbds_arrlenu(Data); }
+    uint32_t Capacity() const { return (uint32_t)stbds_arrcap(Data); }
+    bool     Empty() const { return Size() == 0; }
 
-    T*       data() { return pData; }
-    const T* data() const { return pData; }
-    T*       begin() { return pData; }
-    const T* begin() const { return pData; }
-    T*       end() { return pData ? pData + size() : nullptr; }
-    const T* end() const { return pData ? pData + size() : nullptr; }
+    T*       GetData() { return Data; }
+    const T* GetData() const { return Data; }
+    T*       begin() { return Data; }
+    const T* begin() const { return Data; }
+    T*       end() { return Data ? Data + Size() : nullptr; }
+    const T* end() const { return Data ? Data + Size() : nullptr; }
 
     T& operator[](uint32_t index)
     {
-        ASSERT(index < size());
-        return pData[index];
+        ASSERT(index < Size());
+        return Data[index];
     }
     const T& operator[](uint32_t index) const
     {
-        ASSERT(index < size());
-        return pData[index];
+        ASSERT(index < Size());
+        return Data[index];
     }
 
-    void reserve(uint32_t count)
+    void Reserve(uint32_t Count)
     {
-        if (count <= capacity())
+        if (Count <= Capacity())
+        {
             return;
+        }
         // stb_ds realloc cannot relocate objects or preserve an over-aligned payload's offset.
         if constexpr (__is_trivially_copyable(T) && alignof(T) <= 16)
-            stbds_arrsetcap(pData, count);
+            stbds_arrsetcap(Data, Count);
         else
         {
-            const uint32_t oldCount = size();
-            const uint32_t doubledCapacity = capacity() * 2;
+            const uint32_t oldCount = Size();
+            const uint32_t doubledCapacity = Capacity() * 2;
             T*             pNew = nullptr;
-            stbds_arrsetcap(pNew, count > doubledCapacity ? count : doubledCapacity);
+            stbds_arrsetcap(pNew, Count > doubledCapacity ? Count : doubledCapacity);
             for (uint32_t i = 0; i < oldCount; ++i)
-                relocate(pNew + i, pData[i]);
+                relocate(pNew + i, Data[i]);
             stbds_arrsetlen(pNew, oldCount);
-            reset();
-            pData = pNew;
+            Reset();
+            Data = pNew;
         }
     }
-    void resize(uint32_t count)
+    void Resize(uint32_t Count)
     {
-        const uint32_t oldCount = size();
-        destroyFrom(count);
-        reserve(count);
-        for (uint32_t i = oldCount; i < count; ++i)
-            ::new ((void*)(pData + i)) T{};
-        stbds_arrsetlen(pData, count);
+        const uint32_t oldCount = Size();
+        DestroyFrom(Count);
+        Reserve(Count);
+        for (uint32_t i = oldCount; i < Count; ++i)
+        {
+            ::new ((void*)(Data + i)) T{};
+        }
+        stbds_arrsetlen(Data, Count);
     }
     template<typename... Args>
-    T& emplaceBack(Args&&... args)
+    T& EmplaceBack(Args&&... args)
     {
-        const uint32_t count = size();
-        if (count == capacity())
+        const uint32_t Count = Size();
+        if (Count == Capacity())
         {
             // Arguments may refer to elements invalidated by growth.
             T value(std::forward<Args>(args)...);
-            reserve(count + 1);
-            relocate(pData + count, value);
+            Reserve(Count + 1);
+            relocate(Data + Count, value);
         }
         else
-            ::new ((void*)(pData + count)) T(std::forward<Args>(args)...);
-        stbds_arrsetlen(pData, count + 1);
-        return pData[count];
+            ::new ((void*)(Data + Count)) T(std::forward<Args>(args)...);
+        stbds_arrsetlen(Data, Count + 1);
+        return Data[Count];
     }
-    void pushBack(const T& value) { emplaceBack(value); }
-    void pushBack(T&& value) { emplaceBack(std::move(value)); }
-    void popBack()
+    void PushBack(const T& value) { EmplaceBack(value); }
+    void PushBack(T&& value) { EmplaceBack(std::move(value)); }
+    void PopBack()
     {
-        ASSERT(!empty());
-        destroyFrom(size() - 1);
-        stbds_arrsetlen(pData, size() - 1);
+        ASSERT(!Empty());
+        DestroyFrom(Size() - 1);
+        stbds_arrsetlen(Data, Size() - 1);
     }
-    void clear()
+    void Clear()
     {
-        destroyFrom(0);
-        stbds_arrsetlen(pData, 0);
+        DestroyFrom(0);
+        stbds_arrsetlen(Data, 0);
     }
-    void reset()
+    void Reset()
     {
-        clear();
-        stbds_arrfree(pData);
+        Clear();
+        stbds_arrfree(Data);
     }
 
 private:
@@ -142,15 +148,17 @@ private:
         else
             ::new ((void*)pDestination) T(source);
     }
-    void destroyFrom(uint32_t first)
+    void DestroyFrom(uint32_t first)
     {
         if constexpr (!__is_trivially_destructible(T))
         {
-            for (uint32_t i = size(); i > first; --i)
-                pData[i - 1].~T();
+            for (uint32_t i = Size(); i > first; --i)
+            {
+                Data[i - 1].~T();
+            }
         }
     }
 
-    T* pData = nullptr;
+    T* Data = nullptr;
 };
 } // namespace hz

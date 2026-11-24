@@ -75,7 +75,7 @@ namespace gainput {
 
                     if (vrapi_GetCurrentInputState(ovr_, inputDevices_[i].capabilities.Header.DeviceID, &remoteInputState.Header) != ovrSuccess)
                     {
-                        LOGF(eERROR, "Failed to get input state from device ID(%u)", inputDevices_[i].capabilities.Header.DeviceID);
+                        LOGF(Error, "Failed to get input state from device ID(%u)", inputDevices_[i].capabilities.Header.DeviceID);
                         continue;
                     }
 
@@ -161,7 +161,7 @@ namespace gainput {
         {
             if (capHeader.Type == ovrControllerType_TrackedRemote)
             {
-                LOGF(eINFO, "Controller connected ID(%u)", capHeader.DeviceID);
+                LOGF(Info, "Controller connected ID(%u)", capHeader.DeviceID);
 
                 ovrRemote remote = {};
                 remote.capabilities.Header = capHeader;
@@ -184,7 +184,7 @@ namespace gainput {
                     }
                 }
 
-                LOGF(eERROR, "Failed to connect controller ID(%u)", capHeader.DeviceID);
+                LOGF(Error, "Failed to connect controller ID(%u)", capHeader.DeviceID);
             }
         }
 

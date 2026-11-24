@@ -48,34 +48,34 @@ class ICameraController
 {
 public:
     virtual ~ICameraController() {}
-    virtual void setMotionParameters(const CameraMotionParameters&) = 0;
-    virtual void update(float deltaTime) = 0;
+    virtual void SetMotionParameters(const CameraMotionParameters&) = 0;
+    virtual void Update(float deltaTime) = 0;
 
     // there are also implicit dependencies on the keyboard state.
 
-    virtual mat4 getViewMatrix() const = 0;
-    virtual vec3 getViewPosition() const = 0;
-    virtual vec2 getRotationXY() const = 0;
-    virtual void moveTo(const vec3& location) = 0;
-    virtual void lookAt(const vec3& lookAt) = 0;
-    virtual void setViewRotationXY(const vec2& v) = 0;
-    virtual void resetView() = 0;
+    virtual Matrix4 GetViewMatrix() const = 0;
+    virtual Vector3 GetViewPosition() const = 0;
+    virtual Vector2 GetRotationXY() const = 0;
+    virtual void    MoveTo(const Vector3& location) = 0;
+    virtual void    LookAt(const Vector3& LookAt) = 0;
+    virtual void    SetViewRotationXY(const Vector2& v) = 0;
+    virtual void    ResetView() = 0;
 
-    virtual void onMove(const float2& vec) = 0;
-    virtual void onMoveY(float y) = 0;
-    virtual void onRotate(const float2& vec) = 0;
-    virtual void onZoom(const float2& vec) = 0;
+    virtual void OnMove(const float2& vec) = 0;
+    virtual void OnMoveY(float y) = 0;
+    virtual void OnRotate(const float2& vec) = 0;
+    virtual void OnZoom(const float2& vec) = 0;
 };
 
-/// \c initGuiCameraController assumes that the camera is not rotated around the look direction;
+/// \c InitGuiCameraController assumes that the camera is not rotated around the look direction;
 /// in its matrix, \c Z points at \c startLookAt and \c X is horizontal.
-FORGE_API ICameraController* initGuiCameraController(const vec3& startPosition, const vec3& startLookAt);
+FORGE_API ICameraController* InitGuiCameraController(const Vector3& startPosition, const Vector3& startLookAt);
 
-/// \c initFpsCameraController does basic FPS-style god mode navigation; tf_free-look is constrained
+/// \c InitFpsCameraController does basic FPS-style god mode navigation; MemDeallocate-look is constrained
 /// to about +/- 88 degrees and WASD translates in the camera's local XZ plane.
-FORGE_API ICameraController* initFpsCameraController(const vec3& startPosition, const vec3& startLookAt);
+FORGE_API ICameraController* InitFpsCameraController(const Vector3& startPosition, const Vector3& startLookAt);
 
-FORGE_API void exitCameraController(ICameraController* pCamera);
+FORGE_API void ExitCameraController(ICameraController* pCamera);
 
 class FORGE_API CameraMatrix
 {
@@ -89,7 +89,7 @@ public:
     inline const CameraMatrix  operator*(const CameraMatrix& mat) const;
 
     // Applies offsets to the projection matrices (useful when needing to jitter the camera for techniques like TAA)
-    void applyProjectionSampleOffset(float xOffset, float yOffset);
+    void ApplyProjectionSampleOffset(float xOffset, float yOffset);
 
     static inline const CameraMatrix inverse(const CameraMatrix& mat);
     static inline const CameraMatrix transpose(const CameraMatrix& mat);
@@ -104,11 +104,11 @@ public:
 public:
     union
     {
-        mat4 camera;
-        mat4 leftEye;
+        Matrix4 camera;
+        Matrix4 leftEye;
     };
 #if defined(QUEST_VR)
-    mat4 rightEye;
+    Matrix4 rightEye;
 #endif
 };
 
@@ -174,34 +174,34 @@ inline const CameraMatrix CameraMatrix::transpose(const CameraMatrix& mat)
 inline const CameraMatrix CameraMatrix::perspective(float fovxRadians, float aspectInverse, float zNear, float zFar)
 {
     CameraMatrix result;
-    //#if defined(QUEST_VR)
-    //    float4 fov;
-    //    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    //    result.leftEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
+    // #if defined(QUEST_VR)
+    //     float4 fov;
+    //     ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+    //     result.leftEye = Matrix4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
     //
-    //    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    //    result.rightEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
-    //#else
-    //    result.camera = mat4::perspectiveLH(fovxRadians, aspectInverse, zNear, zFar);
-    //#endif
+    //     ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+    //     result.rightEye = Matrix4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
+    // #else
+    //     result.camera = Matrix4::perspectiveLH(fovxRadians, aspectInverse, zNear, zFar);
+    // #endif
     return result;
 }
 
 inline const CameraMatrix CameraMatrix::perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar)
 {
     CameraMatrix result;
-    //#if defined(QUEST_VR)
-    //    float4 fov;
-    //    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    //    result.leftEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
+    // #if defined(QUEST_VR)
+    //     float4 fov;
+    //     ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+    //     result.leftEye = Matrix4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
     //
-    //    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    //    result.rightEye = mat4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
+    //     ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+    //     result.rightEye = Matrix4::perspectiveLH_AsymmetricFov(fov.x, fov.y, fov.z, fov.w, zFar, zNear);
     //
-    //    return result;
-    //#else
-    //    result.camera = mat4::perspectiveLH_ReverseZ(fovxRadians, aspectInverse, zNear, zFar);
-    //#endif
+    //     return result;
+    // #else
+    //     result.camera = Matrix4::perspectiveLH_ReverseZ(fovxRadians, aspectInverse, zNear, zFar);
+    // #endif
     return result;
 }
 
@@ -209,33 +209,33 @@ inline const CameraMatrix CameraMatrix::orthographic(float left, float right, fl
 {
     CameraMatrix result;
     // TODO()
-    //#if defined(QUEST_VR)
-    //    result.leftEye = mat4::orthographicLH(left, right, bottom, top, zNear, zFar);
+    // #if defined(QUEST_VR)
+    //    result.leftEye = Matrix4::orthographicLH(left, right, bottom, top, zNear, zFar);
     //    result.rightEye = result.leftEye;
-    //#else
-    //    result.camera = mat4::orthographicLH(left, right, bottom, top, zNear, zFar);
-    //#endif
+    // #else
+    //    result.camera = Matrix4::orthographicLH(left, right, bottom, top, zNear, zFar);
+    // #endif
     return result;
 }
 
 inline const CameraMatrix CameraMatrix::orthographicReverseZ(float left, float right, float bottom, float top, float zNear, float zFar)
 {
     CameraMatrix result;
-    //#if defined(QUEST_VR)
-    //    result.leftEye = mat4::orthographicLH(left, right, bottom, top, zFar, zNear);
-    //    result.rightEye = result.leftEye;
-    //#else
-    //    result.camera = mat4::orthographicLH_ReverseZ(left, right, bottom, top, zNear, zFar);
-    //#endif
+    // #if defined(QUEST_VR)
+    //     result.leftEye = Matrix4::orthographicLH(left, right, bottom, top, zFar, zNear);
+    //     result.rightEye = result.leftEye;
+    // #else
+    //     result.camera = Matrix4::orthographicLH_ReverseZ(left, right, bottom, top, zNear, zFar);
+    // #endif
     return result;
 }
 
 inline const CameraMatrix CameraMatrix::identity()
 {
     CameraMatrix result;
-    result.leftEye = mat4::identity();
+    result.leftEye = Matrix4::identity();
 #if defined(QUEST_VR)
-    result.rightEye = mat4::identity();
+    result.rightEye = Matrix4::identity();
 #endif
     return result;
 }
@@ -284,6 +284,6 @@ inline void CameraMatrix::extractFrustumClipPlanes(const CameraMatrix& vp, Vecto
         fcp /= fcp_norm;
     }
 #else
-    mat4::extractFrustumClipPlanes(vp.camera, rcp, lcp, tcp, bcp, fcp, ncp, normalizePlanes);
+    Matrix4::extractFrustumClipPlanes(vp.camera, rcp, lcp, tcp, bcp, fcp, ncp, normalizePlanes);
 #endif
 }

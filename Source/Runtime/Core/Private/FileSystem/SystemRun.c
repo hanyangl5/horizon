@@ -32,7 +32,7 @@
 #include "Core/IFileSystem.h"
 #include "Core/ILog.h"
 
-int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile)
+int SystemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile)
 {
     UNREF_PARAM(command);
     UNREF_PARAM(arguments);
@@ -150,7 +150,7 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
     {
         int waitStatus = 0;
         waitpid(pid, &waitStatus,
-                0); // Use waitpid to make sure we wait for our forked process, not some other process created in another thread.
+                0); // Use waitpid to make sure we Wait for our forked process, not some other process created in another thread.
         arrfree(argPtrs);
 
         if (WIFEXITED(waitStatus))
@@ -160,13 +160,13 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
             return exitCode;
         }
         // else process didn't terminate normally, to see how to extract
-        // information about termination reason check the man page for wait:
+        // information about termination reason check the man page for Wait:
         // https://man7.org/linux/man-pages/man2/waitpid.2.html
 
-        LOGF(eINFO, "Child Procress failed");
+        LOGF(Info, "Child Procress failed");
         if (WIFSIGNALED(waitStatus))
         {
-            LOGF(eWARNING, "Child process terminated by signal: %d", WTERMSIG(waitStatus));
+            LOGF(Warning, "Child process terminated by signal: %d", WTERMSIG(waitStatus));
         }
 
         return -1; // Failed to execute

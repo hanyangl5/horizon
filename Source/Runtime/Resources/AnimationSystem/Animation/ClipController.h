@@ -28,7 +28,7 @@
 #include "Core/IMath.h"
 
 // Utility class that helps with controlling animation playback time. Time is
-// computed every update according to the dt given by the caller, playback speed
+// computed every Update according to the dt given by the caller, playback speed
 // and "play" state.
 // Internally time is stored as a ratio in unit interval [0,1], as expected by
 // ozz runtime animation jobs.
@@ -44,19 +44,19 @@ public:
     // Hard sets the time ratio and pauses the animation
     void SetTimeRatioHard(float time);
 
-    // Gets animation time ratio of last update. Useful when the range between
+    // Gets animation time ratio of last Update. Useful when the range between
     // previous and current frame needs to pe processed.
     inline float GetPreviousTimeRatio() const { return previousTimeRatio; };
 
     // Updates animation time if in "play" state, according to playback speed and
     // given frame time dt.
-    // Returns true if animation has looped during update
+    // Returns true if animation has looped during Update
     void Update(float dt);
 
     // Resets all parameters to their default value.
     void Reset();
 
-    // Gets updated each time we set the time, will get used externally (UI)
+    // Gets updated Each time we Set the time, will Get used externally (UI)
     float* gExternallyUsedTime = NULL;
 
     // Blending weight [0-1] for the clip this is managing.
@@ -67,7 +67,7 @@ public:
     // beginning of the animation, 1 is the end.
     float timeRatio = 0.0f;
 
-    // Time ratio of the previous update.
+    // Time ratio of the previous Update.
     float previousTimeRatio = 0.0f;
 
     // Length of the clip this is managing

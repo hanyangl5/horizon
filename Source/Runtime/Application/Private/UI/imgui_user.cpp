@@ -22,6 +22,7 @@
  * under the License.
  */
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_user.h"
 
 #include <ThirdParty/imgui/imgui_internal.h>
@@ -32,7 +33,7 @@
 
 namespace ImGui
 {
-int KnobFloat(const char* label, float* value_p, const float& step, const float& minv, const float& maxv, const char* format,
+int KnobFloat(const char* label, float* value_p, const float& step, const float& minv, const float& maxv, const char* Format,
               const float& minimumHitRadius, bool doubleTapForText, bool spawnText)
 {
     ImGuiWindow* window = GetCurrentWindow();
@@ -43,55 +44,45 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     const ImGuiStyle& style = g.Style;
 
     const ImGuiID id = window->GetID(label);
-    float         size = CalcItemWidth();
+    float         Size = CalcItemWidth();
 
-    float2 extraPadding = style.ItemSpacing + style.ItemInnerSpacing;
+    ImVec2 extraPadding = style.ItemSpacing + style.ItemInnerSpacing;
     // extraPadding.y = 0.f;
     float  line_height = ImGui::GetTextLineHeight();
     // extraPadding *= 2.f;
-    float2 label_size = CalcTextSize(label, NULL, true);
+    ImVec2 label_size = CalcTextSize(label, NULL, true);
     label_size.y = fmaxf(label_size.y, 0.f) + line_height;
-    ImRect total_bb(window->DC.CursorPos, window->DC.CursorPos + float2(size, size + label_size.y / 2.f) + extraPadding);
+    ImRect total_bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(Size, Size + label_size.y / 2.f) + extraPadding);
 
-    float knobRadius = size * 0.5f;
+    float knobRadius = Size * 0.5f;
 
-    float2 center = total_bb.GetCenter();
+    ImVec2 center = total_bb.GetCenter();
 
-    const ImRect inner_bb(center - float2(knobRadius, knobRadius), center + float2(knobRadius, knobRadius));
+    const ImRect inner_bb(center - ImVec2(knobRadius, knobRadius), center + ImVec2(knobRadius, knobRadius));
 
-    // bool hovered, held;
-    // Create Invisible button and check if its active/hovered
-    float2 mousePos = ImGui::GetIO().MousePos;
-
-    // Tabbing or CTRL-clicking on Drag turns it into an input box
-    bool       start_text_input = false;
-    bool       hovered = ItemHoverable(inner_bb, id, g.LastItemData.InFlags);
-    const bool tab_focus_requested = FocusableItemRegister(window, id);
-
-    if (doubleTapForText && (tab_focus_requested || (hovered && (g.IO.MouseClicked[0] || g.IO.MouseDoubleClicked[0])) ||
-                             g.NavActivateId == id || (g.NavJustMovedToId == id && g.TempInputId != id)))
+    ItemSize(total_bb);
+    if (!ItemAdd(total_bb, id, &inner_bb, doubleTapForText ? ImGuiItemFlags_Inputable : ImGuiItemFlags_None))
     {
-        SetActiveID(id, window);
-        SetFocusID(id, window);
-        FocusWindow(window);
-        if (tab_focus_requested || g.IO.KeyCtrl || g.IO.MouseDoubleClicked[0] || g.NavJustMovedToId == id)
-        {
-            start_text_input = true;
-            g.TempInputId = 0;
-        }
+        return 0;
     }
+    const ImVec2 mousePos = g.IO.MousePos;
+    bool         hovered = ItemHoverable(inner_bb, id, g.LastItemData.ItemFlags);
+    const bool   start_text_input =
+        doubleTapForText &&
+        ((hovered && IsMouseClicked(ImGuiMouseButton_Left) && (g.IO.KeyCtrl || IsMouseDoubleClicked(ImGuiMouseButton_Left))) ||
+         (g.NavActivateId == id && (g.NavActivateFlags & ImGuiActivateFlags_PreferInput)));
     bool using_text_input = false;
     if (start_text_input || (g.ActiveId == id && g.TempInputId == id))
     {
         if (spawnText)
         {
-            int retValue = (int)TempInputScalar(inner_bb, id, label, ImGuiDataType_Float, value_p, format);
+            int retValue = (int)TempInputScalar(inner_bb, id, label, ImGuiDataType_Float, value_p, Format);
 
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             // Bottom Label (X, Y, Z, W) Goes Below Knob
             label_size = CalcTextSize(label, NULL, true);
             uint32_t col32text = ImGui::GetColorU32(ImGuiCol_Text);
-            float2   textpos = center + float2(-label_size.x / 2.f, inner_bb.GetHeight() / 2.f + label_size.y / 2.f);
+            ImVec2   textpos = center + ImVec2(-label_size.x / 2.f, inner_bb.GetHeight() / 2.f + label_size.y / 2.f);
             draw_list->AddText(textpos, col32text, label);
 
             // if max and min are not equal only then we apply the limits
@@ -108,23 +99,22 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
             using_text_input = true;
     }
 
-    // Create Invisible button and check if its active/hovered
-    ImGui::InvisibleButton(label, total_bb.GetSize());
-
-    bool isActive = ImGui::IsItemActive();
+    bool isActive = false;
+    ButtonBehavior(total_bb, id, &hovered, &isActive);
+    RenderNavCursor(inner_bb, id);
     bool updatedKnob = false;
 
     float  currentAngle = 0.f;
     // Mouse delta movement since last frame
-    float2 mouseDelta = ImGui::GetIO().MouseDelta;
+    ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
     // Previous Mouse position
-    float2 mousePrevPos = mousePos - mouseDelta;
+    ImVec2 mousePrevPos = mousePos - mouseDelta;
     // Vector from center of knob to previous mouse position
-    float2 mousePrevToKnob = mousePrevPos - center;
+    ImVec2 mousePrevToKnob = mousePrevPos - center;
     // Get the length
     float  lengthPrev = sqrtf(mousePrevToKnob.x * mousePrevToKnob.x + mousePrevToKnob.y * mousePrevToKnob.y);
     // Get Vector from center of knob to current mouse position
-    float2 mouseToKnob = mousePos - center;
+    ImVec2 mouseToKnob = mousePos - center;
     // Get the length
     float  lengthCurr = sqrtf(mouseToKnob.x * mouseToKnob.x + mouseToKnob.y * mouseToKnob.y);
 
@@ -134,7 +124,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     if (isActive && g.ActiveIdPreviousFrame == id)
     {
         // sanity check in case user clicks on center of knob.
-        // wait for 3 frames before activating the knob
+        // Wait for 3 frames before activating the knob
         const float delay = ((1.f / g.IO.Framerate) * 3.f);
         if (lengthPrev > 0.001f && lengthCurr > hitRadius && g.ActiveIdTimer > delay)
         {
@@ -150,7 +140,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
             // determinant
             float det = mouseToKnob.x * mousePrevToKnob.y - mouseToKnob.y * mousePrevToKnob.x;
 
-            // Get the new angle to add. Needs to be in degrees
+            // Get the new angle to Add. Needs to be in degrees
             float deltaAngle = atan2f(det, dot) * 180.f / M_PI;
 
             // Increment current value
@@ -172,19 +162,19 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
 
     // Display current value (Final value after knob increments)
     char textval[32];
-    ImFormatString(textval, IM_ARRAYSIZE(textval), format, value_p[0]);
+    ImFormatString(textval, IM_COUNTOF(textval), Format, value_p[0]);
 
     uint32_t    col32 = ImGui::GetColorU32(isActive ? ImGuiCol_FrameBgActive : hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
     uint32_t    col32line = ImGui::GetColorU32(ImGuiCol_SliderGrabActive);
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-    // Enable to draw debug rectangles to view the frames being used
+    // Enable to Draw debug rectangles to view the frames being used
     // [DEBUGGING]
     // draw_list->AddRect(total_bb.Min, total_bb.Max, ImColor(0.0f, 1.0f, 0.0f, 1.0f));
     // draw_list->AddRect(inner_bb.Min, inner_bb.Max, ImColor(0.0f, 0.0f, 1.0f, 1.0f));
 
     // Draw knob as Filled circle
-    // We could add textures to it in the future.
+    // We could Add textures to it in the future.
     draw_list->AddCircleFilled(center, knobRadius, col32, 32);
 
     // Cover the part that can't be dragged
@@ -195,16 +185,16 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
     // Add line from center of knob to edge of circle along mouse direction
     float x2 = -sinf(currentAngle) * knobRadius + center.x;
     float y2 = cosf(currentAngle) * knobRadius + center.y;
-    draw_list->AddLine(center, float2(x2, y2), col32line, 1);
+    draw_list->AddLine(center, ImVec2(x2, y2), col32line, 1);
 
     // Current Value of Widget (Above Knob)
     label_size = CalcTextSize(textval, NULL, true);
-    float2 textpos = center - float2(label_size.x / 2.f, total_bb.GetHeight() / 2.f);
+    ImVec2 textpos = center - ImVec2(label_size.x / 2.f, total_bb.GetHeight() / 2.f);
     RenderText(textpos, textval);
 
     // Bottom Label (X, Y, Z, W) Goes Below Knob
     label_size = CalcTextSize(label, NULL, true);
-    textpos = center + float2(-label_size.x / 2.f, inner_bb.GetHeight() / 2.f);
+    textpos = center + ImVec2(-label_size.x / 2.f, inner_bb.GetHeight() / 2.f);
     RenderText(textpos, label);
 
     if (using_text_input)
@@ -213,7 +203,7 @@ int KnobFloat(const char* label, float* value_p, const float& step, const float&
 }
 
 int KnobFloatN(const char* label, float* value_p, const int& components, const float& step, const float& minv, const float& maxv,
-               const char* format, const float& minimumHitRadius, float windowWidthRatio, bool doubleTapForText, bool spawnText,
+               const char* Format, const float& minimumHitRadius, float windowWidthRatio, bool doubleTapForText, bool spawnText,
                float framePaddingScale)
 {
     ImGuiWindow* window = GetCurrentWindow();
@@ -234,10 +224,10 @@ int KnobFloatN(const char* label, float* value_p, const int& components, const f
     float extraFramePadding = GetStyle().FramePadding.x * framePaddingScale;
     float itemSpacing = GetStyle().ItemSpacing.x * 3;
 
-    // Scale the content based on how much of the width we would like to fill
+    // Scale the content based on how much of the Width we would like to fill
     float contentWidth = window->Size.x - GetStyle().FrameBorderSize - GetStyle().ScrollbarSize - itemSpacing - extraFramePadding;
 
-    // Compute final size multipler > 0 to avoid undefined behavior
+    // Compute final Size multipler > 0 to avoid undefined behavior
     windowWidthRatio = fmaxf(windowWidthRatio, 0.05f);
 
     PushMultiItemsWidths(components, contentWidth * windowWidthRatio);
@@ -249,14 +239,14 @@ int KnobFloatN(const char* label, float* value_p, const int& components, const f
     for (int i = 0; i < components; i++)
     {
         PushID(i);
-        int currValue = KnobFloat(componentNames[i % 4], value_p, step, minv, maxv, format, minimumHitRadius, doubleTapForText, spawnText);
+        int currValue = KnobFloat(componentNames[i % 4], value_p, step, minv, maxv, Format, minimumHitRadius, doubleTapForText, spawnText);
         if (value_changed == 0)
             value_changed = currValue > 1 ? currValue + i : currValue;
         SameLine(0, itemSpacing);
         PopID();
         PopItemWidth();
 
-        // update user provided float value
+        // Update user provided float value
         value_p = (float*)((char*)value_p + type_size);
     }
     PopID();

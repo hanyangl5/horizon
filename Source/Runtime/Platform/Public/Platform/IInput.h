@@ -388,7 +388,7 @@ enum TouchScreenArea
     AREA_FULL,
 };
 
-// The type of action mapping
+// The Type of action mapping
 typedef enum InputActionMappingType
 {
     // A normal action mapping (ex. exit action -> esc button)
@@ -408,24 +408,24 @@ typedef enum InputActionMappingType
 typedef enum InputActionMappingDeviceTarget
 {
     INPUT_ACTION_MAPPING_TARGET_ALL = 0,
-    INPUT_ACTION_MAPPING_TARGET_CONTROLLER, // Supported action mapping type: INPUT_ACTION_MAPPING_NORMAL, INPUT_ACTION_MAPPING_COMPOSITE,
+    INPUT_ACTION_MAPPING_TARGET_CONTROLLER, // Supported action mapping Type: INPUT_ACTION_MAPPING_NORMAL, INPUT_ACTION_MAPPING_COMPOSITE,
                                             // INPUT_ACTION_MAPPING_COMBO
-    INPUT_ACTION_MAPPING_TARGET_KEYBOARD,   // Supported action mapping type: INPUT_ACTION_MAPPING_NORMAL, INPUT_ACTION_MAPPING_COMPOSITE,
+    INPUT_ACTION_MAPPING_TARGET_KEYBOARD,   // Supported action mapping Type: INPUT_ACTION_MAPPING_NORMAL, INPUT_ACTION_MAPPING_COMPOSITE,
                                             // INPUT_ACTION_MAPPING_COMBO
-    INPUT_ACTION_MAPPING_TARGET_MOUSE,      // Supported action mapping type: INPUT_ACTION_MAPPING_NORMAL, INPUT_ACTION_MAPPING_COMPOSITE,
+    INPUT_ACTION_MAPPING_TARGET_MOUSE,      // Supported action mapping Type: INPUT_ACTION_MAPPING_NORMAL, INPUT_ACTION_MAPPING_COMPOSITE,
                                             // INPUT_ACTION_MAPPING_COMBO
-    INPUT_ACTION_MAPPING_TARGET_TOUCH,      // Supported action mapping type: INPUT_ACTION_MAPPING_NORMAL (for basic touch detection),
+    INPUT_ACTION_MAPPING_TARGET_TOUCH,      // Supported action mapping Type: INPUT_ACTION_MAPPING_NORMAL (for basic touch detection),
                                             // INPUT_ACTION_MAPPING_TOUCH_GESTURE, INPUT_ACTION_MAPPING_TOUCH_VIRTUAL_JOYSTICK
 } InputActionMappingDeviceTarget;
 
 // An action mapping description.  Used to define action mappings to be provided to the input system.
 typedef struct ActionMappingDesc
 { //-V802 : Very user-facing struct, and order is highly important to convenience
-    // The type of the action mapping
+    // The Type of the action mapping
     InputActionMappingType actionMappingType = INPUT_ACTION_MAPPING_NORMAL;
 
     // Type of device this action targets
-    // NOTE: cannot be INPUT_ACTION_MAPPING_TARGET_ALL.  This will cause an assertion in addActionMappings(...).
+    // NOTE: cannot be INPUT_ACTION_MAPPING_TARGET_ALL.  This will cause an assertion in AddActionMappings(...).
     InputActionMappingDeviceTarget actionMappingDeviceTarget = INPUT_ACTION_MAPPING_TARGET_CONTROLLER;
 
     // A unique ID associated with the action.
@@ -439,7 +439,7 @@ typedef struct ActionMappingDesc
     int32_t deviceButtons[4] = { 0 };
 
     // Used for axis buttons
-    // For example, if targetting the left joystick, and we want to handle both the x and y axes,
+    // For example, if targetting the left joystick, and we want to Handle both the x and y axes,
     // then deviceButtons[0] should be the start axis (GAMEPAD_BUTTON_LEFT_STICK_X), and numAxis should be 2.
     // numAxis should be either 1 or 2 when targetting an axis button.
     uint8_t numAxis = 1;
@@ -516,8 +516,8 @@ typedef struct UISystemInputActions
         UI_ACTION_NAV_ACTIVATE, // activate / open / toggle / tweak value       // e.g. Cross  (PS4), A (Xbox), A (Switch), Space (Keyboard)
         UI_ACTION_NAV_CANCEL, // cancel / close / exit                        // e.g. Circle (PS4), B (Xbox), B (Switch), Escape (Keyboard)
         UI_ACTION_NAV_INPUT,  // text input / on-screen keyboard              // e.g. Triang.(PS4), Y (Xbox), X (Switch), Return (Keyboard)
-        UI_ACTION_NAV_MENU,   // tap: toggle menu / hold: focus, move, resize // e.g. Square (PS4), X (Xbox), Y (Switch), Alt (Keyboard)
-        UI_ACTION_NAV_TWEAK_WINDOW_LEFT, // move / tweak / resize window (w/ PadMenu)    // e.g. D-pad Left/Right/Up/Down (Gamepads), Arrow
+        UI_ACTION_NAV_MENU,   // tap: toggle menu / hold: focus, move, Resize // e.g. Square (PS4), X (Xbox), Y (Switch), Alt (Keyboard)
+        UI_ACTION_NAV_TWEAK_WINDOW_LEFT, // move / tweak / Resize window (w/ PadMenu)    // e.g. D-pad Left/Right/Up/Down (Gamepads), Arrow
                                          // keys (Keyboard)
         UI_ACTION_NAV_TWEAK_WINDOW_RIGHT,
         UI_ACTION_NAV_TWEAK_WINDOW_UP,
@@ -537,9 +537,9 @@ typedef struct UISystemInputActions
 } UISystemInputActions;
 
 // By default, the input system will create default action mappings.  The following enums declare the names (and unique IDs) for these
-// actions.  These default actions are generic to map to multiple type of devices. On the application side, similar action mappings can be
+// actions.  These default actions are generic to map to multiple Type of devices. On the application side, similar action mappings can be
 // data-driven to then be provided to the input system as the current action mappings to use.  Furthermore, the application could have
-// different sets of action mappings for different type of devices (controller, keyboard, mouse). Depending on the current state of the
+// different sets of action mappings for different Type of devices (controller, keyboard, mouse). Depending on the current state of the
 // application, a different app-specific action mappings could be made active with the input system. For example, the application could have
 // action mappings for:
 // - UI actions, where an action "SELECT" could map to button A
@@ -641,7 +641,7 @@ typedef enum InputActionPhase
 
 typedef struct InputActionContext
 {
-    void*   pUserData = NULL;
+    void*   UserData = NULL;
     /// Indices of fingers for detected gesture
     int32_t fingerIndices[MAX_INPUT_MULTI_TOUCHES] = { 0 };
     union
@@ -679,8 +679,8 @@ typedef struct InputActionDesc
     uint32_t            actionId = UINT_MAX;
     /// Callback when an action is initiated, performed or canceled
     InputActionCallback pFunction = NULL;
-    /// User data which will be assigned to InputActionContext::pUserData when calling pFunction
-    void*               pUserData = NULL;
+    /// User data which will be assigned to InputActionContext::UserData when calling pFunction
+    void*               UserData = NULL;
     /// User management (which user does this action apply to)
     uint8_t             userId = 0u;
 
@@ -707,8 +707,8 @@ typedef struct GlobalInputActionDesc
 
     /// Callback when an action is initiated, performed or canceled
     InputActionCallback pFunction = NULL;
-    /// User data which will be assigned to InputActionContext::pUserData when calling pFunction
-    void*               pUserData = NULL;
+    /// User data which will be assigned to InputActionContext::UserData when calling pFunction
+    void*               UserData = NULL;
 } GlobalInputActionDesc;
 
 typedef struct InputSystemDesc
@@ -719,53 +719,53 @@ typedef struct InputSystemDesc
     const char* pJoystickTexture = NULL; // Keep this variable NULL to not show any joysticks on touch devices
 } InputSystemDesc;
 
-FORGE_API bool initInputSystem(InputSystemDesc* pDesc);
-FORGE_API void exitInputSystem();
-FORGE_API void updateInputSystem(float deltaTime, uint32_t width, uint32_t height);
+FORGE_API bool InitInputSystem(InputSystemDesc* pDesc);
+FORGE_API void ExitInputSystem();
+FORGE_API void UpdateInputSystem(float deltaTime, uint32_t Width, uint32_t Height);
 
 // Input action (callbacks) functionalities //////////////////
 /* Adds a new action (callback) for a specific (or all) device target(s)
  * If INPUT_ACTION_MAPPING_TARGET_ALL is specified, an action will be mapped for all device targets
  * that have the action ID specified in pDesc.
  */
-FORGE_API void addInputAction(const InputActionDesc*               pDesc,
+FORGE_API void AddInputAction(const InputActionDesc*               pDesc,
                               const InputActionMappingDeviceTarget actionMappingTarget = INPUT_ACTION_MAPPING_TARGET_ALL);
-FORGE_API void removeInputAction(const InputActionDesc*               pDesc,
+FORGE_API void RemoveInputAction(const InputActionDesc*               pDesc,
                                  const InputActionMappingDeviceTarget actionMappingTarget = INPUT_ACTION_MAPPING_TARGET_ALL);
-FORGE_API void setGlobalInputAction(const GlobalInputActionDesc* pDesc);
+FORGE_API void SetGlobalInputAction(const GlobalInputActionDesc* pDesc);
 //////////////////////////////////////////////////////////////
 
 // Input action mappings functionalities /////////////////////
 /* Adds new action mappings for a specific (or all) device target(s)
  * Takes in an array of ActionMappingDesc
- * Note: this will clear all current action mappings, including any callbacks.
+ * Note: this will Clear all current action mappings, including any callbacks.
  */
-FORGE_API void addActionMappings(ActionMappingDesc* const actionMappings, const uint32_t numActions,
+FORGE_API void AddActionMappings(ActionMappingDesc* const actionMappings, const uint32_t numActions,
                                  const InputActionMappingDeviceTarget actionMappingTarget);
 
 /* Removes currently active action mappings
- * Note: this will clear any callbacks that were added for any action mapping being cleared.
+ * Note: this will Clear any callbacks that were added for any action mapping being cleared.
  */
-FORGE_API void removeActionMappings(const InputActionMappingDeviceTarget actionMappingTarget);
+FORGE_API void RemoveActionMappings(const InputActionMappingDeviceTarget actionMappingTarget);
 
 /* Adds default TF action mappings
- * Note: this will clear all current action mappings, including any callbacks.
+ * Note: this will Clear all current action mappings, including any callbacks.
  */
-FORGE_API void addDefaultActionMappings();
+FORGE_API void AddDefaultActionMappings();
 //////////////////////////////////////////////////////////////
 
-FORGE_API bool setEnableCaptureInput(bool enable);
+FORGE_API bool SetEnableCaptureInput(bool enable);
 
 /// Used to enable/disable text input for non-keyboard setups (virtual keyboards for console/mobile, ...)
-FORGE_API void setVirtualKeyboard(uint32_t type);
+FORGE_API void SetVirtualKeyboard(uint32_t Type);
 
-FORGE_API void setDeadZone(unsigned int controllerIndex, float deadZoneSize);
-FORGE_API void setLEDColor(int gamePadIndex, uint8_t r, uint8_t g, uint8_t b);
+FORGE_API void SetDeadZone(unsigned int controllerIndex, float deadZoneSize);
+FORGE_API void SetLedColor(int gamePadIndex, uint8_t r, uint8_t g, uint8_t b);
 
-// if gamepad index == BUILTIN_DEVICE_HAPTICS it will try to set rumble on the actual device
+// if gamepad index == BUILTIN_DEVICE_HAPTICS it will try to Set rumble on the actual device
 // in the case of iOS and iphones that would mean the actual phone vibrates
-FORGE_API bool setRumbleEffect(int gamePadIndex, float left_motor, float right_motor, uint32_t duration_ms);
+FORGE_API bool SetRumbleEffect(int gamePadIndex, float left_motor, float right_motor, uint32_t duration_ms);
 
-FORGE_API const char* getGamePadName(int gamePadIndex);
-FORGE_API bool        gamePadConnected(int gamePadIndex);
-FORGE_API void        setOnDeviceChangeCallBack(void (*onDeviceChnageCallBack)(const char* name, bool added, int gamePadIndex));
+FORGE_API const char* GetGamePadName(int gamePadIndex);
+FORGE_API bool        IsGamePadConnected(int gamePadIndex);
+FORGE_API void        SetOnDeviceChangeCallback(void (*onDeviceChnageCallBack)(const char* name, bool added, int gamePadIndex));

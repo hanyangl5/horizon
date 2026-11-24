@@ -28,6 +28,7 @@
 
 #include "RHI/IGraphics.h"
 #include "Core/IMath.h"
+#include "Core/IFileSystem.h"
 #include "Core/IThread.h"
 
 static FORGE_CONSTEXPR const ResourceState gVertexBufferState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | RESOURCE_STATE_SHADER_RESOURCE;
@@ -35,11 +36,11 @@ static FORGE_CONSTEXPR const ResourceState gIndexBufferState = RESOURCE_STATE_IN
 
 typedef struct MappedMemoryRange
 {
-    uint8_t* pData;
+    uint8_t* Data;
     Buffer*  pBuffer;
     uint64_t offset;
-    uint64_t size;
-    uint32_t flags;
+    uint64_t Size;
+    uint32_t Flags;
 } MappedMemoryRange;
 
 typedef enum TextureContainerType
@@ -70,9 +71,9 @@ typedef enum RegisterMaterialResult
 typedef struct BufferLoadDesc
 {
     Buffer**    ppBuffer;
-    // This must stay valid until the buffer load is not completed
-    // Use waitForToken (if a token was passed to addResource) or waitForAllResourceLoads before freeing pData
-    const void* pData;
+    // This must stay valid until the buffer Load is not completed
+    // Use waitForToken (if a token was passed to addResource) or waitForAllResourceLoads before freeing Data
+    const void* Data;
     BufferDesc  desc;
     /// MemZero buffer
     bool        forceReset;
@@ -87,7 +88,7 @@ typedef struct TextureLoadDesc
     Texture** ppTexture;
     union
     {
-        /// Load empty texture
+        /// Load Empty texture
         struct
         {
             TextureDesc* pDesc;
@@ -99,29 +100,32 @@ typedef struct TextureLoadDesc
     };
     /// Filename without extension. Extension will be determined based on container
     const char*          pFileName;
-    /// Following is ignored if pDesc != NULL.  pDesc->flags will be considered instead.
+    /// Following is ignored if pDesc != NULL.  pDesc->Flags will be considered instead.
     TextureCreationFlags creationFlag;
-    /// The texture file format (dds/ktx/...)
+    /// The texture file Format (dds/ktx/...)
     TextureContainerType container;
+    ResourceDirectory    resourceDirectory = DirectoryTextures;
+    // Optional result storage, readable after the associated SyncToken completes.
+    bool*                pSuccess = nullptr;
 } TextureLoadDesc;
 
 typedef struct BufferChunk
 {
     uint32_t offset;
-    uint32_t size;
+    uint32_t Size;
 } BufferChunk;
 
-// Structure used to sub-allocate chunks on a buffer, keeps track of free memory to handle new requests.
-// Interface to add/remove this allocator is currently private, could be made public if needed.
+// Structure used to sub-allocate chunks on a buffer, keeps track of free memory to Handle new requests.
+// Interface to Add/Remove this allocator is currently private, could be made public if needed.
 typedef struct BufferChunkAllocator
 {
     Buffer*      pBuffer;
     uint32_t     usedChunkCount;
-    uint32_t     size;
+    uint32_t     Size;
     BufferChunk* unusedChunks;
 } BufferChunkAllocator;
 
-// Stores huge buffers that are then used to sub-allocate memory for each of the loaded meshes.
+// Stores huge buffers that are then used to sub-allocate memory for Each of the loaded meshes.
 // GeometryBuffer can be provided to GeometryLoadDesc::pGeometryBuffer when loading a mesh, sub-chunks will be allocated
 // by index and vertex allocators and return the BufferChunk(s) that where used in Geometry::indexBufferChunk and
 // Geometry::vertexBufferChunks
@@ -132,6 +136,8 @@ typedef struct GeometryBuffer
 } GeometryBuffer;
 
 FORGE_CONSTEXPR const char GEOMETRY_FILE_MAGIC_STR[] = { 'G', 'e', 'o', 'm', 'e', 't', 'r', 'y', 'T', 'F' };
+// Follows the magic. Bump the version when the serialized blocks change meaning without changing size.
+FORGE_CONSTEXPR const uint32_t GEOMETRY_FILE_VERSION = 2;
 
 typedef struct Meshlet
 {
@@ -139,7 +145,7 @@ typedef struct Meshlet
     uint vertexOffset;
     uint triangleOffset;
 
-    /// Number of vertices and triangles used in the meshlet; data is stored in consecutive range defined by offset and count
+    /// Number of vertices and triangles used in the meshlet; data is stored in consecutive range defined by offset and Count
     uint vertexCount;
     uint triangleCount;
 } Meshlet;
@@ -187,7 +193,7 @@ typedef struct Geometry
         };
     };
 
-    /// The array of traditional draw arguments to draw each subset in this geometry
+    /// The array of traditional Draw arguments to Draw Each subset in this geometry
     IndirectDrawIndexArguments* pDrawArgs;
 
     /// The array of vertex buffer strides to bind when drawing this geometry
@@ -195,9 +201,9 @@ typedef struct Geometry
 
     /// Number of vertex buffers in this geometry
     uint32_t vertexBufferCount : 8;
-    /// Index type (32 or 16 bit)
+    /// Index Type (32 or 16 bit)
     uint32_t indexType : 2;
-    /// Number of draw args in the geometry
+    /// Number of Draw args in the geometry
     uint32_t drawArgCount : 22;
     /// Number of indices in the geometry
     uint32_t indexCount;
@@ -226,6 +232,7 @@ typedef struct GeometryData
 
     struct ShadowData
     {
+        // Index elements use Geometry::indexType, including small meshes with 32-bit indices.
         void* pIndices;
         void* pAttributes[MAX_SEMANTICS];
 
@@ -240,16 +247,13 @@ typedef struct GeometryData
         // We might have a different number of attributes than vertexCount.
         // This happens for example for Hair
         uint32_t attributeCount[MAX_SEMANTICS];
-
-        // TODO: Consider if we want to store here mIndexStride to access ShadowData::pIndices,
-        //       right now it depends on the number of vertexes in the mesh (uint16_t if vertexCount < 64k otherwise uint32_t)
     };
 
-    /// Shadow copy of the geometry vertex and index data if requested through the load flags
+    /// Shadow copy of the geometry vertex and index data if requested through the Load Flags
     ShadowData* pShadow;
 
     /// The array of joint inverse bind-pose matrices ( object-space )
-    mat4*     pInverseBindPoses;
+    Matrix4*  pInverseBindPoses;
     /// The array of data to remap skin batch local joint ids to global joint ids
     uint32_t* pJointRemaps;
 
@@ -265,13 +269,26 @@ typedef struct GeometryData
 
     // Custom data imported by the user in custom AssetPipelines, this can be data that was exported from a custom tool/plugin
     // specific to the engine/game. See AssetPipeline: callbacks in ProcessGLTFParams for more information.
-    void*    pUserData;
+    void*    UserData;
     uint32_t userDataSize;
 
     uint32_t pad1[5];
 } GeometryData;
 
 static_assert(sizeof(GeometryData) % 16 == 0, "GeometryData size must be a multiple of 16");
+
+// Written after GEOMETRY_FILE_VERSION. The blocks are raw struct images, so files from a build with a different
+// layout are rejected rather than reinterpreted.
+FORGE_CONSTEXPR const uint32_t GEOMETRY_FILE_LAYOUT[] = {
+    (uint32_t)sizeof(Geometry),
+    (uint32_t)sizeof(GeometryData),
+    (uint32_t)sizeof(GeometryData::ShadowData),
+    (uint32_t)sizeof(IndirectDrawIndexArguments),
+    (uint32_t)sizeof(Meshlet),
+    (uint32_t)sizeof(MeshletData),
+    MAX_SEMANTICS,
+    MAX_VERTEX_BINDINGS,
+};
 
 typedef enum GeometryLoadFlags
 {
@@ -287,7 +304,7 @@ MAKE_ENUM_FLAG(uint32_t, GeometryLoadFlags)
 
 typedef struct GeometryBufferLoadDesc
 {
-    ResourceState startState;
+    ResourceState StartState;
 
     const char* pNameIndexBuffer;
     const char* pNamesVertexBuffers[MAX_VERTEX_BINDINGS];
@@ -305,7 +322,7 @@ typedef struct GeometryBufferLayoutDesc
 {
     IndexType indexType;
     uint32_t  verticesStrides[MAX_VERTEX_BINDINGS];
-    // Vertex buffer/binding idx for each semantic.
+    // Vertex buffer/binding idx for Each semantic.
     // Used to locate attributes inside specific buffers for loaded Geometry.
     uint32_t  semanticBindings[SEMANTIC_TEXCOORD9 + 1];
 } GeometryBufferLayoutDesc;
@@ -318,8 +335,8 @@ typedef struct GeometryLoadDesc
 
     /// Filename of geometry container
     const char*         pFileName;
-    /// Loading flags
-    GeometryLoadFlags   flags;
+    /// Loading Flags
+    GeometryLoadFlags   Flags;
     /// Specifies how to arrange the vertex data loaded from the file into GPU memory
     const VertexLayout* pVertexLayout;
 
@@ -330,22 +347,25 @@ typedef struct GeometryLoadDesc
 
     /// Used to convert data to desired state inside GeometryBuffer.
     GeometryBufferLayoutDesc* pGeometryBufferLayoutDesc;
+    ResourceDirectory         resourceDirectory = DirectoryMeshes;
+    // Read only after the Load token completes.
+    bool*                     pSuccess = nullptr;
 } GeometryLoadDesc;
 
 typedef struct BufferUpdateDesc
 {
     Buffer*  pBuffer;
     uint64_t dstOffset;
-    uint64_t size;
+    uint64_t Size;
 
     /// To be filled by the caller between beginUpdateResource and endUpdateResource calls
     /// Example:
-    /// BufferUpdateDesc update = { pBuffer, bufferDstOffset };
-    /// beginUpdateResource(&update);
-    /// ParticleVertex* vertices = (ParticleVertex*)update.pMappedData;
+    /// BufferUpdateDesc Update = { pBuffer, bufferDstOffset };
+    /// beginUpdateResource(&Update);
+    /// ParticleVertex* vertices = (ParticleVertex*)Update.pMappedData;
     ///   for (uint32_t i = 0; i < particleCount; ++i)
     ///	    vertices[i] = { rand() };
-    /// endUpdateResource(&update, &token);
+    /// endUpdateResource(&Update, &token);
     void* pMappedData;
 
     // Optional (if user provides staging buffer memory)
@@ -363,34 +383,34 @@ typedef struct BufferUpdateDesc
 typedef struct TextureSubresourceUpdate
 {
     /// Filled by ResourceLaoder in beginUpdateResource
-    /// Size of each row in destination including padding - Needs to be respected otherwise texture data will be corrupted if dst row stride
+    /// Size of Each row in destination including padding - Needs to be respected otherwise texture data will be corrupted if dst row stride
     /// is not the same as src row stride
     uint32_t dstRowStride;
     /// Number of rows in this slice of the texture
     uint32_t rowCount;
-    /// Src row stride for convenience (rowCount * width * texture format size)
+    /// Src row stride for convenience (rowCount * Width * texture Format Size)
     uint32_t srcRowStride;
-    /// Size of each slice in destination including padding - Use for offsetting dst data updating 3D textures
+    /// Size of Each slice in destination including padding - Use for offsetting dst data updating 3D textures
     uint32_t dstSliceStride;
-    /// Size of each slice in src - Use for offsetting src data when updating 3D textures
+    /// Size of Each slice in src - Use for offsetting src data when updating 3D textures
     uint32_t srcSliceStride;
     /// To be filled by the caller
     /// Example:
-    /// BufferUpdateDesc update = { pTexture, 2, 1 };
-    /// beginUpdateResource(&update);
+    /// BufferUpdateDesc Update = { pTexture, 2, 1 };
+    /// beginUpdateResource(&Update);
     /// Row by row copy is required if dstRowStride > srcRowStride. Single memcpy will work if dstRowStride == srcRowStride
     /// 2D
-    /// for (uint32_t r = 0; r < update.rowCount; ++r)
-    ///     memcpy(update.pMappedData + r * update.dstRowStride, srcPixels + r * update.srcRowStride, update.srcRowStride);
+    /// for (uint32_t r = 0; r < Update.rowCount; ++r)
+    ///     memcpy(Update.pMappedData + r * Update.dstRowStride, srcPixels + r * Update.srcRowStride, Update.srcRowStride);
     /// 3D
-    /// for (uint32_t z = 0; z < depth; ++z)
+    /// for (uint32_t z = 0; z < Depth; ++z)
     /// {
-    ///     uint8_t* dstData = update.pMappedData + update.dstSliceStride * z;
-    ///     uint8_t* srcData = srcPixels + update.srcSliceStride * z;
-    ///     for (uint32_t r = 0; r < update.rowCount; ++r)
-    ///         memcpy(dstData + r * update.dstRowStride, srcData + r * update.srcRowStride, update.srcRowStride);
+    ///     uint8_t* dstData = Update.pMappedData + Update.dstSliceStride * z;
+    ///     uint8_t* srcData = srcPixels + Update.srcSliceStride * z;
+    ///     for (uint32_t r = 0; r < Update.rowCount; ++r)
+    ///         memcpy(dstData + r * Update.dstRowStride, srcData + r * Update.srcRowStride, Update.srcRowStride);
     /// }
-    /// endUpdateResource(&update, &token);
+    /// endUpdateResource(&Update, &token);
     uint8_t* pMappedData;
 } TextureSubresourceUpdate;
 
@@ -399,14 +419,14 @@ typedef struct TextureUpdateDesc
 {
     Texture*      pTexture;
     uint32_t      baseMipLevel;
-    uint32_t      mipLevels;
+    uint32_t      MipLevels;
     uint32_t      baseArrayLayer;
     uint32_t      layerCount;
     ResourceState currentState;
-    // Optional - If we want to run the update on user specified command buffer instead
+    // Optional - If we want to run the Update on user specified command buffer instead
     Cmd*          pCmd;
 
-    FORGE_RENDERER_API TextureSubresourceUpdate getSubresourceUpdateDesc(uint32_t mip, uint32_t layer);
+    FORGE_RENDERER_API TextureSubresourceUpdate GetSubresourceUpdateDesc(uint32_t mip, uint32_t layer);
 
     /// Internal
     struct
@@ -428,7 +448,7 @@ typedef struct TextureCopyDesc
     /// Current texture state.
     ResourceState textureState;
     /// Queue the texture is copied from.
-    QueueType     queueType;
+    QueueType     QueueType;
     uint64_t      bufferOffset;
 } TextureCopyDesc;
 
@@ -450,7 +470,7 @@ typedef struct ShaderLoadDesc
 typedef struct PipelineCacheLoadDesc
 {
     const char*        pFileName;
-    PipelineCacheFlags flags;
+    PipelineCacheFlags Flags;
 } PipelineCacheLoadDesc;
 
 typedef struct PipelineCacheSaveDesc
@@ -486,13 +506,13 @@ FORGE_RENDERER_API void exitResourceLoaderInterface(Renderer** ppRenderers, uint
 // MARK: App Material Management
 #ifdef ENABLE_FORGE_MATERIALS
 
-// Will load a material and all related shaders/textures (if they are not already loaded, Material shaders/textures are shared across all
+// Will Load a material and all related shaders/textures (if they are not already loaded, Material shaders/textures are shared across all
 // Materials)
 FORGE_RENDERER_API uint32_t addMaterial(const char* pMaterialFileName, Material** pMaterial, SyncToken* pSyncToken);
 // Will unload all the related shaders/textures (if they are not still used by some other Material)
 FORGE_RENDERER_API void     removeMaterial(Material* pMaterial);
 
-// TODO: Functions below are a simple interface to get resources from materials, as we develop materials further this interface will
+// TODO: Functions below are a simple interface to Get resources from materials, as we develop materials further this interface will
 // probably change.
 FORGE_RENDERER_API uint32_t getMaterialSetIndex(Material* pMaterial, const char* name);
 FORGE_RENDERER_API void     getMaterialShader(Material* pMaterial, uint32_t materialSetIndex, Shader** ppOutShader);
@@ -508,7 +528,7 @@ FORGE_RENDERER_API void getResourceSizeAlign(const TextureLoadDesc* pDesc, Resou
 
 /// Adding and updating resources can be done using a addResource or
 /// beginUpdateResource/endUpdateResource pair.
-/// if addResource(BufferLoadDesc) is called with a data size larger than the ResourceLoader's staging buffer, the ResourceLoader
+/// if addResource(BufferLoadDesc) is called with a data Size larger than the ResourceLoader's staging buffer, the ResourceLoader
 /// will perform multiple copies/flushes rather than failing the copy.
 
 /// If token is NULL, the resource will be available when allResourceLoadsCompleted() returns true.
@@ -525,10 +545,10 @@ FORGE_RENDERER_API void endUpdateResource(TextureUpdateDesc* pTexture);
 
 /// This function is used to acquire geometry buffer location.
 /// It can be used on index or vertex buffer
-/// When there are no continious chunk with enough size, output chunk contains 0 size.
-/// Use releaseGeometryBufferPart to release chunk.
+/// When there are no continious chunk with enough Size, output chunk contains 0 Size.
+/// Use releaseGeometryBufferPart to Release chunk.
 /// Make sure all chunks are released before removeGeometryBuffer.
-FORGE_RENDERER_API void addGeometryBufferPart(BufferChunkAllocator* buffer, uint32_t size, uint32_t alignment, BufferChunk* pOut,
+FORGE_RENDERER_API void addGeometryBufferPart(BufferChunkAllocator* buffer, uint32_t Size, uint32_t alignment, BufferChunk* pOut,
                                               BufferChunk* pPreferredChunk = NULL);
 
 /// Release previously claimed chunk to buffer.
@@ -546,7 +566,7 @@ typedef struct FlushResourceUpdateDesc
 FORGE_RENDERER_API void flushResourceUpdates(FlushResourceUpdateDesc* pDesc);
 
 /// Copies texture data through the GPU copy path.
-/// For optimal use, the amount of data to transfer should be minimized as much as possible and applications should
+/// For optimal use, the amount of data to transfer should be Minimized as much as possible and applications should
 /// provide additional graphics/compute work that the GPU can execute alongside the copy.
 FORGE_RENDERER_API void copyResource(TextureCopyDesc* pTextureDesc, SyncToken* token);
 
@@ -585,8 +605,8 @@ FORGE_RENDERER_API bool      isTokenCompleted(const SyncToken* token);
 FORGE_RENDERER_API void      waitForToken(const SyncToken* token);
 
 /// Allows clients to synchronize with the submission of copy commands (as opposed to their completion).
-/// This can reduce the wait time for clients but requires using the Semaphore from getLastSemaphoreCompleted() in a wait
-/// operation in a submit that uses the textures just updated.
+/// This can reduce the Wait time for clients but requires using the Semaphore from getLastSemaphoreCompleted() in a Wait
+/// operation in a Submit that uses the textures just updated.
 FORGE_RENDERER_API SyncToken getLastTokenSubmitted();
 FORGE_RENDERER_API bool      isTokenSubmitted(const SyncToken* token);
 FORGE_RENDERER_API void      waitForTokenSubmitted(const SyncToken* token);
@@ -600,7 +620,7 @@ FORGE_RENDERER_API void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDe
 
 /// Save/Load pipeline cache from disk
 FORGE_RENDERER_API void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, PipelineCache** ppPipelineCache);
-FORGE_RENDERER_API void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, PipelineCacheSaveDesc* pDesc);
+FORGE_RENDERER_API void SavePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, PipelineCacheSaveDesc* pDesc);
 
 /// Determines whether we are using Uniform Memory Architecture or not.
 /// Do not assume this variable will be the same, if code was compiled with multiple APIs result of this function might change per API.
