@@ -1647,10 +1647,14 @@ TEST_F(RHIIGraphicsApiTest, SwapChainApisAcquirePresentAndToggleVsync)
     waitQueueIdle(harness.pQueue);
 
     const bool initialVsync = harness.pSwapChain->enableVsync != 0;
+    const uint32_t initialFlags = harness.pSwapChain->dx.Flags;
     SwapChain* pSwapChain = harness.pSwapChain;
     toggleVSync(harness.pRenderer, &pSwapChain);
     EXPECT_EQ(pSwapChain, harness.pSwapChain);
     EXPECT_NE(harness.pSwapChain->enableVsync != 0, initialVsync);
+    toggleVSync(harness.pRenderer, &pSwapChain);
+    EXPECT_EQ(pSwapChain->enableVsync != 0, initialVsync);
+    EXPECT_EQ(uint32_t(pSwapChain->dx.Flags), initialFlags);
 }
 
 // Verifies that addSampler/removeSampler preserve the requested D3D12 address modes.
@@ -1759,8 +1763,8 @@ TEST_F(RHIIGraphicsApiTest, PipelineCacheAndPipelineApisCreateUsableComputePipel
     if (serializedPipelineCacheSize > 0)
     {
         std::vector<uint8_t> pipelineCacheBytes(serializedPipelineCacheSize);
-        getPipelineCacheData(harness.pRenderer, pipelineBundle.pPipelineCache, &serializedPipelineCacheSize, pipelineCacheBytes.GetData());
-        EXPECT_FALSE(pipelineCacheBytes.Empty());
+        getPipelineCacheData(harness.pRenderer, pipelineBundle.pPipelineCache, &serializedPipelineCacheSize, pipelineCacheBytes.data());
+        EXPECT_FALSE(pipelineCacheBytes.empty());
     }
 
     ASSERT_NE(pipelineBundle.pPipeline->dx.pPipelineState, nullptr);

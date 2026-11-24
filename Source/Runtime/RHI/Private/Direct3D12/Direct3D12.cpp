@@ -3576,13 +3576,14 @@ void d3d12_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
     // Set descriptor vsync boolean
     pSwapChain->enableVsync = !pSwapChain->enableVsync;
 #if !defined(XBOX)
+    pSwapChain->dx.Flags &= ~DXGI_PRESENT_ALLOW_TEARING;
     if (!pSwapChain->enableVsync)
     {
-        pSwapChain->dx.Flags |= DXGI_PRESENT_ALLOW_TEARING;
-    }
-    else
-    {
-        pSwapChain->dx.Flags &= ~DXGI_PRESENT_ALLOW_TEARING;
+        DXGI_SWAP_CHAIN_DESC1 Desc = {};
+        if (SUCCEEDED(pSwapChain->dx.pSwapChain->GetDesc1(&Desc)) && (Desc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING))
+        {
+            pSwapChain->dx.Flags |= DXGI_PRESENT_ALLOW_TEARING;
+        }
     }
 #endif
 
