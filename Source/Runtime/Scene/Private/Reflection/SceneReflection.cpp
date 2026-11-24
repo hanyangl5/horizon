@@ -180,34 +180,48 @@ void TypeDesc::Construct(void* Destination) const
 {
     ASSERT(Destination);
     if (lifecycle.pConstruct)
+    {
         lifecycle.pConstruct(Destination);
+    }
     else
+    {
         memset(Destination, 0, Size);
+    }
 }
 
 void TypeDesc::Destroy(void* ValueData) const
 {
     ASSERT(ValueData);
     if (lifecycle.pDestroy)
+    {
         lifecycle.pDestroy(ValueData);
+    }
 }
 
 void TypeDesc::CopyConstruct(void* Destination, const void* Source) const
 {
     ASSERT(Destination && Source && Destination != Source);
     if (lifecycle.pCopyConstruct)
+    {
         lifecycle.pCopyConstruct(Destination, Source);
+    }
     else
+    {
         memcpy(Destination, Source, Size);
+    }
 }
 
 void TypeDesc::MoveConstruct(void* Destination, void* Source) const
 {
     ASSERT(Destination && Source && Destination != Source);
     if (lifecycle.pMoveConstruct)
+    {
         lifecycle.pMoveConstruct(Destination, Source);
+    }
     else
+    {
         memcpy(Destination, Source, Size);
+    }
 }
 
 TypeRegistry::~TypeRegistry() { arrfree(ppTypes); }

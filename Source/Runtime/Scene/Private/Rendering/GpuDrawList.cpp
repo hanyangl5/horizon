@@ -72,7 +72,7 @@ void GpuDrawList::Prepare(const SceneView& View)
         // The first three bindings are position, normal and texture coordinates; only positions are required.
         ASSERT(Mesh->vertexStreamCount >= 3 && Tables.vertexStreams.Data[Mesh->vertexStreamOffset].srv != UINT32_MAX &&
                Primitive.id == Draw.primitive);
-        const GpuSubmeshData& Submesh = Tables.submeshes.Data[Mesh->submeshOffset + Draw.mesh.submeshIndex];
+        const GpuSubmeshData&     Submesh = Tables.submeshes.Data[Mesh->submeshOffset + Draw.mesh.submeshIndex];
         // Skinned primitives have one instance, which draws its own skinned streams.
         const GpuSkinnedVertices* Skinned =
             View.Skinning && Primitive.instanceCount == 1

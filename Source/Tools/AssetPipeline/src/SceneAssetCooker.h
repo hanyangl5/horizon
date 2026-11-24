@@ -19,10 +19,10 @@ public:
     SceneAssetCooker(const SceneAssetCooker&) = delete;
     SceneAssetCooker& operator=(const SceneAssetCooker&) = delete;
 
-    bool                      isCurrent(const char* pContentHash) const;
-    bool                      prepare(const cgltf_data& data);
-    bool                      build(const cgltf_data& data, const char* pContentHash);
-    bool                      write() const;
+    bool isCurrent(const char* pContentHash) const;
+    bool prepare(const cgltf_data& data);
+    bool build(const cgltf_data& data, const char* pContentHash);
+    bool write() const;
 
 private:
     cJSON* createMaterial(const cgltf_data& data, const cgltf_material& material, hz::Span<cJSON*> textureRecords, bool signature) const;

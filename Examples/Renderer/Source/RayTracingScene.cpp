@@ -70,7 +70,7 @@ void RayTracingScene::Update(hz::CommandList& Commands, const hz::SceneView& Vie
     }
 
     const hz::Span<hz::GpuDrawData> Prepared = Draws.GetDraws();
-    uint32_t                    InstanceCount = 0;
+    uint32_t                        InstanceCount = 0;
     for (const hz::GpuDrawData& Draw : Prepared)
     {
         InstanceCount += Draw.AlphaMode != uint32_t(hz::MaterialAlphaMode::Blend);

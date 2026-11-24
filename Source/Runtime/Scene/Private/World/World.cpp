@@ -348,7 +348,9 @@ WorldQueryImpl::~WorldQueryImpl()
     pOwner->pImpl->checkThread();
     ASSERT(!iterating);
     if (pQuery)
+    {
         ecs_query_fini(pQuery);
+    }
     --pOwner->pImpl->queryCount;
 }
 

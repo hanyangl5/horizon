@@ -45,7 +45,7 @@ void DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     ASSERT(Color.IsValid() && Resources.LightingFrame && Resources.LightingFrame->IsValid());
     ASSERT(GBuffer.Emissive && GBuffer.NormalMaterial && GBuffer.BaseColorMetallic && GBuffer.Depth);
     ASSERT(Resources.Environment && Resources.Irradiance && Resources.BRDFLut && Resources.EnvironmentSampler);
-    hz::DependencyList              Dependencies;
+    hz::DependencyList Dependencies;
     if (Resources.Lights)
     {
         Dependencies.Read(*Resources.Lights);

@@ -93,28 +93,28 @@ public:
     AssetManager(const AssetManager&) = delete;
     AssetManager& operator=(const AssetManager&) = delete;
 
-    void                 SetLoader(AssetType Type, const AssetLoader& loader);
-    AssetHandle          Request(AssetID id, AssetError* pError = nullptr);
-    bool                 Release(AssetHandle Handle);
-    void                 Update();
-    AssetState           GetState(AssetHandle Handle) const;
-    AssetError           GetError(AssetHandle Handle) const;
+    void                      SetLoader(AssetType Type, const AssetLoader& loader);
+    AssetHandle               Request(AssetID id, AssetError* pError = nullptr);
+    bool                      Release(AssetHandle Handle);
+    void                      Update();
+    AssetState                GetState(AssetHandle Handle) const;
+    AssetError                GetError(AssetHandle Handle) const;
     // Empty until the asset fails; the loader reason when it provided one, otherwise the asset path.
-    const char*          GetDiagnostic(AssetHandle Handle) const;
-    const SceneAsset*    GetScene(AssetHandle Handle) const;
-    const TextureAsset*  GetTexture(AssetHandle Handle) const;
-    const MeshAsset*     GetMesh(AssetHandle Handle) const;
-    const MaterialAsset* GetMaterial(AssetHandle Handle) const;
+    const char*               GetDiagnostic(AssetHandle Handle) const;
+    const SceneAsset*         GetScene(AssetHandle Handle) const;
+    const TextureAsset*       GetTexture(AssetHandle Handle) const;
+    const MeshAsset*          GetMesh(AssetHandle Handle) const;
+    const MaterialAsset*      GetMaterial(AssetHandle Handle) const;
     const SkeletonAsset*      GetSkeleton(AssetHandle Handle) const;
     const AnimationClipAsset* GetAnimationClip(AssetHandle Handle) const;
     // Lookup does not acquire a reference; use Request() to retain the asset.
-    AssetHandle          Find(AssetID id) const;
+    AssetHandle               Find(AssetID id) const;
     // Encodes the ready payload Set once per revision. Views expire when the ready Set changes.
-    GpuAssetTables       GetGpuTables();
+    GpuAssetTables            GetGpuTables();
     // Changes whenever an asset becomes ready, fails or retires; equal values mean no asset changed state.
-    uint64_t             GetStateRevision() const;
-    uint32_t             GetCount() const;
-    void                 Shutdown();
+    uint64_t                  GetStateRevision() const;
+    uint32_t                  GetCount() const;
+    void                      Shutdown();
 
 private:
     AssetManagerData* Data = nullptr;

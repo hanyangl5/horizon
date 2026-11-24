@@ -165,9 +165,9 @@ extern uint32_t d3d12_getAccelerationStructureSrvIndex(const AccelerationStructu
 extern void     d3d12_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 extern void     d3d12_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 extern void     d3d12_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
-extern uint64_t   d3d12_getAccelerationStructureGpuAddress(const AccelerationStructure*);
-extern void       d3d12_addRaytracingPipeline(Raytracing*, const RaytracingPipelineDesc*, RaytracingPipeline**);
-extern void       d3d12_removeRaytracingPipeline(Raytracing*, RaytracingPipeline*);
+extern uint64_t       d3d12_getAccelerationStructureGpuAddress(const AccelerationStructure*);
+extern void           d3d12_addRaytracingPipeline(Raytracing*, const RaytracingPipelineDesc*, RaytracingPipeline**);
+extern void           d3d12_removeRaytracingPipeline(Raytracing*, RaytracingPipeline*);
 extern RootSignature* d3d12_getRaytracingPipelineRootSignature(RaytracingPipeline*);
 extern void           d3d12_cmdBindRaytracingPipeline(Cmd*, RaytracingPipeline*);
 extern void           d3d12_cmdTraceRays(Cmd*, RaytracingPipeline*, uint32_t, uint32_t, uint32_t);

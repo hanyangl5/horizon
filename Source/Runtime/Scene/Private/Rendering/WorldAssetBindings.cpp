@@ -70,7 +70,9 @@ public:
     void Update()
     {
         if (view.state == AssetBindingState::Failed)
+        {
             return;
+        }
         if (!view.mesh.IsValid() && !acquire(meshID, view.mesh))
         {
             fail("Cannot acquire mesh asset");
@@ -205,7 +207,9 @@ private:
                     First = Middle + 1;
                 }
                 else
+                {
                     End = Middle;
+                }
             }
             const bool Overridden = First < Sorted.Size() && Sorted[First].submesh == Submesh.id;
             Matched += Overridden;

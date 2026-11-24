@@ -83,12 +83,12 @@ struct GpuTextureData
 // GpuAssetTables::revision changes, so consumers that keep them must re-read this table afterwards.
 struct GpuAssetTables
 {
-    Span<GpuMeshData>       meshes;
-    Span<GpuVertexStream>   vertexStreams;
-    Span<GpuSubmeshData>    submeshes;
-    Span<GpuMaterialData>   materials;
-    Span<GpuTextureData>    textures;
-    uint64_t                revision = 0;
+    Span<GpuMeshData>     meshes;
+    Span<GpuVertexStream> vertexStreams;
+    Span<GpuSubmeshData>  submeshes;
+    Span<GpuMaterialData> materials;
+    Span<GpuTextureData>  textures;
+    uint64_t              revision = 0;
 
     const GpuMeshData* GetMesh(GpuMeshID id) const
     {

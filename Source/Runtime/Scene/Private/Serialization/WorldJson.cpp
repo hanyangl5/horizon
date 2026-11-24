@@ -228,12 +228,16 @@ static cJSON* WriteProperty(const PropertyDesc& property, const void* ValueData)
             return nullptr;
         }
         if (property.kind == PropertyKind::Matrix4)
+        {
             for (uint32_t I = 0; I < 16; ++I)
             {
                 Values[I] = (float)((const Matrix4*)ValueData)->getElem(I / 4, I % 4);
             }
+        }
         else
+        {
             memcpy(Values, ValueData, Count * sizeof(float));
+        }
         JsonValue ArrayValue(cJSON_CreateArray());
         for (uint32_t I = 0; I < Count; ++I)
         {
@@ -338,7 +342,9 @@ static bool ReadProperty(const PropertyDesc& property, const cJSON* JsonPointer,
             memcpy(ValueData, &ValueValue, sizeof(ValueValue));
         }
         else
+        {
             memcpy(ValueData, &JsonPointer->valuedouble, sizeof(double));
+        }
         return true;
     case PropertyKind::String:
         if (!cJSON_IsString(JsonPointer) || strlen(JsonPointer->valuestring) >= property.Size)

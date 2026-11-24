@@ -31,7 +31,9 @@ WorldHierarchy::WorldHierarchy(WorldImpl& WorldData): world(WorldData)
 WorldHierarchy::~WorldHierarchy()
 {
     if (structureDirty)
+    {
         rebuild();
+    }
     ecs_query_fini(pEntities);
     // Avoid Flecs recursively cascading deletion through a deep hierarchy at ecs_fini.
     for (uint32_t I = nodes.Size(); I > 0; --I)
@@ -84,7 +86,9 @@ void WorldHierarchy::removeLeaf(uint32_t IndexValue)
 void WorldHierarchy::markTransformDirty(ecs_entity_t EntityHandle)
 {
     if (structureDirty)
+    {
         return;
+    }
     const uint32_t IndexValue = Find(EntityHandle);
     if (IndexValue != UINT32_MAX && !nodes[IndexValue].dirty)
     {
@@ -244,7 +248,9 @@ void WorldHierarchy::Update()
     world.checkThread();
     ASSERT(!ecs_is_deferred(world.pWorld));
     if (structureDirty)
+    {
         rebuild();
+    }
     if (dirtyRoots.Empty())
     {
         return;
@@ -315,13 +321,17 @@ bool WorldHierarchy::writeLocalMatrix(ecs_entity_t EntityHandle, const Matrix4& 
     if (Representable && transformType)
     {
         if (matrixType)
+        {
             ecs_remove_id(world.pWorld, EntityHandle, matrixType);
+        }
         ecs_set_id(world.pWorld, EntityHandle, transformType, sizeof(TransformValue), &TransformValue);
     }
     else if (matrixType)
     {
         if (transformType)
+        {
             ecs_remove_id(world.pWorld, EntityHandle, transformType);
+        }
         ecs_set_id(world.pWorld, EntityHandle, matrixType, sizeof(MatrixValue), &MatrixValue);
     }
     else
@@ -477,7 +487,7 @@ bool World::SetParent(Entity EntityHandle, Entity ParentValue, bool KeepWorld)
 }
 bool World::DestroyEntity(Entity EntityHandle) { return IsAlive(EntityHandle) && pImpl->pHierarchy->Destroy(EntityHandle.value, false); }
 bool World::DestroySubtree(Entity EntityHandle) { return IsAlive(EntityHandle) && pImpl->pHierarchy->Destroy(EntityHandle.value, true); }
-void                  World::UpdateTransforms() { pImpl->pHierarchy->Update(); }
+void World::UpdateTransforms() { pImpl->pHierarchy->Update(); }
 const WorldTransform* World::GetWorldTransform(Entity EntityHandle) const
 {
     return IsAlive(EntityHandle) ? pImpl->pHierarchy->Get(EntityHandle.value) : nullptr;

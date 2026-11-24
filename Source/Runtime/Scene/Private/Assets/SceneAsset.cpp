@@ -16,15 +16,15 @@ namespace hz
 class SceneAssetData
 {
 public:
-    AssetID                   id;
-    const char*               pSource = "";
-    const char*               pContentHash = "";
-    Array<char>               strings;
-    Array<SceneAssetNode>     nodes;
-    Array<SceneAssetMesh>     meshes;
-    Array<SceneAssetSubmesh>  submeshes;
-    Array<SceneAssetMaterial> materials;
-    Array<SceneAssetTexture>  textures;
+    AssetID                    id;
+    const char*                pSource = "";
+    const char*                pContentHash = "";
+    Array<char>                strings;
+    Array<SceneAssetNode>      nodes;
+    Array<SceneAssetMesh>      meshes;
+    Array<SceneAssetSubmesh>   submeshes;
+    Array<SceneAssetMaterial>  materials;
+    Array<SceneAssetTexture>   textures;
     Array<SceneAssetSkeleton>  skeletons;
     Array<SceneAssetAnimation> animations;
 };
@@ -560,7 +560,9 @@ bool SceneAssetReader::read(Span<char> Json)
     data.strings.Reserve(StringBytes);
     if (!readID(pRoot, data.id, AssetKind::Scene) || !readString(pRoot, "source", data.pSource, true) ||
         !readString(pRoot, "contentHash", data.pContentHash))
+    {
         return false;
+    }
     const cJSON* IdentityHash = FindSceneField(pRoot, "identityHash");
     if (strncmp(data.pContentHash, "fnv1a64:", 8) != 0 || strlen(data.pContentHash) != 24 ||
         strspn(data.pContentHash + 8, "0123456789abcdefABCDEF") != 16 || !cJSON_IsString(IdentityHash) ||

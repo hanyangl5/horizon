@@ -72,13 +72,13 @@ public:
     RayTracedEffectsSettings Settings;
 
 private:
-    hz::RenderContext&             Context;
-    hz::UniquePtr<RayTracingScene> RayScene;
+    hz::RenderContext&                Context;
+    hz::UniquePtr<RayTracingScene>    RayScene;
     hz::UniquePtr<ScreenSpaceDenoise> Denoiser;
     hz::GPUPipeline                   ShadowPipeline;
     hz::GPURayTracingPipeline         ReflectionPipeline;
-    hz::GPUSampler                 MaterialSampler;
-    hz::GPUTexture                 BlueNoise;
+    hz::GPUSampler                    MaterialSampler;
+    hz::GPUTexture                    BlueNoise;
     struct HistorySettings
     {
         RayTracedEffectsSettings Parameters;
@@ -88,9 +88,9 @@ private:
         float                    AORadius;
         bool                     operator==(const HistorySettings&) const = default;
     };
-    HistorySettings                PreviousSettings{};
-    uint32_t                       FrameIndex = 0;
-    uint64_t                       AssetRevision = 0;
-    bool                           MarkedDirty = true;
-    bool                           Supported = false;
+    HistorySettings PreviousSettings{};
+    uint32_t        FrameIndex = 0;
+    uint64_t        AssetRevision = 0;
+    bool            MarkedDirty = true;
+    bool            Supported = false;
 };

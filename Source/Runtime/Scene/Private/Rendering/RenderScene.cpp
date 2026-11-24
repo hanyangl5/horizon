@@ -465,6 +465,7 @@ public:
             }
         }
         else
+        {
             for (RenderMeshBatchID Id : EntityHandle.meshBatches)
             {
                 RenderMeshBatch& MeshBatch = meshBatches.Values[Id.index];
@@ -474,6 +475,7 @@ public:
                     meshBatches.MarkDirty(Id.index);
                 }
             }
+        }
         const WorldTransform& Transform = *world.GetWorldTransform(EntityHandle.entity);
         RenderInstance&       Instance = instances.Values[EntityHandle.instance.index];
         const Guid            EntityGuid = world.GetEntityGuid(EntityHandle.entity);
@@ -770,45 +772,45 @@ public:
         }
     }
 
-    World&                                          world;
-    AssetManager&                                   assetManager;
+    World&                                            world;
+    AssetManager&                                     assetManager;
     const AnimationSystem*                            animation = nullptr;
-    WorldAssetBindings                              bindings;
+    WorldAssetBindings                                bindings;
     WorldChangeLog                                    changes;
-    WorldQuery                                      query;
-    WorldQuery                                      lightQuery;
-    WorldQuery                                      cameraQuery;
+    WorldQuery                                        query;
+    WorldQuery                                        lightQuery;
+    WorldQuery                                        cameraQuery;
     RenderStorage<RenderPrimitive, RenderPrimitiveID> primitives;
     RenderStorage<RenderInstance, RenderInstanceID>   instances;
     RenderStorage<RenderMeshBatch, RenderMeshBatchID> meshBatches;
     RenderStorage<RenderLight, RenderLightID>         lights;
     RenderStorage<RenderCamera, RenderCameraID>       cameras;
-    Array<RenderEntity>                             entities;
-    RenderEntityIndex*                              pIndices = nullptr;
-    Array<RenderLightEntity>                        lightEntities;
-    Array<RenderCameraEntity>                       cameraEntities;
-    RenderEntityIndex*                              pLightIndices = nullptr;
-    RenderEntityIndex*                              pCameraIndices = nullptr;
-    Array<AssetHandle>                              textureReleases;
-    Array<uint32_t>                                 instanceIndices;
-    Array<uint32_t>                                 indicesDirty;
-    Array<RenderRange>                              indicesRanges;
-    Array<uint32_t>                                 indicesPending;
-    Array<bool>                                     indicesPendingFlags;
-    Array<RenderHistory>                            instanceHistory;
-    Array<uint32_t>                                 historyPending;
+    Array<RenderEntity>                               entities;
+    RenderEntityIndex*                                pIndices = nullptr;
+    Array<RenderLightEntity>                          lightEntities;
+    Array<RenderCameraEntity>                         cameraEntities;
+    RenderEntityIndex*                                pLightIndices = nullptr;
+    RenderEntityIndex*                                pCameraIndices = nullptr;
+    Array<AssetHandle>                                textureReleases;
+    Array<uint32_t>                                   instanceIndices;
+    Array<uint32_t>                                   indicesDirty;
+    Array<RenderRange>                                indicesRanges;
+    Array<uint32_t>                                   indicesPending;
+    Array<bool>                                       indicesPendingFlags;
+    Array<RenderHistory>                              instanceHistory;
+    Array<uint32_t>                                   historyPending;
     // Asset states seen by the last extraction; a change re-extracts every mesh entity.
     uint64_t                                          extractedAssetRevision = 0;
     // History submitted since the last Update changes each moved instance's previous transform once more.
     Array<Entity>                                     historyFollowUp;
     Array<Entity>                                     instanceEntities;
-    Array<RenderRange>                              uploadRanges[6];
+    Array<RenderRange>                                uploadRanges[6];
     // Mesh entities with a SkinnedMesh, visited by every Update.
     Array<Entity>                                     skinnedEntities;
     Array<RenderSkin>                                 skins;
     Array<Matrix4>                                    skinMatrices;
-    uint64_t                                        revision = 0;
-    bool                                            frameLocked = false;
+    uint64_t                                          revision = 0;
+    bool                                              frameLocked = false;
 };
 
 RenderScene::RenderScene(World& WorldData, AssetManager& AssetManagerValue, const AnimationSystem* Animation):

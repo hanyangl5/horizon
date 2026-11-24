@@ -93,7 +93,9 @@ public:
     ~SceneAssetLoaderData()
     {
         if (threads)
+        {
             threadSystemExit(&threads, &gThreadSystemExitDescDefault);
+        }
     }
 
     static void* begin(const AssetCatalogEntry& Entry, AssetHandle, void* User)

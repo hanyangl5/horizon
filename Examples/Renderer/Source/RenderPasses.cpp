@@ -639,7 +639,7 @@ void RenderPasses::Update(float FrameDeltaSeconds) { DeltaSeconds = FrameDeltaSe
 
 static Matrix4 CameraViewProjection(const Matrix4& Pose, const hz::Camera& Lens, float AspectInverse, TemporalJitter Jitter)
 {
-    const float HorizontalFov = 2.0f * atanf(tanf(Lens.verticalFov * 0.5f) / AspectInverse);
+    const float   HorizontalFov = 2.0f * atanf(tanf(Lens.verticalFov * 0.5f) / AspectInverse);
     Matrix4       Projection = Matrix4::perspectiveRH(HorizontalFov, AspectInverse, Lens.nearPlane, Lens.farPlane);
     const Vector4 ClipW = Projection.getRow(3);
     Projection.setRow(0, Projection.getRow(0) + ClipW * (2.0f * Jitter.X));
@@ -684,14 +684,14 @@ void RenderPasses::Execute()
     {
         hz::InvalidateFrameGraphHistory(Graph, Targets.TemporalColor);
     }
-    const Matrix4           Current = CameraViewProjection(CameraState.current, CameraState.lens, AspectInverse, Jitter);
-    const FrameData         FrameValues = { .ViewProjection = Current,
-                                            .PreviousViewProjection =
-                                                CameraViewProjection(CameraState.previous, CameraState.previousLens, AspectInverse, PreviousJitter),
-                                            .InverseViewProjection = inverse(Current),
-                                            .Eye = CameraState.current.getCol3() };
-    const hz::GPUBuffer&    Frame = ConstantBuffer.Buffer;
-    const bool              Updated = Context.UpdateBuffer(Frame, 0, &FrameValues, sizeof(FrameValues));
+    const Matrix4        Current = CameraViewProjection(CameraState.current, CameraState.lens, AspectInverse, Jitter);
+    const FrameData      FrameValues = { .ViewProjection = Current,
+                                         .PreviousViewProjection =
+                                             CameraViewProjection(CameraState.previous, CameraState.previousLens, AspectInverse, PreviousJitter),
+                                         .InverseViewProjection = inverse(Current),
+                                         .Eye = CameraState.current.getCol3() };
+    const hz::GPUBuffer& Frame = ConstantBuffer.Buffer;
+    const bool           Updated = Context.UpdateBuffer(Frame, 0, &FrameValues, sizeof(FrameValues));
     ASSERT(Updated);
     hz::CommandList& Commands = Context.AcquireCommandList();
     GpuSceneData.Upload(Commands);

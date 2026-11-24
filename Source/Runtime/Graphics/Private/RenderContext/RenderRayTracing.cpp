@@ -14,15 +14,15 @@ namespace hz
 class AccelerationStructureData
 {
 public:
-    RenderContext*                       pContext = nullptr;
-    AccelerationStructure*               pStructure = nullptr;
-    AccelerationStructureType            Type = ACCELERATION_STRUCTURE_TYPE_BOTTOM;
-    AccelerationStructureBuildFlags      Flags = ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
-    Array<const GPUBuffer*>              inputs;
-    Array<RaytracingInstanceData>        instances;
-    Array<AccelerationStructureData*>    bottoms;
-    uint32_t                             references = 1;
-    void                                 SetInstance(uint32_t IndexValue, const AccelerationStructureInstance& Instance)
+    RenderContext*                    pContext = nullptr;
+    AccelerationStructure*            pStructure = nullptr;
+    AccelerationStructureType         Type = ACCELERATION_STRUCTURE_TYPE_BOTTOM;
+    AccelerationStructureBuildFlags   Flags = ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
+    Array<const GPUBuffer*>           inputs;
+    Array<RaytracingInstanceData>     instances;
+    Array<AccelerationStructureData*> bottoms;
+    uint32_t                          references = 1;
+    void                              SetInstance(uint32_t IndexValue, const AccelerationStructureInstance& Instance)
     {
         ASSERT(IndexValue < instances.Size() && Instance.pBottom && Instance.pBottom->IsValid());
         ASSERT(Instance.instanceId < (1u << 24) && Instance.mask < (1u << 8) && Instance.hitGroupOffset < (1u << 24));
@@ -62,10 +62,10 @@ public:
             SetInstance(I, Source.Data[I]);
         }
     }
-    uint32_t                             Capacity = 0;
-    uint32_t                             builtCount = 0;
-    bool                                 built = false;
-    bool                                 dirty = true;
+    uint32_t Capacity = 0;
+    uint32_t builtCount = 0;
+    bool     built = false;
+    bool     dirty = true;
 };
 
 GPUAccelerationStructure::~GPUAccelerationStructure() { Destroy(); }

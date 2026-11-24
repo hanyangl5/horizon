@@ -52,7 +52,9 @@ public:
     {
         removeResource(pUpload);
         if (pShadow)
+        {
             removeResource(pShadow);
+        }
         MemDeallocate(pPath);
     }
     void            Release();
@@ -110,7 +112,9 @@ public:
     ~SubassetRequest()
     {
         if (pSource)
+        {
             pSource->Release();
+        }
     }
     const AssetCatalogEntry& entry;
     AssetSource*             pSource;
@@ -149,7 +153,9 @@ public:
     {
         ASSERT(shlen(pSources) == 0 && shlen(pGeometries) == 0);
         if (threads)
+        {
             threadSystemExit(&threads, &gThreadSystemExitDescDefault);
+        }
         shfree(pSources);
         shfree(pGeometries);
     }
@@ -315,12 +321,12 @@ public:
         }
     }
 
-    RenderContext&     context;
-    AssetLoadersDesc   desc;
+    RenderContext&      context;
+    AssetLoadersDesc    desc;
     uint32_t            vertexBindingCount = 0;
-    SceneAssetLoader   sceneLoader;
-    TextureAssetLoader textureLoader;
-    ThreadSystem       threads = nullptr;
+    SceneAssetLoader    sceneLoader;
+    TextureAssetLoader  textureLoader;
+    ThreadSystem        threads = nullptr;
     AssetSourceIndex*   pSources = nullptr;
     AssetGeometryIndex* pGeometries = nullptr;
 };
@@ -372,9 +378,13 @@ void AssetSource::Release()
 {
     ASSERT(references);
     if (--references)
+    {
         return;
+    }
     if ((AssetLoadStatus)tfrg_atomic32_load_acquire(&status) == AssetLoadStatus::Pending)
+    {
         threadSystemWaitIdle(owner.threads);
+    }
     shdel(owner.pSources, pPath);
     MemDelete(this);
 }
@@ -424,7 +434,9 @@ void AssetGeometry::Release()
 {
     ASSERT(references);
     if (--references)
+    {
         return;
+    }
     ASSERT(isTokenCompleted(&token));
     ASSERT(!boundsQueued || (AssetLoadStatus)tfrg_atomic32_load_acquire(&status) != AssetLoadStatus::Pending);
     shdel(owner.pGeometries, pPath);
@@ -434,7 +446,9 @@ bool AssetGeometry::buildBounds()
 {
     if (!pShadow || !pShadow->pShadow || pShadow->pShadow->vertexStrides[SEMANTIC_POSITION] != sizeof(float) * 3 ||
         pShadow->pShadow->attributeCount[SEMANTIC_POSITION] != pUpload->vertexCount)
+    {
         return false;
+    }
     const GeometryData::ShadowData& Shadow = *pShadow->pShadow;
     const uint8_t*                  Positions = (const uint8_t*)Shadow.pAttributes[SEMANTIC_POSITION];
     const bool                      Index32 = pUpload->indexType == INDEX_TYPE_UINT32;
@@ -492,9 +506,13 @@ bool AssetGeometry::buildBounds()
 AssetLoadStatus AssetGeometry::poll()
 {
     if (adopted)
+    {
         return AssetLoadStatus::Succeeded;
+    }
     if (!isTokenCompleted(&token))
+    {
         return AssetLoadStatus::Pending;
+    }
     if (!uploadSucceeded || !pUpload)
     {
         LOGF(Error, "Geometry Upload failed: '%s'", pPath);
@@ -536,7 +554,9 @@ AssetLoadStatus AssetGeometry::poll()
 MaterialAsset::~MaterialAsset()
 {
     if (pSource)
+    {
         pSource->Release();
+    }
 }
 const SceneAssetMaterial& MaterialAsset::GetDescription() const
 {
@@ -547,9 +567,13 @@ const SceneAssetMaterial& MaterialAsset::GetDescription() const
 MeshAsset::~MeshAsset()
 {
     if (pGeometry)
+    {
         pGeometry->Release();
+    }
     if (pSource)
+    {
         pSource->Release();
+    }
 }
 const SceneAssetMesh& MeshAsset::GetDescription() const
 {

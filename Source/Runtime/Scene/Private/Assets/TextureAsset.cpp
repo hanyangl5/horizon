@@ -16,7 +16,9 @@ public:
     ~TextureAssetData()
     {
         if (pUpload)
+        {
             removeResource(pUpload);
+        }
     }
 
     const AssetCatalogEntry& entry;

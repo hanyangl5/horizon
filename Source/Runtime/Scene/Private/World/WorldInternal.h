@@ -81,7 +81,7 @@ private:
             pLog->record(entity, id);
         }
     }
-    static void      removeEntityGuids(ecs_iter_t* pIterator);
+    static void removeEntityGuids(ecs_iter_t* pIterator);
 
     static void ConstructComponents(void* pDestination, int32_t Count, const ecs_type_info_t* pInfo);
     static void DestroyComponents(void* pValue, int32_t Count, const ecs_type_info_t* pInfo);
@@ -90,17 +90,17 @@ private:
     static void CopyComponents(void* pDestination, const void* pSource, int32_t Count, const ecs_type_info_t* pInfo);
     static void MoveComponents(void* pDestination, void* pSource, int32_t Count, const ecs_type_info_t* pInfo);
 
-    ecs_world_t*     pWorld = nullptr;
-    WorldType*       pTypes = nullptr;
+    ecs_world_t*               pWorld = nullptr;
+    WorldType*                 pTypes = nullptr;
     // Unique per process; stamped into every Entity this World hands out.
     uint32_t                   id = 0;
-    ecs_entity_t     entityTag = 0;
-    ecs_entity_t     parentRelation = 0;
-    ecs_entity_t     entityIdentityType = 0;
-    IDGenerator      entityGuids;
-    EntityGuidEntry* pEntityGuids = nullptr;
-    Array<Guid>      pendingGuids;
-    WorldHierarchy*  pHierarchy = nullptr;
+    ecs_entity_t               entityTag = 0;
+    ecs_entity_t               parentRelation = 0;
+    ecs_entity_t               entityIdentityType = 0;
+    IDGenerator                entityGuids;
+    EntityGuidEntry*           pEntityGuids = nullptr;
+    Array<Guid>                pendingGuids;
+    WorldHierarchy*            pHierarchy = nullptr;
     // Queries own flecs state in this World, so it must not be destroyed or replaced while any are live.
     uint32_t                   queryCount = 0;
     Array<WorldChangeLogImpl*> changeLogs;

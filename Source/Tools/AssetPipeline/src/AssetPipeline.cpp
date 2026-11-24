@@ -333,50 +333,92 @@ static inline constexpr hz::Format util_cgltf_type_to_image_format(cgltf_type Ty
     {
     case cgltf_type_scalar:
         if (cgltf_component_type_r_8 == compType)
+        {
             return hz::Format::R8_SINT;
+        }
         else if (cgltf_component_type_r_16 == compType)
+        {
             return hz::Format::R16_SINT;
+        }
         else if (cgltf_component_type_r_16u == compType)
+        {
             return hz::Format::R16_UINT;
+        }
         else if (cgltf_component_type_r_32f == compType)
+        {
             return hz::Format::R32_SFLOAT;
+        }
         else if (cgltf_component_type_r_32u == compType)
+        {
             return hz::Format::R32_UINT;
+        }
     case cgltf_type_vec2:
         if (cgltf_component_type_r_8 == compType)
+        {
             return hz::Format::R8G8_SINT;
+        }
         else if (cgltf_component_type_r_16 == compType)
+        {
             return hz::Format::R16G16_SINT;
+        }
         else if (cgltf_component_type_r_16u == compType)
+        {
             return hz::Format::R16G16_UINT;
+        }
         else if (cgltf_component_type_r_32f == compType)
+        {
             return hz::Format::R32G32_SFLOAT;
+        }
         else if (cgltf_component_type_r_32u == compType)
+        {
             return hz::Format::R32G32_UINT;
+        }
     case cgltf_type_vec3:
         if (cgltf_component_type_r_8 == compType)
+        {
             return hz::Format::R8G8B8_SINT;
+        }
         else if (cgltf_component_type_r_16 == compType)
+        {
             return hz::Format::R16G16B16_SINT;
+        }
         else if (cgltf_component_type_r_16u == compType)
+        {
             return hz::Format::R16G16B16_UINT;
+        }
         else if (cgltf_component_type_r_32f == compType)
+        {
             return hz::Format::R32G32B32_SFLOAT;
+        }
         else if (cgltf_component_type_r_32u == compType)
+        {
             return hz::Format::R32G32B32_UINT;
+        }
     case cgltf_type_vec4:
         if (cgltf_component_type_r_8 == compType)
+        {
             return hz::Format::R8G8B8A8_SINT;
+        }
         else if (cgltf_component_type_r_8u == compType)
+        {
             return hz::Format::R8G8B8A8_UINT;
+        }
         else if (cgltf_component_type_r_16 == compType)
+        {
             return hz::Format::R16G16B16A16_SINT;
+        }
         else if (cgltf_component_type_r_16u == compType)
+        {
             return hz::Format::R16G16B16A16_UINT;
+        }
         else if (cgltf_component_type_r_32f == compType)
+        {
             return hz::Format::R32G32B32A32_SFLOAT;
+        }
         else if (cgltf_component_type_r_32u == compType)
+        {
             return hz::Format::R32G32B32A32_UINT;
+        }
         // #NOTE: Not applicable to vertex formats
     case cgltf_type_mat2:
     case cgltf_type_mat3:
@@ -764,14 +806,18 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                     }
                     CloseStream(&fs);
                     if (!buffersLoaded)
+                    {
                         break;
+                    }
                 }
             }
         }
 
         result = buffersLoaded ? cgltf_load_buffers(&options, data, fileName) : cgltf_result_data_too_short;
         if (result == cgltf_result_success)
+        {
             result = cgltf_validate(data);
+        }
         if (cgltf_result_success != result)
         {
             LOGF(Error, "Failed to Load buffers from gltf file %s with error %u", fileName, (uint32_t)result);
@@ -1076,13 +1122,17 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 {
                     uint16_t* dst = (uint16_t*)geomData->pShadow->pIndices;
                     for (uint32_t idx = 0; idx < primitiveIndexCount; ++idx)
+                    {
                         dst[indexCount + idx] = (uint16_t)(prim->indices ? cgltf_accessor_read_index(prim->indices, idx) : idx);
+                    }
                 }
                 else
                 {
                     uint32_t* dst = (uint32_t*)geomData->pShadow->pIndices;
                     for (uint32_t idx = 0; idx < primitiveIndexCount; ++idx)
+                    {
                         dst[indexCount + idx] = (uint32_t)(prim->indices ? cgltf_accessor_read_index(prim->indices, idx) : idx);
+                    }
                 }
 
                 /************************************************************************/
@@ -1227,12 +1277,16 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
                 if (sizeof(uint16_t) == indexStride)
                 {
                     for (uint32_t idx = 0; idx < primitiveIndexCount; ++idx)
+                    {
                         ((uint16_t*)geomData->pShadow->pIndices)[indexCount + idx] += (uint16_t)vertexCount;
+                    }
                 }
                 else
                 {
                     for (uint32_t idx = 0; idx < primitiveIndexCount; ++idx)
+                    {
                         ((uint32_t*)geomData->pShadow->pIndices)[indexCount + idx] += vertexCount;
+                    }
                 }
 
                 indexCount += primitiveIndexCount;
@@ -1276,7 +1330,9 @@ bool ProcessGLTF(AssetPipelineParams* assetParams, ProcessGLTFParams* glTFParams
         }
 
         for (uint32_t j = 0; j < TF_ARRAY_COUNT(geom->vertexStrides); ++j)
+        {
             ASSERT(geom->vertexStrides[j] == 0);
+        }
 
         CreateDirectoryForFile(assetParams->mRDOutput, newFileName);
 

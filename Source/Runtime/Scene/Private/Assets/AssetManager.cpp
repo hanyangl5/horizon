@@ -531,25 +531,25 @@ public:
 
     static constexpr uint32_t kTableGarbageLimit = 4096;
 
-    const AssetCatalog&      catalog;
-    const AssetManager&      assetManager;
-    AssetLoader              loaders[(uint32_t)AssetType::AnimationClip + 1] = {};
-    Array<ManagedAsset>      assets;
-    Array<uint32_t>          pending;
-    Array<uint32_t>          tableDirty;
-    Array<uint32_t>          freeIndices;
-    Array<uint32_t>          retirements;
-    AssetIndex*              pIndices = nullptr;
-    RenderContext*           pContext = nullptr;
-    bool                     shuttingDown = false;
-    uint64_t                 tableRevision = 1;
-    uint64_t                 builtRevision = 0;
-    uint32_t                 tableGarbage = 0;
-    Array<GpuMeshData>       meshes;
-    Array<GpuVertexStream>   vertexStreams;
-    Array<GpuSubmeshData>    submeshes;
-    Array<GpuMaterialData>   materials;
-    Array<GpuTextureData>    textures;
+    const AssetCatalog&    catalog;
+    const AssetManager&    assetManager;
+    AssetLoader            loaders[(uint32_t)AssetType::AnimationClip + 1] = {};
+    Array<ManagedAsset>    assets;
+    Array<uint32_t>        pending;
+    Array<uint32_t>        tableDirty;
+    Array<uint32_t>        freeIndices;
+    Array<uint32_t>        retirements;
+    AssetIndex*            pIndices = nullptr;
+    RenderContext*         pContext = nullptr;
+    bool                   shuttingDown = false;
+    uint64_t               tableRevision = 1;
+    uint64_t               builtRevision = 0;
+    uint32_t               tableGarbage = 0;
+    Array<GpuMeshData>     meshes;
+    Array<GpuVertexStream> vertexStreams;
+    Array<GpuSubmeshData>  submeshes;
+    Array<GpuMaterialData> materials;
+    Array<GpuTextureData>  textures;
 };
 
 AssetManager::AssetManager(const AssetCatalog& Catalog, RenderContext* Context): Data(MemNew(AssetManagerData, Catalog, *this, Context)) {}

@@ -590,7 +590,7 @@ private:
         void*        resource = nullptr;
         void*        secondary = nullptr;
         void*        tertiary = nullptr;
-        uint64_t useId = 0;
+        uint64_t     useId = 0;
         ResourceType Type = ResourceType::Buffer;
     };
     void DeferResource(ResourceType Type, void* resource, void* secondary = nullptr, void* tertiary = nullptr);

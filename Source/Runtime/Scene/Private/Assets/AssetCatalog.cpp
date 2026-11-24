@@ -611,7 +611,9 @@ bool AssetCatalog::Serialize(Array<char>& Json) const
             cJSON_AddNullToObject(ValueData, "elementIndex");
         }
         else
+        {
             cJSON_AddNumberToObject(ValueData, "elementIndex", EntryPointer->location.elementIndex);
+        }
         cJSON_AddBoolToObject(ValueData, "srgb", EntryPointer->srgb);
         cJSON* DependenciesPointer = cJSON_AddArrayToObject(ValueData, "dependencies");
         for (AssetID DependencyValue : EntryPointer->dependencies)

@@ -54,17 +54,27 @@ static bool decodeImageURI(const char* pURI, hz::Array<uint8_t>& bytes)
 {
     const char* pEncoded = nullptr;
     if (strncmp(pURI, "data:image/png;base64,", 22) == 0)
+    {
         pEncoded = pURI + 22;
+    }
     else if (strncmp(pURI, "data:image/jpeg;base64,", 23) == 0)
+    {
         pEncoded = pURI + 23;
+    }
     if (!pEncoded)
+    {
         return false;
+    }
     const size_t length = strlen(pEncoded);
     if (!length || length % 4 || length > INT_MAX)
+    {
         return false;
+    }
     const size_t padding = (pEncoded[length - 1] == '=') + (pEncoded[length - 2] == '=');
     if (strspn(pEncoded, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") != length - padding)
+    {
         return false;
+    }
     bytes.Resize((uint32_t)(length / 4 * 3 - padding));
     // Decode through cgltf into the already sized buffer.
     cgltf_options options = {};
@@ -91,7 +101,9 @@ bool SceneTextureCooker::writeDDS(const char* pPath, const void* pBytes, size_t 
     const bool written = WriteToStream(&stream, pBytes, Size) == Size;
     const bool closed = CloseStream(&stream);
     if (!written || !closed)
+    {
         return false;
+    }
     // Content-addressed output never overwrites a texture used by a previous cook.
     if (FileExists(outputDirectory, pPath))
     {
@@ -138,14 +150,18 @@ TextureEncoder::~TextureEncoder()
 bool TextureEncoder::encode(const uint8_t* pBytes, size_t Size, bool srgb, const char* Name, DirectX::Blob& dds) const
 {
     if (!pFactory)
+    {
         return false;
+    }
     DirectX::ScratchImage        image, mipmaps, compressed;
     const DirectX::ScratchImage* pInput = &image;
     HRESULT                      result = DirectX::LoadFromWICMemory(pBytes, Size, DirectX::WIC_FLAGS_IGNORE_SRGB, nullptr, image);
     if (SUCCEEDED(result))
     {
         if (srgb)
+        {
             image.OverrideFormat(DirectX::MakeSRGB(image.GetMetadata().format));
+        }
         if (image.GetMetadata().width > 1 || image.GetMetadata().height > 1)
         {
             result = DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT, 0, mipmaps);
@@ -192,10 +208,14 @@ bool TextureEncoder::encode(const uint8_t* pBytes, size_t Size, bool srgb, const
         }
     }
     if (SUCCEEDED(result))
+    {
         result = DirectX::SaveToDDSMemory(compressed.GetImages(), compressed.GetImageCount(), compressed.GetMetadata(),
                                           DirectX::DDS_FLAGS_FORCE_DX10_EXT, dds);
+    }
     if (FAILED(result))
+    {
         LOGF(Error, "DirectXTex texture cook failed for '%s' (HRESULT 0x%08x)", Name, (unsigned)result);
+    }
     return SUCCEEDED(result);
 }
 #endif
@@ -226,7 +246,9 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
     {
         if (strstr(image.uri, ":") || image.uri[0] == '/' || strchr(image.uri, '\\') ||
             strlen(sourceParent) + strlen(image.uri) + 2 >= FS_MAX_PATH)
+        {
             return false;
+        }
         AppendPathComponent(sourceParent, image.uri, output.source);
         const char* pExtension = strrchr(image.uri, '.');
         if (pExtension && (stricmp(pExtension, ".dds") == 0 || stricmp(pExtension, ".ktx") == 0))
@@ -237,14 +259,18 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
         }
         if (!pExtension || (stricmp(pExtension, ".png") != 0 && stricmp(pExtension, ".jpg") != 0 && stricmp(pExtension, ".jpeg") != 0) ||
             !readImage(output.source, bytes))
+        {
             return false;
+        }
         pBytes = bytes.GetData();
         Size = bytes.Size();
     }
     else if (image.uri)
     {
         if (!decodeImageURI(image.uri, bytes))
+        {
             return false;
+        }
         pBytes = bytes.GetData();
         Size = bytes.Size();
     }
@@ -252,7 +278,9 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
     {
         const cgltf_buffer_view& view = *image.buffer_view;
         if (!view.buffer || !view.buffer->data || view.offset > view.buffer->size || view.size > view.buffer->size - view.offset)
+        {
             return false;
+        }
         pBytes = (const uint8_t*)view.buffer->data + view.offset;
         Size = view.size;
     }
@@ -267,7 +295,9 @@ bool SceneTextureCooker::cook(const cgltf_image& image, bool srgb, CookedSceneTe
     snprintf(output.path, sizeof(output.path), "Textures/%016llx.dds", (unsigned long long)Hash);
     output.cooked = true;
     if (output.source[0])
+    {
         output.signature = cookHash(output.source, strlen(output.source));
+    }
     if (FileExists(outputDirectory, output.path))
     {
         return true;

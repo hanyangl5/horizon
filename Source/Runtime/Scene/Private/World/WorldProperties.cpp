@@ -105,7 +105,9 @@ bool World::SetProperty(Entity EntityHandle, TypeID Type, PropertyID property, c
 static bool ValidateArray(const PropertyDesc& property)
 {
     if (property.kind == PropertyKind::Array)
+    {
         return true;
+    }
     LOGF(Error, "Property '%s' is not an array", property.Name);
     return false;
 }

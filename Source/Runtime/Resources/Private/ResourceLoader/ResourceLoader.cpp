@@ -5444,12 +5444,16 @@ static void streamerThreadFunc(void* pThreadData)
                 case UPDATE_REQUEST_LOAD_TEXTURE:
                     result = LoadTexture(pRenderer, pCopyEngine, updateState);
                     if (updateState.texLoadDesc.pSuccess)
+                    {
                         *updateState.texLoadDesc.pSuccess = result == UPLOAD_FUNCTION_RESULT_COMPLETED;
+                    }
                     break;
                 case UPDATE_REQUEST_LOAD_GEOMETRY:
                     result = loadGeometry(pRenderer, pCopyEngine, updateState);
                     if (updateState.geomLoadDesc.pSuccess)
+                    {
                         *updateState.geomLoadDesc.pSuccess = result == UPLOAD_FUNCTION_RESULT_COMPLETED;
+                    }
                     break;
                 case UPDATE_REQUEST_COPY_TEXTURE:
                     result = CopyTexture(pRenderer, pCopyEngine, updateState.texCopyDesc);
@@ -6504,7 +6508,9 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 {
     ASSERT(pTextureDesc->ppTexture);
     if (pTextureDesc->pSuccess)
+    {
         *pTextureDesc->pSuccess = false;
+    }
 
     if (token)
     {
@@ -6549,7 +6555,9 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
             queueTextureBarrier(pResourceLoader, *pTextureDesc->ppTexture, StartState, token);
         }
         if (pTextureDesc->pSuccess)
+        {
             *pTextureDesc->pSuccess = *pTextureDesc->ppTexture != nullptr;
+        }
     }
     else
     {
@@ -6570,7 +6578,9 @@ void addResource(GeometryLoadDesc* pDesc, SyncToken* token)
     ASSERT(pDesc->pVertexLayout);
     ASSERT(pDesc->ppGeometry);
     if (pDesc->pSuccess)
+    {
         *pDesc->pSuccess = false;
+    }
 
     GeometryLoadDesc updateDesc = *pDesc;
     updateDesc.pFileName = pDesc->pFileName;
