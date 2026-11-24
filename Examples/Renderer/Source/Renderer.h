@@ -346,6 +346,7 @@ private:
             .LookAt = Character + Vector3(0.0f, 0.9f, 0.0f),
             .motion = { .maxSpeed = 8.0f, .acceleration = 40.0f, .braking = 60.0f },
             .boostMultiplier = 4.0f,
+            .RequireCaptureToMove = true,
         };
         Camera = hz::MakeUnique<FreeCameraController>(Desc);
         CameraEntity = World->CreatePersistentEntity();

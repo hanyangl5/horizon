@@ -26,6 +26,16 @@ void FreeCameraController::Stop()
     pCamera->MoveTo(pCamera->GetViewPosition());
 }
 
+void FreeCameraController::SetCaptured(bool Enabled)
+{
+    if (RequireCaptureToMove && captured && !Enabled)
+    {
+        pCamera->MoveTo(pCamera->GetViewPosition());
+    }
+    captured = Enabled;
+    SetEnableCaptureInput(Enabled);
+}
+
 bool FreeCameraController::OnInput(InputActionContext* pInput)
 {
     FreeCameraController* pController = (FreeCameraController*)pInput->UserData;
@@ -43,14 +53,13 @@ bool FreeCameraController::OnInput(InputActionContext* pInput)
             pController->look = pInput->float2Value;
         break;
     case Capture:
-        pController->captured = !ended && pInput->boolValue;
-        SetEnableCaptureInput(pController->captured);
+        pController->SetCaptured(!ended && pInput->boolValue);
         break;
     case Boost:
         pController->boost = !ended && pInput->boolValue;
         break;
     case Reset:
-        if (pInput->phase == INPUT_ACTION_PHASE_STARTED)
+        if (pInput->phase == INPUT_ACTION_PHASE_STARTED && (!pController->RequireCaptureToMove || pController->captured))
         {
             pController->pCamera->ResetView();
             pController->Stop();
@@ -59,8 +68,7 @@ bool FreeCameraController::OnInput(InputActionContext* pInput)
     case Release:
         if (pInput->boolValue)
         {
-            pController->captured = false;
-            SetEnableCaptureInput(false);
+            pController->SetCaptured(false);
         }
         break;
     }
@@ -73,6 +81,7 @@ FreeCameraController::FreeCameraController(const FreeCameraControllerDesc& desc)
     pCamera = InitFpsCameraController(desc.position, desc.LookAt);
     motion = desc.motion;
     boostMultiplier = desc.boostMultiplier;
+    RequireCaptureToMove = desc.RequireCaptureToMove;
     ASSERT(pCamera);
 
     InputSystemDesc inputDesc = { .pWindow = desc.pWindow };
@@ -129,6 +138,11 @@ void FreeCameraController::Update(float deltaTime, uint32_t Width, uint32_t Heig
         boost = false;
         SetEnableCaptureInput(false);
         Stop();
+    }
+
+    if (RequireCaptureToMove && !captured)
+    {
+        return;
     }
 
     CameraMotionParameters currentMotion = motion;

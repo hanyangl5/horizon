@@ -11,6 +11,7 @@ struct FreeCameraControllerDesc
     Vector3                LookAt = {};
     CameraMotionParameters motion = {};
     float                  boostMultiplier = 4.0f;
+    bool                   RequireCaptureToMove = false;
 };
 
 class FORGE_API FreeCameraController
@@ -31,6 +32,7 @@ public:
 
 private:
     void        Stop();
+    void        SetCaptured(bool Enabled);
     static bool OnInput(InputActionContext* pInput);
 
     ICameraController*     pCamera = nullptr;
@@ -39,6 +41,7 @@ private:
     float2                 look = float2(0.0f);
     float                  vertical = 0.0f;
     float                  boostMultiplier = 4.0f;
+    bool                   RequireCaptureToMove = false;
     bool                   captured = false;
     bool                   boost = false;
 };
