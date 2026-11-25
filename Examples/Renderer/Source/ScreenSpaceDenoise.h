@@ -14,8 +14,7 @@ public:
                          const RayTracedEffectsSettings& Settings, const RayTracedEffectsTargets& Targets, bool UseHistory);
     void DenoiseReflections(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer,
                             const RayTracedEffectsSettings& Settings, const RayTracedEffectsTargets& Targets, bool UseHistory);
-    void StoreDepthHistory(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUTexture& Depth,
-                           const hz::GPUTexture& Output);
+    void StoreDepthHistory(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUTexture& Depth, const hz::GPUTexture& Output);
 
 private:
     hz::GPUPipeline ShadowAOTemporalPipeline;

@@ -35,9 +35,8 @@ TemporalJitter TemporalAA::GetJitter(uint32_t FrameIndex, uint32_t Width, uint32
     return { .X = Sample[0] / Width, .Y = Sample[1] / Height };
 }
 
-void TemporalAA::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUSampler& Sampler,
-                         const TemporalAAInputs& Inputs, const hz::GPUTexture& Output, TemporalJitter Jitter,
-                         TemporalJitter PreviousJitter) const
+void TemporalAA::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUSampler& Sampler, const TemporalAAInputs& Inputs,
+                         const hz::GPUTexture& Output, TemporalJitter Jitter, TemporalJitter PreviousJitter) const
 {
     hz::DependencyList        Dependencies;
     const TemporalAAConstants Constants = {

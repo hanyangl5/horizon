@@ -15,8 +15,8 @@ public:
 
     explicit ClusteredLighting(hz::RenderContext& Context);
     static hz::FrameGraphBufferDesc GetTileMaskDesc();
-    bool Prepare(LightingFrameData& Frame, hz::FrameUpload& Upload, const hz::GPUBuffer& TileLightBitMasks, hz::Span<hz::RenderLight> Lights,
-                 hz::Span<uint32_t> Active, const FrameData& Camera);
+    bool                            Prepare(LightingFrameData& Frame, hz::FrameUpload& Upload, const hz::GPUBuffer& TileLightBitMasks,
+                                            hz::Span<hz::RenderLight> Lights, hz::Span<uint32_t> Active, const FrameData& Camera);
     void BuildLightTileMasks(hz::CommandList& Commands, const FrameData& Camera, const hz::GPUBuffer& TileLightBitMasks,
                              const hz::GPUBuffer& Lights, const hz::GPUBuffer& ActiveLights, uint32_t ActiveLocalLightCount) const;
 

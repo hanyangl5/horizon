@@ -114,7 +114,7 @@ void GBuffer::Execute(hz::CommandList& Cmd, hz::BufferSrv Frame, const hz::Scene
 struct FrameInputs
 {
     hz::GpuDrawList&     Draws;
-    hz::BufferSrv Frame;
+    hz::BufferSrv        Frame;
     const FrameData&     Camera;
     const hz::SceneView& View;
     hz::GPUSampler&      LinearSampler;
@@ -553,8 +553,9 @@ void RenderPasses::BuildGraph()
 }
 
 RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
-    Context(*Desc.Context), Scene(*Desc.Scene), Assets(*Desc.AssetManager), CameraId(Desc.Camera), Draws(Context), Upload(Context, FrameCount),
-    GpuSceneData(Scene, Assets, Context, { .frameCount = FrameCount }), Skinning(Scene, Assets, Context, { .FrameCount = FrameCount })
+    Context(*Desc.Context), Scene(*Desc.Scene), Assets(*Desc.AssetManager), CameraId(Desc.Camera), Draws(Context),
+    Upload(Context, FrameCount), GpuSceneData(Scene, Assets, Context, { .frameCount = FrameCount }),
+    Skinning(Scene, Assets, Context, { .FrameCount = FrameCount })
 {
     ASSERT(Context.IsValid() && CameraId.IsValid());
     Culling = hz::MakeUnique<FrustumCulling>(Context);
@@ -658,7 +659,7 @@ RecordedFrame RenderPasses::Record()
                                          .Far = CameraState.lens.farPlane,
                                          .Width = Context.GetWidth(),
                                          .Height = Context.GetHeight() };
-    const hz::BufferSrv Frame = Upload.UploadStructured(&FrameValues, sizeof(FrameValues));
+    const hz::BufferSrv  Frame = Upload.UploadStructured(&FrameValues, sizeof(FrameValues));
     ASSERT(Frame.IsValid());
     Output.Constants = Frame;
     hz::CommandList& Commands = Context.AcquireCommandList();
@@ -727,9 +728,8 @@ RecordedFrame RenderPasses::Record()
     }
     LightingData.ShadowViewProjection = Shadows->Prepare(View, LightingData.LightDirection.getXYZ());
     const hz::GPUBuffer& TileMasks = hz::GetAllocatedFrameGraphBuffer(*Graph, Targets.TileLightBitMasks);
-    const bool Clustered =
-        GClusteredLighting.GetBool() && LightingData.LocalLightCount &&
-        Clusters->Prepare(LightingData, Upload, TileMasks, Scene.GetLights(), ActiveLights, FrameValues);
+    const bool           Clustered = GClusteredLighting.GetBool() && LightingData.LocalLightCount &&
+                           Clusters->Prepare(LightingData, Upload, TileMasks, Scene.GetLights(), ActiveLights, FrameValues);
     const hz::BufferSrv LightFrame = Upload.UploadStructured(&LightingData, sizeof(LightingData));
     ASSERT(LightFrame.IsValid());
     ++FrameNumber;

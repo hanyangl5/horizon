@@ -89,7 +89,7 @@ void GpuDrawList::Prepare(const SceneView& View)
             uint32_t               GeometryIndex = UINT32_MAX;
             if (Material->AlphaMode != uint32_t(MaterialAlphaMode::Blend))
             {
-                const bool Opaque = Material->AlphaMode == uint32_t(MaterialAlphaMode::Opaque);
+                const bool     Opaque = Material->AlphaMode == uint32_t(MaterialAlphaMode::Opaque);
                 // Draw order usually persists. Reuse the preceding frame's index only while its geometry still matches.
                 const uint32_t FirstDraw = DrawData.Size();
                 GeometryIndex = FirstDraw < GeometryIndices.Size() ? GeometryIndices[FirstDraw] : UINT32_MAX;

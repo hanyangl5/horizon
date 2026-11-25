@@ -62,7 +62,8 @@ void Transparency::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const
                            const TransparencyTargets& Targets)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Transparency::execute");
-    ASSERT(Targets.Heads && Targets.Color && Targets.Nodes && Targets.Counters && Lighting.LightingFrame.IsValid() && Lighting.EnvironmentSampler);
+    ASSERT(Targets.Heads && Targets.Color && Targets.Nodes && Targets.Counters && Lighting.LightingFrame.IsValid() &&
+           Lighting.EnvironmentSampler);
     const hz::GPUTexture& Heads = *Targets.Heads;
     const hz::GPUTexture& Color = *Targets.Color;
     const hz::GPUBuffer&  Nodes = *Targets.Nodes;

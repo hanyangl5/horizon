@@ -14,8 +14,7 @@
 
 namespace hz
 {
-FrameUpload::FrameUpload(RenderContext& Context, uint32_t FrameCount, uint32_t BytesPerFrame):
-    Context(Context), Capacity(BytesPerFrame)
+FrameUpload::FrameUpload(RenderContext& Context, uint32_t FrameCount, uint32_t BytesPerFrame): Context(Context), Capacity(BytesPerFrame)
 {
     ASSERT(FrameCount && Capacity && Capacity % 4 == 0 && uint64_t(FrameCount) * Capacity <= UINT32_MAX);
     const uint32_t Bytes = FrameCount * Capacity;

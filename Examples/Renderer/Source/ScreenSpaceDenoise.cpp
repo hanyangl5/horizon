@@ -144,9 +144,7 @@ void ScreenSpaceDenoise::DenoiseReflections(hz::CommandList& Commands, hz::Buffe
 void ScreenSpaceDenoise::StoreDepthHistory(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUTexture& Depth,
                                            const hz::GPUTexture& Output)
 {
-    const SSDConstants Constants = { .FrameIndex = Frame.Index,
-                                     .DepthIndex = Depth.GetSrvIndex(),
-                                     .OutputIndex = Output.GetUavIndex() };
+    const SSDConstants Constants = { .FrameIndex = Frame.Index, .DepthIndex = Depth.GetSrvIndex(), .OutputIndex = Output.GetUavIndex() };
     Commands.SetPipeline(DepthHistoryPipeline);
     Commands.SetRootConstants(Constants);
     Commands.Dispatch((Output.GetWidth() + 15) / 16, (Output.GetHeight() + 15) / 16, 1,

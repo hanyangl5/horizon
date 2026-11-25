@@ -78,9 +78,8 @@ struct SkyboxConstants
 };
 static_assert(sizeof(SkyboxConstants) == 12 * sizeof(uint32_t));
 
-void EnvironmentPass::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUTexture& Color,
-                              const hz::GPUTexture& Depth, float Intensity, const Vector4& Tint, const hz::GPUTexture& Sky,
-                              float2 Rotation) const
+void EnvironmentPass::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUTexture& Color, const hz::GPUTexture& Depth,
+                              float Intensity, const Vector4& Tint, const hz::GPUTexture& Sky, float2 Rotation) const
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("EnvironmentPass::execute");
     ASSERT(IsValid());

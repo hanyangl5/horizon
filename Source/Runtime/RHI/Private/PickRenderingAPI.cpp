@@ -173,7 +173,7 @@ extern void           d3d12_cmdBindRaytracingPipeline(Cmd*, RaytracingPipeline*)
 extern void           d3d12_cmdTraceRays(Cmd*, RaytracingPipeline*, uint32_t, uint32_t, uint32_t);
 extern void     d3d12_getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut);
 extern void     d3d12_getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut);
-extern uint32_t d3d12_setBufferStructuredSrv(Renderer*, Buffer*, uint32_t, uint32_t, uint32_t);
+extern uint32_t       d3d12_setBufferStructuredSrv(Renderer*, Buffer*, uint32_t, uint32_t, uint32_t);
 extern void     d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer);
 extern void     d3d12_removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 extern void     d3d12_mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);

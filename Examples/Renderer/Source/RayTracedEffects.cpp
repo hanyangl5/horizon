@@ -88,9 +88,8 @@ bool RayTracedEffects::Load()
 
 void RayTracedEffects::MarkDirty() { MarkedDirty = true; }
 
-void RayTracedEffects::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer,
-                               const hz::SceneView& View, const hz::GpuDrawList& Draws, const LightingResources& Lighting,
-                               const RayTracedEffectsTargets& Targets)
+void RayTracedEffects::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer, const hz::SceneView& View,
+                               const hz::GpuDrawList& Draws, const LightingResources& Lighting, const RayTracedEffectsTargets& Targets)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RayTracedEffects::execute");
     if (!Supported)

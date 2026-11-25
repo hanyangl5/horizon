@@ -4067,8 +4067,8 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
 struct StructuredSrv
 {
     DxDescriptorID descriptor;
-    uint32_t firstElement;
-    uint32_t stride;
+    uint32_t       firstElement;
+    uint32_t       stride;
 };
 
 uint32_t d3d12_setBufferStructuredSrv(Renderer* renderer, Buffer* buffer, uint32_t slot, uint32_t firstElement, uint32_t stride)

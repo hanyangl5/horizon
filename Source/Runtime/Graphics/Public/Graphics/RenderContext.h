@@ -211,8 +211,8 @@ private:
 struct BufferSrv
 {
     const GPUBuffer* Buffer = nullptr;
-    uint32_t Index = UINT32_MAX;
-    bool IsValid() const { return Buffer && Index != UINT32_MAX; }
+    uint32_t         Index = UINT32_MAX;
+    bool             IsValid() const { return Buffer && Index != UINT32_MAX; }
 };
 
 class GPUTexture

@@ -238,12 +238,12 @@ class RenderSceneData
 public:
     RenderSceneData(World& WorldData, AssetManager& AssetManagerValue, const AnimationSystem* Animation):
         world(WorldData), assetManager(AssetManagerValue), animation(Animation), bindings(WorldData, AssetManagerValue),
-        changes(WorldData, SceneTypes::meshRenderer),
-        query(WorldData, { SceneTypes::meshRenderer }), LightQueries{ { WorldData, { SceneTypes::directionalLight } },
-                                                                      { WorldData, { SceneTypes::pointLight } },
-                                                                      { WorldData, { SceneTypes::spotLight } },
-                                                                      { WorldData, { SceneTypes::rectLight } },
-                                                                      { WorldData, { SceneTypes::skyLight } } },
+        changes(WorldData, SceneTypes::meshRenderer), query(WorldData, { SceneTypes::meshRenderer }),
+        LightQueries{ { WorldData, { SceneTypes::directionalLight } },
+                      { WorldData, { SceneTypes::pointLight } },
+                      { WorldData, { SceneTypes::spotLight } },
+                      { WorldData, { SceneTypes::rectLight } },
+                      { WorldData, { SceneTypes::skyLight } } },
         cameraQuery(WorldData, { SceneTypes::camera })
     {
         for (const WorldQuery& Query : LightQueries)

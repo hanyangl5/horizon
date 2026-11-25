@@ -75,7 +75,8 @@ static uint32_t BloomLevelSize(uint32_t Size, uint32_t Level)
 static hz::CVar GExposure("r.Exposure", 1.0f, 0.0f, "Linear exposure compensation multiplier (2 = +1 EV).");
 static hz::CVar GBloom("r.Bloom", true, "Bloom post effect.");
 static hz::CVar GBloomStrength("r.Bloom.Strength", 0.01f, 0.0f, "Bloom contribution to the final color.");
-static hz::CVar GAdaptationSpeed("r.Exposure.AdaptationSpeed", 9.0f, 0.0f, "Brightening-scene adaptation in EV/s; darkening uses one third of this speed.");
+static hz::CVar GAdaptationSpeed("r.Exposure.AdaptationSpeed", 9.0f, 0.0f,
+                                 "Brightening-scene adaptation in EV/s; darkening uses one third of this speed.");
 
 PostEffects::PostEffects(hz::RenderContext& Context): Context(Context)
 {
@@ -97,8 +98,8 @@ PostEffects::PostEffects(hz::RenderContext& Context): Context(Context)
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomUpsample.slang" },
         .Name = "Renderer.HDR.BloomUpsample",
     });
-    ASSERT(Sampler.IsValid() && MeteringPipeline.IsValid() &&
-           AdaptationPipeline.IsValid() && BloomDownsamplePipeline.IsValid() && BloomUpsamplePipeline.IsValid());
+    ASSERT(Sampler.IsValid() && MeteringPipeline.IsValid() && AdaptationPipeline.IsValid() && BloomDownsamplePipeline.IsValid() &&
+           BloomUpsamplePipeline.IsValid());
 }
 
 void PostEffects::Resize()
