@@ -5,6 +5,10 @@
 #include "ShadingModels.slang"
 #include "ClusterGrid.h"
 
+#ifndef CLUSTER_LIGHT_WAVE_SCALARIZATION
+#define CLUSTER_LIGHT_WAVE_SCALARIZATION 0
+#endif
+
 static const uint LightPoint = 1;
 static const uint LightSpot = 2;
 static const uint LightRect = 3;
@@ -167,19 +171,41 @@ float3 AccumulateScreenLights(uint2 Pixel, float Near, LightingFrameData Frame, 
     ByteAddressBuffer ZBins = ResourceDescriptorHeap[Frame.ClusterLightingZBinsIndex];
     ByteAddressBuffer Masks = ResourceDescriptorHeap[Frame.ClusterLightingTileLightBitMasksIndex];
     const uint2 LightRange = GetZBinLightRange(ZBins, Frame, Near, Position);
+    if (LightRange.x > LightRange.y)
+    {
+        return Result;
+    }
     const uint2 Range = LightRange / LIGHTS_PER_BITMASK;
     const uint TileBase = GetTileLightMaskBase(Pixel / LIGHT_TILE_SIZE, Frame.ClusterLightingTilesX);
-    for (uint i = Range.x; i <= Range.y; ++i)
+    uint2 WordRange = Range;
+#if CLUSTER_LIGHT_WAVE_SCALARIZATION
+    WordRange = uint2(WaveActiveMin(Range.x), WaveActiveMax(Range.y));
+#endif
+    for (uint Word = WordRange.x; Word <= WordRange.y; ++Word)
     {
-        const uint FirstLight = i * LIGHTS_PER_BITMASK;
-        const uint TileMask = Masks.Load((TileBase + i) * sizeof(uint));
-        uint Bits = TileMask & GetLightRangeMask(LightRange, FirstLight);
+        const uint FirstLight = Word * LIGHTS_PER_BITMASK;
+        uint PixelBits = 0;
+        if (!CLUSTER_LIGHT_WAVE_SCALARIZATION || (Word >= Range.x && Word <= Range.y))
+        {
+            const uint TileMask = Masks.Load((TileBase + Word) * sizeof(uint));
+            PixelBits = TileMask & GetLightRangeMask(LightRange, FirstLight);
+        }
+#if CLUSTER_LIGHT_WAVE_SCALARIZATION
+        uint Bits = WaveActiveBitOr(PixelBits);
+#else
+        uint Bits = PixelBits;
+#endif
         while (Bits != 0)
         {
-            const uint SortedIndex = FirstLight + firstbitlow(Bits);
+            const uint Bit = firstbitlow(Bits);
+            Bits &= Bits - 1;
+            if (CLUSTER_LIGHT_WAVE_SCALARIZATION && (PixelBits & (1u << Bit)) == 0)
+            {
+                continue;
+            }
+            const uint SortedIndex = FirstLight + Bit;
             GpuLightData Light = LoadLocalLight(Lights, Indices, Frame.LocalLightCount + SortedIndex);
             Result += EvaluateLocalLight(Light, GBuffer, Position, V);
-            Bits &= Bits - 1;
         }
     }
     return Result;
