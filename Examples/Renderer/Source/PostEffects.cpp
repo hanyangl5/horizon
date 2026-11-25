@@ -9,7 +9,7 @@
 struct PostMeteringConstants
 {
     uint32_t SceneColorIndex;
-    uint32_t LuminanceOutputIndex;
+    uint32_t HistogramIndex;
 };
 static_assert(sizeof(PostMeteringConstants) == 2 * sizeof(uint32_t));
 
@@ -38,7 +38,7 @@ struct PostLuminanceConstants
     uint32_t InputIndex;
     uint32_t OutputIndex;
     uint32_t PreviousIndex = 0;
-    float    AdaptationTime = 0.0f;
+    float    DeltaSeconds = 0.0f;
 };
 static_assert(sizeof(PostLuminanceConstants) == 3 * sizeof(uint32_t) + sizeof(float));
 
@@ -72,10 +72,10 @@ static uint32_t BloomLevelSize(uint32_t Size, uint32_t Level)
     return Shifted ? Shifted : 1;
 }
 
-static hz::CVar GExposure("r.Exposure", 0.95f, 0.0f, "Exposure compensation multiplier.");
+static hz::CVar GExposure("r.Exposure", 1.0f, 0.0f, "Linear exposure compensation multiplier (2 = +1 EV).");
 static hz::CVar GBloom("r.Bloom", true, "Bloom post effect.");
 static hz::CVar GBloomStrength("r.Bloom.Strength", 0.01f, 0.0f, "Bloom contribution to the final color.");
-static hz::CVar GAdaptationSpeed("r.Exposure.AdaptationSpeed", 3.0f, 0.0f, "Luminance adaptation rate.");
+static hz::CVar GAdaptationSpeed("r.Exposure.AdaptationSpeed", 9.0f, 0.0f, "Brightening-scene adaptation in EV/s; darkening uses one third of this speed.");
 
 PostEffects::PostEffects(hz::RenderContext& Context): Context(Context)
 {
@@ -84,14 +84,6 @@ PostEffects::PostEffects(hz::RenderContext& Context): Context(Context)
     MeteringPipeline = Context.CreateComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostMetering.slang" },
         .Name = "Renderer.HDR.Metering",
-    });
-    ReducePipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSReduce" } }, .pFileName = "PostLuminance.slang" },
-        .Name = "Renderer.HDR.ReduceLuminance",
-    });
-    InitializePipeline = Context.CreateComputePipeline({
-        .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSInitialize" } }, .pFileName = "PostLuminance.slang" },
-        .Name = "Renderer.HDR.InitializeExposure",
     });
     AdaptationPipeline = Context.CreateComputePipeline({
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSAdapt" } }, .pFileName = "PostLuminance.slang" },
@@ -105,7 +97,7 @@ PostEffects::PostEffects(hz::RenderContext& Context): Context(Context)
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CSMain" } }, .pFileName = "PostBloomUpsample.slang" },
         .Name = "Renderer.HDR.BloomUpsample",
     });
-    ASSERT(Sampler.IsValid() && MeteringPipeline.IsValid() && ReducePipeline.IsValid() && InitializePipeline.IsValid() &&
+    ASSERT(Sampler.IsValid() && MeteringPipeline.IsValid() &&
            AdaptationPipeline.IsValid() && BloomDownsamplePipeline.IsValid() && BloomUpsamplePipeline.IsValid());
 }
 
@@ -131,35 +123,14 @@ void PostEffects::Execute(hz::CommandList& Commands, const hz::GPUTexture& Scene
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("PostEffects::execute");
     ASSERT(SceneColor.IsValid() && RenderTarget.IsValid() && Targets.Adapted && Targets.PreviousAdapted);
     Commands.BeginGpuTimestamp("HDR");
-    if (!Targets.AdaptedValid)
-    {
-        hz::DependencyList           InitializeDependencies;
-        const PostLuminanceConstants Initialize = { .InputIndex = InitializeDependencies.Store(Targets.PreviousAdapted),
-                                                    .OutputIndex = InitializeDependencies.Store(Targets.Adapted) };
-        Commands.SetPipeline(InitializePipeline);
-        Commands.SetRootConstants(Initialize);
-        Commands.Dispatch(1, 1, 1, InitializeDependencies.Get());
-    }
-    constexpr uint32_t          MeteringSize = PostEffectsTargets::MeteringSize;
     hz::DependencyList          MeteringDependencies;
     const PostMeteringConstants Metering = { .SceneColorIndex = MeteringDependencies.Sample(&SceneColor),
-                                             .LuminanceOutputIndex = MeteringDependencies.Store(Targets.Luminance[0]) };
+                                             .HistogramIndex = MeteringDependencies.Store(Targets.Histogram) };
     Commands.SetPipeline(MeteringPipeline);
     Commands.SetRootConstants(Metering);
-    Commands.Dispatch(MeteringSize / 16, MeteringSize / 16, 1, MeteringDependencies.Get());
-    Commands.SetPipeline(ReducePipeline);
-    for (uint32_t Level = 1; Level < PostEffectsTargets::LuminanceLevels; ++Level)
-    {
-        const uint32_t               Size = MeteringSize >> Level;
-        hz::DependencyList           ReduceDependencies;
-        const PostLuminanceConstants Reduce = { .InputIndex = ReduceDependencies.Sample(Targets.Luminance[Level - 1]),
-                                                .OutputIndex = ReduceDependencies.Store(Targets.Luminance[Level]) };
-        Commands.SetRootConstants(Reduce);
-        Commands.Dispatch((Size + 15) / 16, (Size + 15) / 16, 1, ReduceDependencies.Get());
-    }
-    RunBloom(Commands, SceneColor, Targets);
+    Commands.Dispatch(PostEffectsTargets::HistogramRows, 1, 1, MeteringDependencies.Get());
     RunAdaptation(Commands, DeltaSeconds, Targets);
-    // Match the reference: bloom and tone mapping use last frame's exposure; this frame's is used next frame.
+    RunBloom(Commands, SceneColor, Targets);
     ToneMap(Commands, SceneColor, RenderTarget, Targets);
     Commands.EndGpuTimestamp();
 }
@@ -172,7 +143,7 @@ void PostEffects::RunBloom(hz::CommandList& Commands, const hz::GPUTexture& Scen
     }
     const hz::GPUTexture* const* BloomDown = Targets.BloomDown;
     const hz::GPUTexture* const* BloomUp = Targets.BloomUp;
-    const hz::GPUTexture&        Previous = *Targets.PreviousAdapted;
+    const hz::GPUTexture&        Adapted = *Targets.Adapted;
     const uint32_t               BloomWidth = BloomDown[0]->GetWidth();
     const uint32_t               BloomHeight = BloomDown[0]->GetHeight();
     constexpr uint32_t           BloomLevels = PostEffectsTargets::BloomLevels;
@@ -182,14 +153,14 @@ void PostEffects::RunBloom(hz::CommandList& Commands, const hz::GPUTexture& Scen
         .InputIndex = SceneColor.GetSrvIndex(),
         .OutputIndex = BloomDown[0]->GetUavIndex(),
         .SamplerIndex = Sampler.GetIndex(),
-        .AdaptedLuminanceIndex = Previous.GetSrvIndex(),
+        .AdaptedLuminanceIndex = Adapted.GetSrvIndex(),
         .Threshold = 1,
         .AutoExposure = Settings.ToneMapping != ToneMappingMode::None ? 1u : 0u,
         .Exposure = GExposure.GetFloat(),
     };
     Commands.SetRootConstants(Downsample);
     Commands.Dispatch((BloomWidth + 15) / 16, (BloomHeight + 15) / 16, 1,
-                      { .sampledTextures = { &SceneColor, &Previous }, .storageTextures = { BloomDown[0] } });
+                      { .sampledTextures = { &SceneColor, &Adapted }, .storageTextures = { BloomDown[0] } });
     // Only the scene downsample is thresholded; the mip levels already carry bright values.
     Downsample.Threshold = 0;
     for (uint32_t Level = 1; Level < BloomLevels; ++Level)
@@ -224,10 +195,10 @@ void PostEffects::RunAdaptation(hz::CommandList& Commands, float DeltaSeconds, c
 {
     hz::DependencyList           Dependencies;
     const PostLuminanceConstants Constants = {
-        .InputIndex = Dependencies.Sample(Targets.Luminance[PostEffectsTargets::LuminanceLevels - 1]),
+        .InputIndex = Dependencies.Sample(Targets.Histogram),
         .OutputIndex = Dependencies.Store(Targets.Adapted),
-        .PreviousIndex = Dependencies.Sample(Targets.PreviousAdapted),
-        .AdaptationTime = fmaxf(DeltaSeconds, 0.0f) * fmaxf(GAdaptationSpeed.GetFloat(), 0.0f),
+        .PreviousIndex = Dependencies.Sample(Targets.AdaptedValid ? Targets.PreviousAdapted : nullptr),
+        .DeltaSeconds = fmaxf(DeltaSeconds, 0.0f) * (GAdaptationSpeed.GetFloat() / 3.0f),
     };
     Commands.SetPipeline(AdaptationPipeline);
     Commands.SetRootConstants(Constants);
@@ -244,7 +215,7 @@ void PostEffects::ToneMap(hz::CommandList& Commands, const hz::GPUTexture& Scene
     const hz::GPUTexture*   Bloom = GBloom.GetBool() ? Targets.BloomUp[0] : nullptr;
     const PostToneConstants Constants = {
         .SceneColorIndex = Dependencies.Sample(&SceneColor),
-        .AdaptedLuminanceIndex = Dependencies.Sample(Targets.PreviousAdapted),
+        .AdaptedLuminanceIndex = Dependencies.Sample(Targets.Adapted),
         .BloomIndex = Dependencies.Sample(Bloom),
         .SamplerIndex = Sampler.GetIndex(),
         .ToneMapping = (uint32_t)Settings.ToneMapping,

@@ -1813,8 +1813,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                                                .sourceDirectory = DirectoryOtherFiles,
                                                                .pFileName = file } });
     };
-    hz::GPUPipeline initialize = compute("PostLuminance.slang", "CSInitialize");
-    hz::GPUPipeline reduce = compute("PostLuminance.slang", "CSReduce"), adapt = compute("PostLuminance.slang", "CSAdapt");
+    hz::GPUPipeline adapt = compute("PostLuminance.slang", "CSAdapt");
     hz::GPUPipeline metering = compute("PostMetering.slang", "CSMain");
     hz::GPUPipeline downsample = compute("PostBloomDownsample.slang", "CSMain");
     hz::GPUPipeline upsample = compute("PostBloomUpsample.slang", "CSMain");
@@ -1841,10 +1840,13 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
 
     const char seedSource[] = R"hlsl(
         cbuffer RootConstant0 { uint outputIndex; uint peakX; };
-        [numthreads(8,8,1)] void CSLogGrid(uint3 id : SV_DispatchThreadID) {
-            RWTexture2D<float> output = ResourceDescriptorHeap[outputIndex];
+        [numthreads(8,8,1)] void CSMeteringScene(uint3 id : SV_DispatchThreadID) {
+            RWTexture2D<float4> output = ResourceDescriptorHeap[outputIndex];
             uint w,h; output.GetDimensions(w,h);
-            if(id.x < w && id.y < h) output[id.xy] = 2.0 * (id.x + 2 * id.y);
+            if(id.x < w && id.y < h) {
+                float luminance = id.x < 32 ? 0.0 : id.x == 32 ? 0.125 : id.x == 64 ? 1048576.0 : 1024.0;
+                output[id.xy] = float4(luminance, luminance, luminance, 1.0);
+            }
         }
         [numthreads(6,1,1)] void CSSelectionMask(uint3 id : SV_DispatchThreadID) {
             RWTexture2D<float> output = ResourceDescriptorHeap[outputIndex];
@@ -1864,12 +1866,12 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                   .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = Size, .pEntryPoint = entry } } } });
     };
 
-    hz::GPUPipeline seedLogs = helper(seedSource, sizeof(seedSource) - 1, "CSLogGrid");
+    hz::GPUPipeline seedMetering = helper(seedSource, sizeof(seedSource) - 1, "CSMeteringScene");
     hz::GPUPipeline seedSelection = helper(seedSource, sizeof(seedSource) - 1, "CSSelectionMask");
     hz::GPUPipeline movingPeak = helper(seedSource, sizeof(seedSource) - 1, "CSMovingPeak");
     hz::GPUPipeline reader = helper(kCookbookTextureReadback, sizeof(kCookbookTextureReadback) - 1, "CSMain");
-    ASSERT_TRUE(initialize.IsValid() && reduce.IsValid() && adapt.IsValid() && metering.IsValid() && downsample.IsValid() &&
-                upsample.IsValid() && tone.IsValid() && seedLogs.IsValid() && movingPeak.IsValid() && reader.IsValid() &&
+    ASSERT_TRUE(adapt.IsValid() && metering.IsValid() && downsample.IsValid() &&
+                upsample.IsValid() && tone.IsValid() && seedMetering.IsValid() && movingPeak.IsValid() && reader.IsValid() &&
                 deferred.IsValid());
     const auto image = [&](uint32_t Width, uint32_t Height, hz::Format Format)
     {
@@ -1883,8 +1885,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     };
     constexpr hz::Format rgba = hz::Format::R32G32B32A32_SFLOAT, scalar = hz::Format::R32_SFLOAT;
     hz::GPUTexture       source = image(1, 1, rgba), black = image(1, 1, rgba), average = image(1, 1, scalar), mapped = image(1, 1, rgba);
-    hz::GPUTexture       logOutput = image(2, 2, scalar), logGrid = image(2, 2, scalar);
-    hz::GPUTexture       reduced = image(1, 1, scalar), previous = image(1, 1, scalar), adapted = image(1, 1, scalar);
+    hz::GPUTexture       meteringScene = image(65, 3, rgba), histogram = image(64, 4, hz::Format::R32_UINT);
+    hz::GPUTexture       previous = image(1, 1, scalar), adapted = image(1, 1, scalar);
     hz::GPUTexture       impulse = image(9, 9, rgba), blurred = image(9, 9, rgba);
     hz::GPUSampler       sampler = context.CreateSampler(
         { .AddressU = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressV = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressW = ADDRESS_MODE_CLAMP_TO_EDGE });
@@ -2037,15 +2039,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     read(outlined, 190);
 
 
-    struct MeteringConstants
-    {
-        uint32_t source, log;
-    };
-    const MeteringConstants meteringConstants = { source.GetSrvIndex(), logOutput.GetUavIndex() };
-    commands.SetPipeline(metering);
-    commands.SetRootConstant({ (const uint32_t*)&meteringConstants, sizeof(meteringConstants) / 4 });
-    commands.Dispatch(1, 1, 1, { .sampledTextures = { &source }, .storageTextures = { &logOutput } });
-    read(logOutput, 8);
+
     // Normal incidence, white dielectric, specular 8/16. Test the smooth limit and a rough lobe as well as the HDR peak.
     clusters.BuildLightTileMasks(commands, clusterCamera, masks, lightList, activeLightList, localCount);
     constexpr uint32_t roughnessCodes[] = { 0, 51, 255, 255 };
@@ -2090,29 +2084,36 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         commands.EndRendering();
         read(mapped, lightingOffsets[probe]);
     }
-    struct LuminanceConstants
+    const auto meter = [&](const hz::GPUTexture& input)
     {
-        uint32_t input, output, previous;
-        float    time;
+        commands.SetPipeline(metering);
+        commands.SetRootConstant({ input.GetSrvIndex(), histogram.GetUavIndex() });
+        commands.Dispatch(histogram.GetHeight(), 1, 1, { .sampledTextures = { &input }, .storageTextures = { &histogram } });
     };
-    LuminanceConstants luminanceConstants = { previous.GetUavIndex(), adapted.GetUavIndex(), 0, 0 };
-    commands.SetPipeline(initialize);
-    commands.SetRootConstant({ (const uint32_t*)&luminanceConstants, sizeof(luminanceConstants) / 4 });
-    commands.Dispatch(1, 1, 1, { .storageTextures = { &previous, &adapted } });
-    read(previous, 12);
-    commands.SetPipeline(seedLogs);
-    commands.SetRootConstant({ logGrid.GetUavIndex() });
-    commands.Dispatch(1, 1, 1, { .storageTextures = { &logGrid } });
-    commands.SetPipeline(reduce);
-    luminanceConstants = { logGrid.GetSrvIndex(), reduced.GetUavIndex(), 0, 0 };
-    commands.SetRootConstant({ (const uint32_t*)&luminanceConstants, sizeof(luminanceConstants) / 4 });
-    commands.Dispatch(1, 1, 1, { .sampledTextures = { &logGrid }, .storageTextures = { &reduced } });
-    read(reduced, 13);
-    commands.SetPipeline(adapt);
-    luminanceConstants = { reduced.GetSrvIndex(), adapted.GetUavIndex(), previous.GetSrvIndex(), 0.3f };
-    commands.SetRootConstant({ (const uint32_t*)&luminanceConstants, sizeof(luminanceConstants) / 4 });
-    commands.Dispatch(1, 1, 1, { .sampledTextures = { &reduced, &previous }, .storageTextures = { &adapted } });
-    read(adapted, 14);
+    const auto adaptExposure = [&](bool historyValid, float seconds, uint32_t offset)
+    {
+        hz::DependencyList dependencies;
+        const uint32_t bindings[] = { dependencies.Sample(&histogram), dependencies.Store(&adapted),
+                                      dependencies.Sample(historyValid ? &previous : nullptr) };
+        commands.SetPipeline(adapt);
+        commands.SetRootConstant(bindings);
+        commands.SetRootConstants(seconds, 3);
+        commands.Dispatch(1, 1, 1, dependencies.Get());
+        read(adapted, offset);
+    };
+    meter(black);
+    adaptExposure(false, 0.0f, 8);
+    commands.SetPipeline(seedMetering);
+    commands.SetRootConstant({ meteringScene.GetUavIndex() });
+    commands.Dispatch(9, 1, 1, { .storageTextures = { &meteringScene } });
+    meter(meteringScene);
+    adaptExposure(false, 0.0f, 12);
+    Clear(previous, 128.0f);
+    adaptExposure(true, 1.0f / 3.0f, 13);
+    Clear(previous, 8192.0f);
+    adaptExposure(true, 1.0f, 14);
+    Clear(previous, 512.0f);
+    adaptExposure(true, 1.0f / 60.0f, 9);
     struct DownsampleConstants
     {
         uint32_t input, output, sampler, adapted, threshold, autoExposure;
@@ -2189,10 +2190,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
             EXPECT_NEAR(values[mode * 4 + channel], golden[mode], 2e-5) << mode;
         }
     }
-    for (uint32_t pixel = 0; pixel < 4; ++pixel)
-    {
-        EXPECT_NEAR(values[(8 + pixel) * 4], std::log2(1.2), 2e-5);
-    }
+    EXPECT_FLOAT_EQ(values[8 * 4], std::exp2(-10.0f));
     // Offline double goldens: shoulder -> 242.58323517119788 nits; ST2084 PQ and nits/80 respectively.
     const double hdrGolden[] = { 0.5993841391362755, 3.0322904396399735 };
     for (uint32_t mode = 0; mode < 2; ++mode)
@@ -2231,9 +2229,10 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         EXPECT_NEAR(color[2], edge ? 0.02f : 1.2f, 1e-5f);
     }
     EXPECT_GT(values[15 * 4], 65504.0f);
-    EXPECT_FLOAT_EQ(values[12 * 4], 50.0f);
-    EXPECT_FLOAT_EQ(values[13 * 4], 3.0f); // log2(1),log2(4),log2(16),log2(64): geometric mean is 8, not the arithmetic mean.
-    EXPECT_NEAR(values[14 * 4], 50.0 + (8.0 - 50.0) * (1.0 - std::exp(-0.3)), 1e-4);
+    EXPECT_NEAR(values[12 * 4], 1024.0f, 0.01f); // Black background and both outliers are excluded.
+    EXPECT_NEAR(values[13 * 4], 256.0f, 0.01f);
+    EXPECT_NEAR(values[14 * 4], 4096.0f, 0.05f);
+    EXPECT_NEAR(values[9 * 4], 512.0f * std::exp2(3.0f / (60.0f * 1.5f)), 0.01f);
     // 2x2 box of 2.0 plus a 3x3 tent of 2.0 on top of a level cleared to 1.0 is 3.0 at every texel.
     for (uint32_t y = 0; y < 9; ++y)
     {

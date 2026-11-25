@@ -236,17 +236,13 @@ void RenderPasses::BuildGraph()
                                                              .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
                                                              .Descriptors = RawStorage } });
     const DescriptorType Storage = (DescriptorType)(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE);
-    for (uint32_t Level = 0; Level < PostEffectsTargets::LuminanceLevels; ++Level)
-    {
-        const uint32_t Size = PostEffectsTargets::MeteringSize >> Level;
-        T.Luminance[Level] = hz::AddFrameGraphTexture(G, { .Texture = { .Width = Size ? Size : 1,
-                                                                        .Height = Size ? Size : 1,
-                                                                        .Format = PostEffects::LuminanceFormat,
-                                                                        .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
-                                                                        .Descriptors = Storage,
-                                                                        .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
-                                                                        .Name = "Renderer.HDR.LogLuminance" } });
-    }
+    T.Histogram = hz::AddFrameGraphTexture(G, { .Texture = { .Width = PostEffectsTargets::HistogramBins,
+                                                             .Height = PostEffectsTargets::HistogramRows,
+                                                             .Format = hz::Format::R32_UINT,
+                                                             .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                             .Descriptors = Storage,
+                                                             .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                                             .Name = "Renderer.HDR.Histogram" } });
     // Bloom follows the render size so the glare keeps its screen-space radius; level 0 is half the viewport.
     for (uint32_t Level = 0; Level < PostEffectsTargets::BloomLevels; ++Level)
     {
@@ -504,16 +500,13 @@ void RenderPasses::BuildGraph()
             .UserData = Antialiasing.Get(),
             .Textures = TemporalUses,
         });
-    Use      PostUses[4 + PostEffectsTargets::LuminanceLevels + 2 * PostEffectsTargets::BloomLevels - 1 + 2];
+    Use      PostUses[5 + 2 * PostEffectsTargets::BloomLevels - 1 + 2];
     uint32_t PostUseCount = 0;
     PostUses[PostUseCount++] = { T.SceneColor, Read };
     PostUses[PostUseCount++] = { T.TransparentColor, Optional };
     PostUses[PostUseCount++] = { T.TemporalColor, Optional };
     PostUses[PostUseCount++] = { T.Backbuffer, Write };
-    for (hz::FrameGraphTexture Texture : T.Luminance)
-    {
-        PostUses[PostUseCount++] = { Texture, Write };
-    }
+    PostUses[PostUseCount++] = { T.Histogram, Write };
     for (hz::FrameGraphTexture Texture : T.BloomDown)
     {
         PostUses[PostUseCount++] = { Texture, Write };
@@ -534,13 +527,10 @@ void RenderPasses::BuildGraph()
             {
                 const FrameInputs&   Frame = Inputs(Pass);
                 const RenderTargets& Targets = Frame.Targets;
-                PostEffectsTargets   PostTargets = { .PreviousAdapted = hz::GetFrameGraphHistory(Pass, Targets.AdaptedLuminance),
+                PostEffectsTargets   PostTargets = { .Histogram = hz::GetFrameGraphTexture(Pass, Targets.Histogram),
+                                                     .PreviousAdapted = hz::GetFrameGraphHistory(Pass, Targets.AdaptedLuminance),
                                                      .Adapted = hz::GetFrameGraphTexture(Pass, Targets.AdaptedLuminance),
                                                      .AdaptedValid = hz::IsFrameGraphHistoryValid(Pass, Targets.AdaptedLuminance) };
-                for (uint32_t Level = 0; Level < PostEffectsTargets::LuminanceLevels; ++Level)
-                {
-                    PostTargets.Luminance[Level] = hz::GetFrameGraphTexture(Pass, Targets.Luminance[Level]);
-                }
                 for (uint32_t Level = 0; Level < PostEffectsTargets::BloomLevels; ++Level)
                 {
                     PostTargets.BloomDown[Level] = hz::GetFrameGraphTexture(Pass, Targets.BloomDown[Level]);
@@ -616,7 +606,7 @@ bool RenderPasses::Resize(uint32_t Width, uint32_t Height)
     return true;
 }
 
-void RenderPasses::Update(float FrameDeltaSeconds) { DeltaSeconds = FrameDeltaSeconds; }
+void RenderPasses::Update(float FrameDeltaSeconds) { PendingDeltaSeconds += FrameDeltaSeconds; }
 
 static Matrix4 CameraViewProjection(const Matrix4& Pose, const hz::Camera& Lens, float AspectInverse, TemporalJitter Jitter)
 {
@@ -640,6 +630,7 @@ RecordedFrame RenderPasses::Record()
     RecordedFrame        Output = { .View = View, .Draws = Draws, .Sampler = GBufferPass->Sampler };
     if (Context.IsSuspended())
     {
+        PendingDeltaSeconds = 0.0f;
         return Output;
     }
     if (!GpuSceneData.BeginFrame(GClusteredLighting.GetBool()))
@@ -776,7 +767,7 @@ RecordedFrame RenderPasses::Record()
                                          .LocalLights = LightingData.LocalLightCount ? &SceneBuffers.localLights : nullptr,
                                          .ActiveLocalLights = LightingData.LocalLightCount ? &SceneBuffers.activeLocalLights : nullptr,
                                          .TileLightBitMasks = Masks },
-                           .DeltaSeconds = DeltaSeconds,
+                           .DeltaSeconds = PendingDeltaSeconds,
                            .EnvironmentIntensity = LightingData.EnvironmentIntensity,
                            .EnvironmentTint = LightingData.EnvironmentTint,
                            .SkyRotation = SkyRotation,
@@ -786,6 +777,7 @@ RecordedFrame RenderPasses::Record()
                            .Jitter = Jitter,
                            .PreviousJitter = PreviousJitter };
     hz::ExecuteFrameGraph(Graph, Commands, &Inputs);
+    PendingDeltaSeconds = 0.0f;
     Output.Commands = &Commands;
     Output.Backbuffer = &Backbuffer;
     Output.Jitter = Jitter;

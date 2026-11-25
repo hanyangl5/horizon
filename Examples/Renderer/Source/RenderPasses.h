@@ -65,7 +65,7 @@ struct RenderTargets
     hz::FrameGraphTexture TemporalColor;
     hz::FrameGraphBuffer  OITNodes;
     hz::FrameGraphBuffer  OITCounters;
-    hz::FrameGraphTexture Luminance[PostEffectsTargets::LuminanceLevels];
+    hz::FrameGraphTexture Histogram;
     hz::FrameGraphTexture BloomDown[PostEffectsTargets::BloomLevels];
     hz::FrameGraphTexture BloomUp[PostEffectsTargets::BloomLevels - 1];
     hz::FrameGraphTexture AdaptedLuminance;
@@ -118,7 +118,7 @@ private:
     hz::UniquePtr<TemporalAA>              Antialiasing;
     hz::GPUSampler                         LinearSampler;
     hz::GpuDrawList                        Draws;
-    float                                  DeltaSeconds = 1.0f / 60.0f;
+    float                                  PendingDeltaSeconds = 0.0f;
     static constexpr uint32_t              FrameCount = 3;
     hz::FrameUpload                        Upload;
     uint32_t                               NextFrame = 0;

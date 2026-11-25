@@ -28,26 +28,24 @@ struct PostEffectsSettings
 
 struct PostEffectsTargets
 {
-    static constexpr uint32_t MeteringSize = 512;
-    static constexpr uint32_t LuminanceLevels = 10;
+    static constexpr uint32_t HistogramBins = 64;
+    static constexpr uint32_t HistogramRows = 256;
     static constexpr uint32_t BloomLevels = 6;
 
-    // Log luminance halving from MeteringSize down to 1x1.
-    const hz::GPUTexture* Luminance[LuminanceLevels] = {};
+    const hz::GPUTexture* Histogram = nullptr;
     // Downsamples from half the viewport; Up accumulates back, so the smallest level only needs its downsample.
     const hz::GPUTexture* BloomDown[BloomLevels] = {};
     const hz::GPUTexture* BloomUp[BloomLevels - 1] = {};
     // 1x1 exposure: Previous is last frame's adapted value, Adapted receives this frame's.
     const hz::GPUTexture* PreviousAdapted = nullptr;
     const hz::GPUTexture* Adapted = nullptr;
-    // False after a resize or reset; the pass then seeds both images before adapting.
+    // Start directly at the metered luminance when history is invalid.
     bool                  AdaptedValid = false;
 };
 
 class PostEffects
 {
 public:
-    static constexpr hz::Format LuminanceFormat = hz::Format::R16_SFLOAT;
     static constexpr hz::Format AdaptedFormat = hz::Format::R32_SFLOAT;
     static constexpr hz::Format BloomFormat = hz::Format::R16G16B16A16_SFLOAT;
 
@@ -68,8 +66,6 @@ private:
     hz::RenderContext& Context;
     hz::GPUSampler     Sampler;
     hz::GPUPipeline    MeteringPipeline;
-    hz::GPUPipeline    ReducePipeline;
-    hz::GPUPipeline    InitializePipeline;
     hz::GPUPipeline    AdaptationPipeline;
     hz::GPUPipeline    BloomDownsamplePipeline;
     hz::GPUPipeline    BloomUpsamplePipeline;
