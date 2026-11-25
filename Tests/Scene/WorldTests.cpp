@@ -597,6 +597,39 @@ TEST_F(SceneWorldTest, ArrayEditsRespectContainerAndElementReadOnlyFlags)
     EXPECT_EQ(((const hz::MeshRenderer*)world.GetComponent(entity, locked.id))->overrides.Size(), 0u);
 }
 
+TEST_F(SceneWorldTest, ComponentFilteredChangesIncludeMembershipAndInheritedTransforms)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.RegisterBuiltins());
+    hz::World world(types);
+    const hz::Entity parent = world.CreateEntity();
+    const hz::Entity child = world.CreateEntity();
+    ASSERT_TRUE(world.SetParent(child, parent, false));
+    world.UpdateTransforms();
+    hz::WorldChangeLog meshes(world, hz::SceneTypes::meshRenderer);
+    bool rescan = false;
+    meshes.Drain(rescan);
+    ASSERT_TRUE(rescan);
+    {
+        hz::DeferredChanges deferred = world.Defer();
+        ASSERT_TRUE(world.AddComponent(child, hz::SceneTypes::meshRenderer));
+    }
+    const hz::Span<hz::Entity> added = meshes.Drain(rescan);
+    ASSERT_FALSE(rescan);
+    ASSERT_EQ(added.Count, 1u);
+    EXPECT_EQ(added.Data[0], child);
+    ASSERT_TRUE(world.AddComponent(parent, hz::SceneTypes::localTransform));
+    world.UpdateTransforms();
+    const hz::Span<hz::Entity> moved = meshes.Drain(rescan);
+    ASSERT_FALSE(rescan);
+    ASSERT_EQ(moved.Count, 1u);
+    EXPECT_EQ(moved.Data[0], child);
+    ASSERT_TRUE(world.RemoveComponent(child, hz::SceneTypes::meshRenderer));
+    const hz::Span<hz::Entity> removed = meshes.Drain(rescan);
+    ASSERT_EQ(removed.Count, 1u);
+    EXPECT_EQ(removed.Data[0], child);
+}
+
 TEST_F(SceneWorldTest, PropertyEditsPropagateTransformsAndRespectDeferredVisibility)
 {
     hz::TypeRegistry types;

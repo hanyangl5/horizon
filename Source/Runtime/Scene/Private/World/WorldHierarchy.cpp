@@ -101,7 +101,7 @@ bool WorldHierarchy::prepareLocalChange(ecs_entity_t EntityHandle, TypeID Type, 
 {
     // Every component edit passes through here, including ones that turn out to be rejected; a spurious entry only
     // costs the consumer one comparison.
-    world.recordChange(EntityHandle);
+    world.recordChange(EntityHandle, Type);
     if (Type != SceneTypes::localTransform && Type != SceneTypes::localMatrix)
     {
         return true;

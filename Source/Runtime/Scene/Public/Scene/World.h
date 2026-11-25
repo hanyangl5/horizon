@@ -121,7 +121,8 @@ private:
 class WorldChangeLog
 {
 public:
-    explicit WorldChangeLog(World& world);
+    // A required component limits the log to its owners, including addition and removal of the component itself.
+    explicit WorldChangeLog(World& world, TypeID RequiredComponent = 0);
     ~WorldChangeLog();
     WorldChangeLog(const WorldChangeLog&) = delete;
     WorldChangeLog& operator=(const WorldChangeLog&) = delete;

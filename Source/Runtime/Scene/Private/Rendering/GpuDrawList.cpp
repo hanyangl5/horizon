@@ -30,12 +30,18 @@ DrawListID GpuDrawList::AddList(const DrawListFilter& Filter)
     return { ListCount++ };
 }
 
+static bool MatchesGeometry(const DrawGeometry& Geometry, GpuSubmeshRef Mesh, bool Opaque, RenderInstanceID SkinnedInstance)
+{
+    return Geometry.Mesh == Mesh && Geometry.Opaque == Opaque && Geometry.SkinnedInstance == SkinnedInstance;
+}
+
 void GpuDrawList::Prepare(const SceneView& View)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::Prepare");
     const GpuAssetTables& Tables = View.GpuScene.GetAssetTables();
     if (MaterialRevision != Tables.revision)
     {
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::UpdateMaterialIds");
         MaterialIds.Resize(Tables.materials.Count);
         uint32_t Id = 0;
         for (uint32_t Index = 0; Index < Tables.materials.Count; ++Index)
@@ -45,7 +51,6 @@ void GpuDrawList::Prepare(const SceneView& View)
         MaterialRevision = Tables.revision;
     }
     DrawData.Clear();
-    GeometryIndices.Clear();
     uint32_t   GeometryCount = 0;
     bool       GeometryChanged = false;
     const auto MarkGeometryChanged = [&]
@@ -59,75 +64,89 @@ void GpuDrawList::Prepare(const SceneView& View)
             GeometryChanged = true;
         }
     };
-    for (uint32_t MeshBatchIndex : View.Scene.GetActiveMeshBatches())
     {
-        const RenderMeshBatch& Draw = View.Scene.GetMeshBatches().Data[MeshBatchIndex];
-        const RenderPrimitive& Primitive = View.Scene.GetPrimitives().Data[Draw.primitive.index];
-        const GpuMeshData*     Mesh = Tables.GetMesh(Draw.mesh.mesh);
-        const GpuMaterialData* Material = Tables.GetMaterial(Draw.material);
-        if (!Primitive.instanceCount || !Mesh || !Material)
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::BuildDrawData");
+        for (uint32_t MeshBatchIndex : View.Scene.GetActiveMeshBatches())
         {
-            continue;
-        }
-        // The first three bindings are position, normal and texture coordinates; only positions are required.
-        ASSERT(Mesh->vertexStreamCount >= 3 && Tables.vertexStreams.Data[Mesh->vertexStreamOffset].srv != UINT32_MAX &&
-               Primitive.id == Draw.primitive);
-        const GpuSubmeshData&     Submesh = Tables.submeshes.Data[Mesh->submeshOffset + Draw.mesh.submeshIndex];
-        // Skinned primitives have one instance, which draws its own skinned streams.
-        const GpuSkinnedVertices* Skinned =
-            View.Skinning && Primitive.instanceCount == 1
-                ? View.Skinning->Find(View.Scene.GetInstances().Data[View.Scene.GetInstanceIndices().Data[Primitive.instanceOffset]].id)
-                : nullptr;
-        const RenderInstanceID SkinnedInstance = Skinned ? Skinned->Instance : RenderInstanceID{};
-        uint32_t               GeometryIndex = UINT32_MAX;
-        if (Material->AlphaMode != uint32_t(MaterialAlphaMode::Blend))
-        {
-            const bool Opaque = Material->AlphaMode == uint32_t(MaterialAlphaMode::Opaque);
-            GeometryIndex = 0;
-            while (GeometryIndex < Geometries.Size() &&
-                   (Geometries[GeometryIndex].Mesh != Draw.mesh || Geometries[GeometryIndex].Opaque != Opaque ||
-                    Geometries[GeometryIndex].SkinnedInstance != SkinnedInstance))
+            const RenderMeshBatch& Draw = View.Scene.GetMeshBatches().Data[MeshBatchIndex];
+            const RenderPrimitive& Primitive = View.Scene.GetPrimitives().Data[Draw.primitive.index];
+            const GpuMeshData*     Mesh = Tables.GetMesh(Draw.mesh.mesh);
+            const GpuMaterialData* Material = Tables.GetMaterial(Draw.material);
+            if (!Primitive.instanceCount || !Mesh || !Material)
             {
-                ++GeometryIndex;
+                continue;
             }
-            if (GeometryIndex >= GeometryCount)
+            // The first three bindings are position, normal and texture coordinates; only positions are required.
+            ASSERT(Mesh->vertexStreamCount >= 3 && Tables.vertexStreams.Data[Mesh->vertexStreamOffset].srv != UINT32_MAX &&
+                   Primitive.id == Draw.primitive);
+            const GpuSubmeshData&     Submesh = Tables.submeshes.Data[Mesh->submeshOffset + Draw.mesh.submeshIndex];
+            // Skinned primitives have one instance, which draws its own skinned streams.
+            const GpuSkinnedVertices* Skinned =
+                View.Skinning && Primitive.instanceCount == 1
+                    ? View.Skinning->Find(View.Scene.GetInstances().Data[View.Scene.GetInstanceIndices().Data[Primitive.instanceOffset]].id)
+                    : nullptr;
+            const RenderInstanceID SkinnedInstance = Skinned ? Skinned->Instance : RenderInstanceID{};
+            uint32_t               GeometryIndex = UINT32_MAX;
+            if (Material->AlphaMode != uint32_t(MaterialAlphaMode::Blend))
             {
-                if (GeometryIndex != GeometryCount || GeometryIndex == Geometries.Size())
+                const bool Opaque = Material->AlphaMode == uint32_t(MaterialAlphaMode::Opaque);
+                // Draw order usually persists. Reuse the preceding frame's index only while its geometry still matches.
+                const uint32_t FirstDraw = DrawData.Size();
+                GeometryIndex = FirstDraw < GeometryIndices.Size() ? GeometryIndices[FirstDraw] : UINT32_MAX;
+                if (GeometryIndex >= Geometries.Size() || !MatchesGeometry(Geometries[GeometryIndex], Draw.mesh, Opaque, SkinnedInstance))
                 {
-                    MarkGeometryChanged();
+                    GeometryIndex = 0;
+                    while (GeometryIndex < Geometries.Size() &&
+                           !MatchesGeometry(Geometries[GeometryIndex], Draw.mesh, Opaque, SkinnedInstance))
+                    {
+                        ++GeometryIndex;
+                    }
                 }
-                if (GeometryIndex == Geometries.Size())
+                if (GeometryIndex >= GeometryCount)
                 {
-                    Geometries.PushBack({ .Mesh = Draw.mesh, .Opaque = Opaque, .SkinnedInstance = SkinnedInstance });
+                    if (GeometryIndex != GeometryCount || GeometryIndex == Geometries.Size())
+                    {
+                        MarkGeometryChanged();
+                    }
+                    if (GeometryIndex == Geometries.Size())
+                    {
+                        Geometries.PushBack({ .Mesh = Draw.mesh, .Opaque = Opaque, .SkinnedInstance = SkinnedInstance });
+                    }
+                    std::swap(Geometries[GeometryIndex], Geometries[GeometryCount]);
+                    GeometryIndex = GeometryCount++;
                 }
-                std::swap(Geometries[GeometryIndex], Geometries[GeometryCount]);
-                GeometryIndex = GeometryCount++;
             }
-        }
-        for (uint32_t Index = 0; Index < Primitive.instanceCount; ++Index)
-        {
-            GeometryIndices.PushBack(GeometryIndex);
-            GpuDrawData& Output = DrawData.EmplaceBack();
-            Output = { .Instance = View.Scene.GetInstanceIndices().Data[Primitive.instanceOffset + Index],
-                       .Material = Draw.material.index,
-                       .MaterialId = MaterialIds[Draw.material.index],
-                       .AlphaMode = Material->AlphaMode,
-                       .Positions = Tables.vertexStreams.Data[Mesh->vertexStreamOffset].srv,
-                       .Normals = Tables.vertexStreams.Data[Mesh->vertexStreamOffset + 1].srv,
-                       .Texcoords = Tables.vertexStreams.Data[Mesh->vertexStreamOffset + 2].srv,
-                       .Indices = Mesh->indexSrv,
-                       .IndexStride = Mesh->indexStride,
-                       .FirstIndex = Submesh.firstIndex,
-                       .VertexOffset = Submesh.vertexOffset,
-                       .IndexCount = Submesh.indexCount };
-            if (Skinned)
+            const uint32_t DrawEnd = DrawData.Size() + Primitive.instanceCount;
+            if (DrawEnd > GeometryIndices.Size())
             {
-                Output.Positions = Skinned->Positions.GetSrvIndex();
-                Output.Normals = Skinned->Normals.GetSrvIndex();
-                Output.Texcoords = Skinned->Texcoords.IsValid() ? Skinned->Texcoords.GetSrvIndex() : UINT32_MAX;
+                GeometryIndices.Resize(DrawEnd);
+            }
+            for (uint32_t Index = 0; Index < Primitive.instanceCount; ++Index)
+            {
+                GeometryIndices[DrawData.Size()] = GeometryIndex;
+                GpuDrawData& Output = DrawData.EmplaceBack();
+                Output = { .Instance = View.Scene.GetInstanceIndices().Data[Primitive.instanceOffset + Index],
+                           .Material = Draw.material.index,
+                           .MaterialId = MaterialIds[Draw.material.index],
+                           .AlphaMode = Material->AlphaMode,
+                           .Positions = Tables.vertexStreams.Data[Mesh->vertexStreamOffset].srv,
+                           .Normals = Tables.vertexStreams.Data[Mesh->vertexStreamOffset + 1].srv,
+                           .Texcoords = Tables.vertexStreams.Data[Mesh->vertexStreamOffset + 2].srv,
+                           .Indices = Mesh->indexSrv,
+                           .IndexStride = Mesh->indexStride,
+                           .FirstIndex = Submesh.firstIndex,
+                           .VertexOffset = Submesh.vertexOffset,
+                           .IndexCount = Submesh.indexCount };
+                if (Skinned)
+                {
+                    Output.Positions = Skinned->Positions.GetSrvIndex();
+                    Output.Normals = Skinned->Normals.GetSrvIndex();
+                    Output.Texcoords = Skinned->Texcoords.IsValid() ? Skinned->Texcoords.GetSrvIndex() : UINT32_MAX;
+                }
             }
         }
     }
+    GeometryIndices.Resize(DrawData.Size());
     if (GeometryCount != Geometries.Size())
     {
         MarkGeometryChanged();
@@ -141,6 +160,7 @@ void GpuDrawList::Prepare(const SceneView& View)
     CurrentFrame.Count = DrawData.Size();
     if (CurrentFrame.Count > CurrentFrame.Capacity || !CurrentFrame.Filters.IsValid())
     {
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::AllocateFrameBuffers");
         CurrentFrame.Capacity = TF_MAX(64u, TF_MAX(CurrentFrame.Count, CurrentFrame.Capacity * 2));
         CurrentFrame.DrawData = Context.CreateBuffer({ .Size = uint64_t(CurrentFrame.Capacity) * sizeof(GpuDrawData),
                                                        .ElementCount = CurrentFrame.Capacity * (uint32_t)(sizeof(GpuDrawData) / 4),
@@ -181,9 +201,12 @@ void GpuDrawList::Prepare(const SceneView& View)
     {
         return;
     }
-    const bool Uploaded =
-        Context.UpdateBuffer(CurrentFrame.DrawData, 0, DrawData.GetData(), uint64_t(CurrentFrame.Count) * sizeof(GpuDrawData));
-    ASSERT(Uploaded);
+    {
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuDrawList::UploadDrawData");
+        const bool Uploaded =
+            Context.UpdateBuffer(CurrentFrame.DrawData, 0, DrawData.GetData(), uint64_t(CurrentFrame.Count) * sizeof(GpuDrawData));
+        ASSERT(Uploaded);
+    }
 }
 
 Dependencies GpuDrawList::GetDependencies(const GPUBuffer& Frame, const SceneView& View, const GPUBuffer* Indirect) const

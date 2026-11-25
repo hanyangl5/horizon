@@ -237,7 +237,8 @@ class RenderSceneData
 {
 public:
     RenderSceneData(World& WorldData, AssetManager& AssetManagerValue, const AnimationSystem* Animation):
-        world(WorldData), assetManager(AssetManagerValue), animation(Animation), bindings(WorldData, AssetManagerValue), changes(WorldData),
+        world(WorldData), assetManager(AssetManagerValue), animation(Animation), bindings(WorldData, AssetManagerValue),
+        changes(WorldData, SceneTypes::meshRenderer),
         query(WorldData, { SceneTypes::meshRenderer }), LightQueries{ { WorldData, { SceneTypes::directionalLight } },
                                                                       { WorldData, { SceneTypes::pointLight } },
                                                                       { WorldData, { SceneTypes::spotLight } },
@@ -655,6 +656,26 @@ public:
             hmgetp_null(pIndices, entities[I].entity)->value = I;
         }
     }
+    void ExtractChangedMeshes(Span<Entity> List)
+    {
+        for (Entity EntityHandle : List)
+        {
+            if (!EntityHandle.IsValid())
+            {
+                continue;
+            }
+            const RenderEntityIndex* IndexPointer = hmgetp_null(pIndices, EntityHandle);
+            if (!world.GetComponent(EntityHandle, SceneTypes::meshRenderer))
+            {
+                if (IndexPointer)
+                {
+                    removeEntity(IndexPointer->value);
+                }
+                continue;
+            }
+            extract(IndexPointer ? entities[IndexPointer->value] : Add(EntityHandle));
+        }
+    }
     // Extraction reads the MeshRenderer binding, the world transform, the Guid and asset states. The World change log names
     // entities whose components or transforms changed, the asset state revision covers asset loads, and history follow-ups
     // cover previous transforms that advanced on submission. Anything else would compare equal, so it is skipped.
@@ -667,6 +688,7 @@ public:
         extractedAssetRevision = AssetRevision;
         if (Rescan)
         {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::RescanMeshes");
             historyFollowUp.Clear();
             for (RenderEntity& EntityHandle : entities)
             {
@@ -686,26 +708,13 @@ public:
             }
             return;
         }
-        for (uint32_t Pass = 0; Pass < 2; ++Pass)
         {
-            const Span<Entity> List = Pass ? Span<Entity>{ historyFollowUp.GetData(), historyFollowUp.Size() } : Changed;
-            for (Entity EntityHandle : List)
-            {
-                if (!EntityHandle.IsValid())
-                {
-                    continue;
-                }
-                const RenderEntityIndex* IndexPointer = hmgetp_null(pIndices, EntityHandle);
-                if (!world.GetComponent(EntityHandle, SceneTypes::meshRenderer))
-                {
-                    if (IndexPointer)
-                    {
-                        removeEntity(IndexPointer->value);
-                    }
-                    continue;
-                }
-                extract(IndexPointer ? entities[IndexPointer->value] : Add(EntityHandle));
-            }
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::ExtractChangedMeshes");
+            ExtractChangedMeshes(Changed);
+        }
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::ExtractMeshHistory");
+            ExtractChangedMeshes({ historyFollowUp.GetData(), historyFollowUp.Size() });
         }
         historyFollowUp.Clear();
     }
@@ -713,6 +722,7 @@ public:
     // change log. A skin without a pose renders its bind pose and stays out of the skin list.
     void updateSkins()
     {
+        PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::UpdateSkins");
         skins.Clear();
         skinMatrices.Clear();
         for (Entity SkinnedEntity : skinnedEntities)
@@ -769,11 +779,14 @@ public:
         {
             EntityHandle.seen = false;
         }
-        // Retain new emission maps before mesh/material bindings Release old dependencies.
-        for (uint32_t I = 0; I < TF_ARRAY_COUNT(LightQueries); ++I)
         {
-            LightQueryContext Context = { .Scene = *this, .Type = (LightType)I };
-            LightQueries[I].Each(syncLight, &Context);
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::SyncLights");
+            // Retain new emission maps before mesh/material bindings Release old dependencies.
+            for (uint32_t I = 0; I < TF_ARRAY_COUNT(LightQueries); ++I)
+            {
+                LightQueryContext Context = { .Scene = *this, .Type = (LightType)I };
+                LightQueries[I].Each(syncLight, &Context);
+            }
         }
         {
             PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::bindings");
@@ -784,15 +797,24 @@ public:
             extractMeshEntities();
             updateSkins();
         }
-        removeMissingLights();
-        cameraQuery.Each(extractCamera, this);
-        removeCameras();
-        primitives.FinishUpdate();
-        instances.FinishUpdate();
-        meshBatches.FinishUpdate();
-        lights.FinishUpdate();
-        cameras.FinishUpdate();
-        MergeRenderRanges(indicesDirty, indicesRanges);
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::RemoveMissingLights");
+            removeMissingLights();
+        }
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::UpdateCameras");
+            cameraQuery.Each(extractCamera, this);
+            removeCameras();
+        }
+        {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::FinishDirtyRanges");
+            primitives.FinishUpdate();
+            instances.FinishUpdate();
+            meshBatches.FinishUpdate();
+            lights.FinishUpdate();
+            cameras.FinishUpdate();
+            MergeRenderRanges(indicesDirty, indicesRanges);
+        }
         if (primitives.GetChanges().ranges.Count || instances.GetChanges().ranges.Count || meshBatches.GetChanges().ranges.Count ||
             lights.GetChanges().ranges.Count || cameras.GetChanges().ranges.Count || !indicesRanges.Empty())
         {

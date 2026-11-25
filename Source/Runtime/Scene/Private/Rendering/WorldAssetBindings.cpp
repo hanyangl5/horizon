@@ -3,6 +3,7 @@
 #include "Scene/WorldAssetBindings.h"
 #include "Scene/MeshAsset.h"
 #include "Core/IContainer.h"
+#include "Profiler/IProfiler.h"
 #include "../SceneMaterialOverrides.h"
 
 #include <stdlib.h>
@@ -251,7 +252,8 @@ class WorldAssetBindingsData
 {
 public:
     WorldAssetBindingsData(World& WorldData, AssetManager& AssetManagerValue):
-        world(WorldData), assetManager(AssetManagerValue), query(WorldData, { SceneTypes::meshRenderer }), changes(WorldData)
+        world(WorldData), assetManager(AssetManagerValue), query(WorldData, { SceneTypes::meshRenderer }),
+        changes(WorldData, SceneTypes::meshRenderer)
     {
         ASSERT(query.IsValid());
     }
@@ -329,6 +331,7 @@ public:
         rescanPending = false;
         if (Rescan)
         {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Bindings::RescanMeshes");
             for (WorldMeshBinding* Binding : bindings)
             {
                 Binding->seen = false;
@@ -348,25 +351,32 @@ public:
         }
         else
         {
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Bindings::SyncChangedMeshes");
             for (Entity EntityHandle : Changed)
             {
                 syncChanged(EntityHandle);
             }
         }
         const bool AssetsChanged = Rescan || AssetRevision != syncedAssetRevision;
-        for (WorldMeshBinding* Binding : bindings)
         {
-            if (AssetsChanged || Binding->IsWaiting())
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Bindings::UpdateAssetStates");
+            for (WorldMeshBinding* Binding : bindings)
             {
-                Binding->Update();
+                if (AssetsChanged || Binding->IsWaiting())
+                {
+                    Binding->Update();
+                }
             }
         }
         syncedAssetRevision = AssetRevision;
-        for (AssetHandle Handle : releases)
         {
-            assetManager.Release(Handle);
+            PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Bindings::ReleaseAssets");
+            for (AssetHandle Handle : releases)
+            {
+                assetManager.Release(Handle);
+            }
+            releases.Clear();
         }
-        releases.Clear();
     }
 
     World&                   world;

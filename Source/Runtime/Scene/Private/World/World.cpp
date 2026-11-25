@@ -354,9 +354,15 @@ WorldQueryImpl::~WorldQueryImpl()
     --pOwner->pImpl->queryCount;
 }
 
-WorldChangeLog::WorldChangeLog(World& WorldData): pImpl(MemNew(WorldChangeLogImpl, WorldData))
+WorldChangeLog::WorldChangeLog(World& WorldData, TypeID RequiredComponent): pImpl(MemNew(WorldChangeLogImpl, WorldData))
 {
     WorldData.pImpl->checkThread();
+    if (RequiredComponent)
+    {
+        const WorldType* Type = WorldData.pImpl->findType(RequiredComponent);
+        pImpl->RequiredType = RequiredComponent;
+        pImpl->RequiredComponent = Type ? Type->component : 0;
+    }
     // Counted with the queries: a log names entities of this World, so it must not outlive a replacement.
     ++WorldData.pImpl->queryCount;
     WorldData.pImpl->changeLogs.PushBack(pImpl);

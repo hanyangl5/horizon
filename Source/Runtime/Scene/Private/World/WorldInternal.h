@@ -46,6 +46,8 @@ public:
     }
 
     World&        world;
+    TypeID        RequiredType = 0;
+    ecs_entity_t  RequiredComponent = 0;
     Array<Entity> entries;
     Array<Entity> drained;
     bool          overflowed = true;
@@ -74,11 +76,15 @@ private:
     void*            findEditableProperty(ecs_entity_t entity, TypeID Type, PropertyID property, const PropertyDesc*& pProperty);
     void             notifyPropertyChange(ecs_entity_t entity, TypeID Type);
     // Feeds every live WorldChangeLog. Structural changes made inside a Defer scope are recorded when requested.
-    void             recordChange(ecs_entity_t entity)
+    void             recordChange(ecs_entity_t entity, TypeID ChangedType = 0)
     {
         for (WorldChangeLogImpl* pLog : changeLogs)
         {
-            pLog->record(entity, id);
+            if (!pLog->RequiredType || pLog->RequiredType == ChangedType ||
+                (pLog->RequiredComponent && ecs_has_id(pWorld, entity, pLog->RequiredComponent)))
+            {
+                pLog->record(entity, id);
+            }
         }
     }
     static void removeEntityGuids(ecs_iter_t* pIterator);
