@@ -633,11 +633,10 @@ RecordedFrame RenderPasses::Record()
         PendingDeltaSeconds = 0.0f;
         return Output;
     }
-    if (!GpuSceneData.BeginFrame(GClusteredLighting.GetBool()))
-    {
-        return Output;
-    }
+    // Both rings retire on the same submissions. Waiting for the upload partition also frees scene staging.
     Upload.BeginFrame(FrameIndex);
+    const bool SceneReady = GpuSceneData.BeginFrame(GClusteredLighting.GetBool());
+    ASSERT(SceneReady);
     NextFrame = (NextFrame + 1) % FrameCount;
     const hz::RenderCamera* Camera = Scene.GetCamera(CameraId);
     ASSERT(Camera);

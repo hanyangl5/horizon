@@ -209,7 +209,7 @@ gpuScene.EndFrame(context.Submit(commands, &backbuffer));
 
 Renderer 的 Pass 在初始化时注册到 frame graph（[FrameGraph.h](../Source/Runtime/Graphics/Public/Graphics/FrameGraph.h)），每个 Pass 声明读写的纹理和 Buffer。编译时剔除结果无人使用的 Pass，按视口解析相对尺寸，生命周期不重叠的临时纹理共享同一张 GPU 纹理。Barrier 仍由 CommandList 按每条命令声明的依赖处理，frame graph 不跟踪资源状态。
 
-单份 GPU 数据之所以安全，是因为所有工作在同一个图形队列上按顺序执行：下一帧的拷贝排在上一帧的读取之后，切换 Buffer 状态的 barrier 会等之前的读取完成。需要轮换的只有 CPU 写入的 staging，它按提交句柄回收；全部仍在 GPU 使用时 `BeginFrame` 返回 false，示例跳过本次绘制而不等待。
+单份 GPU 数据之所以安全，是因为所有工作在同一个图形队列上按顺序执行：下一帧的拷贝排在上一帧的读取之后，切换 Buffer 状态的 barrier 会等之前的读取完成。CPU 写入的 staging 按提交句柄回收，全部在用时 `GpuScene::BeginFrame` 返回 false。Renderer 在调用前先等待当前帧的上传分区。该次提交完成后，对应的场景 staging 也可复用。
 
 `BeginFrame` 与 `EndFrame` 之间不能再更新 RenderScene 或重置历史，Pass 直接读取 RenderScene 的记录和 GpuScene 的 Buffer。不提交时调用 `CancelFrame`，变化保留到下一帧。这些状态目前都在主线程上按阶段顺序操作，通用多线程调度仍属于后续工作。
 
