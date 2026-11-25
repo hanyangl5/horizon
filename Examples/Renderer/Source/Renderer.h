@@ -393,9 +393,9 @@ private:
         const Matrix4    SunPose = Matrix4(Vector4(X, 0), Vector4(cross(Z, X), 0), Vector4(Z, 0), Vector4(0, 0, 0, 1));
         const hz::Entity SunEntity = World->CreatePersistentEntity();
         const bool       Created = World->SetComponent(CameraEntity, hz::SceneTypes::camera, &CameraData) &&
-                                   World->SetComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose) &&
-                                   World->SetComponent(SunEntity, hz::SceneTypes::directionalLight, &Sun) &&
-                                   World->SetComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
+                             World->SetComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose) &&
+                             World->SetComponent(SunEntity, hz::SceneTypes::directionalLight, &Sun) &&
+                             World->SetComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
         ASSERT(Created);
         LOGF(Info, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R Reset, Esc Release mouse");
     }

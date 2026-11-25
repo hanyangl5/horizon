@@ -8,11 +8,11 @@ struct GpuLightData
     float4 HalfAxisX;
     float4 HalfAxisY;
     float2 SpotAngles;
-    float SourceRadius;
-    float SoftSourceRadius;
-    float SourceLength;
-    uint2 Id;
-    uint2 Texture;
+    float  SourceRadius;
+    float  SoftSourceRadius;
+    float  SourceLength;
+    uint2  Id;
+    uint2  Texture;
 };
 
 // ByteAddressBuffer records follow the 16-byte alignment of the C++ Vector4.

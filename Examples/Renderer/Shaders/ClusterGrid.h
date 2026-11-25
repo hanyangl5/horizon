@@ -19,8 +19,5 @@ static_assert(LIGHTS_PER_BITMASK == sizeof(uint32_t) * 8);
 #endif
 
 #ifndef __cplusplus
-uint GetTileLightMaskBase(uint2 Tile, uint TilesX)
-{
-    return (Tile.y * TilesX + Tile.x) * TILE_LIGHT_BITMASK_COUNT;
-}
+uint GetTileLightMaskBase(uint2 Tile, uint TilesX) { return (Tile.y * TilesX + Tile.x) * TILE_LIGHT_BITMASK_COUNT; }
 #endif

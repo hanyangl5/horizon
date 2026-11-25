@@ -114,16 +114,16 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const hz
 struct FrameInputs
 {
     hz::GpuDrawList&     Draws;
-    const hz::GPUBuffer&       Frame;
-    const FrameData&           Camera;
-    const hz::SceneView&       View;
+    const hz::GPUBuffer& Frame;
+    const FrameData&     Camera;
+    const hz::SceneView& View;
     hz::GPUSampler&      LinearSampler;
     const RenderTargets& Targets;
     LightingResources    Lighting = {};
     float                DeltaSeconds = 0.0f;
     float                EnvironmentIntensity = 0.0f;
     Vector4              EnvironmentTint = Vector4(1.0f);
-    float2                     SkyRotation = float2(0, 1);
+    float2               SkyRotation = float2(0, 1);
     bool                 RayTracedShadows = false;
     bool                 RayTracedReflection = false;
     bool                 TemporalAAEnabled = false;
