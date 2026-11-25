@@ -31,7 +31,6 @@ cbuffer RootConstant0
     uint  OitShowHeatmap;
     uint  OitOutputIndex;
     float OitTime;
-    uint  ClusterDataIndex;
 };
 
 #include "Material.slang"

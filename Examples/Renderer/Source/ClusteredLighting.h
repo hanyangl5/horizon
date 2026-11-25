@@ -1,26 +1,27 @@
 #pragma once
 
+#include "../Shaders/ClusterGrid.h"
 #include "Scene/RenderScene.h"
 #include "Graphics/RenderContext.h"
+
+struct FrameData;
+struct LightingFrameData;
 
 class ClusteredLighting
 {
 public:
-    explicit ClusteredLighting(hz::RenderContext& Context);
-    bool Prepare(uint32_t Slot, hz::Span<hz::RenderLight> Lights, hz::Span<uint32_t> Active, uint32_t MainDirectional,
-                 const Matrix4& ViewProjection, float Near, float Far, uint32_t Width, uint32_t Height);
-    void BuildMasks(hz::CommandList& Commands, uint32_t Slot) const;
+    static constexpr uint32_t MaxClusteredLights = CLUSTER_MAX_LIGHTS;
 
-    const hz::GPUBuffer& GetData(uint32_t Slot) const { return Frames[Slot].Data; }
-    const hz::GPUBuffer* GetMask(uint32_t Slot) const { return Frames[Slot].Words ? &Frames[Slot].Mask : nullptr; }
+    explicit ClusteredLighting(hz::RenderContext& Context);
+    bool Prepare(LightingFrameData& Frame, hz::GPUBuffer& ZBins, hz::GPUBuffer& TileLightBitMasks, hz::Span<hz::RenderLight> Lights,
+                 hz::Span<uint32_t> Active, const FrameData& Camera);
+    void BuildLightTileMasks(hz::CommandList& Commands, const FrameData& Camera, const hz::GPUBuffer& TileLightBitMasks,
+                             const hz::GPUBuffer& Lights, const hz::GPUBuffer& ActiveLights, uint32_t ActiveLocalLightCount) const;
+
+    hz::Span<uint32_t> GetLightIndices() const { return { Indices.GetData(), Indices.Size() }; }
 
 private:
-    struct Frame
-    {
-        hz::GPUBuffer Data, Mask;
-        uint32_t      TilesX = 0, TilesY = 0, Words = 0;
-    };
-    struct Candidate
+    struct LocalLightData
     {
         float    Depth;
         uint32_t Index;
@@ -31,11 +32,9 @@ private:
     };
     static int Compare(const void* A, const void* B);
 
-    hz::RenderContext&       Context;
-    hz::GPUPipeline          Pipeline;
-    hz::FixedArray<Frame, 3> Frames;
-    hz::Array<Candidate>     Candidates;
-    hz::Array<uint32_t>      Indices;
-    hz::Array<Vector4>       Spheres;
-    Bin                      Bins[1024];
+    hz::RenderContext&        Context;
+    hz::GPUPipeline           Pipeline;
+    hz::Array<LocalLightData> SortedLightList;
+    hz::Array<uint32_t>       Indices;
+    Bin                       Bins[CLUSTER_DEPTH_BIN_COUNT];
 };

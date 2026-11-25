@@ -167,6 +167,7 @@ struct RenderSceneUploads
     bool              activeInstances = false;
     bool              activeMeshBatches = false;
     bool              activeLights = false;
+    bool              ActiveLocalLightIndices = false;
     bool              activeCameras = false;
 };
 

@@ -1,42 +1,52 @@
 #include "ClusterGrid.h"
+#include "GpuLightData.h"
 
 cbuffer RootConstant0
 {
-    uint DataIndex;
-    uint MaskIndex;
+    float4 ClipX, ClipY, ClipW;
+    uint Width, Height, LightCount, LightIndexOffset;
+    uint LightsIndex, ActiveLightsIndex, MasksIndex, Padding;
 };
 
-groupshared float4 Spheres[32];
+groupshared float4 Spheres[LIGHTS_PER_BITMASK];
 float4 UnitPlane(float4 Plane) { return Plane * rsqrt(dot(Plane.xyz, Plane.xyz)); }
 
-[numthreads(8, 4, 1)]
-void BuildMasks(uint3 Tile : SV_DispatchThreadID, uint Lane : SV_GroupIndex)
+float4x4 GetTilePlanes(uint2 Pixel)
 {
-    ByteAddressBuffer Data = ResourceDescriptorHeap[DataIndex];
-    const ClusterGrid Grid = Data.Load<ClusterGrid>(0);
-    const uint Light = Tile.z * 32 + Lane;
-    if (Light < Grid.FiniteCount)
-        Spheres[Lane] = asfloat(Data.Load4(Grid.SphereOffset + Light * 16));
-    GroupMemoryBarrierWithGroupSync();
-    const uint2 Pixel = Tile.xy * LIGHT_TILE_SIZE;
-    if (any(Pixel >= uint2(Grid.Width, Grid.Height)))
-        return;
-    const float2 Scale = float2(2, -2) / float2(Grid.Width, Grid.Height);
+    const float2 Scale = float2(2, -2) / float2(Width, Height);
     const float2 Start = float2(-1, 1) + Pixel * Scale;
     const float2 End = Start + LIGHT_TILE_SIZE * Scale;
-    const float4 Left = UnitPlane(Grid.ClipX - Start.x * Grid.ClipW);
-    const float4 Right = UnitPlane(End.x * Grid.ClipW - Grid.ClipX);
-    const float4 Top = UnitPlane(Start.y * Grid.ClipW - Grid.ClipY);
-    const float4 Bottom = UnitPlane(Grid.ClipY - End.y * Grid.ClipW);
+    return float4x4(UnitPlane(ClipX - Start.x * ClipW), UnitPlane(End.x * ClipW - ClipX),
+                    UnitPlane(Start.y * ClipW - ClipY), UnitPlane(ClipY - End.y * ClipW));
+}
+
+[numthreads(LIGHT_MASK_GROUP_SIZE_X, LIGHT_MASK_GROUP_SIZE_Y, 1)]
+void BuildLightTileMasks(uint3 Tile : SV_DispatchThreadID, uint Lane : SV_GroupIndex)
+{
+    const uint FirstLight = Tile.z * LIGHTS_PER_BITMASK;
+    const uint Light = FirstLight + Lane;
+    if (Light < LightCount)
+    {
+        ByteAddressBuffer Indices = ResourceDescriptorHeap[ActiveLightsIndex];
+        ByteAddressBuffer Lights = ResourceDescriptorHeap[LightsIndex];
+        const uint Index = Indices.Load((LightIndexOffset + Light) * sizeof(uint));
+        const float4 Bounds = Lights.Load<float4>(Index * GpuLightStride);
+        Spheres[Lane] = float4(Bounds.xyz, rcp(Bounds.w));
+    }
+    GroupMemoryBarrierWithGroupSync();
+    const uint2 Pixel = Tile.xy * LIGHT_TILE_SIZE;
+    if (any(Pixel >= uint2(Width, Height)))
+        return;
+    const float4x4 Planes = GetTilePlanes(Pixel);
+    const uint Count = min(LIGHTS_PER_BITMASK, LightCount - FirstLight);
     uint Mask = 0;
-    const uint Count = min(32u, Grid.FiniteCount - Tile.z * 32);
     for (uint I = 0; I < Count; ++I)
     {
-        const float4 Center = float4(Spheres[I].xyz, 1);
-        const float Distance = min(min(dot(Left, Center), dot(Right, Center)), min(dot(Top, Center), dot(Bottom, Center)));
-        if (Distance >= -Spheres[I].w)
+        const float4 Sphere = Spheres[I];
+        if (all(mul(Planes, float4(Sphere.xyz, 1)) >= -Sphere.w))
             Mask |= 1u << I;
     }
-    RWByteAddressBuffer Masks = ResourceDescriptorHeap[MaskIndex];
-    Masks.Store(((Tile.y * Grid.TilesX + Tile.x) * Grid.Words + Tile.z) * 4, Mask);
+    RWByteAddressBuffer Masks = ResourceDescriptorHeap[MasksIndex];
+    const uint TilesX = (Width + LIGHT_TILE_SIZE - 1) / LIGHT_TILE_SIZE;
+    Masks.Store((GetTileLightMaskBase(Tile.xy, TilesX) + Tile.z) * sizeof(uint), Mask);
 }

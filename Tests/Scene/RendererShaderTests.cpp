@@ -1,5 +1,6 @@
 // GPU tests of the Examples/Renderer shaders and passes, built on the shared asset fixtures.
 #include "AssetTestFixtures.h"
+#include "../../Examples/Renderer/Source/RendererConstants.h"
 #include "../../Examples/Renderer/Source/DeferredLighting.h"
 #include "../../Examples/Renderer/Source/ClusteredLighting.h"
 #include "Scene/GpuDrawList.h"
@@ -101,13 +102,6 @@ TEST_F(SceneAssetLoaderTest, RendererMotionUsesPerspectiveCorrectSubmittedTransf
     });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     ASSERT_TRUE(pipeline.IsValid());
-    struct FrameData
-    {
-        Matrix4 ViewProjection;
-        Matrix4 PreviousViewProjection;
-        Matrix4 InverseViewProjection;
-        Vector4 Eye;
-    };
     // Project x/z, y/z at constant Depth, with vertex w = 1, 1, 2.
     const Matrix4      projection(Vector4(1, 0, 0, 0), Vector4(0, 1, 0, 0), Vector4(0, 0, 0.5f, 1), Vector4(0));
     const FrameData    frameData = { .ViewProjection = projection,
@@ -211,14 +205,7 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingFillsFilteredDrawLists)
                                                         .pFileName = "FrustumCulling.slang" } });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     ASSERT_TRUE(pipeline.IsValid() && Clear.IsValid());
-    struct FrameData
-    {
-        Matrix4 current;
-        Matrix4 previous;
-        Matrix4 inverse;
-        Vector4 Eye;
-    };
-    FrameData          camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 0, 1) };
+    FrameData          camera = { .Eye = Vector4(0, 0, 0, 1) };
     hz::RenderInstance instances[5];
     const float        bounds[5][6] = { { -.2f, -.2f, .2f, .2f, .2f, .8f },
                                         { 1.1f, 0, .2f, 1.5f, .2f, .8f },
@@ -302,9 +289,9 @@ TEST_F(SceneAssetLoaderTest, RendererGpuCullingFillsFilteredDrawLists)
             }
             const Matrix4 pose = cameraCase == 1 ? Matrix4::translation(Vector3(3, 0, 2))
                                                  : Matrix4::translation(Vector3(9, 0, 2)) * Matrix4::rotationY(-PI / 4.0f);
-            camera.current = Matrix4::perspectiveRH(PI / 2.0f, 1.0f, 0.1f, 10.0f) * inverse(pose);
-            camera.previous = camera.current;
-            camera.inverse = inverse(camera.current);
+            camera.ViewProjection = Matrix4::perspectiveRH(PI / 2.0f, 1.0f, 0.1f, 10.0f) * inverse(pose);
+            camera.PreviousViewProjection = camera.ViewProjection;
+            camera.InverseViewProjection = inverse(camera.ViewProjection);
             camera.Eye = pose.getCol3();
             ASSERT_TRUE(context.UpdateBuffer(frame, 0, &camera, sizeof(camera)));
             ASSERT_TRUE(context.UpdateBuffer(instanceBuffer, 0, instances, sizeof(instances)));
@@ -445,18 +432,15 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
                   { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "CSMain" } } } });
     ASSERT_TRUE(trace.IsValid());
 
-    struct FrameData
-    {
-        Matrix4 current = Matrix4::identity(), previous = Matrix4::identity(), inverse = Matrix4::identity();
-        Vector4 Eye = Vector4(0, 0, -10, 1);
-    } camera;
+    const FrameData camera = { .Eye = Vector4(0, 0, -10, 1) };
     hz::GPUBuffer frame = context.CreateBuffer({ .Size = sizeof(camera),
-                                                 .ElementCount = sizeof(camera) / 4,
+                                                 .ElementCount = 1,
+                                                 .StructStride = sizeof(camera),
                                                  .pInitialData = &camera,
                                                  .initialDataSize = sizeof(camera),
                                                  .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                                  .StartState = RESOURCE_STATE_SHADER_RESOURCE,
-                                                 .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
+                                                 .Descriptors = DESCRIPTOR_TYPE_BUFFER });
     hz::GPUBuffer output = context.CreateBuffer({ .Size = 16,
                                                   .ElementCount = 4,
                                                   .StructStride = 4,
@@ -576,13 +560,7 @@ TEST_F(TypedAssetLiveTest, IndirectDrawIdsSelectDistinctGeometryAndReadThreeUint
     });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, directory.string().c_str());
     ASSERT_TRUE(pipeline.IsValid());
-    struct FrameData
-    {
-        Matrix4 ViewProjection = Matrix4::identity();
-        Matrix4 PreviousViewProjection = Matrix4::identity();
-        Matrix4 InverseViewProjection = Matrix4::identity();
-        Vector4 Eye = Vector4(0, 0, -2, 1);
-    } frameData;
+    const FrameData frameData = { .Eye = Vector4(0, 0, -2, 1) };
     hz::RenderInstance instances[2];
     instances[0].primitive = { 2, 5 };
     instances[1].primitive = { 4, 8 };
@@ -1099,12 +1077,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     hz::GPUTexture alpha = image(hz::Format::R32G32B32A32_SFLOAT, true);
     hz::GPUTexture result = image(hz::Format::R32G32B32A32_SFLOAT, false);
     hz::GPUSampler sampler = context.CreateSampler();
-    struct FrameData
-    {
-        Matrix4 current, previous, inverse;
-        Vector4 Eye;
-    };
-    const FrameData         camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 1, 1) };
+    const FrameData         camera = { .Eye = Vector4(0, 0, 1, 1) };
     const LightingFrameData lighting = { .LightDirection = Vector4(0, 0, -1, 0) };
     hz::GPUBuffer  frame = input(&camera, sizeof(camera), sizeof(camera)), light = input(&lighting, sizeof(lighting), sizeof(lighting));
     const float    positions[] = { -1, -1, 0.5f, 3, -1, 0.5f, -1, 3, 0.5f };
@@ -1314,16 +1287,18 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
             EXPECT_NEAR(litColor[channel], expected, 2e-4f) << roughness;
         }
     }
-    // Tilt the mirror so the hit is at x=1.25, outside the identity camera's [-1,1] view.
+    // A red directional light and a blue point light illuminate the offscreen hit at x=1.25.
     const float             slope = std::tan(0.5f * std::atan(1.25f / 0.3f));
-    const hz::GpuLightData  offscreen = { .PositionAndInvRadius = Vector4(1.25f, 0, 0.4f, 5),
+    const hz::GpuLightData  offscreen = { .PositionAndInvRadius = Vector4(1.25f, 0.0f, 0.4f, 5.0f),
                                           .DirectionAndType = Vector4(0, 0, -1, 1),
                                           .Color = Vector4(0, 0, 1, 0) };
     const uint32_t          id = 0;
     const hz::GPUBuffer     offscreenBuffer = input(&offscreen, sizeof(offscreen)), active = input(&id, sizeof(id));
-    const LightingFrameData offscreenFrame = { .LightsIndex = offscreenBuffer.GetSrvIndex(),
-                                               .LightCount = 1,
-                                               .ActiveLightsIndex = active.GetSrvIndex() };
+    const LightingFrameData offscreenFrame = { .LightDirection = Vector4(0, 0, 1, 1),
+                                               .LightColor = Vector4(1, 0, 0, 1),
+                                               .LocalLightsIndex = offscreenBuffer.GetSrvIndex(),
+                                               .LocalLightCount = 1,
+                                               .ActiveLocalLightsIndex = active.GetSrvIndex() };
     ASSERT_TRUE(context.UpdateBuffer(light, 0, &offscreenFrame, sizeof(offscreenFrame)));
     hz::CommandList& bounce = context.AcquireCommandList();
     bounce.BeginRendering({ .colorAttachments = { { .pTexture = &normal,
@@ -1344,8 +1319,8 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     bounce.CopyBuffer(readback, 0, output, 0, 16);
     context.Wait(context.Submit(bounce));
     const float* reflected = (const float*)readback.Get()->pCpuMappedAddress;
-    EXPECT_FLOAT_EQ(reflected[0], 0.0f);
-    EXPECT_GT(reflected[2], 1.0f);
+    EXPECT_GT(reflected[0], 0.0f);
+    EXPECT_FLOAT_EQ(reflected[2], 0.0f);
 
     ID3D12Device* device = nullptr;
     ASSERT_EQ(output.Get()->dx.pResource->GetDevice(IID_PPV_ARGS(&device)), S_OK);
@@ -1413,13 +1388,8 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     hz::GPUTexture alpha = image(hz::Format::R32G32B32A32_SFLOAT, true), noise = image(hz::Format::R32G32B32A32_SFLOAT, true);
     hz::GPUTexture result = image(hz::Format::R8G8_UNORM, false);
     hz::GPUSampler sampler = context.CreateSampler();
-    struct FrameData
-    {
-        Matrix4 current, previous, inverse;
-        Vector4 Eye;
-    };
-    const FrameData         camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, -1, 1) };
-    const LightingFrameData lighting = { .LightDirection = Vector4(0, 0, -1, 1) };
+    const FrameData         camera = { .Eye = Vector4(0, 0, -1, 1) };
+    const LightingFrameData lighting = { .LightDirection = Vector4(0, 0, -1, 1), .RTShadowEnabled = 1 };
     hz::GPUBuffer  frame = input(&camera, sizeof(camera), sizeof(camera)), light = input(&lighting, sizeof(lighting), sizeof(lighting));
     const float    positions[] = { -1, -1, 0.5f, 3, -1, 0.5f, -1, 3, 0.5f };
     // One uint16 triangle, padded so the production RAW decoder can read its final word.
@@ -1644,12 +1614,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                       .StartState = RESOURCE_STATE_SHADER_RESOURCE,
                                       .Descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
     };
-    struct FrameData
-    {
-        Matrix4 vp, previousVP, inverseVP;
-        Vector4 Eye;
-    };
-    const FrameData         camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, -1, 1) };
+    const FrameData         camera = { .Eye = Vector4(0, 0, -1, 1), .Near = 0.01f, .Far = 1, .Width = 8, .Height = 8 };
     const LightingFrameData lighting;
     hz::RenderInstance      instances[2];
     instances[0].current = Matrix4::translation(Vector3(0, 0, 0.2f));
@@ -1699,6 +1664,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                                     .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderSources, shaders.string().c_str());
     ClusteredLighting clusters(context);
+    hz::GPUBuffer bins, masks;
+    LightingFrameData glassFrame;
     // Both lights cover the front glass, on opposite sides of it. Neither reaches the back pane.
     hz::RenderLight   glassLights[2];
     hz::GpuLightData  gpuLights[2];
@@ -1709,18 +1676,22 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         glassLights[i].transform = Matrix4::translation(pos);
         glassLights[i].ready = 1;
         glassLights[i].InfluenceRadius = 0.20f;
-        gpuLights[i] = { .PositionAndInvRadius = Vector4(pos, 5),
-                         .DirectionAndType = Vector4(0, 0, -1, 1),
-                         .Color = Vector4(1, 1, 1, 0) };
+        gpuLights[i] = { .PositionAndInvRadius = Vector4(pos, 5), .DirectionAndType = Vector4(0, 0, -1, 1), .Color = Vector4(1, 1, 1, 0) };
     }
-    const hz::GPUBuffer     glassBuffer = input(gpuLights, sizeof(gpuLights)), glassIds = input(ids, sizeof(ids));
-    const LightingFrameData glassFrame = { .LightsIndex = glassBuffer.GetSrvIndex(),
-                                           .LightCount = 2,
-                                           .ActiveLightsIndex = glassIds.GetSrvIndex() };
+    FrameData clusterCamera = camera;
+    clusterCamera.ViewProjection.setRow(3, Vector4(0, 0, 1, 0));
+    ASSERT_TRUE(clusters.Prepare(glassFrame, bins, masks, glassLights, ids, clusterCamera));
+    std::vector<uint32_t>    glassIndices(std::begin(ids), std::end(ids));
+    const hz::Span<uint32_t> glassOrder = clusters.GetLightIndices();
+    glassIndices.insert(glassIndices.end(), glassOrder.begin(), glassOrder.end());
+    const hz::GPUBuffer     glassBuffer = input(gpuLights, sizeof(gpuLights)),
+                            glassIds = input(glassIndices.data(), uint32_t(glassIndices.size() * sizeof(uint32_t)));
+    glassFrame.LocalLightsIndex = glassBuffer.GetSrvIndex();
+    glassFrame.LocalLightCount = 2;
+    glassFrame.ActiveLocalLightsIndex = glassIds.GetSrvIndex();
     const hz::GPUBuffer     glassLighting = input(&glassFrame, sizeof(glassFrame), sizeof(glassFrame));
-    Matrix4                 gridProjection = camera.vp;
-    gridProjection.setRow(3, Vector4(0, 0, 1, 0));
-    ASSERT_TRUE(clusters.Prepare(0, glassLights, ids, UINT32_MAX, gridProjection, 0.01f, 1.0f, 8, 8));
+    glassFrame.ClusterLightingZBinsIndex = UINT32_MAX;
+    const hz::GPUBuffer fullGlassLighting = input(&glassFrame, sizeof(glassFrame), sizeof(glassFrame));
     float reference[64 * 4] = {};
     for (uint32_t scenario = 0; scenario < 6; ++scenario)
     {
@@ -1738,7 +1709,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                                           .storeAction = STORE_ACTION_STORE,
                                                           .ClearValue = { .b = 1, .a = 1 } } } });
         commands.EndRendering();
-        uint32_t constants[29];
+        uint32_t constants[28];
         for (uint32_t& value : constants)
         {
             value = UINT32_MAX;
@@ -1754,23 +1725,24 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         constants[13] = counters.GetUavIndex();
         constants[14] = nodes.GetUavIndex();
         constants[15] = Capacity;
-        constants[16] = scenario >= 4 ? glassLighting.GetSrvIndex() : light.GetSrvIndex();
+        const hz::GPUBuffer& surfaceLighting = scenario == 5 ? glassLighting : scenario == 4 ? fullGlassLighting : light;
+        constants[16] = surfaceLighting.GetSrvIndex();
         if (scenario == 5)
         {
-            clusters.BuildMasks(commands, 0);
-            constants[28] = clusters.GetData(0).GetSrvIndex();
+            clusters.BuildLightTileMasks(commands, clusterCamera, masks, glassBuffer, glassIds, glassFrame.LocalLightCount);
         }
         commands.SetPipeline(Clear);
         commands.SetRootConstant(constants);
         commands.Dispatch(1, 1, 1, { .storageTextures = { &heads }, .storageBuffers = { &counters } });
-        commands.BeginRendering({ .depthAttachment = { .pTexture = &Depth,
-                                                       .loadAction = LOAD_ACTION_CLEAR,
-                                                       .storeAction = STORE_ACTION_STORE,
-                                                       .ClearValue = { .Depth = scenario == 2 ? 0.5f : 1.0f } } },
-                                { .storageTextures = { &heads },
-                                  .buffers = { &frame, scenario >= 4 ? &glassLighting : &light, &instanceBuffer, &materialBuffer, &vertices,
-                                               &normal, &uv, &glassBuffer, &glassIds, &clusters.GetData(0), clusters.GetMask(0) },
-                                  .storageBuffers = { &counters, &nodes } });
+        commands.BeginRendering(
+            { .depthAttachment = { .pTexture = &Depth,
+                                   .loadAction = LOAD_ACTION_CLEAR,
+                                   .storeAction = STORE_ACTION_STORE,
+                                   .ClearValue = { .Depth = scenario == 2 ? 0.5f : 1.0f } } },
+            { .storageTextures = { &heads },
+              .buffers = { &frame, &surfaceLighting, &instanceBuffer, &materialBuffer, &vertices, &normal, &uv,
+                           &glassBuffer, &glassIds, &bins, &masks },
+              .storageBuffers = { &counters, &nodes } });
         commands.SetViewport(0, 0, 8, 8);
         commands.SetScissor(0, 0, 8, 8);
         commands.SetPipeline(gather);
@@ -1942,12 +1914,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::GPUTexture peakSource = image(2, 2, rgba), peakBright = image(1, 1, rgba);
     hz::GPUTexture peakNormal = image(1, 1, rgba), peakBase = image(1, 1, rgba);
 
-    struct PeakFrame
-    {
-        Matrix4 vp, previous, inverse;
-        Vector4 eye;
-    };
-    const PeakFrame   peakCamera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 2, 1) };
+    const FrameData   peakCamera = { .Eye = Vector4(0, 0, 2, 1), .Near = 0.01f, .Far = 2, .Width = 1, .Height = 1 };
     LightingFrameData peakLight;
     peakLight.LightDirection = Vector4(0, 0, -1, 100000);
     const auto Upload = [&](const void* data, uint32_t Size)
@@ -1989,21 +1956,10 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                                            .StartState = RESOURCE_STATE_SHADER_RESOURCE,
                                                            .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
     const uint32_t activeLights[] = { 4, 0, 2, 1, 3, 5 };
-    const hz::GPUBuffer activeLightList = context.CreateBuffer({ .Size = sizeof(activeLights),
-                                                                 .ElementCount = TF_ARRAY_COUNT(activeLights),
-                                                                 .pInitialData = activeLights,
-                                                                 .initialDataSize = sizeof(activeLights),
-                                                                 .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                                                 .StartState = RESOURCE_STATE_SHADER_RESOURCE,
-                                                                 .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
-    ASSERT_TRUE(lightList.IsValid() && activeLightList.IsValid());
-    const LightingFrameData localFrame = { .LightsIndex = lightList.GetSrvIndex(),
-                                           .LightCount = TF_ARRAY_COUNT(activeLights),
-                                           .ActiveLightsIndex = activeLightList.GetSrvIndex(),
-                                           .MainDirectionalIndex = 5 };
-    const hz::GPUBuffer localLighting = Upload(&localFrame, sizeof(localFrame));
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderSources, shaders.string().c_str());
     ClusteredLighting clusters(context);
+    hz::GPUBuffer bins, masks;
+    LightingFrameData localFrame = { .LightDirection = Vector4(0, 0, -1, 1), .LightColor = Vector4(1, 0, 0, 1) };
     hz::RenderLight   sourceLights[TF_ARRAY_COUNT(lights)];
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(lights); ++i)
     {
@@ -2013,9 +1969,28 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         sourceLights[i].InfluenceRadius = invRadius > 0 ? 1.0f / invRadius : 0;
         sourceLights[i].ready = 1;
     }
-    Matrix4 gridProjection = Matrix4::identity();
-    gridProjection.setRow(3, Vector4(0, 0, 1, 0));
-    ASSERT_TRUE(clusters.Prepare(0, sourceLights, activeLights, 5, gridProjection, 0.01f, 2.0f, 1, 1));
+    FrameData clusterCamera = peakCamera;
+    clusterCamera.ViewProjection.setRow(3, Vector4(0, 0, 1, 0));
+    ASSERT_TRUE(clusters.Prepare(localFrame, bins, masks, sourceLights, activeLights, clusterCamera));
+    std::vector<uint32_t>    localIndices = { 4, 2, 1, 3 };
+    const uint32_t           localCount = uint32_t(localIndices.size());
+    const hz::Span<uint32_t> localOrder = clusters.GetLightIndices();
+    localIndices.insert(localIndices.end(), localOrder.begin(), localOrder.end());
+    const uint32_t      localIndexBytes = uint32_t(localIndices.size() * sizeof(uint32_t));
+    const hz::GPUBuffer activeLightList = context.CreateBuffer({ .Size = localIndexBytes,
+                                                                 .ElementCount = uint32_t(localIndices.size()),
+                                                                 .pInitialData = localIndices.data(),
+                                                                 .initialDataSize = localIndexBytes,
+                                                                 .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                                                 .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                                                 .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW });
+    ASSERT_TRUE(lightList.IsValid() && activeLightList.IsValid());
+    localFrame.LocalLightsIndex = lightList.GetSrvIndex();
+    localFrame.LocalLightCount = localCount;
+    localFrame.ActiveLocalLightsIndex = activeLightList.GetSrvIndex();
+    const hz::GPUBuffer     localLighting = Upload(&localFrame, sizeof(localFrame));
+    localFrame.ClusterLightingZBinsIndex = UINT32_MAX;
+    const hz::GPUBuffer fullLocalLighting = Upload(&localFrame, sizeof(localFrame));
     hz::CommandList& commands = context.AcquireCommandList();
     const auto       Clear = [&](const hz::GPUTexture& texture, float value)
     {
@@ -2084,10 +2059,10 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     commands.Dispatch(1, 1, 1, { .sampledTextures = { &source }, .storageTextures = { &logOutput } });
     read(logOutput, 8);
     // Normal incidence, white dielectric, specular 8/16. Test the smooth limit and a rough lobe as well as the HDR peak.
-    clusters.BuildMasks(commands, 0);
+    clusters.BuildLightTileMasks(commands, clusterCamera, masks, lightList, activeLightList, localCount);
     constexpr uint32_t roughnessCodes[] = { 0, 51, 255, 255, 255 };
     constexpr uint32_t lightingOffsets[] = { 182, 15, 183, 184, 185 };
-    uint32_t           peakConstants[16];
+    uint32_t           peakConstants[15];
     for (uint32_t& value : peakConstants)
     {
         value = UINT32_MAX;
@@ -2112,15 +2087,14 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                                           .storeAction = STORE_ACTION_STORE,
                                                           .ClearValue = { .r = 1, .g = 1, .b = 1, .a = 0 } } } });
         commands.EndRendering();
-        const bool local = probe >= 3;
-        peakConstants[15] = probe == 4 ? clusters.GetData(0).GetSrvIndex() : UINT32_MAX;
-        const hz::GPUBuffer& lighting = local ? localLighting : peakLighting;
+        const hz::GPUBuffer& lighting = probe == 4 ? localLighting : probe >= 3 ? fullLocalLighting : peakLighting;
         peakConstants[1] = lighting.GetSrvIndex();
         commands.SetPipeline(deferred);
         commands.BeginRendering(
             { .colorAttachments = { { .pTexture = &mapped, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
             { .sampledTextures = { &black, &average, &peakNormal, &peakBase },
-              .buffers = { &peakFrame, &lighting, &lightList, &activeLightList, &clusters.GetData(0), clusters.GetMask(0) } });
+              .buffers = { &peakFrame, &lighting, &lightList, &activeLightList, &bins,
+                           &masks } });
         commands.SetViewport(0, 0, 1, 1);
         commands.SetScissor(0, 0, 1, 1);
         commands.SetRootConstant(peakConstants);
@@ -2355,12 +2329,7 @@ TEST_F(SceneAssetLoaderTest, RendererMaskUsesReferenceDitherAndDistanceCutoffWhi
     {
         target = image(hz::Format::R8G8B8A8_UNORM);
     }
-    struct FrameData
-    {
-        Matrix4 vp, previous, inverse;
-        Vector4 Eye;
-    };
-    const FrameData          camera = { Matrix4::identity(), Matrix4::identity(), Matrix4::identity(), Vector4(0, 0, 2, 1) };
+    const FrameData          camera = { .Eye = Vector4(0, 0, 2, 1) };
     const hz::RenderInstance instance;
     hz::GpuMaterialData      material;
     material.BaseColorTexture = alpha.GetSrvIndex();
@@ -2534,14 +2503,7 @@ TEST_F(SceneAssetLoaderTest, RendererTemporalResolveGTAOAndDenoiseRespectSceneDe
                          normals = image(8), resolved = image(8), halfAO = image(4), ao = image(8);
     const hz::GPUSampler sampler =
         context.CreateSampler({ .AddressU = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressV = ADDRESS_MODE_CLAMP_TO_EDGE });
-    struct FrameData
-    {
-        Matrix4 ViewProjection = Matrix4::identity();
-        Matrix4 PreviousViewProjection = Matrix4::identity();
-        Matrix4 InverseViewProjection = Matrix4::identity();
-        Vector4 Eye = Vector4(0, 0, -2, 1);
-    };
-    const FrameData frame;
+    const FrameData frame = { .Eye = Vector4(0, 0, -2, 1) };
     const hz::GPUBuffer frameBuffer = context.CreateBuffer({ .Size = sizeof(frame),
                                                              .ElementCount = 1,
                                                              .StructStride = sizeof(frame),

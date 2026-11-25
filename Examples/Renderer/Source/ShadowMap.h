@@ -1,6 +1,5 @@
 #pragma once
 #include "Scene/GpuDrawList.h"
-#include "DeferredLighting.h"
 
 class ShadowMap
 {
@@ -10,12 +9,9 @@ public:
     static constexpr hz::Format DepthFormat = hz::Format::D16_UNORM;
 
     explicit ShadowMap(hz::RenderContext& Context);
-    // Fits the light to the scene and uploads the lighting frame every frame; lighting reads it even when nothing draws shadows.
-    void                  Prepare(const hz::SceneView&);
+    Matrix4               Prepare(const hz::SceneView&, const Vector3& LightDirection);
     void                  Execute(hz::CommandList&, const hz::SceneView&, const hz::GpuDrawList&, const hz::GPUTexture& Depth);
     const hz::GPUSampler& GetSampler() const { return Sampler; }
-    const hz::GPUBuffer&  GetLightingFrame(uint32_t Backing) const { return LightingFrames[Backing]; }
-    LightingFrameData     Data;
 
 private:
     hz::RenderContext&               Context;
@@ -23,5 +19,4 @@ private:
     hz::GPUSampler                   Sampler;
     hz::GPUSampler                   SurfaceSampler;
     hz::FixedArray<hz::GPUBuffer, 3> ShadowFrames;
-    hz::FixedArray<hz::GPUBuffer, 3> LightingFrames;
 };

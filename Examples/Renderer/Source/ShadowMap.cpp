@@ -33,22 +33,14 @@ ShadowMap::ShadowMap(hz::RenderContext& Context): Context(Context)
     SurfaceSampler = Context.CreateSampler();
     for (uint32_t Index = 0; Index < ShadowFrames.Size(); ++Index)
     {
-        ShadowFrames[Index] = Context.CreateBuffer({ .Size = 208,
+        ShadowFrames[Index] = Context.CreateBuffer({ .Size = sizeof(FrameData),
                                                      .ElementCount = 1,
-                                                     .StructStride = 208,
+                                                     .StructStride = sizeof(FrameData),
                                                      .Name = "Renderer.ShadowCamera",
                                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
                                                      .StartState = RESOURCE_STATE_SHADER_RESOURCE,
                                                      .Descriptors = DESCRIPTOR_TYPE_BUFFER,
                                                      .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-        LightingFrames[Index] = Context.CreateBuffer({ .Size = sizeof(LightingFrameData),
-                                                       .ElementCount = 1,
-                                                       .StructStride = sizeof(LightingFrameData),
-                                                       .Name = "Renderer.LightingFrame",
-                                                       .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                                       .StartState = RESOURCE_STATE_SHADER_RESOURCE,
-                                                       .Descriptors = DESCRIPTOR_TYPE_BUFFER,
-                                                       .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     }
     ASSERT(Pipeline.IsValid() && Sampler.IsValid());
 }
@@ -67,10 +59,10 @@ struct ShadowBindingConstants
 };
 static_assert(sizeof(ShadowBindingConstants) == 8 * sizeof(uint32_t));
 
-void ShadowMap::Prepare(const hz::SceneView& View)
+Matrix4 ShadowMap::Prepare(const hz::SceneView& View, const Vector3& LightDirection)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ShadowMap::Prepare");
-    const Vector3 Z = -Data.LightDirection.getXYZ();
+    const Vector3 Z = -LightDirection;
     const Vector3 Up = fabsf((float)Z[2]) < 0.99f ? Vector3(0, 0, 1) : Vector3(0, 1, 0);
     const Vector3 X = normalize(cross(Up, Z));
     const Vector3 Y = cross(Z, X);
@@ -116,22 +108,16 @@ void ShadowMap::Prepare(const hz::SceneView& View)
         Projection = Matrix4(Vector4(2 / ExtentX, 0, 0, 0), Vector4(0, 2 / ExtentY, 0, 0), Vector4(0, 0, -1 / DepthRange, 0),
                              Vector4(-2 * CenterX / ExtentX, -2 * CenterY / ExtentY, Maximum[2] / DepthRange, 1));
     }
-    Data.ShadowViewProjection = Projection * LightView;
-    struct ShadowFrame
-    {
-        Matrix4 ViewProjection;
-        Matrix4 PreviousViewProjection;
-        Matrix4 InverseViewProjection;
-        Vector4 Eye;
-    };
-    const ShadowFrame Camera = { Data.ShadowViewProjection, Data.ShadowViewProjection, inverse(Data.ShadowViewProjection),
-                                 Vector4(0, 0, 0, 1) };
+    const Matrix4   ViewProjection = Projection * LightView;
+    const FrameData Camera = { .ViewProjection = ViewProjection,
+                               .PreviousViewProjection = ViewProjection,
+                               .InverseViewProjection = inverse(ViewProjection),
+                               .Eye = Vector4(0, 0, 0, 1) };
 
     const uint32_t Backing = View.FrameIndex;
     const bool     CameraUpdated = Context.UpdateBuffer(ShadowFrames[Backing], 0, &Camera, sizeof(Camera));
-    const bool     LightUpdated = Context.UpdateBuffer(LightingFrames[Backing], 0, &Data, sizeof(Data));
-    ASSERT(CameraUpdated && LightUpdated);
-    ++Data.FrameIndex;
+    ASSERT(CameraUpdated);
+    return ViewProjection;
 }
 
 void ShadowMap::Execute(hz::CommandList& Commands, const hz::SceneView& View, const hz::GpuDrawList& Draws, const hz::GPUTexture& Depth)

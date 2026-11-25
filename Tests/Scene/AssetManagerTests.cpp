@@ -1728,11 +1728,11 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
         { .table = &hz::GpuSceneBuffers::cameras,
           .srcOffset = sizeof(hz::RenderCamera) * cameraID.index,
           .Size = sizeof(hz::RenderCamera) },
-        { .table = &hz::GpuSceneBuffers::lights,
+        { .table = &hz::GpuSceneBuffers::localLights,
           .srcOffset = sizeof(hz::GpuLightData) * lightID.index,
           .dstOffset = 512,
           .Size = sizeof(hz::GpuLightData) },
-        { .table = &hz::GpuSceneBuffers::activeLights, .dstOffset = 1000, .Size = sizeof(uint32_t) },
+        { .table = &hz::GpuSceneBuffers::activeLocalLights, .dstOffset = 1000, .Size = sizeof(uint32_t) },
         { .table = &hz::GpuSceneBuffers::activeCameras, .dstOffset = 1004, .Size = sizeof(uint32_t) },
     };
     renderGpuSceneFrame(context, gpu, readback, copies);
@@ -1742,10 +1742,65 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     EXPECT_FLOAT_EQ(copiedCamera.lens.verticalFov, 0.8f);
     EXPECT_EQ(copiedLight.Id, lightID);
     EXPECT_FLOAT_EQ((float)copiedLight.Color.getX(), 4);
-    EXPECT_TRUE(scene.GetLight(lightID)->IsActiveLocalLight());
+    EXPECT_EQ(gpu.GetActiveLocalLightCount(), 1u);
     EXPECT_EQ(copiedLight.Texture, scene.GetLight(lightID)->texture);
     EXPECT_EQ(pActive[0], lightID.index);
     EXPECT_EQ(pActive[1], cameraID.index);
+
+    // Full-loop and clustered upload share the same eligible lights as an Inspector edit takes effect.
+    light.Local.Common.Base.bAffectsWorld = false;
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::rectLight, &light));
+    renderGpuSceneFrame(context, gpu, readback, {});
+    EXPECT_EQ(gpu.GetActiveLocalLightCount(), 0u);
+    light.Local.Common.Base.bAffectsWorld = true;
+    light.Local.AttenuationRadius = 0;
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::rectLight, &light));
+    renderGpuSceneFrame(context, gpu, readback, {});
+    EXPECT_EQ(gpu.GetActiveLocalLightCount(), 0u);
+    light.Local.AttenuationRadius = 1000;
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::rectLight, &light));
+    // View-order entries follow the active scene list even when only the view changes.
+    const hz::Entity secondLight = world.CreateEntity();
+    ASSERT_TRUE(world.SetComponent(secondLight, hz::SceneTypes::localTransform, &transform));
+    ASSERT_TRUE(world.AddComponent(secondLight, hz::SceneTypes::pointLight));
+    ASSERT_TRUE(gpu.BeginFrame(true));
+    const hz::Span<uint32_t> sceneOrder = scene.GetActiveLights();
+    ASSERT_EQ(sceneOrder.Count, 2u);
+    const uint32_t   viewOrder[] = { sceneOrder.Data[1], sceneOrder.Data[0] };
+    hz::CommandList& viewCommands = context.AcquireCommandList();
+    gpu.Upload(viewCommands, viewOrder);
+    viewCommands.CopyBuffer(readback, 0, gpu.GetBuffers().activeLocalLights, 0, 4 * sizeof(uint32_t));
+    const hz::RenderLightID pointID = scene.FindLight(secondLight);
+    viewCommands.CopyBuffer(readback, 512, gpu.GetBuffers().localLights, sizeof(hz::GpuLightData) * pointID.index,
+                            sizeof(hz::GpuLightData));
+    const hz::SubmitHandle viewSubmission = context.Submit(viewCommands);
+    gpu.EndFrame(viewSubmission);
+    context.Wait(viewSubmission);
+    const uint32_t* ids = reinterpret_cast<const uint32_t*>(pBytes);
+    EXPECT_EQ(ids[0], viewOrder[1]);
+    EXPECT_EQ(ids[1], viewOrder[0]);
+    EXPECT_EQ(ids[2], viewOrder[0]);
+    EXPECT_EQ(ids[3], viewOrder[1]);
+    EXPECT_FLOAT_EQ(scene.GetLight(pointID)->InfluenceRadius, 10.0f);
+    EXPECT_FLOAT_EQ((float)copiedLight.PositionAndInvRadius.getW(), 0.1f);
+    const hz::LocalTransform movedPoint = { .translation = Vector3(3, 1, 0) };
+    ASSERT_TRUE(world.SetComponent(secondLight, hz::SceneTypes::localTransform, &movedPoint));
+    scene.Update();
+    const hz::RenderSceneUploads moved = scene.GetPendingUploads();
+    EXPECT_GT(moved.lights.Count, 0u);
+    EXPECT_FALSE(moved.ActiveLocalLightIndices);
+    ASSERT_TRUE(world.RemoveComponent(secondLight, hz::SceneTypes::pointLight));
+    ASSERT_TRUE(world.AddComponent(secondLight, hz::SceneTypes::directionalLight));
+    ASSERT_TRUE(gpu.BeginFrame());
+    EXPECT_TRUE(scene.GetPendingUploads().ActiveLocalLightIndices);
+    gpu.CancelFrame();
+    const GpuSceneCopy localIndexCopy[] = {
+        { .table = &hz::GpuSceneBuffers::activeLocalLights, .dstOffset = 1000, .Size = sizeof(uint32_t) },
+    };
+    renderGpuSceneFrame(context, gpu, readback, localIndexCopy);
+    EXPECT_EQ(gpu.GetActiveLocalLightCount(), 1u);
+    EXPECT_EQ(pActive[0], lightID.index);
+    world.DestroyEntity(secondLight);
 
     transform.translation = Vector3(2, 0, 0);
     lens.verticalFov = 0.6f;
@@ -1798,7 +1853,7 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     renderGpuSceneFrame(context, gpu, readback, copies);
     assetManager.Update();
     EXPECT_EQ(scene.FindLight(entity), lightID);
-    EXPECT_TRUE(scene.GetLight(lightID)->IsActiveLocalLight());
+    EXPECT_EQ(gpu.GetActiveLocalLightCount(), 1u);
     EXPECT_EQ(assetManager.GetState(textureHandle), hz::AssetState::Ready);
 
     hz::SkyLightComponent sky = { .SourceType = hz::SkyLightSourceType::SpecifiedCubemap, .Cubemap = light.SourceTexture };

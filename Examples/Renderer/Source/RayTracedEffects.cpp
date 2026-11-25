@@ -173,12 +173,11 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     }
     Commands.SetPipeline(ReflectionPipeline);
     Commands.SetRootConstants(Constants);
-    const hz::GPUBuffer* LightingBuffers[] = { Lighting.LightingFrame, Lighting.Lights, Lighting.ActiveLights };
     Commands.TraceRays(ReflectionPipeline, Width, Height, 1,
                        { .sampledTextures = { GBuffer.NormalMaterial, GBuffer.Depth, &BlueNoise, Lighting.Environment, Lighting.Irradiance,
                                               Lighting.BRDFLut },
                          .storageTextures = { &Reflection },
-                         .buffers = { LightingBuffers, Lighting.Lights ? 3u : 1u },
+                         .buffers = { Lighting.LightingFrame },
                          .pShared = &SceneDependencies });
 
     Commands.EndGpuTimestamp();

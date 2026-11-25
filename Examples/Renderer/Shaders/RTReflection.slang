@@ -173,7 +173,7 @@ void closestHitMain(inout RayPayload Payload, BuiltInTriangleIntersectionAttribu
     const FIndirectLighting Indirect = EvaluateIndirectLighting(Surface.DiffuseColor, Surface.SpecularColor, Surface.Roughness, N, V,
                                                                  1.0, Light[0], RTLightingBindings(), false);
     // One bounce: the sun is shadowed by an inline query, without recursive TraceRay.
-    Payload.Color = Emissive + Indirect.Diffuse + AccumulateSceneLights(Light[0], Surface, HitPosition, V, Visibility, 2u);
+    Payload.Color = Emissive + Indirect.Diffuse + AccumulateMainLight(Light[0], Surface, V, Visibility, 2u);
 }
 
 // Only masked geometry invokes Any-Hit; opaque geometry is accepted by traversal.

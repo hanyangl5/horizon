@@ -45,7 +45,7 @@ struct RenderTargets
 {
     // The draw lists GpuDrawList owns; culling writes them and the drawing passes read them.
     hz::FrameGraphBuffer  DrawLists;
-    hz::FrameGraphBuffer  LightMasks;
+    hz::FrameGraphBuffer  TileLightBitMasks;
     // The streams the skinning pass writes; the passes that draw or trace geometry read them.
     hz::FrameGraphBuffer  SkinnedVertices;
     hz::FrameGraphTexture GBuffer[GBuffer::TextureCount];
@@ -97,18 +97,12 @@ public:
     void          EndFrame(uint32_t FrameIndex, hz::SubmitHandle Submission);
 
 private:
-    // Uploaded as the frame constant block, so the fields keep the shader's names.
-    struct FrameData
+    struct FrameResources
     {
-        Matrix4 ViewProjection;
-        Matrix4 PreviousViewProjection;
-        Matrix4 InverseViewProjection;
-        Vector4 Eye;
-    };
-
-    struct FrameConstantBuffer
-    {
-        hz::GPUBuffer    Buffer;
+        hz::GPUBuffer    Constants;
+        hz::GPUBuffer    LightingFrame;
+        hz::GPUBuffer    ZBins;
+        hz::GPUBuffer    TileLightBitMasks;
         hz::SubmitHandle Submission;
     };
 
@@ -134,8 +128,9 @@ private:
     hz::GPUSampler                         LinearSampler;
     hz::GpuDrawList                        Draws;
     float                                  DeltaSeconds = 1.0f / 60.0f;
-    hz::FixedArray<FrameConstantBuffer, 3> FrameConstants;
+    hz::FixedArray<FrameResources, 3>      Frames;
     uint32_t                               NextFrame = 0;
+    uint32_t                               FrameNumber = 0;
     hz::GpuScene                           GpuSceneData;
     hz::GpuSkinning                        Skinning;
     hz::FrameGraph*                        Graph = nullptr;

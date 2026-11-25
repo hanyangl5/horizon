@@ -5,7 +5,6 @@
 #include "ShadingModels.slang"
 #include "ClusterGrid.h"
 
-static const uint LightDirectional = 0;
 static const uint LightPoint = 1;
 static const uint LightSpot = 2;
 static const uint LightRect = 3;
@@ -96,30 +95,24 @@ FDirectLighting IntegrateBxDF(GpuLightData Light, uint Type, FGBufferData GBuffe
     return Lighting;
 }
 
-float3 AccumulateDynamicLighting(GpuLightData Light, FGBufferData GBuffer, float3 Position, float3 V, float SurfaceShadow)
+float3 EvaluateLocalLight(GpuLightData Light, FGBufferData GBuffer, float3 Position, float3 V)
 {
     const uint Type = uint(Light.DirectionAndType.w);
-    const bool RadialLight = Type != LightDirectional;
-    float3 L = -Light.DirectionAndType.xyz;
-    float3 ToLight = L;
-    float DistanceSquared = 1.0;
-    float LightMask = 1.0;
-    if (RadialLight)
-    {
-        if (Light.PositionAndInvRadius.w <= 0.0)
-            return 0.0;
-        LightMask = GetLocalLightAttenuation(Light, Type, Position, ToLight, L, DistanceSquared);
-    }
-    if (LightMask <= 0.0 || SurfaceShadow <= 0.0)
+    if (Light.PositionAndInvRadius.w <= 0.0)
+        return 0.0;
+    float3 ToLight, L;
+    float DistanceSquared;
+    const float LightMask = GetLocalLightAttenuation(Light, Type, Position, ToLight, L, DistanceSquared);
+    if (LightMask <= 0.0)
     {
         return 0.0;
     }
 
     FDirectLighting Lighting;
-    if (!RadialLight || Type == LightPoint || Type == LightSpot)
+    if (Type == LightPoint || Type == LightSpot)
     {
         float Falloff = rcp(DistanceSquared);
-        if (Light.SourceLength > 0.0 && RadialLight)
+        if (Light.SourceLength > 0.0)
         {
             const float3 HalfLine = 0.5 * Light.SourceLength * Light.DirectionAndType.xyz;
             const float3 A = ToLight - HalfLine, B = ToLight + HalfLine;
@@ -138,85 +131,74 @@ float3 AccumulateDynamicLighting(GpuLightData Light, FGBufferData GBuffer, float
     {
         Lighting = IntegrateBxDF(Light, Type, GBuffer, V, ToLight, L, DistanceSquared);
     }
-    return (Lighting.Diffuse + Lighting.Specular) * (Light.Color.rgb * (LightMask * SurfaceShadow));
+    return (Lighting.Diffuse + Lighting.Specular) * (Light.Color.rgb * LightMask);
 }
 
-float3 EvaluateIndexedLight(ByteAddressBuffer Lights, uint Index, FGBufferData GBuffer, float3 Position, float3 V)
+GpuLightData LoadLocalLight(ByteAddressBuffer Lights, ByteAddressBuffer Indices, uint Entry)
 {
-    GpuLightData Light = Lights.Load<GpuLightData>(Index * GpuLightStride);
-    if (uint(Light.DirectionAndType.w) > LightRect)
-        return 0.0;
-    return AccumulateDynamicLighting(Light, GBuffer, Position, V, 1.0);
+    const uint LightIndex = Indices.Load(Entry * sizeof(uint));
+    return Lights.Load<GpuLightData>(LightIndex * GpuLightStride);
 }
 
-float3 AccumulateAdditionalLights(LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V)
+float3 AccumulateLocalLights(LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V)
 {
     float3 Result = 0.0;
-    if (Frame.LightCount == 0)
+    if (Frame.LocalLightCount == 0)
     {
         return Result;
     }
-    ByteAddressBuffer Lights = ResourceDescriptorHeap[Frame.LightsIndex];
-    ByteAddressBuffer ActiveLights = ResourceDescriptorHeap[Frame.ActiveLightsIndex];
-    for (uint Index = 0; Index < Frame.LightCount; ++Index)
+    ByteAddressBuffer Lights = ResourceDescriptorHeap[Frame.LocalLightsIndex];
+    ByteAddressBuffer ActiveLights = ResourceDescriptorHeap[Frame.ActiveLocalLightsIndex];
+    for (uint Index = 0; Index < Frame.LocalLightCount; ++Index)
     {
-        const uint LightIndex = ActiveLights.Load(Index * sizeof(uint));
-        if (LightIndex == Frame.MainDirectionalIndex)
-        {
-            continue;
-        }
-        Result += EvaluateIndexedLight(Lights, LightIndex, GBuffer, Position, V);
+        GpuLightData Light = LoadLocalLight(Lights, ActiveLights, Index);
+        Result += EvaluateLocalLight(Light, GBuffer, Position, V);
     }
     return Result;
 }
 
-float3 AccumulateScreenLights(uint DataIndex, uint2 Pixel, LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V)
+uint2 GetZBinLightRange(ByteAddressBuffer ZBins, LightingFrameData Frame, float Near, float3 Position)
 {
-    if (DataIndex == INVALID_TEXTURE)
+    const float Depth = dot(Frame.ClusterLightingClipW, float4(Position, 1));
+    const uint Z = uint(clamp((Depth - Near) * Frame.ClusterLightingBinScale, 0.0, float(CLUSTER_DEPTH_BIN_COUNT - 1)));
+    return ZBins.Load2(Z * sizeof(uint2));
+}
+
+// The batch overlaps the inclusive Z-bin range. Both bit indices are in [0, 31].
+uint GetLightRangeMask(uint2 Range, uint FirstLight)
+{
+    const uint LastBit = LIGHTS_PER_BITMASK - 1u;
+    const uint First = max(Range.x, FirstLight) - FirstLight;
+    const uint Last = min(Range.y - FirstLight, LastBit);
+    return (~0u << First) & (~0u >> (LastBit - Last));
+}
+
+float3 AccumulateScreenLights(uint2 Pixel, float Near, LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V)
+{
+    if (Frame.ClusterLightingZBinsIndex == INVALID_TEXTURE)
     {
-        return AccumulateAdditionalLights(Frame, GBuffer, Position, V);
+        return AccumulateLocalLights(Frame, GBuffer, Position, V);
     }
-    ByteAddressBuffer Data = ResourceDescriptorHeap[DataIndex];
-    const ClusterGrid Grid = Data.Load<ClusterGrid>(0);
-    if (Grid.GlobalCount + Grid.FiniteCount == 0)
-    {
-        return 0.0;
-    }
-    ByteAddressBuffer Lights = ResourceDescriptorHeap[Frame.LightsIndex];
     float3 Result = 0.0;
-    for (uint I = 0; I < Grid.GlobalCount; ++I)
-    {
-        Result += EvaluateIndexedLight(Lights, Data.Load(Grid.IndexOffset + I * 4), GBuffer, Position, V);
-    }
-    if (Grid.Words == 0)
-    {
+    if (Frame.ClusterLightingTileLightBitMasksIndex == INVALID_TEXTURE)
         return Result;
-    }
-    const float Depth = dot(Grid.ClipW, float4(Position, 1));
-    const uint Z = uint(clamp((Depth - Grid.Near) * Grid.BinScale, 0.0, float(Grid.BinCount - 1)));
-    const uint2 Range = Data.Load2(sizeof(ClusterGrid) + Z * 8);
-    if (Range.x > Range.y)
+    ByteAddressBuffer Lights = ResourceDescriptorHeap[Frame.LocalLightsIndex];
+    ByteAddressBuffer Indices = ResourceDescriptorHeap[Frame.ActiveLocalLightsIndex];
+    ByteAddressBuffer ZBins = ResourceDescriptorHeap[Frame.ClusterLightingZBinsIndex];
+    ByteAddressBuffer Masks = ResourceDescriptorHeap[Frame.ClusterLightingTileLightBitMasksIndex];
+    const uint2 LightRange = GetZBinLightRange(ZBins, Frame, Near, Position);
+    const uint2 Range = LightRange / LIGHTS_PER_BITMASK;
+    const uint TileBase = GetTileLightMaskBase(Pixel / LIGHT_TILE_SIZE, Frame.ClusterLightingTilesX);
+    for (uint i = Range.x; i <= Range.y; ++i)
     {
-        return Result;
-    }
-    const uint2 Tile = Pixel / LIGHT_TILE_SIZE;
-    const uint Base = (Tile.y * Grid.TilesX + Tile.x) * Grid.Words;
-    ByteAddressBuffer Masks = ResourceDescriptorHeap[Grid.MaskIndex];
-    for (uint Word = Range.x / 32; Word <= Range.y / 32; ++Word)
-    {
-        uint Bits = Masks.Load((Base + Word) * 4);
-        if (Word == Range.x / 32)
-        {
-            Bits &= 0xffffffffu << (Range.x & 31);
-        }
-        if (Word == Range.y / 32)
-        {
-            Bits &= 0xffffffffu >> (31 - (Range.y & 31));
-        }
+        const uint FirstLight = i * LIGHTS_PER_BITMASK;
+        const uint TileMask = Masks.Load((TileBase + i) * sizeof(uint));
+        uint Bits = TileMask & GetLightRangeMask(LightRange, FirstLight);
         while (Bits != 0)
         {
-            const uint I = Grid.GlobalCount + Word * 32 + firstbitlow(Bits);
-            Result += EvaluateIndexedLight(Lights, Data.Load(Grid.IndexOffset + I * 4), GBuffer, Position, V);
+            const uint SortedIndex = FirstLight + firstbitlow(Bits);
+            GpuLightData Light = LoadLocalLight(Lights, Indices, Frame.LocalLightCount + SortedIndex);
+            Result += EvaluateLocalLight(Light, GBuffer, Position, V);
             Bits &= Bits - 1;
         }
     }
@@ -230,9 +212,4 @@ float3 AccumulateMainLight(LightingFrameData Frame, FGBufferData GBuffer, float3
     const FDirectLighting Lighting = DefaultLitBxDF(GBuffer, V, -normalize(Frame.LightDirection.xyz), 0.0);
     return (Lighting.Diffuse * Frame.MainDiffuseScale + Lighting.Specular * Frame.MainSpecularScale) *
            (max(Frame.LightColor.rgb, 0.0) * (Frame.LightDirection.w * saturate(SurfaceShadow)));
-}
-
-float3 AccumulateSceneLights(LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V, float SurfaceShadow, uint PassMask = 0)
-{
-    return AccumulateMainLight(Frame, GBuffer, V, SurfaceShadow, PassMask) + AccumulateAdditionalLights(Frame, GBuffer, Position, V);
 }

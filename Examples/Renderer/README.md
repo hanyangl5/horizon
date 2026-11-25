@@ -48,10 +48,12 @@ coverage in meters independently of the count. Each light has a random position,
 color and intensity and a 1.2 m range. Every second a randomly chosen light is
 replaced with a newly generated one.
 Deferred and transparent surfaces use the same
-32×32-pixel light masks and depth bins for local lights. Local lights use an explicit
-attenuation radius in centimeters. The default radius is 1000 cm. A zero radius
-disables the light's contribution. Ray-traced reflections evaluate lights at
-the hit position. Press F1 to toggle the Inspector. Its command box accepts a variable
+32×32-pixel tile masks and depth bins for local lights. The renderer uses the first ready
+directional light in the active scene list. Local lights use an explicit attenuation radius in centimeters.
+The default radius is 1000 cm. A zero radius disables the light's contribution.
+Each tile reserves 512 bytes for up to 4096 finite-range candidates. Frames exceeding
+that limit use the full light loop. Direct lighting at ray-traced reflection hits
+comes from that single directional light. Press F1 to toggle the Inspector. Its command box accepts a variable
 name to show the current value, or a name and value to change it for this session.
 Use `bistro.FreezeLights 1` to hold the lighting scene fixed, then compare
 `r.ClusteredLighting 0` (full light loop) with `r.ClusteredLighting 1`.

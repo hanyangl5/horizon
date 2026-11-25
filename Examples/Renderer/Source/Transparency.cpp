@@ -34,9 +34,8 @@ struct TransparencyConstants
     uint32_t OitShowHeatmap = 0;
     uint32_t OitOutputIndex = UINT32_MAX;
     float    OitTime = 0;
-    uint32_t ClusterDataIndex = UINT32_MAX;
 };
-static_assert(sizeof(TransparencyConstants) == 29 * sizeof(uint32_t));
+static_assert(sizeof(TransparencyConstants) == 28 * sizeof(uint32_t));
 
 Transparency::Transparency(hz::RenderContext& Context, hz::Format DepthFormat)
 {
@@ -97,19 +96,18 @@ void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame
             Buffers.PushBack(Buffer);
         }
         Buffers.PushBack(Lighting.LightingFrame);
-        if (Lighting.ClusterData)
+        if (Lighting.ZBins)
         {
-            Constants.ClusterDataIndex = Lighting.ClusterData->GetSrvIndex();
-            Buffers.PushBack(Lighting.ClusterData);
+            Buffers.PushBack(Lighting.ZBins);
         }
-        if (Lighting.TileMasks)
+        if (Lighting.TileLightBitMasks)
         {
-            Buffers.PushBack(Lighting.TileMasks);
+            Buffers.PushBack(Lighting.TileLightBitMasks);
         }
-        if (Lighting.Lights)
+        if (Lighting.LocalLights)
         {
-            Buffers.PushBack(Lighting.Lights);
-            Buffers.PushBack(Lighting.ActiveLights);
+            Buffers.PushBack(Lighting.LocalLights);
+            Buffers.PushBack(Lighting.ActiveLocalLights);
         }
         const hz::GPUTexture* LightingTextures[] = { Lighting.ShadowMap, Lighting.Environment, Lighting.Irradiance, Lighting.BRDFLut };
         for (const hz::GPUTexture* Texture : LightingTextures)

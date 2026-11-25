@@ -36,9 +36,10 @@ struct GpuSceneBuffers
     GPUBuffer activePrimitives;
     GPUBuffer activeInstances;
     GPUBuffer activeMeshBatches;
-    GPUBuffer lights;
+    // Local lights use scene slot indices; directional lights are packed contiguously.
+    GPUBuffer localLights;
     GPUBuffer cameras;
-    GPUBuffer activeLights;
+    GPUBuffer activeLocalLights;
     GPUBuffer activeCameras;
     GPUBuffer meshes;
     GPUBuffer vertexStreams;
@@ -66,15 +67,16 @@ public:
     void                   Reserve(uint32_t primitiveCount, uint32_t meshBatchCount, uint32_t lightCount = 0, uint32_t cameraCount = 0);
     // Updates the scene and stages its changes. Returns false without waiting when every frame is still in GPU use.
     // Do not Update the scene or Reset history until EndFrame or CancelFrame.
-    bool                   BeginFrame();
-    // Record before any pass that reads the buffers.
-    void                   Upload(CommandList& commands);
+    bool                   BeginFrame(bool ReserveViewLightIndices = false);
+    // Optional view indices follow the scene-order indices in activeLocalLights. Reserve them in BeginFrame.
+    void                   Upload(CommandList& commands, Span<uint32_t> ViewLightIndices = {});
     // Marks the staged changes as uploaded and advances render history.
     void                   EndFrame(SubmitHandle submission);
     // Keeps the changes pending for the next frame.
     void                   CancelFrame();
     // Buffers may be replaced by BeginFrame when tables grow.
     const GpuSceneBuffers& GetBuffers() const;
+    uint32_t               GetActiveLocalLightCount() const;
     // The asset tables uploaded by the current frame.
     const GpuAssetTables&  GetAssetTables() const;
 

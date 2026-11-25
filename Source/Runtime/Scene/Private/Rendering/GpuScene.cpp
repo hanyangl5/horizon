@@ -42,7 +42,7 @@ static GpuLightData PackLight(const RenderLight& Light)
     return { .PositionAndInvRadius =
                  Vector4(Light.transform.getTranslation(), Light.InfluenceRadius > 0 ? 1.0f / Light.InfluenceRadius : 0.0f),
              .DirectionAndType = Vector4(Direction, (float)Light.Type),
-             .Color = Vector4(ResolveLightColor(Light) * (Light.ready ? Brightness : 0.0f), Area),
+             .Color = Vector4(ResolveLightColor(Light) * Brightness, Area),
              .HalfAxisX = Vector4(HalfX, 0),
              .HalfAxisY = Vector4(HalfY, 0),
              .SpotAngles = float2(Outer, 1.0f / fmaxf(cosf(Light.innerConeAngle) - Outer, 1e-4f)),
@@ -101,8 +101,8 @@ public:
         frames.Resize(Desc.frameCount);
         GPUBuffer* const  Buffers[] = { &buffers.primitives,        &buffers.instances,        &buffers.meshBatches,
                                         &buffers.instanceIndices,   &buffers.activePrimitives, &buffers.activeInstances,
-                                        &buffers.activeMeshBatches, &buffers.lights,           &buffers.cameras,
-                                        &buffers.activeLights,      &buffers.activeCameras,    &buffers.meshes,
+                                        &buffers.activeMeshBatches, &buffers.localLights,      &buffers.cameras,
+                                        &buffers.activeLocalLights, &buffers.activeCameras,    &buffers.meshes,
                                         &buffers.vertexStreams,     &buffers.submeshes,        &buffers.materials,
                                         &buffers.textures };
         const uint32_t    Strides[] = { sizeof(RenderPrimitive),
@@ -123,8 +123,8 @@ public:
                                         sizeof(GpuTextureData) };
         const char* const Names[] = { "GpuScene.Primitives",        "GpuScene.Instances",        "GpuScene.MeshBatches",
                                       "GpuScene.InstanceIndices",   "GpuScene.ActivePrimitives", "GpuScene.ActiveInstances",
-                                      "GpuScene.ActiveMeshBatches", "GpuScene.Lights",           "GpuScene.Cameras",
-                                      "GpuScene.ActiveLights",      "GpuScene.ActiveCameras",    "GpuScene.Meshes",
+                                      "GpuScene.ActiveMeshBatches", "GpuScene.LocalLights",      "GpuScene.Cameras",
+                                      "GpuScene.ActiveLocalLights", "GpuScene.ActiveCameras",    "GpuScene.Meshes",
                                       "GpuScene.VertexStreams",     "GpuScene.Submeshes",        "GpuScene.Materials",
                                       "GpuScene.Textures" };
         static_assert(TF_ARRAY_COUNT(Buffers) == kGpuTableCount && TF_ARRAY_COUNT(Strides) == kGpuTableCount &&
@@ -147,7 +147,7 @@ public:
         }
     }
 
-    bool BeginFrame()
+    bool BeginFrame(bool ReserveViewLightIndices)
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::BeginFrame");
         ASSERT(!open);
@@ -168,7 +168,20 @@ public:
         assets = assetManager.GetGpuTables();
         const RenderSceneUploads Uploads = scene.GetPendingUploads();
         const bool               AssetsChanged = assets.revision != uploadedRevision;
-        const GpuTableSource     Sources[] = {
+        const bool               LocalIndicesChanged = Uploads.ActiveLocalLightIndices || uploadedRevision == UINT64_MAX;
+        if (LocalIndicesChanged)
+        {
+            ActiveLocalLights.Clear();
+            for (uint32_t Index : scene.GetActiveLights())
+            {
+                const RenderLight& Light = scene.GetLights().Data[Index];
+                if (Light.IsActiveLocalLight())
+                {
+                    ActiveLocalLights.PushBack(Index);
+                }
+            }
+        }
+        const GpuTableSource Sources[] = {
             MakeGpuTableSource(scene.GetPrimitives(), Uploads.primitives),
             MakeGpuTableSource(scene.GetInstances(), Uploads.instances),
             MakeGpuTableSource(scene.GetMeshBatches(), Uploads.meshBatches),
@@ -178,7 +191,7 @@ public:
             MakeGpuTableSource(scene.GetActiveMeshBatches(), {}, Uploads.activeMeshBatches),
             MakeGpuTableSource(scene.GetLights(), Uploads.lights),
             MakeGpuTableSource(scene.GetCameras(), Uploads.cameras),
-            MakeGpuTableSource(scene.GetActiveLights(), {}, Uploads.activeLights),
+            MakeGpuTableSource(Span<uint32_t>(ActiveLocalLights.GetData(), ActiveLocalLights.Size()), {}, LocalIndicesChanged),
             MakeGpuTableSource(scene.GetActiveCameras(), {}, Uploads.activeCameras),
             MakeGpuTableSource(assets.meshes, {}, AssetsChanged),
             MakeGpuTableSource(assets.vertexStreams, {}, AssetsChanged),
@@ -186,6 +199,7 @@ public:
             MakeGpuTableSource(assets.materials, {}, AssetsChanged),
             MakeGpuTableSource(assets.textures, {}, AssetsChanged),
         };
+        const uint64_t ViewLightBytes = ReserveViewLightIndices ? uint64_t(ActiveLocalLights.Size()) * sizeof(uint32_t) : 0;
         uint64_t Staged = 0;
         for (uint32_t I = 0; I < kGpuTableCount; ++I)
         {
@@ -193,9 +207,10 @@ public:
             const GpuTableSource& Input = Sources[I];
             const uint64_t        Size = (uint64_t)Input.Count * Table.stride;
             Table.regions.Clear();
-            if (Size > Table.Capacity)
+            const uint64_t Required = Table.pBuffer == &buffers.activeLocalLights ? Size + ViewLightBytes : Size;
+            if (Required > Table.Capacity)
             {
-                Table.Capacity = GrowCapacity(Table.Capacity, Size);
+                Table.Capacity = GrowCapacity(Table.Capacity, Required);
                 context.DeferRelease(std::move(*Table.pBuffer));
                 *Table.pBuffer = context.CreateBuffer({ .Size = Table.Capacity,
                                                         .ElementCount = (uint32_t)(Table.Capacity / 4),
@@ -224,6 +239,8 @@ public:
                 Staged += Bytes;
             }
         }
+        viewLightStagingOffset = Staged;
+        Staged += ViewLightBytes;
         GpuSceneFrame& FrameValue = frames[current];
         {
             PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::stage");
@@ -243,7 +260,7 @@ public:
                 for (const BufferCopyRegion& Region : tables[I].regions)
                 {
                     const void* Source;
-                    if (tables[I].pBuffer == &buffers.lights)
+                    if (tables[I].pBuffer == &buffers.localLights)
                     {
                         const uint32_t     First = (uint32_t)(Region.dstOffset / sizeof(GpuLightData));
                         const uint32_t     Count = (uint32_t)(Region.Size / sizeof(GpuLightData));
@@ -251,7 +268,7 @@ public:
                         PackedLights.Resize(Count);
                         for (uint32_t Index = 0; Index < Count; ++Index)
                         {
-                            PackedLights[Index] = PackLight(Lights[Index]);
+                            PackedLights[Index] = Lights[Index].Type == LightType::Directional ? GpuLightData{} : PackLight(Lights[Index]);
                         }
                         Source = PackedLights.GetData();
                     }
@@ -276,8 +293,10 @@ public:
     GpuTable             tables[kGpuTableCount];
     Array<GpuSceneFrame> frames;
     Array<GpuLightData>  PackedLights;
+    Array<uint32_t>      ActiveLocalLights;
     GpuAssetTables       assets;
-    uint64_t             uploadedRevision = 0;
+    uint64_t             viewLightStagingOffset = 0;
+    uint64_t             uploadedRevision = UINT64_MAX;
     uint32_t             current = UINT32_MAX;
     uint32_t             next = 0;
     bool                 open = false;
@@ -295,15 +314,16 @@ void GpuScene::Reserve(uint32_t PrimitiveCount, uint32_t MeshBatchCount, uint32_
     ASSERT(!Data->open);
     Data->scene.Reserve(PrimitiveCount, MeshBatchCount, LightCount, CameraCount);
     Data->PackedLights.Reserve(LightCount);
+    Data->ActiveLocalLights.Reserve(LightCount);
     for (GpuTable& Table : Data->tables)
     {
         Table.regions.Reserve(PrimitiveCount > MeshBatchCount ? PrimitiveCount : MeshBatchCount);
     }
 }
 
-bool GpuScene::BeginFrame()
+bool GpuScene::BeginFrame(bool ReserveViewLightIndices)
 {
-    if (!Data->BeginFrame())
+    if (!Data->BeginFrame(ReserveViewLightIndices))
     {
         return false;
     }
@@ -311,13 +331,22 @@ bool GpuScene::BeginFrame()
     return true;
 }
 
-void GpuScene::Upload(CommandList& Commands)
+void GpuScene::Upload(CommandList& Commands, Span<uint32_t> ViewLightIndices)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("GpuScene::Upload");
     ASSERT(Data->open && !Data->recorded);
     const GpuSceneFrame& FrameValue = Data->frames[Data->current];
-    for (const GpuTable& Table : Data->tables)
+    for (GpuTable& Table : Data->tables)
     {
+        if (ViewLightIndices.Count && Table.pBuffer == &Data->buffers.activeLocalLights)
+        {
+            const uint64_t Bytes = uint64_t(ViewLightIndices.Count) * sizeof(uint32_t);
+            const uint64_t Offset = uint64_t(Data->ActiveLocalLights.Size()) * sizeof(uint32_t);
+            ASSERT(Bytes <= Offset && Offset + Bytes <= Table.Capacity);
+            const bool Written = Data->context.UpdateBuffer(FrameValue.staging, Data->viewLightStagingOffset, ViewLightIndices.Data, Bytes);
+            ASSERT(Written);
+            Table.regions.PushBack({ .srcOffset = Data->viewLightStagingOffset, .dstOffset = Offset, .Size = Bytes });
+        }
         if (!Table.regions.Empty())
         {
             Commands.CopyBufferRegions(*Table.pBuffer, FrameValue.staging, { Table.regions.GetData(), Table.regions.Size() });
@@ -349,6 +378,8 @@ void GpuScene::CancelFrame()
     Data->scene.SetFrameLocked(false);
     Data->open = false;
 }
+
+uint32_t GpuScene::GetActiveLocalLightCount() const { return Data->ActiveLocalLights.Size(); }
 
 const GpuSceneBuffers& GpuScene::GetBuffers() const { return Data->buffers; }
 const GpuAssetTables&  GpuScene::GetAssetTables() const { return Data->assets; }

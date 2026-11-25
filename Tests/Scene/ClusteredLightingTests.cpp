@@ -1,4 +1,5 @@
 #include "AssetTestFixtures.h"
+#include "../../Examples/Renderer/Source/RendererConstants.h"
 #include "../../Examples/Renderer/Source/ClusteredLighting.h"
 #include "../../Examples/Renderer/Source/DeferredLighting.h"
 #include "../../Examples/Renderer/Shaders/ClusterGrid.h"
@@ -10,10 +11,10 @@ TEST_F(SceneAssetLoaderTest, LocalLightSourceRadiusBroadensSpecularAndPreservesD
     const std::filesystem::path tests = std::filesystem::path(__FILE__).parent_path();
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, tests.string().c_str());
     hz::RenderContext context({ .pAppName = "LightSourceRadiusTest" });
-    hz::GPUPipeline pipeline = context.CreateComputePipeline(
-        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CompareSourceRadii" } },
-                          .sourceDirectory = DirectoryOtherFiles,
-                          .pFileName = "ClusteredLightingTests.slang" } });
+    hz::GPUPipeline   pipeline =
+        context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CompareSourceRadii" } },
+                                                        .sourceDirectory = DirectoryOtherFiles,
+                                                        .pFileName = "ClusteredLightingTests.slang" } });
     ASSERT_TRUE(pipeline.IsValid());
     hz::GPUBuffer output = context.CreateBuffer({ .Size = sizeof(Vector4),
                                                   .ElementCount = 1,
@@ -28,7 +29,7 @@ TEST_F(SceneAssetLoaderTest, LocalLightSourceRadiusBroadensSpecularAndPreservesD
     ASSERT_TRUE(output.IsValid() && readback.IsValid());
     hz::CommandList& commands = context.AcquireCommandList();
     commands.SetPipeline(pipeline);
-    commands.SetRootConstant({ 0, 0, output.GetUavIndex() });
+    commands.SetRootConstant({ 0, output.GetUavIndex() });
     commands.Dispatch(1, 1, 1, { .storageBuffers = { &output } });
     commands.CopyBuffer(readback, 0, output, 0, sizeof(Vector4));
     context.Wait(context.Submit(commands));
@@ -45,6 +46,8 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingKeepsLightsOverlappingFarPlane)
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderSources, shaders.string().c_str());
     hz::RenderContext context({ .pAppName = "ClusteredLightingTest" });
     ClusteredLighting clusters(context);
+    LightingFrameData frame;
+    hz::GPUBuffer     bins, masks;
     hz::RenderLight   lights[2] = {};
     const float       depths[] = { 18.0f, 16.5f };
     uint32_t          active[] = { 0, 1 };
@@ -55,13 +58,64 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingKeepsLightsOverlappingFarPlane)
         lights[i].InfluenceRadius = 1.5f;
         lights[i].transform = Matrix4::translation(Vector3(0, 0, -depths[i]));
     }
-    const Matrix4 vp = Matrix4::perspectiveRH(PI / 2, 1.0f, 0.1f, 16.0f);
-    ASSERT_TRUE(clusters.Prepare(0, lights, active, UINT32_MAX, vp, 0.1f, 16.0f, 32, 32));
-    const uint8_t*     data = static_cast<const uint8_t*>(clusters.GetData(0).Get()->pCpuMappedAddress);
-    const ClusterGrid& grid = *reinterpret_cast<const ClusterGrid*>(data);
-    ASSERT_EQ(grid.GlobalCount, 0u);
-    ASSERT_EQ(grid.FiniteCount, 1u);
-    EXPECT_EQ(*reinterpret_cast<const uint32_t*>(data + grid.IndexOffset), 1u);
+    const FrameData camera = { .ViewProjection = Matrix4::perspectiveRH(PI / 2, 1.0f, 0.1f, 16.0f),
+                               .Near = 0.1f,
+                               .Far = 16,
+                               .Width = 32,
+                               .Height = 32 };
+    ASSERT_TRUE(clusters.Prepare(frame, bins, masks, lights, active, camera));
+    ASSERT_EQ(clusters.GetLightIndices().Count, 1u);
+    EXPECT_EQ(clusters.GetLightIndices().Data[0], 1u);
+}
+
+TEST_F(SceneAssetLoaderTest, ClusteredLightingFallsBackOnlyAboveVisibleLightLimit)
+{
+    const std::filesystem::path shaders = std::filesystem::path(__FILE__).parent_path() / "../../Examples/Renderer/Shaders";
+    SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderSources, shaders.string().c_str());
+    hz::RenderContext            context({ .pAppName = "ClusteredLightingTest" });
+    ClusteredLighting            clusters(context);
+    LightingFrameData            frame;
+    hz::GPUBuffer                bins, masks;
+    constexpr uint32_t           count = ClusteredLighting::MaxClusteredLights + 1;
+    std::vector<hz::RenderLight> lights(count);
+    std::vector<uint32_t>        active(count);
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        lights[i].Type = hz::LightType::Point;
+        lights[i].ready = true;
+        lights[i].InfluenceRadius = 0.01f;
+        lights[i].transform = Matrix4::translation(Vector3(0, 0, -3));
+        active[i] = i;
+    }
+    const FrameData                 camera = { .ViewProjection = Matrix4::perspectiveRH(PI / 2, 1.0f, 0.1f, 16.0f),
+                                               .Near = 0.1f,
+                                               .Far = 16,
+                                               .Width = LIGHT_TILE_SIZE,
+                                               .Height = LIGHT_TILE_SIZE };
+    const hz::Span<hz::RenderLight> lightSpan(lights.data(), count);
+    ASSERT_TRUE(clusters.Prepare(frame, bins, masks, lightSpan, { active.data(), 1 }, camera));
+    ASSERT_EQ(frame.ClusterLightingTileLightBitMasksIndex, masks.GetSrvIndex());
+    constexpr uint32_t maxBitMasks = (ClusteredLighting::MaxClusteredLights + LIGHTS_PER_BITMASK - 1) / LIGHTS_PER_BITMASK;
+    EXPECT_GE(masks.GetSize(), maxBitMasks * sizeof(uint32_t));
+    EXPECT_EQ(clusters.GetLightIndices().Count, 1u);
+    EXPECT_FALSE(clusters.Prepare(frame, bins, masks, lightSpan, { active.data(), count }, camera));
+    lights.back().transform = Matrix4::translation(Vector3(0, 0, -30));
+    ASSERT_TRUE(clusters.Prepare(frame, bins, masks, lightSpan, { active.data(), count }, camera));
+    EXPECT_EQ(clusters.GetLightIndices().Count, count - 1);
+    lights.back().InfluenceRadius = 10;
+    EXPECT_FLOAT_EQ(lights.back().InfluenceRadius, 10.0f);
+    ASSERT_TRUE(clusters.Prepare(frame, bins, masks, lightSpan, { active.data(), count }, camera));
+    EXPECT_EQ(clusters.GetLightIndices().Count, count - 1);
+    lights.back().InfluenceRadius = 20;
+    EXPECT_FLOAT_EQ(lights.back().InfluenceRadius, 20.0f);
+    EXPECT_FALSE(clusters.Prepare(frame, bins, masks, lightSpan, { active.data(), count }, camera));
+    EXPECT_EQ(frame.ClusterLightingZBinsIndex, UINT32_MAX);
+    EXPECT_EQ(frame.ClusterLightingTileLightBitMasksIndex, UINT32_MAX);
+    EXPECT_EQ(clusters.GetLightIndices().Count, 0u);
+    ASSERT_TRUE(clusters.Prepare(frame, bins, masks, lightSpan, {}, camera));
+    EXPECT_EQ(frame.ClusterLightingZBinsIndex, bins.GetSrvIndex());
+    EXPECT_EQ(frame.ClusterLightingTileLightBitMasksIndex, UINT32_MAX);
+    EXPECT_EQ(clusters.GetLightIndices().Count, 0u);
 }
 
 TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepths)
@@ -72,6 +126,7 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, tests.string().c_str());
     hz::RenderContext context({ .pAppName = "ClusteredLightingTest", .enableGpuValidation = true });
     ClusteredLighting clusters(context);
+    hz::GPUBuffer     zBins[3], tileMasks[3];
     hz::GPUPipeline   compare =
         context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CompareLighting" } },
                                                         .sourceDirectory = DirectoryOtherFiles,
@@ -79,7 +134,7 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
     ASSERT_TRUE(compare.IsValid());
 
     const hz::LightType special[] = { hz::LightType::Directional, hz::LightType::Directional, hz::LightType::Point,
-                                      hz::LightType::Sky,        hz::LightType::Sky,        hz::LightType::Point,
+                                      hz::LightType::Sky,         hz::LightType::Sky,         hz::LightType::Point,
                                       hz::LightType::Point,       hz::LightType::Point,       hz::LightType::Point };
     constexpr uint32_t  PrefixCount = TF_ARRAY_COUNT(special), Total = PrefixCount + 33, PixelCapacity = 65 * 35 * 5;
     hz::RenderLight     lights[Total];
@@ -91,7 +146,7 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
         active[i] = i;
         lights[i].ready = i != 5;
         lights[i].Type = i < PrefixCount ? special[i] : hz::LightType(1 + i % 3);
-        lights[i].InfluenceRadius = i < 6 ? 0.0f : 1.5f;
+        lights[i].InfluenceRadius = i < 6 ? 10.0f : 1.5f;
         Vector3 pos((int(i % 5) - 2) * 0.9f, (int(i % 3) - 1) * 0.4f, -0.5f - float(i % 7));
         if (i >= 6 && i < PrefixCount)
         {
@@ -111,10 +166,10 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
         }
         lights[i].transform = Matrix4::translation(pos);
         packed[i] = { .PositionAndInvRadius = Vector4(pos, lights[i].InfluenceRadius > 0 ? 1.0f / lights[i].InfluenceRadius : 0.0f),
-                      .DirectionAndType = Vector4(0, 0, -1, float(lights[i].Type)),
-                      .Color = Vector4(lights[i].ready ? 1.0f : 0.0f, lights[i].ready ? 0.7f : 0.0f, lights[i].ready ? 0.4f : 0.0f, 1),
-                      .HalfAxisX = Vector4(0.1f, 0, 0, 1),
-                      .HalfAxisY = Vector4(0, 0.12f, 0, 0.1f),
+                      .DirectionAndType = Vector4(0.0f, 0.0f, -1.0f, float(lights[i].Type)),
+                      .Color = Vector4(1.0f, 0.7f, 0.4f, 1.0f),
+                      .HalfAxisX = Vector4(0.1f, 0.0f, 0.0f, 1.0f),
+                      .HalfAxisY = Vector4(0.0f, 0.12f, 0.0f, 0.1f),
                       .SpotAngles = float2(0.5f, 4.0f) };
     }
     const auto upload = [&](const void* data, uint32_t bytes, uint32_t stride)
@@ -128,8 +183,7 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
                                       .StartState = RESOURCE_STATE_SHADER_RESOURCE,
                                       .Descriptors = stride ? DESCRIPTOR_TYPE_BUFFER : DESCRIPTOR_TYPE_BUFFER_RAW });
     };
-    const hz::GPUBuffer lightBuffer = upload(packed, sizeof(packed), 0), activeBuffer = upload(active, sizeof(active), 0);
-    const hz::GPUBuffer finiteActiveBuffer = upload(active + PrefixCount, (Total - PrefixCount) * sizeof(uint32_t), 0);
+    const hz::GPUBuffer lightBuffer = upload(packed, sizeof(packed), 0);
     hz::GPUBuffer       output = context.CreateBuffer({ .Size = PixelCapacity * 16,
                                                         .ElementCount = PixelCapacity,
                                                         .StructStride = 16,
@@ -143,42 +197,54 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
     const uint32_t      counts[] = { 0, 1, 31, 32, 33, 0, 1 };
     for (uint32_t step = 0; step < TF_ARRAY_COUNT(counts); ++step)
     {
-        // Only the deepest light reaches the far sample. Exclude globals so a dropped second word leaves it black.
-        const bool     secondWord = counts[step] == 33;
-        const uint32_t first = secondWord ? PrefixCount : 0;
-        const uint32_t count = PrefixCount + counts[step] - first, width = step % 2 ? 63 : 65, height = 35, slot = step % 3;
-        Matrix4        vp = Matrix4::perspectiveRH(PI / 2, float(height) / width, 0.1f, 16);
+        // Only the deepest light reaches the far sample. Exclude globals so a dropped second mask leaves it black.
+        const bool        secondBatch = counts[step] == 33;
+        const uint32_t    first = secondBatch ? PrefixCount : 0;
+        const uint32_t    count = PrefixCount + counts[step] - first, width = step % 2 ? 63 : 65, height = 35;
+        hz::GPUBuffer&    bins = zBins[step % TF_ARRAY_COUNT(zBins)];
+        hz::GPUBuffer&    masks = tileMasks[step % TF_ARRAY_COUNT(tileMasks)];
+        LightingFrameData frame;
+        Matrix4           vp = Matrix4::perspectiveRH(PI / 2, float(height) / width, 0.1f, 16);
         vp.setRow(0, vp.getRow(0) + vp.getRow(3) * (0.5f / width));
-        ASSERT_TRUE(clusters.Prepare(slot, lights, { active + first, count }, 0, vp, 0.1f, 16, width, height));
-        const hz::GPUBuffer& data = clusters.GetData(slot);
-        const ClusterGrid&   grid = *(const ClusterGrid*)data.Get()->pCpuMappedAddress;
-        ASSERT_EQ(grid.FiniteCount, counts[step]);
-        ASSERT_EQ(grid.GlobalCount, secondWord ? 0u : 1u);
-        const hz::GPUBuffer&    activeList = secondWord ? finiteActiveBuffer : activeBuffer;
-        const LightingFrameData frame = { .LightsIndex = lightBuffer.GetSrvIndex(),
-                                          .LightCount = count,
-                                          .ActiveLightsIndex = activeList.GetSrvIndex(),
-                                          .MainDirectionalIndex = 0 };
-        const hz::GPUBuffer     lighting = upload(&frame, sizeof(frame), sizeof(frame));
-        hz::CommandList&        commands = context.AcquireCommandList();
-        const hz::GPUBuffer*    mask = clusters.GetMask(slot);
-        if (mask)
+        const FrameData camera = { .ViewProjection = vp, .Near = 0.1f, .Far = 16, .Width = width, .Height = height };
+        ASSERT_TRUE(clusters.Prepare(frame, bins, masks, lights, { active + first, count }, camera));
+        const hz::Span<uint32_t> sorted = clusters.GetLightIndices();
+        ASSERT_EQ(sorted.Count, counts[step] + (secondBatch ? 0u : 1u));
+        ASSERT_EQ(frame.ClusterLightingTileLightBitMasksIndex, masks.GetSrvIndex());
+        std::vector<uint32_t> indices;
+        for (uint32_t i = first; i < first + count; ++i)
         {
-            clusters.BuildMasks(commands, slot);
+            if (hz::IsLocalLight(lights[i].Type) && lights[i].ready)
+            {
+                indices.push_back(i);
+            }
         }
-        const hz::GPUBuffer* buffers[] = { &data, &lighting, &lightBuffer, &activeList, mask };
+        const uint32_t localCount = uint32_t(indices.size());
+        indices.insert(indices.end(), sorted.begin(), sorted.end());
+        const hz::GPUBuffer activeList = upload(indices.data(), uint32_t(indices.size() * sizeof(uint32_t)), 0);
+        frame.LocalLightsIndex = lightBuffer.GetSrvIndex();
+        frame.LocalLightCount = localCount;
+        frame.ActiveLocalLightsIndex = activeList.GetSrvIndex();
+        const hz::GPUBuffer lighting = upload(&frame, sizeof(frame), sizeof(frame));
+        hz::CommandList&    commands = context.AcquireCommandList();
+        clusters.BuildLightTileMasks(commands, camera, masks, lightBuffer, activeList, localCount);
+        const hz::GPUBuffer* buffers[] = { &bins, &lighting, &lightBuffer, &activeList, &masks };
         commands.SetPipeline(compare);
-        commands.SetRootConstant({ data.GetSrvIndex(), lighting.GetSrvIndex(), output.GetUavIndex() });
-        commands.Dispatch((width + 7) / 8, (height + 7) / 8, 5, { .buffers = { buffers, mask ? 5u : 4u }, .storageBuffers = { &output } });
+        commands.SetRootConstant({ lighting.GetSrvIndex(), output.GetUavIndex(), width, height });
+        const Vector4 projection(float(vp.getRow(0).getZ()), float(vp.getRow(1).getZ()), float(vp.getRow(0).getX()),
+                                 float(vp.getRow(1).getY()));
+        commands.SetRootConstants(projection, 4);
+        commands.SetRootConstants(0.1f, 8);
+        commands.Dispatch((width + 7) / 8, (height + 7) / 8, 5, { .buffers = buffers, .storageBuffers = { &output } });
         commands.CopyBuffer(readback, 0, output, 0, width * height * 5 * 16);
         context.Wait(context.Submit(commands));
         const float* values = (const float*)readback.Get()->pCpuMappedAddress;
-        if (secondWord)
+        if (secondBatch)
         {
             const uint32_t farCenter = (4 * height + height / 2) * width + width / 2;
             ASSERT_GT(values[farCenter * 4 + 3], 1e-4f);
         }
-        float        peak = 0;
+        float peak = 0;
         for (uint32_t p = 0; p < width * height * 5; ++p)
         {
             for (uint32_t c = 0; c < 3; ++c)

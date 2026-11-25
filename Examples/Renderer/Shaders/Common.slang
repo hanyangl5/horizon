@@ -10,6 +10,8 @@ struct FrameData
     float4x4 PreviousViewProjection;
     float4x4 InverseViewProjection;
     float4   Eye;
+    float    Near, Far;
+    uint     Width, Height;
 };
 
 // The ray traced effects run at a reduced resolution. Each of their texels samples one full-resolution GBuffer pixel,

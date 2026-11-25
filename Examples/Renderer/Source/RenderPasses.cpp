@@ -114,15 +114,16 @@ void GBuffer::Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const hz
 struct FrameInputs
 {
     hz::GpuDrawList&     Draws;
-    const hz::GPUBuffer& Frame;
-    const hz::SceneView& View;
+    const hz::GPUBuffer&       Frame;
+    const FrameData&           Camera;
+    const hz::SceneView&       View;
     hz::GPUSampler&      LinearSampler;
     const RenderTargets& Targets;
     LightingResources    Lighting = {};
     float                DeltaSeconds = 0.0f;
     float                EnvironmentIntensity = 0.0f;
     Vector4              EnvironmentTint = Vector4(1.0f);
-    float2               SkyRotation = float2(0, 1);
+    float2                     SkyRotation = float2(0, 1);
     bool                 RayTracedShadows = false;
     bool                 RayTracedReflection = false;
     bool                 TemporalAAEnabled = false;
@@ -286,9 +287,9 @@ void RenderPasses::BuildGraph()
                               .UserData = Culling.Get(),
                               .Buffers = WriteLists,
                           });
-    T.LightMasks = hz::ImportFrameGraphBuffer(G, { .Name = "LightTileMasks" });
-    const hz::FrameGraphBufferUse WriteMasks[] = { { T.LightMasks, Write } };
-    const hz::FrameGraphBufferUse ReadMasks[] = { { T.LightMasks, Optional } };
+    T.TileLightBitMasks = hz::ImportFrameGraphBuffer(G, { .Name = "TileLightBitMasks" });
+    const hz::FrameGraphBufferUse WriteMasks[] = { { T.TileLightBitMasks, Write } };
+    const hz::FrameGraphBufferUse ReadMasks[] = { { T.TileLightBitMasks, Optional } };
     LightMaskPass =
         hz::AddFrameGraphPass(G,
                               {
@@ -297,9 +298,11 @@ void RenderPasses::BuildGraph()
                                       [](const hz::FrameGraphContext& Pass, void* UserData)
                                   {
                                       const FrameInputs& Frame = Inputs(Pass);
-                                      if (Frame.Lighting.TileMasks)
+                                      if (Frame.Lighting.TileLightBitMasks)
                                       {
-                                          static_cast<ClusteredLighting*>(UserData)->BuildMasks(Pass.Commands, Frame.View.FrameIndex);
+                                          static_cast<ClusteredLighting*>(UserData)->BuildLightTileMasks(
+                                              Pass.Commands, Frame.Camera, *Frame.Lighting.TileLightBitMasks, *Frame.Lighting.LocalLights,
+                                              *Frame.Lighting.ActiveLocalLights, Frame.View.GpuScene.GetActiveLocalLightCount());
                                       }
                                   },
                                   .UserData = Clusters.Get(),
@@ -570,8 +573,7 @@ void RenderPasses::BuildGraph()
 
 RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     Context(*Desc.Context), Scene(*Desc.Scene), Assets(*Desc.AssetManager), CameraId(Desc.Camera), Draws(Context),
-    GpuSceneData(Scene, Assets, Context, { .frameCount = FrameConstants.Size() }),
-    Skinning(Scene, Assets, Context, { .FrameCount = FrameConstants.Size() })
+    GpuSceneData(Scene, Assets, Context, { .frameCount = Frames.Size() }), Skinning(Scene, Assets, Context, { .FrameCount = Frames.Size() })
 {
     ASSERT(Context.IsValid() && CameraId.IsValid());
     Culling = hz::MakeUnique<FrustumCulling>(Context);
@@ -590,18 +592,22 @@ RenderPasses::RenderPasses(const RenderPassesDesc& Desc):
     BuildGraph();
 
     LinearSampler = Context.CreateSampler({ .AddressU = ADDRESS_MODE_CLAMP_TO_EDGE, .AddressV = ADDRESS_MODE_CLAMP_TO_EDGE });
-    for (FrameConstantBuffer& ConstantBuffer : FrameConstants)
+    const auto CreateFrameBuffer = [this](uint32_t Size, const char* Name)
     {
-        hz::GPUBuffer& Buffer = ConstantBuffer.Buffer;
-        Buffer = Context.CreateBuffer({ .Size = sizeof(FrameData),
-                                        .ElementCount = 1,
-                                        .StructStride = sizeof(FrameData),
-                                        .Name = "Renderer.Frame",
-                                        .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
-                                        .StartState = RESOURCE_STATE_SHADER_RESOURCE,
-                                        .Descriptors = DESCRIPTOR_TYPE_BUFFER,
-                                        .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
-        ASSERT(Buffer.IsValid());
+        return Context.CreateBuffer({ .Size = Size,
+                                      .ElementCount = 1,
+                                      .StructStride = Size,
+                                      .Name = Name,
+                                      .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                      .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                      .Descriptors = DESCRIPTOR_TYPE_BUFFER,
+                                      .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    };
+    for (FrameResources& Resources : Frames)
+    {
+        Resources.Constants = CreateFrameBuffer(sizeof(FrameData), "Renderer.Frame");
+        Resources.LightingFrame = CreateFrameBuffer(sizeof(LightingFrameData), "Renderer.LightingFrame");
+        ASSERT(Resources.Constants.IsValid() && Resources.LightingFrame.IsValid());
     }
 }
 
@@ -652,33 +658,33 @@ RecordedFrame RenderPasses::Record()
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::execute");
     const uint32_t       FrameIndex = NextFrame;
-    FrameConstantBuffer& ConstantBuffer = FrameConstants[FrameIndex];
+    FrameResources&      Resources = Frames[FrameIndex];
     const hz::SceneView  View = { .Scene = Scene,
                                   .GpuScene = GpuSceneData,
                                   .Assets = Assets,
                                   .FrameIndex = FrameIndex,
                                   .Skinning = &Skinning };
-    RecordedFrame        Output = { .View = View, .Constants = ConstantBuffer.Buffer, .Draws = Draws, .Sampler = GBufferPass->Sampler };
+    RecordedFrame        Output = { .View = View, .Constants = Resources.Constants, .Draws = Draws, .Sampler = GBufferPass->Sampler };
     if (Context.IsSuspended())
     {
         return Output;
     }
-    if (ConstantBuffer.Submission.IsValid())
+    if (Resources.Submission.IsValid())
     {
         PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderPasses::waitForFrame");
-        Context.Wait(ConstantBuffer.Submission);
+        Context.Wait(Resources.Submission);
     }
-    if (!GpuSceneData.BeginFrame())
+    if (!GpuSceneData.BeginFrame(GClusteredLighting.GetBool()))
     {
         return Output;
     }
-    NextFrame = (NextFrame + 1) % FrameConstants.Size();
+    NextFrame = (NextFrame + 1) % Frames.Size();
     const hz::RenderCamera* Camera = Scene.GetCamera(CameraId);
     ASSERT(Camera);
     const hz::RenderCamera& CameraState = *Camera;
     const float             AspectInverse = (float)Context.GetHeight() / (float)Context.GetWidth();
     const TemporalJitter    Jitter =
-        GTemporalAA.GetBool() ? TemporalAA::GetJitter(Shadows->Data.FrameIndex, Context.GetWidth(), Context.GetHeight()) : TemporalJitter{};
+        GTemporalAA.GetBool() ? TemporalAA::GetJitter(FrameNumber, Context.GetWidth(), Context.GetHeight()) : TemporalJitter{};
     if (GTemporalAA.GetBool() && !TemporalAAWasEnabled)
     {
         hz::InvalidateFrameGraphHistory(Graph, Targets.TemporalColor);
@@ -688,31 +694,33 @@ RecordedFrame RenderPasses::Record()
                                          .PreviousViewProjection =
                                              CameraViewProjection(CameraState.previous, CameraState.previousLens, AspectInverse, PreviousJitter),
                                          .InverseViewProjection = inverse(Current),
-                                         .Eye = CameraState.current.getCol3() };
-    const hz::GPUBuffer& Frame = ConstantBuffer.Buffer;
+                                         .Eye = CameraState.current.getCol3(),
+                                         .Near = CameraState.lens.nearPlane,
+                                         .Far = CameraState.lens.farPlane,
+                                         .Width = Context.GetWidth(),
+                                         .Height = Context.GetHeight() };
+    const hz::GPUBuffer& Frame = Resources.Constants;
     const bool           Updated = Context.UpdateBuffer(Frame, 0, &FrameValues, sizeof(FrameValues));
     ASSERT(Updated);
     hz::CommandList& Commands = Context.AcquireCommandList();
-    GpuSceneData.Upload(Commands);
     Skinning.Prepare(FrameIndex);
     Draws.Prepare(View);
     // Frame shape the passes depend on.
     const bool RayTracingReady = RayTracing->IsSupported();
-    LightingFrameData& LightingData = Shadows->Data;
-    LightingData = { .RTAOEnabled = RayTracingReady && GRTAO.GetBool() ? 1u : 0u,
-                     .EnvironmentMipCount = Environment->GetPrefilteredMipCount(),
-                     .FrameIndex = LightingData.FrameIndex,
-                     .RTAOPower = RayTracing->Settings.AOPower };
+    LightingFrameData          LightingData = { .RTShadowEnabled = 0,
+                                                .RTAOEnabled = RayTracingReady && GRTAO.GetBool() ? 1u : 0u,
+                                                .EnvironmentMipCount = Environment->GetPrefilteredMipCount(),
+                                                .RTAOPower = RayTracing->Settings.AOPower };
     const hz::GpuSceneBuffers& SceneBuffers = GpuSceneData.GetBuffers();
     const hz::Span<uint32_t>   ActiveLights = Scene.GetActiveLights();
-    LightingData.LightCount = ActiveLights.Count;
-    LightingData.LightsIndex = LightingData.LightCount ? SceneBuffers.lights.GetSrvIndex() : UINT32_MAX;
-    LightingData.ActiveLightsIndex = LightingData.LightCount ? SceneBuffers.activeLights.GetSrvIndex() : UINT32_MAX;
-    float2 SkyRotation(0, 1);
+    LightingData.LocalLightCount = GpuSceneData.GetActiveLocalLightCount();
+    LightingData.LocalLightsIndex = LightingData.LocalLightCount ? SceneBuffers.localLights.GetSrvIndex() : UINT32_MAX;
+    LightingData.ActiveLocalLightsIndex = LightingData.LocalLightCount ? SceneBuffers.activeLocalLights.GetSrvIndex() : UINT32_MAX;
     const hz::GPUTexture* SkyEnvironment = &Environment->GetPrefiltered();
     const hz::GPUTexture* SkyIrradiance = &Environment->GetIrradiance();
     float                 ShadowConeRadius = 0.0f;
     bool                  HasSky = false;
+    bool                  HasDirectionalLight = false;
     for (uint32_t LightIndex : ActiveLights)
     {
         const hz::RenderLight& Light = Scene.GetLights().Data[LightIndex];
@@ -720,9 +728,9 @@ RecordedFrame RenderPasses::Record()
         {
             continue;
         }
-        if (LightingData.MainDirectionalIndex == UINT32_MAX && Light.Type == hz::LightType::Directional)
+        if (!HasDirectionalLight && Light.Type == hz::LightType::Directional)
         {
-            LightingData.MainDirectionalIndex = LightIndex;
+            HasDirectionalLight = true;
             LightingData.LightDirection = Vector4(-normalize(Light.transform.getCol2().getXYZ()), Light.intensity);
             LightingData.LightColor = Vector4(hz::ResolveLightColor(Light), 1.0f);
             LightingData.ShadowEnabled = Light.CastShadows;
@@ -747,26 +755,30 @@ RecordedFrame RenderPasses::Record()
                 SkyIrradiance = nullptr;
                 LightingData.EnvironmentMipCount = SkyEnvironment->GetMipLevels();
             }
-            SkyRotation = float2(sinf(Light.SkyAngle), cosf(Light.SkyAngle));
+            LightingData.SkySin = sinf(Light.SkyAngle);
+            LightingData.SkyCos = cosf(Light.SkyAngle);
             LightingData.EnvironmentIntensity = Light.intensity;
             LightingData.EnvironmentTint = Vector4(hz::ResolveLightColor(Light), 1.0f);
             HasSky = true;
         }
-        if (HasSky && LightingData.MainDirectionalIndex != UINT32_MAX)
+        if (HasSky && HasDirectionalLight)
         {
             break;
         }
     }
-    Shadows->Prepare(View);
+    LightingData.ShadowViewProjection = Shadows->Prepare(View, LightingData.LightDirection.getXYZ());
     const bool Clustered =
-        GClusteredLighting.GetBool() && ActiveLights.Count &&
-        Clusters->Prepare(FrameIndex, Scene.GetLights(), ActiveLights, LightingData.MainDirectionalIndex, Current,
-                          CameraState.lens.nearPlane, CameraState.lens.farPlane, Context.GetWidth(), Context.GetHeight());
-    const hz::GPUBuffer* Masks = Clustered ? Clusters->GetMask(FrameIndex) : nullptr;
-    hz::SetFrameGraphBufferImport(Graph, Targets.LightMasks, Masks);
+        GClusteredLighting.GetBool() && LightingData.LocalLightCount &&
+        Clusters->Prepare(LightingData, Resources.ZBins, Resources.TileLightBitMasks, Scene.GetLights(), ActiveLights, FrameValues);
+    const bool LightUpdated = Context.UpdateBuffer(Resources.LightingFrame, 0, &LightingData, sizeof(LightingData));
+    ASSERT(LightUpdated);
+    ++FrameNumber;
+    GpuSceneData.Upload(Commands, Clustered ? Clusters->GetLightIndices() : hz::Span<uint32_t>{});
+    const hz::GPUBuffer* Masks = LightingData.ClusterLightingTileLightBitMasksIndex != UINT32_MAX ? &Resources.TileLightBitMasks : nullptr;
+    hz::SetFrameGraphBufferImport(Graph, Targets.TileLightBitMasks, Masks);
     hz::SetFrameGraphPassEnabled(Graph, LightMaskPass, GClusteredLighting.GetBool());
     // Ray traced AO replaces the screen space term.
-    hz::SetFrameGraphPassEnabled(Graph, GTAOGraphPass, GGTAO.GetBool() && !Shadows->Data.RTAOEnabled);
+    hz::SetFrameGraphPassEnabled(Graph, GTAOGraphPass, GGTAO.GetBool() && !LightingData.RTAOEnabled);
     hz::SetFrameGraphPassEnabled(Graph, RayTracingPass,
                                  RayTracingReady && (LightingData.RTShadowEnabled || GRTAO.GetBool() || GRTReflections.GetBool()));
     hz::SetFrameGraphPassEnabled(Graph, TransparencyPass, GTransparency.GetBool());
@@ -780,10 +792,11 @@ RecordedFrame RenderPasses::Record()
     hz::SetFrameGraphPassEnabled(Graph, SkinningGraphPass, Skinning.GetJobCount() > 0);
     FrameInputs Inputs = { .Draws = Draws,
                            .Frame = Frame,
+                           .Camera = FrameValues,
                            .View = View,
                            .LinearSampler = LinearSampler,
                            .Targets = Targets,
-                           .Lighting = { .LightingFrame = &Shadows->GetLightingFrame(FrameIndex),
+                           .Lighting = { .LightingFrame = &Resources.LightingFrame,
                                          .TraceShadows = LightingData.RTShadowEnabled != 0,
                                          .ShadowConeRadius = ShadowConeRadius,
                                          .ShadowSampler = &Shadows->GetSampler(),
@@ -791,14 +804,14 @@ RecordedFrame RenderPasses::Record()
                                          .Irradiance = SkyIrradiance,
                                          .BRDFLut = &Environment->GetBrdfLut(),
                                          .EnvironmentSampler = &Environment->GetSampler(),
-                                         .Lights = LightingData.LightCount ? &SceneBuffers.lights : nullptr,
-                                         .ActiveLights = LightingData.LightCount ? &SceneBuffers.activeLights : nullptr,
-                                         .ClusterData = Clustered ? &Clusters->GetData(FrameIndex) : nullptr,
-                                         .TileMasks = Masks },
+                                         .LocalLights = LightingData.LocalLightCount ? &SceneBuffers.localLights : nullptr,
+                                         .ActiveLocalLights = LightingData.LocalLightCount ? &SceneBuffers.activeLocalLights : nullptr,
+                                         .ZBins = Clustered ? &Resources.ZBins : nullptr,
+                                         .TileLightBitMasks = Masks },
                            .DeltaSeconds = DeltaSeconds,
-                           .EnvironmentIntensity = Shadows->Data.EnvironmentIntensity,
-                           .EnvironmentTint = Shadows->Data.EnvironmentTint,
-                           .SkyRotation = SkyRotation,
+                           .EnvironmentIntensity = LightingData.EnvironmentIntensity,
+                           .EnvironmentTint = LightingData.EnvironmentTint,
+                           .SkyRotation = float2(LightingData.SkySin, LightingData.SkyCos),
                            .RayTracedShadows = RayTracingReady && (LightingData.RTShadowEnabled || GRTAO.GetBool()),
                            .RayTracedReflection = RayTracingReady && GRTReflections.GetBool(),
                            .TemporalAAEnabled = GTemporalAA.GetBool(),
@@ -816,6 +829,6 @@ RecordedFrame RenderPasses::Record()
 
 void RenderPasses::EndFrame(uint32_t FrameIndex, hz::SubmitHandle Submission)
 {
-    FrameConstants[FrameIndex].Submission = Submission;
+    Frames[FrameIndex].Submission = Submission;
     GpuSceneData.EndFrame(Submission);
 }

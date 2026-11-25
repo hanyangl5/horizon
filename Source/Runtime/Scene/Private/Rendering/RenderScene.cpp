@@ -328,6 +328,7 @@ public:
         RenderLight& LightValue = DataValue.lights.Values[LightEntity.id.index];
         if (!EqualLight(LightValue, Next))
         {
+            DataValue.LocalLightMembershipPending |= LightValue.IsActiveLocalLight() != Next.IsActiveLocalLight();
             LightValue = Next;
             DataValue.lights.MarkDirty(LightEntity.id.index);
         }
@@ -816,6 +817,7 @@ public:
                  .activeInstances = instances.IsActivePending(),
                  .activeMeshBatches = meshBatches.IsActivePending(),
                  .activeLights = lights.IsActivePending(),
+                 .ActiveLocalLightIndices = lights.IsActivePending() || LocalLightMembershipPending,
                  .activeCameras = cameras.IsActivePending() };
     }
     void AcknowledgeUploads()
@@ -824,6 +826,7 @@ public:
         instances.ClearPending();
         meshBatches.ClearPending();
         lights.ClearPending();
+        LocalLightMembershipPending = false;
         cameras.ClearPending();
         for (uint32_t IndexValue : indicesPending)
         {
@@ -898,6 +901,7 @@ public:
     RenderStorage<RenderInstance, RenderInstanceID>   instances;
     RenderStorage<RenderMeshBatch, RenderMeshBatchID> meshBatches;
     RenderStorage<RenderLight, RenderLightID>         lights;
+    bool                                              LocalLightMembershipPending = false;
     RenderStorage<RenderCamera, RenderCameraID>       cameras;
     Array<RenderEntity>                               entities;
     RenderEntityIndex*                                pIndices = nullptr;

@@ -5,7 +5,7 @@
 #include "Graphics/RenderContext.h"
 #include "Scene/SceneView.h"
 
-// Shared CPU/Slang layout, 176 bytes. Direction follows emitted rays; w is perpendicular illuminance in lux.
+// Shared CPU/Slang layout. Direction follows emitted rays; w is perpendicular illuminance in lux.
 // Fields mirror the shader block, so they keep the shader's names.
 struct alignas(16) LightingFrameData
 {
@@ -19,19 +19,24 @@ struct alignas(16) LightingFrameData
     uint32_t               RTShadowEnabled = 0;
     uint32_t               RTAOEnabled = 0;
     uint32_t               EnvironmentMipCount = 1;
-    uint32_t               FrameIndex = 0;
+    float                  MainDiffuseScale = 1;
     uint32_t               ShadowFilterRadius = 0;
     float                  RTAOPower = 1;
-    uint32_t               LightsIndex = UINT32_MAX;
-    uint32_t               LightCount = 0;
-    uint32_t               ActiveLightsIndex = UINT32_MAX;
+    uint32_t               LocalLightsIndex = UINT32_MAX;
+    uint32_t               LocalLightCount = 0;
+    uint32_t               ActiveLocalLightsIndex = UINT32_MAX;
     Vector4                EnvironmentTint = Vector4(1.0f);
-    uint32_t               MainDirectionalIndex = UINT32_MAX;
-    float                  MainDiffuseScale = 1;
     float                  MainSpecularScale = 1;
     uint32_t               MainExcludedPasses = 0;
+    float                  SkySin = 0;
+    float                  SkyCos = 1;
+    Vector4                ClusterLightingClipW = Vector4(0.0f);
+    float                  ClusterLightingBinScale = 0;
+    uint32_t               ClusterLightingTilesX = 0;
+    uint32_t               ClusterLightingTileLightBitMasksIndex = UINT32_MAX;
+    uint32_t               ClusterLightingZBinsIndex = UINT32_MAX;
 };
-static_assert(sizeof(LightingFrameData) == 176);
+static_assert(sizeof(LightingFrameData) == 208);
 
 struct LightingResources
 {
@@ -48,10 +53,10 @@ struct LightingResources
     const hz::GPUTexture* Irradiance = nullptr;
     const hz::GPUTexture* BRDFLut = nullptr;
     const hz::GPUSampler* EnvironmentSampler = nullptr;
-    const hz::GPUBuffer*  Lights = nullptr;
-    const hz::GPUBuffer*  ActiveLights = nullptr;
-    const hz::GPUBuffer*  ClusterData = nullptr;
-    const hz::GPUBuffer*  TileMasks = nullptr;
+    const hz::GPUBuffer*  LocalLights = nullptr;
+    const hz::GPUBuffer*  ActiveLocalLights = nullptr;
+    const hz::GPUBuffer*  ZBins = nullptr;
+    const hz::GPUBuffer*  TileLightBitMasks = nullptr;
 };
 
 struct DeferredGBuffer

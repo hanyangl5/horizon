@@ -115,7 +115,7 @@ float4 UnpackFragment(uint2 Packed)
     float3 V = normalize(Frame[0].Eye.xyz - Input.WorldPosition);
     float3 KS = FresnelSchlickRoughness(clamp(dot(N, V), 0.0, 1.0), F0.rgb, 0.1);
     const FGBufferData Surface = MakeDefaultLitMaterial(N, BaseColor.rgb, Mat.MetallicFactor, Mat.RoughnessFactor, 0.5);
-    const float3 LocalLighting = AccumulateScreenLights(ClusterDataIndex, uint2(Input.Position.xy), Light, Surface, Input.WorldPosition, V);
+    const float3 LocalLighting = AccumulateScreenLights(uint2(Input.Position.xy), Frame[0].Near, Light, Surface, Input.WorldPosition, V);
     float3 Color = EmissiveColor.rgb + Diffuse.rgb + ColorRefl * KS + LocalLighting;
 
     // Horizon's glTF material stores the final blend alpha in baseColor.

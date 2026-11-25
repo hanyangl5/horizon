@@ -2,6 +2,7 @@
 #pragma once
 
 #include "BRDF.slang"
+#include "ClusterGrid.h"
 
 struct LightingFrameData
 {
@@ -14,18 +15,22 @@ struct LightingFrameData
     uint     RTShadowEnabled;
     uint     RTAOEnabled;
     uint     EnvironmentMipCount;
-    uint     FrameIndex;
+    float    MainDiffuseScale;
     uint     ShadowFilterRadius;
     // Applied after denoising so the filters average linear occlusion.
     float    RTAOPower;
-    uint     LightsIndex;
-    uint     LightCount;
-    uint     ActiveLightsIndex;
+    uint     LocalLightsIndex;
+    uint     LocalLightCount;
+    uint     ActiveLocalLightsIndex;
     float4   EnvironmentTint;
-    uint     MainDirectionalIndex;
-    float    MainDiffuseScale;
-    float    MainSpecularScale;
-    uint     MainExcludedPasses;
+    float MainSpecularScale;
+    uint MainExcludedPasses;
+    float2 Reserved;
+    float4 ClusterLightingClipW;
+    float  ClusterLightingBinScale;
+    uint   ClusterLightingTilesX;
+    uint   ClusterLightingTileLightBitMasksIndex;
+    uint   ClusterLightingZBinsIndex;
 };
 
 struct LightingBindings
