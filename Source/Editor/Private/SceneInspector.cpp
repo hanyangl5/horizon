@@ -66,7 +66,7 @@ void SceneInspector::OnPresented(hz::SubmitHandle Submission)
 }
 
 void SceneInspector::RecordOverlay(hz::RenderContext& Context, hz::CommandList& Commands, const hz::GPUTexture& Backbuffer,
-                                   const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
+                                   hz::BufferSrv Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
                                    const hz::GPUSampler& Sampler, bool Transparent, float JitterX, float JitterY)
 {
     if (!IsInspectorVisible(UI->Window))

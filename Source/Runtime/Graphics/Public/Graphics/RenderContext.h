@@ -208,6 +208,13 @@ private:
     friend class RenderContext;
 };
 
+struct BufferSrv
+{
+    const GPUBuffer* Buffer = nullptr;
+    uint32_t Index = UINT32_MAX;
+    bool IsValid() const { return Buffer && Index != UINT32_MAX; }
+};
+
 class GPUTexture
 {
 public:
@@ -358,6 +365,23 @@ public:
         }
         return Texture->GetUavIndex();
     }
+    uint32_t Read(BufferSrv View)
+    {
+        if (!View.IsValid())
+        {
+            return UINT32_MAX;
+        }
+        for (uint32_t I = 0; I < BufferCount; ++I)
+        {
+            if (Buffers[I] == View.Buffer)
+            {
+                return View.Index;
+            }
+        }
+        Read(*View.Buffer);
+        return View.Index;
+    }
+    uint32_t Read(const GPUBuffer* Buffer) { return Buffer ? Read(*Buffer) : UINT32_MAX; }
     uint32_t Read(const GPUBuffer& Buffer)
     {
         if (!Buffer.IsValid())
@@ -667,6 +691,7 @@ private:
     bool                      suspended = false;
     bool                      ready = false;
     uint32_t                  resourceCount = 0;
+    friend class FrameUpload;
     friend class GPUBuffer;
     friend class GPUTexture;
     friend class GPUSampler;

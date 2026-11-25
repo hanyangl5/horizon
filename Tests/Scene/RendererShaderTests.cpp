@@ -474,7 +474,7 @@ TEST_F(TypedAssetLiveTest, RayTracingSceneUsesUnculledDrawIdsAndSharesGeometry)
 
         gpu.Upload(commands);
         draws.Prepare(view);
-        culling.Execute(commands, frame, view, draws);
+        culling.Execute(commands, { .Buffer = &frame, .Index = frame.GetSrvIndex() }, view, draws);
         rayScene.Update(commands, view, draws);
         EXPECT_EQ(rayScene.GetSceneTLAS().GetInstanceCount(), pass < 3 ? 3 - pass : 0);
         EXPECT_EQ(draws.GetGeometries().Count, pass < 2 ? 2u : (pass == 2 ? 1u : 0u));
@@ -1664,7 +1664,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                                     .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderSources, shaders.string().c_str());
     ClusteredLighting clusters(context);
-    hz::GPUBuffer bins, masks;
+    hz::FrameUpload uploadArena(context, 3);
+    uploadArena.BeginFrame(1);
     LightingFrameData glassFrame;
     // Both lights cover the front glass, on opposite sides of it. Neither reaches the back pane.
     hz::RenderLight   glassLights[2];
@@ -1680,7 +1681,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
     }
     FrameData clusterCamera = camera;
     clusterCamera.ViewProjection.setRow(3, Vector4(0, 0, 1, 0));
-    ASSERT_TRUE(clusters.Prepare(glassFrame, bins, masks, glassLights, ids, clusterCamera));
+    hz::GPUBuffer masks = context.CreateBuffer(ClusteredLighting::GetTileMaskDesc().Resolve(clusterCamera.Width, clusterCamera.Height));
+    ASSERT_TRUE(clusters.Prepare(glassFrame, uploadArena, masks, glassLights, ids, clusterCamera));
     std::vector<uint32_t>    glassIndices(std::begin(ids), std::end(ids));
     const hz::Span<uint32_t> glassOrder = clusters.GetLightIndices();
     glassIndices.insert(glassIndices.end(), glassOrder.begin(), glassOrder.end());
@@ -1741,7 +1743,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                                    .ClearValue = { .Depth = scenario == 2 ? 0.5f : 1.0f } } },
             { .storageTextures = { &heads },
               .buffers = { &frame, &surfaceLighting, &instanceBuffer, &materialBuffer, &vertices, &normal, &uv,
-                           &glassBuffer, &glassIds, &bins, &masks },
+                           &glassBuffer, &glassIds, &uploadArena.GetBuffer(), &masks },
               .storageBuffers = { &counters, &nodes } });
         commands.SetViewport(0, 0, 8, 8);
         commands.SetScissor(0, 0, 8, 8);
@@ -1958,7 +1960,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     const uint32_t activeLights[] = { 4, 0, 2, 1, 3, 5 };
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderSources, shaders.string().c_str());
     ClusteredLighting clusters(context);
-    hz::GPUBuffer bins, masks;
+    hz::FrameUpload uploadArena(context, 3);
+    uploadArena.BeginFrame(1);
     LightingFrameData localFrame = { .LightDirection = Vector4(0, 0, -1, 1), .LightColor = Vector4(1, 0, 0, 1) };
     hz::RenderLight   sourceLights[TF_ARRAY_COUNT(lights)];
     for (uint32_t i = 0; i < TF_ARRAY_COUNT(lights); ++i)
@@ -1971,7 +1974,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     }
     FrameData clusterCamera = peakCamera;
     clusterCamera.ViewProjection.setRow(3, Vector4(0, 0, 1, 0));
-    ASSERT_TRUE(clusters.Prepare(localFrame, bins, masks, sourceLights, activeLights, clusterCamera));
+    hz::GPUBuffer masks = context.CreateBuffer(ClusteredLighting::GetTileMaskDesc().Resolve(clusterCamera.Width, clusterCamera.Height));
+    ASSERT_TRUE(clusters.Prepare(localFrame, uploadArena, masks, sourceLights, activeLights, clusterCamera));
     std::vector<uint32_t>    localIndices = { 4, 2, 1, 3 };
     const uint32_t           localCount = uint32_t(localIndices.size());
     const hz::Span<uint32_t> localOrder = clusters.GetLightIndices();
@@ -2093,7 +2097,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         commands.BeginRendering(
             { .colorAttachments = { { .pTexture = &mapped, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
             { .sampledTextures = { &black, &average, &peakNormal, &peakBase },
-              .buffers = { &peakFrame, &lighting, &lightList, &activeLightList, &bins,
+              .buffers = { &peakFrame, &lighting, &lightList, &activeLightList, &uploadArena.GetBuffer(),
                            &masks } });
         commands.SetViewport(0, 0, 1, 1);
         commands.SetScissor(0, 0, 1, 1);

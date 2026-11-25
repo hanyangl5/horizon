@@ -78,7 +78,7 @@ struct SkyboxConstants
 };
 static_assert(sizeof(SkyboxConstants) == 12 * sizeof(uint32_t));
 
-void EnvironmentPass::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Color,
+void EnvironmentPass::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUTexture& Color,
                               const hz::GPUTexture& Depth, float Intensity, const Vector4& Tint, const hz::GPUTexture& Sky,
                               float2 Rotation) const
 {

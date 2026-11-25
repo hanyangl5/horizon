@@ -20,14 +20,14 @@ public:
     void Update(SceneInspector& Inspector, const hz::RenderScene& Scene);
     bool HasWork(hz::RenderPrimitiveID Selected) const;
     void OnSubmitted(hz::SubmitHandle Submission);
-    void Record(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
+    void Record(hz::CommandList& Cmd, hz::BufferSrv Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
                 const hz::GPUSampler& Sampler, bool TransparentEnabled, hz::RenderPrimitiveID Selected, const hz::GPUTexture& Backbuffer,
                 float JitterX, float JitterY);
 
 private:
     void PreparePicking();
     void PrepareOutline(const hz::GPUTexture& Backbuffer);
-    void DrawIds(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
+    void DrawIds(hz::CommandList& Cmd, hz::BufferSrv Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
                  const hz::GPUSampler& Sampler, bool TransparentEnabled, hz::RenderPrimitiveID Selected, const hz::GPUTexture& Target,
                  const hz::GPUTexture& Depth, uint32_t OriginX, uint32_t OriginY);
     struct PickReadback

@@ -52,6 +52,12 @@ struct FrameGraphBufferUse
     FrameGraphAccess Access = FrameGraphAccessRead;
 };
 
+struct FrameGraphTextureGroup
+{
+    FrameGraphAccess        Access = FrameGraphAccessRead;
+    Span<FrameGraphTexture> Textures = {};
+};
+
 struct FrameGraphTextureDesc
 {
     // Width and Height 0 make the texture follow the viewport, shifted right by SizeShift and clamped to 1.
@@ -62,9 +68,13 @@ struct FrameGraphTextureDesc
 };
 struct FrameGraphBufferDesc
 {
-    // A nonzero BytesPerPixel sizes the buffer to the viewport and recreates it on resize.
+    // Nonzero BytesPerTile sizes the buffer to the viewport, including partial edge tiles.
     BufferDesc Buffer = {};
     uint32_t   BytesPerPixel = 0;
+    uint32_t   BytesPerTile = 0;
+    uint32_t   TileSize = 1;
+
+    BufferDesc Resolve(uint32_t Width, uint32_t Height) const;
 };
 struct FrameGraphImportDesc
 {
@@ -105,7 +115,10 @@ FrameGraphTexture AddFrameGraphTexture(FrameGraph* Graph, const FrameGraphTextur
 FrameGraphBuffer  AddFrameGraphBuffer(FrameGraph* Graph, const FrameGraphBufferDesc& Desc);
 FrameGraphTexture ImportFrameGraphTexture(FrameGraph* Graph, const FrameGraphImportDesc& Desc);
 FrameGraphBuffer  ImportFrameGraphBuffer(FrameGraph* Graph, const FrameGraphImportDesc& Desc);
-FrameGraphPass    AddFrameGraphPass(FrameGraph* Graph, const FrameGraphPassDesc& Desc);
+FrameGraphPass    AddFrameGraphPass(FrameGraph* Graph, const FrameGraphPassDesc& Desc, Span<FrameGraphTextureGroup> Groups = {});
+
+// Graph-owned storage allocated by ResizeFrameGraph, for preparing bindless indices before recording.
+const GPUBuffer& GetAllocatedFrameGraphBuffer(const FrameGraph& Graph, FrameGraphBuffer Buffer);
 
 // Imported resources may change every frame, for example the swap chain image.
 void SetFrameGraphTextureImport(FrameGraph* Graph, FrameGraphTexture Texture, const GPUTexture* pTexture);

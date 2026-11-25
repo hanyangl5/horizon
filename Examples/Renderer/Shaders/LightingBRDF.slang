@@ -25,7 +25,8 @@ struct LightingFrameData
     float4   EnvironmentTint;
     float MainSpecularScale;
     uint MainExcludedPasses;
-    float2 Reserved;
+    uint ClusterLightingZBinsOffset;
+    uint Reserved;
     float4 ClusterLightingClipW;
     float  ClusterLightingBinScale;
     uint   ClusterLightingTilesX;

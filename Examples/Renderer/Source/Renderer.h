@@ -349,7 +349,7 @@ public:
 #if defined(HORIZON_EDITOR_MODE)
         Inspector->OnPresented(Submission);
 #endif
-        Passes->EndFrame(Frame.View.FrameIndex, Submission);
+        Passes->EndFrame(Submission);
     }
 
 private:

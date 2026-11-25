@@ -37,30 +37,20 @@ DeferredLighting::DeferredLighting(hz::RenderContext& Context)
                                                 .Name = "Renderer.DeferredLighting" });
     ASSERT(Pipeline.IsValid());
 }
-void DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
+void DeferredLighting::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer,
                                const LightingResources& Resources, const hz::GPUTexture& Color)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("DeferredLighting::Execute");
-    ASSERT(Color.IsValid() && Resources.LightingFrame && Resources.LightingFrame->IsValid());
+    ASSERT(Color.IsValid() && Resources.LightingFrame.IsValid());
     ASSERT(GBuffer.Emissive && GBuffer.NormalMaterial && GBuffer.BaseColorMetallic && GBuffer.Depth);
     ASSERT(Resources.Environment && Resources.BRDFLut && Resources.EnvironmentSampler);
     hz::DependencyList Dependencies;
-    if (Resources.LocalLights)
-    {
-        Dependencies.Read(*Resources.LocalLights);
-        Dependencies.Read(*Resources.ActiveLocalLights);
-    }
-    if (Resources.ZBins)
-    {
-        Dependencies.Read(*Resources.ZBins);
-    }
-    if (Resources.TileLightBitMasks)
-    {
-        Dependencies.Read(*Resources.TileLightBitMasks);
-    }
+    Dependencies.Read(Resources.LocalLights);
+    Dependencies.Read(Resources.ActiveLocalLights);
+    Dependencies.Read(Resources.TileLightBitMasks);
     const DeferredLightingConstants Constants = {
         .FrameIndex = Dependencies.Read(Frame),
-        .LightingFrameIndex = Dependencies.Read(*Resources.LightingFrame),
+        .LightingFrameIndex = Dependencies.Read(Resources.LightingFrame),
         .EmissiveIndex = Dependencies.Sample(GBuffer.Emissive),
         .NormalMaterialIndex = Dependencies.Sample(GBuffer.NormalMaterial),
         .BaseColorMetallicIndex = Dependencies.Sample(GBuffer.BaseColorMetallic),

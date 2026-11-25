@@ -41,7 +41,7 @@ FrustumCulling::FrustumCulling(hz::RenderContext& Context)
     ASSERT(Pipeline.IsValid() && ClearPipeline.IsValid());
 }
 
-void FrustumCulling::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
+void FrustumCulling::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
                              bool Culling)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("FrustumCulling::Execute");
@@ -61,7 +61,7 @@ void FrustumCulling::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fra
     const uint32_t             ListCount = Draws.GetListCount();
     Commands.BeginGpuTimestamp("GPU Frustum Culling");
     Commands.SetPipeline(Pipeline);
-    const CullingConstants Binding = { .FrameIndex = Frame.GetSrvIndex(),
+    const CullingConstants Binding = { .FrameIndex = Frame.Index,
                                        .DrawsIndex = DrawData.GetSrvIndex(),
                                        .InstancesIndex = Gpu.instances.GetSrvIndex(),
                                        .MaterialsIndex = Gpu.materials.GetSrvIndex(),
@@ -78,6 +78,6 @@ void FrustumCulling::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Fra
     }
     Commands.Dispatch(
         (Count + 63) / 64, 1, 1,
-        { .buffers = { &Frame, &DrawData, &Gpu.instances, &Gpu.materials, &Filters }, .storageBuffers = { Outputs, ListCount + 1 } });
+        { .buffers = { Frame.Buffer, &DrawData, &Gpu.instances, &Gpu.materials, &Filters }, .storageBuffers = { Outputs, ListCount + 1 } });
     Commands.EndGpuTimestamp();
 }

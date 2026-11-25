@@ -22,7 +22,7 @@ class TemporalAA
 public:
     explicit TemporalAA(hz::RenderContext& Context);
     static TemporalJitter GetJitter(uint32_t FrameIndex, uint32_t Width, uint32_t Height);
-    void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUSampler& Sampler, const TemporalAAInputs& Inputs,
+    void Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUSampler& Sampler, const TemporalAAInputs& Inputs,
                  const hz::GPUTexture& Output, TemporalJitter Jitter, TemporalJitter PreviousJitter) const;
 
 private:

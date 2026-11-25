@@ -9,7 +9,7 @@ class FrustumCulling
 {
 public:
     explicit FrustumCulling(hz::RenderContext& Context);
-    void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
+    void Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
                  bool Culling = true);
     // uint4: visible draws and their triangles, reserved; written by the latest Execute for that frame index.
     const hz::GPUBuffer& GetStatistics(uint32_t Backing) const { return Statistics[Backing]; }

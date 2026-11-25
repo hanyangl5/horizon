@@ -10,6 +10,26 @@
 
 namespace hz
 {
+BufferDesc FrameGraphBufferDesc::Resolve(uint32_t Width, uint32_t Height) const
+{
+    BufferDesc Desc = Buffer;
+    if (BytesPerTile)
+    {
+        ASSERT(!BytesPerPixel && TileSize && Width && Height);
+        Desc.Size = uint64_t(1 + (Width - 1) / TileSize) * (1 + (Height - 1) / TileSize) * BytesPerTile;
+        Desc.ElementCount = uint32_t(Desc.Size / (Desc.StructStride ? Desc.StructStride : sizeof(uint32_t)));
+    }
+    else if (BytesPerPixel)
+    {
+        Desc.Size = uint64_t(Width) * Height * BytesPerPixel;
+        if (Desc.StructStride)
+        {
+            Desc.ElementCount = uint32_t(Desc.Size / Desc.StructStride);
+        }
+    }
+    return Desc;
+}
+
 static bool IsWrite(FrameGraphAccess Access) { return Access == FrameGraphAccessWrite || Access == FrameGraphAccessModify; }
 
 static TextureDesc ResolveTexture(const FrameGraph& Graph, const FrameGraphTextureDesc& Desc)
@@ -319,15 +339,7 @@ bool CompileFrameGraph(FrameGraph* Graph)
             {
                 continue;
             }
-            BufferDesc Desc = Entry.Desc.Buffer;
-            if (Entry.Desc.BytesPerPixel)
-            {
-                Desc.Size = (uint64_t)Graph->Width * Graph->Height * Entry.Desc.BytesPerPixel;
-                if (Desc.StructStride)
-                {
-                    Desc.ElementCount = (uint32_t)(Desc.Size / Desc.StructStride);
-                }
-            }
+            const BufferDesc Desc = Entry.Desc.Resolve(Graph->Width, Graph->Height);
             if (!Entry.Buffer.IsValid() || Entry.ResolvedSize != Desc.Size)
             {
                 Entry.Buffer = Graph->pContext->CreateBuffer(Desc);
@@ -341,8 +353,7 @@ bool CompileFrameGraph(FrameGraph* Graph)
         {
             if (Entry.Kind != FrameGraphResourceKind::Imported)
             {
-                Entry.ResolvedSize =
-                    Entry.Desc.BytesPerPixel ? (uint64_t)Graph->Width * Graph->Height * Entry.Desc.BytesPerPixel : Entry.Desc.Buffer.Size;
+                Entry.ResolvedSize = Entry.Desc.Resolve(Graph->Width, Graph->Height).Size;
             }
         }
     }

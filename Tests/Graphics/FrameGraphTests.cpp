@@ -42,7 +42,8 @@ TEST_F(FrameGraphTest, CullsPassesWhoseResultsNothingNeeds)
     const hz::FrameGraphTexture Unused = Texture();
     const hz::FrameGraphTexture Overwritten = Texture();
     const hz::FrameGraphPass    Lost = Pass("Lost", { { Overwritten, hz::FrameGraphAccessWrite } });
-    const hz::FrameGraphPass    Scene = Pass("Scene", { { Color, hz::FrameGraphAccessWrite }, { Overwritten, hz::FrameGraphAccessWrite } });
+    const hz::FrameGraphPass    Scene = hz::AddFrameGraphPass(Graph, { .Name = "Scene", .Execute = Nothing },
+                                                              { { hz::FrameGraphAccessWrite, { Color, Overwritten } } });
     const hz::FrameGraphPass    Debug = Pass("Debug", { { Unused, hz::FrameGraphAccessWrite } });
     const hz::FrameGraphPass    Stats = Pass("Stats", { { Unused, hz::FrameGraphAccessWrite } }, true);
     const hz::FrameGraphPass    Overlay = Pass("Overlay", { { Color, hz::FrameGraphAccessModify }, { Overwritten, hz::FrameGraphAccessRead } });
@@ -63,7 +64,9 @@ TEST_F(FrameGraphTest, DisabledProducersCullTheirChainAndResolveOptionalReadsToN
     const hz::FrameGraphTexture Blur = Texture(hz::Format::R8_UNORM);
     const hz::FrameGraphPass    Trace = Pass("AO", { { Occlusion, hz::FrameGraphAccessWrite } });
     const hz::FrameGraphPass    Filter = Pass("Blur", { { Occlusion, hz::FrameGraphAccessRead }, { Blur, hz::FrameGraphAccessWrite } });
-    const hz::FrameGraphPass    Light = Pass("Light", { { Blur, hz::FrameGraphAccessReadOptional }, { Output, hz::FrameGraphAccessWrite } });
+    const hz::FrameGraphPass    Light = hz::AddFrameGraphPass(Graph, { .Name = "Light", .Execute = Nothing },
+                                                              { { hz::FrameGraphAccessReadOptional, { Blur } },
+                                                                { hz::FrameGraphAccessWrite, { Output } } });
     ASSERT_TRUE(hz::ResizeFrameGraph(Graph, 64, 64));
     EXPECT_TRUE(Live(Trace) && Live(Filter) && Live(Light));
 
@@ -111,6 +114,7 @@ TEST_F(FrameGraphTest, ResizeResolvesViewportSizesAndInvalidatesHistory)
     const hz::FrameGraphTexture Fixed = hz::AddFrameGraphTexture(Graph, { .Texture = { .Width = 16, .Height = 8, .Format = hz::Format::R8_UNORM } });
     const hz::FrameGraphTexture History = Texture(hz::Format::R16_SFLOAT, 0, true);
     const hz::FrameGraphBuffer  Nodes = hz::AddFrameGraphBuffer(Graph, { .Buffer = { .Name = "Nodes" }, .BytesPerPixel = 16 });
+    const hz::FrameGraphBuffer Tiles = hz::AddFrameGraphBuffer(Graph, { .BytesPerTile = 32, .TileSize = 2 });
     hz::FrameGraphBufferUse     NodeUse = { Nodes, hz::FrameGraphAccessWrite };
     const hz::FrameGraphPass    Temporal =
         hz::AddFrameGraphPass(Graph, { .Name = "Temporal",
@@ -125,6 +129,8 @@ TEST_F(FrameGraphTest, ResizeResolvesViewportSizesAndInvalidatesHistory)
     EXPECT_EQ(Graph->Textures[Fixed.Index].Resolved.Width, 16u);
     EXPECT_EQ(Graph->Buffers[Nodes.Index].ResolvedSize, 4u * 3u * 16u);
 
+    EXPECT_EQ(Graph->Buffers[Tiles.Index].ResolvedSize, 2u * 2u * 32u);
+
     // History becomes valid after a frame in which its writer ran, and a resize or explicit reset invalidates it.
     EXPECT_FALSE(Graph->Textures[History.Index].HistoryValid);
     hz::FinishFrameGraphFrame(Graph);
@@ -135,6 +141,7 @@ TEST_F(FrameGraphTest, ResizeResolvesViewportSizesAndInvalidatesHistory)
     ASSERT_TRUE(hz::ResizeFrameGraph(Graph, 64, 64));
     EXPECT_FALSE(Graph->Textures[History.Index].HistoryValid);
     EXPECT_EQ(Graph->Textures[Tiny.Index].Resolved.Width, 8u);
+    EXPECT_EQ(Graph->Buffers[Tiles.Index].ResolvedSize, 32u * 32u * 32u);
 
     // A frame whose writer did not run leaves no valid history behind.
     hz::SetFrameGraphPassEnabled(Graph, Temporal, false);

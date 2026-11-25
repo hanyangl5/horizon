@@ -206,6 +206,7 @@ struct Renderer;
 struct Queue;
 struct Pipeline;
 struct Buffer;
+struct StructuredSrv;
 struct Texture;
 struct RenderTarget;
 struct Shader;
@@ -849,6 +850,7 @@ struct alignas(64) Buffer
         /// Offset from Descriptors for uav descriptor Handle
         uint8_t                   uavDescriptorOffset;
         uint8_t                   markerBuffer : 1;
+        StructuredSrv*            structuredViews;
         /// Native Handle of the underlying resource
         ID3D12Resource*           pResource;
         union

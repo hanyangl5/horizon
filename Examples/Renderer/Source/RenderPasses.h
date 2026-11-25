@@ -33,7 +33,7 @@ public:
     static constexpr uint32_t TextureCount = 4;
 
     GBuffer(hz::RenderContext& Context);
-    void Execute(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
+    void Execute(hz::CommandList& Cmd, hz::BufferSrv Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
                  const hz::GPUTexture* const (&Textures)[TextureCount], const hz::GPUTexture& Depth);
 
     hz::GPUPipeline Pipeline;
@@ -75,7 +75,7 @@ struct RenderTargets
 struct RecordedFrame
 {
     hz::SceneView          View;
-    const hz::GPUBuffer&   Constants;
+    hz::BufferSrv          Constants;
     const hz::GpuDrawList& Draws;
     const hz::GPUSampler&  Sampler;
     hz::CommandList*       Commands = nullptr;
@@ -94,18 +94,9 @@ public:
 
     void          Update(float DeltaSeconds);
     RecordedFrame Record();
-    void          EndFrame(uint32_t FrameIndex, hz::SubmitHandle Submission);
+    void          EndFrame(hz::SubmitHandle Submission);
 
 private:
-    struct FrameResources
-    {
-        hz::GPUBuffer    Constants;
-        hz::GPUBuffer    LightingFrame;
-        hz::GPUBuffer    ZBins;
-        hz::GPUBuffer    TileLightBitMasks;
-        hz::SubmitHandle Submission;
-    };
-
     void BuildGraph();
 
     hz::RenderContext& Context;
@@ -128,7 +119,8 @@ private:
     hz::GPUSampler                         LinearSampler;
     hz::GpuDrawList                        Draws;
     float                                  DeltaSeconds = 1.0f / 60.0f;
-    hz::FixedArray<FrameResources, 3>      Frames;
+    static constexpr uint32_t              FrameCount = 3;
+    hz::FrameUpload                        Upload;
     uint32_t                               NextFrame = 0;
     uint32_t                               FrameNumber = 0;
     hz::GpuScene                           GpuSceneData;

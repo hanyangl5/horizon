@@ -47,7 +47,8 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingKeepsLightsOverlappingFarPlane)
     hz::RenderContext context({ .pAppName = "ClusteredLightingTest" });
     ClusteredLighting clusters(context);
     LightingFrameData frame;
-    hz::GPUBuffer     bins, masks;
+    hz::FrameUpload uploadArena(context, 3);
+    uploadArena.BeginFrame(1);
     hz::RenderLight   lights[2] = {};
     const float       depths[] = { 18.0f, 16.5f };
     uint32_t          active[] = { 0, 1 };
@@ -63,7 +64,8 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingKeepsLightsOverlappingFarPlane)
                                .Far = 16,
                                .Width = 32,
                                .Height = 32 };
-    ASSERT_TRUE(clusters.Prepare(frame, bins, masks, lights, active, camera));
+    hz::GPUBuffer masks = context.CreateBuffer(ClusteredLighting::GetTileMaskDesc().Resolve(camera.Width, camera.Height));
+    ASSERT_TRUE(clusters.Prepare(frame, uploadArena, masks, lights, active, camera));
     ASSERT_EQ(clusters.GetLightIndices().Count, 1u);
     EXPECT_EQ(clusters.GetLightIndices().Data[0], 1u);
 }
@@ -75,7 +77,8 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingFallsBackOnlyAboveVisibleLightLimi
     hz::RenderContext            context({ .pAppName = "ClusteredLightingTest" });
     ClusteredLighting            clusters(context);
     LightingFrameData            frame;
-    hz::GPUBuffer                bins, masks;
+    hz::FrameUpload uploadArena(context, 3);
+    uploadArena.BeginFrame(1);
     constexpr uint32_t           count = ClusteredLighting::MaxClusteredLights + 1;
     std::vector<hz::RenderLight> lights(count);
     std::vector<uint32_t>        active(count);
@@ -93,27 +96,28 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingFallsBackOnlyAboveVisibleLightLimi
                                                .Width = LIGHT_TILE_SIZE,
                                                .Height = LIGHT_TILE_SIZE };
     const hz::Span<hz::RenderLight> lightSpan(lights.data(), count);
-    ASSERT_TRUE(clusters.Prepare(frame, bins, masks, lightSpan, { active.data(), 1 }, camera));
+    hz::GPUBuffer masks = context.CreateBuffer(ClusteredLighting::GetTileMaskDesc().Resolve(camera.Width, camera.Height));
+    ASSERT_TRUE(clusters.Prepare(frame, uploadArena, masks, lightSpan, { active.data(), 1 }, camera));
     ASSERT_EQ(frame.ClusterLightingTileLightBitMasksIndex, masks.GetSrvIndex());
     constexpr uint32_t maxBitMasks = (ClusteredLighting::MaxClusteredLights + LIGHTS_PER_BITMASK - 1) / LIGHTS_PER_BITMASK;
     EXPECT_GE(masks.GetSize(), maxBitMasks * sizeof(uint32_t));
     EXPECT_EQ(clusters.GetLightIndices().Count, 1u);
-    EXPECT_FALSE(clusters.Prepare(frame, bins, masks, lightSpan, { active.data(), count }, camera));
+    EXPECT_FALSE(clusters.Prepare(frame, uploadArena, masks, lightSpan, { active.data(), count }, camera));
     lights.back().transform = Matrix4::translation(Vector3(0, 0, -30));
-    ASSERT_TRUE(clusters.Prepare(frame, bins, masks, lightSpan, { active.data(), count }, camera));
+    ASSERT_TRUE(clusters.Prepare(frame, uploadArena, masks, lightSpan, { active.data(), count }, camera));
     EXPECT_EQ(clusters.GetLightIndices().Count, count - 1);
     lights.back().InfluenceRadius = 10;
     EXPECT_FLOAT_EQ(lights.back().InfluenceRadius, 10.0f);
-    ASSERT_TRUE(clusters.Prepare(frame, bins, masks, lightSpan, { active.data(), count }, camera));
+    ASSERT_TRUE(clusters.Prepare(frame, uploadArena, masks, lightSpan, { active.data(), count }, camera));
     EXPECT_EQ(clusters.GetLightIndices().Count, count - 1);
     lights.back().InfluenceRadius = 20;
     EXPECT_FLOAT_EQ(lights.back().InfluenceRadius, 20.0f);
-    EXPECT_FALSE(clusters.Prepare(frame, bins, masks, lightSpan, { active.data(), count }, camera));
+    EXPECT_FALSE(clusters.Prepare(frame, uploadArena, masks, lightSpan, { active.data(), count }, camera));
     EXPECT_EQ(frame.ClusterLightingZBinsIndex, UINT32_MAX);
     EXPECT_EQ(frame.ClusterLightingTileLightBitMasksIndex, UINT32_MAX);
     EXPECT_EQ(clusters.GetLightIndices().Count, 0u);
-    ASSERT_TRUE(clusters.Prepare(frame, bins, masks, lightSpan, {}, camera));
-    EXPECT_EQ(frame.ClusterLightingZBinsIndex, bins.GetSrvIndex());
+    ASSERT_TRUE(clusters.Prepare(frame, uploadArena, masks, lightSpan, {}, camera));
+    EXPECT_EQ(frame.ClusterLightingZBinsIndex, uploadArena.GetBuffer().GetSrvIndex());
     EXPECT_EQ(frame.ClusterLightingTileLightBitMasksIndex, UINT32_MAX);
     EXPECT_EQ(clusters.GetLightIndices().Count, 0u);
 }
@@ -126,7 +130,7 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, tests.string().c_str());
     hz::RenderContext context({ .pAppName = "ClusteredLightingTest", .enableGpuValidation = true });
     ClusteredLighting clusters(context);
-    hz::GPUBuffer     zBins[3], tileMasks[3];
+    hz::FrameUpload uploadArena(context, 3);
     hz::GPUPipeline   compare =
         context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CompareLighting" } },
                                                         .sourceDirectory = DirectoryOtherFiles,
@@ -201,13 +205,13 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
         const bool        secondBatch = counts[step] == 33;
         const uint32_t    first = secondBatch ? PrefixCount : 0;
         const uint32_t    count = PrefixCount + counts[step] - first, width = step % 2 ? 63 : 65, height = 35;
-        hz::GPUBuffer&    bins = zBins[step % TF_ARRAY_COUNT(zBins)];
-        hz::GPUBuffer&    masks = tileMasks[step % TF_ARRAY_COUNT(tileMasks)];
+        uploadArena.BeginFrame(step % 3);
         LightingFrameData frame;
         Matrix4           vp = Matrix4::perspectiveRH(PI / 2, float(height) / width, 0.1f, 16);
         vp.setRow(0, vp.getRow(0) + vp.getRow(3) * (0.5f / width));
         const FrameData camera = { .ViewProjection = vp, .Near = 0.1f, .Far = 16, .Width = width, .Height = height };
-        ASSERT_TRUE(clusters.Prepare(frame, bins, masks, lights, { active + first, count }, camera));
+        hz::GPUBuffer masks = context.CreateBuffer(ClusteredLighting::GetTileMaskDesc().Resolve(camera.Width, camera.Height));
+        ASSERT_TRUE(clusters.Prepare(frame, uploadArena, masks, lights, { active + first, count }, camera));
         const hz::Span<uint32_t> sorted = clusters.GetLightIndices();
         ASSERT_EQ(sorted.Count, counts[step] + (secondBatch ? 0u : 1u));
         ASSERT_EQ(frame.ClusterLightingTileLightBitMasksIndex, masks.GetSrvIndex());
@@ -228,7 +232,7 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
         const hz::GPUBuffer lighting = upload(&frame, sizeof(frame), sizeof(frame));
         hz::CommandList&    commands = context.AcquireCommandList();
         clusters.BuildLightTileMasks(commands, camera, masks, lightBuffer, activeList, localCount);
-        const hz::GPUBuffer* buffers[] = { &bins, &lighting, &lightBuffer, &activeList, &masks };
+        const hz::GPUBuffer* buffers[] = { &uploadArena.GetBuffer(), &lighting, &lightBuffer, &activeList, &masks };
         commands.SetPipeline(compare);
         commands.SetRootConstant({ lighting.GetSrvIndex(), output.GetUavIndex(), width, height });
         const Vector4 projection(float(vp.getRow(0).getZ()), float(vp.getRow(1).getZ()), float(vp.getRow(0).getX()),
@@ -237,7 +241,9 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
         commands.SetRootConstants(0.1f, 8);
         commands.Dispatch((width + 7) / 8, (height + 7) / 8, 5, { .buffers = buffers, .storageBuffers = { &output } });
         commands.CopyBuffer(readback, 0, output, 0, width * height * 5 * 16);
-        context.Wait(context.Submit(commands));
+        const hz::SubmitHandle submission = context.Submit(commands);
+        uploadArena.EndFrame(submission);
+        context.Wait(submission);
         const float* values = (const float*)readback.Get()->pCpuMappedAddress;
         if (secondBatch)
         {

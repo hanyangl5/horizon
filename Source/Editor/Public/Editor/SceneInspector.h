@@ -18,7 +18,7 @@ public:
     void             OnPresented(hz::SubmitHandle Submission);
     void             Update(const hz::RenderScene& Scene);
     void             RecordOverlay(hz::RenderContext& Context, hz::CommandList& Commands, const hz::GPUTexture& Backbuffer,
-                                   const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
+                                   hz::BufferSrv Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
                                    const hz::GPUSampler& Sampler, bool Transparent, float JitterX, float JitterY);
     uint64_t         TakeViewportClick(uint32_t Width, uint32_t Height, uint32_t& X, uint32_t& Y);
     void             ApplyPick(uint64_t Serial, const hz::RenderScene& Scene, hz::RenderInstanceID Id);

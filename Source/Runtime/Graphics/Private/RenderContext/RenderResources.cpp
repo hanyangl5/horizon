@@ -1,6 +1,7 @@
 /* Copyright (c) 2026 Horizon */
 
-#include "Graphics/RenderContext.h"
+#include "Graphics/FrameUpload.h"
+#include "Runtime/RHI/Private/RendererResourceAPI.h"
 #include "Resources/IResourceLoader.h"
 #include "TextureDescs.h"
 
@@ -13,6 +14,77 @@
 
 namespace hz
 {
+FrameUpload::FrameUpload(RenderContext& Context, uint32_t FrameCount, uint32_t BytesPerFrame):
+    Context(Context), Capacity(BytesPerFrame)
+{
+    ASSERT(FrameCount && Capacity && Capacity % 4 == 0 && uint64_t(FrameCount) * Capacity <= UINT32_MAX);
+    const uint32_t Bytes = FrameCount * Capacity;
+    Submissions.Resize(FrameCount);
+    Buffer = Context.CreateBuffer({ .Size = Bytes,
+                                    .ElementCount = Bytes / 4,
+                                    .Name = "FrameUpload",
+                                    .usage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU,
+                                    .StartState = RESOURCE_STATE_SHADER_RESOURCE,
+                                    .Descriptors = DESCRIPTOR_TYPE_BUFFER_RAW,
+                                    .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+}
+
+void FrameUpload::BeginFrame(uint32_t FrameIndex)
+{
+    ASSERT(Partition == UINT32_MAX && FrameIndex < Submissions.Size());
+    if (Submissions[FrameIndex].IsValid())
+    {
+        Context.Wait(Submissions[FrameIndex]);
+    }
+    Partition = FrameIndex;
+    ViewCount = 0;
+    Used = 0;
+}
+
+void FrameUpload::EndFrame(SubmitHandle Submission)
+{
+    ASSERT(Partition < Submissions.Size() && Submission.IsValid());
+    Submissions[Partition] = Submission;
+    Partition = UINT32_MAX;
+}
+
+bool FrameUpload::Upload(const void* Data, uint32_t Size, uint32_t& ByteOffset)
+{
+    ASSERT(Partition < Submissions.Size() && Data && Size);
+    if (Size > Capacity - Used)
+    {
+        LOGF(Error, "Frame upload exceeds its %u-byte partition", Capacity);
+        return false;
+    }
+    ByteOffset = Partition * Capacity + Used;
+    if (!Context.UpdateBuffer(Buffer, ByteOffset, Data, Size))
+    {
+        return false;
+    }
+    Used += (Size + 3u) & ~3u;
+    return true;
+}
+
+BufferSrv FrameUpload::UploadStructured(const void* Data, uint32_t Stride)
+{
+    ASSERT(Partition < Submissions.Size() && Data && Stride && Stride % 4 == 0 && Stride <= 2048);
+    const uint32_t Remainder = (Partition * Capacity + Used) % Stride;
+    const uint32_t Padding = Remainder ? Stride - Remainder : 0;
+    if (uint64_t(Padding) + Stride > Capacity - Used)
+    {
+        LOGF(Error, "Structured upload exceeds its %u-byte partition", Capacity);
+        return {};
+    }
+    Used += Padding;
+    uint32_t Offset;
+    if (!Upload(Data, Stride, Offset))
+    {
+        return {};
+    }
+    const uint32_t Slot = ViewCount++ * Submissions.Size() + Partition;
+    return { .Buffer = &Buffer, .Index = setBufferStructuredSrv(Context.pRenderer, Buffer.Get(), Slot, Offset / Stride, Stride) };
+}
+
 GPUBuffer::GPUBuffer(RenderContext* Context, Buffer* BufferValue, uint64_t BufferSize, ResourceMemoryUsage MemoryUsage,
                      DescriptorType BufferDescriptors, ResourceState InitialState):
     pContext(Context), pBuffer(BufferValue), Size(BufferSize), usage(MemoryUsage), Descriptors(BufferDescriptors), state(InitialState)

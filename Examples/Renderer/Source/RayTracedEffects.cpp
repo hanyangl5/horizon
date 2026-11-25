@@ -88,7 +88,7 @@ bool RayTracedEffects::Load()
 
 void RayTracedEffects::MarkDirty() { MarkedDirty = true; }
 
-void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
+void RayTracedEffects::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer,
                                const hz::SceneView& View, const hz::GpuDrawList& Draws, const LightingResources& Lighting,
                                const RayTracedEffectsTargets& Targets)
 {
@@ -99,7 +99,7 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     }
     ASSERT(Targets.Result && Targets.Scratch && Targets.Reflection && Targets.History && Targets.PreviousHistory && Targets.PreviousDepth &&
            Targets.PreviousFrameDepth && Targets.ReflectionHistory && Targets.PreviousReflectionHistory && GBuffer.NormalMaterial &&
-           GBuffer.Depth && GBuffer.Motion && Lighting.LightingFrame);
+           GBuffer.Depth && GBuffer.Motion && Lighting.LightingFrame.IsValid());
     const hz::GPUTexture& Result = *Targets.Result;
     const hz::GPUTexture& Reflection = *Targets.Reflection;
     const uint32_t        Width = Result.GetWidth();
@@ -126,8 +126,8 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     const hz::GPUBuffer&                DrawData = Draws.GetDrawData(View.FrameIndex);
     auto        Index = [](const hz::GPUTexture* Texture) { return Texture && Texture->IsValid() ? Texture->GetSrvIndex() : UINT32_MAX; };
     RTConstants                         Constants = {
-                                .FrameIndexBuffer = Frame.GetSrvIndex(),
-                                .LightingIndex = Lighting.LightingFrame->GetSrvIndex(),
+                                .FrameIndexBuffer = Frame.Index,
+                                .LightingIndex = Lighting.LightingFrame.Index,
                                 .DrawsIndex = DrawData.GetSrvIndex(),
                                 .MaterialsIndex = View.GpuScene.GetBuffers().materials.GetSrvIndex(),
                                 .TexturesIndex = View.GpuScene.GetBuffers().textures.GetSrvIndex(),
@@ -150,14 +150,14 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
                                 .AoRadius = Current.AORadius,
                                 .ShadowRadius = Lighting.ShadowConeRadius,
     };
-    const hz::Dependencies SceneDependencies = Draws.GetDependencies(Frame, View);
+    const hz::Dependencies SceneDependencies = Draws.GetDependencies(*Frame.Buffer, View);
     Commands.BeginGpuTimestamp("RT Shadow AO");
     Commands.SetPipeline(ShadowPipeline);
     Commands.SetRootConstants(Constants);
     Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
                       { .sampledTextures = { GBuffer.NormalMaterial, GBuffer.Depth, &BlueNoise },
                         .storageTextures = { &Result },
-                        .buffers = { Lighting.LightingFrame },
+                        .buffers = { Lighting.LightingFrame.Buffer },
 
                         .pShared = &SceneDependencies });
     Commands.EndGpuTimestamp();
@@ -177,7 +177,7 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
                        { .sampledTextures = { GBuffer.NormalMaterial, GBuffer.Depth, &BlueNoise, Lighting.Environment, Lighting.Irradiance,
                                               Lighting.BRDFLut },
                          .storageTextures = { &Reflection },
-                         .buffers = { Lighting.LightingFrame },
+                         .buffers = { Lighting.LightingFrame.Buffer },
                          .pShared = &SceneDependencies });
 
     Commands.EndGpuTimestamp();

@@ -4064,8 +4064,42 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     *ppBuffer = pBuffer;
 }
 
+struct StructuredSrv
+{
+    DxDescriptorID descriptor;
+    uint32_t firstElement;
+    uint32_t stride;
+};
+
+uint32_t d3d12_setBufferStructuredSrv(Renderer* renderer, Buffer* buffer, uint32_t slot, uint32_t firstElement, uint32_t stride)
+{
+    while (slot >= (uint32_t)arrlen(buffer->dx.structuredViews))
+    {
+        const StructuredSrv empty = { .descriptor = D3D12_DESCRIPTOR_ID_NONE };
+        arrpush(buffer->dx.structuredViews, empty);
+    }
+    StructuredSrv& view = buffer->dx.structuredViews[slot];
+    if (view.descriptor == D3D12_DESCRIPTOR_ID_NONE || view.firstElement != firstElement || view.stride != stride)
+    {
+        AddBufferSrv(renderer, renderer->dx.pCbvSrvUavHeaps[0], buffer->dx.pResource, false, firstElement, 1, stride, &view.descriptor);
+        view.firstElement = firstElement;
+        view.stride = stride;
+    }
+    return (uint32_t)view.descriptor;
+}
+
 void d3d12_removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
 {
+    for (uint32_t i = 0; i < (uint32_t)arrlen(pBuffer->dx.structuredViews); ++i)
+    {
+        const DxDescriptorID id = pBuffer->dx.structuredViews[i].descriptor;
+        if (id != D3D12_DESCRIPTOR_ID_NONE)
+        {
+            return_descriptor_handles(pRenderer->dx.pCbvSrvUavHeaps[0], id, 1);
+        }
+    }
+    arrfree(pBuffer->dx.structuredViews);
+
     UNREF_PARAM(pRenderer);
     ASSERT(pRenderer);
     ASSERT(pBuffer);

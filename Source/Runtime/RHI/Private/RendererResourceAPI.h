@@ -292,6 +292,8 @@ struct SubresourceDataDesc;
 
 void FORGE_CALLCONV getBufferSizeAlign(Renderer* pRenderer, const BufferDesc* pDesc, ResourceSizeAlign* pOut);
 void FORGE_CALLCONV getTextureSizeAlign(Renderer* pRenderer, const TextureDesc* pDesc, ResourceSizeAlign* pOut);
+// The caller may reuse a slot after all commands that reference its old view have completed.
+uint32_t FORGE_CALLCONV setBufferStructuredSrv(Renderer*, Buffer*, uint32_t slot, uint32_t firstElement, uint32_t stride);
 void FORGE_CALLCONV addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer);
 void FORGE_CALLCONV removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 void FORGE_CALLCONV mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);

@@ -19,7 +19,7 @@ public:
     // Resource replacement and unload require completion of earlier draws using this environment.
     bool Load(const EnvironmentFiles& Files = {});
     bool IsValid() const;
-    void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Color, const hz::GPUTexture& Depth,
+    void Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUTexture& Color, const hz::GPUTexture& Depth,
                  float Intensity, const Vector4& Tint, const hz::GPUTexture& Sky, float2 Rotation) const;
 
     const hz::GPUTexture& GetPrefiltered() const { return Prefiltered; }

@@ -57,12 +57,12 @@ Transparency::Transparency(hz::RenderContext& Context, hz::Format DepthFormat)
     ASSERT(ClearPipeline.IsValid() && GatherPipeline.IsValid() && ResolvePipeline.IsValid() && SurfaceSampler.IsValid());
 }
 
-void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth, const hz::SceneView& View,
+void Transparency::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUTexture& Depth, const hz::SceneView& View,
                            const hz::GpuDrawList& Draws, const LightingResources& Lighting, const hz::GPUTexture& OpaqueColor,
                            const TransparencyTargets& Targets)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("Transparency::execute");
-    ASSERT(Targets.Heads && Targets.Color && Targets.Nodes && Targets.Counters && Lighting.LightingFrame && Lighting.EnvironmentSampler);
+    ASSERT(Targets.Heads && Targets.Color && Targets.Nodes && Targets.Counters && Lighting.LightingFrame.IsValid() && Lighting.EnvironmentSampler);
     const hz::GPUTexture& Heads = *Targets.Heads;
     const hz::GPUTexture& Color = *Targets.Color;
     const hz::GPUBuffer&  Nodes = *Targets.Nodes;
@@ -70,12 +70,12 @@ void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame
     const uint32_t        Width = Color.GetWidth();
     const uint32_t        Height = Color.GetHeight();
     const uint32_t        MaxNodes = (uint32_t)(Nodes.GetSize() / NodeBytes);
-    TransparencyConstants Constants = { .FrameIndex = Frame.GetSrvIndex(),
+    TransparencyConstants Constants = { .FrameIndex = Frame.Index,
                                         .OitHeadsIndex = Heads.GetUavIndex(),
                                         .OitCounterIndex = Counters.GetUavIndex(),
                                         .OitNodesIndex = Nodes.GetUavIndex(),
                                         .OitMaxNodes = MaxNodes,
-                                        .LightingFrameIndex = Lighting.LightingFrame->GetSrvIndex() };
+                                        .LightingFrameIndex = Lighting.LightingFrame.Index };
     Commands.BeginGpuTimestamp("OIT");
     Commands.SetPipeline(ClearPipeline);
     Commands.SetRootConstants(Constants);
@@ -84,7 +84,7 @@ void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame
     if (Draws.GetCount(Backing))
     {
         const hz::GPUBuffer& Indirect = Draws.GetCommands(Backing, Draws.GetTransparentList());
-        hz::Dependencies     Dependencies = Draws.GetDependencies(Frame, View, &Indirect);
+        hz::Dependencies     Dependencies = Draws.GetDependencies(*Frame.Buffer, View, &Indirect);
         Sampled.Clear();
         Buffers.Clear();
         for (const hz::GPUTexture* Texture : Dependencies.sampledTextures)
@@ -95,10 +95,9 @@ void Transparency::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame
         {
             Buffers.PushBack(Buffer);
         }
-        Buffers.PushBack(Lighting.LightingFrame);
-        if (Lighting.ZBins)
+        if (Lighting.LightingFrame.Buffer != Frame.Buffer)
         {
-            Buffers.PushBack(Lighting.ZBins);
+            Buffers.PushBack(Lighting.LightingFrame.Buffer);
         }
         if (Lighting.TileLightBitMasks)
         {

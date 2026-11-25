@@ -165,14 +165,14 @@ void ViewportPicking::PrepareOutline(const hz::GPUTexture& Backbuffer)
     }
 }
 
-void ViewportPicking::DrawIds(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
+void ViewportPicking::DrawIds(hz::CommandList& Cmd, hz::BufferSrv Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
                               const hz::GPUSampler& Sampler, bool TransparentEnabled, hz::RenderPrimitiveID Selected,
                               const hz::GPUTexture& Target, const hz::GPUTexture& Depth, uint32_t OriginX, uint32_t OriginY)
 {
     const hz::GPUBuffer* Lists[] = { &Draws.GetCommands(View.FrameIndex, Draws.GetOpaqueList()),
                                      &Draws.GetCommands(View.FrameIndex, Draws.GetTransparentList()) };
     const uint32_t       Count = TransparentEnabled ? 2u : 1u;
-    hz::Dependencies     Dependencies = Draws.GetDependencies(Frame, View);
+    hz::Dependencies     Dependencies = Draws.GetDependencies(*Frame.Buffer, View);
     Dependencies.indirectBuffers = { Lists, Count };
     Cmd.BeginRendering(
         {
@@ -194,7 +194,7 @@ void ViewportPicking::DrawIds(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, 
             Cmd.SetRootConstant({ Selected.index, Selected.generation }, 1);
         }
         Cmd.SetRootConstant(
-            { Frame.GetSrvIndex(), Gpu.instances.GetSrvIndex(), Gpu.materials.GetSrvIndex(), UINT32_MAX, Sampler.GetIndex() },
+            { Frame.Index, Gpu.instances.GetSrvIndex(), Gpu.materials.GetSrvIndex(), UINT32_MAX, Sampler.GetIndex() },
             Geometry.BindingSlot);
         Cmd.SetRootConstant({ Draws.GetDrawData(View.FrameIndex).GetSrvIndex() }, Geometry.DrawSlot);
         for (uint32_t I = 0; I < Count; ++I)
@@ -205,7 +205,7 @@ void ViewportPicking::DrawIds(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, 
     Cmd.EndRendering();
 }
 
-void ViewportPicking::Record(hz::CommandList& Cmd, const hz::GPUBuffer& Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
+void ViewportPicking::Record(hz::CommandList& Cmd, hz::BufferSrv Frame, const hz::SceneView& View, const hz::GpuDrawList& Draws,
                              const hz::GPUSampler& Sampler, bool TransparentEnabled, hz::RenderPrimitiveID Selected,
                              const hz::GPUTexture& Backbuffer, float JitterX, float JitterY)
 {

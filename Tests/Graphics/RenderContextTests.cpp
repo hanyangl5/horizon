@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "Graphics/RenderContext.h"
+#include "Graphics/FrameUpload.h"
 #include "Platform/IOperatingSystem.h"
 
 #include <type_traits>
@@ -456,6 +456,110 @@ TEST(RenderContextLiveTest, RecreatesSwapchainAcrossResize)
 #endif
 }
 
+TEST(RenderContextLiveTest, FrameUploadReusesOnlyCompletedPartitions)
+{
+#if defined(_WINDOWS)
+    hz::RenderContext context({ .pAppName = "FrameUploadTest" });
+    hz::FrameUpload upload(context, 3, 8);
+    hz::GPUBuffer result = context.CreateBuffer({ .Size = 48,
+                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                  .StartState = RESOURCE_STATE_COPY_DEST,
+                                                  .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    hz::SubmitHandle last;
+    for (uint32_t i = 0; i < 6; ++i)
+    {
+        upload.BeginFrame(i % 3);
+        const uint32_t value = 100 + i;
+        uint32_t first, second;
+        ASSERT_TRUE(upload.Upload(&i, sizeof(i), first));
+        ASSERT_TRUE(upload.Upload(&value, sizeof(value), second));
+        EXPECT_EQ(first, (i % 3) * 8u);
+        EXPECT_EQ(second, first + 4);
+        uint32_t overflow;
+        EXPECT_FALSE(upload.Upload(&value, sizeof(value), overflow));
+        hz::CommandList& commands = context.AcquireCommandList();
+        commands.CopyBuffer(result, 8 * i, upload.GetBuffer(), first, 8);
+        last = context.Submit(commands);
+        upload.EndFrame(last);
+    }
+    context.Wait(last);
+    const uint32_t* values = (const uint32_t*)result.Get()->pCpuMappedAddress;
+    for (uint32_t i = 0; i < 6; ++i)
+    {
+        EXPECT_EQ(values[2 * i], i);
+        EXPECT_EQ(values[2 * i + 1], 100 + i);
+    }
+#else
+    GTEST_SKIP() << "Requires D3D12";
+#endif
+}
+
+TEST(RenderContextLiveTest, StructuredUploadsKeepElementZeroAcrossFramePartitions)
+{
+#if defined(_WINDOWS)
+    hz::RenderContext context({ .pAppName = "StructuredFrameUploadTest", .enableGpuValidation = true });
+    hz::FrameUpload upload(context, 3, 2048);
+    const char source[] = R"(
+        struct Camera { uint Words[56]; };
+        struct Lighting { uint Words[52]; };
+        cbuffer RootConstant0 { uint CameraIndex, LightIndex, OutputIndex; };
+        [numthreads(1, 1, 1)]
+        void CSMain()
+        {
+            StructuredBuffer<Camera> Cameras = ResourceDescriptorHeap[CameraIndex];
+            StructuredBuffer<Lighting> Lights = ResourceDescriptorHeap[LightIndex];
+            RWStructuredBuffer<uint2> Output = ResourceDescriptorHeap[OutputIndex];
+            Output[0] = uint2(Cameras[0].Words[55], Lights[0].Words[51]);
+        }
+    )";
+    hz::GPUPipeline pipeline = context.CreateComputePipeline({ .shaderDesc = {
+        .stages = { { .stage = SHADER_STAGE_COMP, .pSource = source, .sourceSize = sizeof(source) - 1, .pEntryPoint = "CSMain" } },
+        .language = hz::ShaderLanguage::Slang } });
+    ASSERT_TRUE(pipeline.IsValid());
+    hz::GPUBuffer output = context.CreateBuffer({ .Size = 8, .ElementCount = 1, .StructStride = 8,
+                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY, .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+    hz::GPUBuffer result = context.CreateBuffer({ .Size = 48, .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                  .StartState = RESOURCE_STATE_COPY_DEST, .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    hz::SubmitHandle last;
+    for (uint32_t i = 0; i < 6; ++i)
+    {
+        upload.BeginFrame(i % 3);
+        uint32_t camera[56] = {}, light[52] = {};
+        camera[55] = 11 + i;
+        light[51] = 71 + i;
+        const hz::BufferSrv cameraView = upload.UploadStructured(camera, sizeof(camera));
+        if (i >= 3)
+        {
+            uint32_t offset;
+            ASSERT_TRUE(upload.Upload(camera, sizeof(camera), offset));
+        }
+        const hz::BufferSrv lightView = upload.UploadStructured(light, sizeof(light));
+        ASSERT_TRUE(cameraView.IsValid() && lightView.IsValid());
+        EXPECT_EQ(cameraView.Buffer, lightView.Buffer);
+        EXPECT_NE(cameraView.Index, lightView.Index);
+        hz::CommandList& commands = context.AcquireCommandList();
+        commands.SetPipeline(pipeline);
+        hz::DependencyList dependencies;
+        commands.SetRootConstant({ dependencies.Read(cameraView), dependencies.Read(lightView), dependencies.Write(output) });
+        EXPECT_EQ(dependencies.Get().buffers.Count, 1u);
+        commands.Dispatch(1, 1, 1, dependencies.Get());
+        commands.CopyBuffer(result, i * 8, output, 0, 8);
+        last = context.Submit(commands);
+        upload.EndFrame(last);
+    }
+    context.Wait(last);
+    const uint32_t* values = (const uint32_t*)result.Get()->pCpuMappedAddress;
+    for (uint32_t i = 0; i < 6; ++i)
+    {
+        EXPECT_EQ(values[i * 2], 11 + i);
+        EXPECT_EQ(values[i * 2 + 1], 71 + i);
+    }
+#else
+    GTEST_SKIP() << "Requires D3D12";
+#endif
+}
+
 TEST(DependencyListTest, SkipsOptionalResourcesAndReportsIndices)
 {
     hz::GPUTexture     texture;
@@ -467,6 +571,7 @@ TEST(DependencyListTest, SkipsOptionalResourcesAndReportsIndices)
     EXPECT_EQ(dependencies.Store(nullptr), UINT32_MAX);
     EXPECT_EQ(dependencies.Store(&texture), UINT32_MAX);
     EXPECT_EQ(dependencies.Read(buffer), UINT32_MAX);
+    EXPECT_EQ(dependencies.Read(nullptr), UINT32_MAX);
     EXPECT_EQ(dependencies.Write(buffer), UINT32_MAX);
     dependencies.Indirect(buffer);
     const hz::Dependencies recorded = dependencies.Get();

@@ -24,7 +24,7 @@ GTAO::GTAO(hz::RenderContext& Context)
     ASSERT(HorizonPipeline.IsValid() && UpsamplePipeline.IsValid());
 }
 
-void GTAO::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth, const hz::GPUTexture& Normals,
+void GTAO::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUTexture& Depth, const hz::GPUTexture& Normals,
                    const hz::GPUTexture& Occlusion, const hz::GPUTexture& Scratch)
 {
     hz::DependencyList  HorizonDependencies;

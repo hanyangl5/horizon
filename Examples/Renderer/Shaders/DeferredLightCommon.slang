@@ -161,7 +161,7 @@ uint2 GetZBinLightRange(ByteAddressBuffer ZBins, LightingFrameData Frame, float 
 {
     const float Depth = dot(Frame.ClusterLightingClipW, float4(Position, 1));
     const uint Z = uint(clamp((Depth - Near) * Frame.ClusterLightingBinScale, 0.0, float(CLUSTER_DEPTH_BIN_COUNT - 1)));
-    return ZBins.Load2(Z * sizeof(uint2));
+    return ZBins.Load2(Frame.ClusterLightingZBinsOffset + Z * sizeof(uint2));
 }
 
 // The batch overlaps the inclusive Z-bin range. Both bit indices are in [0, 31].

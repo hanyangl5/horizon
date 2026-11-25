@@ -28,8 +28,7 @@ struct alignas(16) LightingFrameData
     Vector4                EnvironmentTint = Vector4(1.0f);
     float                  MainSpecularScale = 1;
     uint32_t               MainExcludedPasses = 0;
-    float                  SkySin = 0;
-    float                  SkyCos = 1;
+    uint32_t               ClusterLightingZBinsOffset = 0;
     Vector4                ClusterLightingClipW = Vector4(0.0f);
     float                  ClusterLightingBinScale = 0;
     uint32_t               ClusterLightingTilesX = 0;
@@ -40,7 +39,7 @@ static_assert(sizeof(LightingFrameData) == 208);
 
 struct LightingResources
 {
-    const hz::GPUBuffer*  LightingFrame = nullptr;
+    hz::BufferSrv         LightingFrame;
     bool                  TraceShadows = false;
     float                 ShadowConeRadius = 0;
     const hz::GPUTexture* ShadowMap = nullptr;
@@ -55,7 +54,6 @@ struct LightingResources
     const hz::GPUSampler* EnvironmentSampler = nullptr;
     const hz::GPUBuffer*  LocalLights = nullptr;
     const hz::GPUBuffer*  ActiveLocalLights = nullptr;
-    const hz::GPUBuffer*  ZBins = nullptr;
     const hz::GPUBuffer*  TileLightBitMasks = nullptr;
 };
 
@@ -74,7 +72,7 @@ public:
     static constexpr hz::Format ColorFormat = hz::Format::R32G32B32A32_SFLOAT;
 
     explicit DeferredLighting(hz::RenderContext& Context);
-    void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer, const LightingResources& Resources,
+    void Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer, const LightingResources& Resources,
                  const hz::GPUTexture& Color);
 
 private:

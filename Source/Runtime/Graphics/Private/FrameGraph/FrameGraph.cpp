@@ -30,6 +30,13 @@ FrameGraphTexture AddFrameGraphTexture(FrameGraph* Graph, const FrameGraphTextur
     return { (uint16_t)(Graph->Textures.Size() - 1) };
 }
 
+const GPUBuffer& GetAllocatedFrameGraphBuffer(const FrameGraph& Graph, FrameGraphBuffer Buffer)
+{
+    const FrameGraphBufferEntry& Entry = Graph.Buffers[Buffer.Index];
+    ASSERT(Entry.Kind != FrameGraphResourceKind::Imported && Entry.Buffer.IsValid());
+    return Entry.Buffer;
+}
+
 FrameGraphBuffer AddFrameGraphBuffer(FrameGraph* Graph, const FrameGraphBufferDesc& Desc)
 {
     ASSERT(Graph && Graph->Buffers.Size() < UINT16_MAX);
@@ -62,7 +69,7 @@ FrameGraphBuffer ImportFrameGraphBuffer(FrameGraph* Graph, const FrameGraphImpor
     return { (uint16_t)(Graph->Buffers.Size() - 1) };
 }
 
-FrameGraphPass AddFrameGraphPass(FrameGraph* Graph, const FrameGraphPassDesc& Desc)
+FrameGraphPass AddFrameGraphPass(FrameGraph* Graph, const FrameGraphPassDesc& Desc, Span<FrameGraphTextureGroup> Groups)
 {
     ASSERT(Graph && Desc.Execute && Graph->Passes.Size() < UINT16_MAX);
     FrameGraphPassEntry& Entry = Graph->Passes.EmplaceBack();
@@ -70,7 +77,6 @@ FrameGraphPass AddFrameGraphPass(FrameGraph* Graph, const FrameGraphPassDesc& De
     Entry.Desc.Textures = {};
     Entry.Desc.Buffers = {};
     Entry.FirstTextureUse = Graph->TextureUses.Size();
-    Entry.TextureUseCount = Desc.Textures.Count;
     Entry.FirstBufferUse = Graph->BufferUses.Size();
     Entry.BufferUseCount = Desc.Buffers.Count;
     for (const FrameGraphTextureUse& Use : Desc.Textures)
@@ -78,6 +84,15 @@ FrameGraphPass AddFrameGraphPass(FrameGraph* Graph, const FrameGraphPassDesc& De
         ASSERT(Use.Texture.Index < Graph->Textures.Size());
         Graph->TextureUses.PushBack(Use);
     }
+    for (const FrameGraphTextureGroup& Group : Groups)
+    {
+        for (FrameGraphTexture Texture : Group.Textures)
+        {
+            ASSERT(Texture.Index < Graph->Textures.Size());
+            Graph->TextureUses.PushBack({ .Texture = Texture, .Access = Group.Access });
+        }
+    }
+    Entry.TextureUseCount = Graph->TextureUses.Size() - Entry.FirstTextureUse;
     for (const FrameGraphBufferUse& Use : Desc.Buffers)
     {
         ASSERT(Use.Buffer.Index < Graph->Buffers.Size());

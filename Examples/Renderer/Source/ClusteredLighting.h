@@ -2,7 +2,8 @@
 
 #include "../Shaders/ClusterGrid.h"
 #include "Scene/RenderScene.h"
-#include "Graphics/RenderContext.h"
+#include "Graphics/FrameGraph.h"
+#include "Graphics/FrameUpload.h"
 
 struct FrameData;
 struct LightingFrameData;
@@ -13,7 +14,8 @@ public:
     static constexpr uint32_t MaxClusteredLights = CLUSTER_MAX_LIGHTS;
 
     explicit ClusteredLighting(hz::RenderContext& Context);
-    bool Prepare(LightingFrameData& Frame, hz::GPUBuffer& ZBins, hz::GPUBuffer& TileLightBitMasks, hz::Span<hz::RenderLight> Lights,
+    static hz::FrameGraphBufferDesc GetTileMaskDesc();
+    bool Prepare(LightingFrameData& Frame, hz::FrameUpload& Upload, const hz::GPUBuffer& TileLightBitMasks, hz::Span<hz::RenderLight> Lights,
                  hz::Span<uint32_t> Active, const FrameData& Camera);
     void BuildLightTileMasks(hz::CommandList& Commands, const FrameData& Camera, const hz::GPUBuffer& TileLightBitMasks,
                              const hz::GPUBuffer& Lights, const hz::GPUBuffer& ActiveLights, uint32_t ActiveLocalLightCount) const;
@@ -32,7 +34,6 @@ private:
     };
     static int Compare(const void* A, const void* B);
 
-    hz::RenderContext&        Context;
     hz::GPUPipeline           Pipeline;
     hz::Array<LocalLightData> SortedLightList;
     hz::Array<uint32_t>       Indices;

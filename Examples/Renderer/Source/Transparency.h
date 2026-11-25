@@ -23,7 +23,7 @@ public:
 
     explicit Transparency(hz::RenderContext& Context, hz::Format DepthFormat = hz::Format::D24_UNORM_S8_UINT);
 
-    void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth, const hz::SceneView& View,
+    void Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUTexture& Depth, const hz::SceneView& View,
                  const hz::GpuDrawList& Draws, const LightingResources& Lighting, const hz::GPUTexture& OpaqueColor,
                  const TransparencyTargets& Targets);
 

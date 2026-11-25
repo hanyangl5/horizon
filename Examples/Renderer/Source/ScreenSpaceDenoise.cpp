@@ -51,7 +51,7 @@ ScreenSpaceDenoise::ScreenSpaceDenoise(hz::RenderContext& Context)
            ReflectionTemporalPipeline.IsValid() && ReflectionSpatialPipeline.IsValid());
 }
 
-void ScreenSpaceDenoise::DenoiseShadowAO(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
+void ScreenSpaceDenoise::DenoiseShadowAO(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer,
                                          const RayTracedEffectsSettings& Settings, const RayTracedEffectsTargets& Targets, bool UseHistory)
 {
     const hz::GPUTexture& Result = *Targets.Result;
@@ -63,7 +63,7 @@ void ScreenSpaceDenoise::DenoiseShadowAO(hz::CommandList& Commands, const hz::GP
     const hz::GPUTexture& PreviousHistory = *Targets.PreviousHistory;
     const hz::GPUTexture& PreviousFrameDepth = *Targets.PreviousFrameDepth;
     SSDConstants          Denoise = {
-                 .FrameIndex = Frame.GetSrvIndex(),
+                 .FrameIndex = Frame.Index,
                  .InputIndex = Result.GetSrvIndex(),
                  .HistoryIndex = PreviousHistory.GetSrvIndex(),
                  .DepthIndex = GBuffer.Depth->GetSrvIndex(),
@@ -81,7 +81,7 @@ void ScreenSpaceDenoise::DenoiseShadowAO(hz::CommandList& Commands, const hz::GP
     Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
                       { .sampledTextures = { &Result, &PreviousHistory, GBuffer.Depth, &PreviousFrameDepth, GBuffer.Motion },
                         .storageTextures = { &History },
-                        .buffers = { &Frame } });
+                        .buffers = { Frame.Buffer } });
     // The traced input is consumed, so the a-trous iterations ping-pong through Scratch and finish in Result.
     const hz::GPUTexture* Passes[] = { &History, &Scratch, &Result };
     for (uint32_t Pass = 0; Pass < 2; ++Pass)
@@ -94,12 +94,12 @@ void ScreenSpaceDenoise::DenoiseShadowAO(hz::CommandList& Commands, const hz::GP
         Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
                           { .sampledTextures = { Passes[Pass], GBuffer.Depth, GBuffer.NormalMaterial },
                             .storageTextures = { Passes[Pass + 1] },
-                            .buffers = { &Frame } });
+                            .buffers = { Frame.Buffer } });
     }
     Commands.EndGpuTimestamp();
 }
 
-void ScreenSpaceDenoise::DenoiseReflections(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
+void ScreenSpaceDenoise::DenoiseReflections(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer,
                                             const RayTracedEffectsSettings& Settings, const RayTracedEffectsTargets& Targets,
                                             bool UseHistory)
 {
@@ -111,7 +111,7 @@ void ScreenSpaceDenoise::DenoiseReflections(hz::CommandList& Commands, const hz:
     const hz::GPUTexture& ReflectionHistory = *Targets.ReflectionHistory;
     const hz::GPUTexture& PreviousReflectionHistory = *Targets.PreviousReflectionHistory;
     SSDConstants          Denoise = {
-                 .FrameIndex = Frame.GetSrvIndex(),
+                 .FrameIndex = Frame.Index,
                  .InputIndex = Reflection.GetSrvIndex(),
                  .HistoryIndex = PreviousReflectionHistory.GetSrvIndex(),
                  .DepthIndex = GBuffer.Depth->GetSrvIndex(),
@@ -129,7 +129,7 @@ void ScreenSpaceDenoise::DenoiseReflections(hz::CommandList& Commands, const hz:
     Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
                       { .sampledTextures = { &Reflection, &PreviousReflectionHistory, GBuffer.Depth, &PreviousFrameDepth, GBuffer.Motion },
                         .storageTextures = { &ReflectionHistory },
-                        .buffers = { &Frame } });
+                        .buffers = { Frame.Buffer } });
     Denoise.InputIndex = ReflectionHistory.GetSrvIndex();
     Denoise.OutputIndex = Reflection.GetUavIndex();
     Commands.SetPipeline(ReflectionSpatialPipeline);
@@ -137,18 +137,18 @@ void ScreenSpaceDenoise::DenoiseReflections(hz::CommandList& Commands, const hz:
     Commands.Dispatch((Width + 15) / 16, (Height + 15) / 16, 1,
                       { .sampledTextures = { &ReflectionHistory, GBuffer.Depth, GBuffer.NormalMaterial },
                         .storageTextures = { &Reflection },
-                        .buffers = { &Frame } });
+                        .buffers = { Frame.Buffer } });
     Commands.EndGpuTimestamp();
 }
 
-void ScreenSpaceDenoise::StoreDepthHistory(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
+void ScreenSpaceDenoise::StoreDepthHistory(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUTexture& Depth,
                                            const hz::GPUTexture& Output)
 {
-    const SSDConstants Constants = { .FrameIndex = Frame.GetSrvIndex(),
+    const SSDConstants Constants = { .FrameIndex = Frame.Index,
                                      .DepthIndex = Depth.GetSrvIndex(),
                                      .OutputIndex = Output.GetUavIndex() };
     Commands.SetPipeline(DepthHistoryPipeline);
     Commands.SetRootConstants(Constants);
     Commands.Dispatch((Output.GetWidth() + 15) / 16, (Output.GetHeight() + 15) / 16, 1,
-                      { .sampledTextures = { &Depth }, .storageTextures = { &Output }, .buffers = { &Frame } });
+                      { .sampledTextures = { &Depth }, .storageTextures = { &Output }, .buffers = { Frame.Buffer } });
 }

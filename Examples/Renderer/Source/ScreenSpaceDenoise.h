@@ -10,11 +10,11 @@ class ScreenSpaceDenoise
 {
 public:
     explicit ScreenSpaceDenoise(hz::RenderContext& Context);
-    void DenoiseShadowAO(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
+    void DenoiseShadowAO(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer,
                          const RayTracedEffectsSettings& Settings, const RayTracedEffectsTargets& Targets, bool UseHistory);
-    void DenoiseReflections(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const DeferredGBuffer& GBuffer,
+    void DenoiseReflections(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer,
                             const RayTracedEffectsSettings& Settings, const RayTracedEffectsTargets& Targets, bool UseHistory);
-    void StoreDepthHistory(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Depth,
+    void StoreDepthHistory(hz::CommandList& Commands, hz::BufferSrv Frame, const hz::GPUTexture& Depth,
                            const hz::GPUTexture& Output);
 
 private:
