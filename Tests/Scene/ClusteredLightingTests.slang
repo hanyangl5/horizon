@@ -11,6 +11,23 @@ cbuffer RootConstant0
     float Near;
 };
 
+float3 AccumulateLocalLights(LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V)
+{
+    float3 Result = 0.0;
+    if (Frame.LocalLightCount == 0)
+    {
+        return Result;
+    }
+    ByteAddressBuffer Lights = ResourceDescriptorHeap[Frame.LocalLightsIndex];
+    ByteAddressBuffer ActiveLights = ResourceDescriptorHeap[Frame.ActiveLocalLightsIndex];
+    for (uint Index = 0; Index < Frame.LocalLightCount; ++Index)
+    {
+        GpuLightData Light = LoadLocalLight(Lights, ActiveLights, Index);
+        Result += EvaluateLocalLight(Light, GBuffer, Position, V);
+    }
+    return Result;
+}
+
 [numthreads(8, 8, 1)]
 void CompareLighting(uint3 ID : SV_DispatchThreadID)
 {

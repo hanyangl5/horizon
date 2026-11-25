@@ -140,23 +140,6 @@ GpuLightData LoadLocalLight(ByteAddressBuffer Lights, ByteAddressBuffer Indices,
     return Lights.Load<GpuLightData>(LightIndex * GpuLightStride);
 }
 
-float3 AccumulateLocalLights(LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V)
-{
-    float3 Result = 0.0;
-    if (Frame.LocalLightCount == 0)
-    {
-        return Result;
-    }
-    ByteAddressBuffer Lights = ResourceDescriptorHeap[Frame.LocalLightsIndex];
-    ByteAddressBuffer ActiveLights = ResourceDescriptorHeap[Frame.ActiveLocalLightsIndex];
-    for (uint Index = 0; Index < Frame.LocalLightCount; ++Index)
-    {
-        GpuLightData Light = LoadLocalLight(Lights, ActiveLights, Index);
-        Result += EvaluateLocalLight(Light, GBuffer, Position, V);
-    }
-    return Result;
-}
-
 uint2 GetZBinLightRange(ByteAddressBuffer ZBins, LightingFrameData Frame, float Near, float3 Position)
 {
     const float Depth = dot(Frame.ClusterLightingClipW, float4(Position, 1));
@@ -175,11 +158,8 @@ uint GetLightRangeMask(uint2 Range, uint FirstLight)
 
 float3 AccumulateScreenLights(uint2 Pixel, float Near, LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V)
 {
-    if (Frame.ClusterLightingZBinsIndex == INVALID_TEXTURE)
-    {
-        return AccumulateLocalLights(Frame, GBuffer, Position, V);
-    }
     float3 Result = 0.0;
+    // no local light in scene
     if (Frame.ClusterLightingTileLightBitMasksIndex == INVALID_TEXTURE)
         return Result;
     ByteAddressBuffer Lights = ResourceDescriptorHeap[Frame.LocalLightsIndex];

@@ -38,7 +38,7 @@ struct GeometryBindingConstants
 static_assert(sizeof(GeometryBindingConstants) == 5 * sizeof(uint32_t));
 
 static hz::CVar GClusteredLighting("r.ClusteredLighting", true, "0 uses the full light loop, 1 enables light culling.");
-static hz::CVar GTemporalAA("r.TAA", true, "Temporal antialiasing.");
+static hz::CVar GTemporalAA("r.TAA", false, "Temporal antialiasing.");
 static hz::CVar GTransparency("r.Transparency", true, "Blended transparent surfaces.");
 static hz::CVar GGTAO("r.GTAO", true, "Screen-space ambient occlusion when ray-traced AO is off.");
 

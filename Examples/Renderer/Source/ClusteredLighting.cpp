@@ -63,6 +63,7 @@ bool ClusteredLighting::Prepare(LightingFrameData& Frame, hz::FrameUpload& Uploa
     const float DepthScale = length(ClipW.getXYZ());
     SortedLightList.Clear();
     Indices.Clear();
+    // gather active local lights
     for (uint32_t Index : Active)
     {
         const hz::RenderLight& Light = Lights.Data[Index];
@@ -90,7 +91,9 @@ bool ClusteredLighting::Prepare(LightingFrameData& Frame, hz::FrameUpload& Uploa
         {
             return false;
         }
+        // sort by depth
         qsort(SortedLightList.GetData(), SortedLightList.Size(), sizeof(LocalLightData), Compare);
+
         for (Bin& Entry : Bins)
         {
             Entry = { .First = UINT32_MAX, .Last = 0 };
@@ -101,15 +104,19 @@ bool ClusteredLighting::Prepare(LightingFrameData& Frame, hz::FrameUpload& Uploa
             const hz::RenderLight& Light = Lights.Data[Sorted.Index];
             Indices.PushBack(Sorted.Index);
             const float    Extent = Light.InfluenceRadius * DepthScale;
+            // find the first and last depth bin that this light affects
             const uint32_t First = DepthBin(Sorted.Depth - Extent, Camera.Near, Frame.ClusterLightingBinScale);
             const uint32_t Last = DepthBin(Sorted.Depth + Extent, Camera.Near, Frame.ClusterLightingBinScale);
+
             for (uint32_t Z = First; Z <= Last; ++Z)
             {
                 if (Bins[Z].First == UINT32_MAX)
                 {
                     Bins[Z].First = I;
+                    // only set once
                 }
                 Bins[Z].Last = I;
+                // update every time
             }
         }
     }

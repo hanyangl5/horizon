@@ -1691,11 +1691,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
     glassFrame.LocalLightsIndex = glassBuffer.GetSrvIndex();
     glassFrame.LocalLightCount = 2;
     glassFrame.ActiveLocalLightsIndex = glassIds.GetSrvIndex();
-    const hz::GPUBuffer     glassLighting = input(&glassFrame, sizeof(glassFrame), sizeof(glassFrame));
-    glassFrame.ClusterLightingZBinsIndex = UINT32_MAX;
-    const hz::GPUBuffer fullGlassLighting = input(&glassFrame, sizeof(glassFrame), sizeof(glassFrame));
-    float reference[64 * 4] = {};
-    for (uint32_t scenario = 0; scenario < 6; ++scenario)
+    const hz::GPUBuffer glassLighting = input(&glassFrame, sizeof(glassFrame), sizeof(glassFrame));
+    for (uint32_t scenario = 0; scenario < 5; ++scenario)
     {
         SCOPED_TRACE(scenario);
         const uint32_t Capacity = scenario == 3 ? 1 : 128;
@@ -1727,9 +1724,9 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         constants[13] = counters.GetUavIndex();
         constants[14] = nodes.GetUavIndex();
         constants[15] = Capacity;
-        const hz::GPUBuffer& surfaceLighting = scenario == 5 ? glassLighting : scenario == 4 ? fullGlassLighting : light;
+        const hz::GPUBuffer& surfaceLighting = scenario == 4 ? glassLighting : light;
         constants[16] = surfaceLighting.GetSrvIndex();
-        if (scenario == 5)
+        if (scenario == 4)
         {
             clusters.BuildLightTileMasks(commands, clusterCamera, masks, glassBuffer, glassIds, glassFrame.LocalLightCount);
         }
@@ -1778,23 +1775,12 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         EXPECT_EQ(stats[0], scenario == 2 ? 64u : 128u);
         EXPECT_EQ(stats[1], scenario == 3 ? 127u : 0u);
         EXPECT_EQ(stats[2], 0u);
-        if (scenario == 4)
-        {
-            memcpy(reference, color, sizeof(reference));
-        }
         double sum[3] = {};
         for (uint32_t pixel = 0; pixel < 64; ++pixel)
         {
             for (uint32_t channel = 0; channel < 3; ++channel)
             {
                 sum[channel] += color[pixel * 4 + channel];
-            }
-            if (scenario == 5)
-            {
-                for (uint32_t c = 0; c < 3; ++c)
-                {
-                    EXPECT_NEAR(color[pixel * 4 + c], reference[pixel * 4 + c], 1e-4f);
-                }
             }
             if (scenario < 3)
             {
@@ -1803,7 +1789,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
                 EXPECT_NEAR(color[pixel * 4 + 2], scenario == 2 ? 0.5 : 0.25, 1e-5);
             }
         }
-        if (scenario >= 4)
+        if (scenario == 4)
         {
             EXPECT_GT(sum[0], 32.0);
         }
@@ -1992,9 +1978,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     localFrame.LocalLightsIndex = lightList.GetSrvIndex();
     localFrame.LocalLightCount = localCount;
     localFrame.ActiveLocalLightsIndex = activeLightList.GetSrvIndex();
-    const hz::GPUBuffer     localLighting = Upload(&localFrame, sizeof(localFrame));
-    localFrame.ClusterLightingZBinsIndex = UINT32_MAX;
-    const hz::GPUBuffer fullLocalLighting = Upload(&localFrame, sizeof(localFrame));
+    const hz::GPUBuffer localLighting = Upload(&localFrame, sizeof(localFrame));
     hz::CommandList& commands = context.AcquireCommandList();
     const auto       Clear = [&](const hz::GPUTexture& texture, float value)
     {
@@ -2064,8 +2048,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     read(logOutput, 8);
     // Normal incidence, white dielectric, specular 8/16. Test the smooth limit and a rough lobe as well as the HDR peak.
     clusters.BuildLightTileMasks(commands, clusterCamera, masks, lightList, activeLightList, localCount);
-    constexpr uint32_t roughnessCodes[] = { 0, 51, 255, 255, 255 };
-    constexpr uint32_t lightingOffsets[] = { 182, 15, 183, 184, 185 };
+    constexpr uint32_t roughnessCodes[] = { 0, 51, 255, 255 };
+    constexpr uint32_t lightingOffsets[] = { 182, 15, 183, 184 };
     uint32_t           peakConstants[15];
     for (uint32_t& value : peakConstants)
     {
@@ -2091,7 +2075,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                                           .storeAction = STORE_ACTION_STORE,
                                                           .ClearValue = { .r = 1, .g = 1, .b = 1, .a = 0 } } } });
         commands.EndRendering();
-        const hz::GPUBuffer& lighting = probe == 4 ? localLighting : probe >= 3 ? fullLocalLighting : peakLighting;
+        const hz::GPUBuffer& lighting = probe == 3 ? localLighting : peakLighting;
         peakConstants[1] = lighting.GetSrvIndex();
         commands.SetPipeline(deferred);
         commands.BeginRendering(

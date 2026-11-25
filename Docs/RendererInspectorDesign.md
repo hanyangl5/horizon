@@ -46,12 +46,12 @@ CMake 选项 `HORIZON_EDITOR_MODE` 默认开启，为 Renderer 定义同名编�
 
 | 控件 | 生效约定 |
 | --- | --- |
-| Local lighting | `Clustered / Full light loop`。沿用启动时创建的 PSO；全量模式跳过构建 mask。分别展示所选模式和当前帧是否实际用了 mask。 |
+| Local lighting | `r.ClusteredLighting` 默认开启。关闭时跳过局部光照和 tile mask 构建。 |
 | Ambient occlusion | `Off / GTAO / RT AO` 单选，对应 Renderer 当前两条互斥的 AO 路径。 |
 | TAA、透明、RT 阴影、RT 反射 | 按现有 pass 能力接入。RT 不可用时禁选并给原因。影响时域结果的切换使对应 history 失效，切换后的第一帧从有效输入开始。 |
 | VSync | 通过现有 `SetVSync` 在帧边界应用，显示实际结果；失败时保留原值并显示原因。 |
-| 配置预设 | “项目默认”从各渲染 CVar 注册时的默认值恢复。“全量光照对照”只写入 `r.ClusteredLighting 0`，保留其余选项，用于同条件比较。 |
-| 固定 Bistro 灯光现场 | 独立的示例调试控制，同时暂停移动和每秒替换，恢复时从暂停处继续。它允许在同一组灯和同一相机下比较两条光照路径，也方便跟踪单盏灯。 |
+| 配置预设 | “项目默认”从各渲染 CVar 注册时的默认值恢复。 |
+| 固定 Bistro 灯光现场 | 独立的示例调试控制，同时暂停移动和每秒替换，恢复时从暂停处继续。可用于跟踪单盏灯。 |
 
 配置作用于当前运行会话。开发者可以随时恢复项目默认；面板开关和渲染预设各自独立。FPS 计入整帧，单个 GPU pass 的时间按最近已完成的时间戳展示，避免把两种口径混用。
 
