@@ -105,7 +105,7 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     const uint32_t        Width = Result.GetWidth();
     const uint32_t        Height = Result.GetHeight();
     const HistorySettings Current = { .Parameters = Settings,
-                                      .Shadows = GRTShadows.GetBool(),
+                                      .Shadows = Lighting.TraceShadows,
                                       .AO = GRTAO.GetBool(),
                                       .Reflections = GRTReflections.GetBool(),
                                       .AORadius = GRTAORadius.GetFloat() };
@@ -148,7 +148,7 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
                                 .AlphaTestMethod = Settings.ShadowAlphaTestMethod,
                                 .RetraceMaxDepth = Settings.RetraceMaxDepth,
                                 .AoRadius = Current.AORadius,
-                                .ShadowRadius = Settings.ShadowRadius,
+                                .ShadowRadius = Lighting.ShadowConeRadius,
     };
     const hz::Dependencies SceneDependencies = Draws.GetDependencies(Frame, View);
     Commands.BeginGpuTimestamp("RT Shadow AO");

@@ -15,7 +15,6 @@ public:
     void                  Execute(hz::CommandList&, const hz::SceneView&, const hz::GpuDrawList&, const hz::GPUTexture& Depth);
     const hz::GPUSampler& GetSampler() const { return Sampler; }
     const hz::GPUBuffer&  GetLightingFrame(uint32_t Backing) const { return LightingFrames[Backing]; }
-    float                 LuminousEfficacy = 100.0f; // lm/W; explicit Cookbook daylight-white calibration.
     LightingFrameData     Data;
 
 private:

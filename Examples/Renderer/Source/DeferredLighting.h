@@ -27,15 +27,17 @@ struct alignas(16) LightingFrameData
     uint32_t               ActiveLightsIndex = UINT32_MAX;
     Vector4                EnvironmentTint = Vector4(1.0f);
     uint32_t               MainDirectionalIndex = UINT32_MAX;
-    float                  LuminousEfficacy = 1.0f;
-    uint32_t               Padding0 = 0;
-    uint32_t               Padding1 = 0;
+    float                  MainDiffuseScale = 1;
+    float                  MainSpecularScale = 1;
+    uint32_t               MainExcludedPasses = 0;
 };
 static_assert(sizeof(LightingFrameData) == 176);
 
 struct LightingResources
 {
     const hz::GPUBuffer*  LightingFrame = nullptr;
+    bool                  TraceShadows = false;
+    float                 ShadowConeRadius = 0;
     const hz::GPUTexture* ShadowMap = nullptr;
     const hz::GPUSampler* ShadowSampler = nullptr;
     const hz::GPUTexture* RTShadowAO = nullptr;

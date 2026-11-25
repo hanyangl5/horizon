@@ -947,28 +947,18 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     parentMatrix.setElem(1, 0, 0.5f);
     ASSERT_TRUE(world.SetComponent(parent, hz::SceneTypes::localMatrix, &parentMatrix));
     hz::FixedArray<hz::Entity, 9> entities;
-    hz::Light                     light = { .color = Vector3(0.1f, 0.2f, 0.3f),
-                                            .intensity = 5,
-                                            .range = 10,
-                                            .innerConeAngle = 0.2f,
-                                            .outerConeAngle = 0.4f,
-                                            .exposure = 2,
-                                            .angularDiameter = 0.05f,
-                                            .Width = 6,
-                                            .Height = 7,
-                                            .radius = 8,
-                                            .length = 9,
-                                            .colorTemperature = 3200,
-                                            .enableColorTemperature = true,
-                                            .normalize = true,
-                                            .twoSided = true };
+    hz::SpotLightComponent        light = { .InnerConeAngle = 10, .OuterConeAngle = 20 };
+    light.Point.Local.Common.Base.Intensity = 5;
+    light.Point.Local.Common.Base.LightColor = Vector3(0.1f, 0.2f, 0.3f);
+    light.Point.Local.Common.Temperature = 3200;
+    light.Point.Local.Common.bUseTemperature = true;
+    light.Point.Local.IntensityUnits = hz::LightUnits::Candelas;
     hz::Camera                    lens = { .verticalFov = 0.8f, .nearPlane = 0.2f, .farPlane = 500 };
     hz::LocalTransform            transform = { .translation = Vector3(1, 2, 3) };
     for (uint32_t i = 0; i < 9; ++i)
     {
         entities[i] = world.CreatePersistentEntity({ .high = 2, .low = i + 1 });
-        light.Type = (hz::LightType)i;
-        ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::light, &light));
+        ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::spotLight, &light));
         ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::camera, &lens));
         ASSERT_TRUE(world.SetComponent(entities[i], hz::SceneTypes::localTransform, &transform));
         ASSERT_TRUE(world.SetParent(entities[i], parent, false));
@@ -981,23 +971,15 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
         const hz::RenderLight* extracted = scene.GetLight(scene.FindLight(entities[i]));
         ASSERT_NE(extracted, nullptr);
         EXPECT_EQ(extracted->entityGuid, world.GetEntityGuid(entities[i]));
-        EXPECT_EQ(extracted->Type, (hz::LightType)i);
-        EXPECT_EQ(extracted->ready, i == 8 ? 0u : 1u);
+        EXPECT_EQ(extracted->Type, hz::LightType::Spot);
+        EXPECT_EQ(extracted->ready, 1u);
         EXPECT_FLOAT_EQ(extracted->color[2], 0.3f);
         EXPECT_FLOAT_EQ(extracted->intensity, 5);
-        EXPECT_FLOAT_EQ(extracted->range, 10);
-        EXPECT_FLOAT_EQ(extracted->innerConeAngle, 0.2f);
-        EXPECT_FLOAT_EQ(extracted->outerConeAngle, 0.4f);
-        EXPECT_FLOAT_EQ(extracted->exposure, 2);
-        EXPECT_FLOAT_EQ(extracted->angularDiameter, 0.05f);
-        EXPECT_FLOAT_EQ(extracted->Width, 6);
-        EXPECT_FLOAT_EQ(extracted->Height, 7);
-        EXPECT_FLOAT_EQ(extracted->radius, 8);
-        EXPECT_FLOAT_EQ(extracted->length, 9);
+        EXPECT_FLOAT_EQ(extracted->InfluenceRadius, 10);
+        EXPECT_FLOAT_EQ(extracted->innerConeAngle, 10.0f * (PI / 180));
+        EXPECT_FLOAT_EQ(extracted->outerConeAngle, 20.0f * (PI / 180));
         EXPECT_FLOAT_EQ(extracted->colorTemperature, 3200);
-        EXPECT_EQ(extracted->enableColorTemperature, 1u);
-        EXPECT_EQ(extracted->normalize, 1u);
-        EXPECT_EQ(extracted->twoSided, 1u);
+        EXPECT_EQ(extracted->enableColorTemperature, extracted->Type != hz::LightType::Sky);
         EXPECT_FLOAT_EQ((float)extracted->transform.getElem(1, 0), 0.5f);
         EXPECT_FLOAT_EQ((float)extracted->transform.getElem(3, 0), 13);
         const hz::RenderCamera* camera = scene.GetCamera(scene.FindCamera(entities[i]));
@@ -1037,7 +1019,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     }
     const hz::RenderLightID  oldLight = scene.FindLight(entities[0]);
     const hz::RenderCameraID oldCamera = scene.FindCamera(entities[0]);
-    ASSERT_TRUE(world.RemoveComponent(entities[0], hz::SceneTypes::light));
+    ASSERT_TRUE(world.RemoveComponent(entities[0], hz::SceneTypes::spotLight));
     ASSERT_TRUE(world.RemoveComponent(entities[0], hz::SceneTypes::camera));
     scene.Update();
     EXPECT_EQ(scene.GetLight(oldLight), nullptr);
@@ -1046,7 +1028,7 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     EXPECT_FALSE(scene.FindCamera(entities[0]).IsValid());
     EXPECT_TRUE(scene.GetChanges().lights.activeList);
     EXPECT_TRUE(scene.GetChanges().cameras.activeList);
-    ASSERT_TRUE(world.SetComponent(entities[0], hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(entities[0], hz::SceneTypes::spotLight, &light));
     ASSERT_TRUE(world.SetComponent(entities[0], hz::SceneTypes::camera, &lens));
     scene.Update();
     EXPECT_EQ(scene.FindLight(entities[0]).index, oldLight.index);
@@ -1060,6 +1042,52 @@ TEST_F(AssetManagerTest, RenderSceneExtractsLightsAndCamerasWithStableIndicesAnd
     scene.Update();
     EXPECT_EQ(scene.GetActiveLights().Count, 0u);
     EXPECT_EQ(scene.GetActiveCameras().Count, 0u);
+}
+
+TEST_F(AssetManagerTest, ConcreteLightsOnOneEntityHaveIndependentHandlesAndParameters)
+{
+    hz::TypeRegistry types;
+    ASSERT_TRUE(types.RegisterBuiltins());
+    hz::World        world(types);
+    hz::AssetCatalog catalog;
+    hz::AssetManager assets(catalog);
+    hz::RenderScene  scene(world, assets);
+    const hz::Entity entity = world.CreateEntity();
+    for (const uint64_t type : hz::LightComponentTypes)
+    {
+        ASSERT_TRUE(world.AddComponent(entity, type));
+    }
+    scene.Update();
+    ASSERT_EQ(scene.GetActiveLights().Count, 5u);
+    const hz::RenderLightID point = scene.FindLight(entity, hz::LightType::Point);
+    const hz::RenderLightID spot = scene.FindLight(entity, hz::LightType::Spot);
+    const hz::RenderLightID rect = scene.FindLight(entity, hz::LightType::Rect);
+    const hz::RenderLightID sun = scene.FindLight(entity, hz::LightType::Directional);
+    const hz::RenderLightID sky = scene.FindLight(entity, hz::LightType::Sky);
+    ASSERT_TRUE(point.IsValid() && spot.IsValid() && rect.IsValid() && sun.IsValid() && sky.IsValid());
+    EXPECT_FLOAT_EQ(scene.GetLight(sun)->intensity, 10);
+    EXPECT_FLOAT_EQ(scene.GetLight(sky)->intensity, 1);
+    EXPECT_FLOAT_EQ(scene.GetLight(rect)->Width, 0.64f);
+    EXPECT_FLOAT_EQ(scene.GetLight(spot)->outerConeAngle, 44.0f * (PI / 180));
+    EXPECT_FLOAT_EQ(scene.GetLight(point)->InfluenceRadius, 10);
+    hz::PointLightComponent bulb;
+    bulb.Local.IntensityUnits = hz::LightUnits::Lumens;
+    bulb.Local.Common.Base.Intensity = 4.0f * PI;
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::pointLight, &bulb));
+    hz::DirectionalLightComponent daylight;
+    daylight.LightSourceAngle = 2.0f;
+    daylight.ShadowSourceAngleFactor = 0.5f;
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::directionalLight, &daylight));
+    scene.Update();
+    EXPECT_FLOAT_EQ(scene.GetLight(point)->intensity, 1.0f);
+    EXPECT_FLOAT_EQ(scene.GetLight(sun)->ShadowConeRadius, 0.5f * sinf(PI / 180.0f));
+    EXPECT_FLOAT_EQ(scene.GetLight(sky)->intensity, 1.0f);
+    ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::pointLight));
+    scene.Update();
+    EXPECT_EQ(scene.GetLight(point), nullptr);
+    EXPECT_EQ(scene.FindLight(entity, hz::LightType::Sky), sky);
+    EXPECT_EQ(scene.FindLight(entity, hz::LightType::Spot), spot);
+    EXPECT_EQ(scene.GetActiveLights().Count, 4u);
 }
 
 TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLeaseHandoffs)
@@ -1078,27 +1106,27 @@ TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLease
     hz::World        world(types);
     hz::RenderScene  scene(world, assetManager);
     const hz::Entity a = world.CreateEntity(), b = world.CreateEntity();
-    hz::Light        light = { .Type = hz::LightType::Dome, .texture = assetID(1) };
-    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::light, &light));
+    const hz::SkyLightComponent sky = { .SourceType = hz::SkyLightSourceType::SpecifiedCubemap, .Cubemap = assetID(1) };
+    hz::RectLightComponent      light = { .SourceTexture = assetID(1) };
+    ASSERT_TRUE(world.SetComponent(a, hz::SceneTypes::skyLight, &sky));
     scene.Update();
     const hz::RenderLightID id = scene.FindLight(a);
-    const hz::AssetHandle   Handle = assetManager.Find(light.texture);
+    const hz::AssetHandle   Handle = assetManager.Find(light.SourceTexture);
     ASSERT_TRUE(Handle.IsValid());
     assetManager.Update();
     EXPECT_EQ(scene.GetLight(id)->ready, 0u);
     EXPECT_FALSE(scene.GetLight(id)->texture.IsValid());
-    light.Type = hz::LightType::Point;
-    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.AddComponent(b, hz::SceneTypes::pointLight));
     scene.Update();
     EXPECT_EQ(scene.GetLight(scene.FindLight(b))->ready, 1u);
     EXPECT_FALSE(scene.GetLight(scene.FindLight(b))->texture.IsValid());
     // Move the only lease from a to b in one Update, without retiring the texture.
-    ASSERT_TRUE(world.RemoveComponent(a, hz::SceneTypes::light));
-    light.Type = hz::LightType::Rect;
-    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.RemoveComponent(a, hz::SceneTypes::skyLight));
+    ASSERT_TRUE(world.RemoveComponent(b, hz::SceneTypes::pointLight));
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::rectLight, &light));
     scene.Update();
     assetManager.Update();
-    EXPECT_EQ(assetManager.Find(light.texture), Handle);
+    EXPECT_EQ(assetManager.Find(light.SourceTexture), Handle);
     EXPECT_EQ(loader.begun, 1u);
     loader.jobs[1]->failed = true;
     loader.jobs[1]->ready = true;
@@ -1111,26 +1139,26 @@ TEST_F(AssetManagerTest, RenderSceneEmissionBindingsHandlePendingFailureAndLease
         scene.Update();
     }
     EXPECT_EQ(loader.begun, 1u);
-    light.texture = assetID(999);
-    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::light, &light));
+    light.SourceTexture = assetID(999);
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::rectLight, &light));
     scene.Update();
     assetManager.Update();
     EXPECT_FALSE(assetManager.Find(assetID(1)).IsValid());
     EXPECT_EQ(scene.GetLight(scene.FindLight(b))->ready, 0u);
     scene.Update();
-    light.texture = {};
-    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::light, &light));
+    light.SourceTexture = {};
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::rectLight, &light));
     scene.Update();
     EXPECT_EQ(scene.GetLight(scene.FindLight(b))->ready, 1u);
     EXPECT_EQ(assetManager.GetCount(), 0u);
     // A Ready payload of another Type must never become a GPU texture reference.
     loader.ready = true;
-    light.texture = assetID(2);
-    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::light, &light));
+    light.SourceTexture = assetID(2);
+    ASSERT_TRUE(world.SetComponent(b, hz::SceneTypes::rectLight, &light));
     scene.Update();
     assetManager.Update();
     scene.Update();
-    EXPECT_EQ(assetManager.GetState(assetManager.Find(light.texture)), hz::AssetState::Ready);
+    EXPECT_EQ(assetManager.GetState(assetManager.Find(light.SourceTexture)), hz::AssetState::Ready);
     EXPECT_EQ(scene.GetLight(scene.FindLight(b))->ready, 0u);
     EXPECT_FALSE(scene.GetLight(scene.FindLight(b))->texture.IsValid());
 }
@@ -1661,28 +1689,29 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     hz::World              world(types);
     hz::RenderScene        scene(world, assetManager);
     const hz::Entity       entity = world.CreateEntity();
-    hz::Light              light = { .Type = hz::LightType::Mesh, .intensity = 4, .texture = assets.GetTextures().Data[0].id };
+    hz::RectLightComponent light = { .SourceTexture = assets.GetTextures().Data[0].id };
+    light.Local.Common.Base.Intensity = 4;
+    light.Local.IntensityUnits = hz::LightUnits::Nits;
     hz::Camera             lens = { .verticalFov = 0.8f };
     hz::LocalTransform     transform = { .translation = Vector3(1, 0, 0) };
     const hz::MeshRenderer renderer = { .mesh = assets.GetMeshes().Data[0].id };
-    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::rectLight, &light));
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::camera, &lens));
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
     scene.Update();
     const hz::RenderLightID  lightID = scene.FindLight(entity);
     const hz::RenderCameraID cameraID = scene.FindCamera(entity);
-    const hz::AssetHandle    textureHandle = assetManager.Find(light.texture);
+    const hz::AssetHandle    textureHandle = assetManager.Find(light.SourceTexture);
     EXPECT_EQ(scene.GetLight(lightID)->ready, 0u);
     Wait(assetManager, textureHandle);
     scene.Update();
-    EXPECT_EQ(scene.GetLight(lightID)->ready, 0u); // Mesh emitter still has no mesh.
+    EXPECT_EQ(scene.GetLight(lightID)->ready, 1u); // A rect light is independent of the mesh on its entity.
     EXPECT_TRUE(scene.GetLight(lightID)->texture.IsValid());
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::meshRenderer, &renderer));
     scene.Update();
     Wait(assetManager, assetManager.Find(renderer.mesh));
     scene.Update();
     ASSERT_EQ(scene.GetLight(lightID)->ready, 1u);
-    EXPECT_EQ(scene.GetLight(lightID)->primitive, scene.FindPrimitive(entity));
 
     hz::GpuScene gpu(scene, assetManager, context);
     gpu.Reserve(1, 1, 1, 1);
@@ -1713,18 +1742,17 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     EXPECT_FLOAT_EQ(copiedCamera.lens.verticalFov, 0.8f);
     EXPECT_EQ(copiedLight.Id, lightID);
     EXPECT_FLOAT_EQ((float)copiedLight.Color.getX(), 4);
-    EXPECT_EQ(copiedLight.Ready, 1u);
+    EXPECT_TRUE(scene.GetLight(lightID)->IsActiveLocalLight());
     EXPECT_EQ(copiedLight.Texture, scene.GetLight(lightID)->texture);
-    EXPECT_EQ(copiedLight.Primitive, scene.FindPrimitive(entity));
     EXPECT_EQ(pActive[0], lightID.index);
     EXPECT_EQ(pActive[1], cameraID.index);
 
     transform.translation = Vector3(2, 0, 0);
     lens.verticalFov = 0.6f;
-    light.intensity = 8;
+    light.Local.Common.Base.Intensity = 8;
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::localTransform, &transform));
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::camera, &lens));
-    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::light, &light));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::rectLight, &light));
     renderGpuSceneFrame(context, gpu, readback, copies);
     EXPECT_FLOAT_EQ(translationX(copiedCamera.current), 2);
     EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 1);
@@ -1765,21 +1793,26 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 100);
     EXPECT_FLOAT_EQ(copiedCamera.previousLens.verticalFov, 1);
 
-    // Removing only the mesh disables its emitter, keeping the light slot and texture lease.
+    // Removing the mesh preserves the independent light and its texture lease.
     ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::meshRenderer));
     renderGpuSceneFrame(context, gpu, readback, copies);
     assetManager.Update();
     EXPECT_EQ(scene.FindLight(entity), lightID);
-    EXPECT_EQ(copiedLight.Ready, 0u);
-    EXPECT_FALSE(scene.GetLight(lightID)->primitive.IsValid());
+    EXPECT_TRUE(scene.GetLight(lightID)->IsActiveLocalLight());
     EXPECT_EQ(assetManager.GetState(textureHandle), hz::AssetState::Ready);
 
-    light.Type = hz::LightType::Dome;
-    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::light, &light));
-    renderGpuSceneFrame(context, gpu, readback, copies);
+    hz::SkyLightComponent sky = { .SourceType = hz::SkyLightSourceType::SpecifiedCubemap, .Cubemap = light.SourceTexture };
+    ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::rectLight));
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::skyLight, &sky));
+    scene.Update();
+    const hz::RenderLightID skyId = scene.FindLight(entity, hz::LightType::Sky);
+    ASSERT_TRUE(skyId.IsValid());
+    GpuSceneCopy skyCopy = copies[1];
+    skyCopy.srcOffset = sizeof(hz::GpuLightData) * skyId.index;
+    renderGpuSceneFrame(context, gpu, readback, { &skyCopy, 1 });
     const hz::GpuTextureID textureID = copiedLight.Texture;
     ASSERT_TRUE(textureID.IsValid());
-    ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::light));
+    ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::skyLight));
     ASSERT_TRUE(world.RemoveComponent(entity, hz::SceneTypes::camera));
     const GpuSceneCopy textureCopy = { .table = &hz::GpuSceneBuffers::textures,
                                        .srcOffset = sizeof(hz::GpuTextureData) * textureID.index,
@@ -1792,15 +1825,15 @@ TEST_F(TypedAssetLiveTest, GpuSceneUploadsLightsAndCameraHistoryAndRetiresEmissi
     assetManager.Update();
     EXPECT_EQ(assetManager.GetCount(), 0u);
 
-    light.texture = {};
-    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::light, &light));
+    sky.Cubemap = {};
+    ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::skyLight, &sky));
     ASSERT_TRUE(world.SetComponent(entity, hz::SceneTypes::camera, &lens));
     renderGpuSceneFrame(context, gpu, readback, copies);
     const hz::RenderCameraID reusedCamera = scene.FindCamera(entity);
     EXPECT_EQ(reusedCamera.index, cameraID.index);
     EXPECT_NE(reusedCamera.generation, cameraID.generation);
-    EXPECT_EQ(scene.FindLight(entity).index, lightID.index);
-    EXPECT_NE(scene.FindLight(entity).generation, lightID.generation);
+    EXPECT_EQ(scene.FindLight(entity).index, skyId.index);
+    EXPECT_NE(scene.FindLight(entity).generation, skyId.generation);
     EXPECT_EQ(copiedCamera.id, reusedCamera);
     EXPECT_FLOAT_EQ(translationX(copiedCamera.previous), 100);
 }

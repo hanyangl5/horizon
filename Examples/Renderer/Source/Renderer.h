@@ -388,13 +388,14 @@ private:
         const float      SunAngle = 26.0f * PI / 180.0f;
         const Vector3    Z(-sinf(SunAngle), cosf(SunAngle), 0);
         const Vector3    X = normalize(cross(Vector3(0, 1, 0), Z));
-        const hz::Light  Sun = { .Type = hz::LightType::Directional, .color = Vector3(1, 1, 1), .intensity = 100'000.0f };
+        hz::DirectionalLightComponent Sun;
+        Sun.Common.Base.Intensity = 100'000.0f;
         const Matrix4    SunPose = Matrix4(Vector4(X, 0), Vector4(cross(Z, X), 0), Vector4(Z, 0), Vector4(0, 0, 0, 1));
         const hz::Entity SunEntity = World->CreatePersistentEntity();
         const bool       Created = World->SetComponent(CameraEntity, hz::SceneTypes::camera, &CameraData) &&
-                             World->SetComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose) &&
-                             World->SetComponent(SunEntity, hz::SceneTypes::light, &Sun) &&
-                             World->SetComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
+                                   World->SetComponent(CameraEntity, hz::SceneTypes::localMatrix, &Pose) &&
+                                   World->SetComponent(SunEntity, hz::SceneTypes::directionalLight, &Sun) &&
+                                   World->SetComponent(SunEntity, hz::SceneTypes::localMatrix, &SunPose);
         ASSERT(Created);
         LOGF(Info, "Camera: WASD move, Q/E down/up, hold RMB to look, left Shift boost, R Reset, Esc Release mouse");
     }
@@ -430,12 +431,13 @@ private:
         const float     Red = 0.1f + 0.9f * RandomLightValue();
         const float     Green = 0.1f + 0.9f * RandomLightValue();
         const float     Blue = 0.1f + 0.9f * RandomLightValue();
-        const hz::Light Light = { .Type = hz::LightType::Point,
-                                  .color = Vector3(Red, Green, Blue),
-                                  .intensity = 0.5f + 1.5f * RandomLightValue(),
-                                  .range = 1.2f };
+        hz::PointLightComponent Light;
+        Light.Local.Common.Base.Intensity = 50.0f + 150.0f * RandomLightValue();
+        Light.Local.Common.Base.LightColor = Vector3(Red, Green, Blue);
+        Light.Local.IntensityUnits = hz::LightUnits::Candelas;
+        Light.Local.AttenuationRadius = 120.0f;
         Motion.Entity = World->CreatePersistentEntity();
-        const bool Created = World->SetComponent(Motion.Entity, hz::SceneTypes::light, &Light);
+        const bool Created = World->SetComponent(Motion.Entity, hz::SceneTypes::pointLight, &Light);
         ASSERT(Created);
     }
 

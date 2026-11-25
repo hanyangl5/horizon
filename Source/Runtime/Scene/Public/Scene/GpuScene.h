@@ -6,8 +6,8 @@
 
 namespace hz
 {
-// Color.rgb includes exposure and area normalization. Directional lights use lux, other lights use radiometric units.
-// Color.a stores emitter area.
+// Color.rgb is illuminance for directional lights, peak intensity for punctual lights and luminance for rectangles.
+// Color.a stores the rectangle area in square meters.
 struct GpuLightData
 {
     Vector4           PositionAndInvRadius = Vector4(0.0f);
@@ -15,13 +15,15 @@ struct GpuLightData
     Vector4           Color = Vector4(0.0f);
     Vector4           HalfAxisX = Vector4(0.0f);
     Vector4           HalfAxisY = Vector4(0.0f);
-    Vector4           Shape = Vector4(0.0f);
+    float2            SpotAngles = float2(0.0f);
+    float             SourceRadius = 0;
+    float             SoftSourceRadius = 0;
+    float             SourceLength = 0;
     RenderLightID     Id;
     GpuTextureID      Texture;
-    RenderPrimitiveID Primitive;
-    uint32_t          Ready = 0;
-    uint32_t          Padding = 0;
 };
+
+static_assert(sizeof(GpuLightData) == 128);
 
 Vector3 ResolveLightColor(const RenderLight& Light);
 

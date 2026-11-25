@@ -8,6 +8,7 @@ cbuffer RootConstant0
     uint  SamplerIndex;
     float Intensity;
     float4 Tint;
+    float4 Reserved; // EnvironmentPass uploads 12 root constants.
 };
 
 static const float3 Positions[8] = { float3(-1, -1, 1),  float3(1, -1, 1),  float3(1, 1, 1),  float3(-1, 1, 1),

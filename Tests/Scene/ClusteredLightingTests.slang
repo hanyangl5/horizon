@@ -28,3 +28,15 @@ void CompareLighting(uint3 ID : SV_DispatchThreadID)
     const float3 Error = abs(All - Culled) / (1e-5 + abs(All) * 2e-5);
     Result[(ID.z * Grid.Height + ID.y) * Grid.Width + ID.x] = float4(Error, max(All.x,max(All.y, All.z)));
 }
+
+[numthreads(1, 1, 1)]
+void CompareSourceRadii()
+{
+    const FGBufferData Surface = MakeDefaultLitMaterial(float3(0, 0, 1), 0.8.xxx, 0, 0.4, 0.5);
+    const float3 V = float3(0, 0, 1);
+    const float3 L = normalize(float3(1, 0, 1));
+    const FDirectLighting Point = DefaultLitBxDF(Surface, V, L);
+    const FDirectLighting Sphere = DefaultLitBxDF(Surface, V, L, 0.2);
+    RWStructuredBuffer<float4> Result = ResourceDescriptorHeap[OutputIndex];
+    Result[0] = float4(Point.Diffuse.x, Sphere.Diffuse.x, Point.Specular.x, Sphere.Specular.x);
+}

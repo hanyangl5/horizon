@@ -1318,8 +1318,7 @@ TEST_F(SceneAssetLoaderTest, RayTracingReflectionRejectsMaskedAlphaAndKeepsOpaqu
     const float             slope = std::tan(0.5f * std::atan(1.25f / 0.3f));
     const hz::GpuLightData  offscreen = { .PositionAndInvRadius = Vector4(1.25f, 0, 0.4f, 5),
                                           .DirectionAndType = Vector4(0, 0, -1, 1),
-                                          .Color = Vector4(0, 0, 1, 0),
-                                          .Ready = 1 };
+                                          .Color = Vector4(0, 0, 1, 0) };
     const uint32_t          id = 0;
     const hz::GPUBuffer     offscreenBuffer = input(&offscreen, sizeof(offscreen)), active = input(&id, sizeof(id));
     const LightingFrameData offscreenFrame = { .LightsIndex = offscreenBuffer.GetSrvIndex(),
@@ -1709,11 +1708,10 @@ TEST_F(SceneAssetLoaderTest, CookbookPpllSortsDepthRejectsOccludedFragmentsAndBo
         const Vector3 pos(0.125f, 0.125f, i ? 0.28f : 0.12f);
         glassLights[i].transform = Matrix4::translation(pos);
         glassLights[i].ready = 1;
-        glassLights[i].range = 0.20f;
+        glassLights[i].InfluenceRadius = 0.20f;
         gpuLights[i] = { .PositionAndInvRadius = Vector4(pos, 5),
                          .DirectionAndType = Vector4(0, 0, -1, 1),
-                         .Color = Vector4(1, 1, 1, 0),
-                         .Ready = 1 };
+                         .Color = Vector4(1, 1, 1, 0) };
     }
     const hz::GPUBuffer     glassBuffer = input(gpuLights, sizeof(gpuLights)), glassIds = input(ids, sizeof(ids));
     const LightingFrameData glassFrame = { .LightsIndex = glassBuffer.GetSrvIndex(),
@@ -1966,19 +1964,23 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     hz::GPUBuffer    peakFrame = Upload(&peakCamera, sizeof(peakCamera)), peakLighting = Upload(&peakLight, sizeof(peakLight));
     hz::GpuLightData lights[] = {
         { .PositionAndInvRadius = Vector4(0.0f), .DirectionAndType = Vector4(0, 0, -1, 0), .Color = Vector4(1, 0, 0, 0) },
-        { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 0), .DirectionAndType = Vector4(0, 0, -1, 1), .Color = Vector4(0, 0.01f, 0, 0) },
-        { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 0), .DirectionAndType = Vector4(0, 0, -1, 2), .Color = Vector4(0, 0, 0.01f, 0),
-          .Shape = Vector4(0.5f, 4, 0, 0) },
-        { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 4), .DirectionAndType = Vector4(0, 0, -1, 1), .Color = Vector4(10, 10, 10, 0) },
-        { .PositionAndInvRadius = Vector4(0, 0, 1.18f, 0), .DirectionAndType = Vector4(1, 0, 0, 2), .Color = Vector4(10, 10, 10, 0),
-          .Shape = Vector4(0.5f, 4, 0, 0) },
+        { .PositionAndInvRadius = Vector4(0.0f, 0.0f, 1.18f, 0.01f),
+          .DirectionAndType = Vector4(0, 0, -1, 1),
+          .Color = Vector4(0, 1, 0, 0) },
+        { .PositionAndInvRadius = Vector4(0.0f, 0.0f, 1.18f, 0.01f),
+          .DirectionAndType = Vector4(0, 0, -1, 2),
+          .Color = Vector4(0, 0, 1, 0),
+          .SpotAngles = float2(0.5f, 4.0f) },
+        { .PositionAndInvRadius = Vector4(0.0f, 0.0f, 1.18f, 4.0f),
+          .DirectionAndType = Vector4(0, 0, -1, 1),
+          .Color = Vector4(10, 10, 10, 0) },
+        { .PositionAndInvRadius = Vector4(0.0f, 0.0f, 1.18f, 0.01f),
+          .DirectionAndType = Vector4(1, 0, 0, 2),
+          .Color = Vector4(10, 10, 10, 0),
+          .SpotAngles = float2(0.5f, 4.0f) },
         { .DirectionAndType = Vector4(0, 0, -1, 0), .Color = Vector4(10, 10, 10, 0) },
         { .DirectionAndType = Vector4(0, 0, -1, 0), .Color = Vector4(10, 10, 10, 0) },
     };
-    for (hz::GpuLightData& light : lights)
-    {
-        light.Ready = 1;
-    }
     const hz::GPUBuffer lightList = context.CreateBuffer({ .Size = sizeof(lights),
                                                            .ElementCount = TF_ARRAY_COUNT(lights) * (sizeof(hz::GpuLightData) / sizeof(uint32_t)),
                                                            .pInitialData = lights,
@@ -1998,8 +2000,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
     const LightingFrameData localFrame = { .LightsIndex = lightList.GetSrvIndex(),
                                            .LightCount = TF_ARRAY_COUNT(activeLights),
                                            .ActiveLightsIndex = activeLightList.GetSrvIndex(),
-                                           .MainDirectionalIndex = 5,
-                                           .LuminousEfficacy = 100.0f };
+                                           .MainDirectionalIndex = 5 };
     const hz::GPUBuffer localLighting = Upload(&localFrame, sizeof(localFrame));
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryShaderSources, shaders.string().c_str());
     ClusteredLighting clusters(context);
@@ -2009,8 +2010,8 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         sourceLights[i].Type = hz::LightType(int(float(lights[i].DirectionAndType.getW())));
         sourceLights[i].transform = Matrix4::translation(lights[i].PositionAndInvRadius.getXYZ());
         const float invRadius = lights[i].PositionAndInvRadius.getW();
-        sourceLights[i].range = invRadius > 0 ? 1.0f / invRadius : 0;
-        sourceLights[i].ready = lights[i].Ready;
+        sourceLights[i].InfluenceRadius = invRadius > 0 ? 1.0f / invRadius : 0;
+        sourceLights[i].ready = 1;
     }
     Matrix4 gridProjection = Matrix4::identity();
     gridProjection.setRow(3, Vector4(0, 0, 1, 0));

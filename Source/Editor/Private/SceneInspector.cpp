@@ -162,23 +162,7 @@ const char* SceneInspector::Panel::Label(hz::Entity Entity, char (&Buffer)[96]) 
         return Name->value;
     }
     const char*      Kind = "Entity";
-    const hz::Light* Light = (const hz::Light*)World.GetComponent(Entity, hz::SceneTypes::light);
-    if (Light)
-    {
-        Kind = "Light";
-        const hz::PropertyDesc* Field = Types.GetType(hz::SceneTypes::light)->GetProperty("type");
-        if (Field)
-        {
-            for (const hz::EnumValue& Value : Field->enumValues)
-            {
-                if (Value.value == (int32_t)Light->Type)
-                {
-                    Kind = Value.Name;
-                }
-            }
-        }
-    }
-    else if (World.GetComponent(Entity, hz::SceneTypes::camera))
+    if (World.GetComponent(Entity, hz::SceneTypes::camera))
     {
         Kind = "Camera";
     }
@@ -186,9 +170,16 @@ const char* SceneInspector::Panel::Label(hz::Entity Entity, char (&Buffer)[96]) 
     {
         Kind = "Mesh";
     }
+    for (uint64_t Type : hz::LightComponentTypes)
+    {
+        if (World.GetComponent(Entity, Type))
+        {
+            Kind = Types.GetType(Type)->Name;
+            break;
+        }
+    }
     const hz::Guid ID = World.GetEntityGuid(Entity);
-    snprintf(Buffer, sizeof(Buffer), "%s%s %08X", Kind, Light ? " light" : "",
-             ID.IsValid() ? uint32_t(ID.high >> 32) : ImHashData(&Entity, sizeof(Entity)));
+    snprintf(Buffer, sizeof(Buffer), "%s %08X", Kind, ID.IsValid() ? uint32_t(ID.high >> 32) : ImHashData(&Entity, sizeof(Entity)));
     return Buffer;
 }
 
@@ -396,8 +387,8 @@ void SceneInspector::Panel::DrawProperty(const hz::TypeDesc& Type, const hz::Pro
         }
         else
         {
-            const bool Lux = Type.id == hz::SceneTypes::light && Field.offset == offsetof(hz::Light, intensity) &&
-                             static_cast<const hz::Light*>(World.GetComponent(Selection, Type.id))->Type == hz::LightType::Directional;
+            const bool Lux = Type.id == hz::SceneTypes::directionalLight &&
+                             Field.offset == offsetof(hz::DirectionalLightComponent, Common.Base.Intensity);
             Changed = ImGui::DragFloat(Name, Floats, Lux ? fmaxf(Step, *Floats * 0.001f) : Step, (float)Field.minimum, (float)Field.maximum,
                                        Lux ? "%.1f lux" : "%.3f",
                                        Field.minimum < Field.maximum ? ImGuiSliderFlags_AlwaysClamp : ImGuiSliderFlags_None);
@@ -485,7 +476,7 @@ void SceneInspector::Panel::DrawProperty(const hz::TypeDesc& Type, const hz::Pro
             Inspector.EditedPose = Selection;
             Inspector.NewPose = Pose;
         }
-        if (Accepted && (Type.id == hz::SceneTypes::name || (Type.id == hz::SceneTypes::light && Field.kind == Kind::Enum)))
+        if (Accepted && Type.id == hz::SceneTypes::name)
         {
             RefreshAt = 0;
         }

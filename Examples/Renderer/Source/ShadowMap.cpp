@@ -70,24 +70,7 @@ static_assert(sizeof(ShadowBindingConstants) == 8 * sizeof(uint32_t));
 void ShadowMap::Prepare(const hz::SceneView& View)
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("ShadowMap::Prepare");
-    Vector3 Z(0, 1, 0);
-    Data.LightDirection = Vector4(0, -1, 0, 0);
-    Data.ShadowEnabled = 0;
-    Data.MainDirectionalIndex = UINT32_MAX;
-    for (uint32_t LightIndex : View.Scene.GetActiveLights())
-    {
-        const hz::RenderLight& Light = View.Scene.GetLights().Data[LightIndex];
-        if (!Light.ready || Light.Type != hz::LightType::Directional)
-        {
-            continue;
-        }
-        Z = normalize(Light.transform.getCol2().getXYZ());
-        Data.LightDirection = Vector4(-Z, Light.intensity * exp2f(Light.exposure));
-        Data.LightColor = Vector4(hz::ResolveLightColor(Light), 1.0f);
-        Data.ShadowEnabled = 1;
-        Data.MainDirectionalIndex = LightIndex;
-        break;
-    }
+    const Vector3 Z = -Data.LightDirection.getXYZ();
     const Vector3 Up = fabsf((float)Z[2]) < 0.99f ? Vector3(0, 0, 1) : Vector3(0, 1, 0);
     const Vector3 X = normalize(cross(Up, Z));
     const Vector3 Y = cross(Z, X);

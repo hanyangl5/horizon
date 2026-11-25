@@ -44,7 +44,7 @@ void DeferredLighting::Execute(hz::CommandList& Commands, const hz::GPUBuffer& F
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("DeferredLighting::Execute");
     ASSERT(Color.IsValid() && Resources.LightingFrame && Resources.LightingFrame->IsValid());
     ASSERT(GBuffer.Emissive && GBuffer.NormalMaterial && GBuffer.BaseColorMetallic && GBuffer.Depth);
-    ASSERT(Resources.Environment && Resources.Irradiance && Resources.BRDFLut && Resources.EnvironmentSampler);
+    ASSERT(Resources.Environment && Resources.BRDFLut && Resources.EnvironmentSampler);
     hz::DependencyList Dependencies;
     if (Resources.Lights)
     {

@@ -13,7 +13,6 @@ struct RayTracedEffectsSettings
 {
     uint32_t AOSamples = 1;
     float    AOPower = 1.0f;
-    float    ShadowRadius = 0.02f;
     // 0: opaque candidates, 1: any-hit alpha test, 2: bounded closest-hit retracing.
     uint32_t ShadowAlphaTestMethod = 1;
     uint32_t RetraceMaxDepth = 3;

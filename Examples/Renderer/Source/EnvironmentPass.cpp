@@ -74,20 +74,23 @@ struct SkyboxConstants
     uint32_t SamplerIndex;
     float    Intensity;
     Vector4  Tint;
+    float2   Rotation;
 };
-static_assert(sizeof(SkyboxConstants) == 8 * sizeof(uint32_t));
+static_assert(sizeof(SkyboxConstants) == 12 * sizeof(uint32_t));
 
 void EnvironmentPass::Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Color,
-                              const hz::GPUTexture& Depth, float Intensity, const Vector4& Tint) const
+                              const hz::GPUTexture& Depth, float Intensity, const Vector4& Tint, const hz::GPUTexture& Sky,
+                              float2 Rotation) const
 {
     PROFILER_SET_CPU_SCOPE_AUTO_NAMED("EnvironmentPass::execute");
     ASSERT(IsValid());
     hz::DependencyList    Dependencies;
     const SkyboxConstants Constants = { .FrameIndex = Dependencies.Read(Frame),
-                                        .EnvironmentIndex = Dependencies.Sample(&Prefiltered),
+                                        .EnvironmentIndex = Dependencies.Sample(&Sky),
                                         .SamplerIndex = Sampler.GetIndex(),
                                         .Intensity = Intensity,
-                                        .Tint = Tint };
+                                        .Tint = Tint,
+                                        .Rotation = Rotation };
     Commands.BeginGpuTimestamp("Skybox");
     Commands.BeginRendering(
         { .colorAttachments = { { .pTexture = &Color, .loadAction = LOAD_ACTION_LOAD, .storeAction = STORE_ACTION_STORE } },

@@ -319,6 +319,7 @@ GPUTexture RenderContext::CreateTexture(const TextureDesc& Input)
 
 uint32_t GPUTexture::GetWidth() const { return pTexture ? pTexture->Width : 0; }
 uint32_t GPUTexture::GetHeight() const { return pTexture ? pTexture->Height : 0; }
+bool GPUTexture::IsCube() const { return pTexture && pTexture->cube; }
 uint32_t GPUTexture::GetArraySize() const { return pTexture ? pTexture->arraySizeMinusOne + 1 : 0; }
 uint32_t GPUTexture::GetMipLevels() const { return pTexture ? pTexture->MipLevels : 0; }
 Format   GPUTexture::GetFormat() const { return pTexture ? pTexture->Format : Format::UNDEFINED; }

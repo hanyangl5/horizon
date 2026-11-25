@@ -183,7 +183,7 @@ RenderScene 通过 `WorldChangeLog` 只处理组件、层级或世界变换发�
 
 MeshBatch 记录的是强类型 GpuMeshID、GpuMaterialID 及 submesh 引用。GPU 间接表再把这些身份解析到实际数据和资源描述符（descriptor）。资产 ID、GPU ID、descriptor index 各承担不同定位职责；一个 descriptor 数字不能表达整份 Mesh 或场景实体的生命周期。
 
-Camera 和 Light 也从 World 提取。Camera 提供位姿和镜头参数，窗口宽高比与投影矩阵由渲染端决定。Light 提取保存不同光源形状的参数，当前示例实际求值的是 Directional；数据中存在某种光源，不表示相应采样和着色已经全部实现。
+Camera 提供位姿和镜头参数，渲染端决定窗口宽高比和投影矩阵。RenderScene 按具体灯光组件提取方向光、点光、聚光、矩形光和天空光。
 
 ## 8. 绘制前把变化上传到常驻 GPU 场景
 

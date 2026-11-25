@@ -94,10 +94,10 @@ float4 UnpackFragment(uint2 Packed)
     if (EnvironmentSamplerIndex != INVALID_TEXTURE)
     {
         SamplerState EnvironmentSampler = SamplerDescriptorHeap[EnvironmentSamplerIndex];
-        if (IrradianceIndex != INVALID_TEXTURE)
+        if (IrradianceIndex != INVALID_TEXTURE || EnvironmentIndex != INVALID_TEXTURE)
         {
-            TextureCube<float4> Texture = ResourceDescriptorHeap[IrradianceIndex];
-            Irradiance = Texture.SampleLevel(EnvironmentSampler, Sky, 0);
+            TextureCube<float4> Texture = ResourceDescriptorHeap[IrradianceIndex != INVALID_TEXTURE ? IrradianceIndex : EnvironmentIndex];
+            Irradiance = Texture.SampleLevel(EnvironmentSampler, Sky, IrradianceIndex != INVALID_TEXTURE ? 0 : Light.EnvironmentMipCount - 1);
         }
         if (EnvironmentIndex != INVALID_TEXTURE)
         {
@@ -109,7 +109,7 @@ float4 UnpackFragment(uint2 Packed)
         }
     }
     float4 Diffuse = (Irradiance * max(Light.EnvironmentIntensity, 0.0) * float4(Light.EnvironmentTint.rgb, 1.0) +
-                      float4(NdotL * Visibility * max(Light.LightDirection.w, 0.0) * max(Light.LightColor.rgb, 0.0) / PI, 0.0)) *
+                      float4(((Light.MainExcludedPasses & 1u) == 0 ? Light.MainDiffuseScale : 0.0) * NdotL * Visibility * max(Light.LightDirection.w, 0.0) * max(Light.LightColor.rgb, 0.0) / PI, 0.0)) *
                      BaseColor * (float4(1.0) - F0);
 
     float3 V = normalize(Frame[0].Eye.xyz - Input.WorldPosition);

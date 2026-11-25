@@ -80,18 +80,22 @@ bool ClusteredLighting::Prepare(uint32_t Slot, hz::Span<hz::RenderLight> Lights,
     for (uint32_t Index : Active)
     {
         const hz::RenderLight& Light = Lights.Data[Index];
-        if (Index == MainDirectional || !Light.ready || Light.Type == hz::LightType::Dome || Light.Type == hz::LightType::Mesh)
+        if (Index == MainDirectional || !Light.ready || Light.Type == hz::LightType::Sky)
         {
             continue;
         }
-        if (Light.Type == hz::LightType::Directional || !(Light.range > 0))
+        if (Light.Type == hz::LightType::Directional)
         {
             Indices.PushBack(Index);
             continue;
         }
+        if (!Light.IsActiveLocalLight())
+        {
+            continue;
+        }
         const Vector4 Center(Light.transform.getCol3().getXYZ(), 1);
         const float   Depth = dot(Grid.ClipW, Center);
-        const float   Radius = Light.range;
+        const float   Radius = Light.InfluenceRadius;
         if (Depth + Radius * DepthScale < Near || Depth - Radius * DepthScale > Far || dot(Planes[0], Center) < -Radius ||
             dot(Planes[1], Center) < -Radius || dot(Planes[2], Center) < -Radius || dot(Planes[3], Center) < -Radius)
         {
@@ -121,8 +125,8 @@ bool ClusteredLighting::Prepare(uint32_t Slot, hz::Span<hz::RenderLight> Lights,
             const Candidate&       Sorted = Candidates[I];
             const hz::RenderLight& Light = Lights.Data[Sorted.Index];
             Indices.PushBack(Sorted.Index);
-            Spheres.PushBack(Vector4(Light.transform.getCol3().getXYZ(), Light.range));
-            const float    Extent = Light.range * DepthScale;
+            Spheres.PushBack(Vector4(Light.transform.getCol3().getXYZ(), Light.InfluenceRadius));
+            const float    Extent = Light.InfluenceRadius * DepthScale;
             const uint32_t Last = DepthBin(Sorted.Depth + Extent, Grid);
             for (uint32_t Z = DepthBin(Sorted.Depth - Extent, Grid); Z <= Last; ++Z)
             {

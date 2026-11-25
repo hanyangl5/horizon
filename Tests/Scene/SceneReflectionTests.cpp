@@ -31,7 +31,7 @@ TEST_F(SceneReflectionTest, BuiltinsExposeStableTypedProperties)
 {
     hz::TypeRegistry registry;
     ASSERT_TRUE(registry.RegisterBuiltins());
-    ASSERT_EQ(registry.Size(), 10u);
+    ASSERT_EQ(registry.Size(), 14u);
     EXPECT_EQ(registry.GetType(hz::SceneTypes::skeleton), registry.GetType("Skeleton"));
     EXPECT_EQ(registry.GetType(hz::SceneTypes::animationPlayer), registry.GetType("AnimationPlayer"));
     EXPECT_EQ(registry.GetType(hz::SceneTypes::skinnedMesh), registry.GetType("SkinnedMesh"));
@@ -55,15 +55,19 @@ TEST_F(SceneReflectionTest, BuiltinsExposeStableTypedProperties)
     for (uint32_t i = 0; i < registry.Size(); ++i)
         EXPECT_EQ(registry.GetTypeAt(i), registry.GetType(registry.GetTypeAt(i)->id));
 
-    const hz::PropertyDesc* lightType = registry.GetType(hz::SceneTypes::light)->GetProperty("type");
-    ASSERT_NE(lightType, nullptr);
-    ASSERT_EQ(lightType->enumValues.Count, 9u);
-    EXPECT_STREQ(lightType->enumValues.Data[2].Name, "Spot");
-    EXPECT_EQ(lightType->enumValues.Data[2].value, (int32_t)hz::LightType::Spot);
-    const hz::PropertyDesc* emissionTexture = registry.GetType(hz::SceneTypes::light)->GetProperty("texture");
+    const hz::TypeDesc* point = registry.GetType(hz::SceneTypes::pointLight);
+    ASSERT_NE(point, nullptr);
+    const hz::PropertyDesc* radius = point->GetProperty("AttenuationRadius");
+    ASSERT_NE(radius, nullptr);
+    EXPECT_DOUBLE_EQ(radius->minimum, 0.0);
+    EXPECT_EQ(point->GetProperty("InnerConeAngle"), nullptr);
+    EXPECT_EQ(point->GetProperty("SourceWidth"), nullptr);
+    EXPECT_EQ(registry.GetType(hz::SceneTypes::skyLight)->GetProperty("Temperature"), nullptr);
+    EXPECT_NE(registry.GetType(hz::SceneTypes::spotLight)->GetProperty("SourceLength"), nullptr);
+    const hz::PropertyDesc* emissionTexture = registry.GetType(hz::SceneTypes::rectLight)->GetProperty("SourceTexture");
     ASSERT_NE(emissionTexture, nullptr);
     EXPECT_EQ(emissionTexture->kind, hz::PropertyKind::AssetReference);
-    EXPECT_EQ(emissionTexture->offset, offsetof(hz::Light, texture));
+    EXPECT_EQ(emissionTexture->offset, offsetof(hz::RectLightComponent, SourceTexture));
     EXPECT_EQ(registry.GetType(hz::SceneTypes::name)->GetProperty("value")->Size, 128u);
     EXPECT_TRUE(registry.GetType(hz::SceneTypes::entityIdentity)->GetProperty("value")->Flags & hz::PROPERTY_READ_ONLY);
 }
@@ -77,19 +81,19 @@ TEST_F(SceneReflectionTest, RegistrationRejectsDuplicatesWithoutPublishingPartia
         { .id = hz::SceneTypes::camera, .Name = "DuplicateID", .Size = 4, .alignment = 4 },
     };
     EXPECT_FALSE(registry.RegisterTypes(types));
-    EXPECT_EQ(registry.Size(), 10u);
+    EXPECT_EQ(registry.Size(), 14u);
     EXPECT_EQ(registry.GetType(UINT64_C(100)), nullptr);
     const hz::TypeDesc duplicateName = { .id = 101, .Name = "Camera", .Size = 4 };
     EXPECT_FALSE(registry.RegisterTypes({ &duplicateName, 1 }));
     EXPECT_FALSE(registry.RegisterBuiltins());
-    EXPECT_EQ(registry.Size(), 10u);
+    EXPECT_EQ(registry.Size(), 14u);
 
     const hz::TypeDesc repeated[] = {
         { .id = 100, .Name = "Same", .Size = 4 },
         { .id = 101, .Name = "Same", .Size = 4 },
     };
     EXPECT_FALSE(registry.RegisterTypes(repeated));
-    EXPECT_EQ(registry.Size(), 10u);
+    EXPECT_EQ(registry.Size(), 14u);
     EXPECT_TRUE(registry.RegisterTypes({}));
 }
 
@@ -163,7 +167,7 @@ TEST_F(SceneReflectionTest, RejectsDuplicatePropertiesAndIncompleteEnumOrArrayMe
     element.triviallyCopyable = true;
     element.properties = {};
     EXPECT_FALSE(registry.RegisterTypes({ &incomplete, 1 }));
-    EXPECT_EQ(registry.Size(), 10u);
+    EXPECT_EQ(registry.Size(), 14u);
 }
 
 TEST_F(SceneReflectionTest, ConstructionPreservesComponentDefaults)
@@ -192,15 +196,16 @@ TEST_F(SceneReflectionTest, ConstructionPreservesComponentDefaults)
     EXPECT_FLOAT_EQ(((const hz::Camera*)cameraStorage)->farPlane, 1000.0f);
     cameraType->Destroy(cameraStorage);
 
-    alignas(hz::Light) uint8_t lightStorage[sizeof(hz::Light)];
-    const hz::TypeDesc*        lightType = registry.GetType(hz::SceneTypes::light);
+    alignas(hz::PointLightComponent) uint8_t lightStorage[sizeof(hz::PointLightComponent)];
+    const hz::TypeDesc*                      lightType = registry.GetType(hz::SceneTypes::pointLight);
     lightType->Construct(lightStorage);
-    const hz::Light* light = (const hz::Light*)lightStorage;
-    EXPECT_EQ(light->Type, hz::LightType::Point);
-    EXPECT_FLOAT_EQ(light->range, 0.0f);
-    EXPECT_FLOAT_EQ(light->radius, 0.5f);
-    EXPECT_FALSE(light->texture.IsValid());
-    EXPECT_FALSE(light->normalize);
+    const hz::PointLightComponent* light = (const hz::PointLightComponent*)lightStorage;
+    EXPECT_FLOAT_EQ(light->Local.Common.Base.Intensity, 5000.0f);
+    EXPECT_FLOAT_EQ(light->Local.Common.Base.IndirectLightingIntensity, 1.0f);
+    EXPECT_FLOAT_EQ(light->Local.Common.Base.VolumetricScatteringIntensity, 1.0f);
+    EXPECT_FLOAT_EQ(light->Local.AttenuationRadius, 1000.0f);
+    EXPECT_FLOAT_EQ(light->SourceRadius, 0.0f);
+    EXPECT_TRUE(light->bUseInverseSquaredFalloff);
     lightType->Destroy(lightStorage);
 }
 

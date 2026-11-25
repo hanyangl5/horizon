@@ -25,7 +25,7 @@ World Foundation 是 GPU-driven geometry、light culling、path tracing 和 Edit
 | `LocalTransform` / `Matrix4` | 局部 TRS / 不可分解的局部矩阵，二者互斥 | RelativeTransform |
 | `WorldTransform` | 派生的世界矩阵，不保存 | ComponentToWorld |
 | `MeshRenderer` | 组件：Mesh 的 AssetID + 按 SubmeshID 的材质覆盖 | `UStaticMeshComponent` |
-| `Light` / `Camera` | 光源、相机组件 | `ULightComponent` / `UCameraComponent` |
+| 五种灯光组件 / `Camera` | 光源、相机组件 | `ULightComponent` / `UCameraComponent` |
 | `WorldArchive` | `.world.json` 的读写、capture 和 instantiate | `.umap` 包；Bevy `DynamicScene` |
 | `TypeRegistry` | 组件和属性的反射 metadata | `UClass` / `FProperty` |
 | `WorldAssetBindings` | 把 MeshRenderer 的 AssetID 解析为长期持有的资产引用 | 组件创建 SceneProxy 时的资源解析 |
@@ -60,7 +60,7 @@ World Foundation 是 GPU-driven geometry、light culling、path tracing 和 Edit
 后续资产格式以标准 OpenUSD 为基准，Runtime 保留轻量组件，通过导入层映射 USD 语义。当前先完成 World 的通用能力，暂不接入 USD。以下为待办，尚未实现；本文现有 Light 单位约定、glTF 导入方案和 `.world.json` 保存方案需据此复核。
 
 - [ ] 明确 USD 是否同时承担场景保存，以及自定义 cooked 格式是否仅作为运行时缓存；确定后更新序列化与实施步骤。
-- [ ] 优先修正 Light：按 UsdLux 核对 intensity、normalize、色温、形状坐标轴和默认值；独立表达 ShapingAPI，区分标准属性与引擎扩展。
+- [ ] USD 导入时将 UsdLux 的单位、发射形状和坐标轴映射到对应的灯光组件。
 - [ ] 扩展 Camera：投影类型、焦距、片门尺寸及偏移、光圈、对焦距离、快门时间；FOV 从镜头参数派生。
 - [ ] 完善 Transform/Parent：支持 resetXformStack；导入层求值 xformOpOrder 和 pivot，保留无法分解的局部矩阵。
 - [ ] 新增 Visibility/Purpose：处理继承可见性和 default/render/proxy/guide 用途。
@@ -239,7 +239,7 @@ World 内部使用 Flecs。公共 `Entity` 是轻量的 64-bit value，Flecs wor
 - `Parent`（公共 API 视图，内部由 World 私有的 Flecs 排他关系承载，非独立真相来源）
 - `WorldTransform`（派生数据，不进 World 文件，存于层级有序存储）
 - `MeshRenderer`
-- `Light`
+- `DirectionalLight`、`PointLight`、`SpotLight`、`RectLight`、`SkyLight`
 - `Camera`
 
 Component 保存 authoring 或 simulation 数据，不拥有 GPU resource。`MeshRenderer` **只保存 `mesh: AssetID` 和 material override set**——不保存 `AssetHandle`、`Geometry*`、`GPUBuffer*`、descriptor index、`GpuMeshID` 或 RenderScene 索引（这些都是运行期状态，由 resolve 层维护并持有长期 lease，见 Asset Manager 一节）。
@@ -260,22 +260,13 @@ Flecs 自带 meta（反射）、JSON 序列化、`ChildOf` 关系和 deferred �
 
 ## Light authoring
 
-`Light` 按离线渲染常用发光形状组织，类型划分参考 [UsdLux](https://openusd.org/dev/user_guides/schemas/usdLux/overview.html)，面积发射参考 [PBRT](https://www.pbr-book.org/4ed/Light_Sources/Area_Lights)。当前已实现组件、反射和 RenderScene extraction；尚未接入采样或着色，也不是完整的 UsdLux schema 映射。
+World 为方向光、点光、聚光、矩形光和天空光分别注册组件。Inspector 和世界存档使用各类型的反射字段。同一实体可挂不同类型的灯，共用实体变换，各自拥有独立的渲染句柄。旧版通用 `Light` 组件没有迁移器。
 
-| 类型 | 几何与方向 | intensity 的本地约定 |
-| --- | --- | --- |
-| Directional | 沿局部 -Z；angularDiameter 为完整角直径，0 为理想平行光 | 垂直于光线的平面上的照度，单位 lux，改变角直径时保持该值 |
-| Point / Spot | 点光源；Spot 沿 -Z，内外锥角为半角 | 辐射强度，W/sr；Spot 为轴上值 |
-| Rect / Disk | 局部 XY 平面，朝 -Z；宽高或半径 | 辐亮度，W/(m²·sr) |
-| Sphere / Cylinder | 球心位于原点；圆柱沿 Y，仅侧面发光 | 辐亮度，W/(m²·sr) |
-| Dome | 无限远环境，使用实体旋转；平移及缩放不影响它 | 辐亮度，W/(m²·sr) |
-| Mesh | 同一实体的 MeshRenderer 提供全部三角形及 UV，朝向使用几何法线 | 辐亮度，W/(m²·sr) |
+组件采用 UE 的可编辑字段和单位。点光、聚光和矩形光通过 `AttenuationRadius` 指定截止距离，默认 1000 cm，设为零时不参与着色。方向光强度单位是 lux。颜色使用场景线性 RGB，组件角度使用度。场景变换使用米，RenderScene 在提取时转换尺寸和角度。
 
-几何尺寸为局部米制长度，世界变换决定最终发光表面；所有角度使用弧度。颜色使用场景线性 RGB，曝光乘数为 `2^exposure`；开启色温时，以 Kelvin 定义的黑体颜色乘入 color。正尺寸、内锥不大于外锥等跨字段约束尚待专用编辑和加载路径校验；通用属性编辑不会按 reflection 范围自动截断数值，范围目前只是编辑提示。
+Spot 复用 Point 的光源半径和长度，Rect 使用矩形宽高，Sky 使用环境光强度、颜色和立方体贴图。主方向光的 `LightSourceAngle` 和 `ShadowSourceAngleFactor` 控制光追阴影的软硬。局部光统一使用平方反比衰减。
 
-面积光默认单面 Lambertian 发射；`twoSided` 开启双面发射。`normalize` 只作用于面积光：intensity 改为纹理调制前的总功率 W，基准辐亮度为 `intensity * 2^exposure / (π * A)`，A 为世界空间发光面积，双面时计入两面。颜色和纹理继续调制该基准值，不隐式补偿其平均亮度。非面积光忽略 normalize 和 twoSided。
-
-`texture` 是可选发光贴图 AssetID：Dome 使用经纬图，Rect/Disk 使用局部平面 UV，Sphere/Cylinder 使用经纬/侧面 UV，Mesh 使用原始 UV；无贴图为白色，Point/Spot/Directional 忽略此字段。纹理解释为场景线性值。Mesh Light 的显式发射替代该表面的材质自发光，后续提取不能将两者重复计入。`range = 0` 表示不截断；正值仅作为有限光源的渲染近似，Dome/Directional 忽略它。
+Lightmass、IES、云阴影、自定义衰减指数和天空贴图旋转角保存在组件和世界存档中。当前 shader 使用立方体贴图的原始朝向。矩形光保留 `SourceTexture` 引用，当前矩形着色按均匀发光面求值。
 
 ## Transform hierarchy
 

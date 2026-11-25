@@ -83,23 +83,30 @@ struct RenderLight
     LightType         Type = LightType::Point;
     float             color[3] = { 1, 1, 1 };
     float             intensity = 1;
-    float             range = 0;
-    float             innerConeAngle = 0.523598776f;
-    float             outerConeAngle = 0.785398163f;
-    float             exposure = 0;
-    float             angularDiameter = 0;
-    float             Width = 1;
-    float             Height = 1;
-    float             radius = 0.5f;
-    float             length = 1;
+    float             InfluenceRadius = 10;
+    float             innerConeAngle = 0;
+    float             outerConeAngle = 0.7679449f;
+    float             Width = 0.64f;
+    float             Height = 0.64f;
     float             colorTemperature = 6500;
-    uint32_t          enableColorTemperature = 0;
-    uint32_t          normalize = 0;
-    uint32_t          twoSided = 0;
+    bool              enableColorTemperature = false;
+    bool              CastShadows = true;
+    RayTracedShadow   CastRaytracedShadow = RayTracedShadow::UseProjectSetting;
+    float             ShadowConeRadius = 0;
+    float             SourceRadius = 0;
+    float             SoftSourceRadius = 0;
+    float             SourceLength = 0;
+    float             SkyAngle = 0;
+    float             DiffuseScale = 1;
+    float             SpecularScale = 1;
+    bool              AffectTranslucency = true;
+    bool              AffectReflection = true;
     GpuTextureID      texture;
-    RenderPrimitiveID primitive; // Mesh emitter on the same entity; no second geometry lease.
     uint32_t          ready = 0;
+
+    bool IsActiveLocalLight() const { return IsLocalLight(Type) && ready && InfluenceRadius > 0; }
 };
+
 struct RenderCamera
 {
     RenderCameraID id;
@@ -189,6 +196,7 @@ public:
     const RenderInstance*  GetInstance(RenderInstanceID id) const;
     const RenderMeshBatch* GetMeshBatch(RenderMeshBatchID id) const;
     RenderLightID          FindLight(Entity entity) const;
+    RenderLightID          FindLight(Entity EntityHandle, LightType Type) const;
     RenderCameraID         FindCamera(Entity entity) const;
     const RenderLight*     GetLight(RenderLightID id) const;
     const RenderCamera*    GetCamera(RenderCameraID id) const;

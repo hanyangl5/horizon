@@ -23,9 +23,9 @@ struct LightingFrameData
     uint     ActiveLightsIndex;
     float4   EnvironmentTint;
     uint     MainDirectionalIndex;
-    float    LuminousEfficacy;
-    uint     Padding0;
-    uint     Padding1;
+    float    MainDiffuseScale;
+    float    MainSpecularScale;
+    uint     MainExcludedPasses;
 };
 
 struct LightingBindings
@@ -108,11 +108,12 @@ FIndirectLighting EvaluateIndirectLighting(float3 DiffuseColor, float3 SpecularC
 
     const float3 Intensity = max(Light.EnvironmentIntensity, 0.0) * Light.EnvironmentTint.rgb;
     SamplerState Sampler = SamplerDescriptorHeap[Bindings.EnvironmentSampler];
-    if (Bindings.Irradiance != 0xffffffffu)
+    const bool HasIrradiance = Bindings.Irradiance != 0xffffffffu;
+    if (HasIrradiance || Bindings.Environment != 0xffffffffu)
     {
-        TextureCube<float4> DiffuseEnvironment = ResourceDescriptorHeap[Bindings.Irradiance];
+        TextureCube<float4> DiffuseEnvironment = ResourceDescriptorHeap[HasIrradiance ? Bindings.Irradiance : Bindings.Environment];
         const float3        Sky = float3(-N.x, N.y, -N.z);
-        const float3        Irradiance = DiffuseEnvironment.SampleLevel(Sampler, Sky, 0).rgb;
+        const float3        Irradiance = DiffuseEnvironment.SampleLevel(Sampler, Sky, HasIrradiance ? 0 : Light.EnvironmentMipCount - 1).rgb;
         // The irradiance map stores the diffuse convolution (E / pi).
         Lighting.Diffuse = (1.0 - Fresnel) * DiffuseColor * Irradiance * saturate(AO) * Intensity;
     }

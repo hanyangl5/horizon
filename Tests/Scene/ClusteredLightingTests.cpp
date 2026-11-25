@@ -5,6 +5,40 @@
 #include <cmath>
 #include <d3d12sdklayers.h>
 
+TEST_F(SceneAssetLoaderTest, LocalLightSourceRadiusBroadensSpecularAndPreservesDiffuse)
+{
+    const std::filesystem::path tests = std::filesystem::path(__FILE__).parent_path();
+    SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, tests.string().c_str());
+    hz::RenderContext context({ .pAppName = "LightSourceRadiusTest" });
+    hz::GPUPipeline pipeline = context.CreateComputePipeline(
+        { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "CompareSourceRadii" } },
+                          .sourceDirectory = DirectoryOtherFiles,
+                          .pFileName = "ClusteredLightingTests.slang" } });
+    ASSERT_TRUE(pipeline.IsValid());
+    hz::GPUBuffer output = context.CreateBuffer({ .Size = sizeof(Vector4),
+                                                  .ElementCount = 1,
+                                                  .StructStride = sizeof(Vector4),
+                                                  .usage = RESOURCE_MEMORY_USAGE_GPU_ONLY,
+                                                  .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                  .Descriptors = DESCRIPTOR_TYPE_RW_BUFFER });
+    hz::GPUBuffer readback = context.CreateBuffer({ .Size = sizeof(Vector4),
+                                                    .usage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU,
+                                                    .StartState = RESOURCE_STATE_COPY_DEST,
+                                                    .Flags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT });
+    ASSERT_TRUE(output.IsValid() && readback.IsValid());
+    hz::CommandList& commands = context.AcquireCommandList();
+    commands.SetPipeline(pipeline);
+    commands.SetRootConstant({ 0, 0, output.GetUavIndex() });
+    commands.Dispatch(1, 1, 1, { .storageBuffers = { &output } });
+    commands.CopyBuffer(readback, 0, output, 0, sizeof(Vector4));
+    context.Wait(context.Submit(commands));
+    const float* values = (const float*)readback.Get()->pCpuMappedAddress;
+    ASSERT_NE(values, nullptr);
+    EXPECT_GT(values[0], 0.0f);
+    EXPECT_FLOAT_EQ(values[0], values[1]);
+    EXPECT_GT(values[3], values[2]);
+}
+
 TEST_F(SceneAssetLoaderTest, ClusteredLightingKeepsLightsOverlappingFarPlane)
 {
     const std::filesystem::path shaders = std::filesystem::path(__FILE__).parent_path() / "../../Examples/Renderer/Shaders";
@@ -18,7 +52,7 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingKeepsLightsOverlappingFarPlane)
     {
         lights[i].Type = hz::LightType::Point;
         lights[i].ready = true;
-        lights[i].range = 1.5f;
+        lights[i].InfluenceRadius = 1.5f;
         lights[i].transform = Matrix4::translation(Vector3(0, 0, -depths[i]));
     }
     const Matrix4 vp = Matrix4::perspectiveRH(PI / 2, 1.0f, 0.1f, 16.0f);
@@ -45,7 +79,7 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
     ASSERT_TRUE(compare.IsValid());
 
     const hz::LightType special[] = { hz::LightType::Directional, hz::LightType::Directional, hz::LightType::Point,
-                                      hz::LightType::Dome,        hz::LightType::Mesh,        hz::LightType::Point,
+                                      hz::LightType::Sky,        hz::LightType::Sky,        hz::LightType::Point,
                                       hz::LightType::Point,       hz::LightType::Point,       hz::LightType::Point };
     constexpr uint32_t  PrefixCount = TF_ARRAY_COUNT(special), Total = PrefixCount + 33, PixelCapacity = 65 * 35 * 5;
     hz::RenderLight     lights[Total];
@@ -56,8 +90,8 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
     {
         active[i] = i;
         lights[i].ready = i != 5;
-        lights[i].Type = i < PrefixCount ? special[i] : hz::LightType(1 + i % 6);
-        lights[i].range = i < 6 ? 0.0f : 1.5f;
+        lights[i].Type = i < PrefixCount ? special[i] : hz::LightType(1 + i % 3);
+        lights[i].InfluenceRadius = i < 6 ? 0.0f : 1.5f;
         Vector3 pos((int(i % 5) - 2) * 0.9f, (int(i % 3) - 1) * 0.4f, -0.5f - float(i % 7));
         if (i >= 6 && i < PrefixCount)
         {
@@ -76,13 +110,12 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
             pos = Vector3(3.4f, 0, -3.0f);
         }
         lights[i].transform = Matrix4::translation(pos);
-        packed[i] = { .PositionAndInvRadius = Vector4(pos, lights[i].range > 0 ? 1.0f / lights[i].range : 0.0f),
+        packed[i] = { .PositionAndInvRadius = Vector4(pos, lights[i].InfluenceRadius > 0 ? 1.0f / lights[i].InfluenceRadius : 0.0f),
                       .DirectionAndType = Vector4(0, 0, -1, float(lights[i].Type)),
-                      .Color = Vector4(1, 0.7f, 0.4f, 1),
+                      .Color = Vector4(lights[i].ready ? 1.0f : 0.0f, lights[i].ready ? 0.7f : 0.0f, lights[i].ready ? 0.4f : 0.0f, 1),
                       .HalfAxisX = Vector4(0.1f, 0, 0, 1),
                       .HalfAxisY = Vector4(0, 0.12f, 0, 0.1f),
-                      .Shape = Vector4(0.5f, 4, 0, 0),
-                      .Ready = lights[i].ready };
+                      .SpotAngles = float2(0.5f, 4.0f) };
     }
     const auto upload = [&](const void* data, uint32_t bytes, uint32_t stride)
     {
@@ -120,7 +153,7 @@ TEST_F(SceneAssetLoaderTest, ClusteredLightingMatchesFullLoopAcrossTilesAndDepth
         const hz::GPUBuffer& data = clusters.GetData(slot);
         const ClusterGrid&   grid = *(const ClusterGrid*)data.Get()->pCpuMappedAddress;
         ASSERT_EQ(grid.FiniteCount, counts[step]);
-        ASSERT_EQ(grid.GlobalCount, secondWord ? 0u : 2u);
+        ASSERT_EQ(grid.GlobalCount, secondWord ? 0u : 1u);
         const hz::GPUBuffer&    activeList = secondWord ? finiteActiveBuffer : activeBuffer;
         const LightingFrameData frame = { .LightsIndex = lightBuffer.GetSrvIndex(),
                                           .LightCount = count,

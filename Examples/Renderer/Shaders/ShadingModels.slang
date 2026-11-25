@@ -33,16 +33,18 @@ struct FDirectLighting
     float3 Specular;
 };
 
-FDirectLighting DefaultLitBxDF(FGBufferData GBuffer, float3 V, float3 L)
+FDirectLighting DefaultLitBxDF(FGBufferData GBuffer, float3 V, float3 L, float SinAlpha = 0)
 {
     BxDFContext Context;
     Init(Context, GBuffer.WorldNormal, V, L);
 
+    const float NoL = Context.NoL;
     FDirectLighting Lighting = {};
-    if (Context.NoL > 0.0)
+    if (NoL > 0.0)
     {
-        Lighting.Diffuse = Diffuse_Lambert(GBuffer.DiffuseColor) * Context.NoL;
-        Lighting.Specular = SpecularGGX(GBuffer.Roughness, GBuffer.SpecularColor, Context) * Context.NoL;
+        SphereMaxNoH(Context, SinAlpha, true);
+        Lighting.Diffuse = Diffuse_Lambert(GBuffer.DiffuseColor) * NoL;
+        Lighting.Specular = SpecularGGX(GBuffer.Roughness, GBuffer.SpecularColor, Context) * NoL;
 
         const FBxDFEnergyTerms EnergyTerms = ComputeGGXSpecEnergyTerms(GBuffer.Roughness, Context.NoV, GBuffer.SpecularColor);
         Lighting.Diffuse *= ComputeEnergyPreservation(EnergyTerms);

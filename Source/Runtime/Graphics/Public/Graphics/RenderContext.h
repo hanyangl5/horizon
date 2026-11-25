@@ -225,6 +225,7 @@ public:
     uint32_t      GetWidth() const;
     uint32_t      GetHeight() const;
     uint32_t      GetArraySize() const;
+    bool          IsCube() const;
     uint32_t      GetMipLevels() const;
     Format        GetFormat() const;
 

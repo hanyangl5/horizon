@@ -20,7 +20,7 @@ public:
     bool Load(const EnvironmentFiles& Files = {});
     bool IsValid() const;
     void Execute(hz::CommandList& Commands, const hz::GPUBuffer& Frame, const hz::GPUTexture& Color, const hz::GPUTexture& Depth,
-                 float Intensity, const Vector4& Tint) const;
+                 float Intensity, const Vector4& Tint, const hz::GPUTexture& Sky, float2 Rotation) const;
 
     const hz::GPUTexture& GetPrefiltered() const { return Prefiltered; }
     const hz::GPUTexture& GetIrradiance() const { return Irradiance; }

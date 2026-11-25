@@ -77,8 +77,9 @@ TEST_F(WorldArchiveTest, RoundTripsComponentsHierarchyAndStableOrdering)
     hz::MeshRenderer mesh = { .mesh = { .high = 2, .low = 1 } };
     mesh.overrides.PushBack({ .submesh = UINT64_C(18446744073709551615), .material = { .high = 2, .low = 2 } });
     ASSERT_TRUE(world.SetComponent(child, hz::SceneTypes::meshRenderer, &mesh));
-    hz::Light light = { .Type = hz::LightType::Rect, .intensity = 100.125f };
-    ASSERT_TRUE(world.SetComponent(child, hz::SceneTypes::light, &light));
+    hz::RectLightComponent light = { .BarnDoorAngle = 37 };
+    light.Local.Common.Base.Intensity = 100.125f;
+    ASSERT_TRUE(world.SetComponent(child, hz::SceneTypes::rectLight, &light));
     ASSERT_TRUE(world.AddComponent(child, hz::SceneTypes::camera));
     hz::WorldArchive archive;
     ASSERT_TRUE(archive.Capture(world, id(100)));
@@ -91,6 +92,12 @@ TEST_F(WorldArchiveTest, RoundTripsComponentsHierarchyAndStableOrdering)
     ASSERT_TRUE(archive.Instantiate(types, restored));
     const hz::Entity loadedChild = restored->GetEntity(id(10));
     const hz::Entity loadedParent = restored->GetEntity(id(20));
+    const hz::RectLightComponent* restoredLight =
+        (const hz::RectLightComponent*)restored->GetComponent(loadedChild, hz::SceneTypes::rectLight);
+    ASSERT_NE(restoredLight, nullptr);
+    EXPECT_FLOAT_EQ(restoredLight->Local.Common.Base.Intensity, 100.125f);
+    EXPECT_FLOAT_EQ(restoredLight->BarnDoorAngle, 37.0f);
+    EXPECT_EQ(first.find("InnerConeAngle"), std::string::npos);
     EXPECT_EQ(restored->GetParent(loadedChild), loadedParent);
     EXPECT_EQ(((const hz::MeshRenderer*)restored->GetComponent(loadedChild, hz::SceneTypes::meshRenderer))->overrides[0].submesh,
               UINT64_MAX);
@@ -154,7 +161,7 @@ TEST_F(WorldArchiveTest, FailedLoadsPreserveExistingWorldAndDocument)
         envelope(entityJson(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":1,\"farPlane\":1}"))),
         envelope(entityJson(1, component("0000000000000007", "Camera", 1, "{\"nearPlane\":2,\"farPlane\":1}"))),
         envelope(entityJson(1, component("0000000000000007", "Camera", 2, "{}"))),
-        envelope(entityJson(1, component("0000000000000006", "Light", 1, "{\"type\":\"Invalid\"}"))),
+        envelope(entityJson(1, component("000000000000000d", "PointLight", 1, "{\"IntensityUnits\":\"Invalid\"}"))),
     };
     hz::WorldArchive archive;
     for (const std::string& json : invalid)
@@ -334,7 +341,7 @@ TEST_F(WorldArchiveTest, RejectsEmbeddedNullsWithoutReplacingWorldOrTruncatingDo
         envelope(named),
         envelope(entityJson(1, component("0000000000000063", "Migrating", 3, R"({"label":"before\u0000after"})"))),
         envelope(entityJson(1, component("0000000000000063", "Migrating", 3, R"({"precise":"42\u0000suffix"})"))),
-        envelope(entityJson(1, component("0000000000000006", "Light", 1, R"({"type":"Point\u0000suffix"})"))),
+        envelope(entityJson(1, component("000000000000000d", "PointLight", 1, R"({"IntensityUnits":"Lumens\u0000suffix"})"))),
         envelope(entityJson(1, component("0000000000000007", "Camera", 1, R"({"nearPlane\u0000suffix":1})"))),
         envelope(entityJson(1, component("0000000000000005", "MeshRenderer", 1, "{\"mesh\":\"" + uuid(2) + "\\u0000suffix\"}"))),
         envelope(entityJson(1, component("0000000000000063\\u0000suffix", "Migrating", 3, "{}"))),

@@ -67,8 +67,7 @@ Main lit targets use RGBA32F, matching the reference range. PPLL nodes retain th
 reference half4 storage and its 65504 color limit.
 
 Directional lights use perpendicular illuminance in lux. The Bistro sun is set to
-100,000 lux. The example applies its 100 lm/W daylight-white calibration to radiometric
-local and dome lights. Sky, indirect lighting, transparency and reflection misses
+100,000 lux. Local lights specify intensity units on their component. Sky, indirect lighting, transparency and reflection misses
 share the environment intensity in cd/m² per unit of HDR radiance.
 
 Agility SDK 722 fixes the earlier SDKLayers DXIL-library instrumentation error.

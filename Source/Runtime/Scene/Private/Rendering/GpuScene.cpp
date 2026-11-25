@@ -30,37 +30,27 @@ Vector3 ResolveLightColor(const RenderLight& Light)
 
 static GpuLightData PackLight(const RenderLight& Light)
 {
-    const Vector3 AxisX = Light.transform.getCol0().getXYZ();
-    const Vector3 AxisY = Light.transform.getCol1().getXYZ();
     const Vector3 AxisZ = Light.transform.getCol2().getXYZ();
     const Vector3 Direction = -AxisZ / fmaxf(length(AxisZ), 1e-6f);
-    const bool    Rect = Light.Type == LightType::Rect;
-    const bool    Cylinder = Light.Type == LightType::Cylinder;
-    const Vector3 HalfX = AxisX * (Rect ? Light.Width * 0.5f : Light.radius);
-    const Vector3 HalfY = AxisY * (Rect ? Light.Height * 0.5f : Cylinder ? Light.length * 0.5f : Light.radius);
-    const float   Radius = Light.radius * fmaxf(length(AxisX), length(AxisZ));
-    const float   Area = Rect                              ? 4.0f * length(cross(HalfX, HalfY))
-                         : Light.Type == LightType::Disk   ? 3.14159265f * length(cross(HalfX, HalfY))
-                         : Cylinder                        ? 12.5663706f * Radius * length(HalfY)
-                         : Light.Type == LightType::Sphere ? 12.5663706f * Radius * Radius
-                                                           : 0.0f;
-    float         Intensity = Light.intensity * exp2f(Light.exposure);
-    if (Light.normalize && Area > 0.0f)
-    {
-        const bool TwoFaces = Light.twoSided && (Rect || Light.Type == LightType::Disk || Cylinder);
-        Intensity /= 3.14159265f * Area * (TwoFaces ? 2.0f : 1.0f);
-    }
     const float Outer = cosf(Light.outerConeAngle);
-    return { .PositionAndInvRadius = Vector4(Light.transform.getCol3().getXYZ(), Light.range > 0 ? 1.0f / Light.range : 0.0f),
+    const bool    Rect = Light.Type == LightType::Rect;
+    const Vector3 HalfX = Light.transform.getCol0().getXYZ() * (0.5f * Light.Width);
+    const Vector3 HalfY = Light.transform.getCol1().getXYZ() * (0.5f * Light.Height);
+    const float   Area = Rect ? 4.0f * length(cross(HalfX, HalfY)) : 0.0f;
+    // The rectangle integrator consumes luminance and integrates the subtended solid angle.
+    const float   Brightness = Rect ? (Area > 0 ? Light.intensity / Area : 0.0f) : Light.intensity;
+    return { .PositionAndInvRadius =
+                 Vector4(Light.transform.getTranslation(), Light.InfluenceRadius > 0 ? 1.0f / Light.InfluenceRadius : 0.0f),
              .DirectionAndType = Vector4(Direction, (float)Light.Type),
-             .Color = Vector4(ResolveLightColor(Light) * Intensity, Area),
-             .HalfAxisX = Vector4(HalfX, Light.twoSided ? 1.0f : 0.0f),
-             .HalfAxisY = Vector4(HalfY, Radius),
-             .Shape = Vector4(Outer, 1.0f / fmaxf(cosf(Light.innerConeAngle) - Outer, 1e-4f), 0, 0),
+             .Color = Vector4(ResolveLightColor(Light) * (Light.ready ? Brightness : 0.0f), Area),
+             .HalfAxisX = Vector4(HalfX, 0),
+             .HalfAxisY = Vector4(HalfY, 0),
+             .SpotAngles = float2(Outer, 1.0f / fmaxf(cosf(Light.innerConeAngle) - Outer, 1e-4f)),
+             .SourceRadius = Light.SourceRadius,
+             .SoftSourceRadius = Light.SoftSourceRadius,
+             .SourceLength = Light.SourceLength,
              .Id = Light.id,
-             .Texture = Light.texture,
-             .Primitive = Light.primitive,
-             .Ready = Light.ready };
+             .Texture = Light.texture };
 }
 
 struct GpuTable

@@ -45,13 +45,130 @@ static bool EqualLens(const Camera& A, const Camera& B)
 static bool EqualLight(const RenderLight& A, const RenderLight& B)
 {
     return A.entityGuid == B.entityGuid && EqualMatrix(A.transform, B.transform) && A.Type == B.Type && A.color[0] == B.color[0] &&
-           A.color[1] == B.color[1] && A.color[2] == B.color[2] && A.intensity == B.intensity && A.range == B.range &&
-           A.innerConeAngle == B.innerConeAngle && A.outerConeAngle == B.outerConeAngle && A.exposure == B.exposure &&
-           A.angularDiameter == B.angularDiameter && A.Width == B.Width && A.Height == B.Height && A.radius == B.radius &&
-           A.length == B.length && A.colorTemperature == B.colorTemperature && A.enableColorTemperature == B.enableColorTemperature &&
-           A.normalize == B.normalize && A.twoSided == B.twoSided && A.texture == B.texture && A.primitive == B.primitive &&
+           A.color[1] == B.color[1] && A.color[2] == B.color[2] && A.intensity == B.intensity && A.InfluenceRadius == B.InfluenceRadius &&
+           A.innerConeAngle == B.innerConeAngle && A.outerConeAngle == B.outerConeAngle && A.Width == B.Width && A.Height == B.Height &&
+           A.colorTemperature == B.colorTemperature && A.enableColorTemperature == B.enableColorTemperature &&
+           A.CastShadows == B.CastShadows && A.CastRaytracedShadow == B.CastRaytracedShadow && A.ShadowConeRadius == B.ShadowConeRadius &&
+           A.DiffuseScale == B.DiffuseScale && A.SourceRadius == B.SourceRadius && A.SoftSourceRadius == B.SoftSourceRadius &&
+           A.SourceLength == B.SourceLength && A.SkyAngle == B.SkyAngle && A.SpecularScale == B.SpecularScale &&
+           A.AffectTranslucency == B.AffectTranslucency && A.AffectReflection == B.AffectReflection && A.texture == B.texture &&
            A.ready == B.ready;
 }
+
+constexpr float CmToMeters = 0.01f;
+constexpr float DegreesToRadians = PI / 180.0f;
+
+static void ExtractLight(const LightComponentBase& Source, RenderLight& Light)
+{
+    Light.color[0] = (float)Source.LightColor.getX();
+    Light.color[1] = (float)Source.LightColor.getY();
+    Light.color[2] = (float)Source.LightColor.getZ();
+    Light.intensity = Source.Intensity;
+    Light.CastShadows = Source.CastShadows && Source.CastDynamicShadows;
+    Light.CastRaytracedShadow = Source.CastRaytracedShadow;
+    Light.AffectTranslucency = Source.bAffectTranslucentLighting;
+    Light.AffectReflection = Source.bAffectReflection;
+    Light.ready = Source.bAffectsWorld;
+}
+
+static void ExtractLight(const LightComponent& Source, RenderLight& Light)
+{
+    ExtractLight(Source.Base, Light);
+    Light.colorTemperature = Source.Temperature;
+    Light.enableColorTemperature = Source.bUseTemperature;
+    Light.DiffuseScale = Source.DiffuseScale;
+    Light.SpecularScale = Source.SpecularScale;
+}
+
+static void ExtractLight(const LocalLightComponent& Source, RenderLight& Light)
+{
+    ExtractLight(Source.Common, Light);
+    Light.InfluenceRadius = fmaxf(Source.AttenuationRadius, 0.0f) * CmToMeters;
+
+    switch (Source.IntensityUnits)
+    {
+    case LightUnits::Candelas:
+        break;
+    case LightUnits::EV:
+        Light.intensity = exp2f(Light.intensity);
+        break;
+    case LightUnits::Lumens:
+        if (Light.Type == LightType::Spot)
+        {
+            Light.intensity /= 2.0f * PI * fmaxf(1.0f - cosf(Light.outerConeAngle), 1e-7f);
+        }
+        else
+        {
+            Light.intensity /= Light.Type == LightType::Rect ? PI : 4.0f * PI;
+        }
+        break;
+    case LightUnits::Nits:
+        Light.intensity *= Light.Type == LightType::Rect
+                               ? Light.Width * Light.Height
+                               : 4.0f * PI * Light.SourceRadius * (Light.SourceRadius + 0.5f * Light.SourceLength);
+        break;
+    case LightUnits::Unitless:
+        Light.intensity *= 0.0016f;
+        break;
+    }
+}
+
+static void ExtractLight(const PointLightComponent& Source, RenderLight& Light)
+{
+    Light.SourceRadius = fmaxf(Source.SourceRadius, 0.0f) * CmToMeters;
+    Light.SoftSourceRadius = fmaxf(Source.SoftSourceRadius, 0.0f) * CmToMeters;
+    Light.SourceLength = fmaxf(Source.SourceLength, 0.0f) * CmToMeters;
+    ExtractLight(Source.Local, Light);
+}
+
+static AssetID ExtractLight(LightType Type, const void* Component, RenderLight& Light)
+{
+    switch (Type)
+    {
+    case LightType::Directional:
+    {
+        const DirectionalLightComponent& Sun = *(const DirectionalLightComponent*)Component;
+        ExtractLight(Sun.Common, Light);
+        const float HalfAngle = fminf(fmaxf(Sun.LightSourceAngle, 0.0f), 180.0f) * (0.5f * DegreesToRadians);
+        Light.ShadowConeRadius = fminf(sinf(HalfAngle) * fmaxf(Sun.ShadowSourceAngleFactor, 0.0f), 1.0f);
+        break;
+    }
+    case LightType::Point:
+        ExtractLight(*(const PointLightComponent*)Component, Light);
+        break;
+    case LightType::Spot:
+    {
+        const SpotLightComponent& Spot = *(const SpotLightComponent*)Component;
+        Light.innerConeAngle = fminf(fmaxf(Spot.InnerConeAngle, 0.0f), 88.9f) * DegreesToRadians;
+        Light.outerConeAngle =
+            fminf(fmaxf(Spot.OuterConeAngle * DegreesToRadians, Light.innerConeAngle + 0.001f), 88.9f * DegreesToRadians + 0.001f);
+        ExtractLight(Spot.Point, Light);
+        break;
+    }
+    case LightType::Rect:
+    {
+        const RectLightComponent& Rect = *(const RectLightComponent*)Component;
+        Light.Width = fmaxf(Rect.SourceWidth, 0.0f) * CmToMeters;
+        Light.Height = fmaxf(Rect.SourceHeight, 0.0f) * CmToMeters;
+        ExtractLight(Rect.Local, Light);
+        return Rect.SourceTexture;
+    }
+    case LightType::Sky:
+    {
+        const SkyLightComponent& Sky = *(const SkyLightComponent*)Component;
+        ExtractLight(Sky.Base, Light);
+        Light.SkyAngle = Sky.SourceCubemapAngle * DegreesToRadians;
+        if (Sky.SourceType == SkyLightSourceType::SpecifiedCubemap)
+        {
+            Light.ready = Light.ready && Sky.Cubemap.IsValid();
+            return Sky.Cubemap;
+        }
+        break;
+    }
+    }
+    return {};
+}
+
 static RenderBounds TransformBounds(const MeshBounds& Bounds, const Matrix4& Matrix)
 {
     RenderBounds Result;
@@ -97,6 +214,7 @@ struct RenderEntityIndex
 };
 struct RenderLightEntity
 {
+    LightType     Type;
     Entity        entity;
     RenderLightID id;
     AssetID       textureID;
@@ -120,10 +238,18 @@ class RenderSceneData
 public:
     RenderSceneData(World& WorldData, AssetManager& AssetManagerValue, const AnimationSystem* Animation):
         world(WorldData), assetManager(AssetManagerValue), animation(Animation), bindings(WorldData, AssetManagerValue), changes(WorldData),
-        query(WorldData, { SceneTypes::meshRenderer }), lightQuery(WorldData, { SceneTypes::light }),
+        query(WorldData, { SceneTypes::meshRenderer }), LightQueries{ { WorldData, { SceneTypes::directionalLight } },
+                                                                      { WorldData, { SceneTypes::pointLight } },
+                                                                      { WorldData, { SceneTypes::spotLight } },
+                                                                      { WorldData, { SceneTypes::rectLight } },
+                                                                      { WorldData, { SceneTypes::skyLight } } },
         cameraQuery(WorldData, { SceneTypes::camera })
     {
-        ASSERT(query.IsValid() && lightQuery.IsValid() && cameraQuery.IsValid());
+        for (const WorldQuery& Query : LightQueries)
+        {
+            ASSERT(Query.IsValid());
+        }
+        ASSERT(query.IsValid() && cameraQuery.IsValid());
     }
     ~RenderSceneData()
     {
@@ -135,28 +261,44 @@ public:
             }
         }
         hmfree(pIndices);
-        hmfree(pLightIndices);
+        for (RenderEntityIndex*& Indices : LightIndices)
+        {
+            hmfree(Indices);
+        }
         hmfree(pCameraIndices);
     }
 
+    struct LightQueryContext
+    {
+        RenderSceneData& Scene;
+        LightType        Type;
+    };
+
     static bool syncLight(Entity EntityHandle, Span<const void*> Fields, void* User)
     {
-        RenderSceneData&         DataValue = *(RenderSceneData*)User;
-        const RenderEntityIndex* IndexPointer = hmgetp_null(DataValue.pLightIndices, EntityHandle);
+        RenderSceneData&         DataValue = static_cast<LightQueryContext*>(User)->Scene;
+        const LightType          Type = static_cast<LightQueryContext*>(User)->Type;
+        RenderEntityIndex*&      Indices = DataValue.LightIndices[(uint32_t)Type];
+        const RenderEntityIndex* IndexPointer = hmgetp_null(Indices, EntityHandle);
         if (!IndexPointer)
         {
             RenderLightEntity& LightEntity = DataValue.lightEntities.EmplaceBack();
             LightEntity.entity = EntityHandle;
+            LightEntity.Type = Type;
             LightEntity.id = DataValue.lights.Add();
             DataValue.textureReleases.Reserve(DataValue.lightEntities.Size());
             const RenderEntityIndex IndexValue = { .key = EntityHandle, .value = DataValue.lightEntities.Size() - 1 };
-            hmputs(DataValue.pLightIndices, IndexValue);
-            IndexPointer = hmgetp_null(DataValue.pLightIndices, EntityHandle);
+            hmputs(Indices, IndexValue);
+            IndexPointer = hmgetp_null(Indices, EntityHandle);
         }
         RenderLightEntity& LightEntity = DataValue.lightEntities[IndexPointer->value];
         LightEntity.seen = true;
-        const Light&  LightValue = *(const Light*)Fields.Data[0];
-        const AssetID TextureId = LightValue.Type >= LightType::Rect ? LightValue.texture : AssetID{};
+        RenderLight   Next = { .id = LightEntity.id,
+                               .entityGuid = DataValue.world.GetEntityGuid(EntityHandle),
+                               .transform = DataValue.world.GetWorldTransform(EntityHandle)->current,
+                               .Type = Type };
+        const AssetID TextureId = ExtractLight(Type, Fields.Data[0], Next);
+        Next.intensity = fmaxf(Next.intensity, 0.0f);
         if (LightEntity.textureID != TextureId)
         {
             if (LightEntity.texture.IsValid())
@@ -172,9 +314,26 @@ public:
         {
             LightEntity.texture = DataValue.assetManager.Request(TextureId, &LightEntity.error);
         }
+        if (DataValue.assetManager.GetState(LightEntity.texture) == AssetState::Ready &&
+            !DataValue.assetManager.GetTexture(LightEntity.texture) && LightEntity.error != AssetError::LoadFailed)
+        {
+            LightEntity.error = AssetError::LoadFailed;
+            LOGF(Error, "Light emission map has the wrong asset type");
+        }
+        Next.ready = Next.ready && (!TextureId.IsValid() || DataValue.assetManager.GetTexture(LightEntity.texture));
+        if (LightEntity.textureID.IsValid() && Next.ready)
+        {
+            Next.texture = { .index = LightEntity.texture.index, .generation = LightEntity.texture.generation };
+        }
+        RenderLight& LightValue = DataValue.lights.Values[LightEntity.id.index];
+        if (!EqualLight(LightValue, Next))
+        {
+            LightValue = Next;
+            DataValue.lights.MarkDirty(LightEntity.id.index);
+        }
         return true;
     }
-    void extractLights()
+    void removeMissingLights()
     {
         for (uint32_t I = 0; I < lightEntities.Size();)
         {
@@ -186,63 +345,14 @@ public:
                     textureReleases.PushBack(EntityHandle.texture);
                 }
                 lights.Remove(EntityHandle.id);
-                hmdel(pLightIndices, EntityHandle.entity);
+                hmdel(LightIndices[(uint32_t)EntityHandle.Type], EntityHandle.entity);
                 lightEntities[I] = lightEntities[lightEntities.Size() - 1];
                 lightEntities.PopBack();
                 if (I < lightEntities.Size())
                 {
-                    hmgetp_null(pLightIndices, lightEntities[I].entity)->value = I;
+                    hmgetp_null(LightIndices[(uint32_t)lightEntities[I].Type], lightEntities[I].entity)->value = I;
                 }
                 continue;
-            }
-            const Light& Source = *(const Light*)world.GetComponent(EntityHandle.entity, SceneTypes::light);
-            if (assetManager.GetState(EntityHandle.texture) == AssetState::Ready && !assetManager.GetTexture(EntityHandle.texture) &&
-                EntityHandle.error != AssetError::LoadFailed)
-            {
-                EntityHandle.error = AssetError::LoadFailed;
-                LOGF(Error, "Light emission map has the wrong asset type");
-            }
-            RenderLight Next = {
-                .id = EntityHandle.id,
-                .entityGuid = world.GetEntityGuid(EntityHandle.entity),
-                .transform = world.GetWorldTransform(EntityHandle.entity)->current,
-                .Type = Source.Type,
-                .color = { (float)Source.color.getX(), (float)Source.color.getY(), (float)Source.color.getZ() },
-                .intensity = Source.intensity,
-                .range = Source.range,
-                .innerConeAngle = Source.innerConeAngle,
-                .outerConeAngle = Source.outerConeAngle,
-                .exposure = Source.exposure,
-                .angularDiameter = Source.angularDiameter,
-                .Width = Source.Width,
-                .Height = Source.Height,
-                .radius = Source.radius,
-                .length = Source.length,
-                .colorTemperature = Source.colorTemperature,
-                .enableColorTemperature = Source.enableColorTemperature ? 1u : 0u,
-                .normalize = Source.normalize ? 1u : 0u,
-                .twoSided = Source.twoSided ? 1u : 0u,
-                .ready = !EntityHandle.textureID.IsValid() || assetManager.GetTexture(EntityHandle.texture) ? 1u : 0u,
-            };
-            if (EntityHandle.textureID.IsValid() && Next.ready)
-            {
-                Next.texture = { .index = EntityHandle.texture.index, .generation = EntityHandle.texture.generation };
-            }
-            if (Source.Type == LightType::Mesh)
-            {
-                const RenderEntityIndex* IndexPointer = hmgetp_null(pIndices, EntityHandle.entity);
-                if (IndexPointer)
-                {
-                    Next.primitive = entities[IndexPointer->value].primitive;
-                }
-                const RenderPrimitive* PrimitivePointer = primitives.Get(Next.primitive);
-                Next.ready = Next.ready && PrimitivePointer && PrimitivePointer->instanceCount ? 1u : 0u;
-            }
-            RenderLight& LightValue = lights.Values[EntityHandle.id.index];
-            if (!EqualLight(LightValue, Next))
-            {
-                LightValue = Next;
-                lights.MarkDirty(EntityHandle.id.index);
             }
             ++I;
         }
@@ -659,7 +769,11 @@ public:
             EntityHandle.seen = false;
         }
         // Retain new emission maps before mesh/material bindings Release old dependencies.
-        lightQuery.Each(syncLight, this);
+        for (uint32_t I = 0; I < TF_ARRAY_COUNT(LightQueries); ++I)
+        {
+            LightQueryContext Context = { .Scene = *this, .Type = (LightType)I };
+            LightQueries[I].Each(syncLight, &Context);
+        }
         {
             PROFILER_SET_CPU_SCOPE_AUTO_NAMED("RenderScene::bindings");
             bindings.Update();
@@ -669,7 +783,7 @@ public:
             extractMeshEntities();
             updateSkins();
         }
-        extractLights();
+        removeMissingLights();
         cameraQuery.Each(extractCamera, this);
         removeCameras();
         primitives.FinishUpdate();
@@ -778,7 +892,7 @@ public:
     WorldAssetBindings                                bindings;
     WorldChangeLog                                    changes;
     WorldQuery                                        query;
-    WorldQuery                                        lightQuery;
+    WorldQuery                                        LightQueries[TF_ARRAY_COUNT(LightComponentTypes)];
     WorldQuery                                        cameraQuery;
     RenderStorage<RenderPrimitive, RenderPrimitiveID> primitives;
     RenderStorage<RenderInstance, RenderInstanceID>   instances;
@@ -789,7 +903,7 @@ public:
     RenderEntityIndex*                                pIndices = nullptr;
     Array<RenderLightEntity>                          lightEntities;
     Array<RenderCameraEntity>                         cameraEntities;
-    RenderEntityIndex*                                pLightIndices = nullptr;
+    RenderEntityIndex*                                LightIndices[TF_ARRAY_COUNT(LightComponentTypes)] = {};
     RenderEntityIndex*                                pCameraIndices = nullptr;
     Array<AssetHandle>                                textureReleases;
     Array<uint32_t>                                   instanceIndices;
@@ -867,7 +981,20 @@ const RenderInstance*  RenderScene::GetInstance(RenderInstanceID Id) const { ret
 const RenderMeshBatch* RenderScene::GetMeshBatch(RenderMeshBatchID Id) const { return Data->meshBatches.Get(Id); }
 RenderLightID          RenderScene::FindLight(Entity EntityHandle) const
 {
-    const RenderEntityIndex* IndexPointer = hmgetp_null(Data->pLightIndices, EntityHandle);
+    for (uint32_t I = 0; I < TF_ARRAY_COUNT(LightComponentTypes); ++I)
+    {
+        const RenderLightID Id = FindLight(EntityHandle, (LightType)I);
+        if (Id.IsValid())
+        {
+            return Id;
+        }
+    }
+    return {};
+}
+RenderLightID RenderScene::FindLight(Entity EntityHandle, LightType Type) const
+{
+    ASSERT((uint32_t)Type < TF_ARRAY_COUNT(LightComponentTypes));
+    const RenderEntityIndex* IndexPointer = hmgetp_null(Data->LightIndices[(uint32_t)Type], EntityHandle);
     return IndexPointer ? Data->lightEntities[IndexPointer->value].id : RenderLightID{};
 }
 RenderCameraID RenderScene::FindCamera(Entity EntityHandle) const

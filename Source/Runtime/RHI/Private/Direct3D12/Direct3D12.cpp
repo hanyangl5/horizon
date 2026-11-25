@@ -4428,6 +4428,7 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
     pTexture->Depth = pDesc->Depth;
     pTexture->uav = (pDesc->Descriptors & DESCRIPTOR_TYPE_RW_TEXTURE) != 0;
     pTexture->Format = pDesc->Format;
+    pTexture->cube = (Descriptors & DESCRIPTOR_TYPE_TEXTURE_CUBE) == DESCRIPTOR_TYPE_TEXTURE_CUBE;
     pTexture->arraySizeMinusOne = pDesc->ArraySize - 1;
     pTexture->SampleCount = pDesc->SampleCount;
 

@@ -122,6 +122,7 @@ struct FrameInputs
     float                DeltaSeconds = 0.0f;
     float                EnvironmentIntensity = 0.0f;
     Vector4              EnvironmentTint = Vector4(1.0f);
+    float2               SkyRotation = float2(0, 1);
     bool                 RayTracedShadows = false;
     bool                 RayTracedReflection = false;
     bool                 TemporalAAEnabled = false;
@@ -443,7 +444,7 @@ void RenderPasses::BuildGraph()
                                   static_cast<EnvironmentPass*>(UserData)->Execute(
                                       Pass.Commands, Frame.Frame, *hz::GetFrameGraphTexture(Pass, Frame.Targets.SceneColor),
                                       *hz::GetFrameGraphTexture(Pass, Frame.Targets.Depth), Frame.EnvironmentIntensity,
-                                      Frame.EnvironmentTint);
+                                      Frame.EnvironmentTint, *Frame.Lighting.Environment, Frame.SkyRotation);
                               },
                               .UserData = Environment.Get(),
                               .Textures = EnvironmentUses,
@@ -697,26 +698,62 @@ RecordedFrame RenderPasses::Record()
     Draws.Prepare(View);
     // Frame shape the passes depend on.
     const bool RayTracingReady = RayTracing->IsSupported();
-    Shadows->Data.EnvironmentMipCount = Environment->GetPrefilteredMipCount();
-    Shadows->Data.RTShadowEnabled = RayTracingReady && GRTShadows.GetBool() ? 1u : 0u;
-    Shadows->Data.RTAOEnabled = RayTracingReady && GRTAO.GetBool() ? 1u : 0u;
-    Shadows->Data.RTAOPower = RayTracing->Settings.AOPower;
+    LightingFrameData& LightingData = Shadows->Data;
+    LightingData = { .RTAOEnabled = RayTracingReady && GRTAO.GetBool() ? 1u : 0u,
+                     .EnvironmentMipCount = Environment->GetPrefilteredMipCount(),
+                     .FrameIndex = LightingData.FrameIndex,
+                     .RTAOPower = RayTracing->Settings.AOPower };
     const hz::GpuSceneBuffers& SceneBuffers = GpuSceneData.GetBuffers();
-    LightingFrameData&         LightingData = Shadows->Data;
     const hz::Span<uint32_t>   ActiveLights = Scene.GetActiveLights();
     LightingData.LightCount = ActiveLights.Count;
     LightingData.LightsIndex = LightingData.LightCount ? SceneBuffers.lights.GetSrvIndex() : UINT32_MAX;
     LightingData.ActiveLightsIndex = LightingData.LightCount ? SceneBuffers.activeLights.GetSrvIndex() : UINT32_MAX;
-    LightingData.LuminousEfficacy = Shadows->LuminousEfficacy;
-    LightingData.EnvironmentIntensity = LightingFrameData::DefaultEnvironmentIntensity;
-    LightingData.EnvironmentTint = Vector4(1.0f);
+    float2 SkyRotation(0, 1);
+    const hz::GPUTexture* SkyEnvironment = &Environment->GetPrefiltered();
+    const hz::GPUTexture* SkyIrradiance = &Environment->GetIrradiance();
+    float                 ShadowConeRadius = 0.0f;
+    bool                  HasSky = false;
     for (uint32_t LightIndex : ActiveLights)
     {
         const hz::RenderLight& Light = Scene.GetLights().Data[LightIndex];
-        if (Light.ready && Light.Type == hz::LightType::Dome)
+        if (!Light.ready)
         {
-            LightingData.EnvironmentIntensity = Light.intensity * exp2f(Light.exposure) * LightingData.LuminousEfficacy;
+            continue;
+        }
+        if (LightingData.MainDirectionalIndex == UINT32_MAX && Light.Type == hz::LightType::Directional)
+        {
+            LightingData.MainDirectionalIndex = LightIndex;
+            LightingData.LightDirection = Vector4(-normalize(Light.transform.getCol2().getXYZ()), Light.intensity);
+            LightingData.LightColor = Vector4(hz::ResolveLightColor(Light), 1.0f);
+            LightingData.ShadowEnabled = Light.CastShadows;
+            LightingData.RTShadowEnabled = Light.CastShadows && RayTracingReady &&
+                                           Light.CastRaytracedShadow != hz::RayTracedShadow::Disabled &&
+                                           (GRTShadows.GetBool() || Light.CastRaytracedShadow == hz::RayTracedShadow::Enabled);
+            LightingData.MainDiffuseScale = Light.DiffuseScale;
+            LightingData.MainSpecularScale = Light.SpecularScale;
+            LightingData.MainExcludedPasses = (Light.AffectTranslucency ? 0u : 1u) | (Light.AffectReflection ? 0u : 2u);
+            ShadowConeRadius = Light.ShadowConeRadius;
+        }
+        if (!HasSky && Light.Type == hz::LightType::Sky)
+        {
+            if (Light.texture.IsValid())
+            {
+                const hz::TextureAsset* Asset = Assets.GetTexture({ .index = Light.texture.index, .generation = Light.texture.generation });
+                if (!Asset || !Asset->GetTexture().IsCube() || Asset->GetTexture().GetArraySize() != 6)
+                {
+                    continue;
+                }
+                SkyEnvironment = &Asset->GetTexture();
+                SkyIrradiance = nullptr;
+                LightingData.EnvironmentMipCount = SkyEnvironment->GetMipLevels();
+            }
+            SkyRotation = float2(sinf(Light.SkyAngle), cosf(Light.SkyAngle));
+            LightingData.EnvironmentIntensity = Light.intensity;
             LightingData.EnvironmentTint = Vector4(hz::ResolveLightColor(Light), 1.0f);
+            HasSky = true;
+        }
+        if (HasSky && LightingData.MainDirectionalIndex != UINT32_MAX)
+        {
             break;
         }
     }
@@ -731,7 +768,7 @@ RecordedFrame RenderPasses::Record()
     // Ray traced AO replaces the screen space term.
     hz::SetFrameGraphPassEnabled(Graph, GTAOGraphPass, GGTAO.GetBool() && !Shadows->Data.RTAOEnabled);
     hz::SetFrameGraphPassEnabled(Graph, RayTracingPass,
-                                 RayTracingReady && (GRTShadows.GetBool() || GRTAO.GetBool() || GRTReflections.GetBool()));
+                                 RayTracingReady && (LightingData.RTShadowEnabled || GRTAO.GetBool() || GRTReflections.GetBool()));
     hz::SetFrameGraphPassEnabled(Graph, TransparencyPass, GTransparency.GetBool());
     hz::SetFrameGraphPassEnabled(Graph, TemporalAAPass, GTemporalAA.GetBool());
     const hz::GPUTexture& Backbuffer = Context.GetCurrentBackbuffer();
@@ -747,9 +784,11 @@ RecordedFrame RenderPasses::Record()
                            .LinearSampler = LinearSampler,
                            .Targets = Targets,
                            .Lighting = { .LightingFrame = &Shadows->GetLightingFrame(FrameIndex),
+                                         .TraceShadows = LightingData.RTShadowEnabled != 0,
+                                         .ShadowConeRadius = ShadowConeRadius,
                                          .ShadowSampler = &Shadows->GetSampler(),
-                                         .Environment = &Environment->GetPrefiltered(),
-                                         .Irradiance = &Environment->GetIrradiance(),
+                                         .Environment = SkyEnvironment,
+                                         .Irradiance = SkyIrradiance,
                                          .BRDFLut = &Environment->GetBrdfLut(),
                                          .EnvironmentSampler = &Environment->GetSampler(),
                                          .Lights = LightingData.LightCount ? &SceneBuffers.lights : nullptr,
@@ -759,7 +798,8 @@ RecordedFrame RenderPasses::Record()
                            .DeltaSeconds = DeltaSeconds,
                            .EnvironmentIntensity = Shadows->Data.EnvironmentIntensity,
                            .EnvironmentTint = Shadows->Data.EnvironmentTint,
-                           .RayTracedShadows = RayTracingReady && (GRTShadows.GetBool() || GRTAO.GetBool()),
+                           .SkyRotation = SkyRotation,
+                           .RayTracedShadows = RayTracingReady && (LightingData.RTShadowEnabled || GRTAO.GetBool()),
                            .RayTracedReflection = RayTracingReady && GRTReflections.GetBool(),
                            .TemporalAAEnabled = GTemporalAA.GetBool(),
                            .Jitter = Jitter,

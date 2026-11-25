@@ -928,6 +928,7 @@ struct alignas(64) Texture
     uint32_t   aspectMask : 4;
     uint32_t   SampleCount : 5;
     uint32_t   uav : 1;
+    uint32_t   cube : 1;
     /// This value will be false if the underlying resource is not owned by the texture (swapchain textures,...)
     uint32_t   ownsImage : 1;
     uint32_t   memoryTrackingMode : 2;

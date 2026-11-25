@@ -441,37 +441,38 @@ TEST_F(SceneWorldTest, PropertyEditsValidateBeforeWriting)
     const hz::Entity        entity = world.CreatePersistentEntity(id);
     const float             intensity = 5.0f;
     const hz::PropertyValue value = { .kind = hz::PropertyKind::Float, .Data = &intensity, .Size = sizeof(intensity) };
-    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::light, 3, value));
-    ASSERT_TRUE(world.AddComponent(entity, hz::SceneTypes::light));
-    EXPECT_FALSE(world.SetProperty({}, hz::SceneTypes::light, 3, value));
+    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::pointLight, 3, value));
+    ASSERT_TRUE(world.AddComponent(entity, hz::SceneTypes::pointLight));
+    EXPECT_FALSE(world.SetProperty({}, hz::SceneTypes::pointLight, 3, value));
     EXPECT_FALSE(world.SetProperty(entity, 999, 3, value));
-    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::light, 999, value));
-    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::light, 3,
+    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::pointLight, 999, value));
+    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::pointLight, 3,
                                    { .kind = hz::PropertyKind::UnsignedInteger, .Data = &intensity, .Size = sizeof(intensity) }));
-    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::light, 3, { .kind = hz::PropertyKind::Float, .Data = &intensity, .Size = 1 }));
-    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::light, 3, {}));
+    EXPECT_FALSE(
+        world.SetProperty(entity, hz::SceneTypes::pointLight, 3, { .kind = hz::PropertyKind::Float, .Data = &intensity, .Size = 1 }));
+    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::pointLight, 3, {}));
     const int32_t invalidEnum = 99;
-    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::light, 1,
+    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::pointLight, 76,
                                    { .kind = hz::PropertyKind::Enum, .Data = &invalidEnum, .Size = sizeof(invalidEnum) }));
     const uint8_t invalidBool = 2;
-    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::light, 15,
+    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::pointLight, 15,
                                    { .kind = hz::PropertyKind::Boolean, .Data = &invalidBool, .Size = sizeof(invalidBool) }));
     EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::entityIdentity, 1,
                                    { .kind = hz::PropertyKind::EntityReference, .Data = &id, .Size = sizeof(id) }));
     EXPECT_EQ(world.GetEntityGuid(entity), id);
-    const hz::Light* pLight = (const hz::Light*)world.GetComponent(entity, hz::SceneTypes::light);
-    EXPECT_FLOAT_EQ(pLight->intensity, 1.0f);
-    EXPECT_EQ(pLight->Type, hz::LightType::Point);
-    EXPECT_FALSE(pLight->enableColorTemperature);
-    ASSERT_TRUE(world.SetProperty(entity, hz::SceneTypes::light, 3, value));
-    const hz::LightType lightType = hz::LightType::Rect;
-    ASSERT_TRUE(world.SetProperty(entity, hz::SceneTypes::light, 1,
+    const hz::PointLightComponent* pLight = (const hz::PointLightComponent*)world.GetComponent(entity, hz::SceneTypes::pointLight);
+    EXPECT_FLOAT_EQ(pLight->Local.Common.Base.Intensity, 5000.0f);
+    EXPECT_EQ(pLight->Local.IntensityUnits, hz::LightUnits::Unitless);
+    EXPECT_FALSE(pLight->Local.Common.bUseTemperature);
+    ASSERT_TRUE(world.SetProperty(entity, hz::SceneTypes::pointLight, 3, value));
+    const hz::LightUnits lightType = hz::LightUnits::Lumens;
+    ASSERT_TRUE(world.SetProperty(entity, hz::SceneTypes::pointLight, 76,
                                   { .kind = hz::PropertyKind::Enum, .Data = &lightType, .Size = sizeof(lightType) }));
-    EXPECT_EQ(pLight->Type, lightType);
-    EXPECT_FLOAT_EQ(pLight->intensity, intensity);
-    EXPECT_FLOAT_EQ(pLight->Width, 1.0f);
+    EXPECT_EQ(pLight->Local.IntensityUnits, lightType);
+    EXPECT_FLOAT_EQ(pLight->Local.Common.Base.Intensity, intensity);
+    EXPECT_FLOAT_EQ(pLight->SourceRadius, 0.0f);
     ASSERT_TRUE(world.DestroyEntity(entity));
-    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::light, 3, value));
+    EXPECT_FALSE(world.SetProperty(entity, hz::SceneTypes::pointLight, 3, value));
 }
 
 TEST_F(SceneWorldTest, StringEditsHandleBoundsAndAliasing)
