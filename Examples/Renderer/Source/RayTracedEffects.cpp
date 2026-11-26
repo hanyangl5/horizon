@@ -35,7 +35,7 @@ static_assert(sizeof(RTConstants) == 23 * sizeof(uint32_t));
 hz::CVar        GRTShadows("r.RayTracing.Shadows", true, "Ray-traced shadows.");
 hz::CVar        GRTAO("r.RayTracing.AO", true, "Ray-traced AO takes precedence over GTAO.");
 hz::CVar        GRTReflections("r.RayTracing.Reflections", false, "Ray-traced reflections.");
-hz::CVar GRTLocalShadows("r.RayTracing.LocalShadows", true, "Adaptive half-resolution local light shadows.");
+hz::CVar        GRTLocalShadows("r.RayTracing.LocalShadows", true, "Adaptive half-resolution local light shadows.");
 static hz::CVar GRTAORadius("r.RayTracing.AO.Radius", 2.0f, 0.0001f, "Maximum occlusion ray distance in meters.");
 
 RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context), Supported(Context.SupportsRayTracing())
@@ -208,22 +208,22 @@ void RayTracedEffects::TraceLocalShadows(hz::CommandList& Commands, hz::BufferSr
     const hz::GPUAccelerationStructure& TLAS = RayScene->GetSceneTLAS();
     const uint32_t                      Width = Targets.Mask->GetWidth(), Height = Targets.Mask->GetHeight();
     const uint32_t                      GroupsX = (Width + LOCAL_SHADOW_GROUP_SIZE - 1) / LOCAL_SHADOW_GROUP_SIZE,
-                                        GroupsY = (Height + LOCAL_SHADOW_GROUP_SIZE - 1) / LOCAL_SHADOW_GROUP_SIZE;
-    const hz::GPUBuffer&                DrawData = Draws.GetDrawData(View.FrameIndex);
-    const RTConstants                   Constants = {
-        .FrameIndexBuffer = Frame.Index,
-        .LightingIndex = Lighting.LightingFrame.Index,
-        .DrawsIndex = DrawData.GetSrvIndex(),
-        .MaterialsIndex = View.GpuScene.GetBuffers().materials.GetSrvIndex(),
-        .TexturesIndex = View.GpuScene.GetBuffers().textures.GetSrvIndex(),
-        .SamplerIndex = MaterialSampler.GetIndex(),
-        .TlasIndex = TLAS.IsValid() ? TLAS.GetSrvIndex() : UINT32_MAX,
-        .NormalIndex = GBuffer.NormalMaterial->GetSrvIndex(),
-        .DepthIndex = GBuffer.Depth->GetSrvIndex(),
-        .OutputIndex = Targets.Mask->GetUavIndex(),
-        .BlueNoiseIndex = BlueNoise.GetSrvIndex(),
-        .FrameNumber = FrameIndex,
-        .AlphaTestMethod = Settings.ShadowAlphaTestMethod,
+                   GroupsY = (Height + LOCAL_SHADOW_GROUP_SIZE - 1) / LOCAL_SHADOW_GROUP_SIZE;
+    const hz::GPUBuffer& DrawData = Draws.GetDrawData(View.FrameIndex);
+    const RTConstants    Constants = {
+           .FrameIndexBuffer = Frame.Index,
+           .LightingIndex = Lighting.LightingFrame.Index,
+           .DrawsIndex = DrawData.GetSrvIndex(),
+           .MaterialsIndex = View.GpuScene.GetBuffers().materials.GetSrvIndex(),
+           .TexturesIndex = View.GpuScene.GetBuffers().textures.GetSrvIndex(),
+           .SamplerIndex = MaterialSampler.GetIndex(),
+           .TlasIndex = TLAS.IsValid() ? TLAS.GetSrvIndex() : UINT32_MAX,
+           .NormalIndex = GBuffer.NormalMaterial->GetSrvIndex(),
+           .DepthIndex = GBuffer.Depth->GetSrvIndex(),
+           .OutputIndex = Targets.Mask->GetUavIndex(),
+           .BlueNoiseIndex = BlueNoise.GetSrvIndex(),
+           .FrameNumber = FrameIndex,
+           .AlphaTestMethod = Settings.ShadowAlphaTestMethod,
     };
     constexpr uint32_t SlotOffset = sizeof(RTConstants) / sizeof(uint32_t);
     Commands.BeginGpuTimestamp("Resolve local shadow slots");
