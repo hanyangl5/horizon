@@ -1,3 +1,4 @@
+#include "../Shaders/RTLocalShadowConfig.h"
 #include "RenderPasses.h"
 #include "Core/ICVar.h"
 #include "RendererConstants.h"
@@ -124,6 +125,7 @@ struct FrameInputs
     float                EnvironmentIntensity = 0.0f;
     Vector4              EnvironmentTint = Vector4(1.0f);
     float2               SkyRotation = float2(0, 1);
+    bool                 LocalShadows = false;
     bool                 RayTracedShadows = false;
     bool                 RayTracedReflection = false;
     bool                 TemporalAAEnabled = false;
@@ -156,6 +158,11 @@ static void ExecuteDeferredLighting(const hz::FrameGraphContext& Pass, void* Use
     LightingResources    Lighting = Frame.Lighting;
     Lighting.ShadowMap = hz::GetFrameGraphTexture(Pass, Targets.ShadowMap);
     Lighting.GTAO = hz::GetFrameGraphTexture(Pass, Targets.Occlusion);
+    if (Frame.LocalShadows)
+    {
+        Lighting.LocalShadowMask = hz::GetFrameGraphTexture(Pass, Targets.LocalShadowMask);
+        Lighting.LocalShadowSlots = hz::GetFrameGraphTexture(Pass, Targets.LocalShadowSlots);
+    }
     Lighting.RTShadowAO = Frame.RayTracedShadows ? hz::GetFrameGraphTexture(Pass, Targets.RTResult) : nullptr;
     Lighting.RTReflection = Frame.RayTracedReflection ? hz::GetFrameGraphTexture(Pass, Targets.RTReflection) : nullptr;
     static_cast<DeferredLighting*>(UserData)->Execute(Pass.Commands, Frame.Frame, GetGBuffer(Pass), Lighting,
@@ -206,6 +213,19 @@ void RenderPasses::BuildGraph()
                                                              .Name = "Renderer.ShadowMap" } });
     T.Occlusion = ViewportTexture(G, GTAO::TargetFormat, "Renderer.GTAO", false);
     T.OcclusionScratch = ViewportTexture(G, GTAO::TargetFormat, "Renderer.GTAO.Half", false, 1);
+    T.LocalShadowMask = ViewportTexture(G, hz::Format::R8_UINT, "Renderer.LocalShadow.Mask", false, 1);
+    T.LocalShadowSlots = ViewportTexture(G, hz::Format::R32G32B32A32_UINT, "Renderer.LocalShadow.Slots", false, 1);
+    // ViewportTexture rounds down. Size from the full viewport to cover the final partial half-resolution group.
+    T.LocalShadowCounts = ViewportTexture(G, hz::Format::R32_UINT, "Renderer.LocalShadow.Counts", false, LOCAL_SHADOW_GROUP_SHIFT);
+    T.LocalShadowPartial = ViewportTexture(G, hz::Format::R32_UINT, "Renderer.LocalShadow.Partial", false, 2 * LOCAL_SHADOW_GROUP_SHIFT);
+    T.LocalShadowTotal =
+        hz::AddFrameGraphTexture(G, { .Texture = { .Width = 1,
+                                                   .Height = 1,
+                                                   .Format = hz::Format::R32_UINT,
+                                                   .StartState = RESOURCE_STATE_UNORDERED_ACCESS,
+                                                   .Descriptors = DescriptorType(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
+                                                   .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                                   .Name = "Renderer.LocalShadow.Total" } });
     T.RTResult = ViewportTexture(G, RayTracedEffects::ResultFormat, "Renderer.RT.ShadowAO", false, RayTracedEffects::ResolutionShift);
     T.RTScratch =
         ViewportTexture(G, RayTracedEffects::ScratchFormat, "Renderer.RT.DenoiseScratch", false, RayTracedEffects::ResolutionShift);
@@ -385,6 +405,17 @@ void RenderPasses::BuildGraph()
                            { T.RTReflectionHistory, History },
                            { T.RTReflectionHistory, Write },
                            { T.RTPreviousDepth, Write } };
+    RayScenePass =
+        hz::AddFrameGraphPass(G, { .Name = "Build ray tracing scene",
+                                   .Execute =
+                                       [](const hz::FrameGraphContext& Pass, void* UserData)
+                                   {
+                                       const FrameInputs& Frame = Inputs(Pass);
+                                       static_cast<RayTracedEffects*>(UserData)->UpdateScene(Pass.Commands, Frame.View, Frame.Draws);
+                                   },
+                                   .UserData = RayTracing.Get(),
+                                   .Buffers = ReadSkinned,
+                                   .SideEffects = true });
     RayTracingPass = hz::AddFrameGraphPass(
         G,
         {
@@ -419,9 +450,31 @@ void RenderPasses::BuildGraph()
             .Textures = RTUses,
             .Buffers = ReadSkinned,
         });
+    LocalShadowPass = hz::AddFrameGraphPass(
+        G,
+        { .Name = "RT Local Shadows",
+          .Execute =
+              [](const hz::FrameGraphContext& Pass, void* UserData)
+          {
+              const FrameInputs&       Frame = Inputs(Pass);
+              const RenderTargets&     T = Frame.Targets;
+              const LocalShadowTargets Outputs = { .Mask = hz::GetFrameGraphTexture(Pass, T.LocalShadowMask),
+                                                   .Slots = hz::GetFrameGraphTexture(Pass, T.LocalShadowSlots),
+                                                   .Counts = hz::GetFrameGraphTexture(Pass, T.LocalShadowCounts),
+                                                   .Partial = hz::GetFrameGraphTexture(Pass, T.LocalShadowPartial),
+                                                   .Total = hz::GetFrameGraphTexture(Pass, T.LocalShadowTotal) };
+              static_cast<RayTracedEffects*>(UserData)->TraceLocalShadows(
+                  Pass.Commands, Frame.Frame,
+                  { .NormalMaterial = hz::GetFrameGraphTexture(Pass, T.GBuffer[1]), .Depth = hz::GetFrameGraphTexture(Pass, T.Depth) },
+                  Frame.View, Frame.Draws, Frame.Lighting, Outputs);
+          },
+          .UserData = RayTracing.Get(),
+          .Buffers = ReadMasks },
+        { { Read, { T.Depth, T.GBuffer[1] } },
+          { Write, { T.LocalShadowMask, T.LocalShadowSlots, T.LocalShadowCounts, T.LocalShadowPartial, T.LocalShadowTotal } } });
     hz::AddFrameGraphPass(G, { .Name = "Lighting", .Execute = ExecuteDeferredLighting, .UserData = Lighting.Get(), .Buffers = ReadMasks },
                           { { Read, { T.GBuffer[0], T.GBuffer[1], T.GBuffer[2], T.Depth, T.ShadowMap } },
-                            { Optional, { T.Occlusion, T.RTResult, T.RTReflection } },
+                            { Optional, { T.Occlusion, T.RTResult, T.RTReflection, T.LocalShadowSlots, T.LocalShadowMask } },
                             { Write, { T.SceneColor } } });
     const Use EnvironmentUses[] = { { T.SceneColor, Modify }, { T.Depth, Read } };
     hz::AddFrameGraphPass(G,
@@ -738,8 +791,11 @@ RecordedFrame RenderPasses::Record()
     hz::SetFrameGraphPassEnabled(Graph, LightMaskPass, Masks != nullptr);
     // Ray traced AO replaces the screen space term.
     hz::SetFrameGraphPassEnabled(Graph, GTAOGraphPass, GGTAO.GetBool() && !LightingData.RTAOEnabled);
-    hz::SetFrameGraphPassEnabled(Graph, RayTracingPass,
-                                 RayTracingReady && (LightingData.RTShadowEnabled || GRTAO.GetBool() || GRTReflections.GetBool()));
+    const bool LocalShadows = Masks && RayTracingReady && GRTLocalShadows.GetBool();
+    hz::SetFrameGraphPassEnabled(Graph, LocalShadowPass, LocalShadows);
+    const bool TraceEffects = RayTracingReady && (LightingData.RTShadowEnabled || GRTAO.GetBool() || GRTReflections.GetBool());
+    hz::SetFrameGraphPassEnabled(Graph, RayScenePass, LocalShadows || TraceEffects);
+    hz::SetFrameGraphPassEnabled(Graph, RayTracingPass, TraceEffects);
     hz::SetFrameGraphPassEnabled(Graph, TransparencyPass, GTransparency.GetBool());
     hz::SetFrameGraphPassEnabled(Graph, TemporalAAPass, GTemporalAA.GetBool());
     const hz::GPUTexture& Backbuffer = Context.GetCurrentBackbuffer();
@@ -770,6 +826,7 @@ RecordedFrame RenderPasses::Record()
                            .EnvironmentIntensity = LightingData.EnvironmentIntensity,
                            .EnvironmentTint = LightingData.EnvironmentTint,
                            .SkyRotation = SkyRotation,
+                           .LocalShadows = LocalShadows,
                            .RayTracedShadows = RayTracingReady && (LightingData.RTShadowEnabled || GRTAO.GetBool()),
                            .RayTracedReflection = RayTracingReady && GRTReflections.GetBool(),
                            .TemporalAAEnabled = GTemporalAA.GetBool(),

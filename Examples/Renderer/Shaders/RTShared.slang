@@ -30,6 +30,9 @@ cbuffer RootConstant0
     uint  RetraceMaxDepth;
     float AoRadius;
     float ShadowRadius;
+#ifdef RT_LOCAL_SHADOW
+    uint LocalShadowSlots, LocalShadowCounts, LocalShadowTotal;
+#endif
 };
 
 #include "Material.slang"

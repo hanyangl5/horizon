@@ -6,8 +6,14 @@
 #include "Core/IUniquePtr.h"
 
 extern hz::CVar GRTShadows;
+extern hz::CVar GRTLocalShadows;
 extern hz::CVar GRTAO;
 extern hz::CVar GRTReflections;
+
+struct LocalShadowTargets
+{
+    const hz::GPUTexture *Mask, *Slots, *Counts, *Partial, *Total;
+};
 
 struct RayTracedEffectsSettings
 {
@@ -65,8 +71,11 @@ public:
     bool Load();
 
     void MarkDirty();
+    void UpdateScene(hz::CommandList& Commands, const hz::SceneView& View, const hz::GpuDrawList& Draws);
     void Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer, const hz::SceneView& View,
                  const hz::GpuDrawList& Draws, const LightingResources& Lighting, const RayTracedEffectsTargets& Targets);
+    void TraceLocalShadows(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer, const hz::SceneView& View,
+                           const hz::GpuDrawList& Draws, const LightingResources& Lighting, const LocalShadowTargets& Targets);
     bool IsSupported() const { return Supported; }
     RayTracedEffectsSettings Settings;
 
@@ -75,6 +84,7 @@ private:
     hz::UniquePtr<RayTracingScene>    RayScene;
     hz::UniquePtr<ScreenSpaceDenoise> Denoiser;
     hz::GPUPipeline                   ShadowPipeline;
+    hz::GPUPipeline                   ResolveLocalSlots, ReduceLocalCounts, TraceLocalMask;
     hz::GPURayTracingPipeline         ReflectionPipeline;
     hz::GPUSampler                    MaterialSampler;
     hz::GPUTexture                    BlueNoise;

@@ -25,8 +25,9 @@ struct DeferredLightingConstants
     uint32_t RtShadowAOIndex;
     uint32_t RtReflectionIndex;
     uint32_t GTAOIndex;
+    uint32_t LocalShadowMaskIndex, LocalShadowSlotsIndex;
 };
-static_assert(sizeof(DeferredLightingConstants) == 15 * sizeof(uint32_t));
+static_assert(sizeof(DeferredLightingConstants) == 17 * sizeof(uint32_t));
 
 DeferredLighting::DeferredLighting(hz::RenderContext& Context)
 {
@@ -64,6 +65,8 @@ void DeferredLighting::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, c
         .RtShadowAOIndex = Dependencies.Sample(Resources.RTShadowAO),
         .RtReflectionIndex = Dependencies.Sample(Resources.RTReflection),
         .GTAOIndex = Dependencies.Sample(Resources.GTAO),
+        .LocalShadowMaskIndex = Dependencies.Sample(Resources.LocalShadowMask),
+        .LocalShadowSlotsIndex = Dependencies.Sample(Resources.LocalShadowSlots),
     };
     Commands.BeginGpuTimestamp("DeferredLighting");
     // Keep graphics state active during GBV attachment-transition checks after DXR.

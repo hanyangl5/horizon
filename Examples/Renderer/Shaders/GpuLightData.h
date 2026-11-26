@@ -13,6 +13,7 @@ struct GpuLightData
     float  SourceLength;
     uint2  Id;
     uint2  Texture;
+    uint   CastLocalShadow;
 };
 
 // ByteAddressBuffer records follow the 16-byte alignment of the C++ Vector4.

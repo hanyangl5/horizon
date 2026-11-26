@@ -21,6 +21,7 @@ struct GpuLightData
     float             SourceLength = 0;
     RenderLightID     Id;
     GpuTextureID      Texture;
+    uint32_t          CastLocalShadow = 0;
 };
 
 static_assert(sizeof(GpuLightData) == 128);

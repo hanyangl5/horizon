@@ -1388,7 +1388,7 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
     hz::GPUTexture alpha = image(hz::Format::R32G32B32A32_SFLOAT, true), noise = image(hz::Format::R32G32B32A32_SFLOAT, true);
     hz::GPUTexture result = image(hz::Format::R8G8_UNORM, false);
     hz::GPUSampler sampler = context.CreateSampler();
-    const FrameData         camera = { .Eye = Vector4(0, 0, -1, 1) };
+    const FrameData         camera = { .Eye = Vector4(0, 0, -1, 1), .Width = 1, .Height = 1 };
     const LightingFrameData lighting = { .LightDirection = Vector4(0, 0, -1, 1), .RTShadowEnabled = 1 };
     hz::GPUBuffer  frame = input(&camera, sizeof(camera), sizeof(camera)), light = input(&lighting, sizeof(lighting), sizeof(lighting));
     const float    positions[] = { -1, -1, 0.5f, 3, -1, 0.5f, -1, 3, 0.5f };
@@ -1510,6 +1510,118 @@ TEST_F(SceneAssetLoaderTest, CookbookRayShadowRejectsMaskedAlphaAndKeepsOpaqueOc
         EXPECT_FLOAT_EQ(values[0], constants.AoEnabled || (constants.AlphaTestMethod != 0 && scenario == 1) ? 1.0f : 0.0f);
         EXPECT_FLOAT_EQ(values[1], constants.AoEnabled ? 0.0f : 1.0f);
     }
+
+    // Two local lights share a pixel. Only the ray to the farther light crosses the opaque triangle.
+    SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
+    const auto localPipeline = [&](const char* file, const char* entry)
+    {
+        return context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = entry } },
+                                                               .sourceDirectory = DirectoryOtherFiles,
+                                                               .pFileName = file } });
+    };
+    const hz::GPUPipeline resolve = localPipeline("RTLocalShadow.slang", "ResolveLocalShadowSlots");
+    const hz::GPUPipeline reduce = localPipeline("RTLocalShadowReduce.slang", "ReduceLocalShadowCounts");
+    const hz::GPUPipeline trace = localPipeline("RTLocalShadow.slang", "TraceLocalShadowMask");
+    ASSERT_TRUE(resolve.IsValid() && reduce.IsValid() && trace.IsValid());
+    const char      inspectSource[] = R"(
+        cbuffer RootConstant0 { uint maskIndex, slotsIndex, totalIndex, outIndex; };
+        [numthreads(1,1,1)] void main() {
+            Texture2D<uint> mask = ResourceDescriptorHeap[maskIndex], total = ResourceDescriptorHeap[totalIndex];
+            Texture2D<uint4> slots = ResourceDescriptorHeap[slotsIndex];
+            RWStructuredBuffer<uint4> outBuffer = ResourceDescriptorHeap[outIndex];
+            outBuffer[0] = uint4(mask[uint2(0,0)], slots[uint2(0,0)].xy, total[uint2(0,0)]);
+        })";
+    hz::GPUPipeline inspect = context.CreateComputePipeline({ .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP,
+                                                                                            .pSource = inspectSource,
+                                                                                            .sourceSize = sizeof(inspectSource) - 1,
+                                                                                            .pEntryPoint = "main" } } } });
+    ASSERT_TRUE(inspect.IsValid());
+    const hz::GPUTexture slots = image(hz::Format::R32G32B32A32_UINT, false), mask = image(hz::Format::R8_UINT, false);
+    const hz::GPUTexture counts = image(hz::Format::R32_UINT, false), total = image(hz::Format::R32_UINT, false);
+    hz::GpuLightData     points[3];
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        points[i].PositionAndInvRadius = Vector4(0, 0, i ? 0.4f : 1.0f, 0.25f);
+        points[i].DirectionAndType = Vector4(0, 0, -1, 1);
+        points[i].Color = Vector4(1);
+        points[i].CastLocalShadow = i < 2;
+    }
+    const uint32_t      ids[] = { 0, 1, 2, 0, 1, 2 }, range[] = { 0, 2 }, bits = 7;
+    const hz::GPUBuffer lights = input(points, sizeof(points)), localIndices = input(ids, sizeof(ids));
+    const hz::GPUBuffer bins = input(range, sizeof(range)), tiles = input(&bits, sizeof(bits));
+    LightingFrameData   testLight;
+    testLight.LocalLightsIndex = lights.GetSrvIndex();
+    testLight.ActiveLocalLightsIndex = localIndices.GetSrvIndex();
+    testLight.LocalLightCount = 3;
+    testLight.ClusterLightingTilesX = 1;
+    testLight.ClusterLightingZBinsIndex = bins.GetSrvIndex();
+    testLight.ClusterLightingTileLightBitMasksIndex = tiles.GetSrvIndex();
+    const hz::GPUBuffer localLighting = input(&testLight, sizeof(testLight), sizeof(testLight));
+    for (bool hasScene : { true, false })
+    {
+        hz::CommandList& commands = context.AcquireCommandList();
+        constants.TlasIndex = hasScene ? opaqueTop.GetSrvIndex() : UINT32_MAX;
+        constants.LightingIndex = localLighting.GetSrvIndex();
+        constants.OutputIndex = mask.GetUavIndex();
+        commands.SetPipeline(resolve);
+        commands.SetRootConstants(constants);
+        commands.SetRootConstant({ slots.GetUavIndex(), counts.GetUavIndex() }, 23);
+        commands.Dispatch(1, 1, 1,
+                          { .sampledTextures = { &Depth, &normal },
+                            .storageTextures = { &slots, &counts },
+                            .buffers = { &frame, &localLighting, &bins, &tiles, &lights, &localIndices } });
+        commands.SetPipeline(reduce);
+        commands.SetRootConstant({ counts.GetSrvIndex(), total.GetUavIndex(), 1, 1 });
+        commands.Dispatch(1, 1, 1, { .sampledTextures = { &counts }, .storageTextures = { &total } });
+        commands.SetPipeline(trace);
+        commands.SetRootConstants(constants);
+        commands.SetRootConstant({ slots.GetSrvIndex(), UINT32_MAX, total.GetSrvIndex() }, 23);
+        commands.Dispatch(1, 1, 1,
+                          { .sampledTextures = { &Depth, &normal, &slots, &total, &noise, &alpha },
+                            .storageTextures = { &mask },
+                            .buffers = { &frame, &localLighting, &lights, &localIndices, &materialBuffer, &drawBuffer, &textureBuffer,
+                                         &vertices, &indexBuffer, &uv } });
+        commands.SetPipeline(inspect);
+        commands.SetRootConstant({ mask.GetSrvIndex(), slots.GetSrvIndex(), total.GetSrvIndex(), output.GetUavIndex() });
+        commands.Dispatch(1, 1, 1, { .sampledTextures = { &mask, &slots, &total }, .storageBuffers = { &output } });
+        commands.CopyBuffer(readback, 0, output, 0, 16);
+        context.Wait(context.Submit(commands));
+        const uint32_t* values = (const uint32_t*)readback.Get()->pCpuMappedAddress;
+        EXPECT_EQ(values[0], hasScene ? 0xfeu : 0xffu);
+        EXPECT_EQ(values[1], hasScene ? 0x00020001u : 0u);
+        EXPECT_EQ(values[2], 0u);
+        EXPECT_EQ(values[3], hasScene ? 2u : 0u);
+    }
+
+    // A partial workgroup on both axes must survive the second reduction.
+    const auto countImage = [&](uint32_t width, uint32_t height)
+    {
+        return context.CreateTexture({ .Width = width,
+                                       .Height = height,
+                                       .Format = hz::Format::R32_UINT,
+                                       .StartState = RESOURCE_STATE_RENDER_TARGET,
+                                       .Descriptors = DescriptorType(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE),
+                                       .Flags = TEXTURE_CREATION_FLAG_FORCE_2D,
+                                       .GetRenderTarget = true });
+    };
+    const hz::GPUTexture oddCounts = countImage(17, 19), partial = countImage(2, 2);
+    hz::CommandList&     sum = context.AcquireCommandList();
+    sum.BeginRendering({ .colorAttachments = { { .pTexture = &oddCounts,
+                                                 .loadAction = LOAD_ACTION_CLEAR,
+                                                 .storeAction = STORE_ACTION_STORE,
+                                                 .ClearValue = { .r = 3.0f } } } });
+    sum.EndRendering();
+    sum.SetPipeline(reduce);
+    sum.SetRootConstant({ oddCounts.GetSrvIndex(), partial.GetUavIndex(), 17, 19 });
+    sum.Dispatch(2, 2, 1, { .sampledTextures = { &oddCounts }, .storageTextures = { &partial } });
+    sum.SetRootConstant({ partial.GetSrvIndex(), total.GetUavIndex(), 2, 2 });
+    sum.Dispatch(1, 1, 1, { .sampledTextures = { &partial }, .storageTextures = { &total } });
+    sum.SetPipeline(inspect);
+    sum.SetRootConstant({ mask.GetSrvIndex(), slots.GetSrvIndex(), total.GetSrvIndex(), output.GetUavIndex() });
+    sum.Dispatch(1, 1, 1, { .sampledTextures = { &mask, &slots, &total }, .storageBuffers = { &output } });
+    sum.CopyBuffer(readback, 0, output, 0, 16);
+    context.Wait(context.Submit(sum));
+    EXPECT_EQ(((const uint32_t*)readback.Get()->pCpuMappedAddress)[3], 17u * 19u * 3u);
 
     // Reuse the same scene to exercise the production raster shadow alpha test as well.
     SetResourceDirectoryPath(&fileSystem, MountProject, DirectoryOtherFiles, shaders.string().c_str());
@@ -2042,9 +2154,22 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
 
     // Normal incidence, white dielectric, specular 8/16. Test the smooth limit and a rough lobe as well as the HDR peak.
     clusters.BuildLightTileMasks(commands, clusterCamera, masks, lightList, activeLightList, localCount);
-    constexpr uint32_t roughnessCodes[] = { 0, 51, 255, 255 };
-    constexpr uint32_t lightingOffsets[] = { 182, 15, 183, 184 };
-    uint32_t           peakConstants[15];
+    const hz::GPUTexture localMask = image(1, 1, hz::Format::R8_UINT);
+    const hz::GPUTexture localSlots = image(1, 1, hz::Format::R32G32B32A32_UINT);
+    uint32_t             greenSlot = 0;
+    for (uint32_t i = 0; i < localOrder.Count; ++i)
+    {
+        if (localOrder.Data[i] == 1)
+        {
+            greenSlot = i + 1;
+        }
+    }
+    ASSERT_NE(greenSlot, 0u);
+    Clear(localMask, 254);
+    Clear(localSlots, float(greenSlot));
+    constexpr uint32_t roughnessCodes[] = { 0, 51, 255, 255, 255 };
+    constexpr uint32_t lightingOffsets[] = { 182, 15, 183, 184, 185 };
+    uint32_t           peakConstants[17];
     for (uint32_t& value : peakConstants)
     {
         value = UINT32_MAX;
@@ -2069,12 +2194,14 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
                                                           .storeAction = STORE_ACTION_STORE,
                                                           .ClearValue = { .r = 1, .g = 1, .b = 1, .a = 0 } } } });
         commands.EndRendering();
-        const hz::GPUBuffer& lighting = probe == 3 ? localLighting : peakLighting;
+        const hz::GPUBuffer& lighting = probe >= 3 ? localLighting : peakLighting;
+        peakConstants[15] = probe == 4 ? localMask.GetSrvIndex() : UINT32_MAX;
+        peakConstants[16] = probe == 4 ? localSlots.GetSrvIndex() : UINT32_MAX;
         peakConstants[1] = lighting.GetSrvIndex();
         commands.SetPipeline(deferred);
         commands.BeginRendering(
             { .colorAttachments = { { .pTexture = &mapped, .loadAction = LOAD_ACTION_DONTCARE, .storeAction = STORE_ACTION_STORE } } },
-            { .sampledTextures = { &black, &average, &peakNormal, &peakBase },
+            { .sampledTextures = { &black, &average, &peakNormal, &peakBase, &localMask, &localSlots },
               .buffers = { &peakFrame, &lighting, &lightList, &activeLightList, &uploadArena.GetBuffer(),
                            &masks } });
         commands.SetViewport(0, 0, 1, 1);
@@ -2217,7 +2344,7 @@ TEST_F(SceneAssetLoaderTest, CookbookPostExposureToneMapsAndBloomChainValues)
         {
             const float value = values[lightingOffsets[probe] * 4 + channel];
             EXPECT_TRUE(std::isfinite(value));
-            EXPECT_NEAR(value, expected, expected * 2e-5) << roughness;
+            EXPECT_NEAR(value, probe == 4 && channel == 1 ? 0.0 : expected, expected * 2e-5) << roughness;
         }
     }
     for (uint32_t x = 0; x < 6; ++x)

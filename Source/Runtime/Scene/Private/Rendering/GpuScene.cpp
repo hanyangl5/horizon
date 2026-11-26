@@ -50,7 +50,8 @@ static GpuLightData PackLight(const RenderLight& Light)
              .SoftSourceRadius = Light.SoftSourceRadius,
              .SourceLength = Light.SourceLength,
              .Id = Light.id,
-             .Texture = Light.texture };
+             .Texture = Light.texture,
+             .CastLocalShadow = Light.CastShadows && Light.CastRaytracedShadow != RayTracedShadow::Disabled };
 }
 
 struct GpuTable

@@ -21,6 +21,7 @@ cbuffer RootConstant0
     uint RtShadowAOIndex;
     uint RtReflectionIndex;
     uint GTAOIndex;
+    uint LocalShadowMaskIndex, LocalShadowSlotsIndex;
 };
 struct PSInput
 {
@@ -127,6 +128,13 @@ float4 PSMain(PSInput Input): SV_Target0
         Traced.GetDimensions(LowSize.x, LowSize.y);
         Upsample = UpsampleRT(Pixel.xy, Size, LowSize, length(WorldPos - Frame[0].Eye.xyz), DepthTexture, Frame[0]);
     }
+    else if (LocalShadowMaskIndex != INVALID_TEXTURE)
+    {
+        Texture2D<uint> Mask = ResourceDescriptorHeap[LocalShadowMaskIndex];
+        int2 LowSize;
+        Mask.GetDimensions(LowSize.x, LowSize.y);
+        Upsample = UpsampleRT(Pixel.xy, Size, LowSize, length(WorldPos - Frame[0].Eye.xyz), DepthTexture, Frame[0]);
+    }
     LightingBindings Bindings = { ShadowMapIndex, ShadowSamplerIndex,      EnvironmentIndex, IrradianceIndex,
                                   BrdfLutIndex,   EnvironmentSamplerIndex, RtShadowAOIndex,  RtReflectionIndex };
     float            Visibility = 1.0;
@@ -177,7 +185,28 @@ float4 PSMain(PSInput Input): SV_Target0
                                  smoothstep(RTReflectionFadeStart, RTReflectionMaxRoughness, GBuffer.Roughness));
     }
 
+    uint4 OccludedSlots = 0;
+    if (LocalShadowMaskIndex != INVALID_TEXTURE)
+    {
+        Texture2D<uint> Mask = ResourceDescriptorHeap[LocalShadowMaskIndex];
+        Texture2D<uint4> Slots = ResourceDescriptorHeap[LocalShadowSlotsIndex];
+        uint Best = 0;
+        for (uint I = 1; I < 4; ++I)
+            if (Upsample.Weights[I] > Upsample.Weights[Best]) Best = I;
+        int3 Tap = int3(Upsample.Taps[Best], 0);
+        uint Blocked = (~Mask.Load(Tap)) & 255u;
+        if (Blocked != 0)
+        {
+            uint4 Ids = Slots.Load(Tap);
+            while (Blocked != 0)
+            {
+                uint Slot = firstbitlow(Blocked);
+                OccludedSlots[Slot / 2] |= Ids[Slot / 2] & (0xffffu << (16 * (Slot & 1)));
+                Blocked &= Blocked - 1;
+            }
+        }
+    }
     const float3 DirectLighting = AccumulateMainLight(Light, GBuffer, V, Visibility) +
-                                  AccumulateScreenLights(uint2(Pixel.xy), Frame[0].Near, Light, GBuffer, WorldPos, V);
+                                  AccumulateScreenLights(uint2(Pixel.xy), Frame[0].Near, Light, GBuffer, WorldPos, V, OccludedSlots);
     return float4(float3(Scene) + DirectLighting + Indirect.Diffuse + Indirect.Specular, 1.0);
 }

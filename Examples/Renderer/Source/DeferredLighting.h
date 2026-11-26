@@ -44,6 +44,8 @@ struct LightingResources
     float                 ShadowConeRadius = 0;
     const hz::GPUTexture* ShadowMap = nullptr;
     const hz::GPUSampler* ShadowSampler = nullptr;
+    const hz::GPUTexture* LocalShadowMask = nullptr;
+    const hz::GPUTexture* LocalShadowSlots = nullptr;
     const hz::GPUTexture* RTShadowAO = nullptr;
     const hz::GPUTexture* RTReflection = nullptr;
     // Ambient occlusion for indirect light only; the pass never darkens direct light or the sky.

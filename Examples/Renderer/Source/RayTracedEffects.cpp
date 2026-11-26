@@ -1,3 +1,4 @@
+#include "../Shaders/RTLocalShadowConfig.h"
 #include "RayTracedEffects.h"
 #include "Profiler/IProfiler.h"
 #include "RayTracingScene.h"
@@ -34,11 +35,13 @@ static_assert(sizeof(RTConstants) == 23 * sizeof(uint32_t));
 hz::CVar        GRTShadows("r.RayTracing.Shadows", true, "Ray-traced shadows.");
 hz::CVar        GRTAO("r.RayTracing.AO", true, "Ray-traced AO takes precedence over GTAO.");
 hz::CVar        GRTReflections("r.RayTracing.Reflections", false, "Ray-traced reflections.");
+hz::CVar GRTLocalShadows("r.RayTracing.LocalShadows", true, "Adaptive half-resolution local light shadows.");
 static hz::CVar GRTAORadius("r.RayTracing.AO.Radius", 2.0f, 0.0001f, "Maximum occlusion ray distance in meters.");
 
 RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context), Supported(Context.SupportsRayTracing())
 {
     GRTShadows.SetAvailable(Supported);
+    GRTLocalShadows.SetAvailable(Supported);
     GRTAO.SetAvailable(Supported);
     GRTReflections.SetAvailable(Supported);
     GRTAORadius.SetAvailable(Supported);
@@ -52,6 +55,15 @@ RayTracedEffects::RayTracedEffects(hz::RenderContext& Context): Context(Context)
         .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = "main" } }, .pFileName = "RTShadowAO.slang" },
         .Name = "Renderer.RT.ShadowAO",
     });
+    const auto CreateLocalPipeline = [&](const char* File, const char* Entry)
+    {
+        return Context.CreateComputePipeline(
+            { .shaderDesc = { .stages = { { .stage = SHADER_STAGE_COMP, .pEntryPoint = Entry } }, .pFileName = File }, .Name = Entry });
+    };
+    ResolveLocalSlots = CreateLocalPipeline("RTLocalShadow.slang", "ResolveLocalShadowSlots");
+    ReduceLocalCounts = CreateLocalPipeline("RTLocalShadowReduce.slang", "ReduceLocalShadowCounts");
+    TraceLocalMask = CreateLocalPipeline("RTLocalShadow.slang", "TraceLocalShadowMask");
+    ASSERT(ResolveLocalSlots.IsValid() && ReduceLocalCounts.IsValid() && TraceLocalMask.IsValid());
     Denoiser = hz::MakeUnique<ScreenSpaceDenoise>(Context);
     ReflectionPipeline = Context.CreateRayTracingPipeline({
         .pFileName = "RTReflection.slang",
@@ -88,6 +100,14 @@ bool RayTracedEffects::Load()
 
 void RayTracedEffects::MarkDirty() { MarkedDirty = true; }
 
+void RayTracedEffects::UpdateScene(hz::CommandList& Commands, const hz::SceneView& View, const hz::GpuDrawList& Draws)
+{
+    Commands.BeginGpuTimestamp("RT Acceleration Structures");
+    RayScene->Update(Commands, View, Draws);
+    Commands.EndGpuTimestamp();
+    ++FrameIndex;
+}
+
 void RayTracedEffects::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer, const hz::SceneView& View,
                                const hz::GpuDrawList& Draws, const LightingResources& Lighting, const RayTracedEffectsTargets& Targets)
 {
@@ -118,9 +138,6 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, c
         MarkDirty();
     }
     AssetRevision = View.GpuScene.GetAssetTables().revision;
-    Commands.BeginGpuTimestamp("RT Acceleration Structures");
-    RayScene->Update(Commands, View, Draws);
-    Commands.EndGpuTimestamp();
     const hz::GPUAccelerationStructure& TLAS = RayScene->GetSceneTLAS();
     const hz::GPUBuffer&                DrawData = Draws.GetDrawData(View.FrameIndex);
     auto        Index = [](const hz::GPUTexture* Texture) { return Texture && Texture->IsValid() ? Texture->GetSrvIndex() : UINT32_MAX; };
@@ -143,7 +160,7 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, c
                                 .ShadowsEnabled = Current.Shadows,
                                 .AoEnabled = Current.AO,
                                 .AoSamples = TF_MAX(Settings.AOSamples, 1u),
-                                .FrameNumber = FrameIndex++,
+                                .FrameNumber = FrameIndex,
                                 .AlphaTestMethod = Settings.ShadowAlphaTestMethod,
                                 .RetraceMaxDepth = Settings.RetraceMaxDepth,
                                 .AoRadius = Current.AORadius,
@@ -182,4 +199,61 @@ void RayTracedEffects::Execute(hz::CommandList& Commands, hz::BufferSrv Frame, c
     Commands.EndGpuTimestamp();
     Denoiser->DenoiseReflections(Commands, Frame, GBuffer, Settings, Targets, !MarkedDirty);
     MarkedDirty = false;
+}
+
+void RayTracedEffects::TraceLocalShadows(hz::CommandList& Commands, hz::BufferSrv Frame, const DeferredGBuffer& GBuffer,
+                                         const hz::SceneView& View, const hz::GpuDrawList& Draws, const LightingResources& Lighting,
+                                         const LocalShadowTargets& Targets)
+{
+    const hz::GPUAccelerationStructure& TLAS = RayScene->GetSceneTLAS();
+    const uint32_t                      Width = Targets.Mask->GetWidth(), Height = Targets.Mask->GetHeight();
+    const uint32_t                      GroupsX = (Width + LOCAL_SHADOW_GROUP_SIZE - 1) / LOCAL_SHADOW_GROUP_SIZE,
+                                        GroupsY = (Height + LOCAL_SHADOW_GROUP_SIZE - 1) / LOCAL_SHADOW_GROUP_SIZE;
+    const hz::GPUBuffer&                DrawData = Draws.GetDrawData(View.FrameIndex);
+    const RTConstants                   Constants = {
+        .FrameIndexBuffer = Frame.Index,
+        .LightingIndex = Lighting.LightingFrame.Index,
+        .DrawsIndex = DrawData.GetSrvIndex(),
+        .MaterialsIndex = View.GpuScene.GetBuffers().materials.GetSrvIndex(),
+        .TexturesIndex = View.GpuScene.GetBuffers().textures.GetSrvIndex(),
+        .SamplerIndex = MaterialSampler.GetIndex(),
+        .TlasIndex = TLAS.IsValid() ? TLAS.GetSrvIndex() : UINT32_MAX,
+        .NormalIndex = GBuffer.NormalMaterial->GetSrvIndex(),
+        .DepthIndex = GBuffer.Depth->GetSrvIndex(),
+        .OutputIndex = Targets.Mask->GetUavIndex(),
+        .BlueNoiseIndex = BlueNoise.GetSrvIndex(),
+        .FrameNumber = FrameIndex,
+        .AlphaTestMethod = Settings.ShadowAlphaTestMethod,
+    };
+    constexpr uint32_t SlotOffset = sizeof(RTConstants) / sizeof(uint32_t);
+    Commands.BeginGpuTimestamp("Resolve local shadow slots");
+    Commands.SetPipeline(ResolveLocalSlots);
+    Commands.SetRootConstants(Constants);
+    Commands.SetRootConstant({ Targets.Slots->GetUavIndex(), Targets.Counts->GetUavIndex() }, SlotOffset);
+    Commands.Dispatch(GroupsX, GroupsY, 1,
+                      { .sampledTextures = { GBuffer.NormalMaterial, GBuffer.Depth },
+                        .storageTextures = { Targets.Slots, Targets.Counts },
+                        .buffers = { Frame.Buffer, Lighting.LightingFrame.Buffer, Lighting.LocalLights, Lighting.ActiveLocalLights,
+                                     Lighting.TileLightBitMasks } });
+    Commands.EndGpuTimestamp();
+    Commands.BeginGpuTimestamp("Reduce local shadow counts");
+    Commands.SetPipeline(ReduceLocalCounts);
+    Commands.SetRootConstant({ Targets.Counts->GetSrvIndex(), Targets.Partial->GetUavIndex(), GroupsX, GroupsY });
+    const uint32_t BlocksX = (GroupsX + LOCAL_SHADOW_GROUP_SIZE - 1) / LOCAL_SHADOW_GROUP_SIZE,
+                   BlocksY = (GroupsY + LOCAL_SHADOW_GROUP_SIZE - 1) / LOCAL_SHADOW_GROUP_SIZE;
+    Commands.Dispatch(BlocksX, BlocksY, 1, { .sampledTextures = { Targets.Counts }, .storageTextures = { Targets.Partial } });
+    Commands.SetRootConstant({ Targets.Partial->GetSrvIndex(), Targets.Total->GetUavIndex(), BlocksX, BlocksY });
+    Commands.Dispatch(1, 1, 1, { .sampledTextures = { Targets.Partial }, .storageTextures = { Targets.Total } });
+    Commands.EndGpuTimestamp();
+    Commands.BeginGpuTimestamp("Trace local shadow mask");
+    const hz::Dependencies SceneDependencies = Draws.GetDependencies(*Frame.Buffer, View);
+    Commands.SetPipeline(TraceLocalMask);
+    Commands.SetRootConstants(Constants);
+    Commands.SetRootConstant({ Targets.Slots->GetSrvIndex(), UINT32_MAX, Targets.Total->GetSrvIndex() }, SlotOffset);
+    Commands.Dispatch(GroupsX, GroupsY, 1,
+                      { .sampledTextures = { GBuffer.Depth, GBuffer.NormalMaterial, Targets.Slots, Targets.Total, &BlueNoise },
+                        .storageTextures = { Targets.Mask },
+                        .buffers = { Lighting.LightingFrame.Buffer, Lighting.LocalLights, Lighting.ActiveLocalLights },
+                        .pShared = &SceneDependencies });
+    Commands.EndGpuTimestamp();
 }

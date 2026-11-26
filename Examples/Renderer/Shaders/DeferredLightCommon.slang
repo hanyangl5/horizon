@@ -160,7 +160,7 @@ uint GetLightRangeMask(uint2 Range, uint FirstLight)
     return (~0u << First) & (~0u >> (LastBit - Last));
 }
 
-float3 AccumulateScreenLights(uint2 Pixel, float Near, LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V)
+float3 AccumulateScreenLights(uint2 Pixel, float Near, LightingFrameData Frame, FGBufferData GBuffer, float3 Position, float3 V, uint4 OccludedSlots = 0)
 {
     float3 Result = 0.0;
     // no local light in scene
@@ -204,6 +204,8 @@ float3 AccumulateScreenLights(uint2 Pixel, float Near, LightingFrameData Frame, 
                 continue;
             }
             const uint SortedIndex = FirstLight + Bit;
+            if (any((OccludedSlots & 0xffffu) == SortedIndex + 1u) || any((OccludedSlots >> 16u) == SortedIndex + 1u))
+                continue;
             GpuLightData Light = LoadLocalLight(Lights, Indices, Frame.LocalLightCount + SortedIndex);
             Result += EvaluateLocalLight(Light, GBuffer, Position, V);
         }

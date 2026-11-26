@@ -53,6 +53,7 @@ struct RenderTargets
     hz::FrameGraphTexture ShadowMap;
     hz::FrameGraphTexture Occlusion;
     hz::FrameGraphTexture OcclusionScratch;
+    hz::FrameGraphTexture LocalShadowMask, LocalShadowSlots, LocalShadowCounts, LocalShadowPartial, LocalShadowTotal;
     hz::FrameGraphTexture RTResult;
     hz::FrameGraphTexture RTScratch;
     hz::FrameGraphTexture RTReflection;
@@ -130,7 +131,7 @@ private:
     hz::FrameGraphPass                     SkinningGraphPass;
     hz::FrameGraphPass                     LightMaskPass;
     hz::FrameGraphPass                     GTAOGraphPass;
-    hz::FrameGraphPass                     RayTracingPass;
+    hz::FrameGraphPass                     RayScenePass, RayTracingPass, LocalShadowPass;
     hz::FrameGraphPass                     TransparencyPass;
     hz::FrameGraphPass                     TemporalAAPass;
     TemporalJitter                         PreviousJitter = TemporalJitter{};

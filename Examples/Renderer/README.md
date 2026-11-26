@@ -87,3 +87,18 @@ Losing window focus releases the mouse and stops movement. Each pass has a singl
 blue noise and acceleration structures remain alive. Resize resets render history.
 Shutdown waits for GPU work, then releases the render passes and GpuScene,
 RenderScene, World, asset manager/loaders and render context in order.
+
+### Ray-traced local shadows
+
+Enable `r.RayTracing.LocalShadows 1` with clustered lighting on a DXR device.
+Opaque deferred surfaces receive half-resolution local shadows. Each sampled receiver
+keeps the first eight contributing shadow casters in cluster order. An R8_UINT bit of
+one means visible. Eight 16-bit slots identify the sorted lights for that sample.
+Lights beyond the eight slots remain lit.
+
+The resolve pass sums slot counts per 16¡Á16 group. Two GPU reductions produce
+the screen total. Each slot receives an average of four times the half-resolution
+pixel count divided by that total, capped at 16 rays. Fractional counts use blue
+noise. Untraced slots stay visible, and partial visibility is quantized to one bit.
+The deferred pass selects a depth-weighted half-resolution sample before applying
+its slots. GPU timestamps cover slot resolution, count reduction and tracing.
